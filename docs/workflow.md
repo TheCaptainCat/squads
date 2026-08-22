@@ -101,14 +101,15 @@ sq workflow subentity-kinds    # every declared sub-entity kind: its fields, plu
 sq workflow collections        # every declared badge collection (priority, severity, or custom)
 sq workflow statuses           # every declared status, with the role each resolves to
 sq workflow roles              # every declared status role: settled / hidden / colour / live
+sq workflow lifecycles         # every declared lifecycle: initial state, states, transitions
 sq workflow lint               # validate the workflow override — collects all errors; exit 0 if OK
 ```
 
-The **catalog** subcommands (`types`, `subentity-kinds`, `collections`, `statuses`, `roles`) each
-take `--json` and emit a bare JSON array — that is the surface to read instead of hardcoding a type
-or status name, and the shapes are covered by the [stability contract](stability.md). Every row
-carries every key, `null` for absent rather than omitted, so a client can index a key without
-testing for its presence.
+The **catalog** subcommands (`types`, `subentity-kinds`, `collections`, `statuses`, `roles`,
+`lifecycles`) each take `--json` and emit a bare JSON array — that is the surface to read instead
+of hardcoding a type or status name, and the shapes are covered by the [stability
+contract](stability.md). Every row carries every key, `null` for absent rather than omitted, so a
+client can index a key without testing for its presence.
 
 ### Joining the catalogs
 
@@ -121,7 +122,8 @@ catalog uses as its identity. Follow the name to the other catalog:
 | `subentity-kinds` row | `fields[].collection` | `collections` | `collection` |
 | `types` row | `subentity_kind` | `subentity-kinds` | `subentity_kind` |
 | `statuses` row | `role` | `roles` | `role` |
-| `types` / `subentity-kinds` row | `lifecycle` | — no catalog in this release, see below | — |
+| `types` row | `lifecycle` | `lifecycles` | `lifecycle` |
+| `subentity-kinds` row | `lifecycle` | `lifecycles` | `lifecycle` |
 
 **Resolving a sub-entity's field label.** A sub-entity in `sq <type> <n> show --json` carries no
 kind of its own — you are holding the parent item's `type`, so the kind comes from the type
@@ -141,14 +143,24 @@ file), `container_heading` (the `## …` heading sq writes — read it rather th
 done" action should target, instead of assuming `Done`), and `maps_parent_story` (whether this kind
 carries the extra story column in its roll-up table).
 
-**`lifecycle` is a grouping key in this release, and nothing more.** Both the type row and the kind
-row carry the name of the state machine they bind, and equal values mean two entries bind the same
-machine — `epic`, `feature` and `task` all read `work`; `story` and `subtask` both read
-`subentity`. That is the whole of what it gives you here. There is no catalog to look the name up
-in, and nothing else in the `--json` surface exposes lifecycle membership either: `sq workflow
-statuses` is a flat `{status, role, badge}` list with no lifecycle field. So use it to group and
-compare, and do not go looking for a command that resolves it to a set of states — read the
-lifecycle diagrams in this document, or `sq workflow show`, for that.
+**Resolving a type's or a kind's state machine.** The type row and the kind row each carry the name
+of the state machine they bind — equal values mean two entries bind the same machine (`epic`,
+`feature` and `task` all read `work`; `story` and `subtask` both read `subentity`). Join that name
+into `sq workflow lifecycles --json`'s own `lifecycle` identity key to resolve it:
+
+```
+type row lifecycle "work" → lifecycles row {initial: "Draft", states: [...], transitions: [...]}
+```
+
+`initial` is the starting status. `states` is every status the machine declares — its `initial`
+plus every source and target in its transition map — listed in breadth-first discovery order from
+`initial`: a documented, deterministic order that stays the same across runs, but **not** the
+prettier happy-path-then-side-states order `sq workflow show`'s own diagrams use for a human
+reader. Declared and reachable are the same set, because a lifecycle that declares a status it
+cannot reach from `initial` is refused when the spec loads. `transitions` is every allowed move,
+one `{from, to}` object per edge, sourced in that same `states` order. A client builds a status
+quick-pick or a "what can this become" prompt directly from this row — no filtering of its own, and
+without scraping a diagram or driving a deliberately invalid transition to read the refusal text.
 
 `--raw` (plain markdown instead of Rich rendering) applies to the cheatsheet — `sq workflow` and
 `sq workflow show`. `sq workflow lint` reports through its exit code: 0 when the spec is clean, 1
@@ -369,6 +381,10 @@ and `[collections.*]`.
 A lifecycle defines the allowed state transitions for an item type or sub-entity kind. Each lifecycle must specify:
 - `initial` — the starting status when a new item is created
 - `transitions` — a map of allowed transitions (source status → list of target statuses)
+
+Every status the map mentions must be reachable from `initial` — a lifecycle carrying a state
+nothing reaches is refused, naming that state — and at least one reachable status must be a settled
+one, or items on the lifecycle could never close.
 
 ```toml
 [lifecycles.incident]

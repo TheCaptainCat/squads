@@ -134,6 +134,30 @@ model = "opus"
 # title, mission, responsibilities, etc. inherit from the bundled architect
 ```
 
+**A developer's override merges onto the developer you already have:**
+Developers aren't in the bundled catalog — they're created on demand by `sq dev add` — so a
+`roles/<tech>-dev.toml` merges over the definition that developer already carries rather than over
+a bundled entry. Everything that reads a role resolves it that way — `sq dev add`, `sq sync`,
+`sq role <slug> show`, `sq check`.
+
+```toml
+# .overrides/roles/python-dev.toml
+title = "Senior Python developer"
+# full_name, mission, responsibilities, model, etc. inherit from the live python-dev role
+```
+
+Three rules follow from that base:
+
+- **Fields you omit keep the role's current values.** A file that sets only `title` changes only
+  the title.
+- **A field you declare wins — including `full_name`, which renames the developer.** That is the
+  same thing declaring `full_name` does for a bundled role.
+- **A name you never wrote is never invented.** Omit `full_name` and the developer keeps the name
+  they already have, whether it came from `--name` or from the pool.
+
+A file for a tech you haven't added yet is accepted rather than refused, so you can write the
+override first and run `sq dev add --tech <tech>` afterwards.
+
 **The workflow override merges by field too, and can also drop:**
 `workflow.toml` composes over the bundled vocabulary the same way — write the fields you want
 changed, inherit the rest, and use a `[selected]` list to remove a built-in entirely. See
@@ -993,6 +1017,9 @@ sq override scaffold subentities/story.md.j2
 # Copy a role TOML override (a bundled role, to change its name/model/etc.)
 sq override scaffold --role architect
 
+# Same for a developer already on your roster
+sq override scaffold --role python-dev
+
 # Start a wholly custom, non-dev role that isn't in the bundled catalog
 sq override scaffold --new security-analyst
 sq override scaffold --new security-analyst --can-spawn   # opt it into spawning subagents
@@ -1008,8 +1035,9 @@ sq override scaffold items/task.md.j2 --force
 ```
 
 **What it does:**
-- `--role <slug>` copies the named bundled role into `.overrides/roles/` as an (initially empty)
-  TOML stub to override fields on.
+- `--role <slug>` writes an (initially empty) TOML stub for the named role into
+  `.overrides/roles/`, ready for the fields you want to override. A developer slug
+  (`python-dev`) works the same as a bundled one.
 - `--new <slug>` starts a **brand-new, non-bundled** role: the essential fields (`full_name`,
   `title`, `description`, `mission`) are stubbed as active keys, the advanced fields
   (`responsibilities`, `agreements`, `model`, `color`, `can_spawn`) are included commented out.
@@ -1144,6 +1172,11 @@ manager = "Team Lead"
 tech-writer = "Documentation Lead"
 ```
 
+Writing the file before you initialise means `sq init` finds one already there, so pass
+`sq init --force` — your `[init.names]` table survives it. A `--name` flag beats the table for the
+same slug, and the table is read at `init` only: a role you activate later takes its name from
+`--name` or from the bundled catalog, never from this table.
+
 **Interactive prompting (at a TTY):**
 
 When you run `sq init` at an interactive terminal without supplying all names, squads prompts you:
@@ -1182,6 +1215,11 @@ sq dev add --tech python --name "Pythonista"
 
 Omit the name and the role falls back to its bundled or pooled default.
 
+`--name` only applies while the role is being created. Activating a role that is already live is a
+no-op that returns the existing entry untouched — it reports success, and a `--name` you passed
+with it does nothing. Rename a live role through its override instead (see
+[Which name wins](#which-name-wins) below).
+
 ### How names flow into your squad
 
 The chosen name is stored in the ROLE item's frontmatter (`extra.full_name`). Everything
@@ -1194,6 +1232,47 @@ downstream reads from there:
 If you want to rename a role later, use the same role-override mechanism — see
 ["Override a role's name and model"](#override-a-roles-name-and-model) below — then run
 `sq sync` to regenerate the pointer and `CLAUDE.md` section from it.
+
+### Which name wins
+
+Four things can name a role — an `init` flag, the `[init.names]` table, the `init` prompt, and
+`--name` on `sq role activate` or `sq dev add` — and a role override can name it a fifth time.
+They do not compete for long, because the first four all write the same field: whichever of them
+applied is simply *the name stored on the role*. So the order is short, and `sq sync` honours it
+every time it runs:
+
+1. **`full_name` declared in `.overrides/roles/<slug>.toml`.** A declared name renames the role;
+   an omitted one leaves the stored name alone.
+2. **The name already stored on the role**, however it got there — a flag, the config table, the
+   prompt, `sq role activate --name`, or `sq dev add --name`.
+3. **The bundled catalog's name** — or, for a `<tech>-dev` slug with no role yet, a name picked
+   from the developer pool.
+
+**What `sq sync` keeps, and what it refreshes.** The name is kept: sync never puts the bundled one
+back over yours. So is a developer's `--model`, the other field `sq dev add` lets you choose.
+Everything else in a role's definition — mission, responsibilities, spawn authority, a bundled
+role's model, its preloaded skills — is refreshed from the bundled definition (or from your
+override) on every sync, so an improvement squads ships reaches a role you activated long ago.
+
+**A rename is a real edit.** Declaring a new `full_name` and syncing moves the role's `updated_at`
+and shows up in `sq reflog` as an update carrying the old and new names. Syncing again with the
+same override changes nothing further. And a rename is not a temporary coat of paint: once the
+override's name has been applied, that *is* the stored name, so deleting the override afterwards
+leaves the new name in place rather than restoring the old one.
+
+**If a role is showing the bundled name where you set your own**, write the name you want into
+that role's override and sync once:
+
+```toml
+# .overrides/roles/architect.toml
+full_name = "Chief Designer"
+```
+
+```bash
+sq sync
+```
+
+That is the whole repair — it names the role and, being stored, the name then stands on its own.
 
 ### Slug immutability
 
@@ -1256,6 +1335,26 @@ model = "haiku"
 
 The rest of the architect's definition (title, mission, responsibilities) stays the same. Run `sq
 sync` to regenerate the pointer and CLAUDE.md section.
+
+### Retitle a developer without renaming them
+
+You added a Python developer with `sq dev add --tech python` and you want them addressed as a
+"Senior Python developer" — but you're happy with the name they were given. Scaffold the override
+and set one field:
+
+```bash
+sq override scaffold --role python-dev
+```
+
+```toml
+# .overrides/roles/python-dev.toml
+title = "Senior Python developer"
+```
+
+Run `sq sync`. The new title reaches the role's definition under `squads/agents/roles/`, its
+pointer in `.claude/`, and the agent roster in `CLAUDE.md`; the developer's name, model, mission
+and responsibilities are untouched, because the file didn't mention them. Add `full_name` to the
+same file when you do want to rename them.
 
 ### Define a custom role
 

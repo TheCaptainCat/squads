@@ -25,6 +25,40 @@ def test_dir_override_targets_a_squad_from_an_unrelated_cwd(runner, tmp_path, mo
     assert "ROLE-1" in result.output
 
 
+def test_dir_override_resolves_the_addressed_item_form_from_an_unrelated_cwd(
+    runner, tmp_path, monkeypatch
+):
+    """``sq <type> <n> <verb>`` crosses the sync/async bridge twice — the id-resolving group
+    callback, then the leaf verb — and now shares one memoized ``Service`` across both. That
+    memo must not change what either crossing resolves: ``--dir`` consults no cwd at all, and
+    both crossings must still land on the squad it names, from an unrelated cwd."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--no-seed-skills", "--squad-dir", "alt", "--roles", "minimal"])
+
+    other = tmp_path / "sub"
+    other.mkdir()
+    monkeypatch.chdir(other)
+
+    result = runner.invoke(app, ["--dir", str(tmp_path / "alt"), "role", "1", "show", "--json"])
+    assert result.exit_code == 0, result.output
+    assert '"id": "ROLE-1"' in result.output
+
+
+def test_walk_up_resolution_is_unchanged_for_the_addressed_item_form(runner, tmp_path, monkeypatch):
+    """The other resolution mode (no ``--dir``, walk up from the client cwd) for the same
+    two-crossing form, so the memo is proven not to have widened or narrowed either path."""
+    monkeypatch.chdir(tmp_path)
+    runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])
+
+    nested = tmp_path / "nested" / "deeper"
+    nested.mkdir(parents=True)
+    monkeypatch.chdir(nested)
+
+    result = runner.invoke(app, ["role", "1", "show", "--json"])
+    assert result.exit_code == 0, result.output
+    assert '"id": "ROLE-1"' in result.output
+
+
 def test_ref_add_help_mentions_the_workflow_command(runner, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])

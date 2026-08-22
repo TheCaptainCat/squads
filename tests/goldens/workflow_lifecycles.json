@@ -1,0 +1,376 @@
+[
+  {
+    "lifecycle": "adr",
+    "initial": "Proposed",
+    "states": [
+      "Proposed",
+      "Accepted",
+      "Rejected",
+      "Superseded",
+      "Deprecated"
+    ],
+    "transitions": [
+      {
+        "from": "Proposed",
+        "to": "Accepted"
+      },
+      {
+        "from": "Proposed",
+        "to": "Rejected"
+      },
+      {
+        "from": "Accepted",
+        "to": "Superseded"
+      },
+      {
+        "from": "Accepted",
+        "to": "Deprecated"
+      },
+      {
+        "from": "Rejected",
+        "to": "Proposed"
+      }
+    ]
+  },
+  {
+    "lifecycle": "agent",
+    "initial": "Active",
+    "states": [
+      "Active",
+      "Archived"
+    ],
+    "transitions": [
+      {
+        "from": "Active",
+        "to": "Archived"
+      },
+      {
+        "from": "Archived",
+        "to": "Active"
+      }
+    ]
+  },
+  {
+    "lifecycle": "bug",
+    "initial": "Open",
+    "states": [
+      "Open",
+      "InProgress",
+      "WontFix",
+      "Cancelled",
+      "Fixed",
+      "Blocked",
+      "Verified"
+    ],
+    "transitions": [
+      {
+        "from": "Open",
+        "to": "InProgress"
+      },
+      {
+        "from": "Open",
+        "to": "WontFix"
+      },
+      {
+        "from": "Open",
+        "to": "Cancelled"
+      },
+      {
+        "from": "InProgress",
+        "to": "Fixed"
+      },
+      {
+        "from": "InProgress",
+        "to": "Blocked"
+      },
+      {
+        "from": "InProgress",
+        "to": "WontFix"
+      },
+      {
+        "from": "InProgress",
+        "to": "Cancelled"
+      },
+      {
+        "from": "WontFix",
+        "to": "Open"
+      },
+      {
+        "from": "Cancelled",
+        "to": "Open"
+      },
+      {
+        "from": "Fixed",
+        "to": "Verified"
+      },
+      {
+        "from": "Fixed",
+        "to": "InProgress"
+      },
+      {
+        "from": "Blocked",
+        "to": "InProgress"
+      },
+      {
+        "from": "Blocked",
+        "to": "WontFix"
+      },
+      {
+        "from": "Blocked",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Verified",
+        "to": "InProgress"
+      }
+    ]
+  },
+  {
+    "lifecycle": "finding",
+    "initial": "Open",
+    "states": [
+      "Open",
+      "Fixed",
+      "WontFix",
+      "Verified"
+    ],
+    "transitions": [
+      {
+        "from": "Open",
+        "to": "Fixed"
+      },
+      {
+        "from": "Open",
+        "to": "WontFix"
+      },
+      {
+        "from": "Fixed",
+        "to": "Verified"
+      },
+      {
+        "from": "Fixed",
+        "to": "Open"
+      },
+      {
+        "from": "WontFix",
+        "to": "Open"
+      }
+    ]
+  },
+  {
+    "lifecycle": "guide",
+    "initial": "Draft",
+    "states": [
+      "Draft",
+      "Published",
+      "Deprecated"
+    ],
+    "transitions": [
+      {
+        "from": "Draft",
+        "to": "Published"
+      },
+      {
+        "from": "Published",
+        "to": "Deprecated"
+      },
+      {
+        "from": "Published",
+        "to": "Draft"
+      },
+      {
+        "from": "Deprecated",
+        "to": "Published"
+      }
+    ]
+  },
+  {
+    "lifecycle": "review",
+    "initial": "Requested",
+    "states": [
+      "Requested",
+      "InReview",
+      "Rejected",
+      "ChangesRequested",
+      "Approved"
+    ],
+    "transitions": [
+      {
+        "from": "Requested",
+        "to": "InReview"
+      },
+      {
+        "from": "Requested",
+        "to": "Rejected"
+      },
+      {
+        "from": "InReview",
+        "to": "ChangesRequested"
+      },
+      {
+        "from": "InReview",
+        "to": "Approved"
+      },
+      {
+        "from": "InReview",
+        "to": "Rejected"
+      },
+      {
+        "from": "ChangesRequested",
+        "to": "InReview"
+      },
+      {
+        "from": "ChangesRequested",
+        "to": "Approved"
+      },
+      {
+        "from": "ChangesRequested",
+        "to": "Rejected"
+      }
+    ]
+  },
+  {
+    "lifecycle": "subentity",
+    "initial": "Todo",
+    "states": [
+      "Todo",
+      "InProgress",
+      "Blocked",
+      "Cancelled",
+      "Done"
+    ],
+    "transitions": [
+      {
+        "from": "Todo",
+        "to": "InProgress"
+      },
+      {
+        "from": "Todo",
+        "to": "Blocked"
+      },
+      {
+        "from": "Todo",
+        "to": "Cancelled"
+      },
+      {
+        "from": "InProgress",
+        "to": "Done"
+      },
+      {
+        "from": "InProgress",
+        "to": "Blocked"
+      },
+      {
+        "from": "InProgress",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Blocked",
+        "to": "InProgress"
+      },
+      {
+        "from": "Blocked",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Cancelled",
+        "to": "Todo"
+      },
+      {
+        "from": "Done",
+        "to": "InProgress"
+      }
+    ]
+  },
+  {
+    "lifecycle": "work",
+    "initial": "Draft",
+    "states": [
+      "Draft",
+      "Ready",
+      "InProgress",
+      "Cancelled",
+      "Blocked",
+      "InReview",
+      "Done"
+    ],
+    "transitions": [
+      {
+        "from": "Draft",
+        "to": "Ready"
+      },
+      {
+        "from": "Draft",
+        "to": "InProgress"
+      },
+      {
+        "from": "Draft",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Ready",
+        "to": "InProgress"
+      },
+      {
+        "from": "Ready",
+        "to": "Blocked"
+      },
+      {
+        "from": "Ready",
+        "to": "Cancelled"
+      },
+      {
+        "from": "InProgress",
+        "to": "InReview"
+      },
+      {
+        "from": "InProgress",
+        "to": "Blocked"
+      },
+      {
+        "from": "InProgress",
+        "to": "Done"
+      },
+      {
+        "from": "InProgress",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Cancelled",
+        "to": "Draft"
+      },
+      {
+        "from": "Blocked",
+        "to": "Ready"
+      },
+      {
+        "from": "Blocked",
+        "to": "InProgress"
+      },
+      {
+        "from": "Blocked",
+        "to": "Cancelled"
+      },
+      {
+        "from": "InReview",
+        "to": "InProgress"
+      },
+      {
+        "from": "InReview",
+        "to": "Done"
+      },
+      {
+        "from": "InReview",
+        "to": "Blocked"
+      },
+      {
+        "from": "InReview",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Done",
+        "to": "InProgress"
+      }
+    ]
+  }
+]

@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 import anyio
 import typer
 import typer._click as _click  # underscore is upstream's own private module path, not ours
+import typer._click.globals as _click_globals  # ditto — upstream's, not ours
 import typer.core
 import typer.main
 from rich.console import Console, Group, RenderableType
@@ -24,6 +25,7 @@ from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._context import get_context, rebind
 from squads._errors import SquadsError
+from squads._index._store import enter_read_scope, exit_read_scope
 from squads._models._item import (
     DEFAULT_KIND,
     DISPLAY_ID_PADDING,
@@ -232,7 +234,8 @@ def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
     ) -> None:
         err_console.print(
             f"[red]error:[/red] {cmd_name!r} is not a declared item-type alias in this "
-            f"squad's workflow spec — {e(detail)}. Use `sq {e(owner)}` instead."
+            f"squad's workflow spec — {e(detail)}. Use `sq {e(owner)}` instead.",
+            soft_wrap=True,
         )
         raise typer.Exit(1)
 
@@ -370,7 +373,7 @@ def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
     def _refuse(  # pyright: ignore[reportUnusedFunction] — registered by the decorator above
         rest: list[str] = typer.Argument(None, hidden=True),
     ) -> None:
-        err_console.print(f"[red]error:[/red] {e(message)}")
+        err_console.print(f"[red]error:[/red] {e(message)}", soft_wrap=True)
         raise typer.Exit(1)
 
     leaf: _click.Command = typer.main.get_command(refusal_app)  # type: ignore[assignment]
@@ -434,7 +437,8 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
     console.print(f"added [bold]{res.local_id}[/bold] to {parent_id}")
     console.print(
         f'  set its body:  [cyan]sq {kind} body {parent_id} {res.local_id} -m "…"[/cyan]'
-        "  [dim](or --file body.md / --file -)[/dim]"
+        "  [dim](or --file body.md / --file -)[/dim]",
+        soft_wrap=True,
     )
     if res.title_advisory is not None:
         console.print(e(res.title_advisory))
@@ -903,9 +907,88 @@ async def build_item_json(svc: Service, it: Item) -> str:
     return json.dumps(payload)
 
 
+#: ``click.Context.meta`` key: presence means *this* CLI invocation's read scope was opened
+#: by an earlier ``command``-wrapped call in the same dispatch tree and is still open, so a
+#: later call must not open a second one. Prefixed per Click's own convention for ``meta``
+#: keys (avoid colliding with another extension's).
+_READ_SCOPE_META_KEY = "squads.read_scope_token"
+
+#: ``click.Context.meta`` key for the invocation-scoped ``Service`` memo (see
+#: :func:`get_service`). Populated only by the *plain* (``open_service``, cross-checked)
+#: construction path — never by the bypass path below — so a plain caller can never be handed
+#: a bypass-built instance by reading this key.
+_SERVICE_META_KEY = "squads.service_memo"
+
+#: ``click.Context.meta`` key for the bypass-built ``Service`` memo (see
+#: :func:`get_service_bypassing_index_cross_check`). Populated only when the plain path has
+#: actually raised, so a caller that asked for the cross-check never ends up with an instance
+#: that skipped it.
+_BYPASS_SERVICE_META_KEY = "squads.service_memo_bypass"
+
+
+def _click_root_context() -> _click.core.Context | None:
+    """The current Click invocation's root context, or ``None`` outside of one.
+
+    ``command``-wrapped functions are only ever invoked *by* Click, so this only returns
+    ``None`` in the one case that matters: a stray direct call with no Click dispatch at all
+    (defensive; never observed in practice).
+    """
+    ctx = _click_globals.get_current_context(silent=True)
+    return ctx.find_root() if ctx is not None else None
+
+
 def get_service() -> Service:
+    """Build (or reuse) the invocation's ``Service``.
+
+    ``sq <type> <n> <verb>`` crosses the sync/async bridge twice for one user-facing
+    invocation — the Typer group's id-resolving callback and the leaf verb, as two sequential
+    ``anyio.run`` calls (see :func:`command`) — and each used to mint its own ``Service`` and
+    its own ``IndexStore``, so the read scope's per-store cache never actually shared a store
+    across them: two reads for one invocation, short of the request-scoped read design's
+    "one invocation observes one index state" promise for that form.
+
+    Memoized on the same anchor the read scope already uses — the Click root context's
+    ``meta`` — and gated on the *same* condition that opens the scope
+    (:data:`_READ_SCOPE_META_KEY` present), not merely on a root context existing. That gate is
+    what keeps ``sq ui`` — a sync command that never passes through :func:`command`, so no
+    scope is ever opened for it — from also getting a Service pinned for its session: it opts
+    out of both for the same reason, on the same check, rather than needing a second one to
+    remember.
+    """
+    root = _click_root_context()
+    if root is not None and _READ_SCOPE_META_KEY in root.meta:
+        cached: Service | None = root.meta.get(_SERVICE_META_KEY)
+        if cached is not None:
+            return cached
+        svc = _build_plain_service()
+        root.meta[_SERVICE_META_KEY] = svc
+        return svc
+    return _build_plain_service()
+
+
+def _build_plain_service() -> Service:
+    """Build the invocation's ``Service`` via ``open_service``, without repeating work the
+    root callback's :func:`bind_active_spec` already did for this exact invocation.
+
+    ``RequestContext.active_spec`` is that already-resolved spec — merged and, for an
+    override, already cross-checked against the live index — so it is threaded straight
+    through as ``open_service``'s ``resolved_spec``, which skips re-running
+    ``load_workflow_spec``/``validate_against_index_fail_closed`` a second time on the same
+    corpus. ``RequestContext.spec_error`` is the cached refusal from that same earlier
+    resolution: raised directly rather than calling ``open_service`` again just to have it
+    reproduce the identical ``SquadsError`` a second time (and reparse the index a second time
+    doing so). This is the second memo A4 asks to hang off the first (:data:`_SERVICE_META_KEY`
+    already collapses the two bridge crossings into one construction) — not a second anchor,
+    just this call reading the one spec resolution the root callback already anchored.
+
+    Outside a squad (``bind_active_spec`` itself couldn't resolve a dir) both fields are
+    ``None`` and this falls through to ``open_service``'s own independent resolution, which
+    raises the same "not a squad" error it always has.
+    """
     ctx = get_context()
-    return open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+    if ctx.spec_error is not None:
+        raise SquadsError(ctx.spec_error)
+    return open_service(ctx.active_dir, client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec)
 
 
 def get_service_bypassing_index_cross_check() -> Service:
@@ -925,19 +1008,41 @@ def get_service_bypassing_index_cross_check() -> Service:
        blocked by a corpus mismatch the cross-check would refuse over.
     3. If even that fails (a genuinely broken override, unrelated to the index), the bundled
        spec — the same last-resort ``sq check`` already falls back to for the same reason.
+
+    The fallback instance (step 2/3) is memoized under its own key
+    (:data:`_BYPASS_SERVICE_META_KEY`), separate from :func:`get_service`'s
+    (:data:`_SERVICE_META_KEY`), so the two constructions can never shadow each other within
+    one invocation: a plain caller reading :data:`_SERVICE_META_KEY` can never observe a
+    cross-check-skipping instance, and this function reusing its own memo never masks a
+    genuine, still-current refusal behind a stale success.
     """
+    root = _click_root_context()
+    if root is not None and _READ_SCOPE_META_KEY in root.meta:
+        cached: Service | None = root.meta.get(_BYPASS_SERVICE_META_KEY)
+        if cached is not None:
+            return cached
+        try:
+            return get_service()
+        except SquadsError:
+            svc = _build_bypass_fallback_service()
+            root.meta[_BYPASS_SERVICE_META_KEY] = svc
+            return svc
     try:
         return get_service()
     except SquadsError:
-        ctx = get_context()
-        sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
-        try:
-            from squads._workflow._loader import load_workflow_spec
+        return _build_bypass_fallback_service()
 
-            merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-        except SquadsError:
-            merged_spec = bundled_spec()
-        return Service(sp, spec=merged_spec)
+
+def _build_bypass_fallback_service() -> Service:
+    ctx = get_context()
+    sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
+    try:
+        from squads._workflow._loader import load_workflow_spec
+
+        merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
+    except SquadsError:
+        merged_spec = bundled_spec()
+    return Service(sp, spec=merged_spec)
 
 
 def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
@@ -946,7 +1051,7 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
         try:
             return fn(*args, **kwargs)
         except SquadsError as exc:
-            err_console.print(f"[red]error:[/red] {e(exc)}")
+            err_console.print(f"[red]error:[/red] {e(exc)}", soft_wrap=True)
             raise typer.Exit(1) from exc
 
     return wrapper
@@ -958,17 +1063,58 @@ def command[**P](fn: Callable[P, Awaitable[None]]) -> Callable[P, None]:
     Wraps an ``async def`` Typer command so Typer sees a sync callable, there is exactly one
     ``anyio.run`` per invocation, and ``SquadsError`` becomes a clean message + ``typer.Exit(1)``
     (subsuming the old ``@handle_errors``).
+
+    Also where a request-scoped index read (:func:`squads._index._store.read_scope`'s
+    underlying ``enter_read_scope``/``exit_read_scope`` pair) is opened for the invocation, and
+    where the invocation-scoped ``Service`` memo (:func:`get_service`) becomes live — both hang
+    off the same root-context marker (:data:`_READ_SCOPE_META_KEY`), one anchor for both.
+    ``sq <type> <n> <verb>`` crosses *this* bridge twice for one invocation the user thinks
+    of as one command — once for the Typer group's own id-resolving ``@item.callback()``
+    (e.g. ``_resolve`` in ``_cli/_items.py``), and again for the leaf verb — two separate,
+    sequential ``anyio.run`` calls, not one nested inside the other, so a scope opened inside
+    the first call's own coroutine is already closed before the second call's coroutine
+    starts. Both calls share exactly one Click root ``Context`` for the one real invocation
+    they're both part of (Click builds it once per dispatch, before resolving anything), so
+    the *first* ``command``-wrapped call in the tree opens the scope and records that on the
+    root context's ``meta`` (:data:`_READ_SCOPE_META_KEY`); every later call in the same tree
+    sees that marker, leaves the existing scope alone, and — because ``get_service()`` gates
+    its own memo on that same marker — reuses the first call's ``Service`` instead of minting a
+    second one. That is what takes the addressed-item form from two index reads to one: before
+    this, each crossing built its own ``Service``/``IndexStore``, so the read scope's
+    store-identity-keyed cache never actually had a store to share. The root context's own
+    ``call_on_close`` — which Click fires exactly once, after every nested command in the
+    tree has finished, success or error — is what closes it, so teardown happens once, at the
+    true end of the invocation, not at the end of whichever call happened to open it.
+
+    ``sq ui`` is a sync command that never passes through here at all, so it opts out for
+    free and keeps today's always-fresh behaviour — no scope, no memoized ``Service``, both on
+    the one gate.
     """
 
     @functools.wraps(fn)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+        root = _click_root_context()
+        if root is not None and _READ_SCOPE_META_KEY not in root.meta:
+            root.meta[_READ_SCOPE_META_KEY] = enter_read_scope()
+            root.call_on_close(functools.partial(_close_read_scope, root))
         try:
             anyio.run(functools.partial(fn, *args, **kwargs))
         except SquadsError as exc:
-            err_console.print(f"[red]error:[/red] {e(exc)}")
+            err_console.print(f"[red]error:[/red] {e(exc)}", soft_wrap=True)
             raise typer.Exit(1) from exc
 
     return wrapper
+
+
+def _close_read_scope(root: _click.core.Context) -> None:
+    """``call_on_close`` callback: undo the one scope opened for this invocation, if any, and
+    drop the ``Service`` memo(s) that hung off the same marker — nothing outlives the
+    invocation that built it."""
+    token = root.meta.pop(_READ_SCOPE_META_KEY, None)
+    if token is not None:
+        exit_read_scope(token)
+    root.meta.pop(_SERVICE_META_KEY, None)
+    root.meta.pop(_BYPASS_SERVICE_META_KEY, None)
 
 
 def version_tuple(version: str) -> tuple[int, ...]:
@@ -989,7 +1135,8 @@ def version_notice() -> None:
     if recorded and version_tuple(__version__) > version_tuple(recorded):
         err_console.print(
             f"[yellow]squads {__version__} detected (managed files at {recorded}). "
-            f"Run `sq sync` to refresh them.[/yellow]"
+            f"Run `sq sync` to refresh them.[/yellow]",
+            soft_wrap=True,
         )
 
 
@@ -1011,12 +1158,14 @@ def require_current_schema(subcommand: str | None) -> None:
         err_console.print(
             f"[red]error:[/red] this squad is at schema v{disk}; squads {__version__} "
             f"expects v{SCHEMA_VERSION}. Run [bold]sq migrate up[/bold] to upgrade it "
-            "(see `sq migrate help`)."
+            "(see `sq migrate help`).",
+            soft_wrap=True,
         )
     else:
         err_console.print(
             f"[red]error:[/red] this squad is at schema v{disk}, newer than squads "
-            f"{__version__} (v{SCHEMA_VERSION}). Upgrade the squads package."
+            f"{__version__} (v{SCHEMA_VERSION}). Upgrade the squads package.",
+            soft_wrap=True,
         )
     raise typer.Exit(1)
 
@@ -1198,7 +1347,8 @@ class AddressDispatchGroup(typer.core.TyperGroup):
             if not has_verb and "--help" not in remaining:
                 err_console.print(
                     f"[red]error:[/red] missing verb after address {cmd_name!r}. "
-                    f"Usage: sq {ctx.info_name} <slug|id|n> {self._ADDR_VERBS}"
+                    f"Usage: sq {ctx.info_name} <slug|id|n> {self._ADDR_VERBS}",
+                    soft_wrap=True,
                 )
                 raise typer.Exit(1)
             # Use a readable display name instead of "_addr" so help/error output shows
@@ -1309,7 +1459,7 @@ def register_status_verb(
             else:
                 console.print("  --unlink: no references severed (nothing was severable)")
         for warning in result.warnings:
-            console.print(f"[yellow]warning:[/yellow] {e(warning)}")
+            console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
 
 
 def resolve_local_id(token: str, kind: str) -> str:

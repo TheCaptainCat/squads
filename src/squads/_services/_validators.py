@@ -38,6 +38,7 @@ from squads._backends._base import BackendContext
 from squads._backends._registry import get_backend
 from squads._interactions import (
     TITLE_ADVISORY_MAX,
+    is_live_roster_entry,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
 )
@@ -52,6 +53,7 @@ from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
     ROSTER_ROLE,
+    ROSTER_SKILL,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
     VALIDATOR_NAMES,
     WorkflowSpec,
@@ -506,23 +508,125 @@ def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     return issues
 
 
+def live_roster_slugs(ctx: SquadGlobalContext) -> tuple[frozenset[str], frozenset[str]]:
+    """The roster-scoped ``(live role slugs, live skill slugs)`` pair
+    :func:`backend_entry_candidates` hands to each backend's ``managed_entry_paths`` — derived
+    from ``ctx.index`` via :func:`~squads._interactions.is_live_roster_entry`, the exact
+    predicate ``ServiceCore._project_roster_item`` uses to materialise/withdraw. Never a fixed
+    or historical slug list, so a retire/reactivate cycle can never leave a false positive (the
+    retired side) or a false negative (the reactivated side) on either backend.
+
+    Not underscored: :meth:`MaintenanceMixin._confirm_cross_source` calls this a second time,
+    against a freshly reloaded index, to recompute the live set a per-entry candidate is
+    confirmed against — see :func:`backend_entry_missing`.
+    """
+    roles = frozenset(
+        slug
+        for it in ctx.index.items.values()
+        if it.type == ROSTER_ROLE
+        and is_live_roster_entry(it, ctx.spec)
+        and (slug := it.extra.get(X.SLUG))
+    )
+    skills = frozenset(
+        slug
+        for it in ctx.index.items.values()
+        if it.type == ROSTER_SKILL
+        and is_live_roster_entry(it, ctx.spec)
+        and (slug := it.extra.get(X.SLUG))
+    )
+    return roles, skills
+
+
 def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """← ``_check_backends``: each active backend's managed files exist on disk."""
+    """← ``_check_backends``: each active backend's fixed top-level managed files exist on
+    disk — reported at **error**, since nothing short of ``sq sync`` explains their absence
+    away. Reads only ``ctx.paths.config.active_backends`` and the disk, never ``ctx.index``,
+    so — unlike the per-entry roster pointer check below — nothing racing a concurrent item
+    mutation can make this one flicker; it needs no confirm round.
+
+    A per-entry roster pointer (``managed_entry_paths``) is a *different* claim, reported at
+    **warn** for reasons stated where it now lives: :func:`backend_entry_candidates` and
+    :func:`backend_entry_missing`, confirmed through ``check``'s one confirm round exactly like
+    ``index_reconciled``'s two directions (see :meth:`MaintenanceMixin._confirm_cross_source`).
+    It used to be computed here, unconfirmed, until making it roster- (and therefore
+    index-) derived turned it cross-source.
+    """
     bctx = BackendContext(paths=ctx.paths, spec=ctx.spec)
     issues: list[CheckIssue] = []
     for name in ctx.paths.config.active_backends:
         backend = get_backend(name)
-        for rel_path in backend.managed_paths(bctx):
-            full = bctx.root / rel_path
-            if not full.exists():
-                issues.append(
-                    CheckIssue(
-                        "error",
-                        rel_path,
-                        f"managed file missing — run `sq sync` (backend: {backend.name})",
-                    )
-                )
+        issues.extend(
+            CheckIssue(
+                "error",
+                rel_path,
+                f"managed file missing — run `sq sync` (backend: {backend.name})",
+            )
+            for rel_path in backend.managed_paths(bctx)
+            if not (bctx.root / rel_path).exists()
+        )
     return issues
+
+
+def backend_entry_candidates(ctx: SquadGlobalContext) -> list[tuple[str, str]]:
+    """Per-entry backend pointers absent right now, against *ctx.index* — the scan-time
+    candidate set for ``check``'s confirm round, never reported directly.
+
+    This reads ``ctx.index`` (via :func:`live_roster_slugs`) as well as the disk, so — unlike
+    :func:`_backend_reconciled`'s top-level check — it is cross-source: a mutation racing the
+    scan (concretely, a retirement withdrawing the very pointer a candidate names) can make a
+    path here transiently absent for a reason that is not a defect. Each ``(backend name,
+    rel_path)`` pair is confirmed by :func:`backend_entry_missing` against a freshly reloaded
+    index before ever becoming a :class:`CheckIssue` — see
+    :meth:`MaintenanceMixin._confirm_cross_source`.
+
+    Reported at **warn**, not error, but not for the reason once written here: an adopter who
+    gitignores this backend's whole directory does *not* escape ``sq check`` over that choice —
+    ``_backend_reconciled``'s top-level ``managed_paths`` entry for the same backend (e.g.
+    ``claude_code``'s ``.claude/settings.json``) is already **error** and already fails a fully
+    gitignored directory, before and after this rule existed. The honest reason: before this
+    widening, a per-entry pointer going untracked while the top-level files stayed tracked was
+    invisible to ``sq check`` altogether — not error, not warn, nothing. Warn keeps that
+    previously-silent shape's exit code unchanged rather than adding a new error to a patch
+    release; it is not protecting a "supported choice" that was already failing the gate.
+    """
+    live_role_slugs, live_skill_slugs = live_roster_slugs(ctx)
+    bctx = BackendContext(
+        paths=ctx.paths,
+        spec=ctx.spec,
+        live_role_slugs=live_role_slugs,
+        live_skill_slugs=live_skill_slugs,
+    )
+    candidates: list[tuple[str, str]] = []
+    for name in ctx.paths.config.active_backends:
+        backend = get_backend(name)
+        candidates.extend(
+            (backend.name, rel_path)
+            for rel_path in backend.managed_entry_paths(bctx)
+            if not (bctx.root / rel_path).exists()
+        )
+    return candidates
+
+
+def backend_entry_missing(
+    backend_name: str, rel_path: str, *, root: Path, fresh_live_paths: frozenset[str]
+) -> CheckIssue | None:
+    """Re-observe one per-entry-pointer candidate (see :func:`backend_entry_candidates`)
+    against a freshly reloaded index's own recomputed live-roster set and the disk right now —
+    the single-candidate confirm predicate, same shape as :func:`on_disk_not_indexed`/
+    :func:`not_on_disk`.
+
+    *fresh_live_paths* is this one backend's ``managed_entry_paths`` recomputed from the fresh
+    index (never the stale scan-time one) — if the slug behind *rel_path* was retired between
+    the scan and this confirm, the fresh set no longer names it and the candidate resolves
+    (``None``) rather than being reported; likewise if the file has since been created.
+    """
+    if rel_path not in fresh_live_paths:
+        return None
+    if (root / rel_path).exists():
+        return None
+    return CheckIssue(
+        "warn", rel_path, f"managed pointer missing — run `sq sync` (backend: {backend_name})"
+    )
 
 
 def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:

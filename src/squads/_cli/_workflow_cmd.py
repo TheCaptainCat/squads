@@ -4,10 +4,10 @@ Sub-commands:
 - ``sq workflow`` / ``sq workflow show``  — print the team cheatsheet.
 - ``sq workflow lint``                   — verbose collect-all-errors spec validation.
 - one catalog command per declared ``WorkflowSpec`` vocabulary map (``types``,
-  ``subentity-kinds``, ``collections``, ``statuses``, ``roles``), each a human Rich table by
-  default and a bare JSON array under ``--json``: one row per declared entry in a documented
-  order, every key present on every row, and cross-references carried **by name** so a client
-  joins catalogs instead of receiving denormalized copies.
+  ``subentity-kinds``, ``collections``, ``statuses``, ``roles``, ``lifecycles``), each a human
+  Rich table by default and a bare JSON array under ``--json``: one row per declared entry in
+  a documented order, every key present on every row, and cross-references carried **by
+  name** so a client joins catalogs instead of receiving denormalized copies.
 
 ``lint`` is the author-facing diagnostic: it runs the same checks that ``open_service`` runs
 fail-closed (pure-spec validation + live-index cross-check), but prints EVERY error and
@@ -33,7 +33,11 @@ import squads._cli._common as common
 from squads._cli._common import console, e, handle_errors, status_text
 from squads._errors import SquadsError
 from squads._models._vocab import labels_for
-from squads._workflow._models import FALLBACK_ROLE_NAME
+from squads._workflow._models import (
+    FALLBACK_ROLE_NAME,
+    lifecycle_edges_in_order,
+    lifecycle_states_in_order,
+)
 
 if TYPE_CHECKING:
     from squads._interactions._models import PlaybookSpec
@@ -47,8 +51,8 @@ workflow_app = typer.Typer(
         "Run `sq workflow` (or `sq workflow show`) for the team cheatsheet. "
         "Run `sq workflow lint` to validate your workflow override spec. "
         "Run `sq workflow types` / `subentity-kinds` / `collections` / `statuses` / `roles` "
-        "for the machine-readable type / sub-entity-kind / badge-collection / status / role "
-        "catalogs."
+        "/ `lifecycles` for the machine-readable type / sub-entity-kind / badge-collection / "
+        "status / role / lifecycle catalogs."
     ),
 )
 
@@ -336,6 +340,99 @@ def workflow_subentity_kinds(
     console.print(table)
 
 
+# ─── lifecycles ─────────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow lifecycles --json`` catalog.
+LIFECYCLE_CATALOG_FIELDS: tuple[str, str, str, str] = (
+    "lifecycle",
+    "initial",
+    "states",
+    "transitions",
+)
+
+#: Frozen field set for each entry of a lifecycle row's ``transitions`` array.
+TRANSITION_ENTRY_FIELDS: tuple[str, str] = ("from", "to")
+
+
+def _lifecycle_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen lifecycle-catalog rows, ascending lifecycle name.
+
+    ``lifecycle`` is the identity key — the map key on ``spec.lifecycles``, named as the spec
+    names it, so the type row's and the sub-entity-kind row's own ``lifecycle`` fields join
+    here by that identical name.
+
+    ``states`` is :func:`lifecycle_states_in_order` — BFS discovery order from ``initial``,
+    then any unreached state appended sorted. Deliberately NOT ``linearize_lifecycle``'s
+    prettier spine-then-side-states ordering: that ordering canonicalizes side states through
+    a table keyed on bundled status names, so publishing it would freeze a
+    bundled-name-dependent order into a contract and silently degrade for an adopter's own
+    status names. ``Lifecycle.states`` itself is a ``frozenset`` and is never iterated for
+    anything that reaches this row.
+
+    ``transitions`` is one ``{from, to}`` object per edge (:func:`lifecycle_edges_in_order`) —
+    sources in ``states`` order, targets in each source's declared order. Not a positional
+    pair (``[src, dst]`` cannot grow a named key) and not a map keyed on adopter-declared
+    status names, which would have no frozen key set for a strictly-typed client.
+
+    The row does not carry which types/kinds bind this lifecycle — the inversion of a forward
+    edge; join ``sq workflow types --json``'s / ``sq workflow subentity-kinds --json``'s own
+    ``lifecycle`` field instead — and it does not carry per-state terminality, which is
+    ``role.settled`` one join away via ``sq workflow statuses --json`` -> ``sq workflow roles
+    --json``.
+    """
+    return [
+        {
+            "lifecycle": name,
+            "initial": machine.initial,
+            "states": lifecycle_states_in_order(machine),
+            "transitions": [
+                {"from": src, "to": dst} for src, dst in lifecycle_edges_in_order(machine)
+            ],
+        }
+        for name, machine in sorted(spec.lifecycles.items())
+    ]
+
+
+@workflow_app.command("lifecycles")
+@handle_errors
+def workflow_lifecycles(
+    json_out: bool = typer.Option(False, "--json", help="Emit the machine lifecycle catalog."),
+) -> None:
+    """List every declared lifecycle in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
+    declared lifecycle, ascending lifecycle name: ``{lifecycle, initial, states,
+    transitions}``. ``states`` is the deterministic BFS-from-``initial`` order (never the raw
+    ``frozenset`` order); ``transitions`` is ``[{from, to}]`` in that same source order, targets
+    in each source's declared order. Join a type's or a sub-entity kind's own ``lifecycle``
+    field (``sq workflow types --json`` / ``sq workflow subentity-kinds --json``) to this
+    catalog's identity key to resolve the machine it binds. All keys present on every row,
+    never omitted.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _lifecycle_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("Lifecycle", "Initial", "States", "Transitions"):
+        table.add_column(col)
+    for row in rows:
+        row_states = cast("list[str]", row["states"])
+        row_transitions = cast("list[dict[str, str]]", row["transitions"])
+        table.add_row(
+            e(str(row["lifecycle"])),
+            e(str(row["initial"])),
+            e(", ".join(row_states)),
+            e(", ".join(f"{t['from']} → {t['to']}" for t in row_transitions)),
+        )
+    console.print(table)
+
+
 # ─── collections ────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow collections --json`` catalog.
@@ -565,7 +662,7 @@ def workflow_lint() -> None:
     try:
         sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
     except SquadsError as exc:
-        console.print(f"[red]error[/red]: {e(str(exc))}")
+        console.print(f"[red]error[/red]: {e(str(exc))}", soft_wrap=True)
         raise typer.Exit(1) from exc
 
     squad_dir = sp.squad_dir

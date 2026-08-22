@@ -36,7 +36,7 @@ async def dev_list():
     svc = get_service()
     devs = [it for it in await svc.list_items(item_type=ROSTER_ROLE) if it.extra.get(X.IS_DEV)]
     if not devs:
-        console.print("[dim]no developers (try `sq dev add --tech <t>`)[/dim]")
+        console.print("[dim]no developers (try `sq dev add --tech <t>`)[/dim]", soft_wrap=True)
         return
     table = Table(box=None, pad_edge=False)
     for col in ("ID", "Slug", "Name", "Tech"):

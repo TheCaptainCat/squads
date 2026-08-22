@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from squads._errors import RoleNotFoundError
+from squads._errors import RoleNotFoundError, SquadsError
 from squads._models._extras import ExtraKey as X
 from squads._roles._loader import load_role_catalog
 from squads._roles._models import RoleCatalogSpec, RoleSpec
@@ -34,6 +34,34 @@ class RoleDef:
     is_default: bool = False
     can_spawn: bool = False  # True only for orchestrating roles (manager, tech-lead)
 
+    def __post_init__(self) -> None:
+        """Refuse a blank/whitespace-only ``full_name`` at the one point every construction
+        path actually goes through: the override merge (:func:`~squads._roles._resolver.
+        _apply_override`, via :func:`role_spec_to_def`), ``sq role activate --name`` (via
+        ``dataclasses.replace``, which re-invokes ``__post_init__`` on a frozen dataclass same
+        as the constructor), and ``sq dev add --name`` (via :func:`dev_role`'s own constructor
+        call). All three end in a ``RoleDef`` whose ``full_name`` is the operator-supplied
+        string, so this is the single seam that closes the hole for every one of them at once
+        rather than a check repeated at each call site.
+
+        Only ``full_name`` is checked here — the only field an operator can set directly
+        through those two CLI flags. The override path's other string fields (``title``,
+        ``description``, ``mission``, …) are declared-in-a-file values with no CLI equivalent,
+        and stay validated where they already are, by
+        :func:`~squads._roles._resolver._refuse_blank_strings`, which runs *before* this
+        constructor and produces a message naming the offending override file — a message
+        this generic check has no file to name and must not blur.
+
+        Leading/trailing whitespace around real content (``"  Ada Lovelace  "``) is accepted
+        and stored verbatim, not trimmed — ``.strip()`` is used only to decide blankness,
+        exactly as :func:`~squads._roles._resolver._refuse_blank_strings` already treats the
+        override path's own fields, so the two seams agree on what counts as a real value.
+        """
+        if not self.full_name.strip():
+            raise SquadsError(
+                "role full_name is blank or whitespace-only — every role needs a real name"
+            )
+
     #: The single source of truth for :meth:`to_extra`'s shape: the ``extra`` key paired with
     #: the typed accessor that reads its value off an instance. :meth:`extra_keys` reads only
     #: the key column, so the key set and the values it's paired with can never drift apart —
@@ -51,26 +79,80 @@ class RoleDef:
         (X.CAN_SPAWN, lambda r: r.can_spawn),
     )
 
+    #: Reconciled into ``extra`` by :meth:`to_extra` exactly like the fields above, but
+    #: deliberately **not** read by :meth:`extra_keys` — and so not a member of
+    #: ``PERMITTED_EXTRA_SKEW`` (``_itemfile.py``). Every key in ``_EXTRA_FIELD_KEYS`` is
+    #: exempt from the skew guard because a squad synced by a release predating
+    #: ``_refresh_catalog_extra``'s index mirror may hold an index that already lags on that
+    #: key — the exemption is what lets such a squad's next sync converge instead of being
+    #: refused outright. ``description`` is different: ``activate_role``/``add_dev``
+    #: (``_services/_roster.py``) have always written ``extra.description`` explicitly, inside
+    #: the same ``store.transaction()`` that commits the item's index entry — so markdown and
+    #: index have never disagreed on it, and there is no lagging index for an exemption to
+    #: forgive; a mismatch on it is a real skew to catch, not noise to exempt. A field belongs
+    #: here, not in ``_EXTRA_FIELD_KEYS``, exactly when it was never written to markdown
+    #: *outside* a transaction — never "was it ever written at all", since ``description``
+    #: itself was, from inside one.
+    _RECONCILED_EXTRA_KEYS: ClassVar[tuple[tuple[str, Callable[[RoleDef], Any]], ...]] = (
+        (X.DESCRIPTION, lambda r: r.description),
+    )
+
+    #: The pairing between a resolved ``RoleDef`` field and the top-level ``Item`` field it
+    #: projects onto — ``title`` from ``full_name``, ``description`` from ``mission``. Declared
+    #: beside :data:`_EXTRA_FIELD_KEYS`, in the same shape, so a field that lands on a
+    #: top-level item field (not just in ``extra``) can never be half-wired: the reconciler
+    #: loops over :meth:`to_item_fields` exactly as it loops over :meth:`to_extra`.
+    _ITEM_FIELD_PROJECTION: ClassVar[tuple[tuple[str, Callable[[RoleDef], Any]], ...]] = (
+        ("title", lambda r: r.full_name),
+        ("description", lambda r: r.mission),
+    )
+
     def to_extra(self) -> dict[str, Any]:
         """Type-specific fields stored on the ROLE item."""
-        return {key: getter(self) for key, getter in self._EXTRA_FIELD_KEYS}
+        return {
+            key: getter(self)
+            for key, getter in (*self._EXTRA_FIELD_KEYS, *self._RECONCILED_EXTRA_KEYS)
+        }
+
+    def to_item_fields(self) -> dict[str, Any]:
+        """Top-level ``Item`` fields this role's resolved definition projects onto, once
+        resolved — ``title`` from ``full_name``, ``description`` from ``mission``. The
+        reconciler assigns these directly onto the item's own fields (never through ``extra``),
+        mirroring :meth:`to_extra`'s shape for a different destination.
+        """
+        return {field: getter(self) for field, getter in self._ITEM_FIELD_PROJECTION}
 
     @classmethod
     def extra_keys(cls) -> frozenset[str]:
-        """The key names :meth:`to_extra` populates — derived from the same field/key table
-        that builds its values, without constructing an instance. A required field added to
-        ``RoleDef`` later must not turn a throwaway construction here into a startup crash,
-        and a description-only change to ``to_extra`` (e.g. omitting a falsy value) must not
-        silently shrink this set out from under it — reading the table's key column instead
-        of the table's *output* pins both.
+        """The key names :meth:`to_extra` populates that are exempt from the skew guard —
+        derived from :data:`_EXTRA_FIELD_KEYS` alone (never :data:`_RECONCILED_EXTRA_KEYS`),
+        without constructing an instance. A required field added to ``RoleDef`` later must not
+        turn a throwaway construction here into a startup crash, and a description-only change
+        to ``to_extra`` (e.g. omitting a falsy value) must not silently shrink this set out
+        from under it — reading the table's key column instead of the table's *output* pins
+        both.
         """
         return frozenset(key for key, _ in cls._EXTRA_FIELD_KEYS)
 
     @classmethod
     def from_extra(cls, extra: dict[str, Any]) -> RoleDef:
+        """Build a ``RoleDef`` straight from an already-resolved item's stored ``extra`` —
+        the cheap read path :meth:`~squads._services._items.ItemMixin.regen` and the sync
+        roster sweep's per-entry projection use, deliberately *not* re-running the override
+        merge (that would discard an operator's own project override; see ``role_base_from_item``'s
+        docstring for the seam that does that resolution instead).
+
+        A stored ``full_name`` that is blank or whitespace-only is tolerated the same way the
+        override-merge seam tolerates it, via :func:`_fallback_full_name` — a read boundary
+        must not weaponise :class:`RoleDef.__post_init__`'s refusal against a fact a previous
+        release wrote and called healthy.
+        """
+        full_name = extra[X.FULL_NAME]
+        if not full_name or not full_name.strip():
+            full_name = _fallback_full_name(extra)
         return cls(
             slug=extra[X.SLUG],
-            full_name=extra[X.FULL_NAME],
+            full_name=full_name,
             title=extra.get(X.TITLE, ""),
             description=extra.get(X.DESCRIPTION, extra.get(X.TITLE, "")),
             mission=extra.get(X.MISSION, ""),
@@ -153,15 +235,19 @@ def dev_role(
 ) -> RoleDef:
     """Build a stack-specific developer role on demand.
 
-    If ``name`` is omitted, a first name is taken from :data:`DEV_NAME_POOL` (by ``seq``) and the
-    surname is the tech (→ "Elias Dotnet"); the slug is ``<tech>-dev``.
+    If ``name`` is omitted (``None``), a first name is taken from :data:`DEV_NAME_POOL` (by
+    ``seq``) and the surname is the tech (→ "Elias Dotnet"); the slug is ``<tech>-dev``.
+    ``name=""`` (or a whitespace-only string) is *not* "omitted" — an operator who explicitly
+    passed a blank ``--name`` gets it stored as their ``full_name`` and refused by
+    :meth:`RoleDef.__post_init__`, the same way a whitespace-only override field is refused,
+    rather than silently falling back to the pool as a falsy check would.
 
     The name pool, default model, and default color are sourced from the loaded
     catalog's ``dev`` spec.
     """
     tech_label = tech.strip()
     surname = tech_label[:1].upper() + tech_label[1:]
-    if name:
+    if name is not None:
         full_name = name
     else:
         pool = DEV_NAME_POOL
@@ -184,3 +270,25 @@ def dev_role(
         model=model or _CATALOG.dev.model,
         color=_CATALOG.dev.color,
     )
+
+
+def _fallback_full_name(extra: dict[str, Any]) -> str:
+    """The name to substitute for a stored ``full_name`` that is blank or whitespace-only —
+    used only by :meth:`RoleDef.from_extra`, at the read boundary.
+
+    Mirrors what the next ``sq sync`` would converge the item onto: the bundled catalog's own
+    name for a predefined slug, the generated pool name for a developer role (position 0 — the
+    item does not carry the original ``seq``, exactly as :func:`~squads._roles._resolver.
+    dev_base_from_item` re-derives it). A slug that is neither is the one shape the input
+    boundary (``_refuse_blank_strings``, on every project role override file) already prevents
+    from ever reaching a stored blank in the first place, so it falls back to the slug itself
+    rather than raising — a placeholder, never a crash, for a shape that should not occur.
+    """
+    slug = extra.get(X.SLUG, "")
+    if extra.get(X.IS_DEV):
+        tech = extra.get(X.TECH, slug.removesuffix("-dev"))
+        return dev_role(tech).full_name
+    predefined = _BY_SLUG.get(slug)
+    if predefined is not None:
+        return predefined.full_name
+    return slug or "unnamed role"

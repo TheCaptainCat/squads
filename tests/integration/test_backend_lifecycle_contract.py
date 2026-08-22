@@ -297,6 +297,13 @@ class TestWriteManaged:
 # generate_role_entry / generate_skill_entry (the pointer surface)
 # ---------------------------------------------------------------------------
 
+#: Whether a backend's generate_role_entry/generate_skill_entry writes a discoverable
+#: per-entry file on disk. claude_code's pointer is real, load-bearing content an agent host
+#: reads. agents_md's AGENTS.md is compiled from RoleViews by write_managed, never from a
+#: per-entry file, and no longer stages one at all — see AgentsMdBackend's module docstring —
+#: so it has nothing for these two methods to write, only a legacy path to name and clean up.
+_HAS_ENTRY_FILES: dict[str, bool] = {"claude_code": True, "agents_md": False}
+
 
 class TestGeneratePointerEntries:
     async def test_role_pointer_is_a_well_formed_relative_artifact(
@@ -308,13 +315,16 @@ class TestGeneratePointerEntries:
         assert isinstance(artifact, Artifact)
         assert artifact.backend == backend.name
         assert not Path(artifact.path).is_absolute()
-        assert (ctx.root / artifact.path).exists()
+        if _HAS_ENTRY_FILES[backend.name]:
+            assert (ctx.root / artifact.path).exists()
 
     async def test_role_pointer_references_the_real_definition(
         self, backend: AgentBackend, ctx: BackendContext, role_def: RoleDef
     ) -> None:
         """The pointer file must name the role so an agent can identify it — never a
-        dangling reference to nothing."""
+        dangling reference to nothing. Only meaningful for a backend that writes one."""
+        if not _HAS_ENTRY_FILES[backend.name]:
+            pytest.skip(f"{backend.name} generates no per-entry file to inspect")
         await backend.ensure_scaffold(ctx)
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
         artifact = await backend.generate_role_entry(ctx, item, role_def)
@@ -329,9 +339,10 @@ class TestGeneratePointerEntries:
         a1 = await backend.generate_role_entry(ctx, item, role_def)
         a2 = await backend.generate_role_entry(ctx, item, role_def)
         assert a1.path == a2.path
-        assert (ctx.root / a1.path).read_text(encoding="utf-8") == (ctx.root / a2.path).read_text(
-            encoding="utf-8"
-        )
+        if _HAS_ENTRY_FILES[backend.name]:
+            assert (ctx.root / a1.path).read_text(encoding="utf-8") == (
+                ctx.root / a2.path
+            ).read_text(encoding="utf-8")
 
     async def test_skill_pointer_is_a_well_formed_relative_artifact(
         self, backend: AgentBackend, ctx: BackendContext
@@ -342,7 +353,8 @@ class TestGeneratePointerEntries:
         assert isinstance(artifact, Artifact)
         assert artifact.backend == backend.name
         assert not Path(artifact.path).is_absolute()
-        assert (ctx.root / artifact.path).exists()
+        if _HAS_ENTRY_FILES[backend.name]:
+            assert (ctx.root / artifact.path).exists()
 
     async def test_skill_pointer_generation_is_idempotent(
         self, backend: AgentBackend, ctx: BackendContext
@@ -352,9 +364,10 @@ class TestGeneratePointerEntries:
         a1 = await backend.generate_skill_entry(ctx, item)
         a2 = await backend.generate_skill_entry(ctx, item)
         assert a1.path == a2.path
-        assert (ctx.root / a1.path).read_text(encoding="utf-8") == (ctx.root / a2.path).read_text(
-            encoding="utf-8"
-        )
+        if _HAS_ENTRY_FILES[backend.name]:
+            assert (ctx.root / a1.path).read_text(encoding="utf-8") == (
+                ctx.root / a2.path
+            ).read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -377,7 +390,8 @@ class TestRemoveArtifacts:
         item = _make_role_item(1, role_def.slug, ctx.squad_dir)
         artifact = await backend.generate_role_entry(ctx, item, role_def)
         full = ctx.root / artifact.path
-        assert full.exists()
+        if _HAS_ENTRY_FILES[backend.name]:
+            assert full.exists()
         await backend.remove_artifacts(ctx, item)
         assert not full.exists()
 
@@ -388,7 +402,8 @@ class TestRemoveArtifacts:
         item = _make_skill_item(2, "my-skill", ctx.squad_dir)
         artifact = await backend.generate_skill_entry(ctx, item)
         full = ctx.root / artifact.path
-        assert full.exists()
+        if _HAS_ENTRY_FILES[backend.name]:
+            assert full.exists()
         await backend.remove_artifacts(ctx, item)
         assert not full.exists()
 
@@ -423,8 +438,9 @@ class TestFullLifecycleRoundTrip:
         role_artifact = await backend.generate_role_entry(ctx, role_item, role_def)
         skill_item = _make_skill_item(2, "my-skill", ctx.squad_dir)
         skill_artifact = await backend.generate_skill_entry(ctx, skill_item)
-        assert (ctx.root / role_artifact.path).exists()
-        assert (ctx.root / skill_artifact.path).exists()
+        if _HAS_ENTRY_FILES[backend.name]:
+            assert (ctx.root / role_artifact.path).exists()
+            assert (ctx.root / skill_artifact.path).exists()
 
         await backend.remove_artifacts(ctx, role_item)
         await backend.remove_artifacts(ctx, skill_item)
@@ -483,3 +499,71 @@ class TestManagedPaths:
         await backend.write_managed(ctx, roster, operators)
         for p in backend.managed_paths(ctx):
             assert (ctx.root / p).exists(), f"managed_paths declared {p!r} but it is missing"
+
+
+# ---------------------------------------------------------------------------
+# managed_entry_paths — the roster-scoped per-entry probe
+# ---------------------------------------------------------------------------
+
+
+class TestManagedEntryPaths:
+    def test_returns_root_relative_forward_slash_strings(
+        self, backend: AgentBackend, paths: SquadPaths
+    ) -> None:
+        entry_ctx = BackendContext(
+            paths=paths,
+            live_role_slugs=frozenset({"manager"}),
+            live_skill_slugs=frozenset({"sq-example"}),
+        )
+        for p in backend.managed_entry_paths(entry_ctx):
+            assert isinstance(p, str)
+            assert not Path(p).is_absolute()
+            assert "\\" not in p
+
+    def test_does_not_create_any_files(self, backend: AgentBackend, paths: SquadPaths) -> None:
+        entry_ctx = BackendContext(
+            paths=paths,
+            live_role_slugs=frozenset({"manager"}),
+            live_skill_slugs=frozenset({"sq-example"}),
+        )
+        before = set(entry_ctx.root.rglob("*"))
+        backend.managed_entry_paths(entry_ctx)
+        after = set(entry_ctx.root.rglob("*"))
+        assert before == after, f"managed_entry_paths created new files: {after - before}"
+
+    def test_empty_live_sets_declare_nothing(
+        self, backend: AgentBackend, ctx: BackendContext
+    ) -> None:
+        """The conformance-test default ``ctx`` fixture carries empty live sets — this must
+        report an empty result, not treat that as "nothing was ever meant to exist"."""
+        assert backend.managed_entry_paths(ctx) == []
+
+    async def test_every_declared_path_exists_after_generating_the_live_entries(
+        self, backend: AgentBackend, paths: SquadPaths, role_def: RoleDef
+    ) -> None:
+        role_item = _make_role_item(1, "manager", paths.squad_dir)
+        skill_item = _make_skill_item(2, "sq-example", paths.squad_dir)
+        entry_ctx = BackendContext(
+            paths=paths,
+            live_role_slugs=frozenset({"manager"}),
+            live_skill_slugs=frozenset({"sq-example"}),
+        )
+        await backend.generate_role_entry(entry_ctx, role_item, role_def)
+        await backend.generate_skill_entry(entry_ctx, skill_item)
+        for p in backend.managed_entry_paths(entry_ctx):
+            assert (entry_ctx.root / p).exists(), (
+                f"managed_entry_paths declared {p!r} but it is missing"
+            )
+
+    async def test_a_slug_absent_from_the_live_sets_is_never_declared(
+        self, backend: AgentBackend, paths: SquadPaths, role_def: RoleDef
+    ) -> None:
+        """The retirement/reactivation contract this method exists to preserve: a slug's own
+        pointer having been generated once is irrelevant — only membership in the *current*
+        live sets decides whether this method still names it."""
+        role_item = _make_role_item(1, "manager", paths.squad_dir)
+        write_ctx = BackendContext(paths=paths, live_role_slugs=frozenset({"manager"}))
+        await backend.generate_role_entry(write_ctx, role_item, role_def)
+
+        empty_ctx = BackendContext(paths=paths)  # nothing currently live
+        assert backend.managed_entry_paths(empty_ctx) == []

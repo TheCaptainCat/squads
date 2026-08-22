@@ -3,14 +3,14 @@ id: BUG-732
 sequence_id: 732
 type: bug
 title: No JSON surface exposes a type's per-status lifecycle/transitions
-status: Open
+status: Verified
 author: qa
 priority: medium
 severity: medium
 refs:
 - FEAT-334:addresses
 created_at: '2026-08-03T08:51:02Z'
-updated_at: '2026-08-15T15:11:39Z'
+updated_at: '2026-08-21T16:57:33Z'
 ---
 <!-- sq:body -->
 A machine client cannot resolve which statuses a given item type accepts, or the transitions between them, from any `--json` surface.
@@ -46,4 +46,14 @@ Verified all of the above by reading `_workflow_cmd.py`/`_workflow/_models.py` a
   - `transitions` is `[{from,to}]` in `lifecycle_edges()` order (a positional pair cannot grow a named key; a status-keyed map has no frozen key set). `states` is `lifecycle_states_in_order()` — deliberately not `linearize_lifecycle`'s prettier spine ordering, whose side-state canonicalization is keyed on bundled status names. 0.14 stands, as this bug proposed.
 - [2026-08-15T15:11:39Z] Elias Python:
   - Heads-up for whoever implements this: `lifecycle_edges` no longer exists. It was orphaned when the cheatsheet stateDiagram was removed (vulture flagged it, filed as REV-736 F51) and I deleted it rather than allowlist genuinely dead code. `lifecycle_states_in_order` stays — it has a live caller — so re-deriving the edges is a six-line comprehension over it. The fix direction in this body is otherwise unchanged.
+- [2026-08-21T12:35:50Z] Pierre Chat:
+  - In scope for 0.14.0: op-pierre pulled all five open bugs into the next release, overriding the earlier per-bug deferral to a later cycle.
+- [2026-08-21T12:35:56Z] Pierre Chat:
+  - Implement ADR-738 in full: both new catalogs (lifecycles and subentity-kinds) and both type-row reference keys, not just the lifecycles half this bug asks for.
+- [2026-08-21T15:17:09Z] Catherine Manager:
+  - Fix landed in 8f5b267 on release/0.14 (TASK-749). Verified: sq workflow lifecycles --json now publishes all 8 declared lifecycles with initial/states/transitions, the type and kind rows have a catalog to join, and the docs forward reference is retired. The tech lead audit found the shipped subentity-kinds catalog and both type-row keys already match ADR-738 sections 3 and 5, so no further catalog work is outstanding. Awaiting QA verification.
+- [2026-08-21T16:57:02Z] Mara Tester:
+  - Drove sq workflow lifecycles --json: publishes {lifecycle,initial,states,transitions} for all 8 bundled lifecycles (adr, agent, bug, finding, guide, review, subentity, work).
+  - Answered the bug's own two questions purely by joining sq workflow types --json's lifecycle key (task -> work) to the lifecycles catalog: task's live statuses = [Draft, Ready, InProgress, Cancelled, Blocked, InReview, Done]; from Draft -> [Ready, InProgress, Cancelled]. No source scraping.
+  - Drove a project override declaring a new lifecycle (lifecycles.incident + items.incident with lifecycle="incident", the workflow.toml worked example): sq workflow lint passes, the catalog grows to 9 entries including incident with correct initial/states/transitions, and the new type's lifecycle key joins to it.
 <!-- sq:discussion:end -->

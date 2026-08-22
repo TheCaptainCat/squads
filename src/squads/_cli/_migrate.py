@@ -47,12 +47,14 @@ async def migrate_up():
         console.print(f"  {m.version} (schema v{m.from_schema}→v{m.to_schema}): {e(m.summary)}")
     console.print(
         f"[green]migrated[/green] to schema v{SCHEMA_VERSION}; index rebuilt — "
-        "run `sq sync` to refresh managed files"
+        "run `sq sync` to refresh managed files",
+        soft_wrap=True,
     )
     if any(m.manual for m in applied):
         span = f"v{svc.paths.config.squads_version}..v{__version__}"
         console.print(
-            f"[yellow]manual steps remain[/yellow] — read them with `sq migrate chlog {span}`"
+            f"[yellow]manual steps remain[/yellow] — read them with `sq migrate chlog {span}`",
+            soft_wrap=True,
         )
 
 
@@ -114,7 +116,7 @@ async def migrate_repad(
         f"[green]repad done[/green]: padding {current} → {new_width}; "
         f"{renamed} file(s) renamed; index rebuilt"
     )
-    console.print("  run [cyan]`sq check`[/cyan] to verify integrity")
+    console.print("  run [cyan]`sq check`[/cyan] to verify integrity", soft_wrap=True)
 
 
 @migrate_app.command("rename-type")
@@ -134,7 +136,7 @@ async def migrate_rename_type(
         f"[green]rename-type done[/green]: {e(old_type)} → {e(new_type)}, "
         f"{result.renamed} item(s) renamed; index rebuilt"
     )
-    console.print("  run [cyan]`sq check`[/cyan] to verify integrity")
+    console.print("  run [cyan]`sq check`[/cyan] to verify integrity", soft_wrap=True)
 
 
 @migrate_app.command("rename-status")
@@ -159,7 +161,7 @@ async def migrate_rename_status(
         f"[green]rename-status done[/green]: {e(item_type)}: {e(old_status)} → {e(new_status)}, "
         f"{result.renamed} item(s) renamed"
     )
-    console.print("  run [cyan]`sq check`[/cyan] to verify integrity")
+    console.print("  run [cyan]`sq check`[/cyan] to verify integrity", soft_wrap=True)
 
 
 def _parse_span(span: str) -> tuple[str, str]:

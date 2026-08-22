@@ -311,10 +311,6 @@ class TestTwoLiveStatusCustomLifecycle:
 # ------------------------------------------------------ reactivation regenerates in full
 
 
-def _agents_md_role_entry(root: Path, slug: str) -> Path:
-    return root / ".agents_md" / "roles" / f"{slug}.md"
-
-
 class TestReactivationRestoresAScopedSkill:
     """The transition-time projection and ``sync``'s roster sweep are two callers of one
     materialise-or-withdraw predicate, and used to hand the backend two differently-populated
@@ -323,6 +319,12 @@ class TestReactivationRestoresAScopedSkill:
     only repaired by the next ``sq sync``. Both directions now go through the same helper,
     which requires its caller to hand it a context already carrying the whole roster's
     resolved map.
+
+    Claude Code is the only bundled backend this property is driven against: its pointer is
+    the one file a scoped skill's list is rendered into. ``agents_md`` has no per-entry file
+    at all any more (see ``AgentsMdBackend``'s module docstring), so there is nothing for a
+    resolved-skills regression to corrupt on that side — the earlier agents_md-specific
+    regression test for this predicate no longer has a surface to exercise.
     """
 
     async def test_reactivating_a_role_restores_a_scoped_skill_with_no_sync_in_between(
@@ -387,26 +389,6 @@ class TestReactivationRestoresAScopedSkill:
         reactivated = pointer.read_text(encoding="utf-8")
         await svc.sync()
         assert pointer.read_text(encoding="utf-8") == reactivated
-
-    async def test_reactivating_a_role_restores_a_scoped_skill_in_the_agents_md_backend(
-        self, tmp_path, monkeypatch
-    ):
-        """Fan-out is part of the contract — the same regression, proven against the second
-        bundled backend rather than only Claude Code."""
-        monkeypatch.chdir(tmp_path)
-        result = await service.init(root=tmp_path, backend=["agents_md"], roles_spec="minimal")
-        agents_svc = service.Service(result.paths)
-        role = await agents_svc.activate_role("qa")
-        skill = await agents_svc.add_skill("Custom Helper")
-        await agents_svc.link_role(skill.id, role.id)
-        entry = _agents_md_role_entry(tmp_path, "qa")
-        assert "custom-helper" in entry.read_text(encoding="utf-8")
-
-        await agents_svc.set_status(role.id, "Archived")
-        assert not entry.exists()
-
-        await agents_svc.set_status(role.id, "Active")
-        assert "custom-helper" in entry.read_text(encoding="utf-8")
 
     async def test_reactivating_a_skill_entry_regenerates_in_full_too(self, project, svc):
         """A skill entry's own materialise call carries no role_skills dependency, but it

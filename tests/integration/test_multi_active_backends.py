@@ -104,43 +104,37 @@ class TestEmptyActiveBackends:
 
 
 class TestRosterProjectionFansOutOverBothBackends:
-    async def test_retiring_a_role_withdraws_its_pointer_in_both_backends(
-        self, tmp_squad: Path
-    ) -> None:
+    """Fan-out is exercised against ``claude_code``'s per-entry pointer file — ``agents_md``
+    has none any more (its per-entry methods write nothing; see ``AgentsMdBackend``'s module
+    docstring), so it has nothing left to assert here on that axis. It still takes part in the
+    same materialise/withdraw call sequence (covered by ``TestBothBackendsWritten`` and the
+    ``AGENTS.md``-content assertions in ``test_agents_md_backend.py``'s
+    ``TestRosterProjection``)."""
+
+    async def test_retiring_a_role_withdraws_its_pointer(self, tmp_squad: Path) -> None:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
         svc = service.Service(result.paths)
         item = await svc.activate_role("qa")
         claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
-        agents_md_staging = tmp_squad / ".agents_md" / "roles" / "qa.md"
         assert claude_pointer.exists()
-        assert agents_md_staging.exists()
 
         await svc.set_status(item.id, "Archived")
         assert not claude_pointer.exists()
-        assert not agents_md_staging.exists()
 
-    async def test_reactivating_regenerates_the_pointer_in_both_backends(
-        self, tmp_squad: Path
-    ) -> None:
+    async def test_reactivating_regenerates_the_pointer(self, tmp_squad: Path) -> None:
         result = await service.init(
             root=tmp_squad, backend=["claude_code", "agents_md"], roles_spec="minimal"
         )
         svc = service.Service(result.paths)
         item = await svc.activate_role("qa")
         claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
-        agents_md_staging = tmp_squad / ".agents_md" / "roles" / "qa.md"
         await svc.set_status(item.id, "Archived")
-        # Self-contained: assert the withdrawal actually happened in both backends before
-        # trusting the reactivation check below — otherwise a withdrawal that silently
-        # missed one backend would let this test pass on a file that was never removed.
         assert not claude_pointer.exists()
-        assert not agents_md_staging.exists()
 
         await svc.set_status(item.id, "Active")
         assert claude_pointer.exists()
-        assert agents_md_staging.exists()
 
     async def test_a_backend_removed_from_active_backends_is_left_untouched(
         self, tmp_squad: Path
@@ -155,19 +149,16 @@ class TestRosterProjectionFansOutOverBothBackends:
         svc = service.Service(result.paths)
         item = await svc.activate_role("qa")
         claude_pointer = tmp_squad / ".claude" / "agents" / "qa.md"
-        agents_md_staging = tmp_squad / ".agents_md" / "roles" / "qa.md"
         assert claude_pointer.exists()
-        assert agents_md_staging.exists()
 
-        # Deactivate agents_md before retiring — its stale file must be left alone.
-        cfg = result.paths.config.model_copy(update={"active_backends": ["claude_code"]})
+        # Deactivate claude_code before retiring — its stale file must be left alone.
+        cfg = result.paths.config.model_copy(update={"active_backends": ["agents_md"]})
         (tmp_squad / ".squads.toml").write_text(cfg.to_toml(), encoding="utf-8")
         from squads._paths import resolve
 
         svc2 = service.Service(resolve())
         await svc2.set_status(item.id, "Archived")
-        assert not claude_pointer.exists()  # the still-active backend withdrew normally
-        assert agents_md_staging.exists()  # the deactivated one was never touched
+        assert claude_pointer.exists()  # the deactivated one was never touched
 
 
 class TestDedupSingleRunOnly:

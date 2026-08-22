@@ -2,4 +2,4 @@
 schema_version = "0.11"
 squad_dir = "squads"
 active_backends = ["claude_code"]
-squads_version = "0.13.0"
+squads_version = "0.13.1"

@@ -416,7 +416,12 @@ command; the index work is single-digit-to-low-tens of milliseconds. The notes b
 
 **Whole-index read on every command.** `IndexStore.load()` (`_index/_store.py`) runs
 `SquadsDB.model_validate_json` over the entire file, so pydantic constructs and validates *every*
-`Item` on each invocation — even `sq show ONE-ID`. Cost is linear in item count.
+`Item` on each invocation — even `sq show ONE-ID`. Cost is linear in item count, and it's paid at
+most **once per invocation**: a request-scoped read cache (opened by `_cli/_common.py::command`,
+consulted by `load()`) serves every later `Service.get`/`get_block` call in the same command from
+the one snapshot it filed, so an item with many sub-entities no longer re-pays this read once per
+sub-entity. `transaction()` never consults that cache — its own load always hits disk, under the
+lock, so a write is always based on the true current state.
 
 **Whole-index rewrite on every mutation (write amplification).** `transaction()` re-serializes
 *all* items (`SquadsDB.to_json` → `model_dump_json(indent=2)`), writes the whole ~1 KB/item file,

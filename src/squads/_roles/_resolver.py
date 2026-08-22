@@ -2,16 +2,31 @@
 
 Call :func:`resolve_role` instead of :func:`~squads._roles._catalog.role_by_slug` whenever a
 squad directory is available (i.e. from service-level code).  Call :func:`resolve_dev_role`
-instead of :func:`~squads._roles._catalog.dev_role` for stack-specific developer roles.
+instead of :func:`~squads._roles._catalog.dev_role` for the ``sq dev add`` call site
+specifically — that one call site is an *assignment* (a new name being chosen), not a
+resolve. Every *other* consumer that needs a role's merge base for a role that may already
+have a live item — sync's catalog refresh, ``sq role <slug> show``, ``sq check`` — goes
+through :func:`resolve_role_with_base` with a base built by :func:`role_base_from_item` (an
+item exists) or :func:`dev_base_for_slug` (a ``<tech>-dev`` slug with no item), never by
+calling ``dev_role()`` directly. :func:`role_base_from_item` is the one seam both a bundled
+role and a developer role build their base through — see its docstring for the field split.
 
 Merge semantics:
-- **Bundled slug** — only the fields present in the TOML override the ``PREDEFINED`` defaults;
-  absent fields are inherited as-is.  This lets a project rename ``architect`` or change its
-  model without restating the full mission.
-- **New slug** — a TOML for a slug not in ``PREDEFINED`` defines a wholly-new role; all required
-  ``RoleDef`` fields must be present (``slug``, ``full_name``, ``title``, ``description``,
-  ``mission``), otherwise a :class:`~squads._errors.SquadsError` is raised with a clear message.
-- **No override file** — falls through to the bundled catalog unchanged.
+- **Bundled slug** — only the fields present in the TOML override the merge base (the item's
+  own base when the caller supplied one, else the ``PREDEFINED`` default); absent fields are
+  inherited as-is.  This lets a project rename ``architect`` or change its model without
+  restating the full mission.
+- **New slug, no supplied base** (:func:`resolve_role`, or :func:`resolve_role_with_base` with
+  ``base=None``) — a TOML for a slug not in ``PREDEFINED`` defines a wholly-new role; all
+  required ``RoleDef`` fields must be present (``slug``, ``full_name``, ``title``,
+  ``description``, ``mission``), otherwise a :class:`~squads._errors.SquadsError` is raised
+  with a clear message.
+- **Supplied base** (:func:`resolve_role_with_base` with a non-``None`` base) — the base is the
+  merge base regardless of whether ``slug`` is in ``PREDEFINED``: a caller that already knows a
+  role's live identity never has to restate every required field just to change one of them,
+  and a bundled role's item-carried name is never discarded in favour of the catalog default.
+- **No override file** — falls through to the base (the supplied base, or else the bundled
+  catalog) unchanged.
 
 The merge itself is the shared engine (:mod:`squads._specmerge`) and the validation is the
 typed :class:`~squads._roles._models.RoleSpec`, exactly as the workflow and playbook overrides
@@ -35,10 +50,13 @@ roster, pointers, CLAUDE.md section) reads from there.
 """
 
 import tomllib
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
 from squads._errors import RoleNotFoundError, SquadsError
+from squads._models._extras import ExtraKey as X
+from squads._models._item import Item
 from squads._roles._catalog import PREDEFINED, RoleDef, dev_role, role_spec_to_def
 from squads._roles._loader import VALID_MODELS
 from squads._roles._models import RoleSpec
@@ -48,6 +66,18 @@ _PREDEFINED_BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
 
 # Required fields for a *new-slug* TOML (slug is derived from the filename, not the TOML).
 _REQUIRED_FOR_NEW = ("full_name", "title", "description", "mission")
+
+#: Post-validation blank-string check, alongside the model whitelist below rather than declared
+#: on ``RoleSpec`` itself: a bare ``pydantic.ValidationError`` reads as framework noise to an
+#: adopter (a "1 validation error for RoleSpec" header naming an internal class, a truncated
+#: ``input_value`` dict dump, a link to pydantic's own error docs) -- compare the clean,
+#: hand-written sentence the model check below already produces for the same seam. These three
+#: groups mirror RoleSpec's own field shape: required fields are never ``None``; the optional
+#: ``model``/``color`` keep ``None`` as their legitimate "not set" value and are only checked
+#: when a string was actually declared; list fields are checked per element.
+_REQUIRED_NON_BLANK_FIELDS = ("full_name", "title", "description", "mission")
+_OPTIONAL_NON_BLANK_FIELDS = ("model", "color")
+_LIST_NON_BLANK_FIELDS = ("responsibilities", "agreements")
 
 #: The role document's closed top-level key space — the fields of ``RoleSpec``, read off the
 #: model rather than restated, so it grows with the model instead of going stale beside it.
@@ -158,12 +188,52 @@ def _apply_override(base: RoleDef | None, data: RawMapping, slug: str, origin: s
         spec = RoleSpec.model_validate(merged)
     except Exception as exc:
         raise SquadsError(f"invalid role override {origin}: {exc}") from exc
+    _refuse_blank_strings(spec, origin)
     if spec.model is not None and spec.model not in VALID_MODELS:
         raise SquadsError(
             f"invalid role override {origin}: model {spec.model!r} is not one of "
             f"{sorted(VALID_MODELS)}"
         )
     return role_spec_to_def(spec)
+
+
+def _refuse_blank_strings(spec: RoleSpec, origin: str) -> None:
+    """Refuse a declared-but-blank string field with the same clean shape as the model
+    whitelist check just below this call site: the file, then one sentence naming every
+    offending field, nothing pydantic wrote.
+
+    An empty (or whitespace-only -- ``.strip()`` before the length check, on the same
+    reasoning: it renders exactly as broken and is exactly as clearly not an intentional
+    value) string is never a legitimate "inherit the base value" signal, because omitting the
+    key already means that. Runs on the *validated* ``spec`` (types are already guaranteed),
+    exactly where the model check runs, so a future field added to ``RoleSpec`` is not
+    automatically covered here the way a declarative constraint would be -- that trade is
+    deliberate: this is the only seam where the offending value has a *file* to name, so a
+    clean adopter-facing message pointing at it matters more here than defence in depth for a
+    construction path this function alone can see. This is **not** the only place a
+    ``RoleSpec``-shaped role is built from adopter-editable text, though -- ``sq role
+    activate --name``/``sq dev add --name`` reach ``RoleDef`` directly with an operator's raw
+    CLI string, no ``RoleSpec`` in between (a hole a past fix here left open, since neither
+    path calls this function). Those two converge on ``RoleDef.__post_init__`` instead, which
+    refuses the same way on ``full_name`` alone -- the field either CLI path can set -- and
+    this function's checks on the file's *other* fields stay the file-path's own job.
+    """
+    blank = [name for name in _REQUIRED_NON_BLANK_FIELDS if not getattr(spec, name).strip()]
+    blank += [
+        name
+        for name in _OPTIONAL_NON_BLANK_FIELDS
+        if (value := getattr(spec, name)) is not None and not value.strip()
+    ]
+    blank += [
+        name
+        for name in _LIST_NON_BLANK_FIELDS
+        if any(not entry.strip() for entry in getattr(spec, name))
+    ]
+    if blank:
+        raise SquadsError(
+            f"invalid role override {origin}: field(s) blank or whitespace-only "
+            "(omit the key instead to inherit): " + ", ".join(blank)
+        )
 
 
 def resolve_role(slug: str, squad_dir: Path | None) -> RoleDef:
@@ -174,23 +244,139 @@ def resolve_role(slug: str, squad_dir: Path | None) -> RoleDef:
     2. ``PREDEFINED`` catalog — the bundled default.
 
     Raises :class:`~squads._errors.RoleNotFoundError` if *slug* is neither predefined nor has a
-    project TOML.
+    project TOML. Unchanged by, and unaware of, :func:`resolve_role_with_base` below — this is
+    the ``base=None`` case of that function, kept as its own entry point so every existing
+    caller keeps today's exact signature and behaviour.
     """
-    base = _PREDEFINED_BY_SLUG.get(slug)  # None for new slugs
+    return resolve_role_with_base(slug, squad_dir, base=None)
+
+
+def resolve_role_with_base(slug: str, squad_dir: Path | None, *, base: RoleDef | None) -> RoleDef:
+    """Like :func:`resolve_role`, but the caller may supply the merge base — for a slug outside
+    ``PREDEFINED``, instead of leaving new-slug validation to demand every required field; for a
+    slug inside it, to make an already-live item's own stored identity win over the catalog
+    default.
+
+    ``base=None`` reproduces :func:`resolve_role` exactly: a bundled slug resolves against its
+    ``PREDEFINED`` entry, an unknown one has none.
+
+    **A supplied base always wins, whether or not ``slug`` is in ``PREDEFINED``.** Earlier, a
+    bundled slug's ``PREDEFINED`` entry won unconditionally here, so no caller could ever make a
+    live item's stored identity the merge base for a bundled role — only a slug ``PREDEFINED``
+    happens not to cover (a developer role) got that treatment, which was an artifact of where
+    the catalog has rows, not a property of the two kinds of role. That discard is gone: the
+    caller now decides, by what it passes as *base*.
+
+    This does not reopen catalog refresh to the item, because the base a caller passes is never
+    the item verbatim — it is built by :func:`role_base_from_item`, which takes only the fields
+    an operator can actually set (a bundled role's ``full_name``; a developer role's
+    ``full_name``/``model``/``tech``) from the item and everything else fresh from the current
+    catalog, so a new ``RoleDef`` field still reaches an old item on its next sync. Nothing in
+    this function infers a base from the slug itself — the resolver does not hold the
+    information (the live item, if any) a correct one needs. See :func:`role_base_from_item`,
+    :func:`dev_base_from_item`, and :func:`dev_base_for_slug`.
+    """
+    predefined = _PREDEFINED_BY_SLUG.get(slug)  # None for new slugs
+    effective_base = base if base is not None else predefined
 
     if squad_dir is not None:
         toml_path = _overrides_dir(squad_dir) / f"{slug}.toml"
         if toml_path.is_file():
             data = _read_toml(toml_path)
-            return _apply_override(base, data, slug, str(toml_path))
+            return _apply_override(effective_base, data, slug, str(toml_path))
 
-    if base is not None:
-        return base
+    if effective_base is not None:
+        return effective_base
 
     raise RoleNotFoundError(
         f"no predefined role {slug!r} and no project override found "
         f"(known: {', '.join(_PREDEFINED_BY_SLUG)})"
     )
+
+
+def dev_base_from_item(item: Item) -> RoleDef:
+    """The dev-role merge base for a developer role that already exists on the roster.
+
+    Reads the item's own stored facts — tech, full name, model — so ``dev_role()`` *inherits*
+    the live name instead of re-rolling it from the pool; ``seq`` is never consulted, because
+    this branch already knows the name there is nothing left to derive. ``X.IS_DEV``/``X.TECH``
+    sit outside :meth:`RoleDef.to_extra`, so merging this base's ``to_extra()`` onto the item
+    can never erase the marker this function itself reads.
+
+    A stored ``full_name`` that is blank or whitespace-only is treated as absent, the same way
+    :func:`dev_role` itself treats an omitted ``name`` — never as a value to hand to
+    :class:`RoleDef`, which would refuse it. That value cannot originate from this codebase's
+    own input boundary (``sq dev add --name`` refuses it before it is ever stored), so seeing
+    one here means it is a stored fact an earlier release wrote and called healthy — a read
+    boundary is exactly where such a fact must be tolerated, not re-refused. Falling back to
+    the pool re-rolls the name (pool position 0, since the item does not carry the original
+    ``seq``) rather than raising, so the role self-heals on its next sync instead of bricking
+    it — this is the read-boundary half of the refusal :class:`RoleDef.__post_init__` still
+    enforces at the input boundary.
+    """
+    stored_name = item.extra[X.FULL_NAME]
+    name = stored_name if stored_name and stored_name.strip() else None
+    return dev_role(
+        item.extra[X.TECH],
+        name=name,
+        model=item.extra[X.MODEL],
+    )
+
+
+def role_base_from_item(item: Item) -> RoleDef | None:
+    """The resolver base for a role that already has a live roster item — the one seam every
+    consumer that resolves against an item (sync's catalog refresh, ``sq role <slug> show``,
+    ``sq check``) builds its ``resolve_role_with_base`` base through, for a bundled role and a
+    developer role alike.
+
+    The item is authoritative for exactly the fields an operator can set on it through the CLI,
+    and for no others — everything else comes from the current catalog, fresh, every call:
+
+    - **Developer role** (``extra.is_dev``) — delegates to :func:`dev_base_from_item`, whose
+      operator-settable set is ``{full_name, model, tech}`` (``sq dev add --name``/``--model``,
+      and the tech the slug was created for). ``dev_role()`` regenerates every other field —
+      title, mission, responsibilities — fresh from the tech template on every call, so a
+      template change still reaches an old developer item.
+    - **Bundled role** — the slug's current ``PREDEFINED`` entry, with only ``full_name``
+      swapped for the item's stored value (``sq role activate --name``'s operator-settable
+      set is ``{full_name}`` alone). Every other field — ``mission``, ``responsibilities``,
+      ``can_spawn``, etc. — is the catalog's current value, not the item's, so a new or changed
+      ``RoleDef`` field still reaches an item created before it existed.
+    - **Anything else** — a slug with neither a catalog entry nor the dev shape (a wholly
+      project-defined role with a live item but no ``.overrides/roles/<slug>.toml`` yet) —
+      ``None``: there is no catalog to draw the non-operator-settable fields from, so the
+      item's own extra is not a merge base here. This is the "orphaned custom role item" case
+      :func:`~squads._services._maintenance.MaintenanceService._refresh_catalog_extra` already
+      skips via its ``RoleNotFoundError`` catch, unaffected by this function returning ``None``
+      for it.
+    """
+    if item.extra.get(X.IS_DEV):
+        return dev_base_from_item(item)
+    slug = item.extra.get(X.SLUG, item.slug)
+    predefined = _PREDEFINED_BY_SLUG.get(slug)
+    if predefined is None:
+        return None
+    full_name = item.extra.get(X.FULL_NAME)
+    # A stored blank or whitespace-only ``full_name`` is treated exactly like an absent one —
+    # fall back to the catalog default rather than reach ``replace()``, which would hand it to
+    # ``RoleDef.__post_init__`` and refuse it. That refusal belongs at the input boundary (`sq
+    # role activate --name`), which already never lets this value be stored in the first
+    # place; a value already on disk is a fact a previous release wrote and called healthy, and
+    # this read boundary must tolerate it so the role self-heals on its next sync instead of
+    # bricking it.
+    if not full_name or not full_name.strip() or full_name == predefined.full_name:
+        return predefined
+    return replace(predefined, full_name=full_name)
+
+
+def dev_base_for_slug(slug: str) -> RoleDef:
+    """The dev-role merge base for a ``<tech>-dev.toml`` with no matching roster entry.
+
+    Falls back to the generated pool name — safe here for the reason it is unsafe in
+    :func:`dev_base_from_item`: there is no live identity to overwrite, and the caller only
+    asks whether the document loads.
+    """
+    return dev_role(slug.removesuffix("-dev"))
 
 
 def resolve_dev_role(

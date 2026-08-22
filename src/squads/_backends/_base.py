@@ -81,6 +81,15 @@ class BackendContext:
     # (:func:`squads._interactions.get_playbook_spec`) — the same backward-compatible default
     # shape as ``spec`` above, for callers (backend conformance tests) that supply neither.
     playbook: PlaybookSpec | None
+    # The roster's currently-live role/skill slugs — populated by the caller (``sq check``'s
+    # `backend_reconciled`, `sync`'s before/after regeneration report) from the index via
+    # `squads._interactions.is_live_roster_entry`, same layering rationale as `skill_paths`/
+    # `role_skills`: a backend never loads the index itself, so it reads the live set here
+    # rather than deriving it. Empty by default, which makes `managed_entry_paths` report no
+    # per-entry paths at all — the correct answer for a caller that has not populated these
+    # (e.g. a conformance test using `managed_paths` alone).
+    live_role_slugs: frozenset[str]
+    live_skill_slugs: frozenset[str]
 
     def __init__(
         self,
@@ -89,12 +98,16 @@ class BackendContext:
         role_skills: dict[str, list[str]] | None = None,
         spec: WorkflowSpec | None = None,
         playbook: PlaybookSpec | None = None,
+        live_role_slugs: frozenset[str] | None = None,
+        live_skill_slugs: frozenset[str] | None = None,
     ) -> None:
         self.paths = paths
         self.skill_paths = skill_paths if skill_paths is not None else {}
         self.role_skills = role_skills if role_skills is not None else {}
         self.spec = spec
         self.playbook = playbook
+        self.live_role_slugs = live_role_slugs if live_role_slugs is not None else frozenset()
+        self.live_skill_slugs = live_skill_slugs if live_skill_slugs is not None else frozenset()
 
     @property
     def root(self) -> Path:
@@ -197,6 +210,52 @@ class AgentBackend(ABC):
         them.  Used by ``sq check`` to verify that scaffolding exists (present-only check
         — not a currency/drift check).
 
-        Implementations should scope this to the always-present top-level files whose
-        absence means the backend was never scaffolded/synced.
+        Scope this to the always-present top-level files whose absence means the backend was
+        never scaffolded/synced at all (this backend's compiled ``CLAUDE.md``/``AGENTS.md``
+        and the like) — never to a per-entry pointer. ``sq check`` reports an absent path here
+        at **error**: nothing short of running ``sq sync`` explains it away. A per-entry
+        pointer (one role's ``.claude/agents/<slug>.md``, one skill's staging file, …) belongs
+        in :meth:`managed_entry_paths` instead, which ``sq check`` reports at **warn** — not
+        because gitignoring this backend's whole directory is a choice this gate must not fail
+        over (it does not escape this: a fully gitignored directory is already missing the
+        very top-level path this method itself declares, and already fails at this method's
+        **error** level, before and after the per-entry rule existed). The honest reason is
+        narrower: a per-entry pointer going untracked while the top-level files stayed tracked
+        was, before that rule, invisible to ``sq check`` altogether — not error, not warn,
+        nothing. Warn keeps that previously-silent shape's exit code unchanged rather than
+        adding a new error to a patch release.
         """
+
+    def managed_entry_paths(self, ctx: BackendContext) -> list[str]:
+        """Root-relative per-entry pointer paths — one per role/skill *currently live* in
+        *ctx* — this backend expects to exist.
+
+        Same present-only, read-only contract as :meth:`managed_paths`, scoped to the roster
+        instead of to this backend's fixed top-level files: never create, modify, or probe the
+        filesystem beyond what the caller does with the returned paths, and never compute
+        liveness — read ``ctx.live_role_slugs``/``ctx.live_skill_slugs`` as given (a backend
+        reads no index; see :class:`BackendContext`'s own fields). An empty *ctx* (the
+        conformance-test default) means an empty result, not "declare nothing was ever meant
+        to exist" — see the fields' own docstring.
+
+        ``sq check``'s ``backend_reconciled`` rule reports an absent path here at **warn**,
+        never at :meth:`managed_paths`'s error — see that method's docstring for why the two
+        differ. ``sync`` also calls this, before and after its own writes, to report which of
+        these it just had to regenerate (see ``MaintenanceMixin.sync``); both callers hand it
+        the exact same live set derived via
+        :func:`~squads._interactions.is_live_roster_entry`, so retiring or reactivating a
+        role/skill can never produce a false positive on either side of the transition — a
+        retired entry's slug is simply absent from ``ctx.live_role_slugs``/
+        ``live_skill_slugs``, so this method never names its (correctly withdrawn) pointer at
+        all.
+
+        **Not an abstract method.** The documented ``AgentBackend`` surface
+        (``docs/stability.md``, ``docs/backends.md``) is exactly seven methods and does not
+        grow; this default (an empty list — "no per-entry pointers declared") keeps that
+        promise for a third-party backend written against the documented seven while still
+        letting a bundled backend override it to opt into the ``sq check``/``sq sync``
+        per-entry reporting above. Both bundled backends (``claude_code``, ``agents_md``)
+        override it; a backend that doesn't is simply never warned about a missing per-entry
+        pointer, exactly as if it had none to declare.
+        """
+        return []

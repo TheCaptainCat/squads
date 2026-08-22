@@ -86,12 +86,12 @@ async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
             )
         )
         for msg in unreadable:
-            err_console.print(f"[red]error[/red]: {e(msg)}")
+            err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
         if unreadable:
             raise typer.Exit(1)
         return
     for msg in unreadable:
-        console.print(f"[red]error[/red]: {e(msg)}")
+        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
     if not notices:
         console.print("[dim]no current notices[/dim]")
     else:

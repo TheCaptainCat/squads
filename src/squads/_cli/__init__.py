@@ -266,7 +266,8 @@ def _resolve_clock_override(at: str | None, prior: RequestContext) -> datetime |
     except ValueError:
         common.err_console.print(
             f"[red]error:[/red] invalid --at timestamp {at!r} "
-            "(use ISO 8601, e.g. 2024-01-15 or 2024-01-15T09:30:00Z)"
+            "(use ISO 8601, e.g. 2024-01-15 or 2024-01-15T09:30:00Z)",
+            soft_wrap=True,
         )
         raise typer.Exit(2) from None
 

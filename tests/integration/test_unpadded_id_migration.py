@@ -100,6 +100,11 @@ async def test_migration_unpads_frontmatter_and_prose_but_skips_code_spans_and_f
 
     assert (await svc.get(task_fm["parent"])).id == feature.id
     assert (await svc.get(task_fm["refs"][0])).id == bug.id
+    # `_devolve_to_padded`'s subentity-title overwrite (above) never touched the index, only
+    # the file — a bypass this migration's own MANUAL text accounts for as its step 4
+    # ("Runs `sq repair` to rebuild the index"). Do that before asserting a clean check, same
+    # as a real `sq migrate up` would.
+    await svc.repair()
     issues = await svc.check()
     assert not issues
 

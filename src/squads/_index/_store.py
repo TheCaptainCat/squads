@@ -50,6 +50,15 @@ the guard for that lives at the item-file write seam (see
 :func:`squads._itemfile.ensure_no_skew`) and does not reach either of them, since neither
 sources a value from the index in the first place.
 
+**Request-scoped reads never enter this ordering.** :meth:`IndexStore.load` optionally serves a
+snapshot filed by an ambient :class:`_ReadScope` (see :func:`read_scope`, entered once per CLI
+invocation at the sync-to-async bridge) instead of re-reading disk — but :meth:`transaction`
+never consults that scope: its in-lock load always calls :meth:`_read_from_disk` directly, so
+the only db that ever reaches :meth:`IndexStore._atomic_write` is one read from disk under this
+module's file lock a moment before. Serving a transaction a stale snapshot would write an older
+index over a newer one — the one skew direction forbidden above — so this is not a rule the
+scope has to remember to honour; the scope is simply never wired to the commit path at all.
+
 **Failure model.** In model: process death — ``SIGKILL``/``SIGTERM``, a harness timeout or
 background-stop, an OOM kill, a container stop, or an exception escaping a transaction body,
 all treated as one event class. Writes already accepted by the kernel survive it, so program
@@ -64,8 +73,8 @@ import asyncio
 import contextlib
 import sys
 import threading
-from collections.abc import AsyncGenerator
-from contextvars import ContextVar
+from collections.abc import AsyncGenerator, Generator
+from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -369,9 +378,11 @@ class IndexStore:
     def exists(self) -> bool:
         return self.index_path.is_file()
 
-    async def load(self, *, validate_vocab: bool = True) -> SquadsDB:
-        """Read without locking, on a worker thread — for queries (list/show); writes use
-        :meth:`transaction`.
+    async def _read_from_disk(self, *, validate_vocab: bool) -> SquadsDB:
+        """Read and validate the index straight from disk — the one implementation both
+        :meth:`load` (the scope-aware wrapper over this) and :meth:`transaction` (which must
+        never consult or fill the read scope — see the module docstring's skew-direction rule)
+        delegate to.
 
         If the stored counter trails the max item sequence (e.g. a hand-edit), it is raised
         *in memory* so the next allocation can't reuse a number; the corrected value only
@@ -379,9 +390,9 @@ class IndexStore:
         happens only inside ``transaction()`` (invariant 2).
 
         ``validate_vocab`` gates only the *semantic* checks (:func:`_validate_item_vocab`,
-        :func:`_validate_badge_codes`) — every ordinary caller wants those fail-closed, so the
-        default is ``True``. The one exception is ``sq repair``'s own pre-rebuild read: its
-        whole point is to recover from exactly this drift (e.g. a type/status/badge-code
+        :func:`_validate_badge_codes`) — every ordinary caller wants those fail-closed, so
+        callers default to ``True``. The one exception is ``sq repair``'s own pre-rebuild read:
+        its whole point is to recover from exactly this drift (e.g. a type/status/badge-code
         dropped via an override), so it reads with ``validate_vocab=False`` to get the prior
         counter/padding/corpus back even when a stored item's vocab no longer resolves. A
         structurally unreadable index (missing file, bad JSON, schema violation) still raises
@@ -419,6 +430,39 @@ class IndexStore:
             _validate_badge_codes(db, self._spec)
         return db
 
+    async def load(self, *, validate_vocab: bool = True, fresh: bool = False) -> SquadsDB:
+        """Read without locking, on a worker thread — for queries (list/show); writes use
+        :meth:`transaction`.
+
+        Consults the ambient :class:`_ReadScope` (see :func:`read_scope`) first: if one is
+        bound and already holds a snapshot this store filed, that snapshot is returned as-is
+        with no disk read at all. Otherwise (or with no scope bound) this reads via
+        :meth:`_read_from_disk` and, when a scope is bound, files the result for the rest of
+        the invocation to reuse. Absent a scope, this behaves exactly as it always has —
+        opt-in, and its absence is only ever slow, never wrong.
+
+        Two bypasses, both of which neither consult nor fill the scope:
+
+        - ``validate_vocab=False`` — filing an unvalidated db in a shared slot would let a
+          later validating caller in the same invocation skip a fail-closed check, the wrong
+          direction to fail. See :meth:`_read_from_disk` for why this one exists at all.
+        - ``fresh=True`` — for the caller whose contract is "re-read the index right now"
+          (``_confirm_cross_source`` in ``_services/_maintenance.py``, ``sq check``'s
+          false-positive suppression round): serving *or filing* a scope-cached answer here
+          would defeat the one re-read its own docstring depends on.
+        """
+        if not validate_vocab or fresh:
+            return await self._read_from_disk(validate_vocab=validate_vocab)
+        scope = _read_scope.get()
+        if scope is None:
+            return await self._read_from_disk(validate_vocab=True)
+        cached = scope.snapshots.get(self)
+        if cached is not None:
+            return cached
+        db = await self._read_from_disk(validate_vocab=True)
+        scope.snapshots[self] = db
+        return db
+
     # ------------------------------------------------------------------ transaction
     @contextlib.asynccontextmanager
     async def transaction(self) -> AsyncGenerator[SquadsDB]:
@@ -435,6 +479,15 @@ class IndexStore:
         always unbound (restoring whatever was bound before, if anything) in the same
         ``finally`` that releases Layer 3, including when an exception escapes the body or
         the transaction is cancelled.
+
+        The in-lock load always calls :meth:`_read_from_disk` directly — never :meth:`load`,
+        and so never the ambient read scope. This is the load-bearing line of the whole
+        read-scope design: the only db that ever reaches :meth:`_atomic_write` is one read
+        from disk under this lock a moment before, so a stale cached snapshot can never be
+        the one written back — see the module docstring's skew-direction rule. Any read
+        scope this store filed before the transaction opened is unconditionally invalidated
+        in the same ``finally`` that unbinds ``_active_transaction``, commit or raise, so a
+        read after this transaction (in the same invocation) never serves pre-mutation state.
 
         After the ``os.replace`` commits, buffered reflog ops are appended while still
         holding all locks, strictly after commit. A failed append only warns; it never
@@ -459,8 +512,9 @@ class IndexStore:
                 token = None
                 try:
                     # The one and only load: this is also the context transaction()
-                    # publishes, so there is no separate pre-lock load to discard.
-                    ctx = _TransactionCtx(db=await self.load())
+                    # publishes, so there is no separate pre-lock load to discard. Always
+                    # the disk, never the read scope — see the docstring above.
+                    ctx = _TransactionCtx(db=await self._read_from_disk(validate_vocab=True))
                     token = _active_transaction.set(_ActiveTransaction(store=self, ctx=ctx))
                     yield ctx.db
                     await self._atomic_write(ctx.db)
@@ -490,6 +544,14 @@ class IndexStore:
                                 file=sys.stderr,
                             )
                 finally:
+                    # Unconditional, commit or raise: drop any snapshot this store filed
+                    # before a read after this transaction (in the same invocation) can ever
+                    # observe pre-mutation state. On the raise path the index was never
+                    # written, so the snapshot would still be accurate — dropped anyway, in
+                    # exchange for a rule with no second clause.
+                    scope = _read_scope.get()
+                    if scope is not None:
+                        scope.snapshots.pop(self, None)
                     # Restore (not clear) the ambient binding before releasing Layer 3, so
                     # a sibling/nested transaction's binding on this task is never clobbered.
                     if token is not None:
@@ -540,7 +602,12 @@ class IndexStore:
 
     async def overwrite(self, db: SquadsDB) -> None:
         """Replace the whole index under the three-layer lock (used by ``sq repair``), with the
-        same Layer-1-first ordering as :meth:`transaction`."""
+        same Layer-1-first ordering as :meth:`transaction`.
+
+        Invalidates any read scope this store filed the same way :meth:`transaction` does —
+        unconditionally, in the same ``finally`` that releases Layer 3 — so a read after this
+        in the same invocation never serves the pre-rebuild snapshot.
+        """
         async with self._loop_lock():
             await _aio.to_thread(self._proc_mutex.acquire)
             try:
@@ -548,6 +615,9 @@ class IndexStore:
                 try:
                     await self._atomic_write(db)
                 finally:
+                    scope = _read_scope.get()
+                    if scope is not None:
+                        scope.snapshots.pop(self, None)
                     await _aio.to_thread(self._lock.release)
             finally:
                 await _aio.to_thread(self._proc_mutex.release)
@@ -568,3 +638,72 @@ class IndexStore:
         between the fsync and the rename.
         """
         await _aio.atomic_write_text(self.index_path, db.to_json() + "\n")
+
+
+@dataclass
+class _ReadScope:
+    """One command invocation's read-side index cache: at most one :class:`SquadsDB` snapshot
+    per :class:`IndexStore` instance, keyed on store identity for the same reason
+    ``_active_transaction`` is (two stores can legitimately address one squad directory in one
+    process, e.g. ``sq repair``, tests).
+
+    ``load()`` is the only consumer — it consults and fills this on the ambient scope's behalf
+    (see :func:`read_scope`); :meth:`IndexStore.transaction` never does either. Held inside this
+    one object, not as a bare module-level dict, so the whole cache is a single value bound (and
+    unbound) by one ``ContextVar``.
+    """
+
+    snapshots: dict[IndexStore, SquadsDB] = field(default_factory=dict[IndexStore, SquadsDB])
+
+
+# Task-local read-scope handle, absent by default. Mirrors ``_active_transaction`` above: one
+# module-level ContextVar for one engine-internal, task-local concern. Unlike that one, this is
+# opt-in on the *read* side — ``load()`` behaves exactly as it always has when no scope is bound
+# (opt-in, and its absence is only ever slow, never wrong), and nothing here changes what
+# ``transaction()`` does or reads.
+_read_scope: ContextVar[_ReadScope | None] = ContextVar("_read_scope", default=None)
+
+
+def enter_read_scope() -> Token[_ReadScope | None]:
+    """Bind a fresh, empty :class:`_ReadScope` and return the token to undo it with
+    (:func:`exit_read_scope`).
+
+    Paired primitives for the one caller that cannot use the :func:`read_scope` context
+    manager below: ``_cli/_common.py``'s ``command`` bridge, because Typer's own
+    group-resolving callback (e.g. ``@item.callback()``, which resolves ``sq <type> <n>``
+    before the verb runs) is *itself* wrapped by ``command`` and crosses the sync/async
+    bridge in a separate call from the leaf verb's — two calls, sequential, not nested, so a
+    plain ``with`` block opened in the first call cannot still be open in the second. Both
+    calls share one Click root ``Context`` for the one real CLI invocation they're both part
+    of, so ``command`` opens the scope on the *first* such call and closes it via
+    ``ctx.call_on_close`` when that root context finishes — see ``command`` for the full
+    mechanism. Prefer plain :func:`read_scope` for anything confined to one call frame
+    (tests included).
+    """
+    return _read_scope.set(_ReadScope())
+
+
+def exit_read_scope(token: Token[_ReadScope | None]) -> None:
+    """Undo a binding made by :func:`enter_read_scope`."""
+    _read_scope.reset(token)
+
+
+@contextlib.contextmanager
+def read_scope() -> Generator[None]:
+    """Bind a fresh, empty :class:`_ReadScope` for the duration of the block.
+
+    For any use confined to one call frame (every test in this suite that wants one). The
+    real CLI's per-invocation scope is opened by ``_cli/_common.py::command`` instead, via
+    :func:`enter_read_scope`/:func:`exit_read_scope`, because one CLI invocation can cross this
+    module's sync/async bridge more than once (see that pair's docstring) — this simple form
+    would tear down and reopen on each crossing, defeating the point.
+
+    Whichever way it's opened, ``load()`` consults the very same ambient scope, and ``sq ui``
+    is a sync command that never passes through either — it opts out for free and keeps
+    today's per-call-always-fresh behaviour.
+    """
+    token = enter_read_scope()
+    try:
+        yield
+    finally:
+        exit_read_scope(token)

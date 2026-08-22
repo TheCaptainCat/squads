@@ -111,7 +111,8 @@ def scaffold(
         console.print(
             f"[green]scaffolded[/green] new role override: [bold]{e(str(dest))}[/bold]\n"
             f"Edit [cyan]{e(str(dest))}[/cyan] to fill in the stubbed essentials, then activate "
-            f"with [cyan]sq role activate {e(new)}[/cyan]."
+            f"with [cyan]sq role activate {e(new)}[/cyan].",
+            soft_wrap=True,
         )
         return
 
@@ -121,7 +122,8 @@ def scaffold(
             f"[green]scaffolded[/green] role override: [bold]{e(str(dest))}[/bold]\n"
             f"Edit [cyan]{e(str(dest))}[/cyan] to add fields to override "
             f"(e.g. full_name, model), then verify with "
-            f"[cyan]sq override diff --role {e(role)}[/cyan]."
+            f"[cyan]sq override diff --role {e(role)}[/cyan].",
+            soft_wrap=True,
         )
         return
 
@@ -132,7 +134,8 @@ def scaffold(
             f"[green]scaffolded[/green] workflow override: [bold]{e(str(dest))}[/bold]\n"
             f"Edit [cyan]{e(str(dest))}[/cyan] to add custom types, statuses, and lifecycles,\n"
             f"then validate with [cyan]sq workflow lint[/cyan] and "
-            f"inspect with [cyan]sq override diff workflow[/cyan]."
+            f"inspect with [cyan]sq override diff workflow[/cyan].",
+            soft_wrap=True,
         )
         return
 
@@ -143,7 +146,8 @@ def scaffold(
             f"[green]scaffolded[/green] playbook override: [bold]{e(str(dest))}[/bold]\n"
             f"Edit [cyan]{e(str(dest))}[/cyan] to add a role's guidance to a type "
             f"(the '$(*self)' append idiom), then "
-            f"inspect with [cyan]sq override diff playbook[/cyan]."
+            f"inspect with [cyan]sq override diff playbook[/cyan].",
+            soft_wrap=True,
         )
         return
 
@@ -157,7 +161,8 @@ def scaffold(
     console.print(
         f"[green]scaffolded[/green] template override: [bold]{e(str(dest))}[/bold]\n"
         f"Edit [cyan]{e(str(dest))}[/cyan], then verify with "
-        f"[cyan]sq override diff {e(name)}[/cyan]."
+        f"[cyan]sq override diff {e(name)}[/cyan].",
+        soft_wrap=True,
     )
 
 
@@ -198,7 +203,8 @@ def list_overrides(
     if not entries:
         console.print(
             "[dim]no overrides found under .overrides/[/dim]\n"
-            "Run [cyan]sq override scaffold <template_name>[/cyan] to start one."
+            "Run [cyan]sq override scaffold <template_name>[/cyan] to start one.",
+            soft_wrap=True,
         )
         return
 
@@ -394,4 +400,6 @@ def update(
 
     for n in stamped:
         console.print(f"[green]re-stamped[/green] {e(n)} → v{e(__version__)}")
-    console.print("\nRun [cyan]sq check[/cyan] to confirm the drift warning is cleared.")
+    console.print(
+        "\nRun [cyan]sq check[/cyan] to confirm the drift warning is cleared.", soft_wrap=True
+    )

@@ -109,10 +109,8 @@ def outside(tmp_path):
 
 
 def _flat(text: str) -> str:
-    """Rich hard-wraps at the console width, and a long temp path can push the break
-    inside the phrase under test (`could \\nnot be read` on a Windows runner), so a
-    substring check would be asserting on a wrap position. Flatten first."""
-    return " ".join(strip_ansi(text).split())
+    """Strip ANSI so a colour code inserted mid-phrase is never mistaken for a miss."""
+    return strip_ansi(text)
 
 
 async def _two_items(svc):
@@ -222,7 +220,12 @@ async def test_an_item_whose_file_is_simply_missing_is_not_reported_as_unreadabl
 # ─── CLI contract ──────────────────────────────────────────────────────────────
 
 
-async def test_cli_search_prints_the_results_then_the_error_and_exits_one(svc, invoke, outside):
+async def test_cli_search_prints_the_results_on_stdout_and_the_error_on_stderr(
+    svc, invoke, outside
+):
+    """The streams captured separately, not combined: a combined-output grep would pass on
+    the defect this guards against (the human-mode error printed to stdout instead of
+    stderr) -- checked here on the two streams typer's ``CliRunner`` keeps genuinely apart."""
     good, bad = await _two_items(svc)
     undo = _make_unreadable(item_file(svc.paths, bad), "os-read-error", outside)
     try:
@@ -232,8 +235,27 @@ async def test_cli_search_prints_the_results_then_the_error_and_exits_one(svc, i
 
     assert result.exit_code == 1
     out = _flat(result.stdout)
+    err = _flat(result.stderr)
     assert good.id in out  # the answer is still delivered
-    assert "could not be read" in out
+    assert "could not be read" not in out
+    assert "could not be read" in err
+
+
+async def test_cli_inbox_prints_the_hits_on_stdout_and_the_error_on_stderr(svc, invoke, outside):
+    """Same stream contract as search above, for `inbox`'s identical degrade path."""
+    good, bad = await _two_items(svc)
+    undo = _make_unreadable(item_file(svc.paths, bad), "os-read-error", outside)
+    try:
+        result = await invoke(["inbox", "manager"])
+    finally:
+        undo()
+
+    assert result.exit_code == 1
+    out = _flat(result.stdout)
+    err = _flat(result.stderr)
+    assert good.id in out
+    assert "could not be read" not in out
+    assert "could not be read" in err
 
 
 async def test_cli_search_json_stays_a_parseable_array_with_the_error_on_stderr(

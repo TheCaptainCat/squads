@@ -1459,6 +1459,25 @@ def lifecycle_states_in_order(machine: Lifecycle) -> list[str]:
     return order
 
 
+def lifecycle_edges_in_order(machine: Lifecycle) -> list[tuple[str, str]]:
+    """Every transition edge in *machine*, as ``(source, target)`` pairs in a deterministic,
+    byte-stable order: sources in :func:`lifecycle_states_in_order` order, targets in each
+    source's declared ``Lifecycle.transitions`` list order (the TOML declaration order the
+    ``list`` values preserve — never ``Lifecycle.states``, a ``frozenset`` with a
+    hash-seed-dependent iteration order). A source with no outgoing edges contributes nothing.
+
+    This re-derives what the now-deleted ``lifecycle_edges()`` helper used to return (dropped
+    as dead code once the cheatsheet's state-diagram render was removed); the ordering it fixed
+    is preserved here for the ``sq workflow lifecycles --json`` catalog, which publishes each
+    pair as a ``{from, to}`` object.
+    """
+    return [
+        (src, dst)
+        for src in lifecycle_states_in_order(machine)
+        for dst in machine.transitions.get(src, [])
+    ]
+
+
 class WorkflowSpec(BaseModel):
     """The full loaded workflow specification.
 

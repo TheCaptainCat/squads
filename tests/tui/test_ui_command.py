@@ -98,6 +98,35 @@ async def test_ui_hands_the_resolved_service_to_the_app_and_calls_its_blocking_r
     assert received[0].paths.squad_dir == project.squad_dir
 
 
+async def test_ui_opens_no_read_scope_and_pins_no_service_memo(project, monkeypatch, runner):
+    """``sq ui`` is a sync command that never passes through ``common.command``, so it must
+    keep its always-fresh behaviour exactly: no read scope opened, and — now that
+    ``get_service`` memoizes on the same root-context marker the scope uses — no ``Service``
+    pinned for the session either. Both are gated on the same marker, so both are absent here.
+    """
+    import squads._cli._common as common
+    from squads._index._store import _read_scope
+
+    observed: dict[str, set[object] | bool | None] = {"meta_keys": None, "read_scope_bound": None}
+
+    def _fake_run(self):
+        root = common._click_root_context()
+        observed["meta_keys"] = set(root.meta.keys()) if root is not None else None
+        observed["read_scope_bound"] = _read_scope.get() is not None
+
+    monkeypatch.setattr(tui_app.SquadsApp, "run", _fake_run)
+
+    result = runner.invoke(app, ["ui"])
+    assert result.exit_code == 0, result.output
+
+    assert observed["read_scope_bound"] is False, "sq ui must never open a read scope"
+    raw_meta_keys = observed["meta_keys"]
+    meta_keys: set[object] = raw_meta_keys if isinstance(raw_meta_keys, set) else set()
+    assert common._READ_SCOPE_META_KEY not in meta_keys
+    assert common._SERVICE_META_KEY not in meta_keys
+    assert common._BYPASS_SERVICE_META_KEY not in meta_keys
+
+
 def test_cli_help_and_import_work_with_the_tui_extra_unimportable():
     script = (
         "import sys\n"

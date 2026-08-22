@@ -81,10 +81,10 @@ async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False,
             )
         )
         for msg in unreadable:
-            err_console.print(f"[red]error[/red]: {e(msg)}")
+            err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
         return
     for msg in unreadable:
-        console.print(f"[red]error[/red]: {e(msg)}")
+        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
     if not entries:
         console.print(f"[dim]no memories for {e(role_slug)}[/dim]")
         return
@@ -114,10 +114,10 @@ async def search_memories(
             )
         )
         for msg in unreadable:
-            err_console.print(f"[red]error[/red]: {e(msg)}")
+            err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
         return
     for msg in unreadable:
-        console.print(f"[red]error[/red]: {e(msg)}")
+        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
     if not hits:
         console.print(f"[dim]no matches for {e(query)}[/dim]")
         return

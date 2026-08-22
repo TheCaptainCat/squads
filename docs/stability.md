@@ -401,6 +401,7 @@ renamed or retyped within a major version. The frozen surface includes:
   | `sq workflow collections --json` | badge collection | `collection`, `label`, `ordered`, `default`, `badges` |
   | `sq workflow statuses --json` | status | `status`, `role`, `badge` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live` |
+  | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
 
   Each emits a bare JSON array, one row per declared entry in a documented order, with **every key
   present on every row** — `null` for absent, never omitted. They are designed to be **joined**, and
@@ -411,10 +412,11 @@ renamed or retyped within a major version. The frozen surface includes:
   null, so `null` stays available to a client meaning "not loaded yet". `terminal` and `is_open`
   are deliberately not fields anywhere: they are `settled` / `not settled` on the role catalog.
 
-  **`lifecycle` is the exception: it names a machine, but no catalog in this release publishes
-  one.** Treat it as a grouping key — equal values mean two entries bind the same machine — and note
-  that no other `--json` surface exposes lifecycle membership either, `sq workflow statuses` being a
-  flat vocabulary list. See [workflow.md](workflow.md#joining-the-catalogs).
+  A type's or a kind's `lifecycle` keys into the lifecycle catalog the same way: `initial` is the
+  starting status, `states` is every status the machine declares — in breadth-first order from
+  `initial`, documented and deterministic — and `transitions` is every allowed move as
+  `{from, to}` objects in that same order. See
+  [workflow.md](workflow.md#joining-the-catalogs).
 - **Override inspection:** `override list --json` (an array of `{name, kind, base_version, state}`)
   and `override diff --json` (`{name, kind, base_version, base_available, delta_mine,
   delta_upgrade}`)

@@ -30,9 +30,11 @@ from squads._interactions._models import (
     PlaybookSpec,
     RoleGuideSpec,
 )
+from squads._models._extras import ExtraKey as X
+from squads._models._item import Item
 from squads._roles._catalog import get_catalog, role_by_slug
 from squads._workflow import bundled_spec
-from squads._workflow._models import Field, WorkflowSpec
+from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, Field, WorkflowSpec
 
 #: Sentinel interacting "role" that expands to every developer role (slug ``<tech>-dev``).
 DEV = "*dev"
@@ -598,6 +600,39 @@ def orphaned_skill_item_type(slug: str, spec: WorkflowSpec) -> str | None:
     if not is_system_skill(slug, spec):
         return None
     return slug.removeprefix("sq-")
+
+
+def is_live_roster_entry(item: Item, spec: WorkflowSpec) -> bool:
+    """Whether *item* (a ``role`` or ``skill`` roster item) currently should have a
+    materialised per-entry backend artifact — the same two-clause predicate
+    ``ServiceCore._project_roster_item`` (:mod:`squads._services._base`) already applies
+    while materialising/withdrawing, extracted here so that caller and every other reader of
+    "is this roster entry live" — ``sq check``'s ``backend_reconciled`` rule and ``sync``'s
+    own before/after regeneration report (both in :mod:`squads._services`) — derive it from
+    this one function instead of growing a second, separately-maintained notion of the same
+    fact. ``False`` for any other item type (an operator, or an ordinary work item, has no
+    per-entry backend artifact at all).
+
+    Two clauses, both required for a ``SKILL`` item, only the first for a ``ROLE`` item:
+
+    - the item's own status carries the type's ``live`` flag
+      (:meth:`WorkflowSpec.live_statuses`); and
+    - for a ``SKILL`` item only, its slug still names a type the active spec declares
+      (:func:`orphaned_skill_item_type` returns ``None``) — a dropped or renamed built-in's
+      stale ``sq-<type>`` skill is withdrawn right alongside a manually-retired one, with no
+      separate mechanism. Miss this clause and a squad whose workflow override dropped a type
+      reports a permanent false positive no ``sq sync`` can clear.
+
+    Pure: reads only *item* and *spec*, no index, no filesystem — safe for a backend-context
+    caller that must not load the index itself.
+    """
+    if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
+        return False
+    live = item.status in spec.live_statuses(item.type)
+    if item.type == ROSTER_SKILL and live:
+        slug = item.extra.get(X.SLUG, "")
+        live = orphaned_skill_item_type(slug, spec) is None
+    return live
 
 
 def orphaned_playbook_guides(
