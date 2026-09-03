@@ -41,7 +41,8 @@ sub-entity's with `sq <type> <n> <kind> <k> body` (both take `-m` paragraphs or 
 **replace** the body and so refuse once one has been written — `--append` to add, `--force` to
 replace on purpose); comment
 with `sq <type> <n> comment`; change metadata with `sq <type> <n> update`. Read anything back with
-`sq show <n>` (any type) or `sq <type> <n> show`.
+`sq show <n>` (any type) or `sq <type> <n> show` — and read it that way only: the command is the
+read surface, not the file, because it resolves state the file does not carry.
 Don't edit the markers or frontmatter by hand — use the commands so the
 index stays in sync. `sq check` catches violations; `sq repair` rebuilds the index from frontmatter.
 

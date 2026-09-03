@@ -3,7 +3,7 @@ id: ADR-777
 sequence_id: 777
 type: decision
 title: One override contract for every bundled spec document
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - FEAT-693:addresses
@@ -16,7 +16,7 @@ refs:
 - ADR-776
 - ADR-781
 created_at: '2026-08-22T09:28:30Z'
-updated_at: '2026-08-22T09:47:38Z'
+updated_at: '2026-08-24T20:31:54Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -280,6 +280,147 @@ nothing from this decision beyond the manifest coverage the template tree alread
   correctly still a forward dependency" reading was true when written and is not now.
 - **`sq check`'s exit code changes for a squad carrying an unstamped template override** (warn to
   error), which is a deliberate tightening rather than a side effect.
+## Amendment note
+
+**2026-08-24 — §2's content store retains every manifest-covered revision, and the retention
+window is stated here rather than left to the implementation.** §2 ruled that the widened manifest
+carries deduplicated content rather than hashes alone, and rejected narrowing ADR-85 §5 to match
+the code. It never said how long a revision is kept, which is the clause that actually decides
+whether Δ-upgrade works from an arbitrarily old stamp — the durable-contract consequence §2 was
+protecting.
+
+### A1. The policy: nothing is pruned, and the store's coverage equals the index's
+
+Every `(version, artifact)` pair the hash index names resolves to bytes, for every release the
+index covers, for as long as squads ships that artifact. There is no window and no expiry.
+
+Two things fall out of that single rule rather than needing their own:
+
+- **The store is seeded once, at the release that ships the widening, back to the index's floor**
+  (0.4.0, the first release the manifest records). A store covering fewer versions than the index
+  would be a third state the diff has to explain, on top of *carried* and *never recorded*.
+- **The generator itself never reads git.** The seeding is a one-time data step against the release
+  tags, not a generator capability, so §2's "no second mechanism beside them" holds: the generator's
+  steady-state contract stays "hash the current tree, insert what is absent".
+
+### A2. Why a window is refused, and the argument is ADR-85 §3 rather than cost
+
+A bounded window would not merely degrade Δ-upgrade at the edge — it reopens the false-positive
+class §2 exists to close. Content-gating drift requires the stamped revision's content to answer
+"did the bundled counterpart actually change?". Past the window that question is unanswerable, and
+only two fallbacks exist: warn on stamp age alone, which ADR-85 §3 forbids by name and which is the
+precise defect the widening removes; or report clean when we do not know, which is a false negative
+traded for a false positive. So a window buys a bounded store by spending the promise the widening
+was for.
+
+The second reason is who it prunes. The adopter with the oldest stamp has the largest accumulated
+delta and the weakest memory of what they edited — they are the population Δ-upgrade is for, and an
+age-keyed window removes the feature from exactly them while leaving it for the adopter who least
+needs it.
+
+### A3. The measurement, driven over the index's own coverage
+
+Measured across 0.4.0 → 0.13.1 (15 releases) over the widened set — the bundled templates plus
+`workflow.toml`, `roles.toml` and `playbook.toml`:
+
+- **402 file-revisions deduplicate to 79 blobs, 283 KB of raw content.** Dedup carries the policy:
+  churn drives growth, not release count. Four of the fifteen releases introduced no new content at
+  all, and the 14-release mean is 18 KB of raw new content per release.
+- **What ships is compressed, and that is the number that decides.** As one JSON document inside
+  the wheel: **60.0 KB for full retention**, against **26.9 KB** for a current-release-only store
+  and 3.6 KB for today's hash-only index. The entire retention question is therefore worth **33 KB
+  in a 654 KB wheel — about 5%**, growing ~2.4 KB in-wheel per release.
+- **That rate is the worst case, not the trend.** It is measured over pre-1.0 churn, and it
+  includes the one release that introduced three spec TOMLs at once (80 KB of new raw content in a
+  single release against the 18 KB mean). The contract freeze cuts template churn, which is the
+  dominant term.
+- **The store's on-disk shape is decided here, because it is load-bearing:** one JSON document, not
+  one file per blob. The same content stored blob-per-file costs **134 KB in the wheel against
+  60 KB**, because a zip deflates each member separately and these are small, highly similar files.
+  A 2.2× difference for no semantic gain.
+- **§2's ~88 KB figure is one full snapshot and stays correct as that** — it is not the size of the
+  store under this policy, and this amendment supplies that number so neither statement is left
+  standing for the other.
+
+Cost does not decide this, which is why A2's argument is the one that does. Recorded so the policy
+is not re-derived from the size alone by a later reader who finds the size small.
+
+### A4. A ceiling, in place of a window
+
+Never pruning is unbounded in principle, so the bound is asserted rather than assumed: the
+manifest-freshness guard gains a ceiling on the store's compressed size — **256 KB in the wheel** —
+and a release that would cross it fails the gate. That places the reconsideration at the moment
+there are real numbers to reconsider with, rather than pre-committing to a window now against a
+projection. At the measured rate the ceiling is roughly eighty releases away.
+
+### A5. When a base revision is not carried
+
+The unresolvable case stays narrow under A1 but it is real, and one instance ships on the first day:
+a squad whose `.overrides/workflow.toml` is stamped before the widening holds a stamp for an
+artifact the index did not then cover, which is what A1's seeding exists to reach. Three shapes
+remain — a stamp below the index's floor, a stamp naming a version squads never released, and a
+stamp newer than the running version.
+
+- **It is not a `sq check` finding: not an error, and not a warning.** §6's severity ladder is for
+  an obligation the adopter can discharge. An uncarried base revision is squads' own coverage limit,
+  and the only action available to them is `sq override update`, which would clear the report by
+  destroying the provenance they still have. Charging an adopter for our gap and offering that as
+  the remedy is the wrong direction.
+- **The drift classifier stays silent, which is what already ships.** `template_changed_since`
+  returns `False` for an unrecorded base, documented in place as "unknown history is treated as
+  unchanged, never as a warning" (read: `_overrides/_manifest.py:78-89`). That is ADR-85 §3's rule
+  and the widening must leave it exactly as it is.
+- **`sq override diff` states it in full and exits 0.** Δ-mine is unaffected and still renders. The
+  Δ-upgrade pane names the artifact, the stamped version, and which of the three shapes it is. Where
+  an anchor exists — a stamp below the floor — it renders a **partial Δ-upgrade from the earliest
+  carried revision**, labelled with where the delta actually starts and stating plainly that changes
+  before that point are not represented. A downgrade has no anchor in the right direction and
+  refuses, saying that.
+- **The message §2 rejected goes with it.** What ships today reads "content changed but base
+  snapshot is not available; refer to the squads changelog or git history" (read:
+  `_overrides/_service.py:643-647`) — the "something changed, read the changelog" state §2 named.
+  Its replacement is bounded by a rule rather than by taste: it must name the artifact, the stamped
+  version, why that revision is not carried, and what *is* available instead. "Read the changelog"
+  answers none of the four.
+- **A stamp naming a version squads never released is a malformed stamp**, and falls under §6's
+  existing stamp obligation. This clause covers only well-formed stamps whose revision is not
+  carried.
+
+### A6. What this asks of the generator and the release step beyond §2
+
+- **Two write modes, not one.** The per-version *index* entry stays a wholesale replacement keyed on
+  `[project].version` — the ordering stated once in ADR-781 §6. The *store* is **insert-if-absent
+  and never deletes.** The separation is deliberate: Consequences already records that a mis-ordered
+  regeneration destroys the shipped release's recorded entry, and a store sharing the index's
+  replace semantics would let the same mis-ordering destroy retained history, which no tag can
+  restore for a revision whose only surviving copy was the store. Splitting the modes confines the
+  known hazard to one version's index, which *is* recoverable from the tag.
+- **The store is keyed on the same normalisation the index hashes.** The index digests
+  CRLF-normalised bytes so a Windows checkout hashes identically (read: `_overrides/_manifest.py:60-65`);
+  a store keyed on raw bytes would miss every lookup on such a checkout. One rule, one normalisation.
+- **Two guard assertions**, which are what make "never prune" checkable instead of assumed: every
+  hash named by any index entry resolves in the store, and every blob in the store is referenced by
+  at least one index entry. The first is the retention promise itself. The second catches the orphan
+  a bug or a hand-edit would otherwise accumulate silently — with nothing pruning, that is the only
+  way the store grows without a release.
+- **The release step needs nothing beyond what §2 already widens.** It runs the generator after the
+  bump, unchanged.
+
+### A7. Interactions checked
+
+- **ADR-85 §3** — retention is what keeps §3's content gate answerable at all (A2), and §3's
+  unknown-base silence is preserved rather than replaced (A5).
+- **ADR-85's rule that `sq migrate` never rewrites overrides** is untouched: the store is package
+  data inside the wheel, not squad data — never migrated, never repaired, and a squad never carries
+  a copy. The consequence worth naming rather than discovering later is that an adopter's Δ-upgrade
+  reach is a function of the *installed* squads version, not of their squad folder, which is why
+  A5's downgrade shape exists.
+- **The live-corpus cross-check (ADR-696 §5a) does not gain an input, and must not.** §5a recovers a
+  type's expected `prefix` and `folder` from the live items themselves, and records "it stores
+  nothing new" as one of the three properties that make it minimal. A retained `workflow.toml`
+  revision is now a second, plausible-looking answer to "what did this type used to declare". It is
+  not one: the store is provenance for diffing, and never an input to validation, to the merge, or
+  to the cross-check. The corpus remains the authority on what its items were written under.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -299,4 +440,14 @@ nothing from this decision beyond the manifest coverage the template tree alread
   - Section 6: uniform severity, so an unstamped shadowing template override is an error. Stated plainly that this moves sq check to exit 3 on the first run after upgrade, plus the two things that soften it — the message already names the file and the fixing command (_overrides/_service.py:938-948), and sq override update with no name clears a whole squad in one command (:855). No upgrade-keyed grace period, which would be the second rulebook section 1 exists to prevent.
   - Section 4: recorded the nod, that nothing about engine behaviour changes, and that ADR-696 section 4b is narrowed in place at its own end — the same treatment ADR-696 section 4 gave ADR-541 field-axis clause.
   - The release ordering is now stated once, in ADR-781 section 6, and cited from here and from ADR-775/776 rather than repeated. Widening the manifest to three more documents widens what a mis-ordered regeneration destroys, which is why the citation is in Consequences.
+- [2026-08-24T20:15:58Z] Pierre Chat:
+  - The widened manifest retention window needs settling in the decision, not at task level: it determines whether a delta-upgrade works from an arbitrarily old stamp, which is an ADR-85 section 5 contract consequence. Architect to amend.
+- [2026-08-24T20:31:54Z] Robert Architect:
+  - Amended in place at its own end (A1-A7), per op-pierre ruling of today. Settled: nothing is pruned - the content store covers exactly what the hash index covers, for every release the index names, with no window and no expiry. The store is seeded once at the widening release back to the index floor (0.4.0); the generator itself never reads git, so section 2 no-second-mechanism holds.
+  - The argument that decides it is ADR-85 section 3, not cost. A window makes "did the bundled counterpart actually change" unanswerable past its edge, and the only two fallbacks left are the ones already ruled out: warn on stamp age alone (forbidden by name, the exact defect the widening removes) or report clean when we do not know. A window would buy a bounded store by spending the promise the widening was for - and it prunes precisely the adopter with the largest delta and the weakest memory of what they edited.
+  - Measured, driven over 0.4.0..0.13.1 (15 releases, templates plus the three spec TOMLs): 402 file-revisions dedup to 79 blobs, 283KB raw. What ships is compressed - as one JSON document in the wheel, 60.0KB for full retention vs 26.9KB for current-release-only and 3.6KB for the hash-only index today. So the whole retention question is 33KB in a 654KB wheel, about 5 percent, growing ~2.4KB in-wheel per release - and that rate is the worst case (pre-1.0 churn, and it includes the one release that added three TOMLs at once). Store shape is load-bearing and decided: one JSON document, not blob-per-file, which costs 134KB in-wheel for the same content because a zip deflates each member separately.
+  - Uncarried base revision: not an sq check finding at all - not error, not warn. Severity is for an obligation an adopter can discharge, and the only action available here is sq override update, which clears the report by destroying the provenance they still have. The drift classifier stays silent, which is what already ships (_overrides/_manifest.py:78-89, unknown history treated as unchanged). sq override diff states it in full and exits 0: Delta-mine unaffected, and where an anchor exists it renders a partial Delta-upgrade from the earliest carried revision, labelled with where the delta actually starts. The shipped "refer to the squads changelog or git history" text (_overrides/_service.py:643-647) is the state section 2 rejected by name and goes.
+  - Two tensions found. First, section 2 cites ~88KB as the measured cost - that is one full snapshot and stays correct as that, but it is not the store size under full retention; A3 says so explicitly so neither statement is left standing for the other. Second, the store must not become an input to ADR-696 section 5a: 5a recovers a type prefix/folder from the live items and records "it stores nothing new" as one of the three properties making it minimal, and a retained workflow.toml revision is now a plausible-looking second answer to the same question. A7 rules it out - provenance for diffing only, never validation, merge, or cross-check.
+  - Also asked of the generator beyond section 2: two write modes (index entry stays wholesale-replace keyed on project.version per ADR-781 section 6; the store is insert-if-absent and never deletes, so the known mis-ordered-regeneration hazard cannot destroy retained history), the store keyed on the same CRLF normalisation the index hashes, and two guard assertions making never-prune checkable. A 256KB in-wheel ceiling on the store replaces a window as the bound - roughly eighty releases away at the measured rate.
+  - @product-owner FEAT-791 US1 needs the retention clause reflected: the one-time seeding back to 0.4.0, the insert-if-absent store write mode distinct from the index write, and the store-coverage-equals-index-coverage guard. A new acceptance line is owed for the uncarried-base path (partial Delta-upgrade from the earliest carried revision, exit 0, not an sq check finding) - it is not covered by any current story. Yours to edit, not mine.
 <!-- sq:discussion:end -->

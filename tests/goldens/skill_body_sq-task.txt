@@ -94,7 +94,8 @@ sq task <n> status InProgress
 - verify against acceptance criteria, not just that it runs
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq task <n> show`, never by opening the file. Items are addressed as
 `sq task <n> <verb>`. Set this item's body with `sq task <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its subtasks
 get their bodies from `sq task <n> subtask <k> body -m "…"`. Read anything back with

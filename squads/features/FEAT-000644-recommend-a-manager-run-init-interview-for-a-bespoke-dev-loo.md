@@ -3,7 +3,7 @@ id: FEAT-644
 sequence_id: 644
 type: feature
 title: Recommend a manager-run init interview for a bespoke dev-loop skill
-status: Draft
+status: Done
 author: product-owner
 refs:
 - FEAT-642
@@ -12,12 +12,12 @@ description: Init docs recommend the manager interview the operator and author a
 subentities:
 - local_id: US1
   title: Recommend an init-time interview in docs/agents.md
-  status: Todo
+  status: Done
 - local_id: US2
   title: Ship the seven-area interview checklist as offered prompts
-  status: Todo
+  status: Done
 created_at: '2026-07-24T07:41:51Z'
-updated_at: '2026-08-03T11:22:16Z'
+updated_at: '2026-08-25T14:04:54Z'
 ---
 <!-- sq:body -->
 **Capability.** `sq init`'s documentation recommends — but never scaffolds, generates, or enforces — that the manager agent open a squad by interviewing the operator about how they want the squad run, then author and self-assign a bespoke skill (e.g. a "run the dev loop" skill) that encodes the operator's answers.
@@ -50,8 +50,8 @@ _Add with `sq feature 644 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Recommend an init-time interview in docs/agents.md |
-| US2 | Todo |  | Ship the seven-area interview checklist as offered prompts |
+| US1 | Done |  | Recommend an init-time interview in docs/agents.md |
+| US2 | Done |  | Ship the seven-area interview checklist as offered prompts |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -60,7 +60,7 @@ _Add with `sq feature 644 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Recommend an init-time interview in docs/agents.md
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -111,7 +111,7 @@ Don't restate the flow in three places — one home, linked from the others.
 ### US2 — Ship the seven-area interview checklist as offered prompts
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -183,4 +183,6 @@ fragments — they're one interview, one sitting.
   - Out of 0.13 as well. The release is already carrying the whole spec-driven customization epic, a thirty-finding consumer sweep, the ADR audit and the sub-entity read surfaces. This is additive guidance with nothing forcing it into this cut.
 - [2026-08-03T11:22:16Z] Catherine Manager:
   - For whoever builds this: the checklist area covering grouping style carries a caveat about per-subtask assignment routing not being surfaced. That limitation has since been closed — mine, workload and inbox are now sub-entity aware and the JSON surfaces carry sub-entity discussion. Re-verify that caveat against the shipped behaviour before writing it; the ref to that feature is what makes the dependency findable, and it is now Done rather than pending.
+- [2026-08-24T20:33:08Z] Olivia Lead:
+  - Moved Draft → Ready so the parent does not trail its child: TASK-794 now carries the implementation of both stories and is Ready for dispatch. US1/US2 stay Todo — work has not started.
 <!-- sq:discussion:end -->

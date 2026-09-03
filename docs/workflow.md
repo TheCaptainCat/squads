@@ -246,7 +246,8 @@ Their state (status/assignee/severity/story) lives in the parent item's **frontm
 sees them); the block in the body holds only the prose and a derived badge header. The block's **body
 is sq-managed too** — set it with `sq <type> <n> <kind> <k> body -m
 "…"` (or `--file body.md` / `--file -`) and read the whole block with `sq <type> <n> <kind> <k> show`;
-no manual markdown editing. `body` **replaces** the block's prose, so it refuses once something has
+no manual markdown editing, and no manual markdown reading either — the block on disk holds only the
+prose, so opening the file shows you strictly less than `show` does. `body` **replaces** the block's prose, so it refuses once something has
 been written there rather than discarding it — add to it with `--append`, or pass `--force` to
 replace it on purpose.
 

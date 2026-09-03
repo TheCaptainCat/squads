@@ -48,7 +48,8 @@
 {% endfor %}
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq {{ type }} <n> show`, never by opening the file. Items are addressed as
 `sq {{ type }} <n> <verb>`. Set this item's body with `sq {{ type }} <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. {% if subentity_kind %}Its {{ subentity_plural }}
 get their bodies from `sq {{ type }} <n> {{ subentity_kind }} <k> body -m "…"`. Read anything back with

@@ -41,6 +41,7 @@ other: `sq mine {{ extra.get('slug', item.slug) }}` for the items assigned to yo
 
 {% endif %}
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
+The `.md` files are sq-managed — read them through `sq <type> <n> show`, never by opening the file.
 For your part on each item type, follow your `sq-<type>` skill's **For {{ extra.get('full_name', item.title) }}**
 section — it tells you what to check, do, and hand off.
 When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> comment` for sub-entity-scoped

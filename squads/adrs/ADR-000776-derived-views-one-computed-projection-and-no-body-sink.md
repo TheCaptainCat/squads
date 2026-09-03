@@ -3,7 +3,7 @@ id: ADR-776
 sequence_id: 776
 type: decision
 title: 'Derived views: one computed projection, and no body sink'
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - FEAT-693:addresses
@@ -17,7 +17,7 @@ refs:
 - ADR-777
 - ADR-781
 created_at: '2026-08-22T09:28:29Z'
-updated_at: '2026-08-22T09:59:49Z'
+updated_at: '2026-08-24T18:10:35Z'
 ---
 <!-- sq:body -->
 ## Context

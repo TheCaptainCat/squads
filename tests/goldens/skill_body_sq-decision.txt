@@ -45,6 +45,7 @@ sq decision <n> status Accepted
 - supersede it (new ADR) when reality changes
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq decision <n> show`, never by opening the file. Items are addressed as
 `sq decision <n> <verb>`. Set this item's body with `sq decision <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Read anything back with `sq decision <n> show --full --comments` (full dossier, including discussion).
