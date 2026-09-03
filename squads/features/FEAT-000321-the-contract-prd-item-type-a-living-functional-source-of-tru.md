@@ -3,32 +3,33 @@ id: FEAT-321
 sequence_id: 321
 type: feature
 title: The contract (PRD) item type — a living functional source of truth
-status: Ready
+status: Done
 author: product-owner
 refs:
 - ADR-320:implements
+- MILE-836:targets
 subentities:
 - local_id: US1
   title: As a team, I can create and manage contract items (PRD prefix) like any other
     item type
-  status: Todo
+  status: Done
 - local_id: US2
   title: As a reader, a contract describes what the product does for a user right
     now, from the user's POV
-  status: Todo
+  status: Done
 - local_id: US3
   title: As a team, a feature links the contract it shapes, and stale contracts are
     surfaced when features land
-  status: Todo
+  status: Done
 - local_id: US4
   title: As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and
     expose the new type
-  status: Todo
+  status: Done
 - local_id: US5
   title: sq migrate up adds the contracts folder in the shared 0.14 bump
-  status: Todo
+  status: Done
 created_at: '2026-07-07T08:33:54Z'
-updated_at: '2026-08-26T13:40:35Z'
+updated_at: '2026-09-01T08:04:11Z'
 ---
 <!-- sq:body -->
 # The contract (PRD) item type
@@ -86,11 +87,11 @@ _Add with `sq feature 321 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | As a team, I can create and manage contract items (PRD prefix) like any other item type |
-| US2 | Todo |  | As a reader, a contract describes what the product does for a user right now, from the user's POV |
-| US3 | Todo |  | As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land |
-| US4 | Todo |  | As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type |
-| US5 | Todo |  | sq migrate up adds the contracts folder in the shared 0.14 bump |
+| US1 | Done |  | As a team, I can create and manage contract items (PRD prefix) like any other item type |
+| US2 | Done |  | As a reader, a contract describes what the product does for a user right now, from the user's POV |
+| US3 | Done |  | As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land |
+| US4 | Done |  | As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type |
+| US5 | Done |  | sq migrate up adds the contracts folder in the shared 0.14 bump |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -99,7 +100,7 @@ _Add with `sq feature 321 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — As a team, I can create and manage contract items (PRD prefix) like any other item type
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -121,7 +122,7 @@ As a team, I want to create and manage `contract` items (PRD prefix) like any ot
 ### US2 — As a reader, a contract describes what the product does for a user right now, from the user's POV
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -147,7 +148,7 @@ user's point of view, so it is the current functional truth.
 ### US3 — As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -169,7 +170,7 @@ As a team, I want a feature to link the contract it shapes and stale contracts s
 ### US4 — As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -198,7 +199,7 @@ new type so I know how to work with contracts.
 ### US5 — sq migrate up adds the contracts folder in the shared 0.14 bump
 
 <!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
@@ -262,4 +263,6 @@ new type appears cleanly.
     - Named the validator ADR-320 §C left unnamed: `ref_rule_target_present`, selected as `validators = ["ref_rule_target_present:contract"]` on `[items.feature]`, with the param naming the target item **type** and the kind read from the declaring type's own `ref_rules`. Chosen against the catalog's convention, not invented — the fourteen existing entries name subject-plus-condition (`parent_present`, `agent_registered`, `subentity_body_written`), and where the subject is spec-resolved they name it generically (`subentity_title_max` says `subentity`, not `story`). A `contract_*` name would bake a bundled type into the closed catalog of a project whose direction is that only role/skill/operator are reserved.
     - One thing I did NOT settle, raised in ST4 rather than invented. §C says the finding fires at `InReview` **or** `Done`. Those cannot be separated through declared vocabulary: `InReview` declares `role = "active"` — the same role as `InProgress`, `ChangesRequested` and `Active` — while `Done` declares `role = "done"` (verified in the bundled spec). I specified building against the `done` role, mirroring `_supersedes_incoming`, which compares `ctx.spec.status_role(...)` against a role and never a status spelling. Binding to `active` instead would warn on every feature merely in progress. @architect either §C narrows to the settled role, or a status role distinguishing "under review" from "in progress" is introduced — nothing else in the task turns on which.
     - A consequence worth knowing before this lands, and the dev is told to measure it rather than soften it: this repo holds dozens of `Done` features with no contract edge, because the type does not exist yet. Every one of them will produce a warn finding the day the validator ships. ST4 requires the count measured on our own corpus and reported, and forbids a suppression or grandfather clause — the honest options are seeding this repo's own contracts or accepting the number, and that is @op-pierre's call with a real figure in hand.
+- [2026-09-01T07:37:20Z] Catherine Manager:
+  - US5 was delivered by the shared migration runner, which is parented under the derived-views feature because that is where the runner lives; the runner creates both new type folders and cannot be closed by delivering one half.
 <!-- sq:discussion:end -->

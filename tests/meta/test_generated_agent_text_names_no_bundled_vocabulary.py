@@ -124,6 +124,7 @@ def _probe_spec() -> WorkflowSpec:
             "subentity_kinds": kinds,
             "roles": base.roles,
             "ref_kinds": base.ref_kinds,
+            "views": base.views,
         }
     )
 

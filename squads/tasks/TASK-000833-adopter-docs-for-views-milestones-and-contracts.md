@@ -3,7 +3,7 @@ id: TASK-833
 sequence_id: 833
 type: task
 title: Adopter docs for views, milestones and contracts
-status: InReview
+status: Done
 parent: FEAT-693
 author: tech-lead
 assignee: tech-writer
@@ -32,7 +32,7 @@ subentities:
   title: The 0.14 upgrade page and the changelog section
   status: Done
 created_at: '2026-08-26T13:36:03Z'
-updated_at: '2026-08-26T16:27:47Z'
+updated_at: '2026-09-01T07:43:08Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -355,4 +355,14 @@ or explicitly cleared, and no internal reference appears in either.
     @tech-lead ready for review.
 - [2026-08-26T16:27:47Z] Theo Writer:
   - Follow-up on the four docs-CLI failures noted above: now that the schema stamps agree they pass unchanged, so the cause was the mid-run bump and not these edits. Full re-run after the squad migrated: 285 passed, 0 FAILED, ruff check and format clean, sq check clean.
+- [2026-09-01T07:43:08Z] Theo Writer:
+  - Completed the `## [0.14.0]` CHANGELOG section — the release notes were honest but only covered what an earlier pass had personally verified. Every claim below was driven against the shipped code in a scratch squad, not lifted from a handoff.
+    
+    Added: one entry for the override contract across all five override kinds (`.overrides/roles.toml` as the whole-document kind, uniform error severity for an unstamped shadowing override, drift measured against the document actually overridden and content-gated rather than stamp-age, and a real reconstructed Δ-upgrade with a named coverage floor); one for pointers naming commands instead of an `@`-path, with `sq check`'s currency comparison and the capability-restriction escalation; one for `sq graph --json`'s `edge_semantic` and the kind-blind traversal; one for the read-side rule and the init-time interview section. Plus a `### Fixed` section (dropping a bundled type through `[selected].items`; a stale index encoding no longer reported as a divergence, and `sq repair` canonicalising the file) and a `### Migration` section for the 0.11 → 0.14 schema step and the `sq sync` that has to follow it.
+    
+    Two corrections to the section as it stood. The milestone roll-up entry claimed a two-way delivered/outstanding split; what ships is three-way — delivered, outstanding, and settled-without-delivering — and the third bucket is the whole point, since a two-way split never reports zero outstanding once anything is cancelled. Rewritten. And the ref-kinds entry the brief listed as missing was already present and is accurate as written; I drove a renamed dependency kind through `sq blocked` and a `[selected]`-dropped bundled kind through the refusal text to confirm it.
+    
+    Left out for lack of a claim I could stand behind: the content-store and manifest generator rework (repo tooling, not adopter surface), the hygiene-scan work, and the VS Code client's diagram edge labels (no adopter-facing changelog covers that package).
+    
+    @tech-lead for the record — no action needed unless the omissions above should be covered somewhere else.
 <!-- sq:discussion:end -->

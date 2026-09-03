@@ -4,14 +4,15 @@ sequence_id: 827
 type: bug
 title: Renaming the default ref kind hard-locks a squad holding untouched legacy ref_kinds
   data
-status: Fixed
+status: Verified
 author: qa
 priority: medium
 refs:
 - ADR-775
 - BUG-804
+- MILE-836:targets
 created_at: '2026-08-26T11:34:16Z'
-updated_at: '2026-08-26T13:05:45Z'
+updated_at: '2026-09-01T08:05:23Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -119,4 +120,45 @@ default). Either is an architect call — this bug states the gap, not the fix.
   - Fix task authored: TASK-828 (Ready, medium), standalone, linked fixes here and implements ADR-775. It states repair as the verb that creates the locked state, not a victim of it, and covers both the legacy-map and the natively spelled shape.
 - [2026-08-26T13:05:45Z] Catherine Manager:
   - Fixed by TASK-828: an undeclared ref kind now refuses at the write and lint boundary only, so check, repair, reads and ref removal keep running, and repair canonicalises the file rather than only the index. The recovery was driven end to end with no hand-editing.
+- [2026-09-01T07:28:17Z] Mara Tester:
+  - Verified in scratch squads (three setups, nested under scratchpad, editable install).
+    
+    Drove the true adversarial order (rename BEFORE any repair ever touches the legacy data,
+    tighter than BUG-827's own repro): bundled spec, TASK-21 target, TASK-22 hand-written to
+    the pre-0.2 shape (refs: [TASK-21] + extra.ref_kinds: {TASK-21: related}, never repaired),
+    TASK-23 given a native edge via `ref add`. Applied the override rename (drop "related",
+    add "primary" as the new default) with zero repairs run yet. `sq workflow lint` accepts the
+    rename (exit 0, grammar-only). `sq repair` then converges cleanly (exit 0, "rebuilt index: 23
+    items") and writes TASK-22's file back as the spelled undeclared kind "TASK-21:related" (file
+    diff confirmed) — matches A5's ruling that folding against a frozen historical default was
+    rejected.
+    
+    Confirmed the write/lint-only boundary, not a load-time lock:
+    - `sq check`: exit 0, one warn line ("unknown ref kind 'related' on edge -> TASK-21"), no
+      "workflow config invalid" line.
+    - `sq workflow lint`: exit 1 — refuses at the corpus cross-check, names the item and gives
+      two remedies.
+    - an ordinary unrelated mutation (`sq task 22 status Ready`) succeeds, exit 0 — not blocked.
+    - `sq graph TASK-21 --json`: exit 0, traverses the edge with edge_kind "related",
+      edge_semantic null.
+    - `sq task 21 refs --all`: exit 0, lists it.
+    - adding a NEW ref of the undeclared kind (`sq task 23 ref add TASK-21 --kind related`):
+      refused, exit 1 ("unknown ref kind 'related'. Valid kinds: ...") — the write boundary.
+    - `sq task 22 ref rm TASK-21` (the remedy the refusal names): succeeds, exit 0, and the squad
+      is clean again (`sq check` exit 0 no issues, `sq workflow lint` exit 0 OK) — the remedy the
+      message names is real and performable, closing the original "refusal naming a remedy the
+      refusal itself blocks" defect.
+    
+    Also drove the other remedy end to end on a second corpus: revert the override edit -> `sq
+    repair` -> mutate TASK-22 once (`sq task 22 status Ready`, file confirmed rewritten to bare
+    canonical refs, no extra.ref_kinds) -> re-apply the rename -> lint clean (exit 0), check clean
+    (exit 0), both TASK-22 and TASK-23 read as the new default "primary" via `refs --all`. No item
+    .md file touched by hand at any point in either recovery.
+    
+    Checked message truthfulness: the general spec-unloadable message (triggered separately with
+    an unrelated broken lifecycle reference) no longer claims lint is "the one command that still
+    runs" — it says no command can answer with the vocabulary and points at lint, and in that
+    genuinely-broken case `sq check` does fail (exit 3, "workflow config invalid") while `sq
+    repair` still runs (exit 0, via its bypass) — consistent, and distinct from the ref-kind case
+    above where check only warns.
 <!-- sq:discussion:end -->

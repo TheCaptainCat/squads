@@ -615,10 +615,12 @@ fields = [
 
 [views.milestone_rollup]
 # Source: every item carrying a forward `targets` ref to this milestone, recovered by
-# inverting stored forward edges — the milestone file itself is never touched. Delivered vs.
-# outstanding is resolved by the *presentation* template off each member's own status role
-# (`status_role`, not `status`) — never a literal status name, since members can span types
-# and lifecycles a literal like "Done" would silently mis-group.
+# inverting stored forward edges — the milestone file itself is never touched. The
+# presentation template splits members on the declared `settled`/`delivered` axes, never a
+# literal status name: `delivered` is a member's own kind reaching its happy-path terminal
+# (whatever a lifecycle calls it — "Done", "Accepted", "Verified"); `settled` alone (without
+# `delivered`) is a member that stopped for some other reason (Cancelled, Superseded) —
+# neither outstanding nor something this milestone can claim credit for.
 source = { kind = "ref", name = "targets" }
 group_by = "status_role"
 order_by = ["type", "id"]
@@ -638,6 +640,14 @@ label = "Status"
 [[views.milestone_rollup.fields]]
 code = "status_role"
 label = "Status role"
+
+[[views.milestone_rollup.fields]]
+code = "settled"
+label = "Settled"
+
+[[views.milestone_rollup.fields]]
+code = "delivered"
+label = "Delivered"
 
 [[views.milestone_rollup.fields]]
 code = "title"

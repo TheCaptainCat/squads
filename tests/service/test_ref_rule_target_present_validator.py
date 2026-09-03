@@ -113,6 +113,7 @@ def _spec_dict(base: WorkflowSpec, items) -> dict[str, object]:
         "subentity_kinds": dict(base.subentity_kinds),
         "roles": dict(base.roles),
         "ref_kinds": dict(base.ref_kinds),
+        "views": dict(base.views),
     }
 
 
@@ -149,3 +150,17 @@ def test_a_matching_ref_rule_and_validator_selection_load_clean():
     spec = bundled_spec()
     assert spec.items["feature"].validators == ["ref_rule_target_present:contract"]
     assert any(rr.target == "contract" for rr in spec.items["feature"].ref_rules)
+
+
+def test_a_paramless_ref_rule_target_present_is_refused_at_load_not_left_permanently_inert():
+    """No ``:<T>`` parameter at all is a third, distinct shape from the two already covered
+    above (an undeclared target type, and a target with no matching ``ref_rules`` entry): the
+    bare name builds an empty target set at runtime and never fires, silently, for any type it
+    is declared on."""
+    base = bundled_spec()
+    items = {
+        **base.items,
+        "bug": base.items["bug"].model_copy(update={"validators": ["ref_rule_target_present"]}),
+    }
+    with pytest.raises(SquadsError, match="missing its required target type parameter"):
+        WorkflowSpec.model_validate(_spec_dict(base, items))

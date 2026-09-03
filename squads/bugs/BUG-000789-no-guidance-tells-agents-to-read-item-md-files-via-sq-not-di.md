@@ -7,10 +7,11 @@ status: Verified
 author: qa
 refs:
 - FEAT-694:blocks
+- MILE-836:targets
 description: Guidance covers write-protection for item .md files but never states
   reads must go through sq
 created_at: '2026-08-24T17:46:07Z'
-updated_at: '2026-08-25T14:04:23Z'
+updated_at: '2026-09-01T08:05:15Z'
 ---
 <!-- sq:body -->
 ## Symptom

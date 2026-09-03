@@ -7,6 +7,7 @@ status: Done
 author: product-owner
 refs:
 - ADR-775:implements
+- MILE-836:targets
 subentities:
 - local_id: US1
   title: Declare [ref_kinds] as a workflow-spec section
@@ -25,7 +26,7 @@ subentities:
   status: Done
   assignee: tech-writer
 created_at: '2026-08-24T18:24:12Z'
-updated_at: '2026-08-26T09:22:59Z'
+updated_at: '2026-09-01T08:04:02Z'
 ---
 <!-- sq:body -->
 ## The problem

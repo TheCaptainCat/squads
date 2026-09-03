@@ -8,10 +8,13 @@ optional ``severity`` field, and a bundled view naming an optional badge field c
 project that shadows that field away (``[subentity_kinds.finding] fields = []`` is an ordinary,
 supported customisation — ``test_shadowing_a_builtin_subentity_kinds_fields_leaves_its_other_
 fields_inherited`` in ``test_badge_collections.py`` exercises exactly this) to keeping it, which
-is not a coupling this mechanism should impose. The two views that *do* ship bundled
-(``finding_summary``/``finding_summary_line`` — see ``test_view_declaration_referential_checks
-.py``) stick to base attributes for that reason; this file proves the declaration is expressive
-enough for the badge-field dimension too, without asking every adopter to carry it.
+is not a coupling this mechanism should impose. ``milestone_rollup`` is the only view that
+actually ships bundled, and it sticks to base attributes for that reason. ``finding_summary``/
+``finding_summary_line`` are names two other test modules give their own declared views, paired
+with a test-authored stand-in template placed as a project override — nothing named that ships
+in the wheel (``_declare_finding_view`` in ``test_workflow_views_cli.py``/
+``test_view_resolve_and_render.py``). This file proves the declaration is expressive enough for
+the badge-field dimension too, without asking every adopter to carry it.
 """
 
 from datetime import UTC, datetime

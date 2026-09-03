@@ -29,6 +29,8 @@ async def test_create_set_target_date_join_and_show_the_rollup(project, invoke) 
 
     r = await invoke(["milestone", mile_id, "show"])
     assert r.exit_code == 0, r.output
+    assert "target date" in r.output
+    assert "2026-12-01" in r.output
     assert "## Delivered" in r.output
     assert "## Outstanding" in r.output
     assert task_id in r.output

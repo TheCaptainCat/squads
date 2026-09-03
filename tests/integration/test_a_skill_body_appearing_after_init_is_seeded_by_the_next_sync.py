@@ -33,6 +33,7 @@ _KEPT = [
     "bug",
     "decision",
     "contract",
+    "milestone",
     "review",
     "role",
     "skill",

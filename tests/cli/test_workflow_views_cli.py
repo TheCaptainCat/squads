@@ -45,15 +45,47 @@ _FINDING_FIELDS = (
     '[[views.{name}.fields]]\ncode = "title"\nlabel = "Title"\n'
 )
 
+#: Neither ships bundled — no declared view names either, so nothing shipped can reach them
+#: (see ``squads._views``' module docstring). Table/non-tabular stand-ins authored here, placed
+#: as a project override template, so a test can still exercise two different presentations of
+#: one projection.
+_TABLE_TEMPLATE = (
+    "{% for group in groups %}\n"
+    "{% if group.key is not none %}\n"
+    "### {{ group.key }}\n\n"
+    "{% endif %}\n"
+    '| {{ fields | map(attribute="label") | join(" | ") }} |\n'
+    "| {% for f in fields %}---{% if not loop.last %} | {% endif %}{% endfor %} |\n"
+    "{% for record in group.records %}\n"
+    "| {% for f in fields %}{{ record.values[f.code].text }}"
+    "{% if not loop.last %} | {% endif %}{% endfor %} |\n"
+    "{% endfor %}\n"
+    "{% endfor %}\n"
+)
+_LINE_TEMPLATE = (
+    "{% for group in groups %}\n"
+    "{% if group.key is not none %}**{{ group.key }}** ({{ group.records | length }})\n"
+    "{% endif %}\n"
+    "{% for record in group.records %}\n"
+    "- {% for f in fields %}{{ record.values[f.code].text }}"
+    "{% if not loop.last %} — {% endif %}{% endfor %}\n\n"
+    "{% endfor %}\n"
+    "{% endfor %}\n"
+)
+_STAND_IN_TEMPLATES = {"finding_summary": _TABLE_TEMPLATE, "finding_summary_line": _LINE_TEMPLATE}
+
 
 def _declare_finding_view(squad_dir: Path, name: str) -> None:
-    """A subentity-source view over ``finding``, named to match one of the two bundled
-    presentation templates so resolving it exercises the real bundled ``.md.j2`` file."""
+    """A subentity-source view over ``finding``, named to match one of the two test-authored
+    stand-in presentation templates (:data:`_STAND_IN_TEMPLATES`) placed as a project override —
+    no view ships bundled, so resolving one always needs an override template of its own."""
     _write_workflow_override(
         squad_dir,
         f'[views.{name}]\nsource = {{ kind = "subentity", name = "finding" }}\n\n'
         + _FINDING_FIELDS.format(name=name),
     )
+    if name in _STAND_IN_TEMPLATES:
+        _place_view_template_override(squad_dir, name, _STAND_IN_TEMPLATES[name])
 
 
 # ─── sq workflow views (catalog) ─────────────────────────────────────────────────
@@ -152,6 +184,34 @@ async def test_default_renders_the_declared_presentation_template(project, invok
     assert "A finding" in result.output
 
 
+async def test_group_count_renders_in_a_template_and_matches_the_json_value(
+    project, invoke
+) -> None:
+    """``docs/workflow.md`` documents ``group.count`` as part of the template context;
+    ``StrictUndefined`` used to turn that into an ``UndefinedError`` the moment a template
+    actually read it."""
+    item_id = await _review_with_a_finding(invoke)
+    _write_workflow_override(
+        project.squad_dir,
+        '[views.by_status]\nsource = { kind = "subentity", name = "finding" }\n'
+        'group_by = "status"\n'
+        'fields = [ { code = "id", label = "Id" }, { code = "status", label = "Status" } ]\n',
+    )
+    _place_view_template_override(
+        project.squad_dir,
+        "by_status",
+        "{% for group in groups %}{{ group.key }}: {{ group.count }}\n{% endfor %}",
+    )
+
+    result = await invoke(["workflow", "view", "by_status", item_id])
+    assert result.exit_code == 0
+    assert "Open: 1" in result.output
+
+    json_result = await invoke(["workflow", "view", "by_status", item_id, "--json"])
+    (json_group,) = json.loads(json_result.output)["groups"]
+    assert json_group["count"] == 1
+
+
 async def test_json_emits_the_projection_and_skips_presentation(project, invoke) -> None:
     item_id = await _review_with_a_finding(invoke)
     _declare_finding_view(project.squad_dir, "finding_summary")
@@ -174,6 +234,8 @@ async def test_two_declared_presentations_of_one_projection_render_differently(
         + '\n[views.finding_summary_line]\nsource = { kind = "subentity", name = "finding" }\n\n'
         + _FINDING_FIELDS.format(name="finding_summary_line"),
     )
+    _place_view_template_override(project.squad_dir, "finding_summary", _TABLE_TEMPLATE)
+    _place_view_template_override(project.squad_dir, "finding_summary_line", _LINE_TEMPLATE)
 
     table = await invoke(["workflow", "view", "finding_summary", item_id])
     line = await invoke(["workflow", "view", "finding_summary_line", item_id])
@@ -195,21 +257,58 @@ async def test_an_unknown_item_id_exits_nonzero(project, invoke) -> None:
     assert result.exit_code == 1
 
 
+async def test_a_view_with_no_presentation_template_fails_clean_not_a_traceback(
+    project, invoke
+) -> None:
+    """A view can be structurally coherent — every axis a load-time spec check can see — and
+    still have no template on disk: the one axis only the render boundary can catch. Drives it
+    through the CLI end to end, never a raw ``jinja2.TemplateNotFound``."""
+    item_id = await _review_with_a_finding(invoke)
+    _write_workflow_override(
+        project.squad_dir,
+        '[views.no_template_view]\nsource = { kind = "subentity", name = "finding" }\n\n'
+        + _FINDING_FIELDS.format(name="no_template_view"),
+    )
+
+    result = await invoke(["workflow", "view", "no_template_view", item_id])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output
+    assert "no presentation template" in result.output
+    assert "templates/views/no_template_view.md.j2" in result.output
+    assert ".overrides/templates/views/no_template_view.md.j2" in result.output
+
+    # --json is unaffected — it skips presentation and stays a clean success.
+    json_result = await invoke(["workflow", "view", "no_template_view", item_id, "--json"])
+    assert json_result.exit_code == 0
+
+
 def _place_view_template_override(squad_dir: Path, name: str, content: str) -> None:
+    """Write the override template. No cache eviction needed here: `invoke`'s per-call reset
+    (tests/conftest.py) clears the whole render-engine environment cache before every command
+    this module drives, which is what used to require a manual `invalidate_squad_dir` call."""
     target = squad_dir / ".overrides" / "templates" / "views" / f"{name}.md.j2"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8")
-    invalidate_squad_dir(squad_dir)
 
 
 async def test_a_project_override_template_wins_over_the_bundled_one(project, invoke) -> None:
-    item_id = await _review_with_a_finding(invoke)
-    _declare_finding_view(project.squad_dir, "finding_summary")
+    """``milestone_rollup`` is the one view that actually ships bundled (neither
+    ``finding_summary`` nor ``finding_summary_line`` does — see :data:`_STAND_IN_TEMPLATES`),
+    so it is the one an override template can genuinely be shown winning over."""
+    r = await invoke(["create", "milestone", "A milestone", "--author", "manager"])
+    assert r.exit_code == 0
+    milestone_id = r.output.split("→")[0].removeprefix("created").strip()
+    r = await invoke(["create", "task", "Targets the milestone", "--author", "manager"])
+    assert r.exit_code == 0
+    task_id = r.output.split("→")[0].removeprefix("created").strip()
+    r = await invoke(["task", task_id, "ref", "add", milestone_id, "--kind", "targets"])
+    assert r.exit_code == 0
     _place_view_template_override(
-        project.squad_dir, "finding_summary", "PROJECT OVERRIDE RENDERING\n"
+        project.squad_dir, "milestone_rollup", "PROJECT OVERRIDE RENDERING\n"
     )
 
-    result = await invoke(["workflow", "view", "finding_summary", item_id])
+    result = await invoke(["workflow", "view", "milestone_rollup", milestone_id])
     assert result.exit_code == 0
     assert "PROJECT OVERRIDE RENDERING" in result.output
-    assert "| Finding |" not in result.output
+    assert "## Delivered" not in result.output

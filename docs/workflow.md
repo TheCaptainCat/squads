@@ -334,6 +334,7 @@ pursued — never how much of its work is finished.
 sq create milestone "1.0" --author product-owner
 sq milestone <n> update --set target_date=2026-12-01
 sq milestone <n> status InProgress
+sq milestone <n> show                            # target date included, once set
 ```
 
 **Membership lives on the work item, not on the milestone.** A feature, task or bug joins a
@@ -354,11 +355,15 @@ to. Two things follow, and both are the point:
   it cannot disagree with them. `sq milestone <n> refs --in` lists the raw edges.
 
 **The roll-up answers what is left.** `sq milestone <n> show` renders the bundled
-`milestone_rollup` view under the milestone's body: its members split into delivered and
-outstanding, each side counted. That split is read from each member's own **status role**, not from
-a status name, so a milestone can hold items of several types whose lifecycles spell "finished"
-differently and still group them correctly. Like every derived view it is computed on each request —
-`--json` included — so it is current by construction and there is nothing to refresh.
+`milestone_rollup` view under the milestone's body: its members split into **delivered**
+(reached their own kind's happy-path terminal — `Done`, `Verified`, `Accepted`, whatever a
+lifecycle calls it), **outstanding** (still open), and **settled without delivering** (stopped
+some other way — cancelled, superseded — neither open nor something the milestone can claim).
+That split is read from each member's declared `settled`/`delivered` role properties, never a
+status name, so a milestone can hold items of several types on several lifecycles and still
+group them correctly — and a milestone whose remaining members are all settled reports zero
+outstanding rather than carrying them forever. Like every derived view it is computed on each
+request — `--json` included — so it is current by construction and there is nothing to refresh.
 
 ```bash
 sq milestone <n> show                            # the roll-up, rendered
@@ -843,22 +848,36 @@ cannot produce it is refused when the spec loads, not silently rendered blank:
 | `id` | ✓ | ✓ | ✓ | The record's id — a full item id, or a sub-entity's local id |
 | `status` | ✓ | ✓ | ✓ | Its status, as declared |
 | `status_role` | ✓ | ✓ | ✓ | The role that status resolves to — the axis to group on |
+| `settled` | ✓ | ✓ | ✓ | Whether that role is settled — `true`/`false` |
+| `delivered` | ✓ | ✓ | ✓ | Whether it reached its own kind's happy-path settled terminal — a genuinely finished record, not merely a settled one (cancelled/superseded are settled but not delivered) |
 | `assignee` | ✓ | ✓ | ✓ | Its assignee slug, or `null` |
 | `title` | ✓ | ✓ | ✓ | Its title |
 | `type` | ✓ | — | ✓ | The item's own type; a sub-entity has none |
 | `story` | — | ✓ | — | The parent story a sub-entity maps onto, where its kind maps one |
-| `any declared badge field` | — | ✓ | ✓ | e.g. `priority`, `severity`, or one you declared |
+| `any declared badge field` | ✓ | ✓ | ✓ | e.g. `priority`, `severity`, or one you declared |
 
-**A `ref` source projects base attributes only.** Its records can be items of any type — that is
-what makes it a membership edge — so there is no single type whose declared fields would apply to
-all of them, and naming a badge field there is refused at load rather than rendered blank. A
-`subentity` source resolves badge fields against the named kind's own `fields`, and a `subtree`
-source against the named type's.
+**A `ref` source may project a badge field at least one declared item type carries.** Its records
+can be items of any type — that is what makes it a membership edge — so there is no single type
+whose declared fields apply to *all* of them, but that is not the same as none: a code no declared
+item type carries anywhere can never resolve for any record and is refused at load, while a code
+some declared type carries (roster types included) resolves for a record of that type and renders
+`null` for a record whose type does not carry it — the same `null` an unset declared field already
+renders everywhere in squads, so a client sees one absence, not two. A `subentity` source resolves
+badge fields against the named kind's own `fields`, and a `subtree` source against the named
+type's — both already yield records of exactly one type/kind, so neither is affected by this.
 
 **Group on `status_role`, not on a status name.** A view's members can span several types whose
 lifecycles spell "finished" differently — `Done`, `Verified`, `Accepted` — so grouping on the
 literal status silently splits work that is equally finished. `status_role` is the declared axis
 that answers the question, and it is what the bundled milestone roll-up groups on.
+
+**Tell "finished" from "just settled" with `settled`/`delivered`, not a status name.** Settled
+alone answers "is this a resting state" — `true` for a cancelled or superseded record too, which
+is why a presentation that treats every settled record as finished silently never reports zero
+outstanding once anything gets cancelled. `delivered` is narrower: it is `true` only when the
+record reached its own kind's *happy-path* settled terminal, whatever a lifecycle names it. A
+record that is `settled` but not `delivered` stopped some other way and belongs in neither an
+"outstanding" nor a "delivered" bucket — the bundled milestone roll-up's own three-way split.
 
 **Presentation: `templates/views/<name>.md.j2`.** A view's rendering is an ordinary bundled
 template, resolved by the view's own name, and it is overridden the way every other template is —

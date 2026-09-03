@@ -11,6 +11,14 @@ Squad B starts from a real `sq init` too (so both squads share one roster), then
 types' surface stripped back to what a squad that predates them looks like, then migrated —
 rather than a frozen pre-0.14 corpus fixture, whose own roster (a single custom-named role) would
 not hold the roster constant against a fresh init's bundled roles.
+
+The strip covers the type folders, the two skill bodies/pointers/index entries, **and** every
+existing role's own `.claude/agents/<slug>.md` preload list — the surface `_strip_new_type_surface`
+used to leave alone, which let a squad B built from a `minimal` (manager-only) roster enter the
+migration already looking converged: no role in that roster preloads either new type's skill, so
+there was nothing for the omission to hide. A roster wide enough to hold a role that *does*
+(`architect`, `product-owner`, `tech-lead`, and any `<tech>-dev`) is what actually exercises the
+seam.
 """
 
 import shutil
@@ -51,6 +59,27 @@ async def _strip_new_type_surface(svc: service.Service, paths: SquadPaths) -> No
         stale = [seq for seq, it in db.items.items() if it.extra.get(X.SLUG) in _NEW_SKILL_SLUGS]
         for seq in stale:
             del db.items[seq]
+
+    _strip_agent_pointer_preload_lines(paths)
+
+
+def _strip_agent_pointer_preload_lines(paths: SquadPaths) -> None:
+    """Drop the two new types' skill lines from every existing role's own generated
+    `.claude/agents/<slug>.md` pointer — the half of a pre-0.14 squad's surface the folder/skill
+    removal above never touched, so a role that interacts with either new type entered the
+    migration already carrying the post-0.14 preload list it could only get from a regeneration.
+    A no-op line-removal on any pointer that never had one (e.g. a role with no interaction with
+    either type), so this is safe to run unconditionally over the whole roster."""
+    agents_dir = paths.root / ".claude" / "agents"
+    if not agents_dir.is_dir():
+        return
+    doomed_lines = {f"- {slug}" for slug in _NEW_SKILL_SLUGS}
+    for pointer in agents_dir.glob("*.md"):
+        text = pointer.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        kept = [line for line in lines if line.strip() not in doomed_lines]
+        if kept != lines:
+            pointer.write_text("\n".join(kept) + "\n", encoding="utf-8")
 
 
 def _skill_body(paths: SquadPaths, slug: str) -> str:
@@ -114,6 +143,73 @@ async def test_migrate_seeds_a_skill_item_for_each_new_type(
     skills = await svc_b.list_items(item_type=ROSTER_SKILL)
     slugs = {sk.extra.get(X.SLUG) for sk in skills}
     assert set(_NEW_SKILL_SLUGS) <= slugs
+
+
+def _agent_pointer_text(paths: SquadPaths, slug: str) -> str:
+    return (paths.root / ".claude" / "agents" / f"{slug}.md").read_text(encoding="utf-8")
+
+
+async def test_role_pointer_drift_is_either_absent_or_named_in_the_manual_runbook(
+    tmp_path, monkeypatch, frozen_time
+) -> None:
+    """A roster wide enough to hold every role whose preload list grows one of the two new
+    types' skills — `architect`, `product-owner`, `tech-lead` (via the bundled playbook) and a
+    `<tech>-dev` role (via the `*dev` sentinel) — held identical between squad A and squad B from
+    before either diverges, so adding the dev role does not itself become a source of
+    incomparability.
+
+    Encodes the actual contract: a migrated squad's affected role pointers may legitimately
+    still differ from a fresh init's (this runner does not regenerate per-entry role pointers —
+    that stays `sq sync`'s job), but only if the runbook the operator just read names `sq sync`
+    as the remedy — never silently, and never while still claiming no action is required. And
+    the remedy has to actually work: running it must converge the two.
+    """
+    dir_a = tmp_path / "a"
+    dir_a.mkdir()
+    monkeypatch.chdir(dir_a)
+    result_a = await service.init(root=dir_a, roles_spec="all")
+    paths_a = result_a.paths
+    svc_a = service.Service(paths_a)
+    await svc_a.add_dev("python")
+
+    dir_b = tmp_path / "b"
+    dir_b.mkdir()
+    monkeypatch.chdir(dir_b)
+    result_b = await service.init(root=dir_b, roles_spec="all")
+    paths_b = result_b.paths
+    svc_b = service.Service(paths_b)
+    await svc_b.add_dev("python")
+    await _strip_new_type_surface(svc_b, paths_b)
+
+    affected_roles = ("architect", "product-owner", "tech-lead", "python-dev")
+    # Precondition: the strip actually put squad B's pointers back to a pre-0.14 shape — every
+    # affected role's pointer differs from squad A's before migrate touches anything.
+    assert all(
+        _agent_pointer_text(paths_a, slug) != _agent_pointer_text(paths_b, slug)
+        for slug in affected_roles
+    )
+
+    changed = await migrate_v0_11_to_v0_14(paths_b)
+    assert changed > 0
+
+    drifted = [
+        slug
+        for slug in affected_roles
+        if _agent_pointer_text(paths_a, slug) != _agent_pointer_text(paths_b, slug)
+    ]
+    # With the roster held wide enough, the drift this runner leaves behind is real, not hidden
+    # by a `minimal` roster with nothing to drift.
+    assert drifted == list(affected_roles)
+
+    from squads._migrations import _v0_11_to_v0_14
+
+    manual_lower = _v0_11_to_v0_14.MANUAL.lower()
+    assert "sq sync" in manual_lower
+    assert "no action is required" not in manual_lower
+
+    await svc_b.sync()
+    for slug in drifted:
+        assert _agent_pointer_text(paths_a, slug) == _agent_pointer_text(paths_b, slug)
 
 
 async def test_migrate_is_idempotent_on_an_already_current_squad(

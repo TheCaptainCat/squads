@@ -27,7 +27,10 @@ ref edge) — that convergence is an ongoing ``sq sync`` responsibility independ
 migration, not owed by the one-time act of a type's own folder/skill appearing. Running `sq
 sync` after this migration remains the right move on a squad that customises role/skill scoping;
 it converges to the identical result on one that does not, since the two live-roster reads
-resolve to the same roster either way.
+resolve to the same roster either way. Deliberately not the same as saying no action is needed:
+an existing role that interacts with either new type genuinely does still carry a stale
+preload list, and ``sq check`` will say so — MANUAL below names ``sq sync`` as the remedy rather
+than promising a convergence this runner does not perform.
 
 **Frozen against no wire-encoded corpus vocabulary, because none is read.** Every id/ref/status
 literal this runner touches is either freshly minted (a new ``SKILL`` item's own id, allocated
@@ -78,10 +81,14 @@ Two item types are now available:
 - **milestone** (`MILE`) — a named target for a set of work (a release, a cycle, anything work
   can be aimed at); a work item joins one by carrying a `targets` ref to it.
 
-No action is required. Optionally, seed a first item of either type for your squad's current
+Run `sq sync` next. Any existing role that interacts with either type — the bundled playbook
+covers `architect`, `product-owner`, `tech-lead` and every `<tech>-dev` — still carries its
+pre-0.14 preload list in its own `.claude/agents/<slug>.md` pointer until then; `sq check` will
+flag it in the meantime. Optionally, seed a first item of either type for your squad's current
 capabilities:
 
 ```
+sq sync
 sq create contract
 sq create milestone
 ```

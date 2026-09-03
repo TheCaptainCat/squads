@@ -8,6 +8,7 @@ author: product-owner
 refs:
 - ADR-781:implements
 - BUG-784
+- MILE-836:targets
 subentities:
 - local_id: US1
   title: Drop squad_path from all four pointer/entry templates
@@ -25,7 +26,7 @@ subentities:
   title: Reword invariant 5 to state the containment rule
   status: Done
 created_at: '2026-08-24T18:28:02Z'
-updated_at: '2026-08-26T12:05:02Z'
+updated_at: '2026-09-01T08:04:07Z'
 ---
 <!-- sq:body -->
 ## The problem

@@ -27,6 +27,7 @@ from squads import _views as views
 from squads._context import get_context, rebind
 from squads._errors import SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
+from squads._models._extras import ExtraKey as X
 from squads._models._item import (
     DISPLAY_ID_PADDING,
     Item,
@@ -37,6 +38,7 @@ from squads._models._item import (
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
+from squads._rendering._engine import set_active_squad_dir
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
@@ -485,6 +487,20 @@ def print_comments(comments: list[discussion.Comment]) -> None:
         _render_comments_plain(comments)
 
 
+def _milestone_target_date_row(it: Item) -> str | None:
+    """The one-off panel row for a milestone's ``target_date``, or ``None`` when unset.
+
+    Not the generic `extra_fields`-on-panel rendering — a type's declared `extra_fields`
+    (e.g. review's `target_ref`, guide's `tags`/`tech`) is a bare list of keys with no
+    declared label/formatting, so a generic renderer would need spec vocabulary this
+    codebase doesn't carry yet. `target_date` alone is worth the one-off: it is a
+    milestone's one distinguishing attribute and docs/workflow.md teaches setting it."""
+    if it.type != "milestone":
+        return None
+    target_date = it.extra.get(X.TARGET_DATE)
+    return f"[bold]target date:[/bold] {e(str(target_date))}" if target_date else None
+
+
 def _build_item_panel_rows(it: Item) -> list[str]:
     """Build the metadata rows for the item's info panel."""
     rows = [
@@ -500,6 +516,9 @@ def _build_item_panel_rows(it: Item) -> list[str]:
         if val:
             rendered = badges.badge_render(field.collection, val, spec)
             rows.append(f"[bold]{field.code}:[/bold] {e(rendered)}")
+    milestone_row = _milestone_target_date_row(it)
+    if milestone_row:
+        rows.append(milestone_row)
     if it.description:
         rows.append(f"[bold]summary:[/bold] {e(it.description)}")
     if it.parent:
@@ -716,6 +735,10 @@ def _raw_metadata_lines(it: Item) -> list[str]:
         if val:
             rendered = badges.badge_render(field.collection, val, spec)
             lines.append(f"- **{field.code}:** {rendered}")
+    if it.type == "milestone":  # one-off; see _build_item_panel_rows' comment on why
+        target_date = it.extra.get(X.TARGET_DATE)
+        if target_date:
+            lines.append(f"- **target date:** {target_date}")
     if it.assignee:
         lines.append(f"- **assignee:** {it.assignee}")
     if it.parent:
@@ -1009,11 +1032,23 @@ def get_service() -> Service:
     scope is ever opened for it — from also getting a Service pinned for its session: it opts
     out of both for the same reason, on the same check, rather than needing a second one to
     remember.
+
+    Re-establishes :func:`squads._rendering._engine.set_active_squad_dir` on every call,
+    including a memo hit. The ContextVar it sets is per-crossing: each ``command``-wrapped
+    bridge crossing runs its own ``anyio.run`` call over its own copied ``contextvars.Context``
+    (see :func:`command`), so a value set inside ``ServiceCore.__init__`` on the crossing that
+    *built* the memoized ``Service`` never propagates to a later crossing that only *fetches*
+    it — even though both crossings observe the identical ``Service`` object off this same root
+    context. Fetching the memo is the one call every leaf verb already makes before it renders
+    anything, so re-asserting the ContextVar here — from ``cached.paths.squad_dir``, the value
+    the first crossing resolved — carries it across the seam without touching any render call
+    site.
     """
     root = _click_root_context()
     if root is not None and _READ_SCOPE_META_KEY in root.meta:
         cached: Service | None = root.meta.get(_SERVICE_META_KEY)
         if cached is not None:
+            set_active_squad_dir(cached.paths.squad_dir)
             return cached
         svc = _build_plain_service()
         root.meta[_SERVICE_META_KEY] = svc
@@ -1070,11 +1105,15 @@ def get_service_bypassing_index_cross_check() -> Service:
     one invocation: a plain caller reading :data:`_SERVICE_META_KEY` can never observe a
     cross-check-skipping instance, and this function reusing its own memo never masks a
     genuine, still-current refusal behind a stale success.
+
+    Re-establishes the active-squad-dir ContextVar on a memo hit for the same reason
+    :func:`get_service` does — see its docstring.
     """
     root = _click_root_context()
     if root is not None and _READ_SCOPE_META_KEY in root.meta:
         cached: Service | None = root.meta.get(_BYPASS_SERVICE_META_KEY)
         if cached is not None:
+            set_active_squad_dir(cached.paths.squad_dir)
             return cached
         try:
             return get_service()

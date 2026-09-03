@@ -373,6 +373,7 @@ async def test_unlink_on_a_non_live_to_non_live_move_is_refused_as_meaningless(s
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
             "ref_kinds": dict(base.ref_kinds),
+            "views": dict(base.views),
         }
     )
     assert custom_spec.live_statuses(ROSTER_ROLE) == frozenset({"Active"})

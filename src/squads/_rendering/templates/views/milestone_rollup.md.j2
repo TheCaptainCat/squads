@@ -1,9 +1,12 @@
 {% set delivered = [] %}
 {% set outstanding = [] %}
+{% set settled_not_delivered = [] %}
 {% for group in groups %}
 {% for record in group.records %}
-{% if group.key == "done" %}
+{% if record.values["delivered"].json_value %}
 {% set _ = delivered.append(record) %}
+{% elif record.values["settled"].json_value %}
+{% set _ = settled_not_delivered.append(record) %}
 {% else %}
 {% set _ = outstanding.append(record) %}
 {% endif %}
@@ -16,6 +19,7 @@
 - **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
 
 {% endfor %}
+
 {% else %}
 _(none yet)_
 
@@ -27,7 +31,18 @@ _(none yet)_
 - **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
 
 {% endfor %}
+
 {% else %}
 _(nothing outstanding)_
 
+{% endif %}
+## Settled without delivering ({{ settled_not_delivered | length }})
+
+{% if settled_not_delivered %}
+{% for r in settled_not_delivered %}
+- **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
+
+{% endfor %}
+{% else %}
+_(none)_
 {% endif %}

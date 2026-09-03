@@ -20,7 +20,7 @@ refs:
 - ADR-422
 - BUG-784
 created_at: '2026-08-22T09:44:15Z'
-updated_at: '2026-08-26T11:12:29Z'
+updated_at: '2026-09-01T08:00:04Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -557,4 +557,6 @@ kwarg dead rather than wrong.
   - One deferral left, narrower: whether a remote squad currency check runs off a cache, needs connectivity, or degrades to cannot-verify. Presence is answerable offline in every mode, so every mode keeps a floor. The bootstrap deferral is closed by the ruling. @op-pierre left Proposed.
 - [2026-08-26T11:12:29Z] Pierre Chat:
   - Section 2 priority list is about what a pointer keeps when space is contested, not the order an agent runs the commands in. The definition fetch runs first; the startup set follows.
+- [2026-09-01T08:00:04Z] Pierre Chat:
+  - Same direction applies to the role body: the markdown is storage, the CLI is the only read surface, and duplicated data comes out of the file rather than being kept in sync.
 <!-- sq:discussion:end -->

@@ -7,6 +7,7 @@ status: Draft
 author: product-owner
 refs:
 - EPIC-316
+- MILE-836:targets
 description: Read-only oversight views for per-role memory (hygiene audit) and the
   team board in both browse clients
 subentities:
@@ -19,7 +20,7 @@ subentities:
     memory)
   status: Todo
 created_at: '2026-07-29T10:03:25Z'
-updated_at: '2026-07-29T10:03:48Z'
+updated_at: '2026-09-01T08:05:48Z'
 ---
 <!-- sq:body -->
 Surface the team's two CLI-only knowledge surfaces — per-role **memory** and the team **board** —
@@ -205,6 +206,21 @@ was never the primary job here.** This isn't a "skip it" call for either piece �
 building — but memory is the one with a real, stated problem behind it, and the honest ranking
 reflects that rather than treating "the operator asked about both in one sentence" as evidence
 they're equally urgent.
+
+## Derived views: not the mechanism for this (checked against FEAT-693)
+
+Derived views shipped since this feature was written (`[views.<name>]`, `ViewSpec.source.kind`
+one of `ref` / `subentity` / `subtree` — `src/squads/_workflow/_models.py`, resolved by
+`src/squads/_views.py::resolve_records`). All three source kinds project off an `Item`'s own
+relations — its refs, its sub-entity collection, its subtree — everything read out of
+`SquadsDB`. A memory entry and a board notice are neither: no counter-allocated id, no place in
+the item index, no refs/sub-entities/subtree position to project from (`squads._memory`,
+`squads._board`). The mechanism has no fourth source kind to bend toward them, and there's no
+reason to invent one — `sq memory <role> list --json` and `sq board list --json` are already
+flat, already-fetchable lists; a view adds grouping/ordering/presentation machinery neither
+list needs. The CLI-surface gaps named above (`created_at` on memory's `list --json`, the
+missing `show --json`) are the real, narrower fix — not a views entry. Confirmed by reading
+`ViewSource`/`ViewSpec` and `_views.py` directly, not inferred from the feature name.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -258,4 +274,10 @@ A dedicated small read surface on each client, not a tree branch: a modal screen
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-01T07:41:51Z] Nina Product:
+  - Refreshed against the current tree — every technical claim in the body still holds (verified, not assumed): sq memory list --json still hand-picks slug/filename/description dropping created_at, show --json still exits 2, board list --json already carries posted_at/until/author, the extension's metaTreeDataProvider.ts/domain/metaView.ts and sq ui's _tree.py/_reader.py/_filter.py/_search.py shapes described here are unchanged, and roster size (10 roles + 1 operator) still supports the eager-fetch call.
+  - Added one new section answering a question the body left open: derived views (FEAT-693, shipped since this feature was written) don't apply — ViewSource.kind is ref/subentity/subtree, all Item-relation sources resolved off SquadsDB; memory entries and board notices are neither items nor indexed there. Confirmed by reading _workflow/_models.py::ViewSource and _views.py directly.
+  - No story rewrite needed — US1/US2 premises are still accurate, left as-is per no-churn guidance. This is a refresh, not a reauthor: nothing here is stale or broken, the feature was simply missing the derived-views answer.
+  - Splits cleanly by client for delivery, but the CLI is the shared dependency both lean on: sq ui needs zero CLI change (in-process Service already exposes created_at + full body); the extension's overview needs the small created_at addition to memory list --json, and its drill-to-body needs the separate memory show --json addition — both CLI-side, land once, unlock the extension regardless of which client builds first. Board needs no CLI change on either side.
+  - Left Draft per instruction. @tech-lead for breakdown once greenlit.
 <!-- sq:discussion:end -->

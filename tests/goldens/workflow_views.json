@@ -21,6 +21,14 @@
         "label": "Status role"
       },
       {
+        "code": "settled",
+        "label": "Settled"
+      },
+      {
+        "code": "delivered",
+        "label": "Delivered"
+      },
+      {
         "code": "title",
         "label": "Title"
       },

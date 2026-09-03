@@ -6,7 +6,7 @@ Copy-paste sequences for common moves. IDs are illustrative — use the ones `sq
 ## Start a feature (product owner)
 
 ```bash
-sq create feature "Login" --parent EPIC-1
+sq create feature "Login" --parent EPIC-1 --author product-owner
 sq feature 2 add-story "As a user, I want to log in so that I can access my account"
 sq feature 2 add-story "As an admin, I want to lock accounts after repeated failures"
 # set each story's body (acceptance criteria, etc.) through sq — no manual file editing:
@@ -17,7 +17,7 @@ sq feature 2 story 2 body --file us2-body.md   # or pipe via --file -
 ## Break a feature into tasks (tech lead)
 
 ```bash
-sq create task "Validate credentials" --parent FEAT-2
+sq create task "Validate credentials" --parent FEAT-2 --author tech-lead
 sq task 3 add-subtask "Verify password hash" --story US1
 sq task 3 add-subtask "Lock after N failures"  --story US2
 sq task 3 status Ready
@@ -26,19 +26,25 @@ sq task 3 status Ready
 ## Fix a bug
 
 ```bash
-sq create bug "Lockout counter resets on refresh"          # → BUG-10
-sq create task "Persist lockout counter"                    # technical task, no feature parent
+sq create bug "Lockout counter resets on refresh" --author qa            # → BUG-10
+sq create task "Persist lockout counter" --author tech-lead              # no feature parent
 sq task 11 ref add BUG-10 --kind fixes
+sq bug 10 status InProgress
 sq task 11 status InProgress
 # … implement …
 sq task 11 status Done
-sq bug 10 status Done
+sq bug 10 status Fixed                                      # the fix has landed
+sq bug 10 status Verified                                   # QA has confirmed it against the repro
 ```
+
+A bug closes on `Verified`, not on the task's `Done` — the two run on different lifecycles, and the
+work being merged is a separate claim from the reported behaviour being gone. `sq workflow
+lifecycles` prints the states and legal moves for every type your squad declares.
 
 ## Run a code review
 
 ```bash
-sq create review "Auth module review" --desc "Scope: token + lockout"   # → REV-12
+sq create review "Auth module review" --desc "Scope: token + lockout" --author reviewer   # → REV-12
 sq review 12 status InReview
 sq review 12 comment --as reviewer -m "Hash OK" -m "@dotnet-dev counter not persisted — changes requested"
 sq review 12 status ChangesRequested
@@ -50,7 +56,7 @@ sq review 12 status Approved
 ## Record a decision (ADR)
 
 ```bash
-sq create decision "Use argon2id for password hashing"      # → ADR-14
+sq create decision "Use argon2id for password hashing" --author architect      # → ADR-14
 sq decision 14 body --file adr-body.md   # Context / Decision / Consequences (or -m paragraphs)
 sq decision 14 status Accepted
 ```
@@ -98,7 +104,7 @@ followed by a `ref add` for the new one — again, both on the work item.
 ## Write a guide (architect / tech writer)
 
 ```bash
-sq create guide "Password hashing" --tech security --tag auth   # → GUIDE-15
+sq create guide "Password hashing" --tech security --tag auth --author tech-writer   # → GUIDE-15
 sq guide 15 status Published
 # link the guide from the work that should follow it:
 sq task 3 ref add GUIDE-15 --kind implements
@@ -164,7 +170,7 @@ custom badge collections — via `.overrides/workflow.toml`; see [workflow.md](w
 ## Migrate a legacy ticket (preserve its date)
 
 ```bash
-sq --at 2024-02-10 create task "Old migration task" --parent FEAT-2
+sq --at 2024-02-10 create task "Old migration task" --parent FEAT-2 --author tech-lead
 sq --at 2024-02-12 task 20 status InProgress
 sq --at 2024-02-15T17:00:00Z task 20 comment --as reviewer -m "shipped"
 ```

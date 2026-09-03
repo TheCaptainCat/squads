@@ -193,6 +193,7 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
 
     _raise_on_floor_violation(merged, origin)
     _prune_orphaned_type_owned_views(merged, result.deselections)
+    _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
 
     try:
         return _build_spec(merged)
@@ -663,6 +664,55 @@ def _prune_orphaned_type_owned_views(
     views_table = cast(dict[str, Any], merged.get("views", {}))
     for name in to_prune:
         views_table.pop(name, None)
+
+
+def _strip_ref_rule_targets_of_dropped_types(
+    merged: RawMapping, deselections: tuple[Deselection, ...]
+) -> None:
+    """Take a surviving type's declarations that name a type ``[selected].items`` just
+    dropped, the same courtesy :func:`_prune_orphaned_type_owned_views` already gives a
+    dropped type's own bundled view.
+
+    ``RefRule.target`` and a ``ref_rule_target_present:<T>`` validator entry both name another
+    item type by string, from the *targeting* type's own block — dropping ``<T>`` leaves that
+    block referring to vocabulary that no longer exists, and both
+    :func:`~squads._workflow._models._check_ref_rule_targets` clauses refuse it (the bundled
+    ``feature`` entry hits exactly this dropping ``contract``: it declares an ``implements``
+    rule targeting it, plus ``ref_rule_target_present:contract``). Without this, an adopter
+    dropping a non-reserved type through ``[selected].items`` bricks the whole squad until they
+    also find and edit the unrelated-looking type block that targets it — the one courtesy the
+    view-owning case above already gets.
+
+    Scoped to declarations that *target* a dropped type only — never ``parents``, which is the
+    pre-existing, deliberately-unchanged coupling between ``epic`` and ``feature``. Mutates
+    *merged* in place, at the same raw-mapping layer the prune above operates at.
+    """
+    dropped_types = {d.key for d in deselections if d.section == "items"}
+    if not dropped_types:
+        return
+    items_table = cast(dict[str, Any], merged.get("items", {}))
+    for raw_entry in items_table.values():
+        entry = cast(dict[str, Any], raw_entry)
+        ref_rules = entry.get("ref_rules")
+        if isinstance(ref_rules, list):
+            entry["ref_rules"] = [
+                rr
+                for rr in cast("list[Any]", ref_rules)
+                if not (
+                    isinstance(rr, dict) and cast(dict[str, Any], rr).get("target") in dropped_types
+                )
+            ]
+        validators = entry.get("validators")
+        if isinstance(validators, list):
+            entry["validators"] = [
+                v
+                for v in cast("list[Any]", validators)
+                if not (
+                    isinstance(v, str)
+                    and v.startswith("ref_rule_target_present:")
+                    and v.partition(":")[2] in dropped_types
+                )
+            ]
 
 
 # ---------------------------------------------------------------------------
@@ -1293,6 +1343,8 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
             for msg in floor_violations
         )
         return findings
+
+    _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
 
     # Phase 4 — structural + referential validation.
     try:

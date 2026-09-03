@@ -29,7 +29,7 @@ pytestmark = pytest.mark.anyio
 _TASK_RENAMED_TO_JOB = """
 [selected]
 items = [
-  "epic", "feature", "job", "bug", "decision", "contract",
+  "epic", "feature", "job", "bug", "decision", "contract", "milestone",
   "review", "guide", "role", "skill", "operator",
 ]
 
@@ -130,8 +130,10 @@ async def test_the_surviving_prose_that_still_names_the_dropped_type_is_the_decl
 ):
     """The limitation itself, stated as a set rather than an example. `sq-feature` keeps the
     feature→task chain because a product-owner guide that cannot say how a feature gets broken
-    down has lost its point; every other guide was written to survive the rename."""
+    down has lost its point; `sq-milestone` keeps its own worked example of joining a task to a
+    milestone (`sq task <n> ref add MILE-… --kind targets`) for the identical reason. Every
+    other guide was written to survive the rename."""
     _write_override(squad.squad_dir, _TASK_RENAMED_TO_JOB)
     bodies = await _preloaded_skill_bodies(squad, invoke)
 
-    assert _naming_the_dropped_type(bodies) == {"sq-feature"}
+    assert _naming_the_dropped_type(bodies) == {"sq-feature", "sq-milestone"}

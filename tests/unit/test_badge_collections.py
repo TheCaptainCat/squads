@@ -39,6 +39,7 @@ def _rebuild(spec: WorkflowSpec, **overrides: object) -> WorkflowSpec:
         "subentity_kinds": spec.subentity_kinds,
         "roles": spec.roles,
         "ref_kinds": spec.ref_kinds,
+        "views": spec.views,
         **overrides,
     }
     return WorkflowSpec.model_validate(payload)

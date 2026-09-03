@@ -1,8 +1,0 @@
-{% for group in groups %}
-{% if group.key is not none %}**{{ group.key }}** ({{ group.records | length }})
-{% endif %}
-{% for record in group.records %}
-- {% for f in fields %}{{ record.values[f.code].text }}{% if not loop.last %} — {% endif %}{% endfor %}
-
-{% endfor %}
-{% endfor %}

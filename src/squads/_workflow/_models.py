@@ -614,12 +614,15 @@ class ItemSpec(BaseModel):
     """Declared ``[views]`` entries rendered as part of this type's own ``show``/``--json``
     surface — the reverse binding a view needs to reach a reader, since a ``ViewSpec`` never
     names the type(s) it is shown on (:class:`ViewSource` names a ref kind, a sub-entity kind
-    or a subtree type, never "the item this is attached to"). Not referentially checked at
-    spec-build time on purpose: that floor sits on ``WorkflowSpec._validate``, which fires on
-    *every* ``WorkflowSpec.model_validate(...)`` call including the many hand-built partial
-    specs across the test suite that spread ``bundled.items`` without also carrying
-    ``bundled.views`` — a name that doesn't resolve is instead refused where it's actually
-    used, by :meth:`squads._services._views.ViewsMixin.resolve_view`'s own declared-view check.
+    or a subtree type, never "the item this is attached to"). Referentially checked at
+    spec-build time by :func:`_check_item_views`, on the same ``WorkflowSpec._validate`` pass
+    every sibling attached-by-name list is checked on: every name here must resolve against
+    ``[views]``, and a ``subentity``-source view's kind must match this type's own
+    ``subentity_kind``. This means every hand-built partial spec across the test suite that
+    spreads ``bundled.items`` must also carry the matching ``bundled.views`` entries, or the
+    attachment is (correctly) refused as dangling — the fixture cost the earlier "check at
+    first use instead" design avoided, judged not worth the risk of bricking a whole type's
+    read path on a spec that lints clean.
 
     A bundled type's own attachment travels with the type through ``[selected]``: dropping
     ``items.<type>`` from ``selected.items`` removes this list along with everything else the
@@ -701,12 +704,22 @@ class ViewSpec(BaseModel):
 #: field — resolved generically by ``squads._views`` off the record itself (id/status/
 #: assignee/title) or the active spec (``status_role``), never off a stored/spec value. Split
 #: per source ``kind`` because ``"story"`` only exists on a sub-entity record (a subtask's
-#: mapped parent story) and ``"type"`` only exists on an item record (a ref/subtree source);
-#: projecting either from the wrong source kind is refused at load, not resolved as blank.
+#: mapped parent story) and ``"type"`` only exists on an item record (a ref/subtree source).
+#: ``"settled"``/``"delivered"`` carry the role axis a presentation needs to tell "still
+#: outstanding" from "reached its own kind's happy-path terminal" from "settled some other
+#: way" — booleans resolved off the declared role/lifecycle, never a literal status name; see
+#: :func:`squads._views._is_delivered`. Projecting any of these from the wrong source kind is
+#: refused at load, not resolved as blank.
 VIEW_BASE_FIELDS_BY_SOURCE: dict[str, frozenset[str]] = {
-    "ref": frozenset({"id", "type", "status", "status_role", "assignee", "title"}),
-    "subentity": frozenset({"id", "status", "status_role", "assignee", "title", "story"}),
-    "subtree": frozenset({"id", "type", "status", "status_role", "assignee", "title"}),
+    "ref": frozenset(
+        {"id", "type", "status", "status_role", "settled", "delivered", "assignee", "title"}
+    ),
+    "subentity": frozenset(
+        {"id", "status", "status_role", "settled", "delivered", "assignee", "title", "story"}
+    ),
+    "subtree": frozenset(
+        {"id", "type", "status", "status_role", "settled", "delivered", "assignee", "title"}
+    ),
 }
 
 
@@ -1152,11 +1165,17 @@ def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> No
     ``_parse_ref_rules``, because item types are known only once every ``[items.*]`` block has
     parsed, while the ref-rule parser sees the declared ref *kinds* alone.
 
-    Two independent checks:
+    Three independent checks:
 
     1. Every declared ``target`` must name an item type the merged spec declares — otherwise
        the rule types an edge against a type that does not exist.
-    2. A type selecting ``ref_rule_target_present:<T>`` must itself declare at least one
+    2. A ``ref_rule_target_present`` validator entry must carry a ``:<T>`` parameter at all.
+       The bare name is accepted by :func:`_check_validators_assignment` (it *is* a declared
+       catalog member) and then builds an empty target set at runtime
+       (``_services/_validators.py``'s own ``and sep`` guard), so it is permanently inert —
+       nothing ever fires, and nothing tells the adopter why. Refused here rather than
+       silently doing nothing forever, the same reasoning as check 3.
+    3. A type selecting ``ref_rule_target_present:<T>`` must itself declare at least one
        ``ref_rules`` entry whose ``target`` is ``<T>``. Without this, ``<T>`` could be an
        item type nothing points the check at (an accepted set empty by construction — every
        settled item warns and no edge can ever clear it) or not a declared item type at all;
@@ -1172,7 +1191,14 @@ def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> No
     for t, ts in items.items():
         for entry in ts.validators:
             bare, sep, param = entry.partition(":")
-            if bare != "ref_rule_target_present" or not sep:
+            if bare != "ref_rule_target_present":
+                continue
+            if not sep:
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} is missing its required target "
+                    "type parameter — name it as 'ref_rule_target_present:<type>', or drop "
+                    "the validator; without a parameter it never fires"
+                )
                 continue
             if param not in items:
                 errors.append(
@@ -1564,13 +1590,25 @@ def _resolve_view_source(
     errors: list[str],
 ) -> frozenset[str]:
     """Refuse *src* when its ``name`` doesn't resolve against the vocabulary its ``kind``
-    points at, and return the badge-field codes declared for it (empty for an unresolved or
-    ``"ref"`` source — a ref source has no single type its records all share, so only base
-    attributes are ever valid fields for it; see :func:`_check_views`)."""
+    points at, and return the badge-field codes declared for it (empty for an unresolved
+    source; see :func:`_check_views`).
+
+    A ``"ref"`` source's records can be items of any declared type — no single type's
+    ``fields`` applies to all of them — so the declared set for it is the *union* across every
+    declared item type's own ``fields`` (never a
+    sub-entity-kind's, since a ``ref`` source's records are always items), roster types
+    included — never narrowed to ``non_roster_types()``, since a ``ref`` source may
+    legitimately project a roster record, e.g. a skill's edge to the role that preloads it. A
+    code no declared type carries is absent from that union and stays refused as inert-by-
+    construction; a code some type carries resolves for every record of that type and renders
+    ``null`` for the rest, the same ``null`` an
+    unset declared field already renders anywhere. ``subtree``/``subentity`` are unaffected:
+    each already yields records of exactly one type/kind, so their declared-field set was
+    already exactly right."""
     if src.kind == "ref":
         if src.name not in ref_kinds:
             errors.append(f"{tag}: source names ref kind {src.name!r}, not declared in [ref_kinds]")
-        return frozenset()
+        return frozenset(f.code for ts in items.values() for f in ts.fields)
     if src.kind == "subentity":
         ks = subentity_kinds.get(src.name)
         if ks is None:
@@ -1596,7 +1634,14 @@ def _check_view_fields(
     errors: list[str],
 ) -> frozenset[str]:
     """Field-code uniqueness + resolvability, returning the view's own declared code set for
-    :func:`_check_views` to validate ``group_by``/``order_by`` against."""
+    :func:`_check_views` to validate ``group_by``/``order_by`` against.
+
+    The unresolvable-field message has two shapes. For ``subtree``/``subentity`` it names the
+    type/kind that could genuinely declare the field — that clause is unchanged. For ``ref`` it
+    cannot: ``source.name`` is a ref *kind*, and no spec grammar lets a ref kind declare a
+    field, so telling the author to add one there is an unperformable, actively false remedy.
+    The ``ref`` branch instead says no declared item type carries the code, and names the two
+    remedies that actually exist."""
     if not v.fields:
         errors.append(f"{tag}: must declare at least one field")
 
@@ -1605,7 +1650,16 @@ def _check_view_fields(
         if f.code in seen_codes:
             errors.append(f"{tag}: duplicate field code {f.code!r}")
         seen_codes.add(f.code)
-        if f.code not in base_allowed and f.code not in declared_fields:
+        if f.code in base_allowed or f.code in declared_fields:
+            continue
+        if v.source.kind == "ref":
+            errors.append(
+                f"{tag}: field {f.code!r} is not declared by any item type — a 'ref' source "
+                "can only project a code at least one declared item type carries. Declare "
+                f"{f.code!r} as a field on an item type, or name one of the base attributes "
+                f"for a 'ref' source ({sorted(base_allowed)})"
+            )
+        else:
             errors.append(
                 f"{tag}: field {f.code!r} is neither a base attribute for a "
                 f"{v.source.kind!r} source ({sorted(base_allowed)}) nor a field "
@@ -1632,8 +1686,11 @@ def _check_views(
     view axis: a source that can never resolve is refused here rather than carried as an inert
     declaration. Every declared field's ``code`` must be a base attribute
     :data:`VIEW_BASE_FIELDS_BY_SOURCE` allows for that source kind, or a badge field the
-    resolved type/kind actually declares. ``group_by``/``order_by`` must each name one of the
-    view's own declared field codes.
+    resolved vocabulary actually declares — for ``subtree``/``subentity`` that vocabulary is
+    the one resolved type/kind; for ``ref`` (whose records can be items of any declared type)
+    it is the union of every declared item type's own fields — a code no declared type carries
+    anywhere is still refused as inert-by-construction. ``group_by``/``order_by`` must each
+    name one of the view's own declared field codes.
     """
     for name, v in sorted(views.items()):
         tag = f"view {name!r}"
@@ -1650,6 +1707,53 @@ def _check_views(
             for ob in v.order_by
             if ob not in seen_codes
         )
+
+
+def _check_item_views(
+    items: dict[str, ItemSpec],
+    views: dict[str, ViewSpec],
+    errors: list[str],
+) -> None:
+    """Reciprocal check for :attr:`ItemSpec.views` — the one attached-by-name list on
+    ``ItemSpec`` that, unlike every sibling in this module (:func:`_check_item_refs` for
+    ``parents``/``lifecycle``, :func:`_check_validators_assignment` for ``validators``,
+    :func:`_check_ref_rule_targets` for ``RefRule.target``, :func:`_check_field_collections`
+    for a field's ``collection``, :func:`_check_subentity_kinds` for a kind's ``lifecycle``),
+    used to go unchecked in this direction. :func:`_check_views` above validates the
+    ``[views]`` mapping itself (a view's own ``source``/``fields``/``group_by``/``order_by``);
+    nothing validated the reverse binding — the name an ``items.<type>.views`` list attaches —
+    until now.
+
+    Two axes, both fully determinable from the spec alone with no filesystem access (the one
+    axis that needs the filesystem — a declared view with no presentation template on disk —
+    is refused at the render boundary instead; see ``squads._views.render_view``):
+
+    1. Every name in ``ts.views`` must resolve against ``views`` — whether it was dropped
+       through ``[selected].views``, mistyped, or never declared at all. Left unchecked, this
+       turns ``show``/``show --json``/``show --raw`` into a hard failure for every item of the
+       attaching type, on a spec ``sq workflow lint`` calls clean.
+    2. A view whose ``source.kind`` is ``"subentity"`` may attach only to a type whose own
+       ``subentity_kind`` is that same kind — a type that hosts no sub-entities, or a
+       different kind, can never satisfy it, the same way :func:`resolve_records` in
+       ``squads._views`` refuses it at first use today.
+    """
+    for t, ts in items.items():
+        for name in ts.views:
+            v = views.get(name)
+            if v is None:
+                errors.append(
+                    f"item {t!r}: views entry {name!r} does not name a declared [views] entry"
+                )
+                continue
+            if v.source.kind == "subentity":
+                kind = v.source.name
+                hosted = ts.subentity_kind
+                if hosted != kind:
+                    hosted_desc = repr(hosted) if hosted else "none"
+                    errors.append(
+                        f"item {t!r}: view {name!r} projects {kind!r} sub-entities, but "
+                        f"{t!r} hosts {hosted_desc}"
+                    )
 
 
 #: A TOML bare key (``[A-Za-z0-9_-]+``) — what every ``[ref_kinds]`` entry's own key must
@@ -2148,6 +2252,16 @@ class WorkflowSpec(BaseModel):
         machine = self.machine_for(item_type)
         return frozenset(s for s in machine.states if self.role_for(s).live)
 
+    def _machine_for_type_or_kind(self, type_or_kind: str) -> Lifecycle | None:
+        """The lifecycle machine bound to *type_or_kind* — an item type or a sub-entity kind,
+        the same dual-namespace resolution :meth:`fields_for` already uses (the two never
+        collide in a valid spec). ``None`` when neither namespace declares it."""
+        ts = self.items.get(type_or_kind)
+        if ts is not None:
+            return self.lifecycles[ts.lifecycle]
+        ks = self.subentity_kinds.get(type_or_kind)
+        return self.lifecycles[ks.lifecycle] if ks is not None else None
+
     def _first_status_matching(
         self, item_type: str, predicate: Callable[[RoleSpec], bool]
     ) -> str | None:
@@ -2156,11 +2270,13 @@ class WorkflowSpec(BaseModel):
         happy-path chain, not full BFS reachability order — whose resolved role satisfies
         *predicate*. The spine specifically (not BFS order) matters: an exception branch
         like ``Cancelled`` can resolve to a settled role at a shallower BFS depth than the
-        actual happy-path terminal and would otherwise be matched first. ``None`` when
-        *item_type* isn't declared, or no status on its spine matches."""
-        if item_type not in self.items:
+        actual happy-path terminal and would otherwise be matched first. *item_type* may also
+        be a sub-entity kind (:meth:`_machine_for_type_or_kind`'s dual namespace) — the derived
+        views engine walks a sub-entity record's own kind through the same accessor. ``None``
+        when *item_type* names neither, or no status on its spine matches."""
+        machine = self._machine_for_type_or_kind(item_type)
+        if machine is None:
             return None
-        machine = self.machine_for(item_type)
         for state in lifecycle_spine(machine):
             if predicate(self.role_for(state)):
                 return state
@@ -2183,7 +2299,9 @@ class WorkflowSpec(BaseModel):
         ``settled`` — "the happy-path terminal state", generalizing a literal like
         ``"Done"`` (right only for the bundled ``work``/``bug`` lifecycles) to any
         lifecycle's own closing state, whatever it's named (e.g. ``"Accepted"`` for a
-        decision, ``"Published"`` for a guide).
+        decision, ``"Published"`` for a guide). *item_type* may also be a sub-entity kind,
+        resolved against its own declared ``lifecycle`` the same way — the axis the derived
+        views engine reads to tell a genuinely delivered record from one that merely settled.
 
         Returns ``None`` when *item_type* isn't declared, or its lifecycle reaches no
         settled status at all (shouldn't happen on a valid spec, but this is a read
@@ -2427,6 +2545,10 @@ class WorkflowSpec(BaseModel):
         # [views] referential + structural floor: source vocabulary declared, field codes
         # resolvable, group_by/order_by name a declared field.
         _check_views(self.views, self.items, self.subentity_kinds, self.ref_kinds, errors)
+
+        # ItemSpec.views reciprocal check: every attached name resolves in [views], and a
+        # subentity-source view's kind matches the attaching type's own subentity_kind.
+        _check_item_views(self.items, self.views, errors)
 
         # Reserved-vocab floor — the spec must declare the three roster types, each with
         # category = "roster". This is the ONLY type-axis floor: every other type

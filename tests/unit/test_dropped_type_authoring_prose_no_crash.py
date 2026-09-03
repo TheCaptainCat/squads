@@ -64,6 +64,7 @@ def test_a_custom_type_with_a_subentity_kind_appears_in_the_generic_summary_line
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
             "ref_kinds": base.ref_kinds,
+            "views": base.views,
         }
     )
     rendered = render("workflow.md.j2", spec=spec)

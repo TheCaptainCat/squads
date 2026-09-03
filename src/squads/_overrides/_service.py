@@ -531,6 +531,9 @@ _WORKFLOW_SCAFFOLD_BODY = """\
 # [views.related_incidents]
 # # A derived view: source (a declared ref kind, a sub-entity kind, or a subtree), then the
 # # fields to project. Computed fresh on every request — nothing is ever written into a body.
+# # Needs a presentation template of its own before it can render: create one at
+# # templates/views/related_incidents.md.j2 (or .overrides/templates/views/related_incidents.md.j2
+# # to shadow the bundled default) — until you do, resolve it with `--json`, which does not render.
 # source = { kind = "ref", name = "related" }
 # fields = [
 #   { code = "id", label = "Incident" },
