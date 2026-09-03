@@ -201,6 +201,13 @@ async def adopt(
     Unlike ``init``, this tolerates a pre-existing ``.squads.toml``/folder and **imports** any
     squads-native ``.md`` files already present (building the index + counter from them), then
     ensures the backend scaffolding and bundled roles without clobbering.
+
+    The import runs through :meth:`Service.repair`, which is also the corpus sweep — so this
+    verb rewrites the content of the files it is importing. The whole ``RepairResult`` is
+    carried out on :class:`~squads._services._results.AdoptResult` rather than reduced to a
+    count so the CLI can announce that diff: a folder of squads-native markdown meeting sq for
+    the first time is behind no schema stamp sq can migrate, so this is the only route that
+    population takes and its only chance to be told.
     """
     root = (root or Path.cwd()).resolve()
     config_path = root / CONFIG_FILENAME
@@ -256,9 +263,7 @@ async def adopt(
         await svc.seed_custom_skills()
         warnings += await svc.candidate_orphans()
 
-    return AdoptResult(
-        paths=sp, imported=len(repair_result.db.items), roles=created, warnings=warnings
-    )
+    return AdoptResult(paths=sp, repair=repair_result, roles=created, warnings=warnings)
 
 
 def open_service(

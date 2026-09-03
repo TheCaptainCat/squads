@@ -3,7 +3,7 @@ id: TASK-853
 sequence_id: 853
 type: task
 title: Render the role definition at read time and stop storing it
-status: InReview
+status: Done
 parent: FEAT-694
 author: tech-lead
 priority: high
@@ -32,7 +32,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-09-01T08:43:24Z'
-updated_at: '2026-09-02T10:55:49Z'
+updated_at: '2026-09-02T14:01:18Z'
 ---
 <!-- sq:body -->
 ## Scope

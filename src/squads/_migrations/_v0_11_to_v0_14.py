@@ -93,31 +93,53 @@ sq create contract
 sq create milestone
 ```
 
-## Two stored regions are removed from your item files
+## Stored regions and role metadata are removed from your item files
 
-This happens in the **index rebuild at the end of `sq migrate up`**, not in the step above —
-`sq repair` performs the same removal on its own, and both reach it the same way. Expect a
-content diff across your corpus; review it before committing, and prefer a clean working tree
-when you run either, since neither can separate its changes from yours.
+This happens in the **index rebuild at the end of `sq migrate up`**, not in the step above.
+`sq repair`, `sq adopt` and `sq renumber` all reach the same rebuild and perform the same
+removal. Expect a content diff across your corpus; review it before committing, and prefer a
+clean working tree when you run any of them, since none can separate its changes from yours.
+All four print one line counting the item files they rewrote, and name those items in the
+reflog — `sq renumber` under its own entry, by their post-shift ids. That is a count and a list
+of ids, not the change itself, so read `git diff` for what actually moved.
 
 What goes, and what answers for it now:
 
-- **The sub-entity roll-up table and each block's badge line.** Both were snapshots of state
-  that lives in the item's frontmatter, rewritten on every change and stale the moment two
-  branches touched the same item. `sq <type> <n> show` renders both from the frontmatter on
-  every read, so nothing is lost and nothing can disagree any more.
-- **A template-owned skill's stored body** — the bundled skills and each per-type `sq-<type>`
-  one. `sq skill <slug> show` renders the definition from its template on every call. The
-  region itself stays, empty: it is emptied, never deleted.
+- **The sub-entity roll-up table and each block's badge line**, from any item file that carries
+  them. Both were snapshots of state that lives in the item's frontmatter, rewritten on every
+  change and stale the moment two branches touched the same item. `sq <type> <n> show` renders
+  both from the frontmatter on every read, so nothing is lost and nothing can disagree any more.
+- **A role's stored body**, which was a rendered copy of its definition. `sq role <slug> show`
+  renders that definition fresh on every call, from the role catalog and your own role
+  overrides. If you defined a role yourself, check its `.overrides/roles/<slug>.toml` is in
+  place first: a role item that resolves against neither the catalog nor an override has nothing
+  left to render from once the stored copy is gone.
+- **The `extra` keys a role item mirrored from that same definition** — `full_name`, `title`,
+  `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `description` and the
+  `skills` cache. Nothing writes any of them any more.
 
-Your own content is untouched. A **custom** skill — one you created with `sq skill add` — is
+A role's body is emptied, never deleted: the marker pair stays and only its contents go.
+
+**What a role keeps:** its `slug`, its default-role designation if it holds one, and — on a
+developer role — its `model`, `is_dev` and `tech`, since `sq dev add` and `sq role set-default`
+still write those. A non-developer role's stored `model` is removed with the rest. A role's own
+top-level `title`, `status`, `author`, timestamps and refs are untouched, so `sq role list` and
+`sq role <slug> show` still name every role exactly as before.
+
+**No skill body is touched.** A **custom** skill — one you created with `sq skill add` — is
 authored storage, is byte-identical afterwards, and keeps rendering from what you wrote,
-including one whose slug happens to start with `sq-`. So are every sub-entity's body and
-discussion, every item body, and every frontmatter field.
+including one whose slug happens to start with `sq-`. A **template-owned** skill's stored body
+is left alone too: whether a slug is template-owned is a question about today's vocabulary and
+a stored body was written under an earlier one, so on disk the two are indistinguishable. What
+a bundled or `sq-<type>` skill still stores is simply inert — `sq skill <slug> show` renders
+that definition from its template on every call and never reads it.
+
+Untouched as well: every sub-entity's body and discussion, every item body other than a role's,
+every operator item, and every frontmatter field on anything that is not a role.
 
 One behaviour changes with the bytes: text that lived only in a removed region is no longer
-matched by `sq search`. Search a skill's guidance through `sq skill <slug> show`, and a
-sub-entity's status through `sq <type> <n> show` or `sq list`.
+matched by `sq search`. Read a role's mission and responsibilities through `sq role <slug> show`
+and a sub-entity's status through `sq <type> <n> show` or `sq list`.
 """
 
 

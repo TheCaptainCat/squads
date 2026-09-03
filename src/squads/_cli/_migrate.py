@@ -39,7 +39,8 @@ async def migrate_up():
             f"this squad is at schema v{disk}, newer than this squads (v{SCHEMA_VERSION}); "
             "upgrade the squads package"
         )
-    applied = await svc.run_pending_migrations()
+    run = await svc.run_pending_migrations()
+    applied = run.applied
     if not applied:
         console.print(f"already at schema v{SCHEMA_VERSION}; nothing to migrate")
         return
@@ -50,6 +51,12 @@ async def migrate_up():
         "run `sq sync` to refresh managed files",
         soft_wrap=True,
     )
+    # The rebuild this command runs is also the corpus sweep, and this is the only route a
+    # squad behind the current schema takes — so the content diff is announced here too, in
+    # the same sentence `sq repair` prints. "index rebuilt" above describes the index alone.
+    notice = run.repair.strip_notice() if run.repair else None
+    if notice:
+        console.print(notice, soft_wrap=True)
     if any(m.manual for m in applied):
         span = f"v{svc.paths.config.squads_version}..v{__version__}"
         console.print(

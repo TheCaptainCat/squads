@@ -3,7 +3,7 @@ id: BUG-871
 sequence_id: 871
 type: bug
 title: sq create --parent "" exits 0 and creates a parentless item
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
@@ -11,7 +11,7 @@ refs:
 description: The truthiness shape fixed in the update path is still live at three
   sites in the create path; the empty value is discarded and success reported.
 created_at: '2026-09-02T08:49:48Z'
-updated_at: '2026-09-02T10:01:40Z'
+updated_at: '2026-09-02T14:18:42Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -86,4 +86,26 @@ It also means the two write doors now disagree on the same argument: `update --p
     
     One wording detail flagged for the implementer: create has no `--no-parent`, so the
     update door's sentence points at a flag that does not exist on this door.
+- [2026-09-02T14:18:40Z] Mara Tester:
+  - Verified. Two fresh scratch squads (`sq init --default-names --backend none`); exit codes read from bare commands.
+    
+    All three create doors refuse an empty parent at exit 1 with nothing written:
+    - statically-registered built-ins — swept every one: epic, feature, task, bug, decision, contract, milestone, review, guide. `--parent ""` -> exit 1 on all nine
+    - `create guide` specifically -> exit 1
+    - override-declared custom type — second squad carrying `.overrides/workflow.toml` declaring an `incident` type (prefix INC, own lifecycle; `sq workflow lint` "workflow spec OK"). `sq create incident "…" --parent ""` -> exit 1
+    - whitespace-only `--parent "   "` -> exit 1 on every door driven (task, guide, incident)
+    
+    Corpus after the sweep: empty in the first squad, and only the one control item in the second. Nothing was created by any refused call — the previously-driven "exit 0 and a parentless item" is gone.
+    
+    Controls, to prove the refusal is the new behaviour and not a broken door:
+    - `sq create task "Control no parent"` (option omitted) -> exit 0, TASK-9 created
+    - `sq create incident "…" --parent TASK-999` -> exit 1, "no item with number 999 (use a full ID like TYPE-999 or bare 999)" — the id parser is still reached for a non-empty value
+    
+    On the wording flagged during scoping. The two doors deliberately differ after the semicolon and each names something real on its own door:
+    - create: "--parent needs an item ID; omit --parent to create without a parent" — and omitting it is exactly what the control above does
+    - update: "--parent needs an item ID; use --no-parent to clear the parent" — and `--no-parent` is on `update --help`, absent from `create --help`
+    
+    Confirmed by reading both help screens: create has `--parent` only, update has `--parent` and `--no-parent`. No door points at a flag it does not have.
+    
+    Nothing to flag.
 <!-- sq:discussion:end -->

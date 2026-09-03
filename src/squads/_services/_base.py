@@ -256,6 +256,7 @@ def _walk_tree(
     children_map: dict[str | None, list[Item]],
     depth: int | None,
     ancestors: frozenset[int] = frozenset(),
+    anchor: bool = False,
 ) -> TreeNode | None:
     """Recursive downward walk that prunes to *keep_set* and bounds to *depth*.
 
@@ -274,6 +275,11 @@ def _walk_tree(
     Identity is the **sequence number**, not the id string, for the same width-tolerance reason
     :func:`_build_tree_children` resolves parents that way: a stored parent may carry a
     different zero-pad width than the item's own id.
+
+    *anchor* is passed by the caller for a root the bare form invented to reveal a parent cycle
+    (:func:`_cycle_anchor_ids`) and is carried onto that node alone — the recursion never
+    propagates it, because the fabricated-root disclosure is about this node's standing in the
+    forest, not about its descendants.
     """
     if it.id not in keep_set or it.sequence_id in ancestors:
         return None
@@ -295,7 +301,68 @@ def _walk_tree(
     # Drop a path_only anchor with no surviving children (would be an empty branch)
     if path_only and not child_nodes:
         return None
-    return TreeNode(item=it, path_only=path_only, children=child_nodes)
+    return TreeNode(item=it, path_only=path_only, children=child_nodes, anchor=anchor)
+
+
+def _cycle_anchor_ids(listed: list[Item]) -> set[str]:
+    """Return one anchor id per parent cycle in *listed*: the lowest sequence number on it.
+
+    A bare tree roots at the forest of items with no resolvable parent *in view*.  Every member
+    of a parent cycle has one — another member — so without an anchor the whole component, and
+    everything hanging below it, is absent from the bare tree while ``list`` still returns it.
+    This picks one member per cycle for the forest to root at; the descent from it already
+    renders the component, truncated at the repeat.
+
+    **The anchor comes from the items on the cycle**, never from "the lowest item not rendered
+    yet".  The two rules agree on most corpora and differ where it hurts: an item hanging
+    *below* the cycle with a lower sequence number satisfies the second rule, so it would anchor
+    itself and then render a second time as a child when the descent reaches it through the
+    cycle — one item at two places in one tree, which the indentation presents as two nodes.
+
+    One anchor per cycle is sufficient rather than hopeful.  Each item has at most one
+    resolvable parent, so the graph is functional: every upward walk either reaches an item with
+    no resolvable parent (a root the forest already carries) or runs into exactly one cycle,
+    cycles are disjoint, and nothing in a component sits *above* its cycle because a cycle
+    member's parent is always another cycle member.  The descent from any single member
+    therefore reaches the whole component, and no item is reachable from two anchors.
+
+    Computed on the **candidate set the roots come from**, never on the whole index.  A cycle in
+    the corpus is not necessarily a cycle in the view: filter one member out and the survivors
+    are an ordinary chain whose top already has no resolvable parent, already becomes a root and
+    already renders.  Detecting against the index would invent an anchor for a component that is
+    not broken, or name one that is not in the view at all.
+
+    Identity is the sequence number, not the id string, for the same width-tolerance reason
+    :func:`_build_tree_children` resolves parents that way: a stored parent may carry a different
+    zero-pad width than the item's own id, and comparing id strings walks straight past the
+    repeat.
+    """
+    seq_to_id: dict[int, str] = {number_for_id(i.id): i.id for i in listed}
+    parent_of: dict[int, int] = {}
+    for it in listed:
+        if not it.parent:
+            continue
+        parent_seq = number_for_id(it.parent)
+        if parent_seq in seq_to_id:
+            parent_of[number_for_id(it.id)] = parent_seq
+
+    anchors: set[str] = set()
+    settled: set[int] = set()  # every sequence whose upward walk has already been resolved
+    for start in seq_to_id:
+        if start in settled:
+            continue
+        position: dict[int, int] = {}  # sequence -> where it sits on the current walk
+        walk: list[int] = []
+        node: int | None = start
+        while node is not None and node not in settled:
+            if node in position:  # the walk closed on itself: everything from here is the cycle
+                anchors.add(seq_to_id[min(walk[position[node] :])])
+                break
+            position[node] = len(walk)
+            walk.append(node)
+            node = parent_of.get(node)
+        settled.update(walk)
+    return anchors
 
 
 def _build_tree_children(
@@ -972,7 +1039,10 @@ class ServiceCore:
 
         1. Load candidate set — all items; drop closed ones unless ``include_closed``.
         2. Build parent→children map and id→item map via ``_build_tree_children``.
-        3. Determine roots: explicit ``root_id`` → that item; else the parentless forest.
+        3. Determine roots: explicit ``root_id`` → that item; else the forest of items with no
+           resolvable parent in view, plus one anchor per parent cycle (see
+           ``_cycle_anchor_ids``) — every member of a cycle has a parent, so without an anchor
+           the whole component would be absent from the bare tree at exit 0.
         4. Compute match set = items that satisfy ``filter`` (all items when filter is
            None/empty).
         5. Compute keep set = match set UNION all ancestors of each matched item.
@@ -1009,8 +1079,16 @@ class ServiceCore:
                     " (add --all to include closed items, or check it exists)"
                 )
             root_items: list[Item] = [id_map[root_id]]
+            # An explicitly rooted tree roots where the caller asked: nothing is fabricated
+            # here, so nothing is marked. Rooting inside a cycle already rendered the component
+            # correctly before this change and still does.
+            anchor_ids: set[str] = set()
         else:
-            root_items = sorted(children_map.get(None, []), key=lambda i: number_for_id(i.id))
+            # Widens "no resolvable parent in view" to "no resolvable acyclic path to a root",
+            # on the same candidate graph the grouping resolved parents against.
+            anchor_ids = _cycle_anchor_ids(candidates)
+            forest = [*children_map.get(None, []), *(id_map[a] for a in anchor_ids)]
+            root_items = sorted(forest, key=lambda i: number_for_id(i.id))
 
         # Step 4: compute match set (all candidates when filter is empty)
         effective_filter = filter if filter is not None else ItemFilter()
@@ -1031,6 +1109,7 @@ class ServiceCore:
                 match_set=match_set,
                 children_map=children_map,
                 depth=depth,
+                anchor=r.id in anchor_ids,
             )
             if node is not None:
                 result.append(node)

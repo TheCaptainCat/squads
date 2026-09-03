@@ -22,7 +22,6 @@ from squads._interactions import (
     custom_item_skill_description,
     custom_skill_slugs,
     is_live_roster_entry,
-    is_system_skill,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
     orphaned_skill_item_type,
@@ -41,7 +40,7 @@ from squads._itemfile import (
     update_frontmatter,
     write_text,
 )
-from squads._migrations._registry import MIGRATIONS, Migration
+from squads._migrations._registry import MIGRATIONS
 from squads._models import _markers as markers
 from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
@@ -61,7 +60,13 @@ from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_with_base, role_base_from_item
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
-from squads._services._results import CheckIssue, ReflogEntry, RenumberResult, RepairResult
+from squads._services._results import (
+    CheckIssue,
+    MigrationRun,
+    ReflogEntry,
+    RenumberResult,
+    RepairResult,
+)
 from squads._services._validators import (
     SQUAD_GLOBAL_CATALOG,
     SquadGlobalContext,
@@ -258,10 +263,23 @@ def _strip_retired_regions(text: str, *, empty_body: bool) -> str:
     separator line the region was inserted with, so a stripped file matches what the live
     write path produces today rather than leaving a doubled blank line behind.
 
-    Emptying is not deletion. A body region loses its contents and keeps its marker pair: the
-    pair is the shape every item file shares, and a *removed* region is what
-    ``sq role show``/``sq skill show`` read as "no item for this slug" — a false and alarming
-    answer for an entry that is live.
+    Emptying is not deletion: a body region loses its contents and keeps its marker pair. The
+    reason is shape, not behaviour — the pair is what every item file carries, and what
+    ``_create_core``'s scaffold renders for every type (:meth:`ServiceCore._create_core` empties
+    a role's the same way, for the same reason). **Nothing observable depends on it**, and that
+    was checked rather than assumed: with the pair deleted outright from a role file,
+    ``sq role <slug> show`` still renders the resolved definition, ``sq check`` reports nothing,
+    and ``sync``/``repair``/``regen`` neither fault nor restore it. An earlier version of this
+    docstring claimed a removed region reads as "no item for this slug"; no read path branches
+    on the region at all, and that sentence had been copied into the release note before it was
+    caught.
+
+    The one mechanical consequence, for whoever changes this next:
+    :func:`~squads._sections.replace_section` raises ``KeyError`` on an absent region, so a
+    future writer reaching a role's body would fault instead of refusing. None exists today —
+    :meth:`set_body` refuses a role before it gets there, and the role addressing group has no
+    ``body`` verb — so keeping the pair buys shape consistency and a writer that cannot be
+    surprised, not a behaviour anything currently relies on.
 
     Idempotent by construction: a file with none of these regions, a region already absent and
     a body already empty are each a no-op, so the returned text is the input text unchanged.
@@ -279,10 +297,12 @@ def _retired_role_extra_keys(item: Item) -> frozenset[str]:
 
     The set is a difference between two declarations, never a list written out here:
 
-    - the candidates are :data:`~squads._models._metadata.RETIRED_ROLE_EXTRA_KEYS` (the eight
-      definition keys, declared beside the refusals that name where each value lives now)
-      widened by :meth:`RoleDef.extra_keys`, so every name the mirror ever wrote is a
-      candidate whether or not some role shape still stores it;
+    - the candidates are :data:`~squads._models._metadata.RETIRED_ROLE_EXTRA_KEYS` (the
+      retired definition keys, declared beside the refusals that name where each value lives
+      now — deliberately not restated as a count here, since a number in this docstring is a
+      second declaration of the set's size that nothing keeps in step with it) widened by
+      :meth:`RoleDef.extra_keys`, so every name the mirror ever wrote is a candidate whether
+      or not some role shape still stores it;
     - what is taken back out is :meth:`RoleDef.stored_extra_keys` for *this* role's shape,
       read off the tables that decide what ``to_extra`` writes.
 
@@ -1185,24 +1205,34 @@ class MaintenanceMixin(ServiceCore):
         await _aio.atomic_write_text(self.paths.config_path, cfg.to_toml())
 
     # ------------------------------------------------------------------ migrations
-    async def run_pending_migrations(self) -> list[Migration]:
+    async def run_pending_migrations(self) -> MigrationRun:
         """Apply each migration whose target schema exceeds the on-disk one, in order.
 
         Rebuilds the index from the migrated frontmatter and stamps the new schema version.
-        Returns the applied :class:`Migration` records (empty when already current).
+
+        Returns the applied :class:`Migration` records **and the rebuild's own**
+        :class:`~squads._services._results.RepairResult`, because that rebuild is also the
+        corpus sweep and this is the only route a squad behind the current schema takes: an
+        operator migrating a 0.11 squad gets files rewritten, and discarding the result here
+        left ``sq migrate up`` with nothing to say about them beyond "index rebuilt". The
+        caller announces it with
+        :meth:`~squads._services._results.RepairResult.strip_notice`, the same sentence ``sq
+        repair`` prints.
 
         The :meth:`repair` call below is the one place that verb runs against a corpus not yet
         at the current schema, and it sits after every runner deliberately: see
         :meth:`repair` for the ordering prohibition that placement satisfies. It is also why a
         squad already at the current stamp is not swept here — no runner applies, so nothing
-        rebuilds, and the ordinary verb is that corpus's only route to the sweep.
+        rebuilds, and the ordinary verb is that corpus's only route to the sweep. That is also
+        why ``repair`` is ``None`` exactly when ``applied`` is empty.
         """
         disk = self.paths.config.schema_version
         applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
         for m in applied:
             await m.run(self.paths)
+        repaired: RepairResult | None = None
         if applied:
-            await self.repair()
+            repaired = await self.repair()
             await self._stamp_schema(SCHEMA_VERSION)
             # Reflog: log the migration batch after repair has completed.
             sid, psid = actor.current_session()
@@ -1220,7 +1250,7 @@ class MaintenanceMixin(ServiceCore):
                 session_id=sid,
                 parent_session_id=psid,
             )
-        return applied
+        return MigrationRun(applied=applied, repair=repaired)
 
     # ------------------------------------------------------------------ skill seeding
     async def seed_bundled_skills(self) -> list[Item]:
@@ -1657,40 +1687,53 @@ class MaintenanceMixin(ServiceCore):
     def _sweep_empties_body(self, item: Item) -> bool:
         """Whether the repair sweep empties *item*'s ``sq:body`` region.
 
-        True for a role, true for a **template-owned** skill, false for everything else. Both
-        definitions are rendered at read time — ``role_definition_text`` on every
-        ``sq role <slug> show``, ``skill_definition_text`` on every ``sq skill <slug> show`` —
-        so a stored copy is a derived duplicate, and the only copy that can go stale, since
-        nothing refreshes it. A **custom (authored)** skill's body is authored storage and is
-        never touched.
+        True for a role and **false for everything else, a template-owned skill included**.
 
-        A role needs no discriminator, unlike a skill: every body-writing seam refuses a role
-        outright — ``set_body`` and the importer's body event both — and the scaffold
-        ``_create_core`` renders for a new role already empties the region, so a stored role
-        body is residue from a release that rendered one, not prose someone wrote.
+        A role's definition is rendered at read time (``role_definition_text`` on every ``sq
+        role <slug> show``), so a stored copy is a derived duplicate and the only copy that can
+        go stale, since nothing refreshes it. What makes emptying it safe is not that it is
+        derived but that no supported write path has ever put authored prose there: ``set_body``
+        and the importer's body event both refuse on ``item.type == ROSTER_ROLE`` outright, and
+        the scaffold ``_create_core`` renders for a new role already empties the region. That
+        refusal keys on the **item type** — a fixed roster type, not a vocabulary that grows or
+        shrinks — so it held under every past release and every project's spec alike. A stored
+        role body is therefore residue from a release that rendered one, never someone's work.
 
-        The discriminator is :func:`~squads._interactions.is_system_skill` — not the folder,
-        not the item type, not the ``sq-`` prefix. All three are cheaper and all three are
-        wrong: every skill, authored or generated, sits in the same folder with the same item
-        type and the same frontmatter shape, and the ``sq-`` prefix is not reserved to squads,
-        so an author is free to name a skill with it. The same function already backs
-        ``set_body``'s refusal of exactly these writes, which is what keeps the two ends of
-        that rule from drifting apart.
+        **A skill body has no such proof, which is why the sweep no longer touches it.** Whether
+        a skill is template-owned is :func:`~squads._interactions.is_system_skill` — the right
+        discriminator, and still the one ``set_body``, ``skill_definition_text`` and ``sq skill
+        show`` all key on. It is not the folder, the item type or the ``sq-`` prefix, each of
+        which is cheaper and each of which would classify an authored skill as generated. But it
+        is a function of *today's* vocabulary in both of its halves, and a stored body was
+        written under an earlier one:
 
-        It reads the **live** spec deliberately, and that is why it must not be "fixed" back
-        to a frozen slug list: a project that renamed or dropped an item type changes which
-        per-type skills are template-owned, and a literal list would mistake that project's
-        own authored skill for a generated one and empty it.
+        - ``custom_skill_slugs(spec)`` moves with the **project**: declaring an item type
+          ``onboarding`` makes an already-authored ``sq-onboarding`` skill read as
+          template-owned from that moment on;
+        - ``bundled_skill_slugs()`` moves with the **release**: a type added to the bundled
+          playbook makes its ``sq-<type>`` slug template-owned on upgrade, for every squad at
+          once and with no override in sight.
 
-        Keeping the marker pair is the point of *emptying* rather than removing, on both
-        types: a removed region is what those two ``show`` paths read as "no item for this
-        slug", a false and alarming answer for an entry that is live.
+        Either way the answer flips *after* the body was written, on a slug ``sq skill add``
+        accepts and ``sq skill body`` accepted at the time — so at the moment of the sweep an
+        authored body and a generated one are the same bytes on the same shape of item, and
+        nothing stored on the item says which writer produced it. Comparing the stored text to
+        what the template renders today does not separate them either: the rendering is
+        version-dependent, so a genuine residue from an older release matches no better than
+        authored prose does. The corpus cannot tell, and the two errors are not symmetric —
+        leaving a derived duplicate on disk is untidy and reversible, deleting the only copy of
+        authored prose is neither.
+
+        So the skill half is contained rather than guessed at. What is left on disk is inert: a
+        stored system-skill body is never read (both ``show`` paths render the definition), the
+        backend leaves it byte-untouched by design, and ``set_body`` still refuses to add to it.
+
+        A role's region is *emptied* rather than removed for shape alone — see
+        :func:`_strip_retired_regions`, which records what was driven: no read path branches on
+        the region, so deleting it changes nothing anyone can observe. It is the marker pair
+        every item file carries, and keeping it is the cheaper of two harmless choices.
         """
-        if item.type == ROSTER_ROLE:
-            return True
-        if item.type != ROSTER_SKILL:
-            return False
-        return is_system_skill(item.extra.get(X.SLUG, item.slug), self.spec)
+        return item.type == ROSTER_ROLE
 
     async def _rebuild_index_from_disk(
         self,
@@ -1781,7 +1824,11 @@ class MaintenanceMixin(ServiceCore):
         **frozen list** of named regions and keys, each satisfying three conditions in this
         same build: no live write path produces it, no read path consumes it as authoritative
         because its computed replacement has already shipped, and its content is derived
-        rather than authored. Adding a name is a
+        rather than authored. A role's stored body leaves on the same terms and in the same
+        write (:meth:`_sweep_empties_body`); a template-owned skill's does not, because being
+        *derived* is not on its own enough — the sweep also has to be able to prove that
+        nothing authored what it is about to delete, and only the role half can. Adding a name
+        is a
         decision, not a developer's choice, and a name added before its writer retires puts
         this sweep and that writer into a loop where each undoes the other on alternate
         commands. ``tests/service/test_repair_strips_only_retired_regions.py`` is the
@@ -2286,7 +2333,13 @@ class MaintenanceMixin(ServiceCore):
 
         Exactly one reflog line is appended, strictly after the index commit above, carrying
         a compact summary of the shift (the boundary, whichever of ``onto``/``by`` the
-        operator actually supplied, and the full remap) — never a replayable diff. Every
+        operator actually supplied, the full remap, and the items the shared rebuild's corpus
+        sweep rewrote) — never a replayable diff. That last part is reported for the same
+        reason ``repair`` reports it: the rebuild this verb borrows also strips retired
+        regions, so a shift that said nothing about it would rewrite content under a verb
+        whose advertised job is identity. It reaches the operator's console through
+        :meth:`~squads._services._results.RenumberResult.strip_notice`, in the one sentence
+        every sweep-reaching command prints. Every
         prior reflog line is left completely untouched: this is a pure append, no in-place
         rewrite of any historical ``target``/``delta``. A forensic reader walking the log
         forward from an old, now-superseded id finds this one line and can follow it to the
@@ -2307,7 +2360,7 @@ class MaintenanceMixin(ServiceCore):
             # _scan_records() above already read every file's frontmatter unguarded, so an
             # unreadable file would have aborted this verb before any rename ever ran —
             # nothing unreadable survives to reach the rebuild below.
-            db, _unreadable, _canonicalized, _stripped = await self._rebuild_index_from_disk(
+            db, _unreadable, _canonicalized, stripped = await self._rebuild_index_from_disk(
                 previous_counter=counter, previous_padding=padding
             )
             # Reflog: appended after the index commit above (never in-place rewriting a
@@ -2319,15 +2372,23 @@ class MaintenanceMixin(ServiceCore):
                 actor=actor.current_actor(),
                 op="renumber",
                 target="",
-                delta={"from": from_seq, "onto": onto, "by": by, "remap": remap},
+                delta={
+                    "from": from_seq,
+                    "onto": onto,
+                    "by": by,
+                    "remap": remap,
+                    "stripped": stripped,
+                },
                 session_id=sid,
                 parent_session_id=psid,
             )
         elif self.store.exists():
             db = await self.store.load()
+            stripped = []
         else:
             db = SquadsDB(squads_version=__version__, counter=counter, padding=padding)
-        return RenumberResult(remap=remap, db=db, warning=warning)
+            stripped = []
+        return RenumberResult(remap=remap, db=db, warning=warning, stripped=stripped)
 
     # ------------------------------------------------------------------ reflog read
     async def read_reflog(

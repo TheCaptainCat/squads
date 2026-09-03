@@ -1,5 +1,5 @@
-"""``Service.repair()``'s corpus sweep: the retired marker regions and the template-owned
-skill body it removes, and — far more of this module — everything it must not touch.
+"""``Service.repair()``'s corpus sweep: the retired marker regions and the stored role body it
+removes, and — far more of this module — everything it must not touch.
 
 The sweep runs inside the rebuild's per-file loop, on the same deferred list as the existing
 ref canonicalisation. What it may remove is a **frozen list** of named regions, each of which
@@ -16,6 +16,13 @@ skill, generated or authored, sits in the same folder with the same item type an
 frontmatter shape, and the ``sq-`` prefix is not reserved, so the folder, the type and the
 prefix are each cheap and each wrong. The negative assertions below are the ones that fail if
 the discriminator is ever "fixed" to one of them.
+
+A stored **skill** body is left alone for a stronger reason than any of those: whether a slug
+is template-owned is a function of today's vocabulary, in both of its halves (a project can
+declare a type, a release can bundle one), while the body was written under an earlier one. So
+the classification can flip after the fact on a slug every supported command accepted, and at
+the moment of the sweep an authored body and a generated one are indistinguishable. The role
+half has no such gap: its refusal keys on the item type, which does not move.
 """
 
 from typing import cast
@@ -24,11 +31,14 @@ import pytest
 
 from _helpers import create_item
 from squads._index._resolver import item_file
+from squads._interactions import is_system_skill
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
 from squads._sections import get_section, has_section, replace_frontmatter, replace_section
+from squads._services import _service as service
+from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -217,10 +227,19 @@ async def test_a_head_region_of_an_adopter_declared_kind_is_stripped_too(svc):
     assert get_section(after, "risk:RK1:body") == "\nadopter-authored prose\n"
 
 
-async def test_a_system_skill_body_is_emptied_and_keeps_its_markers(svc):
-    """Emptied, never deleted. ``sq role show``/``sq skill show`` read an *absent* region as
-    "no item for this slug", so removing the pair would print a false and alarming answer for
-    an entry that is live."""
+async def test_a_system_skill_body_survives_the_sweep(svc):
+    """A template-owned skill's stored body is left exactly where it is.
+
+    It is a derived duplicate — ``sq skill <slug> show`` renders the definition on every read —
+    but derived is not the bar the sweep has to clear before deleting something. The bar is
+    proving nothing *authored* it, and for a skill nothing on the item answers that: whether a
+    slug is template-owned is a function of today's vocabulary, and the body was written under
+    an earlier one. The sibling below drives the flip that makes it concrete.
+
+    Leaving it costs a stale duplicate on disk, which no read path consumes and which
+    ``set_body`` still refuses to add to. Emptying it costs, in the case the corpus cannot
+    distinguish, the only copy of someone's work.
+    """
     await svc.seed_bundled_skills()
     item = await svc.roster_item("skill", "sq-task")
     assert item is not None
@@ -233,14 +252,58 @@ async def test_a_system_skill_body_is_emptied_and_keeps_its_markers(svc):
         ),
         encoding="utf-8",
     )
-    assert (get_section(path.read_text(encoding="utf-8"), markers.BODY) or "").strip()
+    before = path.read_bytes()
+    assert (get_section(before.decode("utf-8"), markers.BODY) or "").strip()  # precondition
 
     result = await svc.repair()
 
-    after = path.read_text(encoding="utf-8")
-    assert has_section(after, markers.BODY)
-    assert not (get_section(after, markers.BODY) or "").strip()
-    assert item.id in result.stripped
+    assert path.read_bytes() == before
+    assert item.id not in result.stripped
+
+
+async def test_declaring_an_item_type_does_not_delete_an_authored_skill_of_that_name(svc, tmp_path):
+    """The destruction path this rule exists to close, driven through supported commands only.
+
+    ``sq-onboarding`` is authored while no ``onboarding`` type exists — ``sq skill add`` accepts
+    the slug (the ``sq-`` prefix is not reserved) and ``sq skill body`` accepts the write. The
+    project then declares an item type of that name, which is a supported thing to do and which
+    makes the very same slug read as template-owned from that moment on. Nothing about the
+    stored body changed; only the answer to "is this generated" did.
+
+    The same flip arrives without any override at all when a *release* adds a bundled type: a
+    slug that was authorable on the previous version is template-owned on upgrade, for every
+    squad at once. That is why the containment is on the sweep and not on the discriminator —
+    ``is_system_skill`` is the correct classifier and stays exactly where it is, including in
+    ``set_body``'s refusal, which is what stops the authored body being *extended* from here on.
+    """
+    await svc.seed_bundled_skills()
+    item = await svc.add_skill("sq-onboarding", description="An authored runbook")
+    await svc.set_body(item.id, "AUTHORED CONTENT — this body is storage, not a rendering.")
+    path = item_file(svc.paths, item)
+    before = path.read_bytes()
+
+    override_dir = svc.paths.squad_dir / ".overrides"
+    override_dir.mkdir(parents=True, exist_ok=True)
+    (override_dir / "workflow.toml").write_text(
+        "[lifecycles.onboarding]\n"
+        'initial = "Open"\n'
+        "[lifecycles.onboarding.transitions]\n"
+        'Open = ["Done"]\n'
+        "Done = []\n"
+        "\n"
+        "[items.onboarding]\n"
+        'prefix = "ONB"\n'
+        'folder = "onboardings"\n'
+        'lifecycle = "onboarding"\n',
+        encoding="utf-8",
+    )
+    spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
+    assert is_system_skill("sq-onboarding", spec)  # precondition: the class really did flip
+    declared = service.Service(svc.paths, spec=spec)
+
+    await declared.repair()
+
+    assert path.read_bytes() == before
 
 
 # ------------------------------------------------------- what the sweep must not touch

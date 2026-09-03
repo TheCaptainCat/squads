@@ -6,6 +6,7 @@ new `vN_M` fixture here. This module — not the frozen fixtures themselves — 
 is enforced; never hand-edit anything under `tests/fixtures/corpus/`.
 """
 
+import re
 import shutil
 from pathlib import Path
 
@@ -68,7 +69,7 @@ async def test_corpus_migrates_to_current_schema_and_passes_check(
 
     paths = _load_paths(dst)
     svc = Service(paths)
-    applied = await svc.run_pending_migrations()
+    applied = (await svc.run_pending_migrations()).applied
 
     import tomllib
 
@@ -107,6 +108,43 @@ def test_corpus_cli_migrate_up_and_check_both_exit_clean(
         f"sq check failed after migrating {corpus_name!r} ({schema_label!r}):\n"
         f"{check_result.output}"
     )
+
+
+def test_migrate_up_announces_the_content_it_rewrote(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``sq migrate up`` says a byte of content moved, in the same sentence ``sq repair`` uses.
+
+    The rebuild at the tail of the migration is also the corpus sweep, and the migration is the
+    only route a squad behind the current schema takes: on that path "index rebuilt" is the
+    whole of what the console said, while item files were being rewritten underneath it. The
+    diff is meant to be stated rather than discovered, and an unannounced rewrite is exactly
+    the thing an operator reads as a bug in the tool.
+
+    Asserted against a real rewrite, not against the string alone: the fixture's own files are
+    compared before and after, so a run that announced a strip it did not perform — or stopped
+    performing one — fails here too.
+    """
+    dst = tmp_path / "v0_11"
+    shutil.copytree(_CORPUS_DIR / "v0_11", dst)
+    squad_dir = _load_paths(dst).squad_dir
+    before = {path: path.read_bytes() for path in _md_files(squad_dir)}
+    monkeypatch.chdir(dst)
+
+    result = CliRunner().invoke(app, ["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    rewritten = [
+        path
+        for path in _md_files(squad_dir)
+        if path in before and path.read_bytes() != before[path]
+    ]
+    assert rewritten, "precondition: this migration rewrote no item file's content"
+    match = re.search(
+        r"stripped retired regions from (\d+) item files? — review the diff", result.output
+    )
+    assert match, f"the content rewrite went unannounced:\n{result.output}"
+    assert int(match.group(1)) > 0
 
 
 async def test_v0_2_migration_rewrites_the_legacy_backend_key(tmp_path: Path) -> None:
@@ -162,7 +200,7 @@ async def test_corpus_carries_no_retired_region_after_migrating(
     paths = _load_paths(dst)
     svc = Service(paths)
 
-    applied = await svc.run_pending_migrations()
+    applied = (await svc.run_pending_migrations()).applied
 
     carried = [
         path
@@ -181,31 +219,49 @@ async def test_corpus_carries_no_retired_region_after_migrating(
 
 
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
-async def test_a_system_skill_body_is_emptied_and_never_deleted_by_the_migration(
+async def test_a_system_skill_body_survives_the_migration_unchanged(
     schema_label: str, corpus_name: str, tmp_path: Path
 ) -> None:
-    """Every migrated system skill's ``sq:body`` region is present and empty.
+    """A system skill's stored body comes out of the migration byte-for-byte as it went in.
 
-    Both halves matter and only one of them is about content: a *removed* region is what
-    ``sq skill <slug> show`` reads as "no item for this slug", so deleting the pair would print
-    a false answer for a skill that is live.
+    The sweep does not empty it, because on a real corpus it cannot tell a definition an older
+    release stored from prose an author wrote: the slug's template-ownership is read off
+    today's vocabulary and the body was written under an earlier one, and a release adding a
+    bundled type flips that answer for every squad at once.
+
+    **The precondition is the point of the parametrisation**, and it is the one the sibling
+    role test below already carries. Without it a fixture that stores no skill body at all
+    still passes here — the skills it then asserts on are ones the runners created empty, so
+    the assertion confirms that a file just written empty is empty. Ten parameters that read
+    as ten proofs and are five. A fixture with nothing to prove now says so.
     """
     dst = tmp_path / corpus_name
     shutil.copytree(_CORPUS_DIR / corpus_name, dst)
     paths = _load_paths(dst)
     svc = Service(paths)
+    before = {
+        path.name: _body_region(path.read_text(encoding="utf-8"))
+        for path in _md_files(paths.squad_dir)
+    }
 
-    applied = await svc.run_pending_migrations()
+    applied = (await svc.run_pending_migrations()).applied
     if not applied:
         pytest.skip(f"{corpus_name!r} is already at the current stamp; no rebuild runs")
 
     skills = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_SKILL]
     system = [it for it in skills if is_system_skill(it.extra.get(X.SLUG, it.slug), svc.spec)]
     assert system, f"{corpus_name!r} carries no system skill to assert on"
-    for item in system:
-        text = item_file(paths, item).read_text(encoding="utf-8")
-        assert has_section(text, markers.BODY), f"{item.id}: the body markers were deleted"
-        assert not (_body_region(text) or "").strip(), f"{item.id}: a body is still stored"
+    stored = {
+        it.id: (item_file(paths, it), before[item_file(paths, it).name])
+        for it in system
+        if (before.get(item_file(paths, it).name) or "").strip()
+    }
+    if not stored:
+        pytest.skip(f"{corpus_name!r} stores no system skill body for the sweep to reach")
+    for item_id, (path, was) in stored.items():
+        text = path.read_text(encoding="utf-8")
+        assert has_section(text, markers.BODY), f"{item_id}: the body markers were deleted"
+        assert _body_region(text) == was, f"{item_id}: the stored body was rewritten"
 
 
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
@@ -236,7 +292,7 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
         for path in _md_files(paths.squad_dir)
     }
 
-    applied = await svc.run_pending_migrations()
+    applied = (await svc.run_pending_migrations()).applied
 
     roles = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_ROLE]
     assert roles, f"{corpus_name!r} carries no role item to assert on"
@@ -314,7 +370,8 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
     shutil.copytree(_CORPUS_DIR / "v0_14", dst)
     paths = _load_paths(dst)
     svc = Service(paths)
-    assert await svc.run_pending_migrations() == []  # nothing declared for it
+    run = await svc.run_pending_migrations()
+    assert run.applied == [] and run.repair is None  # nothing declared for it
 
     roles = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_ROLE]
     assert roles and all(

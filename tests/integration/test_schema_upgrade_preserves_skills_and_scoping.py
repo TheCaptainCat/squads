@@ -60,7 +60,7 @@ async def test_running_pending_migrations_on_a_squad_already_at_0_10_only_stamps
     )
     svc = Service(paths_010)
 
-    applied = await svc.run_pending_migrations()
+    applied = (await svc.run_pending_migrations()).applied
 
     assert [(m.from_schema, m.to_schema) for m in applied] == [("0.10", "0.11"), ("0.11", "0.14")]
     with cfg_path.open("rb") as fh:
@@ -76,7 +76,7 @@ async def test_running_pending_migrations_on_a_squad_already_at_0_10_only_stamps
         squad_dir=project.squad_dir,
         config=SquadsConfig.from_toml_dict(cfg_after),
     )
-    again = await Service(paths_011).run_pending_migrations()
+    again = (await Service(paths_011).run_pending_migrations()).applied
     assert again == []
 
 
@@ -126,7 +126,7 @@ async def test_upgrade_preserves_an_authored_custom_skill_body_and_its_role_scop
     )
     svc_010 = Service(paths_010)
 
-    applied = await svc_010.run_pending_migrations()
+    applied = (await svc_010.run_pending_migrations()).applied
     assert [m.to_schema for m in applied] == ["0.11", "0.14"]
 
     with cfg_path.open("rb") as fh:

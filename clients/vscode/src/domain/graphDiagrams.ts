@@ -7,6 +7,7 @@
  */
 import type { SqGraphNode, SqTreeNode } from '../types';
 import { escapeHtml } from './markdown';
+import { CYCLE_ANCHOR_MARKER } from './treeAnchor';
 
 /** The escape a `mermaidNodeId` emits for one non-alphanumeric character: `_` then exactly four
  * lowercase hex digits. Exported as source text because the decoder that undoes it runs in the
@@ -89,9 +90,14 @@ function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+/** The mermaid subtree is the second surface a reader meets an invented root through, so it
+ * carries the anchor disclosure in full rather than the row's two-word tag: a diagram node has
+ * no tooltip to fall back to, and an undisclosed anchor here asserts a root nobody wrote just as
+ * loudly as an undisclosed one in the sidebar. Both suffixes are independent and combine. */
 function subtreeNodeLabel(node: SqTreeNode): string {
   const blockedSuffix = node.blocked ? ' [blocked]' : '';
-  return `${node.id}: ${truncate(node.title, 40)} (${node.status})${blockedSuffix}`;
+  const anchorSuffix = node.anchor === true ? ` ${CYCLE_ANCHOR_MARKER}` : '';
+  return `${node.id}: ${truncate(node.title, 40)} (${node.status})${blockedSuffix}${anchorSuffix}`;
 }
 
 /**

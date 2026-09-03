@@ -112,7 +112,10 @@ function hasRequiredTreeNodeStrings(node: Record<string, unknown>): boolean {
     typeof node.title === 'string' &&
     typeof node.status === 'string' &&
     typeof node.blocked === 'boolean' &&
-    isOptionalBadgeMap(node.badges)
+    isOptionalBadgeMap(node.badges) &&
+    // Optional: an older `sq` predates the field and omits it — tolerated, not rejected, the
+    // same treatment `badges` gets. Present-and-not-a-boolean is still a rejection.
+    (node.anchor === undefined || typeof node.anchor === 'boolean')
   );
 }
 

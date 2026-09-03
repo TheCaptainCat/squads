@@ -63,7 +63,7 @@ from squads._interactions._models import (
 from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
 from squads._roles._models import RoleCatalogSpec
 from squads._roles._resolver import project_role_slugs
-from squads._specmerge import RawMapping, merge_override
+from squads._specmerge import RawMapping, describe_spec_error, merge_override
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
@@ -255,7 +255,9 @@ def _build_spec(raw: dict[str, Any], catalog_slugs: set[str], spec: WorkflowSpec
             # Route through model_validate so extra="forbid" fires on unknown keys.
             entry = ItemPlaybookSpec.model_validate({**data, "roles": roles})
         except Exception as exc:
-            raise SquadsError(f"Invalid playbook entry for {name!r}: {exc}") from exc
+            raise SquadsError(
+                f"Invalid playbook entry for {name!r}: {describe_spec_error(exc, ItemPlaybookSpec)}"
+            ) from exc
         types[name] = entry
 
     _validate(types, catalog_slugs, spec)
@@ -274,7 +276,9 @@ def _parse_role_guide(data: dict[str, Any], type_name: str, idx: int) -> RoleGui
         # model_validate so extra="forbid" fires on unknown keys (e.g. "doo", "entr").
         return RoleGuideSpec.model_validate(data)
     except Exception as exc:
-        raise SquadsError(f"Invalid role guide {ctx}: {exc}") from exc
+        raise SquadsError(
+            f"Invalid role guide {ctx}: {describe_spec_error(exc, RoleGuideSpec)}"
+        ) from exc
 
 
 def _check_slugs(

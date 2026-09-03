@@ -3,13 +3,13 @@ id: BUG-869
 sequence_id: 869
 type: bug
 title: sq role catalog's Default column ignores sq role set-default
-status: Fixed
+status: Verified
 author: qa
 priority: low
 refs:
 - BUG-850
 created_at: '2026-09-02T08:27:34Z'
-updated_at: '2026-09-02T08:45:09Z'
+updated_at: '2026-09-02T14:17:59Z'
 ---
 <!-- sq:body -->
 ## What happens
@@ -70,4 +70,22 @@ Not prescribing the fix: whether the column should resolve per role, or whether 
     
     @qa ready to verify — the repro in the body should now give the roster's answer on both surfaces.
     @manager two adopter-doc lines describe `sq role list` as carrying only a live/not-live marker (`docs/roles.md`, `docs/stability.md`) — now incomplete rather than wrong. Flagging for the writer rather than editing them.
+- [2026-09-02T14:17:45Z] Mara Tester:
+  - Verified. Re-driven from the body's own repro in a fresh scratch squad (`sq init --default-names`, backend claude_code), 0.14.0 at `ec25fbf`, every exit code read from a bare command.
+    
+    Bundled-role case:
+    - `sq role qa set-default` -> exit 0, "ROLE-5 is now the default / cleared ROLE-1"
+    - `sq role catalog` -> exit 0, `Default` tick on **qa**, none on manager
+    - `sq role list` -> exit 0, new `Default` column, tick on **qa**
+    - `sq role qa show --json` -> `"is_default": true`; CLAUDE.md -> "default to **Mara Tester** (`qa`)"
+    - survives `sq sync` (0) + `sq repair` (0): both columns still name qa
+    
+    Dev-role case (the one the catalog structurally cannot mark):
+    - `sq dev add --tech python --name "Elias Python"` -> ROLE-21; `sq role python-dev set-default` -> exit 0
+    - `sq role catalog` -> exit 0, no row ticked, and the footer reads "The default role is python-dev, which this catalog does not list — run sq role list to see it." The command it names exists and answers correctly.
+    - `sq role list` -> tick on **python-dev**; `--json` -> `is_default` true for python-dev only, false for the other eight
+    - survives `sync` + `repair`: footer and tick both hold
+    - outside a squad, `sq role catalog` falls back to the catalog's own designation (manager ticked, no footer) — exit 0
+    
+    One residue, not a regression and not blocking: `sq role catalog --json` is a bare row list with `is_default` false on every row in the dev-holder case, and carries no equivalent of the footer. The disclosure that makes the blank column honest exists in the terminal only, so a `--json` consumer of `catalog` still reads "nobody is the default here". Same shape as the anchor-in-json requirement that was made explicit on the tree bug. Flagged for @manager to file or dismiss; the reported symptom is closed either way.
 <!-- sq:discussion:end -->

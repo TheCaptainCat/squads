@@ -68,23 +68,6 @@ _ROLE_DECLARED_IN_OVERRIDES: frozenset[str] = frozenset(
 #: --name``, and the item's own top-level ``title`` is where it lives.
 _ROLE_NAME_KEY: str = X.FULL_NAME
 
-#: The role ``extra`` keys that a release before this one mirrored onto the item from the
-#: role's resolved definition, and that no writer in this build produces any more — the two
-#: refusal groups above united — each of them names a key that moved out of ``extra`` in that
-#: same change and each refusal already has to stay in step with it — plus the one retired key
-#: with no member left to name it (see :data:`_RETIRED_ROLE_SKILLS_KEY`).
-#:
-#: Declared here rather than restated by the reader so the two can never drift: a key that
-#: comes back would have to leave one of the groups above, and a key that leaves must lose its
-#: refusal at the same time. It is a **closed, named** set, never "every key this build does
-#: not recognise" — an ``extra`` key some other tool put on a role item is not this build's to
-#: interpret, let alone to delete.
-#:
-#: Four keys the mirror also wrote are deliberately absent, each because something still
-#: writes it: ``slug`` by ``RoleDef.to_extra`` itself; ``model`` by the same method for a
-#: developer role, which makes it a question about a role's *shape* rather than one this set
-#: can answer; ``is_dev``/``tech`` by ``sq dev add``; and ``is_default`` by
-#: ``sq role set-default``.
 #: The one retired key with no :class:`ExtraKey` member to name it by. ``extra.skills`` was a
 #: cache of a role's skill list; the list is a computed projection over the playbook and the
 #: index (``Service.resolved_skills_for_role``), so the cache, its writer and its ``ExtraKey``
@@ -94,6 +77,27 @@ _ROLE_NAME_KEY: str = X.FULL_NAME
 #: removed from disk.
 _RETIRED_ROLE_SKILLS_KEY: str = "skills"
 
+#: The role ``extra`` keys that a release before this one mirrored onto the item from the
+#: role's resolved definition, and that no writer in this build produces any more — the two
+#: refusal groups above united — each of them names a key that moved out of ``extra`` in that
+#: same change and each refusal already has to stay in step with it — plus the one retired key
+#: with no member left to name it (:data:`_RETIRED_ROLE_SKILLS_KEY`, declared directly above).
+#:
+#: Declared here rather than restated by the reader so the two can never drift: a key that
+#: comes back would have to leave one of the groups above, and a key that leaves must lose its
+#: refusal at the same time. It is a **closed, named** set, never "every key this build does
+#: not recognise" — an ``extra`` key some other tool put on a role item is not this build's to
+#: interpret, let alone to delete.
+#:
+#: Five keys the mirror also wrote are deliberately absent, each because something still
+#: writes it: ``slug`` by ``RoleDef.to_extra`` itself; ``model`` by the same method for a
+#: developer role, which makes it a question about a role's *shape* rather than one this set
+#: can answer; ``is_dev`` and ``tech`` by ``sq dev add``; and ``is_default`` by
+#: ``sq role set-default``.
+#:
+#: This block sits immediately above the declaration it describes on purpose: a ``#:`` block
+#: attaches to the symbol that follows it, so leaving it above ``_RETIRED_ROLE_SKILLS_KEY``
+#: documented that one-line constant and left this set with no doc comment at all.
 RETIRED_ROLE_EXTRA_KEYS: frozenset[str] = (
     _ROLE_DECLARED_IN_OVERRIDES | {_ROLE_NAME_KEY} | {_RETIRED_ROLE_SKILLS_KEY}
 )

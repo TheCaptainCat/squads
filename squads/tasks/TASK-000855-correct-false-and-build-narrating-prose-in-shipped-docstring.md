@@ -3,7 +3,7 @@ id: TASK-855
 sequence_id: 855
 type: task
 title: Correct false and build-narrating prose in shipped docstrings
-status: InReview
+status: Done
 author: tech-lead
 priority: medium
 refs:
@@ -35,7 +35,7 @@ subentities:
   title: Restate the dev-role skew exemption's reason in the present tense
   status: Done
 created_at: '2026-09-01T11:22:08Z'
-updated_at: '2026-09-01T13:21:02Z'
+updated_at: '2026-09-02T14:01:19Z'
 ---
 <!-- sq:body -->
 ## Scope

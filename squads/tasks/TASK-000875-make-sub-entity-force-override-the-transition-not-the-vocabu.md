@@ -3,7 +3,7 @@ id: TASK-875
 sequence_id: 875
 type: task
 title: Make sub-entity --force override the transition, not the vocabulary
-status: InProgress
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -15,15 +15,15 @@ description: A sub-entity status update under --force writes a value outside tha
 subentities:
 - local_id: ST1
   title: Membership check on the sub-entity status path
-  status: InProgress
+  status: Done
 - local_id: ST2
   title: Recovery from an already-invalid stored status
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Close the same write on the import route
-  status: Todo
+  status: Done
 created_at: '2026-09-02T09:58:51Z'
-updated_at: '2026-09-02T12:22:53Z'
+updated_at: '2026-09-02T14:01:30Z'
 ---
 <!-- sq:body -->
 ## What is wrong
@@ -174,6 +174,21 @@ members still fails with the message it gives today.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-09-02T12:33:07Z] Elias Python:
+  - Done. The membership check now lives in one helper, `_require_declared_status(kind, status)`, resolved from the active spec's `subentity_workflow(kind).states` — no literal list. Both doors call it: the seed path (`_resolve_add_status`, which previously carried the check inline) and the transition path (`_apply_subentity_status`, which is the single point `set_block_status`, `update_block` and the importer's `sub-status` all funnel through). The refusal is now byte-identical between the two doors, because it is literally the same raise; a test asserts the two messages are equal string-for-string.
+    
+    Placement matters and is deliberate: the membership check runs *before* `current = sub.status` is read, and the transition guard below it is untouched, so `--force` still waives the edge and nothing else.
+    
+    Driven at the CLI, one scratch squad per kind, exit codes from bare invocations:
+    - `task 9 subtask 1 update --status Verified` and the same with `--force`: both exit 1, `'Verified' is not a valid subtask status (one of: Blocked, Cancelled, Done, InProgress, Todo)`, stored status unchanged.
+    - `feature 10 story 1 update --status Fixed --force`: exit 1. `review 11 finding 1 update --status Done --force`: exit 1.
+    - Illegal edge under force still lands: subtask Todo->Done exit 0, story Todo->Done exit 0, finding Open->Verified exit 0.
+    - Without force, Todo->Done still exits 1 with `cannot move Todo -> Done (use --force to override)`, unchanged.
+    - `sq check` exit 0 on every corpus these produced.
+    
+    Test: `tests/service/test_subentity_status_force_overrides_the_edge_not_the_vocabulary.py`, table-driven over kind x (member / cross-kind) x (with force / without), plus the metadata door (`update_block`) proven to refuse the same value and to land none of the other fields it was carrying, plus the pipeline invariant that walking the kind's whole declared vocabulary through the forced door leaves zero error-level check issues. CLI spine in `tests/cli/test_subentity_status_force_is_gated_on_the_kinds_vocabulary_cli.py`.
+    
+    Falsified: deleting the one added line takes 17 of the 35 new tests red across all three files; the 18 that stay green are exactly the ones pinning behaviour that must not change (edge waiver, no-force refusal, recovery). Restored, all 35 green.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -209,6 +224,23 @@ succeeds — and a test pins it so a later change cannot quietly take it away.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-09-02T12:33:32Z] Elias Python:
+  - Recovery survives. Driven, not assumed, on a squad already in the bad state.
+    
+    What the transition layer does with an unknown origin, read first and then confirmed at the CLI: `Lifecycle.can_transition` is `dst in self.transitions.get(src, [])`, so an origin that is not a node returns False rather than raising — it would refuse, not crash. But it is never consulted on the recovery path at all: the guard is `not force and current != status and not can_transition(...)`, and Python short-circuits on the first term, so `--force` skips the lookup before the unknown origin is ever read. That is why ordering the new membership check on the *target* ahead of `current = sub.status` keeps the door open.
+    
+    Constructing the state: the CLI door that used to produce it is now closed, so the corrupt value was written straight into frontmatter (`subentities[0].status = Verified`) with no service seam involved, then `sq repair` — which is also the shape an adopted or hand-edited corpus arrives in.
+    
+    Driven sequence, exit codes from bare invocations:
+    - `sq repair` exit 0; `sq check` exit 3, `error TASK-9: subtask ST1 has invalid status 'Verified'`.
+    - `sq task 9 update --title Stranded` exit 1, `subtask ST1 has invalid status 'Verified'` — the parent is stranded, as described.
+    - `sq task 9 subtask 1 update --status Todo` exit 1 (no force, still refused on the edge).
+    - `sq task 9 subtask 1 update --status Todo --force` exit 0.
+    - `sq check` exit 0. `sq task 9 update --title Recovered` exit 0 — the parent's gated doors open again.
+    
+    Pinned per kind by `test_a_stored_status_outside_the_machine_is_still_recoverable_through_this_door`, which drives that whole sequence including the stranding assertion.
+    
+    Falsified against the specific bricking regression rather than only against the absent fix: making the check read the stored value too (`current = self._require_declared_status(kind, sub.status)`) takes exactly those three tests red with `'Done' is not a valid finding status`, i.e. the corpus is unrecoverable. Restored, green. A later change that quietly widens this gate to the origin state cannot pass.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -239,6 +271,26 @@ code and report formatting are unchanged by this task.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-09-02T12:33:34Z] Elias Python:
+  - Closed at the import door, proven by running an events file rather than by arguing from the shared core.
+    
+    Driven, fresh scratch squad, the three-event file from the bug report (`create` / `add-sub` / `sub-status` with `"force": true` and `"status": "Verified"`):
+    
+    ```
+    sq import events.jsonl        # exit=1
+    #   line 3: 'Verified' is not a valid subtask status (one of: Blocked, Cancelled, Done, InProgress, Todo)
+    #   1 issue(s) found - nothing written.
+    sq check                      # exit=0
+    sq list -a                    # zero items - the create in line 1 did not land either
+    ```
+    
+    Where it lands matters: the importer validates the whole file against a shadow index before it writes, and its pre-pass calls `_set_block_status_model` -> `_apply_subentity_status`, so the refusal surfaces as a pre-pass issue at exit 1 with the file held back whole. It is not an applied write that the post-apply report then flattens into a `warning:`.
+    
+    The edge waiver still works through the same door: the identical file with `"status": "Done"` (an illegal Todo->Done edge, valid vocabulary) imports at exit 0 and `sq check` exits 0.
+    
+    Nothing was changed in the importer: no exit-code change, no touch to `report()` or the result handling. The separately-filed severity flattening is untouched and still reachable by its other route.
+    
+    Test: `tests/service/test_bulk_import_cannot_force_an_undeclared_subentity_status.py` - three cases: the forced cross-kind event is refused with the subtask still at Todo and zero error-level check issues; the forced illegal edge still applies; and one bad forced event holds back the whole file (a sibling `create` on line 1 does not land), so a refusal cannot leave a half-imported corpus. The first and third go red without the fix.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 <!-- sq:subtasks:end -->
@@ -264,4 +316,29 @@ code and report formatting are unchanged by this task.
     have to fit). Do not widen into either.
     
     @python-dev ready for dispatch.
+- [2026-09-02T12:34:22Z] Elias Python:
+  - Implemented, all three subtasks Done, task to InReview. Not committed.
+    
+    **The fix**, one place: `src/squads/_services/_subentities.py`. The membership check that lived inline in `_resolve_add_status` is extracted as `_require_declared_status(kind, status)` and called from `_apply_subentity_status` as well — the single point every sub-entity status write funnels through (`set_block_status`, `update_block`, `set_subtask_done`, and the importer's `sub-status` via both `_set_block_status_model` and `_set_block_status_core`). The allowed set is resolved from the active spec's `subentity_workflow(kind).states`, never a literal. Both doors now raise the identical string, asserted as an equality in a test.
+    
+    The check runs before `current = sub.status` is read; the transition guard below is byte-for-byte untouched. So `--force` still waives the edge, and only the edge.
+    
+    **Recovery from an already-invalid stored status: it survives**, driven on a squad corrupted directly in frontmatter with no service seam. `update --status Todo --force` exits 0, `sq check` goes 3 -> 0, and the parent's gated doors open again. The mechanism, since ST2 asked for it empirically: `not force` short-circuits the whole transition condition before `can_transition` ever reads the unknown origin. (Had it been reached: `transitions.get(src, [])` returns False for an unknown src, so it would have refused rather than raised — a quiet bricking, not a crash.) Falsified against exactly that regression, not only against the absent fix — widening the check to the stored value takes the three recovery tests red.
+    
+    **Import route: closed, and driven.** The bug's own events file now exits 1 in the pre-pass with nothing written (not even line 1's `create`) and `sq check` exits 0; the same file with a legal-vocabulary illegal edge still imports at exit 0. The importer's exit code and report handling are untouched.
+    
+    **Tests**, 35 new, no ticket ids anywhere:
+    - `tests/service/test_subentity_status_force_overrides_the_edge_not_the_vocabulary.py` (27) - table-driven kind x (member / cross-kind) x (with force / without), both doors, plus the two pipeline invariants.
+    - `tests/service/test_bulk_import_cannot_force_an_undeclared_subentity_status.py` (3).
+    - `tests/cli/test_subentity_status_force_is_gated_on_the_kinds_vocabulary_cli.py` (5).
+    
+    Falsification, both directions, reported as asked: deleting the added line -> 17 red / 18 green, the green ones being exactly the behaviours the fix must not take away. Widening it to the stored origin -> the 3 recovery tests red. Restored -> 35 green.
+    
+    **Gates**: `4539 passed, 8 skipped in 75.14s` (baseline 4504+8; +35 is exactly the new tests), 0 FAILED lines. pyright 0 errors, ruff check clean, ruff format clean, `sq check` exit 0.
+    
+    Nothing out of scope was touched: no change to the importer's severity flattening, none to `subtask_story_mapping`'s duplicate implementation, no spec/template/doc edit. `docs/workflow.md` already states the meaning the code now has, so it needed nothing.
+    
+    One correction to the brief, minor: it says the CLI-level cross-kind refusal was the `add` path's only precedent, which held, but it also said every other door on the parent "refuses ... quoting the sub-entity's problem" - true for the gated doors, and I confirmed the ungated sub-entity doors (`body`, `comment`, `--title`) still work on a corrupt parent, which is what makes coordinating a recovery possible. Left exactly as they are.
+    
+    @reviewer ready for review. @tech-lead for the board.
 <!-- sq:discussion:end -->

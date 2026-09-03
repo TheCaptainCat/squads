@@ -31,11 +31,15 @@ sq adopt                        # non-destructive: see below
 - creates `.squads.toml` if missing (keeps it otherwise);
 - ensures the squad folder + per-type subfolders and the `.claude/` scaffolding;
 - **imports** any squads-native `.md` files already present (rebuilds the index + the global
-  counter from their frontmatter — same engine as `sq repair`);
+  counter from their frontmatter — same engine as `sq repair`, which means it also **rewrites**
+  those files where they carry content squads no longer stores; see
+  [What `sq repair` writes](#what-sq-repair-writes));
 - activates the bundled roles it doesn't already have.
 
-Run it as often as you like; it never clobbers authored content. Use `--squad-dir`, `--roles`,
-`--no-claude` exactly like `init`.
+Run it as often as you like; it never clobbers a body you wrote through `sq` — with the one
+exception every index rebuild shares, described under
+[What `sq repair` writes](#what-sq-repair-writes). Use `--squad-dir`, `--roles`, `--no-claude`
+exactly like `init`.
 
 Once the squad exists, consider opening it with the optional interview — see
 [agents.md](agents.md#opening-a-new-squad-the-interview).
@@ -152,6 +156,11 @@ command fails partway through:
    ```bash
    sq repair     # reconciles the index to whatever files exist on disk
    ```
+   `sq repair` also **rewrites content**, not just the index — see
+   [What `sq repair` writes](#what-sq-repair-writes) below. On a corpus carrying regions squads
+   no longer stores, that content diff arrives on top of the half-written import you are trying
+   to inspect, and the two cannot be told apart afterwards. Commit or stash the partial import
+   first, so the next step's `git diff` shows the repair's work on its own.
 2. Inspect what landed. Use `sq tree` or `sq list` to see which items made it:
    ```bash
    sq tree       # view the current state of all items
@@ -175,6 +184,46 @@ sq repair       # rebuild the index from frontmatter if anything looks off
 
 `sq repair` and `sq check` read timestamps straight from the frontmatter, so the dates you forged
 with `--at` are preserved across rebuilds.
+
+### What `sq repair` writes
+
+`sq repair` rebuilds the index, and on the same pass it **rewrites item files**. It removes what
+squads now computes on every read rather than stores:
+
+- the sub-entity roll-up table and each sub-entity block's badge line, from any item file that
+  carries them;
+- a **role's** stored body — emptied, not deleted: the `sq:body` marker pair stays and only its
+  contents go. `sq role <slug> show` renders the definition fresh from the role catalog and your
+  own role overrides, so make sure a role you defined yourself still has its
+  `.overrides/roles/<slug>.toml`;
+- the `extra` keys a role item mirrored from its definition (`full_name`, `title`, `mission`,
+  `responsibilities`, `agreements`, `color`, `can_spawn`, `description`, `skills`). A role keeps
+  its `slug`, its default-role designation, and a developer role's `model`, `is_dev` and `tech`.
+
+It also canonicalises any legacy ref encoding it finds. On a corpus that carries any of this, one
+`sq repair` can touch every file you just imported.
+
+**No skill body is touched** — not one you wrote, and not a template-owned one either; on disk the
+two cannot be told apart, so both are left alone. Neither is any other item's body, any
+sub-entity's body or discussion, any operator item, or any frontmatter field on anything that is
+not a role.
+
+Three consequences for an adoption run:
+
+- **Run it on a clean working tree.** `sq repair` cannot separate its changes from yours, so
+  commit or stash first and review its diff on its own.
+- **It is not only `sq repair`.** `sq adopt`, `sq renumber` and the index rebuild at the end of
+  `sq migrate up` rebuild the index the same way and perform the same rewrite. Adopting a folder
+  of hand-written squads-native markdown therefore rewrites those files on the first `sq adopt`.
+- **Every route announces it.** All four print the same line — `stripped retired regions from
+  N item files — review the diff` — and all four name the rewritten items in the reflog:
+  `sq repair`, `sq adopt` and `sq migrate up` on their `repair` entry, `sq renumber` on its own,
+  where the ids are the post-shift ones because the rebuild that strips runs on the
+  already-renamed files. The notice is a count and the reflog names items, so `git diff` is
+  still what shows you what moved inside each file.
+
+A squad that carries none of that content is left byte-for-byte alone: no file is written, and a
+second run is always a no-op.
 
 ---
 

@@ -66,7 +66,7 @@ from squads._roles._catalog import (
 )
 from squads._roles._loader import VALID_MODELS, load_role_catalog
 from squads._roles._models import RoleSpec
-from squads._specmerge import RawMapping, merge_override
+from squads._specmerge import RawMapping, describe_spec_error, merge_override
 
 _PREDEFINED_BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
 
@@ -224,7 +224,9 @@ def _apply_override(base: RoleDef | None, data: RawMapping, slug: str, origin: s
     try:
         spec = RoleSpec.model_validate(merged)
     except Exception as exc:
-        raise SquadsError(f"invalid role override {origin}: {exc}") from exc
+        raise SquadsError(
+            f"invalid role override {origin}: {describe_spec_error(exc, RoleSpec)}"
+        ) from exc
     _refuse_blank_strings(spec, origin)
     if spec.model is not None and spec.model not in VALID_MODELS:
         raise SquadsError(

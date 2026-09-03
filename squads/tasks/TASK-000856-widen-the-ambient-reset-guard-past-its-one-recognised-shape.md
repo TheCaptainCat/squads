@@ -3,7 +3,7 @@ id: TASK-856
 sequence_id: 856
 type: task
 title: Widen the ambient-reset guard past its one recognised shape
-status: InReview
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -13,7 +13,7 @@ description: The guard derives its reset set from one syntactic shape; an import
   a nested declaration or a tuple target evades it — widen what can be widened and
   make the exhaustiveness claim honest about the rest
 created_at: '2026-09-01T11:25:20Z'
-updated_at: '2026-09-02T07:49:19Z'
+updated_at: '2026-09-02T14:01:21Z'
 ---
 <!-- sq:body -->
 ## Scope

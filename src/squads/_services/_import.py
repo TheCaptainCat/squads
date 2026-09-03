@@ -65,6 +65,7 @@ from squads._services._import_model import (
 from squads._services._items import ItemsMixin
 from squads._services._refs import RefsMixin
 from squads._services._results import (
+    CheckIssue,
     ImportApplyResult,
     ImportIssue,
     ImportOpCount,
@@ -506,20 +507,30 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
                     touched_ids |= await self._apply_one(db, handles, ev, warnings)
                 finally:
                     bind_context(prior)
-        warnings.extend(await self._board_debt_warnings(touched_ids))
+        findings = await self._board_debt_findings(touched_ids)
+        warnings.extend(f"{f.item}: {f.message}" for f in findings if f.level != "error")
         return ImportApplyResult(
             op_counts=counts,
             handle_to_id=dict(handles.items),
             handle_to_sub=dict(handles.subentities),
             created_ids=sorted(touched_ids & set(handles.items.values())),
             warnings=warnings,
+            findings=findings,
         )
 
-    async def _board_debt_warnings(self, touched_ids: set[str]) -> list[str]:
+    async def _board_debt_findings(self, touched_ids: set[str]) -> list[CheckIssue]:
         """The same catalog ``sq check`` reports (unwritten sub-entity bodies, over-long
         titles, …), scoped to just the items THIS import touched — read post-commit, since
         the files now exist on disk. Squad-global validators (index/backend reconciliation)
-        are irrelevant to one import run, so they're excluded from this engine entirely."""
+        are irrelevant to one import run, so they're excluded from this engine entirely.
+
+        The ``CheckIssue`` objects are returned whole, level and all. Flattening them to
+        strings here is what used to make an error-level finding indistinguishable from an
+        advisory one at every surface above: the caller cannot restore a level this function
+        did not return. Nothing here is filtered by level either — which members of the catalog
+        can reach this point is a property of the effective spec (any type naming an
+        error-level rule reaches it), not something this engine should assume.
+        """
         if not touched_ids:
             return []
         final_db = await self.store.load()
@@ -531,7 +542,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             bodies[item.sequence_id] = await self._read_item_file(item, item_file(self.paths, item))
         engine = ValidatorEngine(spec=self.spec, squad_global={})
         issues = engine.report(final_db, {}, bodies=bodies)
-        return [f"{i.item}: {i.message}" for i in issues if i.item in touched_ids]
+        return [i for i in issues if i.item in touched_ids]
 
     async def _apply_one(  # noqa: PLR0911 — one per-op dispatch, mirrors _simulate_one's shape
         self, db: SquadsDB, handles: HandleMap, ev: ResolvedEvent, warnings: list[str]

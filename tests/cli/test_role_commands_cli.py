@@ -31,7 +31,19 @@ async def test_catalog_json_output_is_unaffected_bundled_roles_only(project, inv
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
     assert data  # bundled roles present
-    assert all(set(row) == {"slug", "full_name", "title", "is_default", "origin"} for row in data)
+    assert all(
+        set(row)
+        == {
+            "slug",
+            "full_name",
+            "title",
+            "is_default",
+            "origin",
+            "default_role",
+            "default_role_source",
+        }
+        for row in data
+    )
     assert all(row["origin"] == "bundled" for row in data)
     assert "scaffold" not in r.output
 

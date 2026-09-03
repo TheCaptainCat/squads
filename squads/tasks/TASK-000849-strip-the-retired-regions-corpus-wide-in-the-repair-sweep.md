@@ -3,7 +3,7 @@ id: TASK-849
 sequence_id: 849
 type: task
 title: Strip the retired regions corpus-wide in the repair sweep
-status: InReview
+status: Done
 parent: FEAT-694
 author: tech-lead
 priority: high
@@ -48,7 +48,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-09-01T08:04:14Z'
-updated_at: '2026-09-02T11:33:07Z'
+updated_at: '2026-09-02T14:01:16Z'
 ---
 <!-- sq:body -->
 ## Scope

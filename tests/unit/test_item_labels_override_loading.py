@@ -2,14 +2,21 @@
 into ``LabelSpec`` via the standard nested-model ``model_validate`` path — no
 dedicated parser needed, same as any other nested capability-flag model — and a misspelled
 sub-key inside that table is rejected at load time by ``LabelSpec``'s own ``extra="forbid"``.
+
+What that rejection *reads* like is asserted here too: the offending sub-key, the table it
+sits in, that table's own accepted keys and the running version — the same sentence an unknown
+key at the document's top level gets. The refusal used to be pydantic's raw validation error,
+and this test used to pin that phrasing, which made the leak look intentional.
 """
 
 from pathlib import Path
 
 import pytest
 
+from squads import __version__
 from squads._errors import SquadsError
 from squads._workflow import load_workflow_spec
+from squads._workflow._models import LabelSpec
 
 
 def _write_override(squad_dir: Path, content: str) -> None:
@@ -76,8 +83,15 @@ lifecycle = "work"
 plurals = "Incidents"
 """,
     )
-    with pytest.raises(SquadsError, match="Extra inputs are not permitted"):
+    with pytest.raises(SquadsError) as caught:
         load_workflow_spec(squad_dir=tmp_path)
+    message = str(caught.value)
+
+    assert "unknown key 'plurals' in 'labels'" in message
+    assert f"in v{__version__}: {sorted(LabelSpec.model_fields)}" in message
+    # The refusal is about this override, not about the library that noticed it.
+    assert "Extra inputs are not permitted" not in message
+    assert "errors.pydantic.dev" not in message
 
 
 def test_an_item_type_with_no_labels_table_still_loads_with_none(tmp_path: Path) -> None:

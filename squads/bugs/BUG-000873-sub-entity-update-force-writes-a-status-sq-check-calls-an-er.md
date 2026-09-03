@@ -3,7 +3,7 @@ id: BUG-873
 sequence_id: 873
 type: bug
 title: Sub-entity update --force writes a status sq check calls an error
-status: Open
+status: Verified
 author: qa
 priority: medium
 severity: medium
@@ -13,7 +13,7 @@ description: sq <type> <n> <kind> <k> update --status <S> --force accepts a stat
   outside that kind's lifecycle at exit 0; sq check then errors on the corpus. No
   sub-entity write door reaches ValidatorEngine.gate.
 created_at: '2026-09-02T09:46:36Z'
-updated_at: '2026-09-02T10:24:40Z'
+updated_at: '2026-09-02T14:19:37Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -319,4 +319,41 @@ no working way to see the damage.
     `comment` event with no `force` — so it is general to the importer's result handling, not a
     quirk of the sub-entity route. Closing the membership hole here removes one of the two
     currently reachable routes into it; the other is untouched. @tech-lead
+- [2026-09-02T14:19:34Z] Mara Tester:
+  - Verified. Fresh `sq init --default-names --backend none`; exit codes from bare commands, mutations under `timeout 60`.
+    
+    The three-command repro, no longer reproducing:
+    - `sq task 9 subtask 1 update --status Verified` -> exit 1, "'Verified' is not a valid subtask status (one of: Blocked, Cancelled, Done, InProgress, Todo)"
+    - `sq task 9 subtask 1 update --status Verified --force` -> **exit 1, same message, nothing written**. Previously exit 0 + "updated TASK-9 ST1".
+    - `sq check` -> exit 0 (one unwritten-body warn, no errors). Previously exit 3.
+    - `sq task 9 subtasks` still renders ST1 at Todo — the write never landed.
+    
+    The membership message now fires ahead of the transition message, which is the right precedence: an invalid target is refused before an edge is even considered.
+    
+    All three bundled kinds, each driven:
+    - subtask `--status Verified --force` -> exit 1
+    - story `--status Fixed --force` -> exit 1 ("not a valid story status")
+    - finding `--status Done --force` -> exit 1 ("not a valid finding status")
+    
+    **`--force` still waives an illegal transition** — the half that had to survive, driven on all three:
+    - subtask Todo -> Done: without `--force` exit 1 "subtask ST1 cannot move Todo → Done (use --force to override)"; with `--force` **exit 0**, "updated TASK-9 ST1", stored Done, `sq check` exit 0
+    - story Todo -> Done with `--force` -> exit 0
+    - finding Open -> Verified with `--force` -> exit 0
+    So `--force` now means at sub-entity level what it means at item level: it overrides the edge, not the vocabulary.
+    
+    **Recovery from a corpus already carrying an invalid stored status is still open** — the door that could not be closed. Wrote `status: Verified` into TASK-9's subentity frontmatter by hand, then:
+    - `sq repair` -> exit 0, "rebuilt index: 11 items"
+    - `sq check` -> exit 3, "error TASK-9: subtask ST1 has invalid status 'Verified'"
+    - parent stranded as before: `sq task 9 update --title Renamed` -> exit 1, "subtask ST1 has invalid status 'Verified'"
+    - `sq task 9 subtask 1 update --status Todo --force` -> **exit 0**, "updated TASK-9 ST1". No hang, no raise from the transition lookup reading a current value that is not a node on the machine.
+    - `sq check` -> exit 0; `sq task 9 update --title Recovered` -> exit 0, parent unstuck
+    Repeated with a stored `Fixed` (cross-kind, globally valid) and recovery to InProgress: exit 0, check back to 0. The recovery path does not depend on which invalid value is stored.
+    
+    Two boundary observations, neither a regression:
+    - The new membership check applies to the recovery call too, so you cannot "recover" from one invalid status to another: stored Verified, `--status Verified --force` -> exit 1. Correct, and it does not close the exit — any legal member is reachable.
+    - A status outside the squad's **global** set is a different, pre-existing condition and is not recoverable through this door because the index cannot be rebuilt around it: hand-wrote `Bogus`, `sq repair` -> exit 1, "item TASK-9 sub-entity ST1 has unknown status 'Bogus' in TASK-000009-recovered.md; fix the frontmatter before running `sq repair`", and every mutation on the parent then refuses with the frontmatter-diverged message. Consistent with the body's note that the CLI parser catches out-of-set values earlier; unchanged by this fix and out of its scope.
+    
+    The import route into the same core is closed too — driven under BUG-878: a `sub-status` event with `"force": true` carrying a cross-kind status is now refused in the pre-pass at exit 1, "line 3: 'Done' is not a valid finding status … 1 issue(s) found — nothing written."
+    
+    Nothing to flag.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-866
 sequence_id: 866
 type: task
 title: Refuse parent cycles at the write door and make tree walks safe
-status: InReview
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -33,7 +33,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-09-02T07:52:13Z'
-updated_at: '2026-09-02T09:47:57Z'
+updated_at: '2026-09-02T14:01:26Z'
 ---
 <!-- sq:body -->
 ## What is wrong

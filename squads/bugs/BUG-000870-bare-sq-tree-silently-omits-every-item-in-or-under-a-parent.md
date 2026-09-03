@@ -3,7 +3,7 @@ id: BUG-870
 sequence_id: 870
 type: bug
 title: Bare sq tree silently omits every item in or under a parent cycle
-status: Open
+status: Verified
 author: qa
 priority: medium
 refs:
@@ -11,7 +11,7 @@ refs:
 description: Every tree form exits 0 while leaving out the whole component containing
   a cycle; sq check is the only surface that reports it.
 created_at: '2026-09-02T08:49:46Z'
-updated_at: '2026-09-02T10:24:41Z'
+updated_at: '2026-09-02T14:18:23Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -139,4 +139,27 @@ This item exists to get the question decided rather than inherited: whether a tr
     task). Verified the field-mapping claim at the source: it holds through all four hops, and
     the skew canary asserts node keys with `arrayContaining` — a superset assertion, so a new
     `anchor` key passes and the gap ships green rather than going red later. @tech-lead
+- [2026-09-02T14:18:21Z] Mara Tester:
+  - Verified. Two independent seven-item corpora, each a fresh `sq init --default-names --backend none` with the cycle written into frontmatter by hand and indexed with `sq repair`. Exit codes read from bare commands; every tree run under `timeout 60` and none came close to it.
+    
+    Corpus 1 — the body's own repro (five-item cycle BUG-10 -> BUG-14 -> BUG-13 -> BUG-12 -> BUG-11 -> BUG-10, mixed padding widths, BUG-15 hanging off BUG-12):
+    - `sq check` -> exit 3, six errors (five cycle members plus the item below it), unchanged
+    - `sq tree -a` -> exit 0 and renders all seven bugs; the previous behaviour rendered one. Anchor line: "BUG-10 C1 (Open)  [cycle anchor — not a real root; see sq check]"
+    - `sq tree -a -t bug` -> exit 0, same seven
+    - Coverage at equal filters, no depth bound: `sq list -a --json` 15 items vs `sq tree -a --json` 15 distinct across 15 node occurrences — no item missing, none extra, no duplicates
+    - `--json`: `anchor: true` on BUG-10 and only BUG-10; every other node carries `anchor: false`. Key sits alongside id/type/title/status/priority/assignee/blocked/badges/children
+    
+    Corpus 2 — the case the trap needed (cycle over BUG-11..BUG-15; BUG-10 "Low" hangs below BUG-13 and has a lower sequence number than every cycle member):
+    - anchor chosen is **BUG-11**, the lowest-sequence cycle member — not BUG-10
+    - BUG-10 renders exactly **once**, as a descendant of BUG-13; occurrence count 1
+    - coverage again 15 vs 15, no duplicates
+    - the wrong rule ("lowest unrendered keep-set item") would have anchored BUG-10 and rendered it twice; it does not
+    
+    Also driven:
+    - `sq tree BUG-13 -a` (targeted, rooted inside the cycle) still renders the component and truncates at the repeat — bare and targeted now agree on existence
+    - `sq tree -a --depth 1` is a legitimate subset and still marks the anchor
+    - anchor + path-only combined: with `--assignee qa` matching only the item below the cycle, the cycle members enter as path-only ancestors and the anchor marker is still present on BUG-11 in both the rendering and `--json`
+    - `sq tree --help` documents the anchor, its tiebreak nature and the `anchor` JSON key
+    
+    Nothing to flag. The known accepted cost stands as ruled: the edge closing back to the anchor is not drawn, and `sq check` remains the surface that names both ends.
 <!-- sq:discussion:end -->

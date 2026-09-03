@@ -52,6 +52,7 @@ from squads._roles._catalog import resolve_roles
 from squads._services._base import ItemFilter
 from squads._services._refs import graph_to_dot, graph_to_mermaid
 from squads._services._results import (
+    TREE_ANCHOR_MARKER,
     GraphNode,
     MineRow,
     ReflogEntry,
@@ -117,6 +118,29 @@ def _print_empty_or_hidden_hint(hidden_count: int) -> None:
         console.print(f"[dim]{hidden_count} closed items hidden — use --all[/dim]")
     else:
         console.print("[dim]no items[/dim]")
+
+
+def _tree_label(it: Item, spec: WorkflowSpec, *, path_only: bool, anchor: bool) -> Text:
+    """One line of the human ``sq tree`` rendering.
+
+    The two flags are independent states that **combine**, not alternatives: a cycle anchor
+    under a filter matching something below the cycle is a path-only node as well. The anchor
+    marker is therefore appended after the path-only dim, so the disclosure stays readable on a
+    dimmed line — a dimmed anchor marker is easy to produce and hard to read. Its wording has to
+    land on a reader who has never heard of this: the item is not a root anybody wrote, it was
+    picked to make an otherwise invisible parent loop visible.
+    """
+    badge = _field_badge(it.type, "priority", it.priority, spec) if it.priority else ""
+    prio = f"{e(badge)} · " if badge else ""
+    text = Text.from_markup(f"[bold]{it.id}[/bold] {prio}{e(it.title)} ")
+    text.append("(", style="dim")
+    text.append_text(status_text(it.status, spec))
+    text.append(")", style="dim")
+    if path_only:
+        text.stylize("dim")
+    if anchor:
+        text.append(f"  {TREE_ANCHOR_MARKER}", style="yellow")
+    return text
 
 
 async def _tree_hidden_count(svc: Service, item_filter: ItemFilter, spec: WorkflowSpec) -> int:
@@ -411,6 +435,13 @@ async def adopt(
         f"[bold]roles activated:[/bold] {new_roles}",
     ]
     console.print(Panel("\n".join(lines), title="squads adopted", expand=False))
+    # The import sweep is also the corpus sweep, and this is the only route an existing folder
+    # of squads-native markdown takes — no schema stamp to migrate, no repair anyone ran. So
+    # the content diff is announced here too, in the same sentence `sq repair` prints; the
+    # panel above counts what was imported, which says nothing about what was rewritten.
+    notice = result.repair.strip_notice()
+    if notice:
+        console.print(notice, soft_wrap=True)
     _print_scaffold_warnings(result.warnings)
     console.print(
         "Migrate legacy docs with [cyan]sq --at <date> create …[/cyan] to preserve history; "
@@ -559,10 +590,18 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     N levels from the root. ``--badge``/``--min-badge`` work generically for any declared
     field (see `sq list --help`).
 
-    `--json` emits the subtree (`id/type/title/status/priority/assignee/blocked` + nested
-    `children`) — the read an orchestrating agent uses to see a feature's state and decide what to
-    do next. Join `status` to `sq workflow statuses --json` / `sq workflow roles --json` for
-    open/settled-ness instead of a per-node field.
+    Without a root, the forest is every item with no parent in view, plus one anchor per parent
+    cycle: every member of a cycle has a parent, so a cyclic component would otherwise be absent
+    from this view entirely while `sq list` still returned it. The anchor is a member of the
+    cycle, is marked as such wherever it renders, and is a tiebreak rather than a real root —
+    every member of a cycle is an equally good one. `sq check` names both ends of the loop.
+
+    `--json` emits the subtree (`id/type/title/status/priority/assignee/blocked/badges/anchor` +
+    nested `children`) — the read an orchestrating agent uses to see a feature's state and decide
+    what to do next. `anchor` is true only for such an invented root; a consumer that ignores it
+    presents a fabricated root as one somebody wrote. Join `status` to
+    `sq workflow statuses --json` / `sq workflow roles --json` for open/settled-ness instead of a
+    per-node field.
     """
     svc = get_service()
     spec = get_active_spec()
@@ -623,25 +662,19 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
                 "assignee": it.assignee,
                 "blocked": it.id in blocked_ids,
                 "badges": resolve_item_badges(spec, it.type, it.badge_value),
+                # Additive, and deliberately asymmetric with `path_only`, which is not on the
+                # wire and is not being put there as a rider. The disclosure a fabricated root
+                # needs stands on its own for a JSON consumer: without this field the consumer
+                # cannot tell an invented root from one somebody wrote.
+                "anchor": tn.anchor,
                 "children": [node(c) for c in _sort_children(tn.children)],
             }
 
         print_json_clean(json.dumps([node(n) for n in _sort_children(nodes)]))
         return
 
-    def _label(it: Item, path_only: bool) -> Text:
-        badge = _field_badge(it.type, "priority", it.priority, spec) if it.priority else ""
-        prio = f"{e(badge)} · " if badge else ""
-        text = Text.from_markup(f"[bold]{it.id}[/bold] {prio}{e(it.title)} ")
-        text.append("(", style="dim")
-        text.append_text(status_text(it.status, spec))
-        text.append(")", style="dim")
-        if path_only:
-            text.stylize("dim")
-        return text
-
     def _attach(parent: Tree, tn: TreeNode) -> None:
-        branch = parent.add(_label(tn.item, tn.path_only))
+        branch = parent.add(_tree_label(tn.item, spec, path_only=tn.path_only, anchor=tn.anchor))
         for child in _sort_children(tn.children):
             _attach(branch, child)
 
@@ -685,15 +718,14 @@ async def repair(
     svc = common.get_service_bypassing_index_cross_check()
     result = await svc.repair(renumber=renumber)
     console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
-    if result.stripped:
+    notice = result.strip_notice()
+    if notice:
         # Announced, not prevented: repair's advertised job is the index, and the sweep also
         # rewrites content. Saying so here is what makes the resulting diff stated rather
-        # than discovered by an operator who ran this to reconcile an index.
-        console.print(
-            f"stripped retired regions from {len(result.stripped)} item "
-            f"{'file' if len(result.stripped) == 1 else 'files'} — review the diff",
-            soft_wrap=True,
-        )
+        # than discovered by an operator who ran this to reconcile an index. The sentence
+        # itself comes from the result so `sq migrate up`, which reaches the same sweep,
+        # prints the same one.
+        console.print(notice, soft_wrap=True)
     for mid in result.missing_ids:
         console.print(
             f"[yellow]warn[/yellow] [dim]{mid}[/dim]: indexed but no markdown file found (deleted?)"
@@ -746,6 +778,12 @@ async def renumber(
         console.print("[dim]nothing to renumber — no local item at or above --from[/dim]")
         return
     console.print(f"renumbered {len(result.remap)} item(s); counter={result.db.counter}")
+    # The shift borrows `repair`'s index rebuild, which is also the corpus sweep — so this
+    # verb rewrites content while its advertised job is identity. Announced here, before the
+    # remap listing, in the same sentence `sq repair` prints.
+    notice = result.strip_notice()
+    if notice:
+        console.print(notice, soft_wrap=True)
     for old, new in sorted(result.remap.items(), key=lambda kv: kv[1]):
         console.print(f"  {e(old)} -> {e(new)}")
 

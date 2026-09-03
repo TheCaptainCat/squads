@@ -66,12 +66,15 @@ function itemToLeaf(
       assignee: item.assignee,
       badges: resolveItemBadges(item.type, item.badges, fieldBindings, badgeVocabulary),
       blocked: false,
+      // A flat row is not a tree root at all, so nothing here can be an invented one.
+      anchor: false,
     }),
     iconId: iconForType(item.type, iconOverrides),
     blocked: false,
     closed: role?.settled ?? false,
     hidden: role?.hidden ?? false,
     colorIntent: role?.color ?? null,
+    anchor: false,
     children: [],
   };
 }

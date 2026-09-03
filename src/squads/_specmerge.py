@@ -41,8 +41,16 @@ restriction on what a key may be named.
 The engine is loader-agnostic: it knows nothing about which document produced its inputs, or
 what any of its caller-supplied key sets mean, and owns no floor check of its own — no
 roster-locked rule, no lifecycle floor, no category catalog, no drift stamping, no live-index
-cross-check. Those stay in each loader; this module supplies only the top-level check, the
-merge, the deselect, and the splat resolution.
+cross-check. Those stay in each loader; this module supplies the top-level check, the merge,
+the deselect, and the splat resolution.
+
+It also owns the **wording of an unknown-key refusal**, at both depths. The top-level check
+above writes one; the models' own ``extra="forbid"`` writes the other, one level down, after
+this engine has handed the merged document on — and :func:`describe_spec_error` is what a
+loader routes that second one through so the two arrive in one shape rather than two. The
+version-qualified menu sentence they share (:func:`_accepted_menu`) is written once, here,
+because a promise made at the top level and broken one level down is exactly the defect that
+brought the deep half here.
 
 Two calling modes share one code path: every mechanism below always *collects* its
 violations — including a nesting bound exceeded on either walk (see ``_MAX_NESTING_DEPTH``),
@@ -58,7 +66,10 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from re import DOTALL
 from re import compile as re_compile
-from typing import Any, cast
+from types import UnionType
+from typing import Any, Union, cast, get_args, get_origin
+
+from pydantic import BaseModel, ValidationError
 
 from squads import __version__
 from squads._errors import SquadsError
@@ -556,13 +567,126 @@ def _unknown_key_violations(
     fix_hint = (
         empty_accepted_hint
         if not accepted and empty_accepted_hint is not None
-        else f"use one of the accepted {what}s in v{__version__}: {sorted(accepted)}"
+        else _accepted_menu(what, accepted)
     )
     return [
         MergeViolation(origin, _dotted(path_prefix, key), f"unknown {what} {key!r}", fix_hint)
         for key in keys
         if key not in accepted
     ]
+
+
+def _accepted_menu(what: str, accepted: frozenset[str]) -> str:
+    """The version-qualified menu sentence, written here once because two refusals carry it
+    and they are the same promise at two depths: an unknown *top-level* key
+    (:func:`_unknown_key_violations`) and an unknown *nested* key
+    (:func:`describe_spec_error`). Sharing the sentence is what stops the deep half drifting
+    into a second dialect of the shallow half — which is the defect that made the nested
+    refusal worth fixing in the first place.
+
+    The version is the load-bearing half: it lets an adopter tell a typo from a key a newer
+    squads accepts from a key an older squads has since dropped.
+    """
+    return f"use one of the accepted {what}s in v{__version__}: {sorted(accepted)}"
+
+
+def _model_in(annotation: Any) -> tuple[type[BaseModel] | None, bool]:
+    """The pydantic model reachable through *annotation*, plus whether reaching it passes
+    through a container.
+
+    The container flag is what keeps a location path aligned with the model graph: a field
+    typed ``list[M]`` contributes *two* path segments (the field name, then the index), a
+    field typed ``M`` contributes one. A caller that walked both the same way would resolve
+    the wrong model, silently, and print a menu belonging to somewhere else.
+
+    ``M | None`` is unwrapped to ``M``: an optional section is the same section when it is
+    present, and only a present section can carry an unknown key.
+    """
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        return annotation, False
+    origin = get_origin(annotation)
+    if origin is Union or origin is UnionType:
+        for arg in get_args(annotation):
+            model, container = _model_in(arg)
+            if model is not None:
+                return model, container
+        return None, False
+    args = get_args(annotation)
+    if origin in (list, tuple, set, frozenset) and args:
+        model, _ = _model_in(args[0])
+        return model, model is not None
+    if origin is dict and len(args) == 2:
+        model, _ = _model_in(args[1])
+        return model, model is not None
+    return None, False
+
+
+def _accepted_keys_at(model: type[BaseModel], loc: tuple[int | str, ...]) -> frozenset[str] | None:
+    """The declared field names of the section *loc* addresses inside *model* — the accepted
+    key menu for wherever the offending key actually sits, read off the model itself so it
+    grows with the model instead of going stale beside it.
+
+    *loc* is a pydantic error location whose last segment is the offending key; everything
+    before it names the route from *model* down to the section that refused it. ``None`` when
+    the route cannot be resolved against the model graph, which the caller must treat as "no
+    menu to offer" rather than guessing one: a menu naming the wrong section's keys is worse
+    than none, because an adopter would act on it.
+    """
+    current: type[BaseModel] = model
+    parts = loc[:-1]
+    i = 0
+    while i < len(parts):
+        segment = parts[i]
+        if not isinstance(segment, str):
+            return None
+        field = current.model_fields.get(segment)
+        if field is None:
+            return None
+        nested, container = _model_in(field.annotation)
+        if nested is None:
+            return None
+        i += 1
+        if container:
+            if i >= len(parts):  # a container addressed without an index: unresolvable
+                return None
+            i += 1  # consume the list index / mapping key
+        current = nested
+    return frozenset(current.model_fields)
+
+
+def describe_spec_error(exc: Exception, model: type[BaseModel]) -> str:
+    """Render *exc* — raised validating a document against *model* — as the message body a
+    spec loader hands an adopter.
+
+    An **unknown key** is folded into the same shape a top-level unknown key already
+    produces: the offending key, where it sits, the accepted keys for that section, and the
+    running version. A raw pydantic rendering keeps none of that promise and leaks an
+    implementation dependency into an adopter-facing message — a header naming an internal
+    model class, an ``input_value``/``input_type`` dump, and a link to pydantic's own error
+    documentation.
+
+    Everything else is returned verbatim. The fold is deliberately bounded to a failure whose
+    *whole* cause is unknown keys: a wrong type and a missing required field keep the handling
+    they have today, and a failure that mixes an unknown key with one of those keeps it too,
+    rather than have this function paraphrase an error shape it was not built to describe.
+    """
+    if not isinstance(exc, ValidationError):
+        return str(exc)
+    errors = exc.errors(include_url=False)
+    if not errors or any(entry["type"] != "extra_forbidden" for entry in errors):
+        return str(exc)
+    sentences: list[str] = []
+    for entry in errors:
+        loc = entry["loc"]
+        if not loc:  # pragma: no cover - pydantic always locates an extra key
+            return str(exc)
+        where = ".".join(str(segment) for segment in loc[:-1])
+        reason = f"unknown key {str(loc[-1])!r}" + (f" in {where!r}" if where else "")
+        accepted = _accepted_keys_at(model, loc)
+        sentences.append(
+            reason if accepted is None else f"{reason} — {_accepted_menu('key', accepted)}"
+        )
+    return "; ".join(sentences)
 
 
 def _top_level_key_violations(

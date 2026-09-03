@@ -24,8 +24,10 @@ code; it is never a create/update blocker.
 time, never pre-baked onto the spec.
 """
 
+import dataclasses
 import re
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -85,6 +87,31 @@ def _opens_with_status_banner(text: str | None) -> bool:
     return bool(_STATUS_BANNER_RE.match(first_line) or _STATUS_HEADING_RE.match(first_line))
 
 
+class ContextRequirement(StrEnum):
+    """One piece of :class:`ValidatorContext` a caller may or may not be able to supply.
+
+    The two members here are the fields whose availability depends on the call path rather
+    than on the item. ``report()`` supplies both — it has scanned the whole index and read the
+    corpus — though ``raw_text`` still comes up absent for an item whose file it could not
+    read, which is the same answer for the same reason. ``gate()`` supplies neither: it gates
+    an ``Item`` built in memory, before any file for it exists, and does not pay a full-index
+    scan per mutation.
+
+    Naming them is what makes a validator's non-participation on a given path a **declared**
+    property. It used to be an accident: the gate passed the fields' empty values through and
+    each reader guarded itself into returning nothing, which reads identically whether the
+    member was designed to sit that path out or had simply never been considered on it. The
+    difference matters because a member that stays silent for want of context is not gating
+    anything, whatever level its findings carry.
+
+    Each member's value is the field's own name on :class:`ValidatorContext`, so the
+    declaration and the field cannot drift apart.
+    """
+
+    RAW_TEXT = "raw_text"
+    TYPE_PRESENT = "type_present"
+
+
 @dataclass(frozen=True)
 class ValidatorContext:
     """Everything one per-item validator reads: the item under test, the active spec, a
@@ -96,12 +123,14 @@ class ValidatorContext:
     ``type_present`` backs ``ref_rule_target_present``'s inertness precondition: computed once
     per ``report()`` run, alongside ``supersedes_incoming``, from a full index scan — never
     rescanned per item. ``gate()`` leaves it at its empty default rather than paying that scan
-    on every single create/update, so the check evaluates nothing on that path — failing open,
-    correct for a warn-level finding that never gates a mutation.
+    on every single create/update.
 
     ``raw_text`` is the single current item's full on-disk text (or ``None`` when its file was
     not found), not a squad-wide body map: a validator is already scoped to *one* item, and it
     extracts whichever marker section it cares about via ``_sections.get_section``.
+
+    Those two are exactly the :class:`ContextRequirement` members: a member declaring one runs
+    only where this context carries it (:meth:`held_context`).
     """
 
     item: Item
@@ -111,6 +140,21 @@ class ValidatorContext:
     supersedes_incoming: frozenset[int] = frozenset()
     type_present: frozenset[str] = frozenset()
     raw_text: str | None = None
+
+    def held_context(self) -> frozenset[ContextRequirement]:
+        """Which :class:`ContextRequirement` fields this instance actually carries.
+
+        Read off the values rather than declared by whoever built the context: a second
+        declaration is a second thing to keep in step, and the one that drifts is always the
+        one nothing reads. A caller that starts supplying a field therefore starts running the
+        members that need it, with nothing else to update.
+        """
+        held: set[ContextRequirement] = set()
+        if self.raw_text is not None:
+            held.add(ContextRequirement.RAW_TEXT)
+        if self.type_present:
+            held.add(ContextRequirement.TYPE_PRESENT)
+        return frozenset(held)
 
 
 @dataclass(frozen=True)
@@ -615,6 +659,36 @@ CATALOG: dict[str, Validator] = {
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
+#: What each catalog member needs from the context beyond the item and the spec — the
+#: declaration :meth:`ValidatorEngine._run_per_item` filters on, so a member that cannot be
+#: evaluated on a call path is skipped by name rather than by running and finding nothing.
+#:
+#: A member absent from this table requires nothing and therefore runs everywhere. The entries
+#: are the exceptions, and they are the whole point: ``gate()`` holds neither requirement, so
+#: everything listed here sits the create/update gate out — including
+#: ``subentity_container_marker``, which reports at **error** level and so would otherwise look
+#: like a write-blocker on a path it has never once blocked. The reason it does not gate is on
+#: the record (its condition is a corpus/spec disagreement no create or update causes and none
+#: can cure, and gating would refuse ordinary edits on every item of the type at once); what
+#: this table adds is that the fact is stated where the member is registered rather than
+#: inferred from a sentinel three call frames away.
+#:
+#: ``tests/meta`` re-derives this table from what each member's body actually reads and fails
+#: on any disagreement, so a new member cannot join the catalog reading a field it never
+#: declared — which is exactly how the last one got here unnoticed.
+VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
+    "subentity_container_marker": frozenset({ContextRequirement.RAW_TEXT}),
+    "subentity_body_written": frozenset({ContextRequirement.RAW_TEXT}),
+    "no_status_banner": frozenset({ContextRequirement.RAW_TEXT}),
+    "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
+}
+assert set(VALIDATOR_CONTEXT) <= set(CATALOG), (
+    "VALIDATOR_CONTEXT must only declare requirements for members CATALOG implements"
+)
+assert {r.value for r in ContextRequirement} <= {
+    f.name for f in dataclasses.fields(ValidatorContext)
+}, "every ContextRequirement must name a real ValidatorContext field"
+
 
 # --------------------------------------------------------------------------- squad-global catalog
 
@@ -1102,11 +1176,20 @@ class ValidatorEngine:
             type_present=type_present,
             raw_text=raw_text,
         )
+        held = ctx.held_context()
         issues: list[CheckIssue] = []
         for name in names:
             # Strip a documentary `:<param>` suffix before the catalog lookup — every CATALOG
             # key is bare (Plane-1 already rejected a param on a name that doesn't take one).
-            issues += self.catalog[name.partition(":")[0]](ctx)
+            bare = name.partition(":")[0]
+            # A member runs only where this caller carries what it declared it needs. Skipping
+            # it by name is the same outcome as running it against a context it cannot read —
+            # each such member returns nothing — but it is the outcome by decision instead of
+            # by coincidence, and it is why no docstring here has to claim anything about what
+            # the rest of the catalog happens to contain.
+            if not VALIDATOR_CONTEXT.get(bare, frozenset()) <= held:
+                continue
+            issues += self.catalog[bare](ctx)
         return issues
 
     def report(
@@ -1151,11 +1234,20 @@ class ValidatorEngine:
     def gate(self, item: Item, index: SquadsDB) -> None:
         """Abort on *item*'s first **error-level** violation of its own effective per-item
         set (warn-level issues are report-only, never a gate — see the class docstring).
-        ``raw_text`` is never threaded in here: every catalog validator that reads it is
-        warn-level, so its absence cannot change a gate decision. ``type_present`` is left at
-        its empty default for the same reason — ``ref_rule_target_present`` is warn-level too,
-        so paying for the full-index scan on every single create/update buys this path
-        nothing.
+
+        This path holds neither :class:`ContextRequirement`, and both absences are structural
+        rather than an economy. There is no ``raw_text`` to thread: a create gates an ``Item``
+        built in memory *before* its markdown is rendered and written, so for the door where
+        the check would matter most there is no file to read; supplying it on the update door
+        alone would leave one member acting on some gated doors and not others. And a
+        ``type_present`` scan is a full index walk this path would pay on every single
+        create/update.
+
+        What that means for the catalog is not asserted here — it is read off
+        :data:`VALIDATOR_CONTEXT` by :meth:`_run_per_item`, which skips every member declaring
+        a requirement this context does not carry. A member that sits this path out therefore
+        does so by its own declaration, whatever level its findings carry, and this docstring
+        makes no claim about the rest of the catalog that could quietly stop being true.
         """
         registered = registered_slugs(index, self.spec)
         supersedes = supersedes_incoming_seqs(index, self.spec)

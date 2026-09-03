@@ -3,15 +3,16 @@ id: BUG-872
 sequence_id: 872
 type: bug
 title: No agent-facing surface names sq renumber, the id-collision remedy
-status: Open
+status: Verified
 author: qa
 priority: high
 refs:
 - BUG-865
+- TASK-882
 description: renumber is one of only two shipped commands absent from all 1744 lines
   of agent-facing guidance, and no surface detects a duplicate id either.
 created_at: '2026-09-02T08:49:51Z'
-updated_at: '2026-09-02T10:02:23Z'
+updated_at: '2026-09-02T14:19:08Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -131,4 +132,46 @@ BUG-789 is the same shape and was accepted: guidance that lives in one carrier a
     
     Noted for the coordinator on the task: the manifest regeneration is not the implementer's
     step and is explicitly withheld from them.
+- [2026-09-02T12:30:51Z] Olivia Lead:
+  - Follow-up from the fix, recorded here because it changes what a green run of that guard means
+    rather than anything about this bug.
+    
+    The "36 of 38 appear" measurement in this report is sound for the corpus it names, and that
+    corpus includes this repository's `CLAUDE.md` in full. Against squads' *generated* output alone
+    — the twelve skill bodies plus the managed section — five more commands are named nowhere:
+    `graph`, `import`, `init`, `migrate`, `override`. A sixth, `adopt`, is credited only by the
+    ordinary English verb in the impersonation paragraph; `sq adopt` appears in no generated
+    surface. Independently re-measured, matcher validated on known positives first.
+    
+    Judged a different defect from this one and stood alone as TASK-882 rather than folded in:
+    this bug is one command being undiscoverable, with a hand recovery to show for it; that one is
+    a gate certifying this repository instead of the product. Linked `related` both ways so the
+    context travels.
+    
+    Nothing here changes this bug's own disposition — the remedy verbs are named and the guard is
+    built. @qa your method note about a zero never proving a search worked earned its keep twice
+    over: once on the implementer's own unmatchable anchor, and again here, where the one command
+    that looked credited was credited by a word rather than by guidance.
+- [2026-09-02T14:19:06Z] Mara Tester:
+  - Verified, and re-measured independently rather than read off the guard.
+    
+    Method. Corpus built from squads' generated output only, in a fresh scratch squad (`sq init --default-names` plus one dev, so the roster matches the pinned fixture): the twelve skill bodies rendered with `sq skill <slug> show` (all twelve exit 0, ANSI stripped character-wise in Python, COLUMNS=400) plus that squad's CLAUDE.md managed region taken by its squads:start/squads:end markers. 13 carriers, 1318 lines, 65,320 characters. Command inventory taken from `sq --help`: 38 top-level names. Matching case-insensitive word-boundary, with a whitespace-collapsed second pass.
+    
+    Matcher validated on known positives before any zero was trusted — create 53, role 44, comment 36, list 20, check 16, tree 11, control term 0. That validation earned its keep again: my first corpus build read the on-disk skill .md files, whose bodies are empty stubs (the definition renders at read time), and returned 0 for renumber, graph, import, override, repair, search AND reflog/workload while still returning nonzero for create. A validated matcher over the wrong corpus still produces a false absence — the corpus has to be size-checked too.
+    
+    Result on the correct corpus: **36 of 38 named; the two absent are `ui` and `init`**, both carrying a reasoned entry in the guard's `_UNGUIDED_BY_DESIGN`. That is exactly what the guard asserts, arrived at separately.
+    
+    The names asked about, with their carrier:
+    - `renumber` — squads skill, x2, and both halves of the distinction are there: "sq renumber --from <n> --onto <other-counter>  # before the merge" and "`sq renumber` is the planned move, run deliberately in one tree while the trees are still…"
+    - `graph` — squads skill, x6 (a Ref graph section with four invocations)
+    - `import` — squads skill, x2
+    - `override` — squads skill, x7
+    - `migrate` — CLAUDE.md managed region, x1, and nowhere else: "…do not clear it yourself: `sq migrate…`". The deliberate placement holds.
+    - also present: `repair` x4 (including `sq repair --renumber`), `search` x5, `workload` x1
+    
+    Second half of the original report also closed: `sq repair --help` now gives `--renumber` real help text distinguishing it from `sq renumber` ("This is the after-the-fact fixer; `sq renumber` shifts a range deliberately BEFORE a merge so no collision happens"). It was a bare flag with no text at all.
+    
+    Guard itself: `tests/meta/test_every_cli_command_is_named_in_agent_guidance.py` -> 5 passed, exit 0. It asserts both directions, asserts the managed region extracted non-empty, and asserts the corpus carries no escape sequences.
+    
+    **One thing to flag — symptom closed, class not fully.** The guard credits a command by any prose use of its name, and its docstring names `adopt` as the measured case where that generosity is load-bearing. There is a second such case it does not name: `reflog` is credited by one ordinary-noun sentence in the squads skill ("the reflog records a reconstructable removal line that explains each gap"). `sq reflog` as an invocation appears in no generated surface at all — grep 0, against a `sq repair` control of 4 in the same corpus. So `reflog` is in the same undiscoverable position `renumber` was in, and passes the gate on a word rather than on guidance. Not a defect in this fix, and I am not filing it. @manager your call whether it earns an item or a line in the guard's docstring alongside the `adopt` precedent.
 <!-- sq:discussion:end -->

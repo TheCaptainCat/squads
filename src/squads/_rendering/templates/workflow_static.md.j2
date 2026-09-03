@@ -81,7 +81,7 @@ sq <type> <n> remove --force     # also sever incoming refs from referrers' fron
 **Sequence gaps are sanctioned, not corruption.** Removal deletes the index entry but never
 touches the counter high-water mark — the freed number is never reissued.  A gap means "an item
 with that sequence number existed and was removed."  `sq check` and `sq repair` treat gaps as
-normal; the reflog records a reconstructable removal line that explains each gap.
+normal; `sq reflog` carries the removal line that reconstructs what each gap was.
 
 ## Duplicate numbers across trees
 
@@ -103,6 +103,70 @@ so nothing can collide.  `sq repair --renumber` is the recovery once the collisi
 disk: for each number held more than once it keeps one item and mints a fresh number for the
 rest, rewriting the refs, parent links, prose mentions and filenames that pointed at them, then
 rebuilds the index.
+
+## Bulk entry
+
+Reach for this when there are many items to create at once, or when the items need historical
+timestamps rather than now: a backlog carried over from another tracker, or a project's history
+entered after the fact.
+
+```bash
+sq import history.jsonl --dry-run                  # validate only; print the projected plan
+sq --at 2024-01-15T09:00:00Z import history.jsonl  # apply, with a file-level default timestamp
+```
+
+The file is JSONL — one event per line, each with an `op` (`create`, `status`, `comment`, `ref`,
+sub-entity ops, …) and an optional per-event `at` and `as`. Two properties make this the right
+tool rather than a loop over the create verb. **The whole file is validated before anything is
+written** — vocabulary, transition legality, actor registration, marker safety — and every
+problem is reported with its line number, so a bad file writes nothing at all. And a clean file
+**applies in one transaction**, so the squad is never left half-entered.
+
+It is also the only route that dates an event to when it happened: the global `--at` sets the
+default that events without their own `at` inherit, and an event may carry its own. Attribution
+has no silent fallback — an event with no `as` of its own, no prior event's, and no `--as` given
+fails validation naming the missing actor.
+
+## Operation reflog
+
+Every mutating `sq` command appends one line to the squad's append-only operation log — actor,
+timestamp, operation, target item. It is the surface that answers *what did that agent change*,
+which neither the item files nor `sq check` can: those show the state reached, not the moves that
+reached it. Reach for it when work arrives already done and you have to audit it, or when an item
+is not the shape you left it in.
+
+```bash
+sq reflog                             # the most recent entries (50 by default; --tail 0 for all)
+sq reflog --item <ID>                 # every mutation on one item
+sq reflog --actor <role-slug>         # everything one actor did
+sq reflog --op status --since <when>  # filters are AND-ed
+sq reflog --json                      # the read surface for agents and orchestrators
+```
+
+The log is **advisory**: the markdown files and the index stay the source of truth and no read
+path consults it. A squad that has none prints empty results rather than an error — so an empty
+run is never on its own evidence that nothing happened. The session fields it records are declared
+by the caller and never minted or verified; follow them for lineage (`--tree`), never to decide
+trust.
+
+
+## Ref graph
+
+`sq tree` answers "what is under this". The ref graph answers "what is connected to this": it
+walks the ref edges outward from one item in **both** directions — the edges that item declares,
+and the edges other items declare onto it — to a bounded depth.
+
+```bash
+sq graph <id>                        # both directions, depth 2
+sq graph <id> --depth 3 --kind <kind> --direction out
+sq graph <id> --json                 # the read surface for agents and orchestrators
+sq graph <id> --format mermaid-md    # a fenced diagram to paste into a doc or a PR
+```
+
+`--json` emits a nested root object; every node carries the item's id/type/status/assignee plus
+the edge that reached it. `edge_kind` is the stored kind's own spelling and `edge_semantic` is
+that kind's declared role — branch on the semantic, never on the name, which a project is free
+to rename. Closed items are hidden unless you pass `--all`.
 
 ## Ref kinds
 
@@ -134,3 +198,31 @@ Ref kinds are declared vocabulary. The bundled set is the default; a project may
 {% endfor %}
 
 Every edge is stored on the item you add it to — `A <kind> B` lives on A.{% if _blocker_kind and _dependent_kind %} `{{ _blocker_kind }}` and `{{ _dependent_kind }}` are two spellings of the same dependency: use whichever fits your authoring context, and both feed `sq blocked`.{% endif %}{% if _supersession_kind and _superseded_status %} `sq check` reads `{{ _supersession_kind }}` on the newer record and expects the older one at {{ _superseded_status }}.{% endif %}{% if _default_kind %} Bare `ref add <id>` (no `--kind`) resolves to whichever kind declares the default semantic — `{{ _default_kind }}` here — and that edge is stored without its kind, so renaming the default relabels those edges instead of re-pointing them.{% endif %}
+
+
+## Project overrides
+
+The vocabulary above is declared, not fixed: a project may declare its own types, statuses, ref
+kinds, sub-entity kinds and views, rename or drop bundled ones it does not use, and reword the
+generated surfaces its agents read. The sanctioned route is one command group, which copies a
+bundled document into this squad's own `.overrides/` folder, shows both what you changed and
+what an upgrade changed underneath you, and re-stamps the recorded base version after a
+hand-merge:
+
+```bash
+sq override list                  # every present override, its base version, its drift state
+sq override scaffold --workflow   # copy the vocabulary document into .overrides/ to edit
+sq override scaffold --playbook   # …the team playbook; --role <slug> for one role; NAME for a template
+sq override diff --workflow       # your edits, and what the upgrade changed
+sq override update --workflow     # re-stamp the base version once you have hand-merged
+```
+
+This replaces two routes that are never right, and that an agent unaware of this surface reaches
+for by default: editing the bundled documents inside the installed `squads` package, which an
+upgrade overwrites and which changes nothing for anyone else working in the project; and
+hand-editing a managed region or a generated file, which the next `sq sync` discards.
+
+**Naming this door is not sanctioning walking through it.** An override changes the vocabulary
+or the generated guidance for everyone in the squad, and every agent reads the result. It is
+raised with the operator and settled as a team call — not made in passing to satisfy one
+request.

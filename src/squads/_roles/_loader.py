@@ -47,7 +47,7 @@ from typing import Any, cast
 
 from squads._errors import SquadsError
 from squads._roles._models import DevPoolSpec, RoleCatalogSpec, RoleSpec
-from squads._specmerge import RawMapping, merge_override
+from squads._specmerge import RawMapping, describe_spec_error, merge_override
 
 VALID_MODELS: frozenset[str] = frozenset({"sonnet", "opus", "haiku", "inherit"})
 
@@ -254,7 +254,9 @@ def _build_catalog(
         # model_validate so extra="forbid" fires on unknown keys.
         dev = DevPoolSpec.model_validate(dev_raw)
     except Exception as exc:
-        raise SquadsError(f"{_catalog_error_prefix(origin)} [dev]: {exc}") from exc
+        raise SquadsError(
+            f"{_catalog_error_prefix(origin)} [dev]: {describe_spec_error(exc, DevPoolSpec)}"
+        ) from exc
 
     # --- validation ---
     _validate(roles, bundles, dev, origin=origin, bundled_slugs=bundled_slugs)
@@ -273,7 +275,9 @@ def _parse_role(data: dict[str, Any], idx: int) -> RoleSpec:
         # model_validate so extra="forbid" fires on unknown keys.
         return RoleSpec.model_validate(data)
     except Exception as exc:
-        raise SquadsError(f"Invalid role entry {ctx}: {exc}") from exc
+        raise SquadsError(
+            f"Invalid role entry {ctx}: {describe_spec_error(exc, RoleSpec)}"
+        ) from exc
 
 
 def _check_slugs(roles: list[RoleSpec], errors: list[str]) -> set[str]:

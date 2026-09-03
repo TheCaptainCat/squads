@@ -6,6 +6,7 @@
  */
 import type { ResolvedBadge } from './badgeCatalog';
 import type { ColorIntent } from './statusRole';
+import { CYCLE_ANCHOR_TOOLTIP_LINE } from './treeAnchor';
 
 export interface DisplayNode {
   /** Stable identity vscode's TreeView keys on. Real items use their sq id; synthetic group/error
@@ -34,6 +35,14 @@ export interface DisplayNode {
    * status, or a graceful catalog-fetch-failed fallback) — drives the coloured highlight when
    * neither `blocked` nor `hidden` applies. Always `null` for a synthetic group/error node. */
   readonly colorIntent: ColorIntent | null;
+  /** True when `sq` invented this root to reveal a parent cycle rather than finding it — see
+   * `domain/treeAnchor.ts` for why that has to be disclosed rather than rendered as an ordinary
+   * root. Tree-only: a flat list row has no notion of a root at all, and a synthetic group/error
+   * node is the client's own construct, so both are always `false`. Deliberately NOT folded into
+   * `emphasisForNode`'s blocked/hidden/colour precedence — it is an independent state that
+   * co-occurs with any of them (a cycle anchor can equally be blocked), so it is disclosed in
+   * the row's own text instead of competing for the one icon colour. */
+  readonly anchor: boolean;
   readonly children: readonly DisplayNode[];
 }
 
@@ -115,6 +124,8 @@ export interface TooltipFields {
    * catalogs by the caller. `buildTooltip` itself hardcodes no collection name. */
   readonly badges: readonly ResolvedBadge[];
   readonly blocked: boolean;
+  /** See `DisplayNode.anchor`. Always `false` on a surface with no notion of a root. */
+  readonly anchor: boolean;
 }
 
 /** Backslash-escapes the markdown metacharacters (`` ` ``/`*`/`_`) that would otherwise read as
@@ -144,6 +155,11 @@ export function buildTooltip(fields: TooltipFields): string {
   if (fields.blocked) {
     lines.push('Blocked: yes');
   }
+  if (fields.anchor) {
+    // The row's description only has room for a two-word tag; this is where the reader finds
+    // out what it means and where to go to see the cycle itself.
+    lines.push(CYCLE_ANCHOR_TOOLTIP_LINE);
+  }
   return lines.join('  \n');
 }
 
@@ -164,6 +180,7 @@ export function groupDisplayNode(
     closed: false,
     hidden: false,
     colorIntent: null,
+    anchor: false,
     children,
   };
 }
@@ -180,6 +197,7 @@ export function errorDisplayNode(message: string): DisplayNode {
     closed: false,
     hidden: false,
     colorIntent: null,
+    anchor: false,
     children: [],
   };
 }
@@ -199,6 +217,7 @@ export function emptyStateDisplayNode(message: string): DisplayNode {
     closed: false,
     hidden: false,
     colorIntent: null,
+    anchor: false,
     children: [],
   };
 }

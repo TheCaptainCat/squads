@@ -13,7 +13,19 @@ export type SqBadgeMap = Readonly<Record<string, string>>;
 
 /** One node of `sq tree <root> --json` (recursive; `children` may be empty). Open/closed and
  * default visibility are not carried per-node — a client joins `status` through the
- * statuses catalog's `role` to the roles catalog (`domain/statusRole.ts`) instead. */
+ * statuses catalog's `role` to the roles catalog (`domain/statusRole.ts`) instead.
+ *
+ * `anchor` is true only for a root the bare (rootless) `sq tree` invented for itself: the item
+ * sits on a parent cycle, so it has a parent and no forest of parentless items would ever have
+ * rooted at it, and every member of that cycle is an equally good choice. It is optional the
+ * same way `badges` is — an older `sq` omits the key, which means the same as `false` — but
+ * absent and false are the only two readings, never "unknown": a consumer that renders a
+ * flagged node like any other root asserts a hierarchy nobody wrote, which is the one thing the
+ * flag exists to prevent (`domain/treeAnchor.ts`). Never set on an explicitly rooted tree.
+ *
+ * `path_only` (a terminal-only dimming hint for an ancestor kept solely to anchor a filter
+ * match) is deliberately NOT on this wire — it is not modelled here because `sq` does not emit
+ * it, not because the client chose to drop it. */
 export interface SqTreeNode {
   readonly id: string;
   readonly type: string;
@@ -23,6 +35,7 @@ export interface SqTreeNode {
   readonly assignee: string | null;
   readonly blocked: boolean;
   readonly badges?: SqBadgeMap;
+  readonly anchor?: boolean;
   readonly children: readonly SqTreeNode[];
 }
 

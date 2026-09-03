@@ -9,6 +9,7 @@ import {
   errorDisplayNode,
   groupDisplayNode,
 } from '../src/domain/displayNode';
+import { CYCLE_ANCHOR_TOOLTIP_LINE } from '../src/domain/treeAnchor';
 
 function leaf(id: string): DisplayNode {
   return {
@@ -22,6 +23,7 @@ function leaf(id: string): DisplayNode {
     closed: false,
     hidden: false,
     colorIntent: null,
+    anchor: false,
     children: [],
   };
 }
@@ -75,6 +77,7 @@ describe('buildTooltip', () => {
       assignee: '_Ada_ *Typescript* `dev`',
       badges: [],
       blocked: false,
+      anchor: false,
     });
     expect(tooltip).toContain('Assignee: \\_Ada\\_ \\*Typescript\\* \\`dev\\`');
   });
@@ -87,8 +90,22 @@ describe('buildTooltip', () => {
       assignee: null,
       badges: [],
       blocked: false,
+      anchor: false,
     });
     expect(tooltip).toContain('Assignee: unassigned');
+  });
+
+  it('discloses a cycle anchor on its own line, and says nothing when the node is not one', () => {
+    const fields = {
+      id: 'TASK-1',
+      type: 'task',
+      status: 'Ready',
+      assignee: null,
+      badges: [],
+      blocked: false,
+    };
+    expect(buildTooltip({ ...fields, anchor: true })).toContain(CYCLE_ANCHOR_TOOLTIP_LINE);
+    expect(buildTooltip({ ...fields, anchor: false })).not.toContain('ycle anchor');
   });
 });
 

@@ -8,6 +8,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   },
   {
@@ -19,6 +20,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": [
       {
         "id": "TASK-3",
@@ -29,6 +31,7 @@
         "assignee": null,
         "blocked": true,
         "badges": {},
+        "anchor": false,
         "children": []
       }
     ]
@@ -42,6 +45,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   },
   {
@@ -53,6 +57,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   },
   {
@@ -64,6 +69,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   },
   {
@@ -75,6 +81,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   },
   {
@@ -86,6 +93,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   },
   {
@@ -97,6 +105,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   },
   {
@@ -108,6 +117,7 @@
     "assignee": null,
     "blocked": false,
     "badges": {},
+    "anchor": false,
     "children": []
   }
 ]

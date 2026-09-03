@@ -3,7 +3,7 @@ id: TASK-882
 sequence_id: 882
 type: task
 title: Measure the command-guidance guard against generated output only
-status: Draft
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: high
@@ -12,8 +12,25 @@ refs:
 - TASK-876
 description: The guard credits five commands to this repo's hand-written contributor
   prose, so it certifies the dogfood rather than the product.
+subentities:
+- local_id: ST1
+  title: Narrow the guard's corpus to squads' generated output
+  status: Done
+  assignee: python-dev
+- local_id: ST2
+  title: Name the graph, bulk-entry and customisation surfaces
+  status: Done
+  assignee: python-dev
+- local_id: ST3
+  title: Carry the schema hard-stop and its ownership in CLAUDE.md
+  status: Done
+  assignee: python-dev
+- local_id: ST4
+  title: Exempt the bootstrap class and falsify the exemption list
+  status: Done
+  assignee: python-dev
 created_at: '2026-09-02T12:28:24Z'
-updated_at: '2026-09-02T12:28:32Z'
+updated_at: '2026-09-02T14:01:34Z'
 ---
 <!-- sq:body -->
 ## What is wrong
@@ -215,9 +232,274 @@ Neither deferral blocks this work, and this work does not depend on either.
 _Add with `sq task 882 add-subtask "<title>"`; track with `sq task 882 subtask <n> update --status <Status>`._
 
 <!-- sq:subtasks -->
+
+<!-- sq:subtask:ST1 -->
+### ST1 — Narrow the guard's corpus to squads' generated output
+
+<!-- sq:subtask:ST1:body -->
+Split this repository's `CLAUDE.md` in the guard's corpus: keep the managed section, drop
+the hand-written contributor half above it. The result is squads' generated agent surface
+— the generated skill bodies plus the managed section — and nothing else.
+
+Take the managed region by its markers rather than by a line offset, so the split cannot
+drift when the file around it changes, and assert the extracted region is non-empty. A
+silently-empty extraction would redden the gate for reasons that have nothing to do with
+the guidance, and an extraction failure that looks like a real finding is the worst
+outcome here.
+
+Do this **first and alone**, before any guidance lands, and report the exact list the guard
+names. The expectation is five: the read-graph verb, the bulk-entry verb, the bootstrap
+verb, the schema-upgrade verb and the customisation surface. A different list means the
+measurement disagrees with the ruling and the ruling is what should change — say so rather
+than adjusting the corpus to produce the expected five.
+
+Update the docstring in the same edit. It currently states, honestly, that the guard holds
+the line for this repository rather than for squads' generated surfaces; that sentence
+stops being true here and a stale caveat is worse than none. Say instead what the corpus
+is and why the contributor half is excluded.
+
+Done when: the corpus is generated output only, the guard fails naming exactly the five,
+and that list is reported verbatim.
+<!-- sq:subtask:ST1:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST1:discussion -->
+- [2026-09-02T12:34:30Z] Elias Python:
+  - Corpus narrowed: CLAUDE.md is now taken by its squads:start/squads:end markers (via _managed_region.START/END), not read whole, and the extraction asserts non-empty so a marker rename fails as a broken corpus rather than as a guidance finding. Docstring rewritten to state the corpus and why the contributor half is excluded.
+  - Observed, guard run alone before any guidance landed: 1 failed, 4 passed. The failure named exactly the five expected — ['graph', 'import', 'init', 'migrate', 'override']. No sixth, no substitution; the measurement agrees with the ruling. The other four assertions (stale direction, exemption-exists, de-aliasing, known-positive matcher validation) stayed green on the narrowed corpus.
+<!-- sq:subtask:ST1:discussion:end -->
+<!-- sq:subtask:ST1:end -->
+
+<!-- sq:subtask:ST2 -->
+### ST2 — Name the graph, bulk-entry and customisation surfaces
+
+<!-- sq:subtask:ST2:body -->
+Name three of the four in the shared workflow cheatsheet partial — one edit that reaches
+the main skill body, the AGENTS.md managed section and the workflow command alike.
+
+**The ref-graph read verb** goes with the other read verbs, which are all already there.
+Say what it shows that the hierarchy view does not: it walks the ref edges outward from one
+item in both directions, so it answers "what is connected to this" where the tree answers
+"what is under this". Mention that it has a machine-readable form, since that is the form
+this reader wants.
+
+**Bulk entry** goes with the maintenance material. Name the condition first, as the
+neighbouring collision section does: many items to create at once, or items that need
+historical timestamps rather than now. Then the verb, and the two properties that make it
+the right tool instead of a loop — the whole file is validated before anything is written,
+and it applies as one transaction.
+
+**The customisation surface** goes where the cheatsheet already tells the reader a project
+may declare its own vocabulary and see it rendered. It says a project may declare; say how.
+Then one clause of ownership: this changes the vocabulary for everyone in the squad, so it
+is a team decision raised with the operator, not an edit made in passing to satisfy a
+request. The reader also needs the negative that this replaces — that the route is never
+editing the installed package's bundled data, and never hand-editing a managed file, both
+of which are what an agent does when it does not know this exists.
+
+Keep the wording vocabulary-neutral; the generated-text guard forbids naming a bundled
+type, status or role literal and will fail the build.
+
+Do not add these three to the managed CLAUDE.md region. Placement is a judgement, not a
+broadcast, and these are how-to material for a reader who has already gone looking.
+
+Done when: all three are named in the rendered surfaces — verified by rendering, not by
+reading the template source — and the vocabulary guard still passes.
+<!-- sq:subtask:ST2:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST2:discussion -->
+- [2026-09-02T12:45:18Z] Elias Python:
+  - Three sections added to the shared cheatsheet partial (`workflow_static.md.j2`), so one edit reaches the main skill body, the AGENTS.md managed section and the workflow command alike. Verified by rendering, not by reading template source.
+    
+    - **Bulk entry**, placed with the maintenance material after the collision section and stated condition-first the way that section is: many items at once, or items needing historical timestamps. Then the verb, the two properties that make it right instead of a create loop (whole file validated before anything is written, with per-line problem reports; a clean file applies in one transaction), and the timestamp/attribution rules. Every property is read off the command's own contract, not assumed.
+    - **Ref graph**, placed next to the ref material it reads. Says what the hierarchy view does not answer: it walks ref edges outward from one item in both directions, so it answers "what is connected to this" where the tree answers "what is under this". Names the machine-readable form as the one for this reader, and repeats the branch-on-semantic-not-on-spelling rule the shape already carries.
+    - **Project overrides**, placed straight after the ref-kinds table, which is where the reader is told a project may declare its own vocabulary. It now says how: the command group, what it copies where, and the drift/diff/re-stamp cycle. It also names the two negatives an agent reaches for when it does not know the surface exists — editing bundled data inside the installed package, and hand-editing a managed file the next regeneration discards.
+    
+    Ownership clause on the override section, written to name the door without sanctioning walking through it: an override changes vocabulary or generated guidance for everyone in the squad, so it is raised with the operator and settled as a team call, not made in passing to satisfy one request.
+    
+    Vocabulary-neutral: no bundled type, status or role literal in either edited template, and the bundled-vocabulary guard passes (37 passed across that module and its two neighbours).
+<!-- sq:subtask:ST2:discussion:end -->
+<!-- sq:subtask:ST2:end -->
+
+<!-- sq:subtask:ST3 -->
+### ST3 — Carry the schema hard-stop and its ownership in CLAUDE.md
+
+<!-- sq:subtask:ST3:body -->
+The schema-upgrade verb is the one item here that belongs in the managed CLAUDE.md region
+rather than in the cheatsheet, and the reason is the reader's position rather than the
+subject matter.
+
+Every other piece of this work is a how-to whose reader has already gone looking, so the
+cheatsheet — reached through a skill the agent is instructed to load — is the right home.
+This one lands on a reader who has not gone looking and cannot: the root callback refuses
+every command on a schema mismatch, so the wall arrives before the agent has done anything,
+possibly before it has loaded any skill. Guidance sitting behind the thing the agent has not
+yet reached is guidance it will not have.
+
+Discovery is not what is missing — the error text already names the verb. **Ownership is.**
+Raising a squad's schema rewrites every item file and is a one-way move for everyone who
+shares that squad, including checkouts and worktrees the agent cannot see. An agent that
+meets the wall mid-task and helpfully runs the command has made a release-level decision
+alone. Write the line so it does the thing silence cannot: name the wall so it is
+recognisable when it lands, name the verb, and say plainly that it is raised with the
+operator rather than performed mid-task.
+
+Keep it short — the managed region is read by every agent on every session and earns its
+length. One or two sentences.
+
+Two mechanical points. This region renders from its own template; edit the template, never
+the rendered file, or the next regeneration discards the change. And the managed-section
+golden moves with it — regenerate it, do not hand-edit it, and read the diff.
+
+The cheatsheet may also name the verb alongside the neighbouring maintenance verbs if it
+reads naturally there. The managed region is the part that is required.
+
+Done when: the clause renders into the managed region, carries the ownership point and not
+only the verb, and the managed-section golden is regenerated with the diff confined to the
+intended lines.
+<!-- sq:subtask:ST3:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST3:discussion -->
+- [2026-09-02T12:46:06Z] Elias Python:
+  - One bullet added to the managed region's own template (`claude/claude_section.md.j2`), last in the "Working with squads" list, then the region regenerated rather than hand-edited. Two sentences, as asked.
+    
+    It names the wall so it is recognisable when it lands ("if sq starts refusing every command because this squad's schema does not match the installed package"), names the verb, and puts the ownership plainly: do not clear it yourself, report the wall and raise the upgrade with the operator.
+    
+    Three claims in it, each checked against the code rather than carried over from the brief:
+    - "can rewrite every item file" — deliberately *can*, not *does*. Some runners rewrite every file; the most recent one rewrites no existing item data at all. A flat "rewrites every item file" would have been an assertion the code does not hold.
+    - "there is no reverse migration" — the migrate group has no down verb.
+    - "everyone sharing this project needs the newer package" — the root callback's other branch refuses an older package outright against a newer stamp.
+    
+    The rendered region diff is the five added lines and nothing else. The managed-section golden was regenerated, not hand-edited, and moved by the same five lines. Per the ruling the cheatsheet does not name this verb; the managed region is the carrier, because its reader has not gone looking and cannot — the wall lands before any skill is loaded.
+<!-- sq:subtask:ST3:discussion:end -->
+<!-- sq:subtask:ST3:end -->
+
+<!-- sq:subtask:ST4 -->
+### ST4 — Exempt the bootstrap class and falsify the exemption list
+
+<!-- sq:subtask:ST4:body -->
+Add the bootstrap exemption and prove the list is load-bearing.
+
+Generated guidance ships inside a squad and is only ever read by an agent for whom one
+already exists, so a verb that brings a squad into being cannot reach the reader who needs
+it. The surfaces that can — the root help, which any agent runs first on an unfamiliar CLI,
+and the offline docs — already name it. Text in a skill body would be, by construction,
+never actionable where it is read.
+
+Write the reason for the **class**, not the single verb: bootstrap. And record in it why
+its sibling — the non-destructive variant that imports an existing folder — carries no
+entry of its own. It is the same category and the same ruling; it needs no entry only
+because the name-matcher already credits it, falsely, on an unrelated use of that ordinary
+English word in the impersonation paragraph. Without that sentence the pair reads as an
+inconsistent ruling, and the next person to touch it will have to rediscover why. The
+string `sq adopt` appears in no generated surface at all; that was measured, not assumed.
+
+Then falsify, and report each observation with the exact list the guard named:
+
+- pull the new entry out — it must fail naming that verb alone — and restore it;
+- confirm the pre-existing entry's own falsification still holds;
+- confirm the stale direction still fires: an entry for a command the corpus does name must
+  fail as stale.
+
+An exemption whose failure has never been observed is decoration, and a both-directions
+assertion that has only ever been run in one direction is a claim rather than a guard.
+
+Done when: the entry is in place with a class-level reason that covers its sibling, and all
+three falsifications are run and reported.
+<!-- sq:subtask:ST4:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST4:discussion -->
+- [2026-09-02T12:46:20Z] Elias Python:
+  - Bootstrap exemption added, with the reason written for the class and covering its sibling in the same entry: generated guidance ships inside a squad and is only ever read by an agent for whom one already exists, so a verb whose job is to bring a squad into being cannot reach the reader who needs it; the surfaces that can (the root help, the offline docs) already name it. The entry then records why the non-destructive sibling carries no entry of its own — its name is an ordinary English verb, used that way in the impersonation paragraph, so the name-matcher already credits it as named and an entry for it would fail the staleness assertion instead of recording the ruling. Measured, not assumed: the invocation form appears in no generated surface, 0 hits; the bare word, 2.
+    
+    Four falsifications run, each with the list the guard named:
+    
+    1. New entry pulled: failed naming that verb alone — ['init'] — restored.
+    2. Pre-existing entry pulled: still fails alone — ['ui'] — so its own falsification still holds on the narrowed corpus.
+    3. Stale direction: an entry added for a command the corpus now names failed as stale, naming ['graph'] with the drop-the-stale-entry message. Both directions assert.
+    4. Extra, because a silently empty extraction is the worst failure this change can have: the marker constant pointed at a name the file does not carry. It errored with "no managed region found ... the corpus is broken, not the guidance" and never produced a list of missing commands, so a broken corpus cannot wear the costume of a real finding.
+    
+    Restored and green after each. The docstring now also records the matcher's generosity as a live, measured case rather than a hypothetical, and says the stricter form is deliberately not adopted here.
+<!-- sq:subtask:ST4:discussion:end -->
+<!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-02T12:30:50Z] Olivia Lead:
+  - Scoped and dispatchable; the ruling asked for is made and is in the body, per command rather
+    than as one answer, because these are not one category.
+    
+    Named: the ref-graph read verb (the only absent member of an otherwise-complete set, so its
+    absence reads as "no such view exists" — and its own help calls the machine-readable form the
+    surface for this exact reader); bulk entry (the absence has a measured cost — N transactions
+    instead of one, no batch validation, no correct historical timestamps); the customisation
+    surface (the absence has a *destructive* alternative — an agent asked to customise edits the
+    installed package's bundled data or hand-edits a managed file); and the schema-upgrade verb,
+    but for ownership rather than discovery, because the wall already names its own remedy and
+    what is missing is whose call it is.
+    
+    Exempt: the bootstrap verb. Generated guidance ships inside a squad and is only ever read by
+    an agent for whom one exists, so the text could never be actionable where it is read.
+    
+    The carrier reasoning from the previous fix — placement is a judgement, not a broadcast — is
+    followed, and applying it per command gives one exception rather than a blanket. Three go in
+    the cheatsheet partial only. The schema verb goes in the managed CLAUDE.md region, because it
+    is the only one whose reader has not gone looking: the wall lands before the agent has loaded
+    anything, so guidance behind a skill it has not yet reached is guidance it will not have.
+    That is the principle applied, not overturned.
+    
+    Sequence is written into the acceptance and matters: narrow the corpus alone first and watch
+    it redden naming exactly five, then land the guidance, then pull the new exemption and watch
+    it fail alone. A guard extended without observing its failure is a claim.
+    
+    Two guards on the work itself. If step one names a different set than the five, the ruling is
+    what should change — do not adjust the corpus until it produces the expected answer. And take
+    the managed region by its markers, not a line offset: an extraction that silently returns
+    nothing reddens the gate for reasons unrelated to guidance, which is the worst failure this
+    change can have.
+    
+    Held back on purpose: the template manifest regeneration is the coordinator's step, not the
+    implementer's, and one is already outstanding from TASK-876 — landing this before it means one
+    regeneration covers both. Goldens are the implementer's and must be regenerated, not
+    hand-edited; both the cheatsheet and the managed-section goldens move here.
+    
+    Deferred with reasons in the body: the name-matcher's generosity (live, proven by `adopt`,
+    but a change to what the guard asserts rather than what it reads) and deriving the corpus
+    from a fresh bootstrap rather than a hand-listed set of surfaces.
+    
+    @python-dev ready for dispatch — this touches `_rendering/templates/` and `tests/meta/` only,
+    so it does not collide with the service work in flight. @tech-writer for a read of the four
+    new clauses before the goldens are refreshed; the ownership wording on two of them is the part
+    worth your eye, since it has to name a surface without sanctioning unilateral use of it.
+- [2026-09-02T12:46:45Z] Elias Python:
+  - Done, in the order the acceptance specified so each failure was observed rather than inferred.
+    
+    **Step 1 — corpus narrowed alone.** CLAUDE.md is now split by its managed markers, not read whole; the extraction asserts non-empty. Guard run before any guidance landed: 1 failed, 4 passed, the failure naming exactly ['graph', 'import', 'init', 'migrate', 'override']. The measurement agrees with the ruling; nothing was adjusted to make it.
+    
+    **Step 2 — guidance landed.** Three sections in the cheatsheet partial (bulk entry, ref graph, project overrides), one bullet in the managed region (the schema hard-stop and whose call it is), the bootstrap exemption added. Guard: 5 passed. Note for the record: the managed section is read off disk, so it only went green after the region was regenerated — the guard proves the regeneration happened, not just that the template changed.
+    
+    **Step 3 — exemption falsified.** New entry pulled: fails naming ['init'] alone. Pre-existing entry pulled: fails naming ['ui'] alone. Stale direction: an entry for a named command fails as stale, ['graph']. Plus a fourth, on the extraction itself: a wrong marker name errors as "the corpus is broken, not the guidance" and never yields a command list.
+    
+    **The false credit you found.** Re-measured with the stricter matcher validated on known positives first: the bare word scores 2, the invocation form 0. It cannot be fixed narrowly. The same tightening simultaneously withdraws credit from four more commands, and one of them is a true negative of the strict form rather than a finding — a type-agnostic read verb that is guided everywhere as `sq <type> <n> show` and never as a bare top-level invocation. So the strict matcher is not simply stricter, it is wrong about this CLI's grammar in at least one place; ruling off it would repeat the mistake that produced this ticket. Left deferred exactly as you scoped it, and now recorded in the docstring as a measured live case.
+    
+    **Gates.** pyright 0 errors; ruff check and ruff format --check clean; sq check clean; no ticket references in the touched files.
+    
+    **Full suite, run with only this change in the tree:** `5 failed, 4534 passed, 8 skipped in 74.08s (0:01:14)` — all five in the manifest-freshness module, whose assertion names exactly the two bundled templates this change edits.
+    
+    **The manifest regeneration is owed and was not run.** It could not ride the previous outstanding one: that regeneration has already happened, so these two templates are stale again on their own account. Neither script was run.
+    
+    A later re-run of the suite, after two other lanes had written into the tree, reads `11 failed, 4528 passed, 8 skipped` — the extra six are the in-flight repair/skill-body change in the services lane, whose own diff states the sweep no longer touches a skill body while those six assert that it does. Not this change; flagged so nobody attributes them here.
+    
+    Goldens regenerated, never hand-edited: the managed-section golden moved by the five intended lines, the two cheatsheet goldens and the AGENTS.md section golden by the added sections only. The one deletion in a cheatsheet golden diff is its former last line regaining a trailing newline.
+    
+    @tech-lead ready for your read. @reviewer for review. @tech-writer the four new clauses are in — the ownership wording on the override section and on the schema hard-stop is the part worth your eye.
 <!-- sq:discussion:end -->
