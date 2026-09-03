@@ -150,14 +150,17 @@ def _cap_and_join(values: Iterable[str]) -> str:
     return ", ".join(shown) + f", and {len(ordered) - _ENUMERATION_CAP} more"
 
 
-def _scopes_role(skill: Item, role: Item) -> bool:
-    """Whether *skill* carries a forward ``scopes`` ref to *role* — the ``scoped_edge`` stored
-    edge, read directly off the skill's own ``refs`` (the skill is always the referrer today),
-    never inverted via ``backrefs`` since both ends are already in hand."""
+def _scopes_role(skill: Item, role: Item, spec: WorkflowSpec) -> bool:
+    """Whether *skill* carries a forward ``preload``-role ref to *role* — the ``scoped_edge``
+    stored edge, read directly off the skill's own ``refs`` (the skill is always the referrer
+    today), never inverted via ``backrefs`` since both ends are already in hand. Resolved
+    through the declared ``preload`` semantic (:meth:`WorkflowSpec.preload_ref_kind`), never
+    the bundled ``"scopes"`` spelling."""
     role_prefix = effective_prefix(role.prefix)
+    preload_kind = spec.preload_ref_kind()
     for r in skill.refs:
         rid, kind = split_ref(r)
-        if kind == "scopes" and ref_id_matches(rid, role_prefix, role.sequence_id):
+        if kind == preload_kind and ref_id_matches(rid, role_prefix, role.sequence_id):
             return True
     return False
 
@@ -281,7 +284,7 @@ def check_preloaded_skill(
                 for t in item_types_for_role(role_slug, spec, playbook)
                 if item_skill_name(t) == slug
             )
-            if _scopes_role(skill, role):
+            if _scopes_role(skill, role, spec):
                 scoped_roles.add(role_slug)
                 scoped_role_ids.add(role.id)
 

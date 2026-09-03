@@ -16,7 +16,7 @@ from typing import Any, ClassVar
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._models._extras import ExtraKey as X
 from squads._roles._loader import load_role_catalog
-from squads._roles._models import RoleCatalogSpec, RoleSpec
+from squads._roles._models import DevPoolSpec, RoleCatalogSpec, RoleSpec
 from squads._util import slugify
 
 
@@ -230,27 +230,33 @@ def resolve_roles(spec: str) -> list[RoleDef]:
     return [role_by_slug(s) for s in slugs]
 
 
-def dev_role(
-    tech: str, *, name: str | None = None, seq: int = 0, model: str | None = None
+def dev_role_from_pool(
+    tech: str,
+    dev: DevPoolSpec,
+    *,
+    name: str | None = None,
+    seq: int = 0,
+    model: str | None = None,
 ) -> RoleDef:
-    """Build a stack-specific developer role on demand.
+    """Build a stack-specific developer role from an explicit ``dev`` pool spec — the
+    parameterised form :func:`dev_role` is a thin wrapper over, letting
+    :func:`~squads._roles._resolver.resolve_dev_role` build against a project's own
+    catalog-document ``[dev]`` override (``.overrides/roles.toml``) instead of the
+    bundled singleton's, with the same construction logic either way.
 
-    If ``name`` is omitted (``None``), a first name is taken from :data:`DEV_NAME_POOL` (by
+    If ``name`` is omitted (``None``), a first name is taken from ``dev.name_pool`` (by
     ``seq``) and the surname is the tech (→ "Elias Dotnet"); the slug is ``<tech>-dev``.
     ``name=""`` (or a whitespace-only string) is *not* "omitted" — an operator who explicitly
     passed a blank ``--name`` gets it stored as their ``full_name`` and refused by
     :meth:`RoleDef.__post_init__`, the same way a whitespace-only override field is refused,
     rather than silently falling back to the pool as a falsy check would.
-
-    The name pool, default model, and default color are sourced from the loaded
-    catalog's ``dev`` spec.
     """
     tech_label = tech.strip()
     surname = tech_label[:1].upper() + tech_label[1:]
     if name is not None:
         full_name = name
     else:
-        pool = DEV_NAME_POOL
+        pool = dev.name_pool
         first = pool[seq % len(pool)]
         full_name = f"{first} {surname}"
     slug = f"{slugify(tech_label)}-dev"
@@ -267,9 +273,19 @@ def dev_role(
             "Write tests for changes",
             "Follow the relevant guides; ask the architect when unsure",
         ),
-        model=model or _CATALOG.dev.model,
-        color=_CATALOG.dev.color,
+        model=model or dev.model,
+        color=dev.color,
     )
+
+
+def dev_role(
+    tech: str, *, name: str | None = None, seq: int = 0, model: str | None = None
+) -> RoleDef:
+    """Build a stack-specific developer role on demand, from the bundled catalog's own ``dev``
+    spec — see :func:`dev_role_from_pool` for the parameterised form and the name
+    pool/model/color source.
+    """
+    return dev_role_from_pool(tech, _CATALOG.dev, name=name, seq=seq, model=model)
 
 
 def _fallback_full_name(extra: dict[str, Any]) -> str:

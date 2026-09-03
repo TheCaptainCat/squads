@@ -187,9 +187,9 @@ async def test_a_declared_full_name_equal_to_the_current_value_takes_the_no_op_p
     calls: list[str] = []
     real = maintenance.update_frontmatter
 
-    async def _spy(path, item, base):
+    async def _spy(path, item, base, *, default_kind):
         calls.append(item.id)
-        return await real(path, item, base)
+        return await real(path, item, base, default_kind=default_kind)
 
     monkeypatch.setattr(maintenance, "update_frontmatter", _spy)
 
@@ -281,7 +281,9 @@ async def test_a_pre_split_corpus_converges_on_the_next_sync(project, svc):
     stale.extra[X.FULL_NAME] = "Ada Lovelace"
     stale.extra[X.MISSION] = "Secure the whole system."
     async with svc.store.transaction() as db:
-        await update_frontmatter(item_file(svc.paths, stale), stale, base)
+        await update_frontmatter(
+            item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
+        )
         db.add(stale)
 
     split = await svc.get(role.id)
@@ -315,10 +317,10 @@ async def test_a_simulated_write_failure_leaves_the_item_truthful_to_disk_on_tit
 
     real = maintenance.update_frontmatter
 
-    async def _boom(path, item, base):
+    async def _boom(path, item, base, *, default_kind):
         if item.id == role.id:
             raise SquadsError("simulated write failure")
-        return await real(path, item, base)
+        return await real(path, item, base, default_kind=default_kind)
 
     monkeypatch.setattr(maintenance, "update_frontmatter", _boom)
 
@@ -359,12 +361,12 @@ async def test_a_raised_write_rolls_back_in_memory_and_a_retry_from_a_clean_stat
     real = maintenance.update_frontmatter
     call_count = 0
 
-    async def _boom_once(path, item, base):
+    async def _boom_once(path, item, base, *, default_kind):
         nonlocal call_count
         if item.id == role.id and call_count == 0:
             call_count += 1
             raise SquadsError("simulated write failure")
-        return await real(path, item, base)
+        return await real(path, item, base, default_kind=default_kind)
 
     monkeypatch.setattr(maintenance, "update_frontmatter", _boom_once)
     first_sync = await svc.sync()

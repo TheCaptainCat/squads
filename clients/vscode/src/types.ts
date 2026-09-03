@@ -27,10 +27,17 @@ export interface SqTreeNode {
 }
 
 /** One node of `sq graph <id> --json` (recursive; the ego-centric ref-graph BFS). The root
- * node's `edge_kind`/`direction` are always `null`; every other node carries the kind/direction
- * of the edge that discovered it. `seen: true` marks a node already visited elsewhere in the
- * traversal (re-emitted so the edge into it still shows, but not re-expanded — `children` is
- * always empty on a `seen` node). */
+ * node's `edge_kind`/`edge_semantic`/`direction` are always `null`; every other node carries
+ * the kind/semantic/direction of the edge that discovered it. `seen: true` marks a node already
+ * visited elsewhere in the traversal (re-emitted so the edge into it still shows, but not
+ * re-expanded — `children` is always empty on a `seen` node).
+ *
+ * `edge_kind` is the stored kind's own spelling — a project's own vocabulary, never a fixed
+ * sentinel — and is what a display renders. `edge_semantic` is the kind's declared semantic
+ * role (`"dependency"`, `"preload"`, `"supersession"`, some other project-declared role, or
+ * `null` for a navigational kind) — the field a consumer branches on. It is optional because an
+ * older `sq` predates it; its absence is treated exactly like `null` (no known semantic, render
+ * the spelling) rather than rejected. Never branch on `edge_kind`'s spelling. */
 export interface SqGraphNode {
   readonly id: string;
   readonly type: string;
@@ -38,6 +45,7 @@ export interface SqGraphNode {
   readonly priority: string | null;
   readonly assignee: string | null;
   readonly edge_kind: string | null;
+  readonly edge_semantic?: string | null;
   readonly direction: 'in' | 'out' | null;
   readonly seen: boolean;
   readonly children: readonly SqGraphNode[];

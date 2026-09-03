@@ -27,7 +27,6 @@ from squads._context import get_context, rebind
 from squads._errors import SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
 from squads._models._item import (
-    DEFAULT_KIND,
     DISPLAY_ID_PADDING,
     Item,
     effective_prefix,
@@ -524,8 +523,7 @@ def _build_item_panel_rows(it: Item) -> list[str]:
         rows.append(f"[bold]labels:[/bold] {e(', '.join(it.labels))}")
     if it.refs:
         rendered = ", ".join(
-            rid if kind == DEFAULT_KIND else f"{rid} ({kind})"
-            for rid, kind in (split_ref(r) for r in it.refs)
+            rid if not kind else f"{rid} ({kind})" for rid, kind in (split_ref(r) for r in it.refs)
         )
         rows.append(f"[bold]refs:[/bold] {e(rendered)}")
     rows.append(f"[bold]file:[/bold] {it.path}")
@@ -703,8 +701,7 @@ def _raw_metadata_lines(it: Item) -> list[str]:
         lines.append(f"- **author:** {it.author}")
     if it.refs:
         rendered_refs = ", ".join(
-            rid if kind == DEFAULT_KIND else f"{rid} ({kind})"
-            for rid, kind in (split_ref(r) for r in it.refs)
+            rid if not kind else f"{rid} ({kind})" for rid, kind in (split_ref(r) for r in it.refs)
         )
         lines.append(f"- **refs:** {rendered_refs}")
     if it.labels:

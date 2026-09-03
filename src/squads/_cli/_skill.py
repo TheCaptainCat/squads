@@ -39,7 +39,7 @@ from squads._cli._common import (
 )
 from squads._interactions import is_system_skill
 from squads._models._extras import ExtraKey as X
-from squads._models._item import DEFAULT_KIND, split_ref
+from squads._models._item import split_ref
 
 skill_app = typer.Typer(
     no_args_is_help=True,
@@ -203,14 +203,21 @@ _ref_app = typer.Typer(no_args_is_help=True, help="Manage forward reference edge
 async def skill_ref_add(
     ctx: typer.Context,
     target: str = typer.Argument(..., help="Target item ID."),
-    kind: str = typer.Option("related", "--kind", help="Edge kind (related, implements, …)."),
+    kind: str = typer.Option(
+        "",
+        "--kind",
+        help=(
+            "Edge kind (run `sq workflow ref-kinds` for the project's declared kinds). "
+            "Defaults to the project's declared default kind."
+        ),
+    ),
 ) -> None:
     """Add a forward reference from this skill to TARGET."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     raw_id, embedded_kind = split_ref(target)
     resolved_id = await resolve_item_id_any(raw_id, svc)
-    effective_kind = embedded_kind if embedded_kind != DEFAULT_KIND else kind
+    effective_kind = embedded_kind or kind or svc.spec.default_ref_kind()
     await svc.add_ref(item_id, resolved_id, kind=effective_kind)
     console.print(f"{item_id} → {resolved_id} ([dim]{effective_kind}[/dim])")
 

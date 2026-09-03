@@ -72,7 +72,7 @@ folder in the squad directory. The frozen surfaces are:
 - **Layout:** `<squad-dir>/.overrides/{templates,roles}/` and `.overrides/workflow.toml`. Templates
   mirror bundled template names 1:1; roles are TOML files keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
-  collections, status roles.
+  collections, status roles, ref kinds.
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
   override whole-file; roles merge field-wise by slug; the workflow override composes over the
   bundled vocabulary and **may shadow a built-in**, not only add to it.
@@ -319,13 +319,36 @@ Frozen contract:
 
 The distinct code for check failures lets CI distinguish "check found issues" from "command errored".
 
-### Ref-kind vocabulary (closed at 1.0)
+### Ref-kind vocabulary (declared, bound by semantic)
 
-The nine built-in kinds are frozen: `related` (default, no colon needed), `blocks`, `depends-on`,
-`implements`, `fixes`, `addresses`, `supersedes`, `duplicates`, `scopes`. Unknown kinds are rejected.
+What is frozen here is the *validation behaviour* and the semantic binding, not any particular
+kind name — the same shape as status-set validation below.
 
-A project-declared custom-kind extension is reserved for a future release and will be additive and
-non-breaking. The built-in kinds' meanings stay fixed.
+Ref kinds are declared vocabulary. The bundled set is the default; a project may declare its own,
+and may rename or drop a built-in it does not use, subject to the same live-corpus refusal that
+protects a type or a status. A kind the merged spec does not declare is still rejected, and the
+refusal lists the accepted set. Engine behaviour binds to a kind's declared **semantic role**,
+never to its name — so a renamed dependency kind keeps driving `sq blocked`, and a kind with no
+semantic is navigational.
+
+Four semantic roles are declarable, and what the declared set must supply is checked rather than
+named:
+
+- **`dependency`**, in the `blocker` or the `dependent` direction — the two ends of the one edge
+  `sq blocked` walks. At most one kind per direction; declaring neither direction is legal and
+  yields an empty `sq blocked` rather than a stranded item.
+- **`preload`** — a skill's edge to the role whose generated pointer preloads it. Exactly one kind
+  carries it, because the resolved list is materialised into generated agent config.
+- **`supersession`** — what `sq check` reads on a superseding record. Zero is legal.
+- **`default`** — the kind a ref written with no `--kind` resolves to. Exactly one kind carries it,
+  and it is mandatory: such an edge is stored bare, without its kind, so the stored form must
+  always resolve. Renaming that kind relabels those edges rather than re-pointing them, because the
+  bare form binds to the semantic and never to a spelling.
+
+A kind that declares no semantic role is navigational — display and traversal only — and that is
+what a project-declared kind gets unless it says otherwise. A kind's key must be a TOML bare key
+and may not contain `:`, the separator the stored `ID:kind` form partitions on. `sq workflow
+ref-kinds` lists the set the active spec declares.
 
 ### Status-set validation
 

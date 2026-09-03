@@ -2,6 +2,7 @@
 from the returned mapping, and record provenance for every key it dropped."""
 
 from _helpers import SPECMERGE_WORKFLOW_SECTIONS as WORKFLOW_SECTIONS
+from squads import __version__
 from squads._specmerge import Deselection, apply_selected
 
 
@@ -69,6 +70,17 @@ def test_an_unknown_selected_section_key_fails_closed_naming_the_key_and_the_acc
     assert violations[0].origin == "override.toml"
     for name in sorted(WORKFLOW_SECTIONS):
         assert name in violations[0].hint
+
+
+def test_an_unknown_selected_section_key_hint_names_the_running_squads_version() -> None:
+    """Same shared helper as the top-level key space — the `[selected]` refusal must name the
+    running version too, or the two key spaces would read as two different promises from one
+    engine. Asserted against `__version__` itself, not a pinned literal."""
+    merged = {"items": {"epic": {}}, "selected": {"widgets": ["epic"]}}
+
+    _result, _deselections, violations = apply_selected(merged, WORKFLOW_SECTIONS, "override.toml")
+
+    assert __version__ in violations[0].hint
 
 
 def test_several_unknown_section_keys_are_all_reported_together() -> None:

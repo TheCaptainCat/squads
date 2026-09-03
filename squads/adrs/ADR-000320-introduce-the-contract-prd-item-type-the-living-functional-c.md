@@ -13,7 +13,7 @@ refs:
 description: 'Add a first-class contract/PRD type: the living functional twin of the
   ADR set'
 created_at: '2026-07-07T08:32:44Z'
-updated_at: '2026-08-24T20:16:00Z'
+updated_at: '2026-08-25T18:20:44Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -218,9 +218,10 @@ lands, the verification is by hand.
 
 `contract` is one of two item types entering the bundled spec for the 0.14 release; the milestone
 type (`MILE`, FEAT-693) is the other. **They share one schema bump and one migration runner**, and
-FEAT-321 and FEAT-693 land in the same release. The bump is `0.11 → 0.12` on
-`_models/_schema.py::SCHEMA_VERSION`; the root CLI callback hard-stops a squad on a schema
-mismatch until `sq migrate up` runs. The runner belongs to the release rather than to this
+FEAT-321 and FEAT-693 land in the same release. The bump is `0.11 → 0.14` on
+`_models/_schema.py::SCHEMA_VERSION` — the schema number names the release that introduces it, and
+0.12 and 0.13 shipped without one (see the amendment note); the root CLI callback hard-stops a
+squad on a schema mismatch until `sq migrate up` runs. The runner belongs to the release rather than to this
 decision — any other schema-level change shipping in 0.14 joins it rather than adding a second
 bump.
 
@@ -290,6 +291,42 @@ shaped this contract" view.
    grow too coarse drift back toward monoliths; contracts too fine fan a feature's edges across
    many tiny items. There is no structural guard, by decision, and the failure mode is visible in
    practice rather than at validation time.
+
+## Amendment note
+
+**2026-08-25 — §F's schema number is corrected from `0.12` to `0.14`, and the convention it follows
+is narrowed to say what it actually binds.** The number is encoded in the runner's filename, the
+registry entry and a required corpus fixture, so it cannot be left for whoever writes the runner.
+
+### A1. The bump is `0.11 → 0.14`, and gaps are the convention rather than an exception
+
+`_models/_schema.py`'s own docstring states the rule: while squads is alpha the schema version
+tracks **the alpha release that introduced it**, not an opaque counter. Read from the tags rather
+than assumed: v0.12.0 and v0.13.1 both ship `SCHEMA_VERSION = "0.11"`. A schema numbered `0.12`
+would therefore name a release that shipped and introduced nothing — the one reading the convention
+forbids. A runner shipping in 0.14.0 stamps `0.14`.
+
+Gaps are not a concession to make here; they are already how the series reads. The registry runs
+0.1, 0.2, 0.3, 0.4, 0.5, 0.7, 0.8, 0.10, 0.11 — no 0.6 and no 0.9, because 0.6.0 and 0.9.0
+introduced no schema change. Skipping 0.12 and 0.13 applies that same rule, and the migration
+corpus (`tests/integration/test_migration_corpus.py`) enumerates the same series, so the fixture
+name follows the number rather than the release count.
+
+**The one recorded exception, so nobody derives licence from it.** Schema `0.4` does not name
+release 0.4.0: v0.4.0 ships `SCHEMA_VERSION = "0.3"`, and both the 0.3→0.4 and 0.4→0.5 runners
+shipped inside release 0.5.0, which walked a squad through two steps in one upgrade. So the
+convention binds **forward**: a new schema number takes the release that introduces it, and a
+release may introduce more than one. It does not license reading a release number backwards out of
+an intermediate schema label, and `0.4` is the only label in the series where that reading fails.
+
+### A2. What the number touches, and what it does not
+
+Three places encode it and must move together — the runner module `_v0_11_to_v0_14.py`, its registry
+entry (`version="0.14.0"`, `from_schema="0.11"`, `to_schema="0.14"`), and the corpus fixture
+`tests/fixtures/corpus/v0_14` that `test_migration_corpus.py`'s standing rule requires of every
+schema bump. Beyond those, nothing changes: ordering goes through `schema_tuple`, so `(0, 14)` sorts
+after `(0, 11)` exactly as `(0, 12)` would; the existing registry guard already ties the highest
+registered `to_schema` to `SCHEMA_VERSION`; and no test, doc or runbook pins the retired number.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -313,4 +350,8 @@ shaped this contract" view.
   - One real tension, not smoothed over. ADR-775 2 keeps a tests/meta scan asserting no bundled ref-kind name appears as a literal in src/squads outside _specs and _migrations, and implements declares no semantic role — so the advisory check cannot find its edge by comparing against "implements". The body now constrains the implementation: the kind and the target type are read from the merged spec as a parameterised catalog entry on the feature type (the subentity_title_max shape). Second, smaller: ADR-776 6 also owes a migration for the retired body regions. The ruling names PRD and MILE; F is written so any other schema-level change in 0.14 joins the same runner rather than adding a second bump, which keeps both true.
 - [2026-08-24T20:16:00Z] Catherine Manager:
   - Accepted on the operator four rulings (advisory enforcement, implements reuse, no partitioning guard, one shared schema bump with the MILE type). Read the revised body before accepting: schema 0.11 to 0.12 verified against _models/_schema.py, no status prose, and the retired closed-vocabulary argument is deleted rather than softened.
+- [2026-08-25T18:20:44Z] Robert Architect:
+  - Section F amended in place: the bump is 0.11 to 0.14, not 0.11 to 0.12, plus a new amendment note carrying the argument. Confirmed from the tags rather than from the convention text - v0.12.0 and v0.13.1 both ship SCHEMA_VERSION = 0.11, so a schema numbered 0.12 would name a release that shipped and introduced nothing, which is the one reading the alpha convention forbids. Gaps are already the convention: the series skips 0.6 and 0.9 for the same reason.
+  - The convention is narrowed in the same change rather than left to be re-derived. It binds FORWARD - a new schema number takes the release that introduces it, and a release may introduce more than one - and schema 0.4 is recorded as the one exception in the series, since v0.4.0 ships SCHEMA_VERSION 0.3 and both the 0.3-to-0.4 and 0.4-to-0.5 runners shipped inside release 0.5.0. Nobody should read a release number backwards out of an intermediate label.
+  - A2 names what the number touches so a dev is not left to find it: the runner module _v0_11_to_v0_14.py, its registry entry, and the corpus fixture tests/fixtures/corpus/v0_14 that the standing rule in test_migration_corpus.py requires of every bump. Nothing else moves - schema_tuple ordering is unaffected and the existing registry guard already ties the highest to_schema to SCHEMA_VERSION. Ruled on TASK-813. @tech-lead
 <!-- sq:discussion:end -->

@@ -13,7 +13,14 @@ from pydantic import ValidationError
 from squads._errors import SquadsError
 from squads._workflow import load_workflow_spec
 from squads._workflow._loader import _build_spec
-from squads._workflow._models import ItemSpec, Lifecycle, RefRule, StatusSpec, WorkflowSpec
+from squads._workflow._models import (
+    ItemSpec,
+    Lifecycle,
+    RefKindSpec,
+    RefRule,
+    StatusSpec,
+    WorkflowSpec,
+)
 
 
 def test_lifecycle_rejects_an_unknown_key() -> None:
@@ -36,6 +43,11 @@ def test_status_spec_rejects_an_unknown_key() -> None:
 def test_ref_rule_rejects_an_unknown_key() -> None:
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         RefRule.model_validate({"kind": "fixes", "hint": "", "bogus": "data"})
+
+
+def test_ref_kind_spec_rejects_an_unknown_key() -> None:
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        RefKindSpec.model_validate({"label": "Related", "bogus": "data"})
 
 
 def test_workflow_spec_rejects_an_unknown_top_level_key() -> None:

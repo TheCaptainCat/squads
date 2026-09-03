@@ -13,9 +13,14 @@ from squads._models._item import DEFAULT_ID_PADDING, format_item_id
 pytestmark = pytest.mark.anyio
 
 
-def _pad(item_id: str) -> str:
-    prefix, _, digits = item_id.rpartition("-")
-    return format_item_id(prefix, int(digits), DEFAULT_ID_PADDING)
+def _pad(ref: str) -> str:
+    """Pad a bare id or an ``ID:kind`` ref entry from its own trailing digits, keeping any
+    kind suffix intact — the migration fixture's own devolve-to-pre-migration step, so it has
+    to be able to express a spelled ref the same way a pre-0.7 corpus could."""
+    rid, _, kind = ref.partition(":")
+    prefix, _, digits = rid.rpartition("-")
+    padded = format_item_id(prefix, int(digits), DEFAULT_ID_PADDING)
+    return f"{padded}:{kind}" if kind else padded
 
 
 async def _devolve_to_padded(
@@ -109,3 +114,50 @@ async def test_migration_unpads_frontmatter_and_prose_but_skips_code_spans_and_f
     assert not issues
 
     assert _v0_5_to_v0_7.migrate(svc.paths) == 0  # idempotent
+
+
+def test_unpad_ref_matches_the_pre_structural_ref_encoding_byte_for_byte():
+    """Every row asserted on bytes against what this runner produced before ``make_ref``
+    became structural (driven at ``958974c^``, the commit before the ref-kind vocabulary
+    landing): a spelled declared-default kind is the only row that ever moved, and it must
+    collapse back to bare."""
+    unpad = _v0_5_to_v0_7._unpad_ref
+
+    assert unpad("TASK-000007:related") == "TASK-7"  # spelled default -> collapses to bare
+    assert unpad("TASK-000007") == "TASK-7"  # already bare
+    assert unpad("TASK-000007:blocks") == "TASK-7:blocks"  # non-default stays spelled
+    assert unpad("TASK-000007:") == "TASK-7"  # empty kind suffix -> bare
+    assert unpad("TASK-000007:scopes") == "TASK-7:scopes"  # non-default stays spelled
+    assert unpad("not-an-id") == "not-an-id"  # malformed -- left untouched
+
+
+def test_v0_5_to_v0_7_never_imports_the_live_ref_encoding_primitives():
+    """Structural proof alongside the ``tests/meta`` import-hygiene guard: the module holds no
+    reference to the live ``squads._models._item`` ref/id-formatting primitives at all -- its
+    own frozen copies are distinct function objects, not re-exports."""
+    assert not hasattr(_v0_5_to_v0_7, "make_ref")
+    assert not hasattr(_v0_5_to_v0_7, "split_ref")
+    assert not hasattr(_v0_5_to_v0_7, "format_item_id")
+    assert not hasattr(_v0_5_to_v0_7, "DISPLAY_ID_PADDING")
+
+
+async def test_migration_collapses_a_spelled_default_kind_and_keeps_a_spelled_non_default(svc):
+    """The end-to-end complement to the byte assertion above: a repad fixture whose ``refs``
+    carry a spelled default-kind ref and a spelled non-default ref, migrated through the actual
+    file the runner writes rather than the helper in isolation."""
+    task = (await create_item(svc, "task", "t")).item
+    default_target = (await create_item(svc, "task", "d")).item
+    other_target = (await create_item(svc, "task", "o")).item
+
+    await _devolve_to_padded(
+        svc,
+        task.id,
+        parent=None,
+        refs=[f"{default_target.id}:related", f"{other_target.id}:blocks", other_target.id],
+    )
+
+    changed = _v0_5_to_v0_7.migrate(svc.paths)
+    assert changed == 1
+
+    task_fm = read_frontmatter(svc.paths.abspath((await svc.get(task.id)).path))
+    assert task_fm["refs"] == [default_target.id, f"{other_target.id}:blocks", other_target.id]

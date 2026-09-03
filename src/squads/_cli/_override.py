@@ -26,6 +26,7 @@ from squads._overrides._service import (
     scaffold_new_role,
     scaffold_playbook,
     scaffold_role,
+    scaffold_roles_catalog,
     scaffold_template,
     scaffold_workflow,
     scan_overrides,
@@ -50,10 +51,12 @@ override_app = typer.Typer(
 @handle_errors
 def scaffold(
     name: str | None = typer.Argument(
-        None, help="Bundled template name (e.g. 'items/<type>.md.j2'), 'workflow', or 'playbook'."
+        None,
+        help="Bundled template name (e.g. 'items/<type>.md.j2'), 'workflow', 'playbook', "
+        "or 'roles' (the role catalog document — distinct from --role <slug>).",
     ),
     role: str | None = typer.Option(
-        None, "--role", help="Role slug to scaffold a TOML override for (e.g. architect)."
+        None, "--role", help="Role slug to scaffold a per-role TOML override for (e.g. architect)."
     ),
     new: str | None = typer.Option(
         None,
@@ -74,6 +77,12 @@ def scaffold(
     ),
     playbook: bool = typer.Option(
         False, "--playbook", help="Scaffold the playbook override (.overrides/playbook.toml)."
+    ),
+    roles_catalog: bool = typer.Option(
+        False,
+        "--roles-catalog",
+        help="Scaffold the role catalog document override (.overrides/roles.toml) — "
+        "the whole-document override, distinct from --role <slug>.",
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite an existing override."),
 ):
@@ -99,6 +108,14 @@ def scaffold(
     creates ``.overrides/playbook.toml`` with a stamp and the one-line append idiom worked
     example — the mechanism this override kind exists for (add a role's guidance to a type
     without restating the type's other bundled guides).
+
+    Role catalog override (the whole-document kind, distinct from ``--role <slug>``):
+    ``sq override scaffold roles`` or ``sq override scaffold --roles-catalog`` creates
+    ``.overrides/roles.toml`` with a stamp and a worked example covering the roles table,
+    the named bundles, and the dev-role pool — override the bundle selection and developer
+    name pool, rename or reshape a bundled role, or declare a wholly new one, all in one
+    document. ``--role <slug>`` (above) is the narrower, per-role file; the two are not
+    interchangeable and this command distinguishes them so they can't be confused.
     """
     svc = get_service()
     squad_dir = svc.paths.squad_dir
@@ -151,10 +168,22 @@ def scaffold(
         )
         return
 
+    # Accept 'roles' as a positional name OR --roles-catalog flag.
+    if roles_catalog or name == "roles":
+        dest = scaffold_roles_catalog(squad_dir, force=force)
+        console.print(
+            f"[green]scaffolded[/green] role catalog override: [bold]{e(str(dest))}[/bold]\n"
+            f"Edit [cyan]{e(str(dest))}[/cyan] to override \\[\\[roles]], \\[bundles], or "
+            f"\\[dev], then inspect with [cyan]sq override diff roles[/cyan].",
+            soft_wrap=True,
+        )
+        return
+
     if name is None:
         raise typer.BadParameter(
-            "provide a template name (e.g. 'items/<type>.md.j2'), 'workflow', "
-            "or --role <slug> / --workflow to scaffold a role or workflow override"
+            "provide a template name (e.g. 'items/<type>.md.j2'), 'workflow', 'playbook', "
+            "'roles', or --role <slug> / --workflow / --playbook / --roles-catalog to "
+            "scaffold a role, workflow, playbook, or role-catalog override"
         )
 
     dest = scaffold_template(squad_dir, template_name=name, force=force)
@@ -241,15 +270,21 @@ def _state_color(state: str) -> str:
 def diff(
     name: str | None = typer.Argument(
         None,
-        help="Template name, role slug, 'workflow', or 'playbook'. Omit to diff all drifted "
-        "overrides.",
+        help="Template name, role slug, 'workflow', 'playbook', or 'roles' (the role catalog "
+        "document — distinct from --role <slug>). Omit to diff all drifted overrides.",
     ),
-    role: str | None = typer.Option(None, "--role", help="Diff a role TOML override by slug."),
+    role: str | None = typer.Option(None, "--role", help="Diff a per-role TOML override by slug."),
     workflow: bool = typer.Option(
         False, "--workflow", help="Diff the workflow spec override (.overrides/workflow.toml)."
     ),
     playbook: bool = typer.Option(
         False, "--playbook", help="Diff the playbook override (.overrides/playbook.toml)."
+    ),
+    roles_catalog: bool = typer.Option(
+        False,
+        "--roles-catalog",
+        help="Diff the role catalog document override (.overrides/roles.toml) — the "
+        "whole-document override, distinct from --role <slug>.",
     ),
     json_out: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
 ):
@@ -268,7 +303,12 @@ def diff(
     For playbook: ``sq override diff playbook`` or ``sq override diff --playbook`` shows the
     same two deltas against the bundled playbook.
 
-    With no name/--role/--workflow/--playbook, diffs every drifted override.
+    For the role catalog document: ``sq override diff roles`` or
+    ``sq override diff --roles-catalog`` shows the same two deltas against the bundled
+    ``roles.toml`` — distinct from ``sq override diff --role <slug>``, which diffs one
+    per-role file.
+
+    With no name/--role/--workflow/--playbook/--roles-catalog, diffs every drifted override.
     ``--json`` emits an array of {name, kind, base_version, base_available, delta_mine,
     delta_upgrade}.
     """
@@ -283,6 +323,8 @@ def diff(
         results.append(diff_override(squad_dir, name="workflow", kind="workflow"))
     elif playbook or name == "playbook":
         results.append(diff_override(squad_dir, name="playbook", kind="playbook"))
+    elif roles_catalog or name == "roles":
+        results.append(diff_override(squad_dir, name="roles", kind="roles"))
     elif name is not None:
         results.append(diff_override(squad_dir, name=name, kind="template"))
     else:
@@ -325,6 +367,8 @@ def _print_diff_result(result: DiffResult) -> None:
         label = f"--role {result.name}"
     elif result.kind == "playbook":
         label = "playbook"
+    elif result.kind == "roles":
+        label = "roles"
     else:
         label = "workflow"
     console.print(f"\n[bold]Override: {e(label)}[/bold]  [dim](kind: {result.kind})[/dim]")
@@ -356,16 +400,25 @@ def update(
     name: str | None = typer.Argument(
         None,
         help=(
-            "Template name, role slug, 'workflow', or 'playbook' to re-stamp. "
+            "Template name, role slug, 'workflow', 'playbook', or 'roles' (the role catalog "
+            "document — distinct from --role <slug>) to re-stamp. "
             "Omit to re-stamp all valid overrides."
         ),
     ),
-    role: str | None = typer.Option(None, "--role", help="Re-stamp a role TOML override by slug."),
+    role: str | None = typer.Option(
+        None, "--role", help="Re-stamp a per-role TOML override by slug."
+    ),
     workflow: bool = typer.Option(
         False, "--workflow", help="Re-stamp the workflow spec override (.overrides/workflow.toml)."
     ),
     playbook: bool = typer.Option(
         False, "--playbook", help="Re-stamp the playbook override (.overrides/playbook.toml)."
+    ),
+    roles_catalog: bool = typer.Option(
+        False,
+        "--roles-catalog",
+        help="Re-stamp the role catalog document override (.overrides/roles.toml) — the "
+        "whole-document override, distinct from --role <slug>.",
     ),
 ):
     """Re-stamp an override's base version after a hand-merge, clearing the drift warning.
@@ -375,8 +428,9 @@ def update(
 
     The next ``sq check`` recomputes drift against the new base and the warning clears.
 
-    With no name/--role/--workflow/--playbook, re-stamps every structurally-valid override
-    (bulk acknowledge). Broken overrides (missing required markers) are skipped — fix them first.
+    With no name/--role/--workflow/--playbook/--roles-catalog, re-stamps every
+    structurally-valid override (bulk acknowledge). Broken overrides (missing required
+    markers) are skipped — fix them first.
     """
     svc = get_service()
     squad_dir = svc.paths.squad_dir
@@ -387,6 +441,8 @@ def update(
         stamped = update_stamp(squad_dir, name="workflow", kind="workflow")
     elif playbook or name == "playbook":
         stamped = update_stamp(squad_dir, name="playbook", kind="playbook")
+    elif roles_catalog or name == "roles":
+        stamped = update_stamp(squad_dir, name="roles", kind="roles")
     elif name is not None:
         stamped = update_stamp(squad_dir, name=name, kind="template")
     else:

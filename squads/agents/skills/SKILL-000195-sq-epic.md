@@ -76,7 +76,8 @@ sq tree EPIC-… [--json]
 - authoring features is the product-owner's job, not yours
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq epic <n> show`, never by opening the file. Items are addressed as
 `sq epic <n> <verb>`. Set this item's body with `sq epic <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Read anything back with `sq epic <n> show --full --comments` (full dossier, including discussion).
 

@@ -150,6 +150,7 @@ async def test_rename_type_refuses_when_a_child_would_have_an_invalid_parent_und
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
     generic_svc = service.Service(svc.paths, spec=spec)
@@ -191,6 +192,7 @@ async def test_rename_type_mid_flight_failure_restores_disk_and_index(
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
     ticket_svc = service.Service(svc.paths, spec=spec)

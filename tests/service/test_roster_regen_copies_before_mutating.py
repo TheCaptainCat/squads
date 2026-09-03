@@ -29,7 +29,9 @@ async def _make_role_stale(svc, role_id: str, key: str) -> None:
     stale = current.model_copy(deep=True)
     stale.extra.pop(key, None)
     async with svc.store.transaction() as db:
-        await update_frontmatter(item_file(svc.paths, stale), stale, base)
+        await update_frontmatter(
+            item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
+        )
         db.add(stale)
 
 

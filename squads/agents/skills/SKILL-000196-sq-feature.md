@@ -85,7 +85,8 @@ sq feature <n> stories
 - when acceptance criteria all pass, confirm in a comment so the feature can close; when one fails, file a bug and `@tech-lead`
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq feature <n> show`, never by opening the file. Items are addressed as
 `sq feature <n> <verb>`. Set this item's body with `sq feature <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its stories
 get their bodies from `sq feature <n> story <k> body -m "…"`. Read anything back with

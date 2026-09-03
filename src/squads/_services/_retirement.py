@@ -44,15 +44,20 @@ from squads._services._config_integrity import (
 from squads._workflow import ROSTER_OPERATOR
 from squads._workflow._models import WorkflowSpec
 
-#: Per-clause declaration of the stored ref-kind edges that constitute the dependency it
-#: detects — empty means "not severable": ``no_live_role``'s dependency is a cardinality
-#: property of the projection, not a reference. Declared here, next to this module's
-#: ``--unlink`` (its only consumer): a clause with a non-empty set inherits the flag with no
-#: code change here if it ever gains a severable formulation.
-CLAUSE_REF_KINDS: dict[Clause, frozenset[str]] = {
-    "no_live_role": frozenset(),
-    "preloaded_skill": frozenset({"scopes"}),
-}
+
+def _clause_ref_kinds(clause: Clause, spec: WorkflowSpec) -> frozenset[str]:
+    """The stored ref-kind edge(s) that constitute *clause*'s dependency, resolved through the
+    active spec's declared semantics — empty means "not severable": ``no_live_role``'s
+    dependency is a cardinality property of the projection, not a reference. ``preloaded_skill``
+    resolves to the one declared ``preload``-role kind (:meth:`WorkflowSpec.preload_ref_kind`),
+    never a fixed spelling. Declared here, next to this module's ``--unlink`` (its only
+    consumer): a clause resolving a non-empty set inherits the flag with no code change here
+    if it ever gains a severable formulation.
+    """
+    if clause == "preloaded_skill":
+        return frozenset({spec.preload_ref_kind()})
+    return frozenset()
+
 
 #: A finding's condition identity for the before/after delta — never its rendering. See
 #: :func:`_finding_key`.
@@ -85,9 +90,9 @@ def _findings_new_since(
 @dataclass(frozen=True)
 class Severance:
     """One reference edge ``--unlink`` removed: *referrer* stopped referencing *target* via
-    *kind*. Always the retiring item's own outgoing edge today (a skill's ``scopes`` ref to a
-    role), though nothing here assumes that direction — a future clause's edge may point the
-    other way, and would sever the same way on whichever item owns it."""
+    *kind*. Always the retiring item's own outgoing edge today (a skill's declared-``preload``
+    ref to a role), though nothing here assumes that direction — a future clause's edge may
+    point the other way, and would sever the same way on whichever item owns it."""
 
     referrer: str
     target: str
@@ -95,13 +100,13 @@ class Severance:
 
 
 def _sever_declared_edges(
-    item: Item, findings: Sequence[ConfigIntegrityFinding]
+    item: Item, findings: Sequence[ConfigIntegrityFinding], spec: WorkflowSpec
 ) -> list[Severance]:
     """Remove exactly the edges *findings* enumerated for *item* — never every severable-kind
     ref on the item regardless of whether a finding named it.
 
-    Only a finding whose own ``entry`` is *item* and whose clause declares a non-empty
-    ``CLAUSE_REF_KINDS`` set contributes targets, via that finding's own
+    Only a finding whose own ``entry`` is *item* and whose clause resolves (via
+    :func:`_clause_ref_kinds`) a non-empty kind set contributes targets, via that finding's own
     ``severable_targets`` — the specific ids its dependency was detected on, never the item's
     whole ref list matched against the clause's kind set alone.
     """
@@ -109,7 +114,7 @@ def _sever_declared_edges(
     for f in findings:
         if f.entry != item.id:
             continue
-        kinds = CLAUSE_REF_KINDS.get(f.clause, frozenset())
+        kinds = _clause_ref_kinds(f.clause, spec)
         if not kinds:
             continue
         to_sever.update((target, kind) for target in f.severable_targets for kind in kinds)
@@ -183,7 +188,7 @@ def enforce(
         prospective = _findings_new_since(
             check_all(db, spec, active_backends, playbook), before_keys
         )
-        severed = _sever_declared_edges(item, prospective)
+        severed = _sever_declared_edges(item, prospective, spec)
 
     after = _findings_new_since(check_all(db, spec, active_backends, playbook), before_keys)
     if after:

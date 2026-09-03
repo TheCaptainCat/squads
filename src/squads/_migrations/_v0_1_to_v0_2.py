@@ -18,8 +18,55 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._migrations import _meta_compat
 from squads._models import _markers as markers
-from squads._models._item import fold_legacy_kinds
 from squads._paths import SquadPaths
+
+#: Frozen: the declared-default ref kind at schema 0.1/0.2, matching the retired
+#: ``_models._item.DEFAULT_KIND`` literal this runner used to inherit indirectly through
+#: ``fold_legacy_kinds`` before that helper became live-spec-aware. NEVER re-derive this
+#: from ``WorkflowSpec.default_ref_kind()`` — a migration is a point-in-time snapshot of the
+#: schema version it transforms, and the active spec's declared default can be renamed or
+#: re-declared by a project the runner has no business knowing about.
+_DEFAULT_KIND = "related"
+
+
+def _split_ref(ref: str) -> tuple[str, str]:
+    """Frozen, private copy of ``squads._models._item.split_ref``: ``"ID"`` -> ``(ID, "")``,
+    ``"ID:kind"`` -> ``(ID, kind)``. Never imported live — see
+    ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py``: a live
+    primitive's collapse behaviour can change out from under a frozen runner even when its
+    signature looks purely mechanical, which is exactly what moved this runner's sibling
+    (``_v0_5_to_v0_7``) bytes."""
+    rid, _, kind = ref.partition(":")
+    return rid, kind
+
+
+def _make_ref(item_id: str, kind: str) -> str:
+    """Frozen, private copy of the pre-0.14 ``squads._models._item.make_ref`` collapse
+    behaviour: an edge whose kind is unspelled or resolves to :data:`_DEFAULT_KIND` is written
+    bare; any other kind is spelled out. Never imported live — see :func:`_split_ref`."""
+    return item_id if kind in ("", _DEFAULT_KIND) else f"{item_id}:{kind}"
+
+
+def _fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
+    """Runner-owned, frozen copy of the legacy ``extra.ref_kinds`` fold: merge the map into
+    inline ``ID:kind`` ref strings, collapsing an edge whose resolved kind is
+    :data:`_DEFAULT_KIND` to the bare wire form — never spelled out, exactly the encoding
+    invariant this schema version's corpus already holds.
+
+    Deliberately duplicates (never imports) ``squads._models._item.fold_legacy_kinds``, which
+    now takes the *active* spec's declared default kind as a required argument and is
+    therefore live-vocabulary-aware — reaching back for it would make this frozen runner's
+    on-disk output track whatever an adopter's spec declares today, rather than the schema
+    0.1/0.2 vocabulary this transform is defined against. ``split_ref``/``make_ref`` are not
+    imported either, for the same reason and despite looking purely mechanical today — see
+    :func:`_split_ref`.
+    """
+    result: list[str] = []
+    for rid, kind in (_split_ref(r) for r in refs):
+        resolved = legacy.get(rid, kind)
+        result.append(_make_ref(rid, resolved))
+    return result
+
 
 #: The non-deterministic step `sq migrate up` can't do — surfaced by `sq migrate chlog`.
 MANUAL = """\
@@ -73,7 +120,7 @@ def _fold_ref_kinds(text: str) -> str:
     if not isinstance(raw_legacy, dict):
         return text
     legacy = {str(k): str(v) for k, v in cast("dict[Any, Any]", raw_legacy).items()}
-    folded = fold_legacy_kinds(list(fm.get("refs", []) or []), legacy)
+    folded = _fold_legacy_kinds(list(fm.get("refs", []) or []), legacy)
     extra.pop("ref_kinds", None)
     if folded:
         fm["refs"] = folded

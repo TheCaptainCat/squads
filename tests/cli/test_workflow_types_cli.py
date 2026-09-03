@@ -174,6 +174,7 @@ def test_json_labels_reflect_a_pinned_override() -> None:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
     rows = {r["type"]: r for r in _type_catalog(spec)}
@@ -271,6 +272,7 @@ def _spec_with_unordered_custom_type() -> WorkflowSpec:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
 

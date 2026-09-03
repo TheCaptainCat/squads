@@ -25,6 +25,7 @@ ahead side.
 
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -179,19 +180,87 @@ def _without_permitted_extra_skew(data: dict[str, Any], item: Item) -> dict[str,
     return out
 
 
-def frontmatter_skew(text: str, base: Item) -> list[str]:
-    """The frontmatter keys on which *text*'s on-disk frontmatter diverges from what *base*
-    — the item as loaded before the pending mutation's own delta — would itself serialize.
+@dataclass(frozen=True, slots=True)
+class SkewKey:
+    """One frontmatter key on which :func:`frontmatter_skew` found disk and index to
+    disagree, classified so a refusal never asserts a cause the reader can
+    disprove.
 
-    Both sides are put through the identical round trip
+    ``stale_encoding`` is true only when **both** hold: the *raw* on-disk value for this key
+    (before the load round trip) already equals what the index holds, **and** the round trip
+    produced the diverging value from that raw key alone. A fold that drew on a *second* raw
+    key — the pre-0.2 ``extra.ref_kinds`` map folded into ``refs`` is the one case today — is
+    information-adding even when the key's own raw value matches, because the map named a
+    kind the index never held; that stays ``stale_encoding=False`` and keeps today's
+    divergence wording, same as an ordinary hand-edit.
+    """
+
+    name: str
+    stale_encoding: bool
+
+
+def _drew_on_second_raw_key(key: str, disk_data: dict[str, Any]) -> bool:
+    """Whether *key*'s fold, on this on-disk frontmatter, consulted a raw key other than
+    itself to produce its round-tripped value.
+
+    Only ``refs`` has such a dependency today: :func:`~squads._models._item.fold_legacy_kinds`
+    merges a pre-0.2 ``extra.ref_kinds`` map into it (see :func:`~squads._models._item._read_refs`,
+    whose own ``legacy_map`` this mirrors exactly — a non-mapping or empty ``ref_kinds``
+    contributes nothing, same as there). A key with no such second-key dependency can never
+    return true here, which is the safe default: it only ever *widens* what counts as a real
+    divergence, never narrows it into a false stale-encoding claim.
+    """
+    if key != "refs":
+        return False
+    extra = disk_data.get("extra")
+    if not isinstance(extra, dict):
+        return False
+    legacy = cast("dict[str, Any]", extra).get("ref_kinds")
+    legacy_map = cast("dict[str, Any]", legacy) if isinstance(legacy, dict) else {}
+    return bool(legacy_map)
+
+
+def _classify_skew(key: str, disk_data: dict[str, Any], base_dict: dict[str, Any]) -> SkewKey:
+    """*key*'s :class:`SkewKey` verdict — the stale-encoding-versus-divergence test applied
+    at the one site that already holds both the raw on-disk frontmatter and the
+    index-serialized *base_dict*."""
+    raw_equal = disk_data.get(key) == base_dict.get(key)
+    stale_encoding = raw_equal and not _drew_on_second_raw_key(key, disk_data)
+    return SkewKey(key, stale_encoding=stale_encoding)
+
+
+def stale_encoding_clause(fields: Iterable[str]) -> str:
+    """The shared explanation for a stale-index-encoding skew on *fields* — reused by
+    :func:`skew_message` and ``sq check``'s finding wording
+    (``_services/_maintenance.py::_drift_message``) so one state is explained in the same
+    words on both surfaces. States the true cause — a non-canonical index
+    encoding — rather than a divergence the reader can open the file and disprove."""
+    return f"the index holds a non-canonical encoding of {', '.join(fields)}, not a divergence"
+
+
+def frontmatter_skew(text: str, base: Item, *, default_kind: str) -> list[SkewKey]:
+    """The frontmatter keys on which *text*'s on-disk frontmatter diverges from what *base*
+    — the item as loaded before the pending mutation's own delta — would itself serialize,
+    each classified as :class:`SkewKey` (a real divergence, or a stale index encoding — see
+    there for the test).
+
+    The disk side is put through the load round trip
     (``Item.from_frontmatter(...).to_frontmatter_dict()``), which structurally collapses every
     known load/parse-time correction (the legacy ``extra.severity`` location, the pre-0.2
-    ``extra.ref_kinds`` map, a padded id recomputed from prefix + sequence number, key order,
-    and absent-versus-``None``) — so a non-empty result means a real skew, not a by-design
-    divergence. *base*'s own ``path`` is passed to ``from_frontmatter`` deliberately: that
-    field is a keyword argument of the reconstruction, and the wrong one only risks a
-    constructor error (an invalid derived slug), never a spurious divergence, since ``path``
-    itself is not part of ``to_frontmatter_dict()``'s output.
+    ``extra.ref_kinds`` map — folded to canonical bare-or-spelled form against
+    *default_kind*, see :func:`~squads._models._item.fold_legacy_kinds` — a padded id
+    recomputed from prefix + sequence number, key order, and absent-versus-``None``) — so a
+    non-empty result means a real skew, not a by-design divergence. **The two sides are not
+    symmetric**: *base* is already a loaded, validated ``Item`` and is serialized directly
+    (``base.to_frontmatter_dict()``), never re-run through ``from_frontmatter`` — the index
+    side of this comparison never folds. That asymmetry is why *default_kind* must be
+    resolved and folded in **on the disk side**, at read time, rather than reconciled after
+    the fact: running the index side through the same fold does not converge it, since a
+    legacy ``extra.ref_kinds`` map is real information the index side never held. *base*'s own
+    ``path`` is passed to ``from_frontmatter`` deliberately: that field is a keyword argument
+    of the reconstruction, and the wrong one only risks a constructor error (an invalid
+    derived slug), never a spurious divergence, since ``path`` itself is not part of
+    ``to_frontmatter_dict()``'s output.
 
     In the normal case the two sides are identical — the last successful mutation wrote both
     from one item — so an empty return is the expected result, not evidence the check is inert.
@@ -219,12 +288,15 @@ def frontmatter_skew(text: str, base: Item) -> list[str]:
     (a dev role's own, transaction-guarded ``model``; a skill item's own ``model``).
     """
     disk_data, _ = split_frontmatter(text, source=base.path)
-    disk_dict = Item.from_frontmatter(disk_data, path=base.path).to_frontmatter_dict()
+    disk_dict = Item.from_frontmatter(
+        disk_data, path=base.path, default_kind=default_kind
+    ).to_frontmatter_dict()
     base_dict = base.to_frontmatter_dict()
     disk_dict = _without_permitted_extra_skew(disk_dict, base)
     base_dict = _without_permitted_extra_skew(base_dict, base)
     keys = (disk_dict.keys() | base_dict.keys()) - _invented_timestamps(disk_data)
-    return sorted(k for k in keys if disk_dict.get(k) != base_dict.get(k))
+    diverging = sorted(k for k in keys if disk_dict.get(k) != base_dict.get(k))
+    return [_classify_skew(k, disk_data, base_dict) for k in diverging]
 
 
 def _invented_timestamps(disk_data: dict[str, Any]) -> frozenset[str]:
@@ -238,19 +310,27 @@ def _invented_timestamps(disk_data: dict[str, Any]) -> frozenset[str]:
     return frozenset(k for k in INVENTED_WHEN_ABSENT if disk_data.get(k) is None)
 
 
-def skew_message(base: Item, diverging: list[str]) -> str:
+def skew_message(base: Item, diverging: list[SkewKey]) -> str:
     """The shared, human-readable report for a confirmed skew on *base* — reused by the
     refusal raised at a single-mutation write seam, the skip-and-report line ``sq sync``
     emits for a drifted roster item, and the ``ImportIssue`` the bulk importer's pre-pass
-    collects for a drifted pre-existing target."""
-    fields = ", ".join(diverging)
-    return (
-        f"{base.id}: on-disk frontmatter has diverged from the index ({fields}) — "
-        f"run `sq repair` before mutating {base.id} again"
-    )
+    collects for a drifted pre-existing target.
+
+    A real divergence keeps today's wording unchanged; a stale index encoding gets
+    :func:`stale_encoding_clause` instead, never the divergence wording it would falsify. A
+    mixed item — one key of each — reports both clauses, neither describing the other's
+    state."""
+    diverged = [k.name for k in diverging if not k.stale_encoding]
+    stale = [k.name for k in diverging if k.stale_encoding]
+    clauses: list[str] = []
+    if diverged:
+        clauses.append(f"on-disk frontmatter has diverged from the index ({', '.join(diverged)})")
+    if stale:
+        clauses.append(stale_encoding_clause(stale))
+    return f"{base.id}: {'; '.join(clauses)} — run `sq repair` before mutating {base.id} again"
 
 
-def ensure_no_skew(text: str, base: Item) -> None:
+def ensure_no_skew(text: str, base: Item, *, default_kind: str) -> None:
     """Raise :class:`SquadsError` when *text*'s on-disk frontmatter has drifted from *base*.
 
     Writing over it now — substituting the whole frontmatter block from an index-derived
@@ -261,8 +341,13 @@ def ensure_no_skew(text: str, base: Item) -> None:
     :data:`PERMITTED_EXTRA_SKEW` unconditionally rather than by caller opt-in — that permitted,
     permanent skew is never mistaken for a real one at *any* seam. Batch paths call
     :func:`frontmatter_skew` directly instead, since their response is not a plain refusal.
+
+    *default_kind* is threaded straight through to :func:`frontmatter_skew` — a **required**
+    keyword, resolved by the caller (a ``Service`` mixin with ``self.spec`` in hand) once per
+    pass rather than per item, so a spec declaring the wrong number of default ref kinds fails
+    as one clean refusal naming the spec instead of raising partway through a rebuild.
     """
-    diverging = frontmatter_skew(text, base)
+    diverging = frontmatter_skew(text, base, default_kind=default_kind)
     if diverging:
         raise SquadsError(skew_message(base, diverging))
 
@@ -308,17 +393,18 @@ async def write_new(path: Path, item: Item, rendered_body: str) -> None:
     await _aio.atomic_write_text(path, text)
 
 
-async def update_frontmatter(path: Path, item: Item, base: Item) -> None:
+async def update_frontmatter(path: Path, item: Item, base: Item, *, default_kind: str) -> None:
     """Rewrite the frontmatter from the item; body is preserved verbatim.
 
     The read is :func:`read_item_text`, so a stale index-derived *path* (an interrupted
     rename/retype) reports cleanly instead of a raw ``FileNotFoundError``. Refuses
     (:class:`SquadsError`) if the on-disk frontmatter has diverged from what *base* — the item
     as loaded before this mutation's own delta, captured by the caller's pure half — would
-    itself have serialized: see :func:`ensure_no_skew`.
+    itself have serialized: see :func:`ensure_no_skew`. *default_kind* passes straight
+    through to it.
     """
     text = await read_item_text(path, item.id)
-    ensure_no_skew(text, base)
+    ensure_no_skew(text, base, default_kind=default_kind)
     await _aio.atomic_write_text(
         path, replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
     )

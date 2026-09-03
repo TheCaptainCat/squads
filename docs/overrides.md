@@ -189,14 +189,16 @@ slug. See [roles.md](roles.md) for the activation flow.
 
 ---
 
-## Workflow overrides: item types, statuses, and badge collections
+## Workflow overrides: item types, statuses, badge collections and ref kinds
 
 By default, squads uses a bundled set of **seven work-item types** (epic, feature, task, bug,
-decision/ADR, review, guide), **status lifecycles** (state machines for each type), and
-**badge collections** (priority and severity, the reusable axes that label findings, tasks, etc.).
-**`.overrides/workflow.toml`** is where you change that vocabulary. You can do three things with it:
+decision/ADR, review, guide), **status lifecycles** (state machines for each type),
+**badge collections** (priority and severity, the reusable axes that label findings, tasks, etc.)
+and **ref kinds** (the labelled edges — `blocks`, `fixes`, `supersedes` and the rest — that link one
+item to another). **`.overrides/workflow.toml`** is where you change that vocabulary. You can do
+three things with it:
 
-- **Add** — new item types, statuses, lifecycles, badge collections, status roles.
+- **Add** — new item types, statuses, lifecycles, badge collections, status roles, ref kinds.
 - **Shadow** — redefine a bundled entry, field by field. The fields you write replace their bundled
   counterparts; the ones you leave out are inherited.
 - **Shrink** — drop a bundled entry you don't want, by listing the ones you keep.
@@ -219,15 +221,20 @@ Edit this file to add your custom types, statuses, lifecycles, and collections.
 ### Format and sections
 
 The override file is standard TOML. Its top level is a **closed set of section names** —
-`[items.*]`, `[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]` and
-`[roles.*]`, plus the single `[selected]` table — and anything else at the top level is refused by
-name at load time:
+`[items.*]`, `[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]`,
+`[roles.*]` and `[ref_kinds.*]`, plus the single `[selected]` table — and anything else at the top
+level is refused by name at load time:
 
 ```
-unknown top-level key 'item'
-use one of the accepted top-level keys: ['collections', 'items', 'lifecycles',
-'roles', 'selected', 'statuses', 'subentity_kinds']
+item: unknown top-level key 'item' — use one of the accepted top-level keys in v0.14.0:
+['collections', 'items', 'lifecycles', 'ref_kinds', 'roles', 'selected', 'statuses',
+'subentity_kinds']
 ```
+
+The refusal names the version it is speaking for, because the accepted set grows as squads gains
+sections. The list your own copy prints is the authoritative one: `sq workflow lint` reports it
+without needing a working spec, which is the point of that command still running while a bad
+override stands.
 
 That refusal matters more than it looks: `[item.task]` written for `[items.task]` is the easiest
 mistake to make in this file, and a section name squads didn't recognise would otherwise mean your
@@ -464,6 +471,126 @@ sq workflow roles --json    # machine-readable format
 
 See [workflow.md](workflow.md) § "Project workflow overrides" for a worked example.
 
+#### Ref kinds: the labelled edges between items
+
+A **ref** links one item to another, and its **kind** is the label on that link:
+`sq <type> <n> ref add <id> --kind fixes` records that this item fixes the one it points at. The
+kind is stored inline with the edge in the item's own file, which makes it durable on-disk data —
+the same class of value as a type's prefix or a status name, and protected the same way.
+
+`[ref_kinds]` is where that vocabulary is declared. Declaring one of your own is a three-line table:
+
+```toml
+[ref_kinds.escalates]
+label = "Escalates"
+hint = "A escalates B to a wider audience"
+```
+
+That is the whole declaration, and it is usable immediately:
+
+```bash
+sq <type> <n> ref add <id> --kind escalates   # write an edge of your kind
+sq workflow ref-kinds                         # your kind, listed beside the bundled ones
+```
+
+A kind your merged spec doesn't declare is still refused by name — the accepted set is now yours,
+not a fixed list:
+
+```
+error: unknown ref kind 'bogus'. Valid kinds: addresses, blocks, depends-on, duplicates, fixes, implements, related, scopes, supersedes, targets
+```
+
+Fields:
+- `label` — required; the human-readable name shown wherever the kind is presented.
+- `hint` — optional; the one-line meaning, written as a sentence about *A* (the item carrying the
+  ref) and *B* (the item it points at), which is how the bundled hints read.
+- `role` — optional; the **semantic** squads binds behaviour to (below). Omit it and the kind is
+  navigational.
+- `direction` — `"blocker"` or `"dependent"`. Only meaningful alongside `role = "dependency"`, and
+  required there.
+
+The key of the table *is* the kind, spelled exactly as it appears on disk inside an `ID:kind` edge.
+There is no separate name field.
+
+**`role` is what the engine reads — never the kind's name.** That is what makes a bundled kind
+renameable: behaviour follows the declared semantic, so a renamed dependency kind keeps driving
+`sq blocked` and a renamed supersession kind keeps driving `sq check`.
+
+| `role` | What squads binds to it |
+|---|---|
+| `default` | The kind a bare `ref add <id>` resolves to when you pass no `--kind`. It is also the on-disk encoding: an edge of the default kind is written with no kind at all, so renaming the kind that carries `default` relabels those edges rather than re-pointing them. |
+| `dependency` (with `direction`) | The `sq blocked` graph. `"blocker"` reads *A blocks B*; `"dependent"` reads *A depends on B*. |
+| `preload` | The skill → role edge whose inversion decides which skills a role's generated pointer preloads. |
+| `supersession` | `sq check`'s rule that a record resting at a status whose role is `superseded` should have an incoming edge of this kind; it warns when one doesn't. |
+| *(omitted)* | Display and navigation only. |
+
+**A kind that declares no `role` is navigational — and that is what a kind you declare gets unless
+you say otherwise.** That is the ordinary case, not a lesser one: a navigational kind is a
+first-class edge that shows up in `sq <type> <n> show`, carries its own label and hint, and appears
+in `sq graph --json` with `edge_kind` set to your spelling and `edge_semantic` `null`. It simply
+drives no engine behaviour of its own. Give a kind a `role` only when you mean to move one of the
+four behaviours above onto it. Most of the bundled kinds are navigational — `implements`, `fixes`,
+`addresses`, `duplicates` and `targets` — and `targets` is the plainest case of all: squads binds
+nothing to it whatsoever. It ships as a general membership edge — *this item belongs to that one* —
+and its meaning is whatever reads it: your own conventions, your own tooling, or a person following
+the link.
+
+**The floor the merged spec must satisfy.** These are checked on the composed result, so a bundled
+kind you drop counts against them just as your own additions do:
+
+- **Exactly one kind carries `role = "default"`.** It is mandatory: a bare edge on disk carries no
+  kind, so it is undecodable without one.
+- **Exactly one kind carries `role = "preload"`.** Zero leaves every skill unreachable from the role
+  that scopes it; two make the inversion ambiguous.
+- **At most one kind per `dependency` direction.** Zero is legal in either direction — a squad that
+  declares no dependency kind simply gets an empty `sq blocked`. A kind declaring
+  `role = "dependency"` with no `direction` is refused outright.
+- **Any number of `supersession` kinds, zero included.**
+- **Every key must be a bare TOML key** (`[A-Za-z0-9_-]+`). In particular it may not contain `:`,
+  which is the separator an `ID:kind` edge is split on, and the bare-key shape is what keeps the
+  entry addressable by a splat-ref.
+
+Each of these is reported as an ordinary spec error, so `sq workflow lint` shows it with the rest:
+
+```
+the workflow spec must declare exactly one ref kind with role = 'preload' (a skill's forward edge to the role that preloads it); found 0: []
+```
+
+**Dropping or renaming a kind.** A kind is dropped by leaving it out of `selected.ref_kinds`, and
+renamed by dropping the old key and declaring a new one. Both are refused while live items still
+carry the old spelling, with the offending IDs listed:
+
+```
+ref kind 'escalates' is no longer declared in the workflow spec, but 1 live item(s) still carry a ref of that kind: ['INC-4'] — restore the entry in the override, or remove those refs first (no command rewrites a corpus's ref kinds)
+```
+
+Those two are the only remedies, and the refusal offers no third: no command rewrites the kinds an
+existing corpus carries. A kind **no edge uses** may be dropped or renamed freely — which is the
+case you are actually in when you choose your vocabulary at adoption time, before anything has been
+linked.
+
+Two things that are *not* refusals but will surprise you:
+
+- **Bare edges are unaffected by a rename of the default kind.** They store no spelling, so there is
+  nothing on disk to strand — the relabelling is the whole effect.
+- **A type's ref rules name kinds too.** A type may declare `ref_rules` — a per-type note attached
+  to one kind, which squads folds into the hints it prints for items of that type. Dropping a kind
+  a rule still names is refused at load, because such a rule could never apply. Shadow or drop the
+  rule in the same override:
+
+  ```
+  items.task ref_rule[1]: kind 'addresses' is not one of the declared ref kinds ['blocks', 'depends-on', 'escalates', 'fixes', 'related', 'scopes', 'supersedes'] — every ref surface would reject it, so a rule for it can never apply
+  ```
+
+**Reading back what you declared:**
+
+```bash
+sq workflow ref-kinds           # kind, label, hint, role, direction
+sq workflow ref-kinds --json    # machine-readable format
+```
+
+See [workflow.md](workflow.md) § "Ref kinds" for the bundled set and what each one is for.
+
 ---
 
 ## The override grammar: shadow, append, and drop
@@ -607,8 +734,9 @@ items = ["epic", "feature", "task", "bug", "decision", "review", "role", "skill"
 ```
 
 That squad has no `guide` type: it is absent from the list, so it is dropped. The accepted section
-keys are `items`, `statuses`, `lifecycles`, `collections`, `subentity_kinds` and `roles`; anything
-else under `[selected]` is refused by name.
+keys are `items`, `statuses`, `lifecycles`, `collections`, `subentity_kinds`, `roles` and
+`ref_kinds` — the same set the top level accepts; anything else under `[selected]` is refused by
+name.
 
 Two things follow from `[selected]` being the surviving set of the *merged* spec:
 
@@ -707,13 +835,21 @@ error: unknown item type 'guide': 'guide' was dropped from a [selected] list
 to selected.items to restore it
 ```
 
-Three practical notes:
+Four practical notes:
 
 - **A drop is refused while live items still carry the type or status**, listing the offending IDs.
   Restore the key to `[selected]`, or move those items first — `sq migrate rename-type` and
   `sq migrate rename-status` are the audited ways to move a corpus onto different vocabulary (see
   [workflow.md](workflow.md) § "Renaming existing types and statuses"). Once the type has no items
   left, dropping it succeeds.
+- **A ref kind is on the same footing, with one fewer remedy.** A kind the merged spec drops or
+  renames while live items still carry it is refused the same way, naming the offending IDs. Its two
+  remedies are to restore the entry, or to remove those refs first: no command rewrites the ref
+  kinds an existing corpus carries, so there is no `sq migrate` counterpart here. A kind no edge
+  uses may be dropped or renamed freely, and that is the case you are in when you pick your
+  vocabulary at adoption time. Bare edges — the ones written with no kind at all — are never
+  stranded by a rename of the kind carrying `role = "default"`; they store no spelling to strand.
+  See **Ref kinds** above for the full field reference.
 - **Dropping a type does not delete what was already generated for it.** Its folder under the squad
   directory, and the `sq-<type>` skill generated for it before the drop, stay on disk; `sq sync`
   adds and updates, it does not sweep. Delete them by hand if you want them gone.
@@ -1045,7 +1181,8 @@ sq override scaffold items/task.md.j2 --force
   activate <slug>` once you've filled it in.
 - Template names copy the named bundled template into `.overrides/templates/`.
 - `workflow` starts `.overrides/workflow.toml` from a commented worked example rather than a copy of
-  the bundled spec — see [Workflow overrides](#workflow-overrides-item-types-statuses-and-badge-collections).
+  the bundled spec — see
+  [Workflow overrides](#workflow-overrides-item-types-statuses-badge-collections-and-ref-kinds).
 - `playbook` starts `.overrides/playbook.toml` the same way, from a commented worked example of the
   one-line append idiom — see [Playbook overrides](#playbook-overrides-role-guidance-per-item-type).
   `--workflow` and `--playbook` are equivalent flag forms of those two names.

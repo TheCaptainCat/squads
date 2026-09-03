@@ -76,8 +76,17 @@ async def test_remove_refuses_when_children_exist_even_with_force(svc):
     assert (await svc.store.load()).get(feat.id) is not None
 
 
-async def test_remove_width_tolerant_ref_severing(svc):
-    """A ref stored at a narrower (pre-repad) width is still found and severed."""
+@pytest.mark.parametrize(
+    "kind",
+    [
+        pytest.param("", id="bare"),  # default kind: written bare on disk, majority-shape edge
+        pytest.param("blocks", id="spelled-non-default"),  # non-default: stays spelled on disk
+    ],
+)
+async def test_remove_width_tolerant_ref_severing(svc, kind):
+    """A ref stored at a narrower (pre-repad) width is still found and severed, whether it's
+    the bare on-disk shape a default-kind ref always takes or a spelled non-default kind — the
+    severing predicate is kind-agnostic, so both legs must sever."""
     from squads._index._resolver import item_file
     from squads._itemfile import update_frontmatter
     from squads._models._item import make_ref
@@ -90,8 +99,10 @@ async def test_remove_width_tolerant_ref_severing(svc):
         r_item = db.get(referrer.id)
         assert r_item is not None
         base = r_item.model_copy(deep=True)
-        r_item.refs = [make_ref(old_width_id, "related")]
-        await update_frontmatter(item_file(svc.paths, r_item), r_item, base)
+        r_item.refs = [make_ref(old_width_id, kind)]
+        await update_frontmatter(
+            item_file(svc.paths, r_item), r_item, base, default_kind=svc.spec.default_ref_kind()
+        )
 
     res = await svc.remove_work_item(target.id, force=True)
     assert referrer.id in res.severed_refs

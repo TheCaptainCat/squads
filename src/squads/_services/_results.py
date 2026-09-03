@@ -32,19 +32,36 @@ class TreeNode:
 class GraphNode:
     """One node in the ego-centric ref graph returned by ``RefsMixin.graph()``.
 
-    ``edge_kind`` is the **normalized** kind of the edge that reached this node, or ``None``
-    for the root.  Dependency edges are always stored as ``"depends-on"`` regardless of
-    whether the on-disk edge was authored as ``depends-on`` or ``blocks``; ``direction``
-    disambiguates the two ends:
+    Two fields describe the edge that reached this node, or ``None``/``None`` for the root —
+    each answers a different question, and a consumer wanting to know *what kind of thing* an
+    edge is (a dependency, worth following for "what's blocking this") branches on
+    ``edge_semantic``, never ``edge_kind``:
 
-    - ``edge_kind="depends-on"``, ``direction="out"`` → this node is the blocker; the
+    - ``edge_kind`` is the **declared kind key** — a project's own spelling, never a fixed
+      sentinel. Both raw spellings of a dependency edge normalize to one declared key: the
+      kind carrying the ``dependency`` semantic in the DEPENDENT direction, or the
+      BLOCKER-direction kind when a project declares only that half
+      (:meth:`~squads._workflow._models.WorkflowSpec.canonical_dependency_ref_kind`). Every
+      other kind keeps its own literal key.
+    - ``edge_semantic`` is the edge kind's **declared semantic role** (``"dependency"``,
+      ``"preload"``, ``"supersession"``), or ``None`` for the root, for a navigational kind
+      (declared, no role), **or for a kind the merged spec does not declare at all** — an
+      undeclared-kind edge still traverses and is still emitted (never silently dropped); only
+      ``edge_kind``'s stored spelling distinguishes it from a navigational one, since both
+      report ``edge_semantic=None``. This is the field a consumer branches on: testing
+      ``edge_kind == "depends-on"`` breaks the moment a project renames its dependency kind,
+      the exact declared-but-found-by-literal defect this decision removes from the engine
+      itself.
+
+    ``direction`` disambiguates a dependency edge's two ends:
+
+    - ``edge_semantic="dependency"``, ``direction="out"`` → this node is the blocker; the
       expanded item depends on it → display label "depends on"
-    - ``edge_kind="depends-on"``, ``direction="in"`` → this node is the dependent; the
+    - ``edge_semantic="dependency"``, ``direction="in"`` → this node is the dependent; the
       expanded item is required by it → display label "required by"
 
-    For symmetric kinds (``related``, ``implements``, ``fixes``, ``addresses``, ``supersedes``,
-    ``duplicates``) the label is the kind name; ``direction`` records the traversal direction
-    for callers that care.
+    For a navigational kind the label is the kind name; ``direction`` records the traversal
+    direction for callers that care.
 
     ``seen=True`` marks a node that was already emitted higher in the tree; the traversal does
     not recurse into it (cycle / breadth-first revisit termination).
@@ -59,7 +76,9 @@ class GraphNode:
     #: rendering (``_cli/_main.py``); ``badges`` below is the generic replacement for --json
     #: consumers, since a type on a different/renamed badge axis leaves ``priority`` null.
     assignee: str | None
-    edge_kind: str | None  # None for root; normalized kind for all other nodes
+    edge_kind: str | None  # None for root; the stored kind's spelling for all other nodes
+    # (declared or not — an undeclared kind still traverses, see edge_semantic below)
+    edge_semantic: str | None  # the edge kind's declared role, or None (root / navigational)
     direction: str | None  # "out" | "in" | None (None for root)
     seen: bool
     badges: dict[str, str] = field(default_factory=lambda: dict[str, str]())
@@ -78,6 +97,7 @@ class GraphNode:
             "badges": self.badges,
             "assignee": self.assignee,
             "edge_kind": self.edge_kind,
+            "edge_semantic": self.edge_semantic,
             "direction": self.direction,
             "seen": self.seen,
             "children": [c.to_dict() for c in self.children],

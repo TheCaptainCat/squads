@@ -281,6 +281,62 @@ badges = [
 ]
 
 # ---------------------------------------------------------------------------
+# Ref kinds — the declared `refs` vocabulary ("ID" or "ID:kind"). `role` binds engine
+# behaviour to a semantic instead of a spelling; a kind with no `role` is purely navigational.
+# Exactly one kind must carry `role = "default"` — the kind a bare "ID" ref (no ":kind"
+# suffix) decodes to. `direction` ("blocker"/"dependent") only ever accompanies
+# `role = "dependency"`. `targets` declares no semantic — it is a navigational membership
+# edge with no engine binding; an adopter-declared kind walks the same path.
+# ---------------------------------------------------------------------------
+
+[ref_kinds.related]
+label = "Related"
+hint = "Generic cross-reference (default)"
+role = "default"
+
+[ref_kinds.blocks]
+label = "Blocks"
+hint = "A is blocking B; B cannot proceed while A is open"
+role = "dependency"
+direction = "blocker"
+
+[ref_kinds.depends-on]
+label = "Depends on"
+hint = "A depends on B; A cannot proceed while B is open"
+role = "dependency"
+direction = "dependent"
+
+[ref_kinds.implements]
+label = "Implements"
+hint = "A implements the requirement or spec described by B"
+
+[ref_kinds.fixes]
+label = "Fixes"
+hint = "A (the resolving work) fixes the problem tracked by B"
+
+[ref_kinds.addresses]
+label = "Addresses"
+hint = "A (the resolving work) addresses or follows up on B (feedback, a review)"
+
+[ref_kinds.supersedes]
+label = "Supersedes"
+hint = "A (a newer decision) supersedes B (an older one)"
+role = "supersession"
+
+[ref_kinds.duplicates]
+label = "Duplicates"
+hint = "A (a later filing) duplicates B (the original)"
+
+[ref_kinds.scopes]
+label = "Scopes"
+hint = "A (a skill) is scoped to role B; B's generated pointer preloads A"
+role = "preload"
+
+[ref_kinds.targets]
+label = "Targets"
+hint = "A targets B — a navigational membership edge with no engine binding; its meaning is whatever reads it"
+
+# ---------------------------------------------------------------------------
 # Items (prefix / folder / lifecycle / parents / aliases)
 # This table is the sole vocabulary source for prefix/folder/allowed-parents/aliases.
 # parents = [] means unconstrained (any parent or none is valid).

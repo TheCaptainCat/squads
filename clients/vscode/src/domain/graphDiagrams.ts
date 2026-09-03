@@ -123,12 +123,20 @@ interface Edge {
   readonly label: string;
 }
 
-/** `depends-on` is the one edge kind whose display label depends on direction ("depends on"
- * vs. "required by"); every other kind (`addresses`, `related`, `supersedes`, `fixes`, or any
- * future spec-driven kind) is shown as-is, matching the core CLI's `graph_to_mermaid` label
- * convention (`_services/_refs.py::_collect_edges`) so the two exports read the same way. */
-function edgeLabel(edgeKind: string, direction: 'in' | 'out'): string {
-  if (edgeKind === 'depends-on') {
+/** An edge whose declared semantic role (`SqGraphNode.edge_semantic`) is `"dependency"` is the
+ * one shown with a direction-sensitive label ("depends on" vs. "required by"); every other edge
+ * — navigational (`edge_semantic: null`), some other declared role (`preload`, `supersession`,
+ * the bundled default kind's own role, or a project's own), or a semantic this client doesn't
+ * otherwise recognise — is shown as its own declared kind spelling (`edge_kind`) verbatim,
+ * matching the core CLI's `graph_to_mermaid` label convention
+ * (`_services/_refs.py::_collect_edges`) so the two exports read the same way.
+ *
+ * The branch is on the declared semantic, never on the kind's spelling — a project may rename
+ * its dependency kind (or drop it in favour of only the blocker-direction kind) and this still
+ * resolves the direction-sensitive label correctly, because `edge_kind` is only ever rendered,
+ * never compared. */
+function edgeLabel(edgeKind: string, edgeSemantic: string | null, direction: 'in' | 'out'): string {
+  if (edgeSemantic === 'dependency') {
     return direction === 'out' ? 'depends on' : 'required by';
   }
   return edgeKind;
@@ -141,10 +149,11 @@ function graphNodeLabel(node: SqGraphNode): string {
 
 /**
  * Builds a `flowchart LR` source for the ref graph from `sq graph <id> --json` (`edge_kind`/
- * `direction` are `null` only on the root). A revisited node (`seen: true`) is deduplicated by
- * id, same as the core CLI export, so a cycle draws as an edge into the existing box rather than
- * a duplicate node. Edges are deduplicated by the full (from, to, label) triple, then sorted for
- * a deterministic diagram across runs.
+ * `edge_semantic`/`direction` are `null` only on the root; `edge_semantic` may also be absent
+ * on an older `sq`, treated the same as `null` — see `edgeLabel`). A revisited node
+ * (`seen: true`) is deduplicated by id, same as the core CLI export, so a cycle draws as an edge
+ * into the existing box rather than a duplicate node. Edges are deduplicated by the full
+ * (from, to, label) triple, then sorted for a deterministic diagram across runs.
  */
 export function buildRefGraphMermaid(root: SqGraphNode): string {
   const nodesById = new Map<string, SqGraphNode>();
@@ -156,7 +165,7 @@ export function buildRefGraphMermaid(root: SqGraphNode): string {
       nodesById.set(node.id, node);
     }
     if (parent !== null && node.edge_kind !== null && node.direction !== null) {
-      const label = edgeLabel(node.edge_kind, node.direction);
+      const label = edgeLabel(node.edge_kind, node.edge_semantic ?? null, node.direction);
       const key = `${parent.id}|${node.id}|${label}`;
       if (!seenEdgeKeys.has(key)) {
         seenEdgeKeys.add(key);

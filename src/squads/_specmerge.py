@@ -60,6 +60,7 @@ from re import DOTALL
 from re import compile as re_compile
 from typing import Any, cast
 
+from squads import __version__
 from squads._errors import SquadsError
 
 type RawMapping = dict[str, Any]
@@ -530,24 +531,32 @@ def _unknown_key_violations(
     empty_accepted_hint: str | None = None,
 ) -> list[MergeViolation]:
     """Every key in *keys* not present in *accepted* — one collected violation each, naming
-    the key and the accepted set. Shared, verbatim, by two callers that are the same check
-    over two different key spaces: ``[selected]``'s section names (*path_prefix* the
-    ``selected`` table, *what* ``"[selected] section"``) and the override document's own
-    closed top-level key space (*path_prefix* empty, *what* ``"top-level key"``) — the
-    engine's ignorance of what either name space *means* is exactly what makes one helper
-    correct for both.
+    the key, the running squads version and the accepted set. Shared, verbatim, by two
+    callers that are the same check over two different key spaces: ``[selected]``'s section
+    names (*path_prefix* the ``selected`` table, *what* ``"[selected] section"``) and the
+    override document's own closed top-level key space (*path_prefix* empty, *what*
+    ``"top-level key"``) — the engine's ignorance of what either name space *means* is exactly
+    what makes one helper correct for both.
 
-    *empty_accepted_hint* is the escape hatch for that ignorance: when *accepted* is empty,
-    ``"use one of the accepted ...s: []"`` offers a menu with nothing on it — technically
-    correct, useless to read. A caller whose document has NO valid entries for this key space
-    at all (rather than merely none the adopter happened to name) may pass a one-line reason
-    here instead; it replaces the empty-menu fix hint verbatim. Ignored (and harmless) when
-    *accepted* is non-empty — the normal menu is the useful one there.
+    The version is what turns a bare "not accepted" into a forward-compatibility answer: an
+    adopter reading it can tell whether the key is a typo, a key from a newer squads than the
+    one that refused it, or a key an older squads has since dropped — three different remedies
+    a version-less menu cannot distinguish between.
+
+    *empty_accepted_hint* is the escape hatch for a *structurally* empty menu: when *accepted*
+    is empty, ``"use one of the accepted ...s: []"`` offers nothing to read — technically
+    correct, useless. A caller whose document has NO valid entries for this key space at all
+    (rather than merely none the adopter happened to name) may pass a one-line reason here
+    instead; it replaces the empty-menu fix hint verbatim, version omitted deliberately — that
+    hint explains *why the vocabulary is empty by design* (a structural fact, true at every
+    version), not what a newer or older squads happens to accept, so there is no version-bound
+    menu for it to be qualified against. Ignored (and harmless) when *accepted* is non-empty —
+    the normal, version-qualified menu is the useful one there.
     """
     fix_hint = (
         empty_accepted_hint
         if not accepted and empty_accepted_hint is not None
-        else f"use one of the accepted {what}s: {sorted(accepted)}"
+        else f"use one of the accepted {what}s in v{__version__}: {sorted(accepted)}"
     )
     return [
         MergeViolation(origin, _dotted(path_prefix, key), f"unknown {what} {key!r}", fix_hint)
@@ -557,14 +566,18 @@ def _unknown_key_violations(
 
 
 def _top_level_key_violations(
-    override: RawMapping, top_level_keys: frozenset[str] | None, origin: str
+    override: RawMapping, top_level_keys: frozenset[str], origin: str
 ) -> list[MergeViolation]:
     """The override document's own top level, checked before the merge — after merging,
     every base key is present and the override's own top level is no longer distinguishable
-    from it. A caller that supplies no accepted set (``top_level_keys=None``) gets no check
-    at all and every top-level key passes through: the roles loader is that caller, since a
-    role override's top-level keys are the fields of a role, a set that grows release to
-    release, so leniency there is forward compatibility rather than a gap.
+    from it. A closed top level is the only mode: every caller supplies its own accepted
+    set, derived from wherever that document's own vocabulary is declared (a role
+    document's from ``RoleSpec.model_fields``, so it grows with the model instead of going
+    stale beside it; the others from their own section-name constants) — there is no
+    open/unchecked mode left to opt into. A caller that once wanted forward compatibility
+    for an unrecognised key got silent key-dropping instead, which turned a typo into a
+    no-op the adopter could not see; refusing the key, naming it and the running version, is
+    what actually serves that case.
 
     ``selected`` is accepted unconditionally, whether or not the caller's own set names it.
     It is not the document's vocabulary — it is *this engine's* own reserved key (defined,
@@ -573,8 +586,6 @@ def _top_level_key_violations(
     forgot to would otherwise see a legitimate override refused on the load path for a
     document the adopter got right.
     """
-    if top_level_keys is None:
-        return []
     top_level_keys = top_level_keys | {_SELECTED_KEY}
     return _unknown_key_violations(override.keys(), top_level_keys, origin, "", "top-level key")
 
@@ -775,7 +786,7 @@ def merge_override(
     section_names: frozenset[str],
     origin: str,
     *,
-    top_level_keys: frozenset[str] | None,
+    top_level_keys: frozenset[str],
     collect_all: bool = False,
     empty_selected_hint: str | None = None,
 ) -> MergeResult:
@@ -788,12 +799,16 @@ def merge_override(
     the top-level check, which is the only point at which the override's own top level is
     still distinguishable from the base's.
 
-    ``top_level_keys`` has no default — a caller must pass either its accepted set or an
-    explicit ``None``, so "forgot to pass it" becomes a type error rather than a silent
-    fail-open. ``None`` still means "deliberately open, no check at all": the roles loader is
-    that caller, since a role override's top-level keys are the fields of a role, a
-    forward-compatible field set that grows release to release. ``selected`` is accepted
-    unconditionally whenever a set *is* given — see :func:`_top_level_key_violations`.
+    ``top_level_keys`` has no default — a caller must pass its accepted set, so "forgot to
+    pass it" stays a type error rather than a silent fail-open. There is no ``None`` escape
+    to opt out of the check: every overridable bundled document — workflow, playbook, the
+    role catalog, and a per-slug role — now has a closed top level, so a caller that once
+    wanted an open one has nothing left to ask this engine for. What changes is that
+    "deliberately open" stops being expressible without amending the decision that closed it
+    (a role override's own top-level closure predates this — the resolver has passed a set
+    derived from ``RoleSpec.model_fields`` since before this parameter's default was
+    removed; only this signature's *escape hatch* is what's gone). ``selected`` is accepted
+    unconditionally whenever a set is given — see :func:`_top_level_key_violations`.
 
     Two calling modes over one code path:
 

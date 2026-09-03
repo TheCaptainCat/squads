@@ -29,6 +29,7 @@ def _spec_with(**extra_items: ItemSpec) -> WorkflowSpec:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
 

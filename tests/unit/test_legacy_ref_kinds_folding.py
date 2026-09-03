@@ -28,7 +28,7 @@ def test_from_frontmatter_folds_a_legacy_ref_kinds_map_onto_the_matching_bare_re
         "created_at": _NOW,
         "updated_at": _NOW,
     }
-    it = Item.from_frontmatter(data, path="tasks/t.md")
+    it = Item.from_frontmatter(data, path="tasks/t.md", default_kind="related")
     assert it.refs == ["GUIDE-000002", "BUG-000003:fixes"]  # folded inline; default stays bare
     assert "ref_kinds" not in it.extra  # legacy key dropped
     assert it.extra == {"tech": "py"}  # other extras preserved

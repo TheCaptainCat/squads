@@ -156,12 +156,20 @@ class RetypeMixin(ServiceCore):
             # at that later point would leave the file sitting at the new filename with its
             # old (skewed) frontmatter still inside: a strictly worse intermediate state than
             # refusing here, before anything on disk has moved.
+            default_kind = self.spec.default_ref_kind()
             base = item.model_copy(deep=True)
             current_text = await self._read_item_file(item, item_file(self.paths, item))
-            ensure_no_skew(current_text, base)
+            ensure_no_skew(current_text, base, default_kind=default_kind)
 
             new_path = await apply_type_change(
-                self.paths, self.spec, db, item, new_type, carry_status=not status_reset, base=base
+                self.paths,
+                self.spec,
+                db,
+                item,
+                new_type,
+                carry_status=not status_reset,
+                base=base,
+                default_kind=default_kind,
             )
             new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
 
@@ -222,6 +230,7 @@ async def apply_type_change(
     *,
     carry_status: bool,
     base: Item,
+    default_kind: str,
 ) -> Path:
     """Mutate *item* in place for a type change: new prefix/id, moved file, frontmatter,
     status, and sub-entity container. Body bytes stay verbatim.
@@ -263,7 +272,7 @@ async def apply_type_change(
     await _aio.path_rename(old_path, new_path)
     item.path = new_rel
     item.updated_at = clock.now()
-    await update_frontmatter(new_path, item, base)
+    await update_frontmatter(new_path, item, base, default_kind=default_kind)
 
     # Append sub-entity container if the new type hosts one and it is absent
     await _ensure_subentity_container(spec, new_type, new_path)

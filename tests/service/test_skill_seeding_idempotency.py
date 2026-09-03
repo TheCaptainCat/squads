@@ -63,6 +63,7 @@ async def test_seed_bundled_skills_creates_at_the_live_status_when_initial_is_no
             "collections": dict(base.collections),
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
+            "ref_kinds": dict(base.ref_kinds),
         }
     )
     assert custom_spec.initial_status(ROSTER_SKILL) == "Provisioning"

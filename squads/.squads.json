@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.13.0",
-  "counter": 795,
+  "counter": 824,
   "padding": 6,
   "items": {
     "12": {
@@ -5506,7 +5506,7 @@
       ],
       "path": "features/FEAT-000693-derived-views-with-milestones-as-the-first-consumer.md",
       "created_at": "2026-07-29T13:52:43Z",
-      "updated_at": "2026-08-24T20:15:56Z",
+      "updated_at": "2026-08-26T08:22:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -21582,7 +21582,7 @@
       "subentities": [],
       "path": "adrs/ADR-000320-introduce-the-contract-prd-item-type-the-living-functional-c.md",
       "created_at": "2026-07-07T08:32:44Z",
-      "updated_at": "2026-08-24T20:16:00Z",
+      "updated_at": "2026-08-25T18:20:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22237,7 +22237,7 @@
       "subentities": [],
       "path": "adrs/ADR-000775-ref-kinds-are-declared-spec-vocabulary-bound-by-semantic-rol.md",
       "created_at": "2026-08-22T09:28:22Z",
-      "updated_at": "2026-08-24T18:10:34Z",
+      "updated_at": "2026-08-25T18:20:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22304,7 +22304,7 @@
       "subentities": [],
       "path": "adrs/ADR-000777-one-override-contract-for-every-bundled-spec-document.md",
       "created_at": "2026-08-22T09:28:30Z",
-      "updated_at": "2026-08-24T20:31:54Z",
+      "updated_at": "2026-08-25T23:00:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31570,7 +31570,7 @@
       "subentities": [],
       "path": "agents/skills/SKILL-000508-releasing-squads.md",
       "created_at": "2026-07-20T12:32:09Z",
-      "updated_at": "2026-08-06T21:32:23Z",
+      "updated_at": "2026-08-26T09:06:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {
@@ -31637,7 +31637,7 @@
       "type": "feature",
       "title": "Ref kinds as declared workflow-spec vocabulary",
       "slug": "ref-kinds-as-declared-workflow-spec-vocabulary",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -31652,7 +31652,7 @@
         {
           "local_id": "US1",
           "title": "Declare [ref_kinds] as a workflow-spec section",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31661,7 +31661,7 @@
         {
           "local_id": "US2",
           "title": "Bind engine behaviour to declared semantics, not literals",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31670,7 +31670,7 @@
         {
           "local_id": "US3",
           "title": "Per-capability floor and the live-corpus refusal",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31679,7 +31679,7 @@
         {
           "local_id": "US4",
           "title": "sq workflow ref-kinds --json catalog command",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31688,7 +31688,7 @@
         {
           "local_id": "US5",
           "title": "Reissue the ref-kind contract prose (tech-writer)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": null,
@@ -31697,7 +31697,7 @@
       ],
       "path": "features/FEAT-000790-ref-kinds-as-declared-workflow-spec-vocabulary.md",
       "created_at": "2026-08-24T18:24:12Z",
-      "updated_at": "2026-08-24T18:25:20Z",
+      "updated_at": "2026-08-26T09:22:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31708,7 +31708,7 @@
       "type": "feature",
       "title": "Uniform override contract for every bundled spec document",
       "slug": "uniform-override-contract-for-every-bundled-spec-document",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -31723,7 +31723,7 @@
         {
           "local_id": "US1",
           "title": "Widen the manifest to every overridable bundled artifact",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31732,7 +31732,7 @@
         {
           "local_id": "US2",
           "title": "Content-gate workflow/playbook/role drift",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31741,7 +31741,7 @@
         {
           "local_id": "US3",
           "title": "Whole-document override for the roles catalog",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31750,7 +31750,7 @@
         {
           "local_id": "US4",
           "title": "Close the role override top-level key space (align ADR-696 §4b)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31759,7 +31759,7 @@
         {
           "local_id": "US5",
           "title": "Uniform unstamped-shadowing severity plus the uniformity guard",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -31768,7 +31768,7 @@
       ],
       "path": "features/FEAT-000791-uniform-override-contract-for-every-bundled-spec-document.md",
       "created_at": "2026-08-24T18:26:05Z",
-      "updated_at": "2026-08-25T13:38:47Z",
+      "updated_at": "2026-08-26T09:23:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31779,7 +31779,7 @@
       "type": "feature",
       "title": "Pointers name commands, never a local path",
       "slug": "pointers-name-commands-never-a-local-path",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -31840,7 +31840,7 @@
       ],
       "path": "features/FEAT-000792-pointers-name-commands-never-a-local-path.md",
       "created_at": "2026-08-24T18:28:02Z",
-      "updated_at": "2026-08-24T18:29:12Z",
+      "updated_at": "2026-08-25T14:44:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -32020,6 +32020,1869 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-795"
+    },
+    "796": {
+      "sequence_id": 796,
+      "type": "task",
+      "title": "Declare [ref_kinds] in the workflow spec and retire VALID_REF_KINDS",
+      "slug": "declare-ref-kinds-in-the-workflow-spec-and-retire-valid-ref",
+      "status": "Done",
+      "description": "Declare ref_kinds as a workflow-spec section, retire VALID_REF_KINDS as the authority, ship the bundled targets kind and the ref-kinds catalog command",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare the [ref_kinds] section and its spec model",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Move the bundled ref kinds into workflow.toml",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Retire VALID_REF_KINDS at the consultation sites",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Re-authority the ref_rules kind check onto the declared section",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "sq workflow ref-kinds --json and the bundled targets kind",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000796-declare-ref-kinds-in-the-workflow-spec-and-retire-valid-ref.md",
+      "created_at": "2026-08-25T14:40:26Z",
+      "updated_at": "2026-08-25T23:39:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-796"
+    },
+    "797": {
+      "sequence_id": 797,
+      "type": "task",
+      "title": "Bind ref-kind engine behaviour to declared semantics",
+      "slug": "bind-ref-kind-engine-behaviour-to-declared-semantics",
+      "status": "Done",
+      "description": "Bind the dependency, preload and supersession behaviours to declared semantics, add the per-capability floor, the live-corpus refusal and the literal scan",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "TASK-796:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Convert the dependency bindings to the declared semantic",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Convert the preload bindings to the declared semantic",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Convert the supersession binding to the declared semantic",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "tests/meta scan for bundled ref-kind literals",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Per-capability floor on the merged spec",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Live-corpus refusal for a dropped or renamed ref kind",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000797-bind-ref-kind-engine-behaviour-to-declared-semantics.md",
+      "created_at": "2026-08-25T14:40:27Z",
+      "updated_at": "2026-08-25T23:39:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-797"
+    },
+    "798": {
+      "sequence_id": 798,
+      "type": "task",
+      "title": "Reissue the ref-kind contract prose",
+      "slug": "reissue-the-ref-kind-contract-prose",
+      "status": "Done",
+      "description": "Retire the closed-vocabulary policy from the stability doc and the generated cheatsheet, and reissue the replacement contract wording",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "TASK-797:depends-on",
+        "TASK-799"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Retire the closed-vocabulary passage from docs/stability.md",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Retire the closed-vocabulary line from the cheatsheet template",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Regenerate the template manifest and managed artifacts",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Make the cheatsheet kinds table spec-driven",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Retire the closed-vocabulary claim from the README",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000798-reissue-the-ref-kind-contract-prose.md",
+      "created_at": "2026-08-25T14:40:28Z",
+      "updated_at": "2026-08-25T23:39:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-798"
+    },
+    "799": {
+      "sequence_id": 799,
+      "type": "task",
+      "title": "Widen the provenance manifest and content-gate override drift",
+      "slug": "widen-the-provenance-manifest-and-content-gate-override-drif",
+      "status": "Done",
+      "description": "Generalise the provenance manifest to every overridable bundled artifact with a retained content store, and content-gate spec and role drift",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-777:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Widen the manifest to every overridable bundled artifact",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Content-addressed store with insert-if-absent semantics",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Seed the store back to the 0.4.0 index floor",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Coverage guards and the in-wheel store ceiling",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Content-gate workflow and playbook drift",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Measure role drift against roles.toml and fix its delta-mine",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Delta-upgrade from the store, and the uncarried-base path",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000799-widen-the-provenance-manifest-and-content-gate-override-drif.md",
+      "created_at": "2026-08-25T14:40:34Z",
+      "updated_at": "2026-08-25T23:39:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-799"
+    },
+    "800": {
+      "sequence_id": 800,
+      "type": "task",
+      "title": "Whole-document override for the roles catalog",
+      "slug": "whole-document-override-for-the-roles-catalog",
+      "status": "Done",
+      "description": "Give the roles catalog a whole-document override with its own stamp, drift, deselect and scaffold, and close the role override key space",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-777:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Resolve .overrides/roles.toml through the shared merge engine",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Stamp, drift and sq override scaffold roles",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Deselect on the roles catalog document",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Close the role override top-level key space",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Narrow the superseded role-top-level clause in place",
+          "status": "Todo",
+          "assignee": "architect",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000800-whole-document-override-for-the-roles-catalog.md",
+      "created_at": "2026-08-25T14:40:35Z",
+      "updated_at": "2026-08-25T23:39:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-800"
+    },
+    "801": {
+      "sequence_id": 801,
+      "type": "task",
+      "title": "Uniform unstamped-shadowing severity and the uniformity guard",
+      "slug": "uniform-unstamped-shadowing-severity-and-the-uniformity-guar",
+      "status": "Done",
+      "description": "Make an unstamped shadowing override an error for every kind, and guard the four-part uniformity structurally",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-777:implements",
+        "TASK-799:depends-on",
+        "TASK-800:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Raise unstamped shadowing template and role overrides to error",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "tests/meta uniformity guard over the override registry",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Correct OverrideEntry.kind docstring",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Narrow the stale playbook-override amendment note",
+          "status": "Todo",
+          "assignee": "architect",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Restore the manifest-freshness content assertion",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000801-uniform-unstamped-shadowing-severity-and-the-uniformity-guar.md",
+      "created_at": "2026-08-25T14:40:36Z",
+      "updated_at": "2026-08-25T23:39:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-801"
+    },
+    "802": {
+      "sequence_id": 802,
+      "type": "task",
+      "title": "Rewrite the four pointer templates to name commands",
+      "slug": "rewrite-the-four-pointer-templates-to-name-commands",
+      "status": "Ready",
+      "description": "Drop squad_path from all four templates, move the slug-bound startup command set into the pointers from one declared list, and reword invariant 5",
+      "parent": "FEAT-792",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-781:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Drop squad_path from the four templates and its five producers",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Declare the startup command set once and render both pointers from it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Remove the role body template's duplicate startup command block",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Reword invariant 5 to the containment statement",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Regenerate the template manifest and re-pin the goldens",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000802-rewrite-the-four-pointer-templates-to-name-commands.md",
+      "created_at": "2026-08-25T14:42:04Z",
+      "updated_at": "2026-08-25T15:02:36Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-802"
+    },
+    "803": {
+      "sequence_id": 803,
+      "type": "task",
+      "title": "Per-host backend questions and pointer currency detection",
+      "slug": "per-host-backend-questions-and-pointer-currency-detection",
+      "status": "Ready",
+      "description": "Declare ADR-781's five per-host questions on the AgentBackend ABC and add the currency half of pointer detection to sq check and sq sync",
+      "parent": "FEAT-792",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-781:implements",
+        "TASK-802:depends-on",
+        "BUG-784"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare the five per-host questions without growing the abstract seven",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Both bundled backends answer all five questions explicitly",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "sq check compares a fresh render against disk, at two severities",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "sq sync reports what it regenerated for a currency fix",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000803-per-host-backend-questions-and-pointer-currency-detection.md",
+      "created_at": "2026-08-25T14:42:10Z",
+      "updated_at": "2026-08-25T14:44:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-803"
+    },
+    "804": {
+      "sequence_id": 804,
+      "type": "bug",
+      "title": "Legacy-folded default-kind refs vanish from sq graph after a default-kind rename",
+      "slug": "legacy-folded-default-kind-refs-vanish-from-sq-graph-after-a",
+      "status": "Open",
+      "description": "Pre-0.2 extra.ref_kinds fold spells the default kind; renaming the default (ADR-775 A1) orphans it and sq graph silently drops the edge",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-796:addresses",
+        "ADR-775"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000804-legacy-folded-default-kind-refs-vanish-from-sq-graph-after-a.md",
+      "created_at": "2026-08-25T15:44:33Z",
+      "updated_at": "2026-08-25T16:00:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-804"
+    },
+    "805": {
+      "sequence_id": 805,
+      "type": "task",
+      "title": "Content-gate the workflow lint stamp finding and de-fork it",
+      "slug": "content-gate-the-workflow-lint-stamp-finding-and-de-fork-it",
+      "status": "Done",
+      "description": "Content-gate workflow_stamp_finding so sq workflow lint stops warning on stamp age alone, and collapse the forked gated copy back to one implementation",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-777:implements",
+        "TASK-799:depends-on",
+        "TASK-797:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Gate the workflow stamp finding on content",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Retire the duplicate gated copy and guard the agreement",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000805-content-gate-the-workflow-lint-stamp-finding-and-de-fork-it.md",
+      "created_at": "2026-08-25T15:48:22Z",
+      "updated_at": "2026-08-25T23:39:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-805"
+    },
+    "806": {
+      "sequence_id": 806,
+      "type": "task",
+      "title": "Never spell the default ref kind on disk, and refreeze the runner",
+      "slug": "never-spell-the-default-ref-kind-on-disk-and-refreeze-the-ru",
+      "status": "Done",
+      "description": "Stop emitting the spelled default ref kind on disk by normalising at the service load boundary, and give the frozen 0.1-to-0.2 runner its own fold",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "BUG-804:fixes",
+        "TASK-797:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Normalise at the fold input via a required keyword",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Convergence table and the call-site drift guard",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Refreeze the 0.1-to-0.2 runner fold and guard the boundary",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000806-never-spell-the-default-ref-kind-on-disk-and-refreeze-the-ru.md",
+      "created_at": "2026-08-25T15:57:20Z",
+      "updated_at": "2026-08-25T23:39:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-806"
+    },
+    "807": {
+      "sequence_id": 807,
+      "type": "task",
+      "title": "sq graph traverses undeclared-kind edges instead of dropping them",
+      "slug": "sq-graph-traverses-undeclared-kind-edges-instead-of-dropping",
+      "status": "Done",
+      "description": "Stop sq graph silently dropping an edge whose kind the merged spec does not declare; it traverses and reports a null semantic",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "BUG-804:fixes",
+        "TASK-797:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Split the declared-vocabulary drop from the --kind filter",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Emit a null semantic and hold the four surfaces in agreement",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000807-sq-graph-traverses-undeclared-kind-edges-instead-of-dropping.md",
+      "created_at": "2026-08-25T15:57:21Z",
+      "updated_at": "2026-08-25T23:39:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-807"
+    },
+    "808": {
+      "sequence_id": 808,
+      "type": "review",
+      "title": "Ref-kind vocabulary and provenance manifest landing",
+      "slug": "ref-kind-vocabulary-and-provenance-manifest-landing",
+      "status": "Approved",
+      "description": "Review of 958974c: TASK-796, TASK-806 (FEAT-790) and TASK-799 (FEAT-791)",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-790",
+        "FEAT-791"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "The 0.5-to-0.7 runner's on-disk output also changed retroactively",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Manifest-freshness guard lost its stale-hash assertion",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Pre-0.14 spelled-default refs become a false skew refusal on upgrade",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "README carries a third, untracked closed-nine-kinds claim",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Width-tolerant ref severing lost its bare-ref coverage",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "sq workflow lint passes a spec every mutation then refuses",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Never-prune plus no-orphans deadlocks a same-release delete",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "The VS Code client binds edge labels to a literal kind name",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000808-ref-kind-vocabulary-and-provenance-manifest-landing.md",
+      "created_at": "2026-08-25T17:43:57Z",
+      "updated_at": "2026-08-25T23:39:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-808"
+    },
+    "809": {
+      "sequence_id": 809,
+      "type": "task",
+      "title": "Refreeze the 0.5-to-0.7 runner and restore lost bare-ref coverage",
+      "slug": "refreeze-the-0-5-to-0-7-runner-and-restore-lost-bare-ref-cov",
+      "status": "Done",
+      "description": "Give the 0.5-to-0.7 migration runner its own frozen ref handling, re-derive the migration import guard's rule, and restore the two coverage legs the structural change removed",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "REV-808:addresses",
+        "TASK-806"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Freeze the 0.5-to-0.7 runner's own ref handling",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Re-derive the migration import guard's rule",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Repad fixture legs for spelled ref kinds",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Restore the bare leg of width-tolerant ref severing",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000809-refreeze-the-0-5-to-0-7-runner-and-restore-lost-bare-ref-cov.md",
+      "created_at": "2026-08-25T17:54:46Z",
+      "updated_at": "2026-08-25T23:39:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-809"
+    },
+    "810": {
+      "sequence_id": 810,
+      "type": "task",
+      "title": "Bind VS Code diagram edge labels to the declared semantic",
+      "slug": "bind-vs-code-diagram-edge-labels-to-the-declared-semantic",
+      "status": "Done",
+      "description": "Convert the VS Code client's graph edge labelling from a literal kind name to the declared semantic, and cover it in the client's own suite",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "REV-808:addresses",
+        "TASK-797:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Branch edge labelling on the declared semantic",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Client-side coverage for the semantic edge binding",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000810-bind-vs-code-diagram-edge-labels-to-the-declared-semantic.md",
+      "created_at": "2026-08-25T17:56:43Z",
+      "updated_at": "2026-08-25T23:39:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-810"
+    },
+    "811": {
+      "sequence_id": 811,
+      "type": "task",
+      "title": "Report a stale index encoding as one, never as a divergence",
+      "slug": "report-a-stale-index-encoding-as-one-never-as-a-divergence",
+      "status": "Done",
+      "description": "Separate a stale index encoding from a real on-disk divergence at the skew site, and say which one it is in the refusal and the sq check finding",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "REV-808:addresses",
+        "TASK-806"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Separate normalisation from divergence at the skew site",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "One wording for one state on both surfaces",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Coverage for the three skew states",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000811-report-a-stale-index-encoding-as-one-never-as-a-divergence.md",
+      "created_at": "2026-08-25T18:09:31Z",
+      "updated_at": "2026-08-25T23:40:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-811"
+    },
+    "812": {
+      "sequence_id": 812,
+      "type": "task",
+      "title": "Sweep unreferenced blobs in the generator's steady state",
+      "slug": "sweep-unreferenced-blobs-in-the-generator-s-steady-state",
+      "status": "Done",
+      "description": "Give the manifest generator a reachability sweep so an unreferenced blob cannot survive a regeneration, and restate never-prune as no revision an index entry names is ever removed",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-777:implements",
+        "REV-808:addresses",
+        "TASK-799"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reachability sweep in the generator's write mode",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Orphan guard as a maintained invariant",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000812-sweep-unreferenced-blobs-in-the-generator-s-steady-state.md",
+      "created_at": "2026-08-25T18:11:01Z",
+      "updated_at": "2026-08-25T23:40:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-812"
+    },
+    "813": {
+      "sequence_id": 813,
+      "type": "task",
+      "title": "Shared 0.14 migration runner for the two new item types",
+      "slug": "shared-0-14-migration-runner-for-the-two-new-item-types",
+      "status": "Draft",
+      "description": "The single schema bump, registry entry and runner carrying both the contract and milestone types into 0.14, plus the folder creation, surface regeneration and manual runbook entry",
+      "parent": "FEAT-693",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-320:implements",
+        "TASK-812:depends-on",
+        "FEAT-321:depends-on",
+        "ADR-775",
+        "REV-808"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Schema bump and the shared registry entry",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Create both new types' folders on an existing squad",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Regenerate and verify the agent-facing surface",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Manual runbook entry for both new types",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000813-shared-0-14-migration-runner-for-the-two-new-item-types.md",
+      "created_at": "2026-08-25T18:12:45Z",
+      "updated_at": "2026-08-25T18:20:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-813"
+    },
+    "814": {
+      "sequence_id": 814,
+      "type": "task",
+      "title": "Finish the roles catalog override: reachable and applied everywhere",
+      "slug": "finish-the-roles-catalog-override-reachable-and-applied-ever",
+      "status": "Done",
+      "description": "Wire the roles catalog document into the override CLI verbs and make it apply to an already-activated role, so the kind is reachable by a human and behaves the same before and after activation",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-777:implements",
+        "TASK-800",
+        "TASK-799"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Wire the roles kind into the override CLI verbs",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Apply the catalog document to an activated role",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "sq role catalog lists project-declared roles",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000814-finish-the-roles-catalog-override-reachable-and-applied-ever.md",
+      "created_at": "2026-08-25T21:05:19Z",
+      "updated_at": "2026-08-25T23:40:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-814"
+    },
+    "815": {
+      "sequence_id": 815,
+      "type": "task",
+      "title": "Document ref_kinds as an overridable workflow-spec section",
+      "slug": "document-ref-kinds-as-an-overridable-workflow-spec-section",
+      "status": "Done",
+      "description": "Name ref_kinds in every override-section enumeration and give it a field reference in the override docs",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements",
+        "TASK-796:depends-on",
+        "TASK-797:depends-on",
+        "TASK-821:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Name ref_kinds in every override-section enumeration",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Write the ref-kinds field reference in the override docs",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Complete the workflow.md override-format field reference",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Cover ref kinds in the drop-and-rename live-corpus prose",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Restore the duplicate-filing guidance in the docs, not the spec",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000815-document-ref-kinds-as-an-overridable-workflow-spec-section.md",
+      "created_at": "2026-08-25T22:33:00Z",
+      "updated_at": "2026-08-26T09:21:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-815"
+    },
+    "816": {
+      "sequence_id": 816,
+      "type": "task",
+      "title": "Make the bundled targets ref-kind hint true of what ships",
+      "slug": "make-the-bundled-targets-ref-kind-hint-true-of-what-ships",
+      "status": "Done",
+      "description": "Rewrite the targets hint so the generated cheatsheet stops describing a view mechanism that does not exist",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-798:depends-on",
+        "TASK-799:depends-on",
+        "ADR-775:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rewrite the targets hint to describe the shipped kind",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Refresh the goldens, content store and manifest entry",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000816-make-the-bundled-targets-ref-kind-hint-true-of-what-ships.md",
+      "created_at": "2026-08-25T22:34:48Z",
+      "updated_at": "2026-08-26T09:21:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-816"
+    },
+    "817": {
+      "sequence_id": 817,
+      "type": "review",
+      "title": "FEAT-790 / FEAT-791 completion landing",
+      "slug": "feat-790-feat-791-completion-landing",
+      "status": "Approved",
+      "description": "Review of e397ef5..6d27354 on release/0.14: TASK-797, 798, 800, 801, 805, 807, 809, 810, 811, 812, 814",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-790:addresses",
+        "FEAT-791:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Generator sweep deletes shipped store history when the running version is already released",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Uniformity guard cannot see a sixth kind, and omits CLI reachability",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Roles catalog refusals blame the bundled catalog for an adopter's own override",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Unknown-top-level-key refusal never names the running version",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Migration import guard is bypassed by a module import plus attribute access",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Catalog [dev] override does not reach the un-added dev-role preview",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Roles-catalog stamp finding still says the CLI has no roles verbs",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Cheatsheet lost the duplicates-are-closed-as-Cancelled guidance",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "New hygiene scans carry hand-maintained literal lists unpinned to their sources",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000817-feat-790-feat-791-completion-landing.md",
+      "created_at": "2026-08-25T22:46:30Z",
+      "updated_at": "2026-08-26T09:21:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-817"
+    },
+    "818": {
+      "sequence_id": 818,
+      "type": "task",
+      "title": "Uniformity guard derives its kind set and checks CLI reachability",
+      "slug": "uniformity-guard-derives-its-kind-set-and-checks-cli-reachab",
+      "status": "Done",
+      "description": "Replace the guard's hand-written kind registry with one derived from scan_overrides, and add CLI reachability as its fifth element",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-817:addresses",
+        "TASK-801"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Derive the guard's kind set from scan_overrides",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Add CLI reachability as the fifth uniformity element",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Correct the dispatcher claim in _uniformity_gaps' docstring",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000818-uniformity-guard-derives-its-kind-set-and-checks-cli-reachab.md",
+      "created_at": "2026-08-25T22:57:39Z",
+      "updated_at": "2026-08-26T08:53:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-818"
+    },
+    "819": {
+      "sequence_id": 819,
+      "type": "task",
+      "title": "Close the hygiene scans' import evasion and pin their literal lists",
+      "slug": "close-the-hygiene-scans-import-evasion-and-pin-their-literal",
+      "status": "Done",
+      "description": "The migration import guard misses a module import plus attribute access, and both new AST scans carry hand-maintained vocabularies unpinned to their sources",
+      "parent": "FEAT-790",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-817:addresses",
+        "TASK-809"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Walk module imports and attribute access in the migration guard",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Pin the wire-encoding primitive names to _models._item",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Pin the ref-kind literal set to the bundled spec's ref_kinds",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000819-close-the-hygiene-scans-import-evasion-and-pin-their-literal.md",
+      "created_at": "2026-08-25T22:58:35Z",
+      "updated_at": "2026-08-26T08:53:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-819"
+    },
+    "820": {
+      "sequence_id": 820,
+      "type": "task",
+      "title": "Roles catalog: correct diagnostics and thread the dev-role base",
+      "slug": "roles-catalog-correct-diagnostics-and-thread-the-dev-role-ba",
+      "status": "Done",
+      "description": "Catalog refusals name the merged document rather than the bundled one, the stamp finding names its own object, and the dev-role preview base honours the project catalog",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-817:addresses",
+        "ADR-775:implements",
+        "TASK-800",
+        "TASK-814"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Carry the origin into roles catalog validation refusals",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Name roles in the stamp finding and retire the stale docstring",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Thread squad_dir into the dev-role preview merge base",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000820-roles-catalog-correct-diagnostics-and-thread-the-dev-role-ba.md",
+      "created_at": "2026-08-25T22:59:31Z",
+      "updated_at": "2026-08-26T08:38:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-820"
+    },
+    "821": {
+      "sequence_id": 821,
+      "type": "task",
+      "title": "Unknown-key refusals name the running squads version",
+      "slug": "unknown-key-refusals-name-the-running-squads-version",
+      "status": "Done",
+      "description": "The shared merge engine's unknown-key message names the key and the accepted set but never the version, leaving FEAT-791's forward-compatibility clause unmet for every override kind",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-817:addresses",
+        "ADR-777:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Name the running version in the shared unknown-key message",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Update every carrier of the old refusal text",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000821-unknown-key-refusals-name-the-running-squads-version.md",
+      "created_at": "2026-08-25T23:00:49Z",
+      "updated_at": "2026-08-26T08:38:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-821"
+    },
+    "822": {
+      "sequence_id": 822,
+      "type": "task",
+      "title": "Rebuild the content store from ground truth and retire the sweep",
+      "slug": "rebuild-the-content-store-from-ground-truth-and-retire-the-s",
+      "status": "Done",
+      "description": "Withdraw the generator's reachability sweep, make removal a capability of an all-or-nothing rebuild against the release tags, and widen the freshness check to the whole index",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-817:addresses",
+        "ADR-777:implements",
+        "TASK-812",
+        "TASK-799",
+        "TASK-816"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Withdraw the sweep from the generator's write mode",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rebuild the store from the tags, all-or-nothing",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Widen --check to the whole index and state what it checked",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Move the orphan assertion to the release gate",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Parametrise the retention fixture off the running version",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000822-rebuild-the-content-store-from-ground-truth-and-retire-the-s.md",
+      "created_at": "2026-08-25T23:08:49Z",
+      "updated_at": "2026-08-26T00:09:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-822"
+    },
+    "823": {
+      "sequence_id": 823,
+      "type": "review",
+      "title": "The rebuilt content store: removal moved, its discriminator did not",
+      "slug": "the-rebuilt-content-store-removal-moved-its-discriminator-di",
+      "status": "Approved",
+      "description": "Driven review of 2a81c06 (TASK-822): the rebuild reproduces the withdrawn sweep's loss when the running version is already tagged",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-817",
+        "FEAT-791:addresses",
+        "TASK-822:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Rebuild destroys a shipped release's blobs once its tag exists",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "critical",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Rebuild has no floor: an unreadable or artifact-less tag empties an entry",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Store-coverage failure names a remedy that cannot fix it",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Runbook's rebuild and release-gate steps contradict each other on order",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "A mistyped flag silently runs write mode; --check --rebuild writes",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Rebuild reports a net size delta as a drop count; restorations invisible",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Rebuild's two writes are neither atomic nor rolled back",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Release-gate success line is identical to --check's",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000823-the-rebuilt-content-store-removal-moved-its-discriminator-di.md",
+      "created_at": "2026-08-25T23:50:01Z",
+      "updated_at": "2026-08-26T09:21:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-823"
+    },
+    "824": {
+      "sequence_id": 824,
+      "type": "task",
+      "title": "Rebuild reporting and durability: honest counts, atomic writes",
+      "slug": "rebuild-reporting-and-durability-honest-counts-atomic-writes",
+      "status": "Done",
+      "description": "Report restorations and drops as two counts rather than a net delta, write both documents atomically, and let the release gate's success line say what only it verified",
+      "parent": "FEAT-791",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-823:addresses",
+        "TASK-822"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Report restored and dropped as two counted sets",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Write both documents atomically in both scripts",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Let the release gate's success line state what it verified",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000824-rebuild-reporting-and-durability-honest-counts-atomic-writes.md",
+      "created_at": "2026-08-26T00:11:27Z",
+      "updated_at": "2026-08-26T09:10:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-824"
     }
   }
 }

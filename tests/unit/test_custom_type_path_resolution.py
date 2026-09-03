@@ -46,6 +46,7 @@ def _spec_with_incident() -> WorkflowSpec:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
 
@@ -68,6 +69,7 @@ def _spec_with_runbook() -> WorkflowSpec:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
 
@@ -242,7 +244,7 @@ def test_item_prefix_round_trips_through_frontmatter_via_id_never_persisted_dire
     fm = original.to_frontmatter_dict()
     assert "prefix" not in fm  # nothing redundant left to persist
 
-    reloaded = Item.from_frontmatter(fm, path=path)
+    reloaded = Item.from_frontmatter(fm, path=path, default_kind="related")
     assert reloaded.prefix == prefix
     assert reloaded.id == original.id
 
@@ -279,6 +281,6 @@ def test_a_stray_legacy_prefix_key_in_frontmatter_is_tolerated_but_never_trusted
         "created_at": now,
         "updated_at": now,
     }
-    item = Item.from_frontmatter(data, path="tasks/TASK-000007-t.md")
+    item = Item.from_frontmatter(data, path="tasks/TASK-000007-t.md", default_kind="related")
     assert item.prefix == "TASK"
     assert item.id == "TASK-7"

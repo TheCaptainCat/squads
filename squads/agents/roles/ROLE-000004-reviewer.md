@@ -74,6 +74,7 @@ other: `sq mine reviewer` for the items assigned to you, and
 - File review findings as tracked sub-entities — `sq review <n> add-finding` with its badge field(s) set (severity in the bundled workflow), statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure.
 
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
+The `.md` files are sq-managed — read them through `sq <type> <n> show`, never by opening the file.
 For your part on each item type, follow your `sq-<type>` skill's **For Paul Reviewer**
 section — it tells you what to check, do, and hand off.
 When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> comment` for sub-entity-scoped

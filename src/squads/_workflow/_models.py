@@ -28,6 +28,7 @@ closed-set ``Priority``/``Severity`` enums.
 import math
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from re import compile as re_compile
 from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -335,22 +336,59 @@ class RefRule(BaseModel):
     change of meaning rather than an enforcement of the existing one: the bundled document
     declares rules on two types only, while the navigational kinds (``related``,
     ``depends-on``, ``blocks``, ``implements``, ``duplicates``, ``scopes``) are carried by
-    every type and declared by none. The accepted ``--kind`` vocabulary is closed and lives in
-    one place in code, deliberately with no project-config lookup on the validation path;
-    scoping ``ref add`` per type would put one there.
+    every type and declared by none. The accepted ``--kind`` vocabulary is declared spec
+    vocabulary (``WorkflowSpec.ref_kinds``), not a fixed set in code, so an adopter-declared
+    kind is an ordinary ``ref_rules`` target too, on the same terms as any bundled kind;
+    scoping ``ref add`` per type would still need a rule of its own, this one just validates
+    against the merged spec instead of a frozenset.
 
     What *is* enforced about a declaration is that it can actually apply: the loader refuses a
-    rule whose ``kind`` is outside the closed vocabulary, because every ref surface would
-    reject that kind and the rule could never fire.
+    rule whose ``kind`` isn't a declared entry of ``[ref_kinds]``, because every ref surface
+    would reject that kind and the rule could never fire.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     kind: str
     """The ref kind this rule applies to (e.g. ``"fixes"``, ``"supersedes"``). Must name a
-    member of the closed ref-kind vocabulary — validated at load."""
+    declared entry of ``WorkflowSpec.ref_kinds`` — validated at load."""
     hint: str = ""
     """Human-readable hint injected into ``parent_hint`` / error messages (optional)."""
+
+
+class RefKindSpec(BaseModel):
+    """One declared entry of ``[ref_kinds]`` — a navigational or semantically-bound ref kind.
+
+    Identity is the dict key on ``WorkflowSpec.ref_kinds``, never restated on the value — the
+    convention ``ItemSpec``/``StatusSpec``/``Lifecycle``/``Collection`` already follow.
+
+    ``role`` binds engine behaviour to a declared semantic instead of a spelling, so a project
+    may rename or drop any kind without silently losing the behaviour bound to it. A kind
+    declaring no ``role`` is purely navigational (display + graph traversal only) — the
+    default, and what an adopter-declared kind gets unless it says otherwise. Three of the four
+    values (``dependency``, ``preload``, ``supersession``) are read by engine sites elsewhere,
+    not by anything here; nothing in this module branches on them.
+
+    The fourth, ``default``, is the one the ref primitives (``split_ref``/``make_ref``) already
+    consume: exactly one declared kind must carry it (mandatory — a bare ``"ID"`` ref decodes
+    to whichever kind does, so a spec declaring none would turn existing on-disk data into a
+    load failure), and the bundled spec declares it on ``related``. Renaming the kind that
+    carries it is permitted and safe: the bare wire form binds to the semantic, never a
+    spelling, so a rename relabels the same edges instead of re-pointing them. Because ``role``
+    is one field, the kind carrying ``default`` can never simultaneously carry ``dependency``,
+    ``preload`` or ``supersession`` — that reassignment is unrepresentable, not merely checked.
+
+    ``direction`` only ever accompanies ``role = "dependency"`` (``"blocker"`` or
+    ``"dependent"``) — carried here, alongside ``role``, so the catalog command can emit it
+    without a second per-kind table.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    label: str
+    hint: str = ""
+    role: Literal["dependency", "preload", "supersession", "default"] | None = None
+    direction: Literal["blocker", "dependent"] | None = None
 
 
 class Badge(BaseModel):
@@ -999,16 +1037,21 @@ def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
     return frozenset(name.partition(":")[0] for name in names)
 
 
-#: One consistency clause: given a type, its spec, its effective (bare) validator names and the
-#: sub-entity kind table, return the refusals its declarations earn. Clauses are pure and
-#: independent — a type that trips two reports both.
+#: One consistency clause: given a type, its spec, its effective (bare) validator names, the
+#: sub-entity kind table and the declared ref-kind table, return the refusals its declarations
+#: earn. Clauses are pure and independent — a type that trips two reports both.
 type ConsistencyClause = Callable[
-    [str, ItemSpec, frozenset[str], dict[str, SubentityKindSpec]], list[str]
+    [str, ItemSpec, frozenset[str], dict[str, SubentityKindSpec], dict[str, RefKindSpec]],
+    list[str],
 ]
 
 
 def _clause_parent_reachable(
-    t: str, ts: ItemSpec, effective: frozenset[str], _kinds: dict[str, SubentityKindSpec]
+    t: str,
+    ts: ItemSpec,
+    effective: frozenset[str],
+    _kinds: dict[str, SubentityKindSpec],
+    _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
     """Guards ``parent_in``, and owns every arm about the parent declarations as a set.
 
@@ -1076,7 +1119,11 @@ def _clause_parent_reachable(
 
 
 def _clause_subentity_checked(
-    t: str, ts: ItemSpec, effective: frozenset[str], _kinds: dict[str, SubentityKindSpec]
+    t: str,
+    ts: ItemSpec,
+    effective: frozenset[str],
+    _kinds: dict[str, SubentityKindSpec],
+    _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
     """Guards the four :data:`SUBENTITY_VALIDATOR_NAMES`. A type declaring a ``subentity_kind``
     must keep at least one validator whose subject is that kind. The ``records`` bundle carries
@@ -1100,32 +1147,44 @@ def _clause_subentity_checked(
 
 
 def _clause_supersedes_checked(
-    t: str, ts: ItemSpec, effective: frozenset[str], _kinds: dict[str, SubentityKindSpec]
+    t: str,
+    ts: ItemSpec,
+    effective: frozenset[str],
+    _kinds: dict[str, SubentityKindSpec],
+    ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards ``supersedes_incoming``, whose gate is a declared ``supersedes`` ref rule: the
-    validator returns immediately for a type that declares none, and it sits in the ``records``
-    bundle and nowhere else. So a type keeping its ``supersedes`` rule under any other category
-    keeps the declaration and loses the only check it drives — a record left in a superseded
-    state with no incoming edge stops being reported, on every gate.
+    """Guards ``supersedes_incoming``, whose gate is a ref rule naming a declared
+    ``supersession``-role kind: the validator returns immediately for a type that declares
+    none, and it sits in the ``records`` bundle and nowhere else. So a type keeping its
+    ``supersession`` rule under any other category keeps the declaration and loses the only
+    check it drives — a record left in a superseded state with no incoming edge stops being
+    reported, on every gate.
 
-    The literal ``"supersedes"`` mirrors the validator's own gate (``rr.kind == "supersedes"``
-    in ``_services/_validators.py``); the rest of a type's ``ref_rules`` drive hint text only,
+    Resolved through *ref_kinds* (mirrors the validator's own gate,
+    ``rr.kind in spec.supersession_ref_kinds()`` in ``_services/_validators.py``), never a
+    fixed ``"supersedes"`` spelling; the rest of a type's ``ref_rules`` drive hint text only,
     which stays live under every category, so they need nothing here.
     """
-    if not any(rr.kind == "supersedes" for rr in ts.ref_rules) or "supersedes_incoming" in (
+    supersession_kinds = frozenset(k for k, ks in ref_kinds.items() if ks.role == "supersession")
+    if not any(rr.kind in supersession_kinds for rr in ts.ref_rules) or "supersedes_incoming" in (
         effective
     ):
         return []
     return [
-        f"item {t!r}: declares a 'supersedes' ref rule, but category {ts.category!r} turns on "
-        f"no validator for it ('supersedes_incoming'), so a superseded {t} with no incoming "
-        f"supersedes edge would go unreported. Drop the ref rule, leave {t!r} in a category "
-        f"that checks it, or name 'supersedes_incoming' in its own 'validators' list"
+        f"item {t!r}: declares a 'supersession'-role ref rule, but category {ts.category!r} "
+        "turns on no validator for it ('supersedes_incoming'), so a superseded "
+        f"{t} with no incoming supersession edge would go unreported. Drop the ref rule, "
+        f"leave {t!r} in a category that checks it, or name 'supersedes_incoming' in its own "
+        "'validators' list"
     ]
 
 
 def _clause_story_mapping_reachable(
-    t: str, ts: ItemSpec, effective: frozenset[str], kinds: dict[str, SubentityKindSpec]
+    t: str,
+    ts: ItemSpec,
+    effective: frozenset[str],
+    kinds: dict[str, SubentityKindSpec],
+    _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
     """Guards ``subtask_story_mapping``, whose gate is the hosted kind's ``maps_parent_story``
     capability rather than anything on the item type itself — which is why it is not one of
@@ -1182,7 +1241,10 @@ assert _CLAUSE_GUARDED | frozenset(COMMON_CORE) | UNGUARDED_VALIDATOR_NAMES == V
 
 
 def _check_category_consistency(
-    items: dict[str, ItemSpec], kinds: dict[str, SubentityKindSpec], errors: list[str]
+    items: dict[str, ItemSpec],
+    kinds: dict[str, SubentityKindSpec],
+    ref_kinds: dict[str, RefKindSpec],
+    errors: list[str],
 ) -> None:
     """Plane-1: every capability a type declares must be *reachable* under the validator set
     its own category turns on.
@@ -1214,7 +1276,7 @@ def _check_category_consistency(
     for t, ts in sorted(items.items()):
         effective = _effective_bare_validators(ts)
         for _guards, clause in CONSISTENCY_CLAUSES:
-            errors.extend(clause(t, ts, effective, kinds))
+            errors.extend(clause(t, ts, effective, kinds, ref_kinds))
 
 
 #: Field codes exempt from the reserved-key check below because this exact schema models
@@ -1324,6 +1386,77 @@ def _check_field_collections(
                         f"{owner!r} field {f.code!r}: required with no resolvable default "
                         f"badge in collection {f.collection!r}"
                     )
+
+
+#: A TOML bare key (``[A-Za-z0-9_-]+``) — what every ``[ref_kinds]`` entry's own key must
+#: satisfy so it stays splat-ref addressable; also rules out the wire ref
+#: separator ``:`` (``split_ref`` partitions on it, ``_models/_item.py``) without a second check.
+_BARE_TOML_KEY_RE = re_compile(r"^[A-Za-z0-9_-]+$")
+
+
+def _check_ref_kinds_floor(ref_kinds: dict[str, RefKindSpec], errors: list[str]) -> None:
+    """The per-capability floor over ``[ref_kinds]`` (plus the ``default`` role folded in by
+    the amendment that ruled it onto this floor) — checked here, on the merged mapping, so a
+    violation surfaces as an ordinary ``_build_spec`` finding: visible to ``sq workflow lint``
+    on the exact path every other structural failure already takes, not only at first use
+    inside an accessor like :meth:`WorkflowSpec.default_ref_kind`/
+    :meth:`WorkflowSpec.preload_ref_kind`. This is
+    what keeps lint and a mutating command in agreement on a spec neither should bless.
+
+    - Every key must be a bare TOML key (see :data:`_BARE_TOML_KEY_RE`).
+    - Exactly one kind carries ``role = "default"`` — mandatory; a bare ``"ID"`` ref is
+      undecodable without exactly one.
+    - Exactly one kind carries ``role = "preload"`` — mandatory; zero strands every custom
+      skill from the role that scopes it, two make the resolver's inversion ambiguous.
+    - At most one kind per ``dependency`` direction (``"blocker"``/``"dependent"``) — zero is
+      legal per direction; two spelling the same direction would make the normalisation the
+      graph traversal relies on ambiguous. A kind declaring ``role = "dependency"`` with no
+      direction at all is refused outright — it would silently resolve through neither bucket.
+    - ``supersession`` has no upper bound and no floor: zero is a stated choice (an empty
+      incoming-supersedes check), any number above zero is fine — the validator sites this
+      task converts read the full declared set, not a single kind.
+    """
+    errors.extend(
+        f"ref_kinds {code!r}: not a bare TOML key (must match [A-Za-z0-9_-]+) — this keeps "
+        "every kind splat-ref addressable and rules out the wire ref separator ':'"
+        for code in sorted(ref_kinds)
+        if not _BARE_TOML_KEY_RE.fullmatch(code)
+    )
+
+    defaults = sorted(k for k, ks in ref_kinds.items() if ks.role == "default")
+    if len(defaults) != 1:
+        errors.append(
+            "the workflow spec must declare exactly one ref kind with role = 'default' "
+            f"(a bare ref decodes to it); found {len(defaults)}: {defaults}"
+        )
+
+    preloads = sorted(k for k, ks in ref_kinds.items() if ks.role == "preload")
+    if len(preloads) != 1:
+        errors.append(
+            "the workflow spec must declare exactly one ref kind with role = 'preload' "
+            f"(a skill's forward edge to the role that preloads it); found {len(preloads)}: "
+            f"{preloads}"
+        )
+
+    stray = sorted(
+        k for k, ks in ref_kinds.items() if ks.role == "dependency" and ks.direction is None
+    )
+    if stray:
+        errors.append(
+            f"ref_kinds {stray}: role = 'dependency' requires a 'direction' of 'blocker' or "
+            "'dependent'"
+        )
+    for direction in ("blocker", "dependent"):
+        claimants = sorted(
+            k
+            for k, ks in ref_kinds.items()
+            if ks.role == "dependency" and ks.direction == direction
+        )
+        if len(claimants) > 1:
+            errors.append(
+                f"the workflow spec declares {len(claimants)} ref kinds with role = "
+                f"'dependency' and direction = {direction!r}; at most one is allowed: {claimants}"
+            )
 
 
 # Canonical priority order for well-known exception/side states: states appearing together
@@ -1507,6 +1640,10 @@ class WorkflowSpec(BaseModel):
     #: The role catalog, keyed by role name — the sole explicit status axis (settled/hidden/
     #: color live here; a status merely references one by name via ``StatusSpec.role``).
     roles: dict[str, RoleSpec] = {}
+    #: The declared ref-kind vocabulary, keyed by kind name — the accepted ``--kind`` set,
+    #: replacing the former ``VALID_REF_KINDS`` frozenset. A kind's ``role`` binds engine
+    #: behaviour to a semantic instead of a spelling; see :class:`RefKindSpec`.
+    ref_kinds: dict[str, RefKindSpec] = {}
 
     # ------------------------------------------------------------------ convenience accessors
 
@@ -1639,6 +1776,89 @@ class WorkflowSpec(BaseModel):
         dropped/renamed type, same shape as :meth:`item_extra_fields`/:meth:`fields_for`."""
         ts = self.items.get(item_type)
         return list(ts.ref_rules) if ts else []
+
+    def default_ref_kind(self) -> str:
+        """The one declared ``[ref_kinds]`` entry carrying ``role = "default"`` — what a bare
+        ``"ID"`` ref (:func:`~squads._models._item.split_ref`'s unspelled ``""``) actually
+        means.
+
+        Raises ``SquadsError`` when the merged spec declares zero or more than one — a
+        per-capability floor clause elsewhere is meant to keep this total at merge time,
+        landing alongside the rest of that floor; this accessor still fails closed rather than
+        guessing, since a bare ref is undecodable without exactly one.
+        """
+        defaults = [k for k, ks in self.ref_kinds.items() if ks.role == "default"]
+        if len(defaults) != 1:
+            from squads._errors import SquadsError
+
+            raise SquadsError(
+                "the workflow spec must declare exactly one ref kind with role = 'default' "
+                f"(a bare ref decodes to it); found {len(defaults)}: {sorted(defaults)}"
+            )
+        return defaults[0]
+
+    def ref_kinds_with_role(self, role: str) -> dict[str, RefKindSpec]:
+        """Declared ``[ref_kinds]`` entries carrying *role* — the generic semantic lookup
+        every engine binding resolves through instead of a kind's spelling."""
+        return {k: ks for k, ks in self.ref_kinds.items() if ks.role == role}
+
+    def preload_ref_kind(self) -> str:
+        """The one declared ``[ref_kinds]`` entry carrying ``role = "preload"`` — a skill's
+        forward edge to the role that preloads it, inverted by the roster resolver.
+
+        Raises ``SquadsError`` when the merged spec declares zero or more than one — the
+        per-capability floor (:func:`_check_ref_kinds_floor`) keeps this total at merge time;
+        this accessor still fails closed rather than guessing, the same shape as
+        :meth:`default_ref_kind`.
+        """
+        preloads = sorted(self.ref_kinds_with_role("preload"))
+        if len(preloads) != 1:
+            from squads._errors import SquadsError
+
+            raise SquadsError(
+                "the workflow spec must declare exactly one ref kind with role = 'preload' "
+                f"(a skill's forward edge to the role that preloads it); found "
+                f"{len(preloads)}: {preloads}"
+            )
+        return preloads[0]
+
+    def dependency_ref_kind(self, direction: Literal["blocker", "dependent"]) -> str | None:
+        """The declared ``[ref_kinds]`` entry carrying ``role = "dependency"`` in *direction*,
+        or ``None`` — zero is legal per direction (a squad may decline that half, or all, of
+        the dependency capability). Raises ``SquadsError`` if more than one claims the same
+        direction — the floor's job to prevent; this accessor stays defensive rather than
+        picking one."""
+        by_direction = self.ref_kinds_with_role("dependency")
+        claimants = sorted(k for k, ks in by_direction.items() if ks.direction == direction)
+        if len(claimants) > 1:
+            from squads._errors import SquadsError
+
+            raise SquadsError(
+                f"the workflow spec declares {len(claimants)} ref kinds with role = "
+                f"'dependency' and direction = {direction!r}; at most one is allowed: "
+                f"{claimants}"
+            )
+        return claimants[0] if claimants else None
+
+    def dependency_ref_kinds(self) -> frozenset[str]:
+        """Every declared kind carrying ``role = "dependency"``, either direction — the
+        traversal filter over the dependency pair, resolved from the spec instead of a
+        literal ``{"blocks", "depends-on"}`` pair."""
+        return frozenset(self.ref_kinds_with_role("dependency"))
+
+    def canonical_dependency_ref_kind(self) -> str | None:
+        """The declared kind every collapsed dependency edge's ``edge_kind`` emits: the kind
+        carrying ``role = "dependency"`` in the DEPENDENT direction,
+        or the BLOCKER-direction kind when a project declares only that half. ``None`` when
+        neither direction is declared — the dependency capability is legal to decline
+        entirely, and the graph then carries no dependency edges to label."""
+        return self.dependency_ref_kind("dependent") or self.dependency_ref_kind("blocker")
+
+    def supersession_ref_kinds(self) -> frozenset[str]:
+        """Every declared kind carrying ``role = "supersession"`` — zero or more; zero is
+        legal (a squad may decline the capability entirely), and no upper bound is floored,
+        so every consumer reads the full declared set rather than a single kind."""
+        return frozenset(self.ref_kinds_with_role("supersession"))
 
     def status_role(self, status: str) -> str | None:
         """Semantic role marker for this status (e.g. ``'superseded'``), or None."""
@@ -1911,7 +2131,7 @@ class WorkflowSpec(BaseModel):
 
         # Every capability a type declares must be reachable under the validators its own
         # category turns on — a category reassignment that contradicts itself fails here.
-        _check_category_consistency(self.items, self.subentity_kinds, errors)
+        _check_category_consistency(self.items, self.subentity_kinds, self.ref_kinds, errors)
 
         # Parent-cycle detection in the type-parent graph.
         _check_parent_cycles(self.items, errors)
@@ -1927,6 +2147,10 @@ class WorkflowSpec(BaseModel):
 
         # Each declared sub-entity kind's completion names a reachable, non-initial status.
         _check_completion_status(self.subentity_kinds, self.lifecycles, errors)
+
+        # The per-capability floor over [ref_kinds]: bare-key shape, exactly one default,
+        # exactly one preload, at most one kind per dependency direction.
+        _check_ref_kinds_floor(self.ref_kinds, errors)
 
         # Reserved-vocab floor — the spec must declare the three roster types, each with
         # category = "roster". This is the ONLY type-axis floor: every other type

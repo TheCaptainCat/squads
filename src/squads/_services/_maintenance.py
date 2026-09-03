@@ -27,9 +27,11 @@ from squads._interactions import (
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._itemfile import (
     INVENTED_WHEN_ABSENT,
+    SkewKey,
     frontmatter_skew,
     read_frontmatter,
     rewrite_ids,
+    stale_encoding_clause,
     update_frontmatter,
     write_text,
 )
@@ -213,22 +215,35 @@ def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
     return None
 
 
-def _drift_message(fields: list[str], item: Item, fdata: dict[str, Any]) -> str:
-    direction = _drift_direction(item, fdata)
-    if direction == "markdown":
-        suffix = " — markdown is ahead"
-    elif direction == "index":
-        suffix = " — index is ahead of markdown, which should not happen"
-    else:
-        suffix = ""
-    joined = ", ".join(fields)
+def _drift_message(fields: list[SkewKey], item: Item, fdata: dict[str, Any]) -> str:
+    """The ``sq check`` finding text for a confirmed skew — the same two-clause split as
+    :func:`~squads._itemfile.skew_message`: a real divergence keeps today's wording (with its
+    direction suffix), a stale index encoding gets
+    :func:`~squads._itemfile.stale_encoding_clause` instead, in the same words as the write
+    seam's own refusal. A mixed item reports both clauses."""
+    diverged = [k.name for k in fields if not k.stale_encoding]
+    stale = [k.name for k in fields if k.stale_encoding]
+    clauses: list[str] = []
+    if diverged:
+        direction = _drift_direction(item, fdata)
+        if direction == "markdown":
+            suffix = " — markdown is ahead"
+        elif direction == "index":
+            suffix = " — index is ahead of markdown, which should not happen"
+        else:
+            suffix = ""
+        clauses.append(f"{', '.join(diverged)} drift between frontmatter and index{suffix}")
+    if stale:
+        clauses.append(stale_encoding_clause(stale))
     return (
-        f"{joined} drift between frontmatter and index{suffix}; "
+        f"{'; '.join(clauses)}; "
         "run `sq repair` before this item is mutated again, or the fix is lost silently"
     )
 
 
-def _value_skew_issue(item: Item, text: str, fdata: dict[str, Any]) -> CheckIssue | None:
+def _value_skew_issue(
+    item: Item, text: str, fdata: dict[str, Any], *, default_kind: str
+) -> CheckIssue | None:
     """The general frontmatter/index value-divergence candidate: every top-level field on
     which *text*'s on-disk frontmatter diverges from *item*, not only ``status``/``parent`` —
     what were ``_status_drift``/``_parent_drift`` fold into this as the two-field special
@@ -251,7 +266,7 @@ def _value_skew_issue(item: Item, text: str, fdata: dict[str, Any]) -> CheckIssu
     family's class, not the reconciliation family's — the entry exists on both sides and one
     side is simply older — so ``sq check``'s exit code is unchanged.
     """
-    diverging = frontmatter_skew(text, item)
+    diverging = frontmatter_skew(text, item, default_kind=default_kind)
     if not diverging:
         return None
     return CheckIssue("warn", item.id, _drift_message(diverging, item, fdata))
@@ -545,10 +560,12 @@ class MaintenanceMixin(ServiceCore):
             if not (self.paths.root / rel_path).exists()
         }
 
+        # Resolved once for the whole sync sweep, not per role.
+        default_kind = self.spec.default_ref_kind()
         for it in roster_roles:
             msgs = (
-                await self._refresh_catalog_extra(it),
-                await self._refresh_role_skills_extra(it, role_skills),
+                await self._refresh_catalog_extra(it, default_kind=default_kind),
+                await self._refresh_role_skills_extra(it, role_skills, default_kind=default_kind),
             )
             skipped.extend(msg for msg in msgs if msg is not None)
             skipped += await self._project_roster_item(it, proj_ctx)
@@ -663,7 +680,7 @@ class MaintenanceMixin(ServiceCore):
             if not md.name.startswith(prefix)
         ]
 
-    async def _refresh_catalog_extra(self, item: Item) -> str | None:
+    async def _refresh_catalog_extra(self, item: Item, *, default_kind: str) -> str | None:
         """Merge current catalog fields into a predefined role's item extra, and project the
         resolved name/mission onto the item's own top-level ``title``/``description``.
 
@@ -679,13 +696,16 @@ class MaintenanceMixin(ServiceCore):
 
         Every role, dev or bundled, resolves through
         :func:`~squads._roles._resolver.resolve_role_with_base` with a base built by
-        :func:`~squads._roles._resolver.role_base_from_item`, which reads *this item's own*
-        stored operator-settable fields (a developer's tech/name/model, a bundled role's
-        ``full_name``) rather than either re-rolling a dev name from the pool or letting a
-        bundled role's catalog default override an operator's own name — an unrelated second
-        developer's ``full_name`` is never disturbed, and neither is another role's. Every
-        other field still comes from the current catalog fresh, so a ``RoleDef`` field added
-        after an item was created still reaches it here. With no override file present the
+        :func:`~squads._roles._resolver.role_base_from_item` (passed this squad's own
+        ``squad_dir``, so a bundled role's base already carries a project's catalog-document
+        override — ``.overrides/roles.toml`` — the same way an unactivated slug's does), which
+        reads *this item's own* stored operator-settable fields (a developer's tech/name/model,
+        a bundled role's ``full_name``) rather than either re-rolling a dev name from the pool
+        or letting a bundled role's catalog default override an operator's own name — an
+        unrelated second developer's ``full_name`` is never disturbed, and neither is another
+        role's. Every other field still comes from the current catalog fresh, so a ``RoleDef``
+        field added after an item was created, or a project's own catalog-document override,
+        still reaches it here. With no override file present the
         merged definition equals the base equals the item's own values, so both diff loops
         below find nothing and this returns ``None``: "no file" and "a file that changes
         nothing" take the same no-op path. Only a genuinely orphaned custom item — no catalog
@@ -737,7 +757,7 @@ class MaintenanceMixin(ServiceCore):
         the next time this call finds a live catalog entry for it.
         """
         slug = item.extra.get(X.SLUG, "")
-        base_role = role_base_from_item(item)
+        base_role = role_base_from_item(item, self.paths.squad_dir)
         try:
             catalog_role = resolve_role_with_base(slug, self.paths.squad_dir, base=base_role)
         except RoleNotFoundError:
@@ -768,7 +788,9 @@ class MaintenanceMixin(ServiceCore):
         }
         try:
             async with self.store.transaction() as db:
-                await update_frontmatter(item_file(self.paths, item), item, base)
+                await update_frontmatter(
+                    item_file(self.paths, item), item, base, default_kind=default_kind
+                )
                 db.add(item)
                 self.store.log("update", item.id, delta)
         except SquadsError as exc:
@@ -1300,6 +1322,11 @@ class MaintenanceMixin(ServiceCore):
         max_n = 0
         max_filename_width = 0
         unreadable: list[str] = []
+        # Resolved once for the whole rebuild, before the per-file loop and its own
+        # per-file SquadsError handling below — a spec declaring the wrong number of
+        # default ref kinds must fail as one clean refusal naming the spec, never be
+        # caught and mis-reported as N separate "unreadable file" issues.
+        default_kind = self.spec.default_ref_kind()
         for item_type, md in self._iter_item_files():
             try:
                 text = await _aio.read_text(md)
@@ -1321,7 +1348,7 @@ class MaintenanceMixin(ServiceCore):
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
             try:
-                item = Item.from_frontmatter(data, path=squad_rel)
+                item = Item.from_frontmatter(data, path=squad_rel, default_kind=default_kind)
             except SquadsError as exc:
                 max_n, max_filename_width = await self._report_third_state(
                     db, unreadable, known_corpus, md, item_type, str(exc), max_n, max_filename_width
@@ -1944,6 +1971,8 @@ class MaintenanceMixin(ServiceCore):
         seq: int,
         fresh_index: SquadsDB,
         on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
+        *,
+        default_kind: str,
     ) -> list[CheckIssue]:
         """Re-observe one drift candidate at the freshly-loaded index's path (falling back to
         the scan's own path when that one's gone — see the inline comment below) and re-run
@@ -1975,7 +2004,7 @@ class MaintenanceMixin(ServiceCore):
             fdata = read_frontmatter(text=text, source=str(confirm_path))
         except SquadsError:
             return []  # unparseable on this read — not confirmed, see the docstring above
-        issue = _value_skew_issue(fresh_item, text, fdata)
+        issue = _value_skew_issue(fresh_item, text, fdata, default_kind=default_kind)
         return [issue] if issue is not None else []
 
     async def _confirm_cross_source(
@@ -2027,10 +2056,15 @@ class MaintenanceMixin(ServiceCore):
         :func:`~squads._services._validators.backend_entry_missing` against the one fresh index
         reload below — never a second reload of its own.
         """
+        # Resolved once for the whole confirm round — before any scan or confirm — rather
+        # than per candidate: a spec declaring the wrong number of default ref kinds must
+        # fail as one clean refusal naming the spec, not partway through the round.
+        default_kind = self.spec.default_ref_kind()
         drift_seqs = {
             item.sequence_id
             for item in index.items.values()
-            if (text := bodies.get(item.sequence_id)) is not None and frontmatter_skew(text, item)
+            if (text := bodies.get(item.sequence_id)) is not None
+            and frontmatter_skew(text, item, default_kind=default_kind)
         }
         orphan_seqs = set(on_disk) - set(index.items)
         missing_seqs: set[int] = set(index.items) - set(on_disk) - unparseable_seqs
@@ -2048,7 +2082,9 @@ class MaintenanceMixin(ServiceCore):
         issues: list[CheckIssue] = []
 
         for seq in sorted(drift_seqs):
-            issues += await self._confirm_one_drift_candidate(seq, fresh_index, on_disk)
+            issues += await self._confirm_one_drift_candidate(
+                seq, fresh_index, on_disk, default_kind=default_kind
+            )
 
         for seq in sorted(orphan_seqs):
             fid, path, _data = on_disk[seq]
@@ -2164,6 +2200,9 @@ class MaintenanceMixin(ServiceCore):
         bodies: dict[int, str] = {}
         unparseable_seqs: set[int] = set()
         suppress_missing = False
+        # Resolved once for the whole scan, before the per-file loop and its own per-file
+        # SquadsError handling below — for the same reason as `_rebuild_index_from_disk`.
+        default_kind = self.spec.default_ref_kind()
         for item_type, md in self._iter_item_files():
             try:
                 text = await _aio.read_text(md)
@@ -2206,7 +2245,7 @@ class MaintenanceMixin(ServiceCore):
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
             try:
-                Item.from_frontmatter(data, path=squad_rel)
+                Item.from_frontmatter(data, path=squad_rel, default_kind=default_kind)
             except SquadsError as exc:
                 issues.append(CheckIssue("error", md.name, str(exc)))
                 unparseable_seqs.add(seq)

@@ -60,6 +60,17 @@ from re import compile as re_compile
 from typing import Any, cast
 
 from squads._errors import SquadsError
+
+# Import-direction note: `_overrides/_service.py` imports from this module, so `_workflow` and
+# `_overrides` form a cycle at *package* granularity. At *module* granularity there is no cycle:
+# `_overrides._manifest` (where `artifact_changed_since` lives) imports nothing beyond
+# `squads._util`, so it never imports this module back, directly or transitively. Python resolves
+# this import by first running `_overrides/__init__.py` (a docstring only, no imports) and then
+# loading `_overrides/_manifest` as a leaf — no partially-initialised module is ever observed.
+# `_interactions/_loader.py` already takes this same module-granular edge into `_overrides`
+# for the playbook's identical stamp obligation, so this follows established precedent rather
+# than opening a new one.
+from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
 from squads._specmerge import Deselection, RawMapping, merge_override
 from squads._workflow._models import (
     ROSTER_TYPES,
@@ -68,6 +79,7 @@ from squads._workflow._models import (
     Field,
     ItemSpec,
     Lifecycle,
+    RefKindSpec,
     RefRule,
     RoleSpec,
     StatusSpec,
@@ -85,7 +97,7 @@ WORKFLOW_OVERRIDE_FILENAME = ".overrides/workflow.toml"
 #: an override may declare is a section ``[selected]`` may also name. ``selected`` itself is
 #: accepted unconditionally by the engine and needs no entry here (``_specmerge`` docstring).
 WORKFLOW_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset(
-    {"items", "statuses", "lifecycles", "collections", "subentity_kinds", "roles"}
+    {"items", "statuses", "lifecycles", "collections", "subentity_kinds", "roles", "ref_kinds"}
 )
 
 #: Generic fix hint attached to every roster-lock finding in collect mode — the lock has exactly
@@ -299,29 +311,26 @@ def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
         raise SquadsError(f"Invalid lifecycle {name!r}: {exc}") from exc
 
 
-def _parse_ref_rules(raw_rules: Any, ctx: str) -> list[RefRule]:
+def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -> list[RefRule]:
     """Parse a list of ref-rule dicts into ``RefRule`` objects.
 
     Passes the raw dict directly to ``model_validate`` so ``extra="forbid"`` rejects
-    any unknown keys in a ref-rule table. Each rule's ``kind`` must name a member of the
-    closed ref-kind vocabulary (``VALID_REF_KINDS``): a rule declared for a kind no ref
-    surface accepts can never fire, so it is a declaration that silently does nothing —
-    refused here rather than carried as an inert hint. The vocabulary itself stays closed and
-    is not adopter-extensible: this validates a declaration *against* that closed set, it does
-    not widen it.
+    any unknown keys in a ref-rule table. Each rule's ``kind`` must name an entry of
+    *declared_kinds* — the document's own ``[ref_kinds]`` section, parsed before this is ever
+    called: a rule declared for a kind no ref surface accepts can never fire, so it is a
+    declaration that silently does nothing — refused here rather than carried as an inert
+    hint. This validates a declaration *against* the declared set; it never widens it.
     """
-    from squads._models._item import VALID_REF_KINDS
-
     rules: list[RefRule] = []
     for i, rule_data in enumerate(_as_entry_list(raw_rules, f"{ctx}.ref_rules")):
         try:
             rule = RefRule.model_validate(rule_data)
         except Exception as exc:
             raise SquadsError(f"{ctx} ref_rule[{i}]: {exc}") from exc
-        if rule.kind not in VALID_REF_KINDS:
+        if rule.kind not in declared_kinds:
             raise SquadsError(
                 f"{ctx} ref_rule[{i}]: kind {rule.kind!r} is not one of the declared ref "
-                f"kinds {sorted(VALID_REF_KINDS)} — every ref surface would reject it, so a "
+                f"kinds {sorted(declared_kinds)} — every ref surface would reject it, so a "
                 f"rule for it can never apply"
             )
         rules.append(rule)
@@ -368,6 +377,15 @@ def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
         raise SquadsError(f"Invalid role {code!r}: {exc}") from exc
 
 
+def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
+    """Parse one ``[ref_kinds.<code>]`` table into a ``RefKindSpec`` (``extra="forbid"`` fires
+    here)."""
+    try:
+        return RefKindSpec.model_validate(data)
+    except Exception as exc:
+        raise SquadsError(f"Invalid ref_kinds entry {code!r}: {exc}") from exc
+
+
 def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
     """Parse one ``[subentity_kinds.<kind>]`` table (its ``fields`` list is pre-coerced)."""
     fields = _parse_fields(data.get("fields", []), f"subentity_kinds.{kind}")
@@ -402,6 +420,13 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         except Exception as exc:
             raise SquadsError(f"Invalid status {name!r}: {exc}") from exc
 
+    # --- ref_kinds (the declared ref-kind vocabulary) --- parsed before items:
+    # ref_rules validation below refuses a rule naming an undeclared kind.
+    ref_kinds: dict[str, RefKindSpec] = {
+        code: _parse_ref_kind(code, data) for code, data in _section(raw, "ref_kinds").items()
+    }
+    declared_ref_kinds = frozenset(ref_kinds)
+
     # --- items --- (type keys/values stay plain str; the type-vocab enum was removed)
     items: dict[str, ItemSpec] = {}
     prefix_to_type: dict[str, str] = {}
@@ -419,7 +444,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
                 f"(got {type(raw_parents).__name__})"
             )
         parents: list[str] = list(cast(list[Any], raw_parents))
-        ref_rules = _parse_ref_rules(data.get("ref_rules", []), f"items.{name}")
+        ref_rules = _parse_ref_rules(data.get("ref_rules", []), f"items.{name}", declared_ref_kinds)
         fields = _parse_fields(data.get("fields", []), f"items.{name}")
         # Build the payload: start with the raw data, then override the pre-coerced fields
         # so model_validate sees the right types AND any unknown keys trigger extra="forbid".
@@ -467,6 +492,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
                 "prefix_to_type": prefix_to_type,
                 "alias_to_type": alias_to_type,
                 "roles": roles,
+                "ref_kinds": ref_kinds,
             }
         )
     except SquadsError:
@@ -672,6 +698,53 @@ def _collect_corpus_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
             f"{len(ids)} live item(s) are still filed under the old folder: {sorted(ids)} — "
             f"revert the folder in the override, or change it only while {t!r} has no items "
             f"(no command realigns an existing corpus)"
+        )
+    return errors
+
+
+def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
+    """The ref-kind counterpart to :func:`_collect_corpus_alignment_errors`: a ref kind is
+    durable on-disk data no scan re-derives, on exactly the terms the type/prefix/folder
+    alignment check above already uses. For every kind the merged spec drops or
+    renames, list the items whose ``refs`` still spell it literally and refuse.
+
+    Stores nothing new — the expected set is recovered from the corpus itself, since every
+    edge carries its own kind inline. An empty corpus (no live ref spells the kind) is
+    unaffected — that is the case the capability was actually asked for: choosing your own
+    ref-kind vocabulary at adoption time.
+
+    A **bare** (unspelled) ref carries no literal kind at all — it decodes through the merged
+    spec's own declared ``default`` (:meth:`WorkflowSpec.default_ref_kind`), so renaming which
+    kind carries that role relabels those edges rather than stranding them; only a kind
+    actually spelled out on disk can ever appear here.
+
+    ``spec`` is accessed duck-typed for ``ref_kinds`` (``getattr`` with an empty default),
+    matching :func:`_collect_badge_alignment_errors`'s own contract of accepting a minimal
+    object that only carries ``items``/``statuses`` in the narrower call sites that don't
+    exercise this axis at all — a real ``WorkflowSpec`` never has an empty ``ref_kinds`` (the
+    per-capability floor requires at least the ``default`` role), so an empty mapping here
+    always means "nothing to check against", never a genuinely empty declared vocabulary.
+    """
+    from squads._models._item import split_ref
+
+    declared_kinds: dict[str, Any] = getattr(spec, "ref_kinds", {})
+    if not declared_kinds:
+        return []
+    declared = frozenset(declared_kinds)
+    dropped: dict[str, set[str]] = {}
+    for item in db.items.values():
+        for r in item.refs:
+            _, kind = split_ref(r)
+            if kind and kind not in declared:
+                dropped.setdefault(kind, set()).add(item.id)
+
+    errors: list[str] = []
+    for kind, ids in sorted(dropped.items()):
+        errors.append(
+            f"ref kind {kind!r} is no longer declared in the workflow spec, but "
+            f"{len(ids)} live item(s) still carry a ref of that kind: {sorted(ids)} — "
+            "restore the entry in the override, or remove those refs first (no command "
+            "rewrites a corpus's ref kinds)"
         )
     return errors
 
@@ -908,25 +981,29 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
     - Any item's/sub-entity's stored badge-field value (``priority``, ``severity``, …) still
       names a code in its bound collection, when the active spec's collection actually
       differs from bundled → error listing the item IDs.
+    - Any ref kind still spelled out on a live item's ``refs`` is still declared in
+      ``spec.ref_kinds`` → error listing the item IDs.
 
     Removing a status/type from the override that is still referenced by live items — or
     re-prefixing/re-foldering a type, or shrinking/replacing a badge collection a live item's
-    field value still names — against a non-empty corpus fails closed, listing the offending
-    item IDs.
+    field value still names, or dropping/renaming a ref kind a live item's refs still spell —
+    against a non-empty corpus fails closed, listing the offending item IDs.
 
     ``db`` is a ``SquadsDB`` instance; typed ``Any`` here to avoid an import cycle
     (``_workflow`` must not import ``_models._index`` at module level).
 
     This is the combined contract every call site outside this module uses (the fail-closed
-    raise, and every pre-existing test) — one flat list, cause-blind about which of the three
+    raise, and every pre-existing test) — one flat list, cause-blind about which of the four
     families below produced which entry. ``lint_workflow_spec`` needs to tell them apart (each
-    family's fix is different), so it calls the three collectors
+    family's fix is different), so it calls the four collectors
     (:func:`_collect_type_status_errors`, :func:`_collect_corpus_alignment_errors`,
-    :func:`_collect_badge_alignment_errors`) directly instead of this function.
+    :func:`_collect_badge_alignment_errors`, :func:`_collect_ref_kind_alignment_errors`)
+    directly instead of this function.
     """
     return [
         *_collect_type_status_errors(spec, db),
         *_collect_corpus_alignment_errors(spec, db),
+        *_collect_ref_kind_alignment_errors(spec, db),
         *_collect_badge_alignment_errors(spec, db),
     ]
 
@@ -971,9 +1048,12 @@ def workflow_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str
     - shadowing **and** unstamped → ``("error", ...)`` — a shadowing override has stopped
       tracking the bundled spec and so inherits the provenance obligation every other
       shadowing override kind already carries.
-    - stamped, older than the running version → ``("warn", ...)`` — today's drift warning,
-      unconditional on shadow status (an add-only override can drift too).
-    - stamped at the running version, or add-only and unstamped → ``None``.
+    - stamped, older than running, **and the bundled workflow.toml actually changed** since
+      that stamp → ``("warn", ...)``. Drift is content-gated: an old stamp alone is never a
+      warning, so an add-only override with no bundled change behind it reports clean, not
+      "may be stale".
+    - stamped at the running version, content unchanged since the stamp, or add-only and
+      unstamped → ``None``.
 
     Absent provenance never changes whether the merged spec satisfies the floor — this is
     reported, never a load-time refusal; the floor's own refusals stay hard stops.
@@ -989,10 +1069,10 @@ def workflow_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str
                 "`sq override update workflow` to re-stamp",
             )
         return None
-    if stamp != __version__:
+    if stamp != __version__ and artifact_changed_since(WORKFLOW_KEY, stamp):
         return (
             "warn",
-            f"workflow override may be stale: stamp v{stamp} predates running v{__version__}; "
+            f"workflow override may be stale: bundled workflow.toml changed since v{stamp}; "
             "run `sq override diff workflow` to review, then `sq override update workflow` "
             "to re-stamp",
         )
@@ -1104,11 +1184,11 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         )
         return findings
 
-    # Phase 5 — live-index cross-check. Each of the three families gets its OWN fix hint
-    # (called separately rather than through the combined validate_against_index) — a
-    # dropped type/status, a re-prefixed/re-foldered type, and a stale badge code each have a
-    # genuinely different remedy, and `sq <type> <n> status <new>` (a status transition) is
-    # nonsensical advice for a badge-field mismatch it can never fix.
+    # Phase 5 — live-index cross-check. Each family gets its OWN fix hint (called separately
+    # rather than through the combined validate_against_index) — a dropped type/status, a
+    # re-prefixed/re-foldered type, a stale badge code, and a dropped/renamed ref kind each
+    # have a genuinely different remedy, and `sq <type> <n> status <new>` (a status transition)
+    # is nonsensical advice for, say, a badge-field mismatch it can never fix.
     db_raw = _load_index_sync(squad_dir)
     if db_raw is not None:
         type_status_fix = (
@@ -1124,6 +1204,11 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
             "override, or update the affected item(s) with `sq <type> <n> update --<field> "
             "<code>`."
         )
+        ref_kind_fix = (
+            "Add the ref kind back to [ref_kinds] in .overrides/workflow.toml, or remove the "
+            "affected item(s)' refs of that kind first — no command rewrites a corpus's ref "
+            "kinds."
+        )
         findings.extend(
             ("error", "index cross-check", msg, type_status_fix)
             for msg in _collect_type_status_errors(spec, db_raw)
@@ -1135,6 +1220,10 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         findings.extend(
             ("error", "index cross-check", msg, badge_fix)
             for msg in _collect_badge_alignment_errors(spec, db_raw)
+        )
+        findings.extend(
+            ("error", "index cross-check", msg, ref_kind_fix)
+            for msg in _collect_ref_kind_alignment_errors(spec, db_raw)
         )
         # The one family here that is NOT a fail-closed clause: an entity resting on a status
         # its own machine cannot reach is reported, never refused (see the collector). Lint
@@ -1238,8 +1327,8 @@ def _load_index_sync(squad_dir: Path) -> Any:
 
 def validate_against_index_fail_closed(spec: WorkflowSpec, squad_dir: Path) -> None:
     """Raise ``SquadsError`` if the merged spec drops types/statuses still
-    referenced by live index items, or re-prefixes/re-folders a type against
-    a non-empty corpus.
+    referenced by live index items, re-prefixes/re-folders a type against
+    a non-empty corpus, or drops/renames a ref kind live refs still spell out.
 
     Called by ``open_service`` after ``load_workflow_spec`` succeeds, before the spec
     is passed to ``Service``.  Reads the index synchronously so no async context

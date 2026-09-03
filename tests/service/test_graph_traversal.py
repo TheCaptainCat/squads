@@ -3,14 +3,38 @@ edge-authorship normalization (the one genuinely tricky piece — both raw ref-k
 spellings of "dependency" must render with the same edge_kind/direction regardless of
 which side authored the ref), a symmetric kind keeping its own name, kind/direction
 filters, cycle termination via a seen-marker, and closed-item hiding.
+
+Also covers the undeclared-kind traversal: an edge whose kind the merged spec does not
+declare must still traverse (never silently dropped) unless the caller passed an explicit
+``--kind`` filter that excludes it — the two questions "was this kind requested?" and "is
+this kind declared?" used to collapse onto one gate at the traversal site whenever no
+``--kind`` was passed, which is what dropped the edge silently. See
+``test_ref_kinds_are_declared_spec_vocabulary.py`` for the vocabulary-refusal surfaces this
+does NOT touch (an explicit ``--kind`` naming an undeclared kind is still refused up front).
 """
 
 import pytest
 
 from _helpers import create_item
 from squads._errors import SquadsError
+from squads._sections import join_frontmatter, split_frontmatter
 
 pytestmark = pytest.mark.anyio
+
+
+def _plant_undeclared_ref(svc, item, target_id: str, kind: str) -> None:
+    """Hand-append an edge spelled with *kind* directly onto *item*'s on-disk frontmatter,
+    bypassing every validating writer (``add_ref``/``create`` both refuse an undeclared kind
+    by name). This is one arrival shape for a kind the merged spec does not declare — no
+    legacy fold involved: an import, a git merge, a hand edit, or an edge
+    authored before a ``[selected]`` deselect dropped its kind. Callers must run
+    ``svc.repair()`` afterward so the index (what ``svc.graph`` actually reads) picks up the
+    hand-written file.
+    """
+    path = svc.paths.abspath(item.path)
+    fm, body = split_frontmatter(path.read_text(encoding="utf-8"))
+    fm["refs"] = [*fm.get("refs", []), f"{target_id}:{kind}"]
+    path.write_text(join_frontmatter(fm, body), encoding="utf-8")
 
 
 async def _chain(svc):
@@ -200,3 +224,117 @@ async def test_closed_items_are_hidden_by_default_and_revealed_by_include_closed
 
     revealed = await svc.graph(a.id, depth=1, include_closed=True)
     assert b.id in {ch.id for ch in revealed.children}
+
+
+# ─── undeclared-kind edges: traverse instead of vanishing ──────────────────────
+
+
+async def test_an_undeclared_kind_edge_traverses_with_a_null_semantic_in_both_directions(svc):
+    """The core of the defect: previously this edge simply wasn't there. Both directions,
+    because ``_out_neighbours`` and ``_in_neighbours`` each had their own copy of the drop."""
+    a = (await create_item(svc, "task", "A")).item
+    b = (await create_item(svc, "task", "B")).item
+    _plant_undeclared_ref(svc, a, b.id, "banana")
+    await svc.repair()
+
+    out_root = await svc.graph(a.id, depth=1, direction="out")
+    (child,) = out_root.children
+    assert child.id == b.id
+    assert child.edge_kind == "banana"  # the stored spelling, unchanged
+    assert child.edge_semantic is None  # no declared semantic — never grounds to drop it
+
+    in_root = await svc.graph(b.id, depth=1, direction="in")
+    (back_child,) = in_root.children
+    assert back_child.id == a.id
+    assert back_child.edge_kind == "banana"
+    assert back_child.edge_semantic is None
+
+
+async def test_kind_filter_still_gates_exactly_the_requested_kinds_declared_or_not(svc):
+    """The other half of the trap: separating the drop from the filter must not touch the
+    filter's own behaviour. Unfiltered sees everything (declared and undeclared alike);
+    filtering to one declared kind excludes every other edge, declared or not."""
+    a = (await create_item(svc, "task", "A")).item
+    via_related = (await create_item(svc, "task", "via related")).item
+    via_depends_on = (await create_item(svc, "task", "via depends-on")).item
+    via_undeclared = (await create_item(svc, "task", "via undeclared")).item
+    await svc.add_ref(a.id, via_related.id, kind="related")
+    await svc.add_ref(a.id, via_depends_on.id, kind="depends-on")
+    _plant_undeclared_ref(svc, await svc.get(a.id), via_undeclared.id, "banana")
+    await svc.repair()
+
+    unfiltered = await svc.graph(a.id, depth=1, direction="out")
+    assert {ch.id for ch in unfiltered.children} == {
+        via_related.id,
+        via_depends_on.id,
+        via_undeclared.id,
+    }
+
+    filtered = await svc.graph(a.id, depth=1, direction="out", kinds={"related"})
+    assert {ch.id for ch in filtered.children} == {via_related.id}
+
+
+async def test_undeclared_kind_edge_agrees_across_refs_and_check_after_a_default_kind_rename(
+    tmp_path,
+):
+    """The four-surfaces regression this defect actually was: ``refs --in``/``--all`` listed
+    the edge, ``sq check`` warned on it, and ``sq graph`` alone deleted it with no signal.
+    Built across a default-kind rename: a pre-rename edge spelled with
+    the old default kind is undeclared afterward (planted directly — no legacy fold needed to
+    reach it), and a natively bare edge under the new default targets the same item. Both must
+    appear identically in refs_out/refs_in/graph/check."""
+    from squads import __version__
+    from squads._rendering._engine import invalidate_squad_dir
+    from squads._services._service import Service, init
+    from squads._services._validators import ValidatorContext, _ref_kind_valid
+
+    result = await init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
+    svc = Service(result.paths)
+    target = (await create_item(svc, "task", "target")).item
+    stale = (await create_item(svc, "task", "stale spelling")).item
+    native = (await create_item(svc, "task", "native default")).item
+
+    # Rename the default kind away from "related" (drops it from the declared vocabulary).
+    override_dir = result.paths.squad_dir / ".overrides"
+    override_dir.mkdir(parents=True, exist_ok=True)
+    (override_dir / "workflow.toml").write_text(
+        f"# squads:override-base:{__version__}\n"
+        '[selected]\nref_kinds = ["blocks", "depends-on", "implements", "fixes", "addresses", '
+        '"supersedes", "duplicates", "scopes", "targets", "primary"]\n\n'
+        '[ref_kinds.primary]\nlabel = "Primary"\nrole = "default"\n',
+        encoding="utf-8",
+    )
+    invalidate_squad_dir(result.paths.squad_dir)
+    from squads._workflow import load_workflow_spec
+
+    svc = Service(result.paths, spec=load_workflow_spec(squad_dir=result.paths.squad_dir))
+    assert "related" not in svc.spec.ref_kinds
+    assert svc.spec.default_ref_kind() == "primary"
+
+    # The stale edge: spelled with the now-undeclared old default. No legacy fold needed —
+    # a hand-written spelled ref reaches the exact same state.
+    _plant_undeclared_ref(svc, stale, target.id, "related")
+    # The native edge: written after the rename, bare, resolving to the new default.
+    await svc.add_ref(native.id, target.id)
+    await svc.repair()
+
+    refs_in = await svc.refs_in(target.id)
+    assert (stale.id, "related") in refs_in
+    assert (native.id, "primary") in refs_in
+
+    refs_out_stale = await svc.refs_out(stale.id)
+    assert (target.id, "related") in refs_out_stale
+    refs_out_native = await svc.refs_out(native.id)
+    assert (target.id, "primary") in refs_out_native
+
+    graph_root = await svc.graph(target.id, depth=1, direction="in")
+    by_id = {ch.id: ch for ch in graph_root.children}
+    assert set(by_id) == {stale.id, native.id}
+    assert by_id[stale.id].edge_kind == "related"
+    assert by_id[stale.id].edge_semantic is None  # undeclared — no declared semantic to report
+
+    stale_item = await svc.get(stale.id)
+    issues = _ref_kind_valid(ValidatorContext(item=stale_item, spec=svc.spec))
+    assert any("related" in i.message for i in issues)
+    native_item = await svc.get(native.id)
+    assert _ref_kind_valid(ValidatorContext(item=native_item, spec=svc.spec)) == []

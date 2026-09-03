@@ -61,6 +61,7 @@ def _spec_with_renamed_task_parent() -> WorkflowSpec:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
 
@@ -137,6 +138,7 @@ def test_a_custom_type_with_no_lane_owner_is_silently_skipped_not_crashed() -> N
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
     rendered = render("workflow.md.j2", spec=spec)

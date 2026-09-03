@@ -283,6 +283,7 @@ def _dual_live_role_spec() -> WorkflowSpec:
             "collections": dict(base.collections),
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
+            "ref_kinds": dict(base.ref_kinds),
         }
     )
 

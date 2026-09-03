@@ -275,3 +275,75 @@ async def test_diff_plain_output_renders_for_the_playbook_kind_too(project, invo
     playbook_diff = await invoke(["override", "diff", "playbook"])
     assert playbook_diff.exit_code == 0, playbook_diff.output
     assert "kind: playbook" in playbook_diff.output
+
+
+async def test_scaffold_diff_and_update_all_reach_the_roles_catalog_kind(project, invoke) -> None:
+    """The whole-document role-catalog kind's scaffold/diff/update, driven through the real
+    CLI end to end — both the ``roles`` positional name and the ``--roles-catalog`` flag form —
+    the CLI wiring this override kind previously had none of (every verb fell through to the
+    template branch and named the wrong kind in its error)."""
+    scaffolded = await invoke(["override", "scaffold", "roles"])
+    assert scaffolded.exit_code == 0, scaffolded.output
+    assert "kind='template'" not in scaffolded.output
+    dest = project.squad_dir / ".overrides" / "roles.toml"
+    assert dest.exists()
+
+    listed = await invoke(["override", "list", "--json"])
+    entries = json.loads(listed.output)
+    roles_entry = next(e for e in entries if e["name"] == "roles")
+    assert roles_entry["kind"] == "roles"
+    assert roles_entry["state"] == STATE_CURRENT
+
+    diffed = await invoke(["override", "diff", "--roles-catalog"])
+    assert diffed.exit_code == 0, diffed.output
+    assert "Δ-mine" in diffed.output and "Δ-upgrade" in diffed.output
+    assert "kind: roles" in diffed.output
+
+    edited = dest.read_text(encoding="utf-8") + '\n[dev]\ncolor = "magenta"\n'
+    dest.write_text(edited, encoding="utf-8")
+    rediffed = await invoke(["override", "diff", "roles"])
+    assert rediffed.exit_code == 0, rediffed.output
+    assert '+color = "magenta"' in rediffed.output
+
+    from squads._overrides._stamp import read_toml_stamp, stamp_toml_file
+
+    stamp_toml_file(dest, "0.1.0")
+    updated = await invoke(["override", "update", "roles"])
+    assert updated.exit_code == 0, updated.output
+    assert read_toml_stamp(dest.read_text(encoding="utf-8")) == __version__
+
+
+async def test_diff_plain_output_renders_for_the_roles_catalog_kind_too(project, invoke) -> None:
+    await invoke(["override", "scaffold", "--roles-catalog"])
+    roles_diff = await invoke(["override", "diff", "roles"])
+    assert roles_diff.exit_code == 0, roles_diff.output
+    assert "kind: roles" in roles_diff.output
+
+
+async def test_roles_catalog_verbs_never_fall_through_to_the_template_kind(project, invoke) -> None:
+    """Before this kind was wired, all three verbs fell through to the template branch and
+    every error named the wrong kind (``kind='template'``) — driven with no
+    ``.overrides/roles.toml`` present, so ``diff``/``update`` hit their absent-file refusal."""
+    diffed = await invoke(["override", "diff", "roles"])
+    assert diffed.exit_code == 1, diffed.output
+    assert "no role catalog override found" in diffed.output
+    assert "kind='template'" not in diffed.output
+    assert "no template override" not in diffed.output
+
+    updated = await invoke(["override", "update", "roles"])
+    assert updated.exit_code == 1, updated.output
+    assert "no role catalog override found" in updated.output
+    assert "kind='template'" not in updated.output
+
+
+async def test_scaffold_and_diff_help_distinguish_role_from_roles_catalog(project, invoke) -> None:
+    """``--role <slug>`` (per-role) and the whole-document catalog kind (positional ``roles`` /
+    ``--roles-catalog``) sit in the same ``--help`` output and must read as different things."""
+    scaffold_help = await invoke(["override", "scaffold", "--help"])
+    assert scaffold_help.exit_code == 0, scaffold_help.output
+    assert "--roles-catalog" in scaffold_help.output
+    assert "distinct from --role" in scaffold_help.output.replace("\n", " ")
+
+    diff_help = await invoke(["override", "diff", "--help"])
+    assert diff_help.exit_code == 0, diff_help.output
+    assert "--roles-catalog" in diff_help.output

@@ -39,7 +39,7 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import frontmatter_skew, skew_message
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import VALID_REF_KINDS, make_ref, split_ref
+from squads._models._item import make_ref, split_ref
 from squads._services._base import reject_markers
 from squads._services._collab import CollabMixin
 from squads._services._import_model import (
@@ -118,17 +118,22 @@ class HandleMap:
         return local_id
 
 
-def _resolve_refs(handles: HandleMap, refs: list[str]) -> list[str]:
+def _resolve_refs(handles: HandleMap, refs: list[str], spec: WorkflowSpec) -> list[str]:
     """Resolve every ``"ID-or-handle"`` / ``"ID-or-handle:kind"`` token in *refs*, validating
-    the kind against :data:`VALID_REF_KINDS` — the same hard check ``create()``/``add_ref()``
-    run before ever touching the transaction."""
+    the kind against *spec*'s declared ``ref_kinds`` — the same hard check ``create()``/
+    ``add_ref()`` run before ever touching the transaction. A spelled kind that names the
+    declared default is written back out bare, so an imported ``:related``-style token
+    normalises to the wire form ``add_ref`` itself would have written.
+    """
+    default_kind = spec.default_ref_kind()
     out: list[str] = []
     for ref_str in refs:
         rid, kind = split_ref(ref_str)
-        if kind not in VALID_REF_KINDS:
-            valid = ", ".join(sorted(VALID_REF_KINDS))
+        if kind and kind not in spec.ref_kinds:
+            valid = ", ".join(sorted(spec.ref_kinds))
             raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
-        out.append(make_ref(handles.resolve_item(rid), kind))
+        wire_kind = "" if kind == default_kind else kind
+        out.append(make_ref(handles.resolve_item(rid), wire_kind))
     return out
 
 
@@ -242,11 +247,22 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         counts = ImportOpCount()
         issues: list[ImportIssue] = []
         skew_checked: set[int] = set()
+        # Resolved once for the whole pass, before the per-event loop's own try/except —
+        # never inside it, or a spec declaring the wrong number of default ref kinds would
+        # be caught and re-reported as a separate per-event ImportIssue instead of failing
+        # this call as one clean refusal naming the spec.
+        default_kind = self.spec.default_ref_kind()
         for ev in events:
             counts.bump(ev.event.op)
             try:
                 await self._check_target_skew(
-                    shadow, handles, ev, pre_existing_seqs, skew_checked, issues
+                    shadow,
+                    handles,
+                    ev,
+                    pre_existing_seqs,
+                    skew_checked,
+                    issues,
+                    default_kind=default_kind,
                 )
                 self._simulate_one(shadow, handles, ev)
             except _COLLECTIBLE as exc:
@@ -266,6 +282,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         pre_existing_seqs: set[int],
         checked: set[int],
         issues: list[ImportIssue],
+        *,
+        default_kind: str,
     ) -> None:
         """The batch shape of the skew guard: once per *pre-existing* item an event targets,
         never per event and never for a handle created within this same import (no prior file
@@ -293,7 +311,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             text = await _aio.read_text(item_file(self.paths, item))
         except FileNotFoundError:
             return  # on-disk reconciliation is `sq check`'s claim to make, not this guard's
-        diverging = frontmatter_skew(text, base)
+        diverging = frontmatter_skew(text, base, default_kind=default_kind)
         if diverging:
             issues.append(ImportIssue(line=ev.line, message=skew_message(base, diverging)))
 
@@ -334,7 +352,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         if event.type not in self.spec.items:
             raise SquadsError(f"unknown item type {event.type!r}")
         parent = handles.resolve_item(event.parent) if event.parent else None
-        resolved_refs = _resolve_refs(handles, event.refs)
+        resolved_refs = _resolve_refs(handles, event.refs, self.spec)
         resolved_fields = _resolve_fields(self.spec, event.type, event.fields)
         item, _lane_warning = self._create_model(
             shadow,
@@ -520,7 +538,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         event = ev.event
         if isinstance(event, CreateEvent):
             parent = handles.resolve_item(event.parent) if event.parent else None
-            resolved_refs = _resolve_refs(handles, event.refs)
+            resolved_refs = _resolve_refs(handles, event.refs, self.spec)
             resolved_fields = _resolve_fields(self.spec, event.type, event.fields)
             result = await self._create_core(
                 db,

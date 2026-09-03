@@ -57,12 +57,44 @@ from typing import Any, cast
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
-from squads._roles._catalog import PREDEFINED, RoleDef, dev_role, role_spec_to_def
-from squads._roles._loader import VALID_MODELS
+from squads._roles._catalog import (
+    PREDEFINED,
+    RoleDef,
+    dev_role,
+    dev_role_from_pool,
+    role_spec_to_def,
+)
+from squads._roles._loader import VALID_MODELS, load_role_catalog
 from squads._roles._models import RoleSpec
 from squads._specmerge import RawMapping, merge_override
 
 _PREDEFINED_BY_SLUG: dict[str, RoleDef] = {r.slug: r for r in PREDEFINED}
+
+
+def _predefined_for_slug(slug: str, squad_dir: Path | None) -> RoleDef | None:
+    """The predefined base for *slug* — the bundled catalog, with any project catalog-document
+    override (``.overrides/roles.toml``) already merged in.
+
+    This is where the second precedence layer (bundled base -> the catalog document) is
+    realised: :func:`load_role_catalog` does the merge, and every existing caller of
+    :func:`resolve_role`/:func:`resolve_role_with_base` picks it up with no call-site change,
+    since a per-slug ``.overrides/roles/<slug>.toml`` file (the third and most specific layer)
+    is still layered on top by the caller of *this* function exactly as it already was.
+
+    With *squad_dir* ``None`` this is exactly ``_PREDEFINED_BY_SLUG.get(slug)`` — the bundled
+    catalog alone, unchanged. With a *squad_dir*, the catalog is reloaded (and, if present, the
+    override re-merged) on every call — consistent with this module's own stated stance that
+    the resolver is stateless and reads from disk on every call, now extended one document
+    further.
+    """
+    if squad_dir is None:
+        return _PREDEFINED_BY_SLUG.get(slug)
+    catalog = load_role_catalog(squad_dir)
+    for role_spec in catalog.roles:
+        if role_spec.slug == slug:
+            return role_spec_to_def(role_spec)
+    return None
+
 
 # Required fields for a *new-slug* TOML (slug is derived from the filename, not the TOML).
 _REQUIRED_FOR_NEW = ("full_name", "title", "description", "mission")
@@ -99,19 +131,24 @@ def _overrides_dir(squad_dir: Path) -> Path:
 
 
 def project_role_slugs(squad_dir: Path) -> frozenset[str]:
-    """The slugs with a project role override on disk at ``<squad_dir>/.overrides/roles/``.
+    """The slugs with a project role override — a per-slug file at
+    ``<squad_dir>/.overrides/roles/<slug>.toml``, or a wholly-new ``[[roles]]`` entry in the
+    catalog document (``.overrides/roles.toml``) that names a slug outside the
+    bundled catalog.
 
     A project-defined (wholly new, or renamed-into) slug is not in the bundled catalog and
-    never will be — its only record is this override file. Callers that must accept such a
+    never will be — its only record is one of these two files. Callers that must accept such a
     slug as valid on the per-request path (e.g. the playbook loader's cross-spec role-slug
     check) union this with the bundled catalog's own slugs rather than reading the index —
     the override files are readable before the index is, and are the same source this
-    resolver itself reads. Returns an empty set when the directory is absent.
+    resolver itself reads. Returns an empty set when neither source declares one.
     """
     d = _overrides_dir(squad_dir)
-    if not d.is_dir():
-        return frozenset()
-    return frozenset(p.stem for p in d.glob("*.toml"))
+    file_slugs: frozenset[str] = (
+        frozenset(p.stem for p in d.glob("*.toml")) if d.is_dir() else frozenset()
+    )
+    catalog_slugs = frozenset(r.slug for r in load_role_catalog(squad_dir).roles)
+    return file_slugs | (catalog_slugs - _PREDEFINED_BY_SLUG.keys())
 
 
 def _read_toml(path: Path) -> dict[str, Any]:
@@ -258,7 +295,8 @@ def resolve_role_with_base(slug: str, squad_dir: Path | None, *, base: RoleDef |
     default.
 
     ``base=None`` reproduces :func:`resolve_role` exactly: a bundled slug resolves against its
-    ``PREDEFINED`` entry, an unknown one has none.
+    ``PREDEFINED`` entry (with any project catalog-document override — ``.overrides/roles.toml``,
+    already merged in via :func:`_predefined_for_slug`), an unknown one has none.
 
     **A supplied base always wins, whether or not ``slug`` is in ``PREDEFINED``.** Earlier, a
     bundled slug's ``PREDEFINED`` entry won unconditionally here, so no caller could ever make a
@@ -276,7 +314,7 @@ def resolve_role_with_base(slug: str, squad_dir: Path | None, *, base: RoleDef |
     information (the live item, if any) a correct one needs. See :func:`role_base_from_item`,
     :func:`dev_base_from_item`, and :func:`dev_base_for_slug`.
     """
-    predefined = _PREDEFINED_BY_SLUG.get(slug)  # None for new slugs
+    predefined = _predefined_for_slug(slug, squad_dir)  # None for a slug neither source declares
     effective_base = base if base is not None else predefined
 
     if squad_dir is not None:
@@ -323,7 +361,7 @@ def dev_base_from_item(item: Item) -> RoleDef:
     )
 
 
-def role_base_from_item(item: Item) -> RoleDef | None:
+def role_base_from_item(item: Item, squad_dir: Path | None = None) -> RoleDef | None:
     """The resolver base for a role that already has a live roster item — the one seam every
     consumer that resolves against an item (sync's catalog refresh, ``sq role <slug> show``,
     ``sq check``) builds its ``resolve_role_with_base`` base through, for a bundled role and a
@@ -337,11 +375,14 @@ def role_base_from_item(item: Item) -> RoleDef | None:
       and the tech the slug was created for). ``dev_role()`` regenerates every other field —
       title, mission, responsibilities — fresh from the tech template on every call, so a
       template change still reaches an old developer item.
-    - **Bundled role** — the slug's current ``PREDEFINED`` entry, with only ``full_name``
-      swapped for the item's stored value (``sq role activate --name``'s operator-settable
-      set is ``{full_name}`` alone). Every other field — ``mission``, ``responsibilities``,
+    - **Bundled role** — the slug's current predefined entry (the bundled catalog, with any
+      project catalog-document override — ``.overrides/roles.toml`` — already merged in when
+      *squad_dir* is given; see :func:`_predefined_for_slug`), with only ``full_name`` swapped
+      for the item's stored value (``sq role activate --name``'s operator-settable set is
+      ``{full_name}`` alone). Every other field — ``mission``, ``responsibilities``,
       ``can_spawn``, etc. — is the catalog's current value, not the item's, so a new or changed
-      ``RoleDef`` field still reaches an item created before it existed.
+      field, or a project's own catalog-document override, still reaches an item created before
+      it existed.
     - **Anything else** — a slug with neither a catalog entry nor the dev shape (a wholly
       project-defined role with a live item but no ``.overrides/roles/<slug>.toml`` yet) —
       ``None``: there is no catalog to draw the non-operator-settable fields from, so the
@@ -349,11 +390,17 @@ def role_base_from_item(item: Item) -> RoleDef | None:
       :func:`~squads._services._maintenance.MaintenanceService._refresh_catalog_extra` already
       skips via its ``RoleNotFoundError`` catch, unaffected by this function returning ``None``
       for it.
+
+    *squad_dir* defaults to ``None`` (bundled catalog only, exactly today's behaviour) so a
+    caller that has not been updated to pass it keeps its current answer rather than silently
+    losing the document layer; every caller that has a squad directory in hand should pass it
+    so an activated role picks up a project's catalog-document override the same way an
+    unactivated one already does via :func:`resolve_role`/:func:`resolve_role_with_base`.
     """
     if item.extra.get(X.IS_DEV):
         return dev_base_from_item(item)
     slug = item.extra.get(X.SLUG, item.slug)
-    predefined = _PREDEFINED_BY_SLUG.get(slug)
+    predefined = _predefined_for_slug(slug, squad_dir)
     if predefined is None:
         return None
     full_name = item.extra.get(X.FULL_NAME)
@@ -369,14 +416,24 @@ def role_base_from_item(item: Item) -> RoleDef | None:
     return replace(predefined, full_name=full_name)
 
 
-def dev_base_for_slug(slug: str) -> RoleDef:
+def dev_base_for_slug(slug: str, squad_dir: Path | None = None) -> RoleDef:
     """The dev-role merge base for a ``<tech>-dev.toml`` with no matching roster entry.
 
     Falls back to the generated pool name — safe here for the reason it is unsafe in
     :func:`dev_base_from_item`: there is no live identity to overwrite, and the caller only
     asks whether the document loads.
+
+    Honours a project's catalog-document ``[dev]`` override (``.overrides/roles.toml``) the
+    same way :func:`resolve_dev_role` does — via :func:`~squads._roles._catalog.
+    dev_role_from_pool` against ``load_role_catalog(squad_dir).dev`` — whenever *squad_dir* is
+    given, so a not-yet-added slug's preview agrees with what ``sq dev add`` would then
+    produce. With *squad_dir* ``None`` this stays byte-identical to the bundled-only
+    ``dev_role(...)`` call every caller made before the catalog-document override existed.
     """
-    return dev_role(slug.removesuffix("-dev"))
+    tech = slug.removesuffix("-dev")
+    if squad_dir is not None:
+        return dev_role_from_pool(tech, load_role_catalog(squad_dir).dev)
+    return dev_role(tech)
 
 
 def resolve_dev_role(
@@ -389,12 +446,22 @@ def resolve_dev_role(
 ) -> RoleDef:
     """Build a stack-specific developer role, applying any project override.
 
-    If ``<squad_dir>/.overrides/roles/<tech>-dev.toml`` exists, its fields are merged over the
-    generated ``dev_role()`` defaults.  ``name`` is still honoured as before (explicit name wins
-    over both the pool and any TOML ``full_name``).
+    The generated base itself honours a project's ``[dev]`` catalog-document override
+    (``.overrides/roles.toml``) — the name pool, default model, and default color
+    — when *squad_dir* is given, via :func:`~squads._roles._catalog.dev_role_from_pool`
+    against ``load_role_catalog(squad_dir).dev`` rather than the bundled singleton's; with no
+    *squad_dir* this is exactly :func:`~squads._roles._catalog.dev_role`.
+
+    If ``<squad_dir>/.overrides/roles/<tech>-dev.toml`` exists, its fields are merged over that
+    base as the third, most-specific precedence layer. ``name`` is still honoured as before
+    (explicit name wins over both the pool and any TOML ``full_name``).
     """
     slug = f"{tech.strip().lower()}-dev"
-    base = dev_role(tech, name=name, seq=seq, model=model)
+    if squad_dir is not None:
+        dev_spec = load_role_catalog(squad_dir).dev
+        base = dev_role_from_pool(tech, dev_spec, name=name, seq=seq, model=model)
+    else:
+        base = dev_role(tech, name=name, seq=seq, model=model)
 
     if squad_dir is not None:
         toml_path = _overrides_dir(squad_dir) / f"{slug}.toml"

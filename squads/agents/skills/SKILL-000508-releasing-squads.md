@@ -12,7 +12,7 @@ refs:
 description: 'The team''s runbook for cutting a squads release: gates, prep, and drafting
   the release (the operator publishes).'
 created_at: '2026-07-20T12:32:09Z'
-updated_at: '2026-08-06T21:32:23Z'
+updated_at: '2026-08-26T09:06:52Z'
 extra:
   slug: releasing-squads
   description: 'The team''s runbook for cutting a squads release: gates, prep, and
@@ -35,6 +35,10 @@ actual GitHub publish. Never `git tag` or publish yourself.
 - `uv run --all-extras pyright && uv run --all-extras ruff check . && uv run --all-extras ruff format --check .` clean.
   (`--all-extras` is required — a bare `uv run` prunes the optional `tui` extra and pyright floods
   with false `textual` import errors.)
+- **The content-store gate is not a standalone step here** — it is the last item of §2's ordered
+  sequence below, because it depends on the version bump having already landed. Do not run
+  `gen_template_manifest.py --release-gate` before that sequence; see §2 for why and for what its
+  two distinct failure shapes mean.
 
 ## 2. Prep
 
@@ -61,6 +65,49 @@ actual GitHub publish. Never `git tag` or publish yourself.
   version-embedding goldens, and re-stamps this repo's own managed files (`sq sync` — the
   `.squads.toml` `squads_version`). Use `--dry-run` first to preview. Never edits the CHANGELOG or
   runs `git commit`/`tag`/push — those stay in this Prep section / the operator.
+- **Rebuild the content store from ground truth, then gate on it — in this exact order, and only
+  after the bump above:**
+  1. `git fetch --tags` (again — a tag can land between the top of this list and here).
+  2. `uv run python scripts/seed_content_store.py --rebuild`. It recomputes the store as the
+     closure of every hash the index names — every tagged version (including the one you are
+     about to cut, once its tag exists) from its own release tag, and only a version with **no
+     tag at all** from the working tree — and drops whatever is not in that closure.
+  3. `uv run python scripts/gen_template_manifest.py --release-gate`.
+
+  **Why the bump has to come first.** The rebuild trusts the working tree only for a version with
+  no tag. Run the rebuild *before* bumping and `[project].version` still names the *previous*,
+  already-tagged release — so the rebuild would source that shipped version from the tree instead
+  of its tag, rewrite its entry, and drop the shipped blob behind it. Bumping first means the
+  version the rebuild would ever read from the tree is the new, still-untagged one — the only
+  state that is actually safe.
+
+  **If the rebuild refuses**, it names the version and writes nothing: `git fetch --tags` again;
+  if it still refuses, investigate that tag by hand before proceeding — never skip it and move on.
+  **If `--release-gate` then fails**, it names two different things and they mean different
+  things: an unresolved store hash means real coverage is missing — re-run the rebuild above and
+  check again; an orphaned blob (reported only under `--release-gate`) means the rebuild was not
+  run, or was not run last — run it, then re-check. The generator's own remedy line
+  (`gen_template_manifest.py`) never fixes a store gap; only the rebuild does.
+
+  **What a clean gate looks like** — so typing `--check` by mistake is never read as a passed
+  gate. The two success lines are worded differently on purpose and must never be
+  byte-identical: `--check` states only what it verified —
+
+      manifest v0.14.0 is current (29 artifacts); store coverage verified across all 16 indexed
+      version(s) (416 index reference(s) over 85 stored blob(s))
+
+  — while `--release-gate` adds the one property only it checks, orphan-freeness, stated
+  explicitly:
+
+      manifest v0.14.0 is current (29 artifacts); release gate passed — orphan-free, store
+      coverage verified across all 16 indexed version(s) (416 index reference(s) over 85 stored
+      blob(s))
+
+  If a pasted line does not say "release gate passed", `--release-gate` was not the command that
+  produced it.
+- **Commit both `src/squads/_rendering/templates_manifest.json` and `content_store.json`** —
+  together with the version bump and any template/spec-document changes, once the rebuild above
+  has run and the gate is clean.
 - **Schema**: if `SCHEMA_VERSION` changed, confirm the migration is registered and `sq migrate up`
   runs clean, and add a `### Migration` note to the changelog.
 - **Install-instruction drift**: `README.md` (GitHub) and `PYPI.md` (PyPI description) each carry

@@ -40,6 +40,7 @@ def _spec_without_type(drop_type: str) -> dict[str, object]:
         "collections": base.collections,
         "subentity_kinds": base.subentity_kinds,
         "roles": base.roles,
+        "ref_kinds": base.ref_kinds,
     }
 
 
@@ -54,6 +55,7 @@ def _spec_without_status(drop_status: str) -> dict[str, object]:
         "collections": base.collections,
         "subentity_kinds": base.subentity_kinds,
         "roles": base.roles,
+        "ref_kinds": base.ref_kinds,
     }
 
 
@@ -123,6 +125,7 @@ def test_a_roster_lifecycle_may_use_entirely_custom_status_and_role_names() -> N
             "collections": dict(base.collections),
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
+            "ref_kinds": dict(base.ref_kinds),
         }
     )
     assert spec.live_statuses("role") == {"Online"}
@@ -204,6 +207,7 @@ def test_non_roster_types_includes_a_custom_work_type_but_not_a_custom_roster_ty
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
     nrt = spec.non_roster_types()

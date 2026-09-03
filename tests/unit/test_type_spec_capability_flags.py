@@ -13,6 +13,7 @@ from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
     ItemSpec,
     Lifecycle,
+    RefKindSpec,
     RefRule,
     RoleSpec,
     StatusSpec,
@@ -112,6 +113,10 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
                 "pending": RoleSpec(settled=False, hidden=False, color="neutral"),
                 "active": RoleSpec(settled=False, hidden=False, color="positive", live=True),
                 "done": RoleSpec(settled=True, hidden=True, color="positive"),
+            },
+            "ref_kinds": {
+                "related": RefKindSpec(label="Related", role="default"),
+                "scopes": RefKindSpec(label="Scopes", role="preload"),
             },
         }
     )

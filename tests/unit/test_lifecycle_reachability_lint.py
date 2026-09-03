@@ -12,12 +12,23 @@ import pytest
 from squads._errors import SquadsError
 from squads._workflow import load_workflow_spec
 from squads._workflow._loader import lint_workflow_spec
-from squads._workflow._models import ItemSpec, Lifecycle, RoleSpec, StatusSpec, WorkflowSpec
+from squads._workflow._models import (
+    ItemSpec,
+    Lifecycle,
+    RefKindSpec,
+    RoleSpec,
+    StatusSpec,
+    WorkflowSpec,
+)
 
 _ROLES: dict[str, RoleSpec] = {
     "pending": RoleSpec(settled=False, hidden=False, color="neutral"),
     "active": RoleSpec(settled=False, hidden=False, color="positive", live=True),
     "done": RoleSpec(settled=True, hidden=True, color="positive"),
+}
+_REF_KINDS: dict[str, RefKindSpec] = {
+    "related": RefKindSpec(label="Related", role="default"),
+    "scopes": RefKindSpec(label="Scopes", role="preload"),
 }
 _FLOOR_STATUSES: dict[str, StatusSpec] = {
     "Draft": StatusSpec(role="pending"),
@@ -63,6 +74,7 @@ def _build_spec(
             "prefix_to_type": {ts.prefix: name for name, ts in items_map.items()},
             "alias_to_type": {},
             "roles": _ROLES,
+            "ref_kinds": _REF_KINDS,
         }
     )
 

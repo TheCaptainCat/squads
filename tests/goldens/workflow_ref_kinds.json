@@ -1,0 +1,72 @@
+[
+  {
+    "kind": "addresses",
+    "label": "Addresses",
+    "hint": "A (the resolving work) addresses or follows up on B (feedback, a review)",
+    "role": null,
+    "direction": null
+  },
+  {
+    "kind": "blocks",
+    "label": "Blocks",
+    "hint": "A is blocking B; B cannot proceed while A is open",
+    "role": "dependency",
+    "direction": "blocker"
+  },
+  {
+    "kind": "depends-on",
+    "label": "Depends on",
+    "hint": "A depends on B; A cannot proceed while B is open",
+    "role": "dependency",
+    "direction": "dependent"
+  },
+  {
+    "kind": "duplicates",
+    "label": "Duplicates",
+    "hint": "A (a later filing) duplicates B (the original)",
+    "role": null,
+    "direction": null
+  },
+  {
+    "kind": "fixes",
+    "label": "Fixes",
+    "hint": "A (the resolving work) fixes the problem tracked by B",
+    "role": null,
+    "direction": null
+  },
+  {
+    "kind": "implements",
+    "label": "Implements",
+    "hint": "A implements the requirement or spec described by B",
+    "role": null,
+    "direction": null
+  },
+  {
+    "kind": "related",
+    "label": "Related",
+    "hint": "Generic cross-reference (default)",
+    "role": "default",
+    "direction": null
+  },
+  {
+    "kind": "scopes",
+    "label": "Scopes",
+    "hint": "A (a skill) is scoped to role B; B's generated pointer preloads A",
+    "role": "preload",
+    "direction": null
+  },
+  {
+    "kind": "supersedes",
+    "label": "Supersedes",
+    "hint": "A (a newer decision) supersedes B (an older one)",
+    "role": "supersession",
+    "direction": null
+  },
+  {
+    "kind": "targets",
+    "label": "Targets",
+    "hint": "A targets B \u2014 a navigational membership edge with no engine binding; its meaning is whatever reads it",
+    "role": null,
+    "direction": null
+  }
+]

@@ -49,7 +49,14 @@ async def test_a_mutation_succeeds_and_heals_the_file(svc, frozen_time, fields):
     data, _ = split_frontmatter(path.read_text(encoding="utf-8"))
     assert data["created_at"] == clock.iso(created_at)  # healed from the index, not re-invented
     assert data["updated_at"] == clock.iso(clock.now())
-    assert itemfile.frontmatter_skew(path.read_text(encoding="utf-8"), await svc.get(task.id)) == []
+    assert (
+        itemfile.frontmatter_skew(
+            path.read_text(encoding="utf-8"),
+            await svc.get(task.id),
+            default_kind=svc.spec.default_ref_kind(),
+        )
+        == []
+    )
 
 
 async def test_a_second_mutation_after_the_heal_still_works(svc, frozen_time):

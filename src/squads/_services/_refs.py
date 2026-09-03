@@ -13,8 +13,6 @@ from squads._itemfile import update_frontmatter
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
-    DEFAULT_KIND,
-    VALID_REF_KINDS,
     Item,
     effective_prefix,
     make_ref,
@@ -31,18 +29,24 @@ from squads._workflow._models import WorkflowSpec
 # Graph traversal helpers
 # ---------------------------------------------------------------------------
 
-# The two raw kind strings that form the dependency pair (equivalent for traversal).
-# Both normalize to edge_kind="depends-on" in GraphNode; direction disambiguates the end.
-_DEP_KINDS: frozenset[str] = frozenset({"blocks", "depends-on"})
-
 
 @dataclass
 class _TraversalCtx:
-    """Immutable traversal parameters threaded through recursive BFS helpers."""
+    """Immutable traversal parameters threaded through recursive BFS helpers.
+
+    ``requested_kinds`` is the caller's explicit ``--kind`` filter and nothing else — it must
+    never double as "the declared set", which is a *different* question answered by consulting
+    ``spec.ref_kinds`` directly (see :func:`_edge_semantic`). Conflating the two used to make an
+    edge whose kind the merged spec does not declare indistinguishable, at the traversal site,
+    from an edge the caller simply didn't ask for — both silently vanished. ``None`` here means
+    "no filter": every edge is seen, declared or not. A caller-supplied set means "seen only
+    these kinds", exactly as it always has (``graph()`` still refuses an undeclared kind in that
+    set up front, before a ``_TraversalCtx`` is even built).
+    """
 
     db_items: dict[int, Item]  # sequence_id → Item; pre-loaded snapshot
     depth: int
-    kinds: frozenset[str]  # effective filter; frozenset of VALID_REF_KINDS
+    requested_kinds: frozenset[str] | None  # explicit --kind filter; None = no filter (see below)
     direction: str  # "out" | "in" | "both"
     include_closed: bool
     is_open: Callable[[str], bool]  # spec.is_open bound at construction
@@ -62,22 +66,29 @@ def _item_by_id(ctx: _TraversalCtx, item_id: str) -> Item | None:
 def _out_neighbours(ctx: _TraversalCtx, item: Item) -> list[tuple[str, str, str]]:
     """Outgoing ref neighbours: (target_id, edge_kind, direction).
 
-    ``edge_kind`` is always the normalized kind (``depends-on`` for both ``blocks`` and
-    ``depends-on`` stored edges); ``direction`` is ``"out"`` or ``"in"`` from the
-    **expanded item's** perspective.
+    ``edge_kind`` is always the normalized kind — the declared dependency kind
+    (:meth:`WorkflowSpec.canonical_dependency_ref_kind`) for either raw dependency spelling;
+    ``direction`` is ``"out"`` or ``"in"`` from the **expanded item's** perspective.
 
-    Raw ``blocks`` edges are normalized: ``item blocks target`` → ``edge_kind="depends-on"``,
-    ``direction="in"`` (target is the dependent; it would point at item via ``depends-on``).
-    All other kinds keep their literal kind and ``direction="out"``.
+    A raw edge stored as the declared BLOCKER-direction kind is normalized: ``item <blocker>
+    target`` → ``edge_kind=<canonical>``, ``direction="in"`` (target is the dependent; it
+    would point at item via the DEPENDENT-direction kind). Every other kind — including the
+    DEPENDENT-direction kind itself — keeps its literal kind and ``direction="out"``.
     """
+    blocker_kind = ctx.spec.dependency_ref_kind("blocker")
+    canonical = ctx.spec.canonical_dependency_ref_kind()
     result: list[tuple[str, str, str]] = []
     for r in item.refs:
         raw_id, kind = split_ref(r)
-        if kind not in ctx.kinds:
+        kind = kind or ctx.spec.default_ref_kind()  # bare wire form → the declared default
+        # An explicit --kind filter gates which edges are SEEN at all; the merged spec not
+        # declaring `kind` never does — an undeclared-kind edge still traverses.
+        if ctx.requested_kinds is not None and kind not in ctx.requested_kinds:
             continue
         # Normalize the dependency pair
-        if kind == "blocks":
-            result.append((raw_id, "depends-on", "in"))
+        if blocker_kind is not None and kind == blocker_kind:
+            assert canonical is not None  # blocker_kind's own presence guarantees canonical
+            result.append((raw_id, canonical, "in"))
         else:
             result.append((raw_id, kind, "out"))
     return result
@@ -89,31 +100,38 @@ def _in_neighbours(ctx: _TraversalCtx, item: Item) -> list[tuple[str, str, str]]
     Walk ALL items in the snapshot and collect those whose refs point at ``item``.
     ``edge_kind`` is normalized; ``direction`` is from the **expanded item's** perspective
     (i.e. "in" means the neighbour item has an out-ref to expanded, "out" means the
-    neighbour item has a ``blocks`` edge that expanded depends on).
+    neighbour item has a BLOCKER-direction edge that expanded depends on).
 
-    Raw ``depends-on`` stored on neighbour → neighbour → item via depends-on →
-        edge_kind="depends-on", direction="in" (neighbour points at item; item required by it).
-    Raw ``blocks`` stored on neighbour → neighbour blocks item → item depends on neighbour →
-        edge_kind="depends-on", direction="out" (item would have a depends-on to neighbour).
+    Raw DEPENDENT-direction kind stored on neighbour → neighbour → item →
+        edge_kind=<canonical>, direction="in" (neighbour points at item; item required by it).
+    Raw BLOCKER-direction kind stored on neighbour → neighbour blocks item → item depends on
+        neighbour → edge_kind=<canonical>, direction="out" (item would depend on neighbour).
     Other kinds: edge_kind=kind, direction="in".
     """
+    dependent_kind = ctx.spec.dependency_ref_kind("dependent")
+    blocker_kind = ctx.spec.dependency_ref_kind("blocker")
+    canonical = ctx.spec.canonical_dependency_ref_kind()
     target_prefix = effective_prefix(item.prefix)
     target_seq = item.sequence_id
     result: list[tuple[str, str, str]] = []
     for other in ctx.db_items.values():
         for r in other.refs:
             raw_id, kind = split_ref(r)
-            if kind not in ctx.kinds:
+            kind = kind or ctx.spec.default_ref_kind()  # bare wire form → the declared default
+            # See _out_neighbours: the --kind filter gates visibility, declared-ness never does.
+            if ctx.requested_kinds is not None and kind not in ctx.requested_kinds:
                 continue
             if not ref_id_matches(raw_id, target_prefix, target_seq):
                 continue
             # Normalize the dependency pair
-            if kind == "depends-on":
-                # other depends-on item → item is the blocker → item "required by" other
-                result.append((other.id, "depends-on", "in"))
-            elif kind == "blocks":
-                # other blocks item → item depends on other → item "depends on" other
-                result.append((other.id, "depends-on", "out"))
+            if dependent_kind is not None and kind == dependent_kind:
+                # other <dependent> item → item is the blocker → item "required by" other
+                assert canonical is not None  # dependent_kind's presence guarantees canonical
+                result.append((other.id, canonical, "in"))
+            elif blocker_kind is not None and kind == blocker_kind:
+                # other <blocker> item → item depends on other → item "depends on" other
+                assert canonical is not None  # blocker_kind's own presence guarantees canonical
+                result.append((other.id, canonical, "out"))
             else:
                 result.append((other.id, kind, "in"))
     return result
@@ -150,6 +168,17 @@ def _resolve_badges(spec: WorkflowSpec, item: Item) -> dict[str, str]:
     return badges.resolve_badges(spec, item.type, item.badge_value)
 
 
+def _edge_semantic(spec: WorkflowSpec, edge_kind: str | None) -> str | None:
+    """The declared semantic role of *edge_kind* — ``GraphNode.edge_semantic``.
+    ``None`` for the root (``edge_kind is None``) and for a navigational kind
+    (no declared ``role``); this is the field a consumer branches on, never ``edge_kind``
+    itself."""
+    if edge_kind is None:
+        return None
+    kind_spec = spec.ref_kinds.get(edge_kind)
+    return kind_spec.role if kind_spec else None
+
+
 def _build_graph_node(
     item_id: str,
     edge_kind: str | None,
@@ -176,6 +205,7 @@ def _build_graph_node(
             priority=None,
             assignee=None,
             edge_kind=edge_kind,
+            edge_semantic=_edge_semantic(ctx.spec, edge_kind),
             direction=direction,
             seen=True,
             badges={},
@@ -193,6 +223,7 @@ def _build_graph_node(
         priority=priority_val,
         assignee=item.assignee,
         edge_kind=edge_kind,
+        edge_semantic=_edge_semantic(ctx.spec, edge_kind),
         direction=direction,
         seen=already_seen,
         badges=_resolve_badges(ctx.spec, item),
@@ -220,6 +251,7 @@ def _build_graph_node(
         priority=node.priority,
         assignee=node.assignee,
         edge_kind=node.edge_kind,
+        edge_semantic=node.edge_semantic,
         direction=node.direction,
         seen=node.seen,
         badges=node.badges,
@@ -246,8 +278,8 @@ def _collect_edges(root: GraphNode) -> tuple[set[str], set[tuple[str, str, str]]
     nodes: set[str] = set()
     edges: set[tuple[str, str, str]] = set()
 
-    def _label(edge_kind: str, direction: str) -> str:
-        if edge_kind == "depends-on":
+    def _label(edge_kind: str, edge_semantic: str | None, direction: str) -> str:
+        if edge_semantic == "dependency":
             return "depends on" if direction == "out" else "required by"
         return edge_kind
 
@@ -256,7 +288,7 @@ def _collect_edges(root: GraphNode) -> tuple[set[str], set[tuple[str, str, str]]
         node, parent_id = stack.pop()
         nodes.add(node.id)
         if parent_id is not None and node.edge_kind is not None and node.direction is not None:
-            label = _label(node.edge_kind, node.direction)
+            label = _label(node.edge_kind, node.edge_semantic, node.direction)
             edges.add((parent_id, node.id, label))
         # Only recurse into non-seen nodes (seen nodes have no children anyway)
         stack.extend((child, node.id) for child in node.children)
@@ -343,9 +375,12 @@ def graph_to_mermaid(root: GraphNode) -> str:
 
 
 class RefsMixin(ServiceCore):
-    async def add_ref(self, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND) -> Item:
+    async def add_ref(self, from_id: str, to_id: str, *, kind: str = "") -> Item:
         """Opens its own transaction, then delegates to :meth:`_add_ref_core` — the bulk
-        importer calls that core directly (its own transaction is already open)."""
+        importer calls that core directly (its own transaction is already open).
+
+        ``kind=""`` (unspecified) resolves to the active spec's declared default kind — see
+        :meth:`_add_ref_model`."""
         async with self.store.transaction() as db:
             return await self._add_ref_core(db, from_id, to_id, kind=kind)
 
@@ -355,7 +390,7 @@ class RefsMixin(ServiceCore):
         from_id: str,
         to_id: str,
         *,
-        kind: str = DEFAULT_KIND,
+        kind: str = "",
         now: datetime | None = None,
     ) -> tuple[Item, Item]:
         """The PURE half of a ref-add: no file I/O. Returns ``(src, base)`` — ``base`` is
@@ -364,12 +399,19 @@ class RefsMixin(ServiceCore):
 
         Shared by :meth:`_add_ref_core` (the interactive/apply path) and the bulk importer's
         pre-pass, which calls this directly against a throwaway ``db`` copy with ``now=ev.at``.
+
+        ``kind=""`` resolves to ``self.spec.default_ref_kind()``, validated the same as any
+        explicit kind. The edge is written bare (:func:`~squads._models._item.make_ref`'s own
+        ``""`` sentinel) exactly when the resolved kind is that declared default — never
+        spelled out — so the corpus keeps one on-disk encoding per edge.
         """
         if from_id == to_id:
             raise SquadsError("an item cannot reference itself")
-        if kind not in VALID_REF_KINDS:
-            valid = ", ".join(sorted(VALID_REF_KINDS))
-            raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
+        default_kind = self.spec.default_ref_kind()
+        resolved_kind = kind or default_kind
+        if resolved_kind not in self.spec.ref_kinds:
+            valid = ", ".join(sorted(self.spec.ref_kinds))
+            raise SquadsError(f"unknown ref kind {resolved_kind!r}. Valid kinds: {valid}")
         src = require_item(db, from_id)
         tgt = require_item(db, to_id)
         base = src.model_copy(deep=True)
@@ -380,21 +422,23 @@ class RefsMixin(ServiceCore):
         tgt_prefix = effective_prefix(tgt.prefix)
         tgt_seq = tgt.sequence_id
         src.refs = [r for r in src.refs if not ref_id_matches(split_ref(r)[0], tgt_prefix, tgt_seq)]
-        src.refs.append(make_ref(to_id, kind))
+        wire_kind = "" if resolved_kind == default_kind else resolved_kind
+        src.refs.append(make_ref(to_id, wire_kind))
         src.updated_at = now if now is not None else clock.now()
         src.modified_session, _ = actor.current_session()
         return src, base
 
     async def _add_ref_core(
-        self, db: SquadsDB, from_id: str, to_id: str, *, kind: str = DEFAULT_KIND
+        self, db: SquadsDB, from_id: str, to_id: str, *, kind: str = ""
     ) -> Item:
         """The ref-add mutation core: takes an already-open transaction's ``db``."""
+        default_kind = self.spec.default_ref_kind()
         src, base = self._add_ref_model(db, from_id, to_id, kind=kind)
-        await update_frontmatter(item_file(self.paths, src), src, base)
+        await update_frontmatter(item_file(self.paths, src), src, base, default_kind=default_kind)
         self.store.log(
             "ref",
             src.id,
-            {"add": to_id, "kind": kind},
+            {"add": to_id, "kind": kind or default_kind},
         )
         return src
 
@@ -432,7 +476,9 @@ class RefsMixin(ServiceCore):
             src.refs = [r for r in src.refs if not _matches(r)]
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, src), src, base)
+            await update_frontmatter(
+                item_file(self.paths, src), src, base, default_kind=self.spec.default_ref_kind()
+            )
             payload: dict[str, object] = {"remove": to_id}
             if kind is not None:
                 payload["kind"] = kind
@@ -450,7 +496,7 @@ class RefsMixin(ServiceCore):
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; link-role targets a role")
-        updated = await self.add_ref(skill_id, role_id, kind="scopes")
+        updated = await self.add_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
         await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
         return updated
 
@@ -469,12 +515,18 @@ class RefsMixin(ServiceCore):
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
-        updated = await self.rm_ref(skill_id, role_id, kind="scopes")
+        updated = await self.rm_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
         await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
         return updated
 
     async def refs_out(self, item_id: str) -> list[tuple[str, str]]:
-        return [split_ref(r) for r in (await self.get(item_id)).refs]
+        """Forward ``(target_id, kind)`` pairs — ``kind`` always spelled, resolving a bare
+        wire form to the active spec's declared default."""
+        default_kind = self.spec.default_ref_kind()
+        return [
+            (rid, kind or default_kind)
+            for rid, kind in (split_ref(r) for r in (await self.get(item_id)).refs)
+        ]
 
     async def refs_in(self, item_id: str) -> list[tuple[str, str]]:
         """Backrefs computed by inverting forward edges (never stored).
@@ -487,12 +539,13 @@ class RefsMixin(ServiceCore):
         target = require_item(db, item_id)
         target_prefix = effective_prefix(target.prefix)
         target_seq = target.sequence_id
+        default_kind = self.spec.default_ref_kind()
         out: list[tuple[str, str]] = []
         for it in db.items.values():
             for r in it.refs:
                 rid, kind = split_ref(r)
                 if ref_id_matches(rid, target_prefix, target_seq):
-                    out.append((it.id, kind))
+                    out.append((it.id, kind or default_kind))
         return sorted(out, key=lambda p: number_for_id(p[0]))
 
     async def graph(
@@ -513,8 +566,12 @@ class RefsMixin(ServiceCore):
         depth:
             How many hops to follow from the root (default 2; depth 0 = root only).
         kinds:
-            A set of ref kinds to follow.  ``None`` means all :data:`VALID_REF_KINDS`.
-            Unknown kinds raise :class:`~squads._errors.SquadsError`.
+            A set of ref kinds to follow.  ``None`` (default) means no filter at all — every
+            edge traverses, including one whose kind the active spec does not declare (its
+            node then reports ``edge_semantic=None``).  An explicit set is checked against
+            the declared vocabulary first; a kind the active spec does not declare raises
+            :class:`~squads._errors.SquadsError` naming the accepted set — there is no way to
+            filter *to* an undeclared kind.
         direction:
             ``"out"`` (follow the item's own forward refs), ``"in"`` (follow backrefs),
             or ``"both"`` (merged, default).
@@ -530,10 +587,12 @@ class RefsMixin(ServiceCore):
 
         Dependency-edge normalization
         ------------------------------
-        ``depends-on`` and ``blocks`` are two spellings of the same dependency.  Both
-        are stored in ``edge_kind="depends-on"`` on the returned
-        :class:`~squads._services._results.GraphNode`; ``direction`` disambiguates
-        the end:
+        The declared BLOCKER- and DEPENDENT-direction kinds are two spellings of the same
+        dependency.  Both collapse onto one declared key —
+        :meth:`~squads._workflow._models.WorkflowSpec.canonical_dependency_ref_kind` — on the
+        returned :class:`~squads._services._results.GraphNode`'s ``edge_kind``, with
+        ``edge_semantic="dependency"`` naming the role a consumer should actually branch on;
+        ``direction`` disambiguates the end:
 
         - ``direction="out"`` → the expanded node depends on the child → display "depends on"
         - ``direction="in"`` → the child depends on the expanded node → display "required by"
@@ -541,17 +600,23 @@ class RefsMixin(ServiceCore):
         if direction not in ("out", "in", "both"):
             raise SquadsError(f"invalid direction {direction!r}; expected 'out', 'in', or 'both'")
 
-        effective_kinds: frozenset[str]
+        # `kinds=None` (no --kind passed) means no filter at all — every edge is traversed,
+        # declared or not: sq graph may not omit an edge it can see. An explicit
+        # `kinds` set is still checked against the declared vocabulary and refused by name if
+        # it names a kind the merged spec does not declare; there is no way to filter *to* an
+        # undeclared kind, consistent with the refusal shape everywhere else.
+        requested_kinds: frozenset[str] | None
         if kinds is None:
-            effective_kinds = frozenset(VALID_REF_KINDS)
+            requested_kinds = None
         else:
-            unknown = kinds - VALID_REF_KINDS
+            declared_kinds = frozenset(self.spec.ref_kinds)
+            unknown = kinds - declared_kinds
             if unknown:
-                valid = ", ".join(sorted(VALID_REF_KINDS))
+                valid = ", ".join(sorted(declared_kinds))
                 raise SquadsError(
                     f"unknown ref kind(s): {', '.join(sorted(unknown))}. Valid kinds: {valid}"
                 )
-            effective_kinds = frozenset(kinds)
+            requested_kinds = frozenset(kinds)
 
         db = await self.store.load()
         root_item = require_item(db, root_id)
@@ -565,6 +630,7 @@ class RefsMixin(ServiceCore):
                 priority=root_item.priority,
                 assignee=root_item.assignee,
                 edge_kind=None,
+                edge_semantic=None,
                 direction=None,
                 seen=False,
                 badges=_resolve_badges(self.spec, root_item),
@@ -574,7 +640,7 @@ class RefsMixin(ServiceCore):
         ctx = _TraversalCtx(
             db_items=db.items,
             depth=depth,
-            kinds=effective_kinds,
+            requested_kinds=requested_kinds,
             direction=direction,
             include_closed=include_closed,
             is_open=self.spec.is_open,
@@ -590,26 +656,31 @@ class RefsMixin(ServiceCore):
     async def blocked(self) -> list[tuple[Item, list[Item]]]:
         """Open items with ≥1 open blocker, paired with those blockers.
 
-        Two equivalent spellings are supported:
-        - ``A ref add B --kind blocks`` ("A blocks B"): B is blocked while A stays open.
-          The edge lives on the *blocker* A; B is the target.
-        - ``A ref add B --kind depends-on`` ("A depends-on B"): A is blocked while B stays open.
-          The edge lives on the *dependent* A; B is the blocker.
+        Two equivalent spellings are supported, resolved through the declared ``dependency``
+        semantic rather than a literal kind name — see :meth:`WorkflowSpec.dependency_ref_kind`:
+        - The BLOCKER-direction kind (``"A <blocker-kind> B"``): B is blocked while A stays
+          open. The edge lives on the *blocker* A; B is the target.
+        - The DEPENDENT-direction kind (``"A <dependent-kind> B"``): A is blocked while B stays
+          open. The edge lives on the *dependent* A; B is the blocker.
 
-        Both spellings are consumed identically. An item blocked through both edges is
-        deduplicated — it appears once with the union of its open blockers.
+        Either direction may be undeclared (zero is legal for the ``dependency`` capability),
+        in which case that half contributes no edges. Both spellings are consumed identically.
+        An item blocked through both edges is deduplicated — it appears once with the union of
+        its open blockers.
         """
         db = await self.store.load()
+        blocker_kind = self.spec.dependency_ref_kind("blocker")
+        dependent_kind = self.spec.dependency_ref_kind("dependent")
         # keyed by the blocked item's id; value is a set of blocker ids (dedup)
         blockers_by_target: dict[str, set[str]] = {}
         for it in db.items.values():
             for r in it.refs:
                 rid, kind = split_ref(r)
-                if kind == "blocks":
-                    # it blocks rid → rid is the blocked item, it is the blocker
+                if blocker_kind is not None and kind == blocker_kind:
+                    # it <blocker-kind> rid → rid is the blocked item, it is the blocker
                     blockers_by_target.setdefault(rid, set()).add(it.id)
-                elif kind == "depends-on":
-                    # it depends-on rid → it is the blocked item, rid is the blocker
+                elif dependent_kind is not None and kind == dependent_kind:
+                    # it <dependent-kind> rid → it is the blocked item, rid is the blocker
                     blockers_by_target.setdefault(it.id, set()).add(rid)
         out: list[tuple[Item, list[Item]]] = []
         for tid, blocker_ids in blockers_by_target.items():

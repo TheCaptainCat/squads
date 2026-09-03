@@ -102,11 +102,12 @@ sq workflow collections        # every declared badge collection (priority, seve
 sq workflow statuses           # every declared status, with the role each resolves to
 sq workflow roles              # every declared status role: settled / hidden / colour / live
 sq workflow lifecycles         # every declared lifecycle: initial state, states, transitions
+sq workflow ref-kinds          # every declared ref kind: its label, hint and semantic role
 sq workflow lint               # validate the workflow override — collects all errors; exit 0 if OK
 ```
 
 The **catalog** subcommands (`types`, `subentity-kinds`, `collections`, `statuses`, `roles`,
-`lifecycles`) each take `--json` and emit a bare JSON array — that is the surface to read instead
+`lifecycles`, `ref-kinds`) each take `--json` and emit a bare JSON array — that is the surface to read instead
 of hardcoding a type or status name, and the shapes are covered by the [stability
 contract](stability.md). Every row carries every key, `null` for absent rather than omitted, so a
 client can index a key without testing for its presence.
@@ -374,8 +375,15 @@ This creates `.overrides/workflow.toml` in your squad directory (next to `.squad
 
 ### Override format
 
-The override file is standard TOML with four sections: `[items.*]`, `[statuses.*]`, `[lifecycles.*]`,
-and `[collections.*]`.
+The override file is standard TOML. Its top level accepts seven sections — `[items.*]`,
+`[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]`, `[roles.*]` and
+`[ref_kinds.*]` — plus the single `[selected]` table that drops built-ins. Anything else at the top
+level is refused by name when the spec loads; `sq workflow lint` prints the accepted set for the
+version you are running, which is the list to trust rather than this one.
+
+The subsections below cover lifecycles, statuses, status roles, item types and collections, and
+ref kinds. Sub-entity kinds (`[subentity_kinds.*]`) are declarable but have no field reference
+here; read one back with `sq workflow subentity-kinds --json` for its field shape.
 
 #### Lifecycles
 
@@ -568,10 +576,63 @@ and `--min-priority` sugar.
 Removing a badge code from a collection is refused while live items still carry that code; the
 refusal lists the affected IDs.
 
+#### Ref kinds
+
+A ref kind is the label on a link between two items — the `--kind` in
+`sq <type> <n> ref add <id> --kind <kind>`. The kinds are declared vocabulary like everything else
+in this file, so a squad may add its own, relabel a bundled one, or drop one it doesn't use.
+
+```toml
+[ref_kinds.escalates]
+label = "Escalates"
+hint = "A escalates B to a wider audience"
+```
+
+The table key is the kind as it is spelled on disk. `label` is required; `hint` is the one-line
+meaning, written about *A* (the item carrying the ref) and *B* (the item it points at). `role`
+declares a semantic squads binds behaviour to, and `direction` (`"blocker"` or `"dependent"`)
+accompanies `role = "dependency"`. **A kind that declares no `role` is navigational** — a real edge
+that displays, links and traverses, but drives no engine behaviour — and that is what a kind you
+declare gets unless you say otherwise.
+
+The bundled set:
+
+| Kind | Meaning | `role` |
+|---|---|---|
+| `related` | Generic cross-reference — what a bare `ref add <id>` writes when you pass no `--kind` | `default` |
+| `blocks` | A is blocking B; B cannot proceed while A is open | `dependency` (`blocker`) |
+| `depends-on` | A depends on B; A cannot proceed while B is open | `dependency` (`dependent`) |
+| `implements` | A implements the requirement or spec described by B | — |
+| `fixes` | A (the resolving work) fixes the problem tracked by B | — |
+| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | — |
+| `supersedes` | A (a newer record) supersedes B (an older one) | `supersession` |
+| `duplicates` | A (a later filing) duplicates B (the original) | — |
+| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | `preload` |
+| `targets` | A targets B — a navigational membership edge with no engine binding; its meaning is whatever reads it | — |
+
+The four `role` values are what the engine actually reads — the `dependency` pair feeds
+`sq blocked`, `preload` drives which skills a role's generated pointer loads, `supersession` drives
+`sq check`'s incoming-supersedes rule, and `default` is both the no-`--kind` fallback and the
+on-disk encoding for it. Behaviour never keys off a kind's spelling, which is why renaming a bundled
+kind keeps its behaviour. Read your own merged set back with `sq workflow ref-kinds`.
+
+The full field reference — the floor a merged set must satisfy, the refusals, and a worked
+adopter-declared kind — is in
+[overrides.md § "Ref kinds"](overrides.md#ref-kinds-the-labelled-edges-between-items).
+
+**A convention about `duplicates`, which nothing enforces.** When a later filing turns out to
+duplicate an existing item, the usual handling is to close the later one rather than delete it — at
+`Cancelled` under squads' bundled lifecycles, or whatever your own spec calls its equivalent
+dropped state — and to leave the `duplicates` edge on that later filing, so the original stays
+reachable from it. This is a working convention, not an engine binding: `duplicates` declares no
+`role` and nothing in squads checks any of it. It is deliberately not written into the kind's
+declared semantics, because doing so would hardcode a status name your own spec is free to rename or
+drop.
+
 ### What the override may and may not change
 
-The override may add a new item type, status, lifecycle, collection or status role; shadow a
-built-in one, field by field; and drop a built-in by listing the survivors in a top-level
+The override may add a new item type, status, lifecycle, collection, status role or ref kind;
+shadow a built-in one, field by field; and drop a built-in by listing the survivors in a top-level
 `[selected]` table. The full grammar — deep merge, arrays as leaves, splat-refs and `[selected]` —
 is in [overrides.md § "The override grammar"](overrides.md#the-override-grammar-shadow-append-and-drop).
 
@@ -587,6 +648,9 @@ token-shaped key, an exceeded nesting bound) are catalogued in
   revert the field, or make the change while the type has no items.
 - **A drop that strands live items** — a type or status the squad's own items still carry. `sq` hard-stops
   with the affected IDs listed. Restore the key, or move the items first.
+- **A ref kind dropped or renamed while live refs spell it** — the same hard stop, with the affected
+  IDs listed. Restore the entry, or remove those refs first; no command rewrites the ref kinds an
+  existing corpus carries. A kind no edge uses may be dropped or renamed freely.
 
 Unrecognised top-level keys — a mistyped section name being the usual case — are rejected by name at
 load time, so the spec is fail-closed rather than silently doing nothing.

@@ -23,12 +23,16 @@ and subentity partials (subentities/*) are not item files and carry no sq-body s
 """
 
 import difflib
+import json
+import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 from squads import __version__
 from squads._errors import SquadsError
+from squads._interactions import is_dev_slug
 from squads._interactions._loader import (
     PLAYBOOK_OVERRIDE_FILENAME,
     bundled_playbook_toml_text,
@@ -36,9 +40,16 @@ from squads._interactions._loader import (
 )
 from squads._models._item import Item
 from squads._overrides._manifest import (
-    base_version_template_content,
+    PLAYBOOK_KEY,
+    ROLES_KEY,
+    WORKFLOW_KEY,
+    artifact_changed_since,
+    artifact_floor,
+    base_version_artifact_content,
+    bundled_artifact_content,
     bundled_template_content,
     template_changed_since,
+    template_key,
 )
 from squads._overrides._stamp import (
     read_template_stamp,
@@ -48,8 +59,11 @@ from squads._overrides._stamp import (
     write_template_stamp,
 )
 from squads._rendering._engine import invalidate_squad_dir
-from squads._roles._catalog import PREDEFINED
+from squads._roles._catalog import PREDEFINED, RoleDef, role_by_slug
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME, bundled_roles_toml_text
+from squads._roles._resolver import dev_base_for_slug, role_base_from_item
 from squads._sections import find_markers
+from squads._util import version_tuple
 from squads._workflow._loader import (
     WORKFLOW_OVERRIDE_FILENAME,
     bundled_workflow_toml_text,
@@ -70,8 +84,11 @@ STATE_BROKEN = "broken"  # missing a required sq:* marker region
 class OverrideEntry:
     """One project override's metadata for ``sq override list``."""
 
-    name: str  # template-relative path (e.g. "items/task.md.j2") or role slug
-    kind: str  # "template" or "role"
+    name: str  # template-relative path, role slug, "workflow", "playbook", or "roles"
+    #: "template" | "role" (a per-slug .overrides/roles/<slug>.toml) | "workflow" | "playbook"
+    #: | "roles" (the whole-document .overrides/roles.toml catalog override) — five kinds, not
+    #: the two this field was once documented as.
+    kind: str
     base_version: str | None  # from the stamp, or None if unstamped
     state: str  # STATE_CURRENT | STATE_DRIFTED | STATE_BROKEN
 
@@ -152,6 +169,10 @@ def _playbook_override_path(squad_dir: Path) -> Path:
     return squad_dir / PLAYBOOK_OVERRIDE_FILENAME
 
 
+def _roles_catalog_override_path(squad_dir: Path) -> Path:
+    return squad_dir / ROLES_OVERRIDE_FILENAME
+
+
 # ─── Determine override state ──────────────────────────────────────────────────
 
 
@@ -178,6 +199,12 @@ def _template_state(template_name: str, path: Path, text: str) -> str:
 def _role_state(slug: str, path: Path, text: str) -> str:
     """Classify a role TOML override as current / drifted.
 
+    Drift is measured against ``roles.toml`` — the document a role override actually
+    overrides — not against the role *body template*
+    (``agents/role.md.j2``), which is a separate override with its own stamp and its own
+    drift. A change to a bundled role's mission, or a new ``RoleSpec`` field, now drifts a
+    shadowing role override; a cosmetic body-template edit no longer does.
+
     Role TOML overrides are never 'broken' in the marker sense (TOML has no sq markers).
     """
     stamp = read_toml_stamp(text)
@@ -187,8 +214,7 @@ def _role_state(slug: str, path: Path, text: str) -> str:
     if stamp == __version__:
         return STATE_CURRENT
 
-    # Check role-template drift (the role body shape, agents/role.md.j2).
-    if template_changed_since("agents/role.md.j2", stamp):
+    if artifact_changed_since(ROLES_KEY, stamp):
         return STATE_DRIFTED
     return STATE_CURRENT
 
@@ -199,32 +225,51 @@ def _workflow_state(text: str) -> str:
     An unstamped file has by definition not been reconciled against any bundled version, so
     it is classified not-current (drifted) regardless of whether it shadows or only adds —
     that distinction drives the separate stamp-obligation *finding* in
-    :func:`_check_workflow_override_issues`, not this state. Drift is detected by
-    version stamp alone: there is no per-release content-hash for the workflow TOML in the
-    manifest, so this never compares content the way a template override's drift check does.
-    TOML has no sq markers, so a workflow override is never 'broken' in the marker sense.
+    :func:`_check_workflow_override_issues`, not this state. Drift is **content-gated**
+    a stamp older than the running version is drifted only when
+    the bundled ``workflow.toml`` actually changed since that stamp — an add-only override
+    with no bundled change behind it is silent, never "may be stale" on stamp age alone. TOML
+    has no sq markers, so a workflow override is never 'broken' in the marker sense.
     """
     stamp = read_toml_stamp(text)
     if stamp is None:
         return STATE_DRIFTED
     if stamp == __version__:
         return STATE_CURRENT
-    # For v1 simplicity: any stamp older than the running version is drifted.
-    # (No per-release content-hash for the workflow TOML in the manifest yet.)
-    return STATE_DRIFTED
+    if artifact_changed_since(WORKFLOW_KEY, stamp):
+        return STATE_DRIFTED
+    return STATE_CURRENT
 
 
 def _playbook_state(text: str) -> str:
     """Classify the playbook TOML override as current / drifted — mirrors
-    :func:`_workflow_state` exactly (same three-state, stamp-only contract; no per-release
-    content-hash for the playbook TOML either). TOML has no sq markers, so a playbook override
-    is never 'broken' in the marker sense."""
+    :func:`_workflow_state` exactly (same three-state, now content-gated contract). TOML
+    has no sq markers, so a playbook override is never 'broken' in the marker
+    sense."""
     stamp = read_toml_stamp(text)
     if stamp is None:
         return STATE_DRIFTED
     if stamp == __version__:
         return STATE_CURRENT
-    return STATE_DRIFTED
+    if artifact_changed_since(PLAYBOOK_KEY, stamp):
+        return STATE_DRIFTED
+    return STATE_CURRENT
+
+
+def _roles_catalog_state(text: str) -> str:
+    """Classify the role catalog document override (``.overrides/roles.toml``) as
+    current / drifted — mirrors :func:`_workflow_state`/:func:`_playbook_state` exactly, gated
+    against ``ROLES_KEY`` (the same manifest key :func:`_role_state` gates a per-slug override
+    against, since both documents shadow the same bundled ``roles.toml``). TOML has no sq
+    markers, so this override is never 'broken' in the marker sense."""
+    stamp = read_toml_stamp(text)
+    if stamp is None:
+        return STATE_DRIFTED
+    if stamp == __version__:
+        return STATE_CURRENT
+    if artifact_changed_since(ROLES_KEY, stamp):
+        return STATE_DRIFTED
+    return STATE_CURRENT
 
 
 # ─── scan_overrides ────────────────────────────────────────────────────────────
@@ -275,6 +320,14 @@ def scan_overrides(squad_dir: Path) -> list[OverrideEntry]:
         entries.append(
             OverrideEntry(name="playbook", kind="playbook", base_version=stamp, state=state)
         )
+
+    # Role catalog document override (single file, not a directory)
+    rc_path = _roles_catalog_override_path(squad_dir)
+    if rc_path.is_file():
+        text = rc_path.read_text(encoding="utf-8")
+        stamp = read_toml_stamp(text)
+        state = _roles_catalog_state(text)
+        entries.append(OverrideEntry(name="roles", kind="roles", base_version=stamp, state=state))
 
     return entries
 
@@ -575,6 +628,62 @@ def scaffold_playbook(squad_dir: Path, *, force: bool = False) -> Path:
     return dest
 
 
+# ─── scaffold_roles_catalog ──────────────────────────────────────────────────────
+
+#: Starter content for a scaffolded role-catalog override — stamp + a commented example
+#: covering all three sections this document closes over.
+_ROLES_CATALOG_SCAFFOLD_BODY = """\
+# Role catalog override — bundles, the dev-role pool, and (optionally) roles, all in one
+# document. Precedence: bundled roles.toml -> this document -> a per-slug
+# .overrides/roles/<slug>.toml file, which still wins over this document for the same field.
+#
+# Rules:
+#   - Top-level keys are limited to: roles, bundles, dev (plus [selected] below).
+#   - [bundles.<name>] fields merge field-by-field over the bundled default; a new bundle
+#     name is simply added.
+#   - [dev] fields (model, color, name_pool) merge field-by-field — override just one without
+#     restating the others.
+#   - [[roles]] entries are keyed by their own 'slug': an entry naming a bundled slug
+#     field-merges onto it (write only the field you want to change); an entry naming a new
+#     slug defines a wholly new role (full_name, title, description, mission all required).
+#   - Drop a bundled role or bundle via [selected] (selected.roles / selected.bundles) — a
+#     deselect that would empty a bundle or remove the default agent fails validation.
+#
+# See state after editing: sq override diff roles
+# Re-stamp after merging:  sq override update roles
+#
+# --- Worked example (uncomment and edit to activate) -------------------------
+#
+# [dev]
+# model = "opus"
+#
+# [[roles]]
+# slug = "architect"
+# title = "Chief Architect"
+#
+# [selected]
+# bundles = ["all", "core"]
+# -----------------------------------------------------------------------------
+"""
+
+
+def scaffold_roles_catalog(squad_dir: Path, *, force: bool = False) -> Path:
+    """Create ``.overrides/roles.toml`` with the stamp comment + a worked example.
+
+    Mirrors :func:`scaffold_workflow`/:func:`scaffold_playbook`: starts from scratch (not a
+    copy of the bundled default) and contains only a commented example. Raises
+    :class:`SquadsError` if the file already exists and ``--force`` is not set.
+    """
+    dest = _roles_catalog_override_path(squad_dir)
+    if dest.exists() and not force:
+        raise SquadsError(f"{ROLES_OVERRIDE_FILENAME} already exists; use --force to overwrite")
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    stamp_line = f"# squads:override-base:{__version__}\n"
+    dest.write_text(stamp_line + _ROLES_CATALOG_SCAFFOLD_BODY, encoding="utf-8")
+    return dest
+
+
 # ─── diff_override ─────────────────────────────────────────────────────────────
 
 
@@ -586,11 +695,100 @@ def _unified_diff(a: str, b: str, fromfile: str, tofile: str) -> str:
     return "".join(lines)
 
 
+# ─── Δ-upgrade: shared across every override kind ─────────────────────────────
+
+
+def _upgrade_delta(
+    key: str, base_version: str | None, *, label: str, fromfile_prefix: str
+) -> tuple[str, bool]:
+    """Compute the Δ-upgrade pane + ``base_available`` for one artifact key, shared by every
+    override kind. A real unified diff whenever the stamped base revision is carried by the
+    content store (``base_version_artifact_content``) — which is what makes Δ-upgrade
+    expressible for a spec document at all, not only for a template. When it is
+    not carried, :func:`_uncarried_base_pane` renders a compliant explanation instead;
+    the retired "content changed but base snapshot is not available; refer to the squads
+    changelog or git history" message never appears again.
+    """
+    if base_version is None:
+        return ("(no stamp — run `sq override update` to stamp the current version)", False)
+
+    current_content = bundled_artifact_content(key) or ""
+    base_content = base_version_artifact_content(key, base_version)
+    if base_content is not None:
+        return (
+            _unified_diff(
+                base_content,
+                current_content,
+                fromfile=f"{fromfile_prefix}@v{base_version}",
+                tofile=f"{fromfile_prefix} (current)",
+            ),
+            True,
+        )
+
+    return (_uncarried_base_pane(key, base_version, label), False)
+
+
+def _uncarried_base_pane(key: str, base_version: str, label: str) -> str:
+    """The pane for a stamped base revision the content store does not carry.
+
+    Three shapes: newer than the running version (a downgrade, refused — no anchor exists in
+    the right direction); below this artifact's own coverage floor, where a partial Δ-upgrade
+    from the earliest carried revision is rendered when that revision's content is available;
+    and everything else (a malformed stamp naming a version squads never released, or a real
+    release that simply predates this artifact's own tracking) — reported by name, never as
+    "read the changelog". Every branch names the artifact, the stamped version, why it is not
+    carried, and what *is* available instead. Never an `sq check`
+    finding at any severity — the drift classifiers above already stay silent for all three,
+    by construction (``artifact_changed_since`` returns ``False`` for an unrecorded base).
+    """
+    running_v = version_tuple(__version__)
+    base_v = version_tuple(base_version)
+
+    if base_v > running_v:
+        return (
+            f"(cannot show an upgrade delta for {label}: the stamp names v{base_version}, "
+            f"newer than the running v{__version__} — a downgrade has no earlier bundled "
+            "revision to diff against)"
+        )
+
+    floor = artifact_floor(key)
+    if floor is not None and base_v < version_tuple(floor):
+        anchor_content = base_version_artifact_content(key, floor)
+        if anchor_content is not None:
+            current_content = bundled_artifact_content(key) or ""
+            diff = _unified_diff(
+                anchor_content,
+                current_content,
+                fromfile=f"{label}@v{floor} (earliest carried revision)",
+                tofile=f"{label} (current)",
+            )
+            return (
+                f"(stamp v{base_version} predates squads' own provenance for {label}, which "
+                f"starts at v{floor} — partial Δ-upgrade below, starting from v{floor} "
+                f"rather than v{base_version}; changes to {label} before v{floor} are not "
+                f"represented)\n\n{diff}"
+            )
+
+    if floor is None:
+        return (
+            f"(stamp v{base_version} — squads carries no provenance history for {label} yet; "
+            "run `sq override update` to re-stamp at the current, tracked revision)"
+        )
+
+    return (
+        f"(stamp v{base_version} names no recorded {label} revision — either it names a "
+        f"version squads never released, or {label} was not yet an overridable artifact at "
+        f"that release; squads' own provenance for it starts at v{floor} — run "
+        "`sq override update` to re-stamp at the current, tracked revision)"
+    )
+
+
 def diff_override(squad_dir: Path, name: str, kind: str) -> DiffResult:
     """Compute both diffs for one override.
 
-    *kind* is ``"template"``, ``"role"``, ``"workflow"``, or ``"playbook"``.
-    Raises :class:`SquadsError` when the override file is not found.
+    *kind* is ``"template"``, ``"role"``, ``"workflow"``, ``"playbook"``, or ``"roles"`` (the
+    whole-document role catalog override). Raises :class:`SquadsError` when the override file
+    is not found.
     """
     if kind == "template":
         return _diff_template(squad_dir, name)
@@ -600,8 +798,11 @@ def diff_override(squad_dir: Path, name: str, kind: str) -> DiffResult:
         return _diff_workflow(squad_dir)
     if kind == "playbook":
         return _diff_playbook(squad_dir)
+    if kind == "roles":
+        return _diff_roles_catalog(squad_dir)
     raise SquadsError(
-        f"unknown override kind {kind!r}; expected 'template', 'role', 'workflow', or 'playbook'"
+        f"unknown override kind {kind!r}; expected 'template', 'role', 'workflow', "
+        "'playbook', or 'roles'"
     )
 
 
@@ -626,25 +827,12 @@ def _diff_template(squad_dir: Path, template_name: str) -> DiffResult:
         tofile=f".overrides/templates/{template_name}",
     )
 
-    # Δ-upgrade: base-version bundled vs current bundled (what the upgrade changed).
-    base_available = False
-    delta_upgrade = ""
-    if base_version is not None:
-        base_content = base_version_template_content(template_name, base_version)
-        if base_content is not None:
-            base_available = True
-            delta_upgrade = _unified_diff(
-                base_content,
-                current_bundled,
-                fromfile=f"bundled/{template_name}@v{base_version}",
-                tofile=f"bundled/{template_name} (current)",
-            )
-        else:
-            delta_upgrade = (
-                f"(cannot recover bundled {template_name} at v{base_version} — "
-                "content changed but base snapshot is not available; "
-                "refer to the squads changelog or git history)"
-            )
+    delta_upgrade, base_available = _upgrade_delta(
+        template_key(template_name),
+        base_version,
+        label=template_name,
+        fromfile_prefix=f"bundled/{template_name}",
+    )
 
     return DiffResult(
         name=template_name,
@@ -654,6 +842,54 @@ def _diff_template(squad_dir: Path, template_name: str) -> DiffResult:
         base_version=base_version,
         base_available=base_available,
     )
+
+
+#: RoleDef fields rendered by :func:`_role_def_as_toml`, in a stable display order.
+_ROLE_DEF_SCALAR_FIELDS = ("full_name", "title", "description", "mission")
+_ROLE_DEF_LIST_FIELDS = ("responsibilities", "agreements")
+_ROLE_DEF_OPTIONAL_SCALAR_FIELDS = ("model", "color")
+
+
+def _role_def_as_toml(base: RoleDef) -> str:
+    """Render *base*'s fields in the same flat-key shape a role override file uses.
+
+    Only for Δ-mine display (a diff baseline), not a real TOML writer: string values are
+    escaped via ``json.dumps``, which produces a valid TOML basic string for every value a
+    ``RoleDef`` actually carries. Fields absent from the bundled role (``None``, or an empty
+    list) are omitted, exactly as they would be from a hand-written override.
+    """
+    lines: list[str] = [
+        f"{field} = {json.dumps(getattr(base, field))}" for field in _ROLE_DEF_SCALAR_FIELDS
+    ]
+    for field in _ROLE_DEF_LIST_FIELDS:
+        values = getattr(base, field)
+        if values:
+            lines.append(f"{field} = {json.dumps(list(values))}")
+    for field in _ROLE_DEF_OPTIONAL_SCALAR_FIELDS:
+        value = getattr(base, field)
+        if value is not None:
+            lines.append(f"{field} = {json.dumps(value)}")
+    lines.append(f"can_spawn = {'true' if base.can_spawn else 'false'}")
+    return "\n".join(lines) + "\n"
+
+
+def _shadowed_bundled_role_toml(slug: str, squad_dir: Path | None = None) -> str | None:
+    """The bundled role *slug* shadows, rendered as TOML — or ``None`` for a brand-new
+    (non-bundled) role slug, which genuinely starts from scratch.
+
+    The dev branch honours a project's catalog-document ``[dev]`` override via *squad_dir*
+    (:func:`~squads._roles._resolver.dev_base_for_slug`), so a per-slug dev override's shadow
+    baseline agrees with what the preview and ``sq dev add`` both build. The bundled-role
+    branch (``role_by_slug``) deliberately stays unthreaded: it is the ``[roles]`` catalog-
+    document layer reaching a *different* consumer than the one either finding named, and
+    doing so would also change what the Δ-mine baseline means (bundled-as-shipped versus
+    bundled-after-catalog-merge) rather than just where it reads from — a design question of
+    its own, out of scope here."""
+    if slug in _BUNDLED_ROLE_SLUGS:
+        return _role_def_as_toml(role_by_slug(slug))
+    if is_dev_slug(slug):
+        return _role_def_as_toml(dev_base_for_slug(slug, squad_dir))
+    return None
 
 
 def _diff_role(squad_dir: Path, slug: str) -> DiffResult:
@@ -666,39 +902,33 @@ def _diff_role(squad_dir: Path, slug: str) -> DiffResult:
     override_text = path.read_text(encoding="utf-8")
     base_version = read_toml_stamp(override_text)
 
-    # For roles, Δ-mine is the TOML content vs an empty reference (roles start from empty).
-    delta_mine = _unified_diff(
-        "",
-        override_text,
-        fromfile="(empty — role overrides start from scratch)",
-        tofile=f".overrides/roles/{slug}.toml",
-    )
+    # Δ-mine: a role override merges field-wise over the bundled role, so it SHADOWS — diff
+    # against the shadowed bundled role's own fields, not an empty reference, which would
+    # describe only what the team added and say nothing about a shadowed field (the same
+    # fix already shipped for the workflow document). A brand-new, non-bundled
+    # role slug (`--new`) genuinely has no bundled counterpart, so it keeps the empty baseline.
+    shadowed = _shadowed_bundled_role_toml(slug, squad_dir)
+    if shadowed is not None:
+        delta_mine = _unified_diff(
+            shadowed,
+            override_text,
+            fromfile=f"bundled/roles.toml#{slug}",
+            tofile=f".overrides/roles/{slug}.toml",
+        )
+    else:
+        delta_mine = _unified_diff(
+            "",
+            override_text,
+            fromfile="(empty — role overrides start from scratch)",
+            tofile=f".overrides/roles/{slug}.toml",
+        )
 
-    # Δ-upgrade for roles: whether the role body template (agents/role.md.j2) changed.
-    delta_upgrade = ""
-    base_available = False
-    if base_version is not None:
-        changed = template_changed_since("agents/role.md.j2", base_version)
-        if changed:
-            base_content = base_version_template_content("agents/role.md.j2", base_version)
-            current_bundled = bundled_template_content("agents/role.md.j2") or ""
-            if base_content is not None:
-                base_available = True
-                delta_upgrade = _unified_diff(
-                    base_content,
-                    current_bundled,
-                    fromfile=f"bundled/agents/role.md.j2@v{base_version}",
-                    tofile="bundled/agents/role.md.j2 (current)",
-                )
-            else:
-                delta_upgrade = (
-                    f"(role body template changed since v{base_version} "
-                    "but base snapshot is not available; "
-                    "review the squads changelog for role template changes)"
-                )
-        else:
-            delta_upgrade = "(role body template unchanged since base version)"
-            base_available = True
+    # Δ-upgrade: a role override's real bundled counterpart is roles.toml,
+    # not the role body template (agents/role.md.j2, a separate override with its own drift) —
+    # so the upgrade delta is the whole document's, at the granularity the manifest tracks it.
+    delta_upgrade, base_available = _upgrade_delta(
+        ROLES_KEY, base_version, label="roles.toml", fromfile_prefix="bundled/roles.toml"
+    )
 
     return DiffResult(
         name=slug,
@@ -728,23 +958,12 @@ def _diff_workflow(squad_dir: Path) -> DiffResult:
         tofile=WORKFLOW_OVERRIDE_FILENAME,
     )
 
-    # Δ-upgrade: for v1 simplicity, compare stamp version to running version.
-    # (No per-release content-hash for the workflow TOML in the manifest yet.)
-    delta_upgrade = ""
-    base_available = True
-    if base_version is None:
-        delta_upgrade = (
-            "(no stamp — run `sq override update workflow` to stamp the current version)"
-        )
-        base_available = False
-    elif base_version != __version__:
-        delta_upgrade = (
-            f"(stamp v{base_version} → running v{__version__}; "
-            "review the squads changelog for workflow spec changes, "
-            "then run `sq override update workflow` to re-stamp)"
-        )
-    else:
-        delta_upgrade = "(stamp matches running version — no upgrade delta)"
+    # Δ-upgrade: now expressible for a spec document — a real diff between the
+    # stamped base revision and the current bundled workflow.toml, resolved from the content
+    # store, exactly like every other kind.
+    delta_upgrade, base_available = _upgrade_delta(
+        WORKFLOW_KEY, base_version, label="workflow.toml", fromfile_prefix="bundled/workflow.toml"
+    )
 
     return DiffResult(
         name="workflow",
@@ -773,25 +992,46 @@ def _diff_playbook(squad_dir: Path) -> DiffResult:
         tofile=PLAYBOOK_OVERRIDE_FILENAME,
     )
 
-    delta_upgrade = ""
-    base_available = True
-    if base_version is None:
-        delta_upgrade = (
-            "(no stamp — run `sq override update playbook` to stamp the current version)"
-        )
-        base_available = False
-    elif base_version != __version__:
-        delta_upgrade = (
-            f"(stamp v{base_version} → running v{__version__}; "
-            "review the squads changelog for playbook changes, "
-            "then run `sq override update playbook` to re-stamp)"
-        )
-    else:
-        delta_upgrade = "(stamp matches running version — no upgrade delta)"
+    delta_upgrade, base_available = _upgrade_delta(
+        PLAYBOOK_KEY, base_version, label="playbook.toml", fromfile_prefix="bundled/playbook.toml"
+    )
 
     return DiffResult(
         name="playbook",
         kind="playbook",
+        delta_mine=delta_mine,
+        delta_upgrade=delta_upgrade,
+        base_version=base_version,
+        base_available=base_available,
+    )
+
+
+def _diff_roles_catalog(squad_dir: Path) -> DiffResult:
+    """Mirrors :func:`_diff_workflow`/:func:`_diff_playbook` exactly — same
+    Δ-mine-against-bundled, Δ-upgrade-by-stamp-comparison shape, gated against ``ROLES_KEY``
+    (the document a role catalog override actually overrides — the same key
+    :func:`_diff_role`'s Δ-upgrade already uses for a per-slug override)."""
+    path = _roles_catalog_override_path(squad_dir)
+    if not path.exists():
+        raise SquadsError("no role catalog override found (run `sq override scaffold roles` first)")
+
+    override_text = path.read_text(encoding="utf-8")
+    base_version = read_toml_stamp(override_text)
+
+    delta_mine = _unified_diff(
+        bundled_roles_toml_text(),
+        override_text,
+        fromfile="bundled/roles.toml",
+        tofile=ROLES_OVERRIDE_FILENAME,
+    )
+
+    delta_upgrade, base_available = _upgrade_delta(
+        ROLES_KEY, base_version, label="roles.toml", fromfile_prefix="bundled/roles.toml"
+    )
+
+    return DiffResult(
+        name="roles",
+        kind="roles",
         delta_mine=delta_mine,
         delta_upgrade=delta_upgrade,
         base_version=base_version,
@@ -830,6 +1070,12 @@ def _update_one(squad_dir: Path, name: str, kind: str | None) -> list[str]:
             stamp_toml_file(path, __version__)
             return ["playbook"]
         raise SquadsError("no playbook override found. Run `sq override scaffold playbook` first.")
+    if kind == "roles":
+        path = _roles_catalog_override_path(squad_dir)
+        if path.exists():
+            stamp_toml_file(path, __version__)
+            return ["roles"]
+        raise SquadsError("no role catalog override found. Run `sq override scaffold roles` first.")
     if kind == "template" or kind is None:
         path = _template_overrides_dir(squad_dir) / name
         if path.exists():
@@ -884,7 +1130,156 @@ def _update_all(squad_dir: Path) -> list[str]:
         stamp_toml_file(pb_path, __version__)
         stamped.append("playbook")
 
+    # Role catalog document override (single file)
+    rc_path = _roles_catalog_override_path(squad_dir)
+    if rc_path.is_file():
+        stamp_toml_file(rc_path, __version__)
+        stamped.append("roles")
+
     return stamped
+
+
+# ─── Shadowing detection (stamp-obligation gating) ─────────────────────────────
+#
+# The uniform severity contract: an unstamped *shadowing* override is an error for every
+# kind — it has stopped tracking a bundled counterpart with no provenance recording what it
+# started from. An
+# unstamped *add-only* override (no bundled counterpart to shadow) reports nothing: there is
+# nothing it could have drifted from. ``workflow``/``playbook`` already carry this distinction
+# via their own loaders' ``*_override_shadows_bundled`` (raw key-set intersection); these two
+# give ``template``/``role`` the same test, reusing the exact baseline each kind's own Δ-mine
+# already computes so the shadow question is answered identically everywhere it is asked.
+
+
+def _template_override_shadows_bundled(template_name: str) -> bool:
+    """Whether *template_name* names an actual bundled template — the same baseline
+    :func:`_diff_template`'s Δ-mine falls back to ``""`` for when this is ``False``."""
+    return bundled_template_content(template_name) is not None
+
+
+def _role_override_shadows_bundled(
+    slug: str, role_items_by_slug: Mapping[str, Item], squad_dir: Path | None = None
+) -> bool:
+    """Whether *slug* shadows a bundled or dev-pool role identity — resolved the exact way
+    :func:`_check_role_override_resolves` resolves a base to validate against: the roster's
+    own stored fact (``item.extra.is_dev`` / a live item's bundled slug, via
+    :func:`~squads._roles._resolver.role_base_from_item`) wins over the slug's naming
+    convention whenever a roster item exists, and only a slug with **no** roster item falls
+    back to the naming convention (:func:`_shadowed_bundled_role_toml`, the same baseline
+    :func:`_diff_role`'s Δ-mine uses).
+
+    Without this, a wholly custom, never-``sq dev add``-created role whose slug merely happens
+    to end in ``-dev`` (activated, so a roster item exists and carries no ``extra.is_dev``)
+    would be misread as shadowing the generated dev-pool base by slug shape alone — exactly
+    the "skipped for the whole ``-dev`` suffix space" false positive the stored-fact-first fix
+    (see ``tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py``) closed for every
+    other consumer of a role base.
+    """
+    item = role_items_by_slug.get(slug)
+    if item is not None:
+        return role_base_from_item(item) is not None
+    return _shadowed_bundled_role_toml(slug, squad_dir) is not None
+
+
+def _raw_role_slugs(raw: Mapping[str, Any]) -> set[str]:
+    """Every slug a raw (unmerged) role-catalog mapping's ``[[roles]]`` array declares."""
+    roles = raw.get("roles")
+    if not isinstance(roles, list):
+        return set()
+    return {
+        cast("dict[str, Any]", entry)["slug"]
+        for entry in cast("list[Any]", roles)
+        if isinstance(entry, dict) and isinstance(cast("dict[str, Any]", entry).get("slug"), str)
+    }
+
+
+def _roles_catalog_override_shadows_bundled(squad_dir: Path) -> bool:
+    """Whether ``<squad_dir>/.overrides/roles.toml`` redeclares (shadows) at least one bundled
+    role slug, bundle name, or the ``[dev]`` table — a raw key-set intersection, no merge
+    required, mirroring ``workflow_override_shadows_bundled``/``playbook_override_shadows_bundled``.
+
+    ``[dev]`` carries no keyed collection to intersect (the module docstring of
+    ``squads._roles._loader`` — it is one object, not a keyed collection, so there is nothing
+    in it to shrink via ``[selected]`` either): declaring it at all has redeclared that whole
+    table, not merely added to it, so any presence counts as shadowing.
+
+    Returns ``False`` when the override is absent, unreadable, or malformed TOML: the drift-
+    stamp obligation is moot for a file that cannot even be parsed.
+    """
+    path = _roles_catalog_override_path(squad_dir)
+    if not path.is_file():
+        return False
+    try:
+        override_raw: dict[str, Any] = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError):  # fmt: skip
+        return False
+
+    # Unguarded, like `workflow_override_shadows_bundled`/`playbook_override_shadows_bundled`'s
+    # own bundled reads: a broken bundled roles.toml is a packaging defect, not a state this
+    # predicate tolerates silently.
+    bundled_raw: dict[str, Any] = tomllib.loads(bundled_roles_toml_text())
+
+    bundled_bundles = bundled_raw.get("bundles")
+    override_bundles = override_raw.get("bundles")
+    bundle_overlap = (
+        isinstance(bundled_bundles, dict)
+        and isinstance(override_bundles, dict)
+        and bool(
+            set(cast("dict[str, Any]", bundled_bundles))
+            & set(cast("dict[str, Any]", override_bundles))
+        )
+    )
+    return (
+        bool(override_raw.get("dev"))
+        or bool(_raw_role_slugs(bundled_raw) & _raw_role_slugs(override_raw))
+        or bundle_overlap
+    )
+
+
+def _roles_catalog_stamp_finding_gated(
+    squad_dir: Path, stamp: str | None
+) -> tuple[str, str] | None:
+    """The stamp obligation for the role catalog document override, content-gated exactly like
+    ``squads._workflow._loader.workflow_stamp_finding``/``playbook_stamp_finding`` — the same
+    three-outcome contract every shadowing override kind now shares.
+
+    The remediation commands named here name their own object, ``sq override update roles`` /
+    ``sq override diff roles``, matching every sibling kind's form (``sq override update
+    workflow``, ``sq override diff --role <slug>``) — ``_cli/_override.py`` resolves a
+    ``roles`` positional to the ``roles`` kind, not the ``template`` fallback.
+    """
+    if stamp is None:
+        if _roles_catalog_override_shadows_bundled(squad_dir):
+            return (
+                "error",
+                "shadowing role catalog override has no squads:override-base stamp; run "
+                "`sq override update roles` to re-stamp",
+            )
+        return None
+    if stamp != __version__ and artifact_changed_since(ROLES_KEY, stamp):
+        return (
+            "warn",
+            f"role catalog override may be stale: bundled roles.toml changed since v{stamp}; "
+            "run `sq override diff roles` to review, then `sq override update roles` to re-stamp",
+        )
+    return None
+
+
+def _check_roles_catalog_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
+    """Return check issues for the role catalog document override (if present) — mirrors
+    :func:`_check_workflow_override_issues`/:func:`_check_playbook_override_issues` exactly."""
+    rc_path = _roles_catalog_override_path(squad_dir)
+    if not rc_path.is_file():
+        return []
+
+    display = ROLES_OVERRIDE_FILENAME
+    text = rc_path.read_text(encoding="utf-8")
+    stamp = read_toml_stamp(text)
+    finding = _roles_catalog_stamp_finding_gated(squad_dir, stamp)
+    if finding is None:
+        return []
+    level, message = finding
+    return [(level, display, message)]
 
 
 # ─── check helpers (used by _services/_maintenance.py) ────────────────────────
@@ -906,88 +1301,112 @@ def check_override_issues(
     ``<tech>-dev.toml`` with no matching roster entry — this function has no roster of its own
     to load, so the caller (``Service.check``, which already has the index in hand) supplies it.
     """
-    issues: list[tuple[str, str, str]] = []
     role_items_by_slug = role_items_by_slug or {}
+    return [
+        *_check_template_override_issues(squad_dir),
+        *_check_role_toml_override_issues(squad_dir, role_items_by_slug),
+        *_check_workflow_override_issues(squad_dir),
+        *_check_playbook_override_issues(squad_dir),
+        *_check_roles_catalog_override_issues(squad_dir),
+    ]
 
-    # Template overrides
+
+def _check_template_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
+    """Return check issues for every ``.overrides/templates/*.md.j2`` override: an error for a
+    structurally broken item/role template, an error for a shadowing override with no stamp
+    (shadowing-vs-add-only: an add-only override with no bundled counterpart reports nothing), and a
+    content-gated drift warning."""
+    issues: list[tuple[str, str, str]] = []
     tmpl_dir = _template_overrides_dir(squad_dir)
-    if tmpl_dir.is_dir():
-        for path in sorted(tmpl_dir.rglob("*.md.j2")):
-            rel = path.relative_to(tmpl_dir).as_posix()
-            display = f".overrides/templates/{rel}"
-            text = path.read_text(encoding="utf-8")
+    if not tmpl_dir.is_dir():
+        return issues
 
-            # Error: missing required markers (structural breakage).
-            if _is_item_or_role_template(rel):
-                missing = _missing_required_markers(rel, text)
-                if missing:
-                    tags = ", ".join(f"<!-- sq:{t} -->" for t in missing)
-                    issues.append(
-                        (
-                            "error",
-                            display,
-                            f"override is missing required sq marker(s): {tags} "
-                            "(breaks marker-safe editing; add the missing regions)",
-                        )
-                    )
-                    continue  # Broken → don't also warn about drift
+    for path in sorted(tmpl_dir.rglob("*.md.j2")):
+        rel = path.relative_to(tmpl_dir).as_posix()
+        display = f".overrides/templates/{rel}"
+        text = path.read_text(encoding="utf-8")
 
-            # Warn: version drift (stamp present, bundled counterpart changed).
-            stamp = read_template_stamp(text)
-            if stamp is None:
-                # Unstamped → warn (scaffold adds a stamp; manually-placed files may lack one).
+        # Error: missing required markers (structural breakage).
+        if _is_item_or_role_template(rel):
+            missing = _missing_required_markers(rel, text)
+            if missing:
+                tags = ", ".join(f"<!-- sq:{t} -->" for t in missing)
                 issues.append(
                     (
-                        "warn",
+                        "error",
+                        display,
+                        f"override is missing required sq marker(s): {tags} "
+                        "(breaks marker-safe editing; add the missing regions)",
+                    )
+                )
+                continue  # Broken → don't also warn about drift
+
+        # Stamp obligation: unstamped is an error only when the override shadows a bundled
+        # template — the uniform severity contract; an add-only override (no bundled
+        # counterpart) reports nothing, unchanged. Warn: version drift (stamp present,
+        # bundled counterpart changed).
+        stamp = read_template_stamp(text)
+        if stamp is None:
+            if _template_override_shadows_bundled(rel):
+                issues.append(
+                    (
+                        "error",
                         display,
                         "override has no squads:override-base stamp; "
                         "run `sq override scaffold --force` to re-scaffold with a stamp, "
                         "or `sq override update` after verifying the content",
                     )
                 )
-            elif stamp != __version__ and template_changed_since(rel, stamp):
-                issues.append(
-                    (
-                        "warn",
-                        display,
-                        f"override may be stale: bundled {rel} changed since v{stamp}; "
-                        f"run `sq override diff {rel}`, merge, then `sq override update {rel}`",
-                    )
+        elif stamp != __version__ and template_changed_since(rel, stamp):
+            issues.append(
+                (
+                    "warn",
+                    display,
+                    f"override may be stale: bundled {rel} changed since v{stamp}; "
+                    f"run `sq override diff {rel}`, merge, then `sq override update {rel}`",
                 )
+            )
+    return issues
 
-    # Role TOML overrides
+
+def _check_role_toml_override_issues(
+    squad_dir: Path, role_items_by_slug: Mapping[str, Item]
+) -> list[tuple[str, str, str]]:
+    """Return check issues for every ``.overrides/roles/<slug>.toml`` override: an error for a
+    shadowing override with no stamp (the uniform severity contract), a content-gated
+    drift warning, and whatever :func:`_check_role_override_resolves` finds for
+    load-ability."""
+    issues: list[tuple[str, str, str]] = []
     role_dir = _role_overrides_dir(squad_dir)
-    if role_dir.is_dir():
-        for path in sorted(role_dir.glob("*.toml")):
-            slug = path.stem
-            display = f".overrides/roles/{slug}.toml"
-            text = path.read_text(encoding="utf-8")
-            stamp = read_toml_stamp(text)
-            if stamp is None:
+    if not role_dir.is_dir():
+        return issues
+
+    for path in sorted(role_dir.glob("*.toml")):
+        slug = path.stem
+        display = f".overrides/roles/{slug}.toml"
+        text = path.read_text(encoding="utf-8")
+        stamp = read_toml_stamp(text)
+        if stamp is None:
+            if _role_override_shadows_bundled(slug, role_items_by_slug, squad_dir):
                 issues.append(
                     (
-                        "warn",
+                        "error",
                         display,
                         "role override has no squads:override-base stamp; "
                         "run `sq override update` to re-stamp",
                     )
                 )
-            elif stamp != __version__ and template_changed_since("agents/role.md.j2", stamp):
-                issues.append(
-                    (
-                        "warn",
-                        display,
-                        f"role override may be stale: role body template changed since v{stamp}; "
-                        f"run `sq override diff --role {slug}`, merge, then "
-                        f"`sq override update --role {slug}`",
-                    )
+        elif stamp != __version__ and artifact_changed_since(ROLES_KEY, stamp):
+            issues.append(
+                (
+                    "warn",
+                    display,
+                    f"role override may be stale: bundled roles.toml changed since v{stamp}; "
+                    f"run `sq override diff --role {slug}`, merge, then "
+                    f"`sq override update --role {slug}`",
                 )
-            issues.extend(
-                _check_role_override_resolves(squad_dir, slug, display, role_items_by_slug)
             )
-
-    issues.extend(_check_workflow_override_issues(squad_dir))
-    issues.extend(_check_playbook_override_issues(squad_dir))
+        issues.extend(_check_role_override_resolves(squad_dir, slug, display, role_items_by_slug))
     return issues
 
 
@@ -1012,11 +1431,13 @@ def _check_role_override_resolves(
     catalog refresh and ``sq role <slug> show`` both go through — rather than a re-implemented
     validation, so the report can never claim a refusal the consumers do not make, or miss one
     they do. A slug with a roster item gets the same base those two consumers would build
-    (:func:`~squads._roles._resolver.role_base_from_item` — a stored fact, whether the item is a
-    developer or a bundled role, for exactly the fields an operator can set on it), the
-    generated pool name (:func:`~squads._roles._resolver.dev_base_for_slug`) only for a
-    ``<tech>-dev`` slug with no roster item. ``RoleNotFoundError`` is unreachable here (the file
-    exists, so resolution always takes the override branch) and needs no separate arm.
+    (:func:`~squads._roles._resolver.role_base_from_item`, passed this squad's own *squad_dir*
+    so a bundled role's base already carries a project's catalog-document override —
+    ``.overrides/roles.toml`` — the same way ``sq role <slug> show``/``sq sync`` do — a stored
+    fact, whether the item is a developer or a bundled role, for exactly the fields an operator
+    can set on it), the generated pool name (:func:`~squads._roles._resolver.dev_base_for_slug`)
+    only for a ``<tech>-dev`` slug with no roster item. ``RoleNotFoundError`` is unreachable here
+    (the file exists, so resolution always takes the override branch) and needs no separate arm.
 
     Every override file is resolved, not only the slugs the roster carries: ``sq role <slug>
     show`` reads one for a bundled role that was never activated, so scoping to live roles
@@ -1032,9 +1453,9 @@ def _check_role_override_resolves(
 
     item = role_items_by_slug.get(slug)
     if item is not None:
-        base_role = role_base_from_item(item)
+        base_role = role_base_from_item(item, squad_dir)
     else:
-        base_role = dev_base_for_slug(slug) if is_dev_slug(slug) else None
+        base_role = dev_base_for_slug(slug, squad_dir) if is_dev_slug(slug) else None
 
     try:
         resolve_role_with_base(slug, squad_dir, base=base_role)
@@ -1051,13 +1472,12 @@ def _check_role_override_resolves(
 
 
 def _check_workflow_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
-    """Return check issues for the workflow TOML override (if present).
-
-    The stamp obligation itself is decided by :func:`workflow_stamp_finding` — shared with
-    ``sq workflow lint`` so the two never disagree about the same file: an
-    error-level finding when the override shadows a bundled key and carries no stamp, the
-    existing warn-level drift finding when a stamp predates the running version, and nothing
-    for an add-only override with no stamp.
+    """Return check issues for the workflow TOML override (if present), via
+    :func:`~squads._workflow._loader.workflow_stamp_finding`: an error-level finding when the
+    override shadows a bundled key and carries no stamp, a content-gated warn-level drift
+    finding, and nothing for an add-only override with no stamp or one whose bundled
+    counterpart has not changed. The same function backs ``sq workflow lint``, so the two
+    surfaces cannot disagree.
     """
     wf_path = _workflow_override_path(squad_dir)
     if not wf_path.is_file():

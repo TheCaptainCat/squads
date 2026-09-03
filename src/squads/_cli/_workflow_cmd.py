@@ -4,10 +4,11 @@ Sub-commands:
 - ``sq workflow`` / ``sq workflow show``  — print the team cheatsheet.
 - ``sq workflow lint``                   — verbose collect-all-errors spec validation.
 - one catalog command per declared ``WorkflowSpec`` vocabulary map (``types``,
-  ``subentity-kinds``, ``collections``, ``statuses``, ``roles``, ``lifecycles``), each a human
-  Rich table by default and a bare JSON array under ``--json``: one row per declared entry in
-  a documented order, every key present on every row, and cross-references carried **by
-  name** so a client joins catalogs instead of receiving denormalized copies.
+  ``subentity-kinds``, ``collections``, ``statuses``, ``roles``, ``lifecycles``,
+  ``ref-kinds``), each a human Rich table by default and a bare JSON array under ``--json``:
+  one row per declared entry in a documented order, every key present on every row, and
+  cross-references carried **by name** so a client joins catalogs instead of receiving
+  denormalized copies.
 
 ``lint`` is the author-facing diagnostic: it runs the same checks that ``open_service`` runs
 fail-closed (pure-spec validation + live-index cross-check), but prints EVERY error and
@@ -51,8 +52,8 @@ workflow_app = typer.Typer(
         "Run `sq workflow` (or `sq workflow show`) for the team cheatsheet. "
         "Run `sq workflow lint` to validate your workflow override spec. "
         "Run `sq workflow types` / `subentity-kinds` / `collections` / `statuses` / `roles` "
-        "/ `lifecycles` for the machine-readable type / sub-entity-kind / badge-collection / "
-        "status / role / lifecycle catalogs."
+        "/ `lifecycles` / `ref-kinds` for the machine-readable type / sub-entity-kind / "
+        "badge-collection / status / role / lifecycle / ref-kind catalogs."
     ),
 )
 
@@ -635,6 +636,80 @@ def workflow_roles(
             "yes" if row["hidden"] else "",
             e(str(row["color"])),
             "yes" if row["live"] else "",
+        )
+    console.print(table)
+
+
+# ─── ref-kinds ──────────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow ref-kinds --json`` catalog.
+REF_KIND_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
+    "kind",
+    "label",
+    "hint",
+    "role",
+    "direction",
+)
+
+
+def _ref_kind_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen ref-kind-vocabulary rows, ascending kind name — the accepted
+    ``sq <type> <n> ref add <id> --kind <kind>`` set, replacing the former closed
+    ``VALID_REF_KINDS`` frozenset with the merged spec's own declared ``[ref_kinds]``.
+
+    ``kind`` is the identity key — the literal string a ``refs`` entry carries after the
+    ``:`` (``"ID:kind"``), or that a bare ``"ID"`` decodes to when it names the kind whose
+    ``role`` is ``"default"``. ``role`` binds engine behaviour to a semantic instead of a
+    spelling (``null`` for a purely navigational kind); ``direction`` (``"blocker"``/
+    ``"dependent"``/``null``) only ever accompanies ``role = "dependency"``. Complete on first
+    ship, following the family's own one-catalog-per-spec-map rule: every key is present on
+    every row.
+    """
+    return [
+        {
+            "kind": code,
+            "label": rk.label,
+            "hint": rk.hint,
+            "role": rk.role,
+            "direction": rk.direction,
+        }
+        for code, rk in sorted(spec.ref_kinds.items())
+    ]
+
+
+@workflow_app.command("ref-kinds")
+@handle_errors
+def workflow_ref_kinds(
+    json_out: bool = typer.Option(False, "--json", help="Emit the machine ref-kind catalog."),
+) -> None:
+    """List every declared ref kind in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
+    declared kind, ascending kind name: ``{kind, label, hint, role, direction}``. ``role``
+    is the semantic the engine binds to (``dependency``/``preload``/``supersession``/
+    ``default``, or ``null`` for a navigational kind); ``direction`` (``blocker``/
+    ``dependent``) only accompanies ``role = "dependency"``, else ``null``. Exactly one row
+    carries ``role = "default"`` — the kind a bare ``ref add <id>`` (no ``--kind``) writes.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _ref_kind_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("Kind", "Label", "Hint", "Role", "Direction"):
+        table.add_column(col)
+    for row in rows:
+        table.add_row(
+            e(str(row["kind"])),
+            e(str(row["label"])),
+            e(str(row["hint"])) if row["hint"] else "",
+            e(str(row["role"])) if row["role"] else "",
+            e(str(row["direction"])) if row["direction"] else "",
         )
     console.print(table)
 
