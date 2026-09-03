@@ -8,6 +8,7 @@ author: product-owner
 refs:
 - ADR-320:implements
 - MILE-836:targets
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a team, I can create and manage contract items (PRD prefix) like any other
@@ -29,7 +30,7 @@ subentities:
   title: sq migrate up adds the contracts folder in the shared 0.14 bump
   status: Done
 created_at: '2026-07-07T08:33:54Z'
-updated_at: '2026-09-01T08:04:11Z'
+updated_at: '2026-09-01T13:49:19Z'
 ---
 <!-- sq:body -->
 # The contract (PRD) item type

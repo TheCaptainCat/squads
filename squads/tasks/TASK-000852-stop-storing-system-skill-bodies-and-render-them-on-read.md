@@ -3,7 +3,7 @@ id: TASK-852
 sequence_id: 852
 type: task
 title: Stop storing system skill bodies and render them on read
-status: Ready
+status: InReview
 parent: FEAT-694
 author: tech-lead
 priority: high
@@ -16,18 +16,18 @@ description: A template-owned skill item stops storing its rendered body; sq ski
 subentities:
 - local_id: ST1
   title: Move the skill body render onto ServiceCore
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Stop writing the body; keep the pointer and the empty region
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Render a system skill's body at show time
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Prove a custom skill body is untouched
-  status: Todo
+  status: Done
 created_at: '2026-09-01T08:26:15Z'
-updated_at: '2026-09-01T08:45:38Z'
+updated_at: '2026-09-01T12:54:19Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -214,6 +214,14 @@ Preserve, exactly:
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-09-01T12:26:04Z] Elias Python:
+  - Added `ServiceCore.skill_definition_text(slug)` (`src/squads/_services/_base.py`), the sibling of `role_definition_text`, plus the module-level `_item_skill_role_sections` helper and the private `_item_skill_definition_text` per-type half. All five renders moved off the Claude backend: `squads`, `greeting`, `sq-memory` (from `write_managed`) and the rich/thin `sq-<type>` pair (from `_write_item_skills`).
+    
+    Keyed on `is_system_skill(slug, spec)` and nothing else: a non-system slug raises rather than rendering. Preserved intact — the rich/thin split decided by the ACTIVE merged playbook (`self.playbook.types.get(item_type)`, not the bundled singleton), the "type absent from the active spec produces no definition" guard (the type lookup resolves to `None` and the method returns `""`, so no stale definition under a dropped or renamed type's old name), and the roster-dependent `has_dev` gate on the shared `developers` section.
+    
+    Placement per the ruling, not re-derived: `_rendering/_engine` imports `squads._interactions`, so `_interactions` cannot import the renderer back; `_services` sits below `_rendering` and already calls `render`. The docstring carries that reason so it is not re-proposed.
+    
+    Verified byte-identity before touching the write path: rendered text == the stored `sq:body` of all 12 system skills on this repository's own squad (roster held constant), and all 12 on a fresh `sq init` squad with a python-dev added. `releasing-squads` is correctly classified custom and skipped.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -249,6 +257,14 @@ verb can refill what this stops writing.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-09-01T12:49:41Z] Elias Python:
+  - `_write_managed_skill` (`src/squads/_backends/_claude_code/_backend.py`) lost its `body` parameter and its `Artifact(..., "skill_body", ...)` return. `write_managed`'s three bundled renders collapsed into one loop over `SQUADS_SKILL`/`GREETING_SKILL`/`MEMORY_SKILL` (slug + description only), and `_write_item_skills` lost both `render` calls, the section-building loop, the `by_slug`/`has_dev` computation and its now-unused `roster` parameter — what survives there is the enumeration: which per-type skills a squad materialises, and the `if item_type not in spec.items: continue` guard that keeps a dropped or renamed type from producing one under its old name.
+    
+    The file write did NOT go, and could not: both seeders (`seed_bundled_skills`, `seed_custom_skills`) and the 0.11→0.14 runner's `_seed_new_type_skills` stamp the `SKILL` id onto the slug-named file `write_managed` creates, so removing the file write would mean a fresh `sq init` seeds no skill items at all. What it writes now is the file's shape only: a well-formed, EMPTY `sq:body` region, and only when the file is missing or has no region. A file that already carries a region is left byte-untouched whatever it holds — so nothing already on disk is rewritten (the corpus strip stays TASK-849's), and a second sync is a byte-for-byte no-op on every skill file and every pointer.
+    
+    Checked the `skill_body` artifact kind before removing it: one producer, zero consumers. `managed_paths`/`managed_entry_paths` are path declarations, not artifact readers; `candidate_orphans` and `remove_artifacts` key on `.claude/` paths; sync's per-file "was missing"/"had drifted" report is built from `managed_entry_paths` snapshots, not artifacts; `write_managed`'s return is discarded by `sync`. `ctx.skill_paths` is kept — it is what locates the file.
+    
+    Verified against the pre-change output: `.claude/` byte-identical (whole-tree `diff -r`) between a squad synced by the old code and a fresh one synced by the new, roster held constant.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -280,6 +296,14 @@ does not carry the body today and does not gain it here.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-09-01T12:49:42Z] Elias Python:
+  - `sq skill <slug> show` (`src/squads/_cli/_skill.py`) now branches on `system` — the value the command already computed at the `kind:` row from `is_system_skill(slug, svc.spec)` — and on nothing else. System renders through `svc.skill_definition_text(slug)`; custom keeps `svc.read_body(it.id)`. The panel, `--raw` and the piped/non-TTY path are unchanged: the string still goes through `render_body_text`, only its origin moved.
+    
+    Both empty hints were wrong and are replaced rather than reused. The old one ("run `sq sync` to regenerate the skill definition") named a command that no longer has that effect for a system skill, and never had it for a custom one. A system skill's empty answer now means exactly one thing — the item type it described is no longer declared — and the hint says that; a custom skill's empty body points at `sq skill <slug> body`.
+    
+    `--json` is untouched and still returns all nine fields including `system`; a test now pins the field set rather than a sample of it.
+    
+    Two refusal messages that had gone false are corrected in the same pass: `set_body`'s and the bulk importer's "its body is regenerated by `sq sync`" now read "its definition is template-owned and rendered on read". Sync does not regenerate a system skill's body any more, so the old wording told an operator something untrue about why the write was refused. Two existing assertions on that string were updated to the new one (flagged to the operator).
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -315,6 +339,19 @@ restore `is_system_skill`, watch them go green — and report both.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-09-01T12:50:04Z] Elias Python:
+  - New file `tests/service/test_an_authored_skill_body_survives_the_system_skill_shrink.py` (7 tests). One squad, one skills folder, four shapes side by side: the bundled system skills, an adopter-declared type's THIN system skill (`sq-incident`, no playbook entry), an ordinary custom skill, and a custom skill deliberately slugged `sq-onboarding`. Both custom skills carry authored bodies.
+    
+    Asserted, not inspected: both custom slugs classify custom and both system ones classify system; an authored body is byte-identical across one sync and across two; the `sq-`-prefixed custom skill's WHOLE FILE is byte-identical across a sync (wider than the region — the shape a prefix-keyed change rewrites); `sq skill <slug> body` still admits a write to a custom skill and it survives the next sync; the declared type's thin skill refuses a body write; the resolver refuses a custom slug; and `show` prints the authored text for one and the rendered text for the other in the same run, against the same squad.
+    
+    Falsified twice, both reported:
+    
+    1. Folder-keyed — `_write_managed_skill` made to empty every `*.md` region in the skills folder. RED: `test_an_authored_body_is_byte_identical_across_one_sync_and_across_two`, `test_a_custom_skills_whole_file_is_untouched_by_a_sync`, `test_a_body_write_is_still_admitted_on_a_custom_skill_and_survives_the_next_sync`, and the pre-existing `test_authored_custom_skill_body_survives_sync_regen_and_repair` — 4 failed. Restored: 9 passed.
+    2. Prefix-keyed — `show` made to branch on `slug.startswith("sq-")`. RED: `test_show_prints_the_authored_text_for_one_and_the_rendered_text_for_the_other`, which exits 1 on `sq skill sq-onboarding show`. Restored: green. Worth noting why it is an error and not a wrong render: `skill_definition_text` refuses a non-system slug outright, so a prefix-keyed reader fails loudly instead of silently showing a rendered definition in place of someone's authored text.
+    
+    Also added `tests/service/test_a_system_skills_definition_is_never_stored_in_its_file.py` (6 tests) for the write path: every system skill's region present-and-empty (read through the marker helpers, so absent and empty stay distinguishable), a second sync a no-op on files and pointers, `write_managed` reporting a pointer per skill and no body artifact, the show module importing nothing from `_backends`, and the byte-identity bar — the resolved definition equals the pinned reference render for all 7 bundled types with goldens, on the roster those were captured against. That last one falsified by dropping the dev role: RED, restored green.
+    
+    And `tests/cli/test_skill_show_renders_a_system_definition_on_read.py` (4 tests) for the read path, including a dropped type reporting "no longer declared" rather than naming a sync.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
@@ -322,4 +359,8 @@ restore `is_system_skill`, watch them go green — and report both.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-01T12:54:19Z] Catherine Manager:
+  - Verified the fixture correction independently. The old dropped-type test called refresh_managed on a spec with bug removed, then read the skill file — but refresh_managed skips a dropped type, so it was reading the file the fixture's own init had written with the full bundled spec. It asserted a frozen-playbook fallback that never existed and passed on a leftover artifact. Rewriting it to the resolver is a correction, not a weakening.
+  - Both refusal messages were false and are now true: they named sq sync as the regenerator of a system skill body, which stopped being the case in this task.
+  - Docs staleness he flagged (docs/internals.md:58 and :290, docs/backends.md:130, docs/stability.md:516) is adopter-facing prose and goes to the writer with TASK-855, not into this task.
 <!-- sq:discussion:end -->

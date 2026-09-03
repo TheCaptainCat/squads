@@ -10,6 +10,8 @@ refs:
 - FEAT-210:depends-on
 - FEAT-211:depends-on
 - FEAT-327:depends-on
+- PRD-859:implements
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: As a project admin, I want to define custom sub-entity kinds for my custom
@@ -20,7 +22,7 @@ subentities:
     type across my whole squad
   status: Cancelled
 created_at: '2026-06-25T13:21:20Z'
-updated_at: '2026-07-10T00:26:05Z'
+updated_at: '2026-09-01T13:48:46Z'
 ---
 <!-- sq:body -->
 ## What this delivers

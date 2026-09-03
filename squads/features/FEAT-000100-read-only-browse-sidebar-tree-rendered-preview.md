@@ -7,6 +7,8 @@ status: Done
 parent: EPIC-99
 author: product-owner
 priority: low
+refs:
+- PRD-863:implements
 description: VS Code activity-bar tree from sq tree --json; clicking an item opens
   sq show --raw (clean markdown) in the markdown preview; filter/group + refresh
 subentities:
@@ -20,7 +22,7 @@ subentities:
   title: Filter and group tree by type/state, refresh on demand
   status: Done
 created_at: '2026-06-14T20:45:15Z'
-updated_at: '2026-07-17T09:09:37Z'
+updated_at: '2026-09-01T13:48:14Z'
 ---
 <!-- sq:body -->
 The first, browse-only increment of the VS Code extension (EPIC-99). A `SquadsTreeDataProvider` backed by `sq tree --json` renders the hierarchy in an activity-bar view; selecting a node opens the item's `sq show <id> --raw` clean-markdown dossier in VS Code's markdown preview through a `squads:` read-only virtual document. No mutations in this increment.

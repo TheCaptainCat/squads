@@ -10,6 +10,7 @@ priority: medium
 refs:
 - FEAT-15:depends-on
 - FEAT-19:depends-on
+- PRD-863:implements
 subentities:
 - local_id: US1
   title: Launch and quit cleanly
@@ -21,7 +22,7 @@ subentities:
   title: Navigate siblings, into children, back to parent
   status: Todo
 created_at: '2026-07-21T09:11:23Z'
-updated_at: '2026-07-21T14:38:02Z'
+updated_at: '2026-09-01T13:50:27Z'
 ---
 <!-- sq:body -->
 ## Capability

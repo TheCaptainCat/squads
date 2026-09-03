@@ -10,6 +10,7 @@ priority: high
 refs:
 - FEAT-19:depends-on
 - BUG-25:depends-on
+- PRD-862:implements
 description: sq show renders body and discussion as styled markdown on a TTY (headings,
   bullets, code), with --raw opt-out, NO_COLOR respected, and plain output when piped
 subentities:
@@ -32,7 +33,7 @@ subentities:
   title: Skills teach --full --comments as the standard briefing move
   status: Done
 created_at: '2026-06-10T14:57:23Z'
-updated_at: '2026-06-23T10:00:47Z'
+updated_at: '2026-09-01T13:47:44Z'
 ---
 <!-- sq:body -->
 ## Problem

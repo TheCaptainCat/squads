@@ -9,6 +9,7 @@ author: product-owner
 priority: high
 refs:
 - FEAT-14
+- PRD-860:implements
 description: 'Bundled roles'' working agreements split by regime: spawned-for-a-job
   (record everything before you vanish) vs live with the operator (judgment on when
   handoffs become true) — fixing the rigidity that produces false inbox signals'
@@ -23,7 +24,7 @@ subentities:
   title: Every inbox @mention is a real, current call-to-action
   status: Done
 created_at: '2026-06-11T08:43:52Z'
-updated_at: '2026-06-23T10:00:03Z'
+updated_at: '2026-09-01T13:48:00Z'
 ---
 <!-- sq:body -->
 ## Problem

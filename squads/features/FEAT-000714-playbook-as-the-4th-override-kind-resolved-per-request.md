@@ -11,6 +11,7 @@ refs:
 - ADR-696
 - FEAT-533
 - FEAT-712:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a spec author, I want a playbook loader that merges .overrides/playbook.toml
@@ -25,7 +26,7 @@ subentities:
     any other override kind
   status: Done
 created_at: '2026-07-31T13:02:58Z'
-updated_at: '2026-08-03T15:48:16Z'
+updated_at: '2026-09-01T13:51:32Z'
 ---
 <!-- sq:body -->
 ## Capability

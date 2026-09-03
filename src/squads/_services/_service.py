@@ -248,10 +248,10 @@ async def adopt(
     warnings: list[str] = []
     if not no_claude:
         warnings += await svc.refresh_managed()
-        # Mirrors init()'s seeding step — adopt is the other path that can create a squad's
-        # config, and was previously the worse of the two gaps: it seeded no skill items at
-        # all (neither bundled nor custom), leaving every generated skill body untracked
-        # until the first `sq sync`.
+        # Mirrors init()'s seeding step. adopt is the other path that can create a squad's
+        # config, so it has to seed both halves — bundled and custom — exactly as init does:
+        # without them a generated skill file sits on disk with no SKILL item indexing it,
+        # and stays that way until the first `sq sync` seeds it.
         await svc.seed_bundled_skills()
         await svc.seed_custom_skills()
         warnings += await svc.candidate_orphans()
@@ -330,7 +330,8 @@ def open_service(
         # The playbook may still have its OWN override even with no workflow override, so it
         # is resolved unconditionally through the same helper the merge path below uses —
         # resolve_playbook's own fast path collapses to the bundled playbook singleton too
-        # when neither override is present, so this stays byte-identical to today.
+        # when neither override is present, so a squad with neither still lands on the
+        # bundled playbook singleton here.
         spec = bundled_spec()
         return Service(sp, spec=spec, playbook=resolve_playbook(spec, sp.squad_dir))
 

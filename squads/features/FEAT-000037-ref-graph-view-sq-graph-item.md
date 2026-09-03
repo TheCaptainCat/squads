@@ -11,6 +11,7 @@ refs:
 - FEAT-35:depends-on
 - FEAT-19:depends-on
 - FEAT-15
+- PRD-862:implements
 description: 'An ego-centric graph command: walk the ref edges from one item to a
   given depth, filtered by kind and direction, rendered as a tree — plus dot/mermaid
   export for the full picture'
@@ -25,7 +26,7 @@ subentities:
   title: dot/mermaid export for full-graph rendering outside the terminal
   status: Todo
 created_at: '2026-06-11T07:45:02Z'
-updated_at: '2026-06-24T12:26:00Z'
+updated_at: '2026-09-01T13:47:54Z'
 ---
 <!-- sq:body -->
 ## Problem

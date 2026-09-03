@@ -676,12 +676,13 @@ def _strip_ref_rule_targets_of_dropped_types(
     ``RefRule.target`` and a ``ref_rule_target_present:<T>`` validator entry both name another
     item type by string, from the *targeting* type's own block — dropping ``<T>`` leaves that
     block referring to vocabulary that no longer exists, and both
-    :func:`~squads._workflow._models._check_ref_rule_targets` clauses refuse it (the bundled
-    ``feature`` entry hits exactly this dropping ``contract``: it declares an ``implements``
-    rule targeting it, plus ``ref_rule_target_present:contract``). Without this, an adopter
-    dropping a non-reserved type through ``[selected].items`` bricks the whole squad until they
-    also find and edit the unrelated-looking type block that targets it — the one courtesy the
-    view-owning case above already gets.
+    :func:`~squads._workflow._models._check_ref_rule_targets` clauses refuse it. Dropping
+    ``contract`` hits both: the bundled ``feature`` entry declares an ``implements`` rule
+    targeting it, and a project that opted into requiring that edge also carries
+    ``ref_rule_target_present:contract`` there (nothing bundled selects it). Without this, an
+    adopter dropping a non-reserved type through ``[selected].items`` bricks the whole squad
+    until they also find and edit the unrelated-looking type block that targets it — the one
+    courtesy the view-owning case above already gets.
 
     Scoped to declarations that *target* a dropped type only — never ``parents``, which is the
     pre-existing, deliberately-unchanged coupling between ``epic`` and ``feature``. Mutates

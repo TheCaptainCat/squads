@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - FEAT-326:depends-on
 - EPIC-325
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a team using a customized vocabulary spec, I want an accurate, non-blank
@@ -23,7 +24,7 @@ subentities:
     at least as good as it is today
   status: Todo
 created_at: '2026-07-08T15:06:36Z'
-updated_at: '2026-07-10T04:43:47Z'
+updated_at: '2026-09-01T13:50:13Z'
 ---
 <!-- sq:body -->
 ## Problem

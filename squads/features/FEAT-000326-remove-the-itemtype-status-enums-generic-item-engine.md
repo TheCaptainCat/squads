@@ -8,6 +8,7 @@ parent: EPIC-325
 author: product-owner
 refs:
 - ADR-322:implements
+- PRD-859:implements
 description: Delete ItemType/Status enums; spec becomes sole type+status vocabulary;
   reserved floor = meta-types + agent-lifecycle only
 subentities:
@@ -24,7 +25,7 @@ subentities:
   title: Unmodified default squad behaves identically
   status: Todo
 created_at: '2026-07-07T14:37:36Z'
-updated_at: '2026-07-09T08:15:59Z'
+updated_at: '2026-09-01T13:49:23Z'
 ---
 <!-- sq:body -->
 ## What this delivers

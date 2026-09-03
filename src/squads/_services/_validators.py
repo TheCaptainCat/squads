@@ -1,23 +1,20 @@
-"""Pluggable-validator dispatch engine, per the accepted category/validator decision and the
-architect's module-boundary pins on the category-axis feature.
+"""Pluggable-validator dispatch engine.
 
-Lives in ``_services/``, not ``_models/``/``_workflow/`` — it reads live item + index state
-(parent lookups, incoming-supersedes edges, registered-slug set, on-disk body text), exactly
-what ``_maintenance.py``'s ``_check_*`` methods hold today via
-``self.store``/``self.paths``/``self.spec``. ``_workflow/_models.py`` stays pure value objects,
-owning only the ``category`` field itself, the closed validator-NAME registries
+Lives in ``_services/``, not ``_models/``/``_workflow/`` — a validator reads live item and index
+state (parent lookups, incoming-supersedes edges, the registered-slug set, on-disk body text),
+which is what the two context objects below carry. ``_workflow/_models.py`` stays pure value
+objects, owning only the ``category`` field itself, the closed validator-NAME registries
 (``VALIDATOR_NAMES``/``SQUAD_GLOBAL_VALIDATOR_NAMES``), and the Plane-1 load-time spec-validity
 checks that read them.
 
-The engine is now the **sole** source of both ``sq check``'s per-item/squad-global issues and
-the create/update fail-closed gate — ``COMMON_CORE``/``CATEGORY_BUNDLES`` (defined in
-``_workflow/_models.py``, so the Plane-1 spec-validity pass can resolve the same effective set
-this engine runs) are populated,
-including ``no_parent`` on the ``records`` bundle and as ``epic``'s own ``validators`` addition,
-and the hardcoded ``_check_*`` methods that used to compute this are retired from
-``_maintenance.py``. One catalog member, ``parent_present``, sits in no bundle at all and is
-reachable only through a type's own ``validators`` list — see its docstring for why that is the
-decision and not an omission.
+This engine is the **sole** source of both ``sq check``'s per-item/squad-global issues and the
+create/update fail-closed gate. A type's effective set is ``COMMON_CORE`` plus its category's
+``CATEGORY_BUNDLES`` entry plus its own ``validators`` list — both tables live in
+``_workflow/_models.py``, so the Plane-1 spec-validity pass resolves the same effective set this
+engine runs. ``no_parent`` shows both routes: a ``records`` type gets it from the category
+bundle, and ``epic`` — a ``work`` type — declares it itself. One catalog member,
+``parent_present``, sits in no bundle at all and is reachable only through a type's own
+``validators`` list — see its docstring for why that is the decision and not an omission.
 ``gate()`` only aborts on an **error**-level issue — a warn-level one (``agent_registered``,
 ``no_status_banner``, …) is advisory everywhere, mirroring ``sq check``'s own error-only exit
 code; it is never a create/update blocker.
@@ -69,15 +66,16 @@ type OnDiskMap = dict[int, tuple[str, Path, dict[str, Any]]]
 # A leading status/lifecycle banner: "STATUS:" / "**STATUS…**" opening a line, or a
 # hand-written "## Status" / "### Status" heading. Anchored so it only matches at the very
 # start of the text being checked — never a bare keyword found anywhere in the middle.
-# Mirrors ``_maintenance.py``'s detector (the routing task retires that copy once
-# ``_check_status_banners`` is decomposed away).
+# This is the only status-banner detector in the tree: `no_status_banner` below is the sole
+# consumer, so a change to what counts as a banner is a change here and nowhere else.
 _STATUS_BANNER_RE = re.compile(r"^\*{0,2}status\*{0,2}\s*:", re.IGNORECASE)
 _STATUS_HEADING_RE = re.compile(r"^#{2,3}\s*status\s*:?\s*$", re.IGNORECASE)
 
 
 def _opens_with_status_banner(text: str | None) -> bool:
-    """True when *text* opens with a self-declared status/lifecycle banner (leading-line only
-    — see ``_maintenance._opens_with_status_banner`` for the full false-positive rationale)."""
+    """True when *text* opens with a self-declared status/lifecycle banner. Leading line only,
+    which is what keeps prose that merely discusses lifecycle as a topic out of the finding —
+    see the pattern comment above."""
     if not text:
         return False
     stripped = text.strip()
@@ -101,11 +99,9 @@ class ValidatorContext:
     on every single create/update, so the check evaluates nothing on that path — failing open,
     correct for a warn-level finding that never gates a mutation.
 
-    ``raw_text`` replaces Phase A's placeholder ``on_disk_bodies: dict[str, str]`` shape now
-    that a real validator reads it: a validator is already scoped to *one* item, so the single
-    current item's full on-disk text (or ``None`` when its file wasn't found) is what's needed
-    — the validator extracts whichever marker section it cares about via
-    ``_sections.get_section``, exactly as the ``_check_*`` methods it replaces do.
+    ``raw_text`` is the single current item's full on-disk text (or ``None`` when its file was
+    not found), not a squad-wide body map: a validator is already scoped to *one* item, and it
+    extracts whichever marker section it cares about via ``_sections.get_section``.
     """
 
     item: Item
@@ -121,8 +117,7 @@ class ValidatorContext:
 class SquadGlobalContext:
     """Everything one squad-global validator reads: the whole index, the on-disk scan map, the
     active spec, and the squad's resolved paths — the last two let ``backend_reconciled`` build
-    the ``BackendContext`` its backend lookups need, mirroring what ``_check_backends`` holds
-    via ``self._ctx``/``self._backends()`` today.
+    the ``BackendContext`` its backend lookups need.
 
     ``playbook`` (defaulting to ``None``) is read by two validators:
     ``roster_config_integrity`` threads it to ``config_integrity.check_all`` so a project's
@@ -614,11 +609,12 @@ def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     mutation can make this one flicker; it needs no confirm round.
 
     A per-entry roster pointer (``managed_entry_paths``) is a *different* claim, reported at
-    **warn** for reasons stated where it now lives: :func:`backend_entry_candidates` and
+    **warn** for reasons stated where it lives: :func:`backend_entry_candidates` and
     :func:`backend_entry_missing`, confirmed through ``check``'s one confirm round exactly like
     ``index_reconciled``'s two directions (see :meth:`MaintenanceMixin._confirm_cross_source`).
-    It used to be computed here, unconfirmed, until making it roster- (and therefore
-    index-) derived turned it cross-source.
+    It needs that round because a per-entry pointer is roster- and therefore index-derived,
+    which makes it a cross-source claim; a rule reading only config and disk, like this one, is
+    not, and that is the whole difference between the two.
     """
     bctx = BackendContext(paths=ctx.paths, spec=ctx.spec)
     issues: list[CheckIssue] = []
@@ -648,15 +644,15 @@ def backend_entry_candidates(ctx: SquadGlobalContext) -> list[tuple[str, str]]:
     index before ever becoming a :class:`CheckIssue` — see
     :meth:`MaintenanceMixin._confirm_cross_source`.
 
-    Reported at **warn**, not error, but not for the reason once written here: an adopter who
-    gitignores this backend's whole directory does *not* escape ``sq check`` over that choice —
-    ``_backend_reconciled``'s top-level ``managed_paths`` entry for the same backend (e.g.
-    ``claude_code``'s ``.claude/settings.json``) is already **error** and already fails a fully
-    gitignored directory, before and after this rule existed. The honest reason: before this
-    widening, a per-entry pointer going untracked while the top-level files stayed tracked was
-    invisible to ``sq check`` altogether — not error, not warn, nothing. Warn keeps that
-    previously-silent shape's exit code unchanged rather than adding a new error to a patch
-    release; it is not protecting a "supported choice" that was already failing the gate.
+    Reported at **warn**, not error — and not because gitignoring this backend's directory is a
+    supported choice. An adopter who gitignores the whole directory does *not* escape
+    ``sq check`` over that choice: ``_backend_reconciled``'s top-level ``managed_paths`` entry
+    for the same backend (e.g. ``claude_code``'s ``.claude/settings.json``) is **error**, so a
+    fully gitignored directory fails the gate on that entry alone. The shape this rule reaches
+    is the narrower one ``_backend_reconciled`` does not look at: a per-entry pointer gone while
+    the top-level files are present. Warn is the level that surfaces it without changing the
+    exit code a squad in that shape gets: ``sq check`` exits non-zero on error-level issues
+    only.
     """
     live_role_slugs, live_skill_slugs = live_roster_slugs(ctx)
     bctx = BackendContext(

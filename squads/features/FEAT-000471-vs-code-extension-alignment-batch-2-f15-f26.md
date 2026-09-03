@@ -6,6 +6,8 @@ title: VS Code extension alignment — batch 2 (F15-F26)
 status: Done
 parent: EPIC-99
 author: product-owner
+refs:
+- PRD-863:implements
 subentities:
 - local_id: US1
   title: 'Preview: render item''s sub-entities'
@@ -38,7 +40,7 @@ subentities:
   title: 'Tree: color active-role items green'
   status: Done
 created_at: '2026-07-18T19:51:27Z'
-updated_at: '2026-07-18T21:40:28Z'
+updated_at: '2026-09-01T13:50:21Z'
 ---
 <!-- sq:body -->
 ## Scope

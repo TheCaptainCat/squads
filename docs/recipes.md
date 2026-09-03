@@ -76,10 +76,10 @@ sq feature 2 ref add PRD-16 --kind implements
 sq contract 16 refs --in                      # every feature that has shaped this contract
 ```
 
-Delivering a feature that links no contract leaves a `sq check` warning — advisory, never blocking,
-and silent until your squad has at least one contract to link. Clear it by updating the slice the
-feature changed and adding the ref, or leave it if the feature genuinely touched no user-facing
-behaviour.
+Nothing requires a delivered feature to link a contract: squads types the edge and leaves the
+obligation to you, because plenty of features touch no user-facing behaviour at all. If you do want
+`sq check` to raise a warning when a feature is delivered without one, opt in from your own workflow
+override — see [workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current".
 
 ## Aim work at a milestone (product owner / tech lead)
 

@@ -10,6 +10,7 @@ priority: high
 refs:
 - EPIC-540
 - ADR-541
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: category axis on ItemSpec, replacing is_meta
@@ -18,7 +19,7 @@ subentities:
   title: validator dispatch engine (report + abort modes)
   status: Todo
 created_at: '2026-07-22T08:37:44Z'
-updated_at: '2026-07-22T11:51:25Z'
+updated_at: '2026-09-01T13:50:41Z'
 ---
 <!-- sq:body -->
 ## Capability

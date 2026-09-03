@@ -7,6 +7,8 @@ status: Done
 parent: EPIC-38
 author: product-owner
 priority: low
+refs:
+- PRD-862:implements
 description: sq tree gains the same filters as list (--status, --priority, --assignee,
   --type) plus --depth; matches keep their ancestor path so the tree stays a tree
 subentities:
@@ -17,7 +19,7 @@ subentities:
   title: --depth and context-preserving pruning keep filtered trees readable
   status: Todo
 created_at: '2026-06-11T07:58:43Z'
-updated_at: '2026-06-24T14:14:34Z'
+updated_at: '2026-09-01T13:47:57Z'
 ---
 <!-- sq:body -->
 ## Problem

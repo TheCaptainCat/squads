@@ -513,7 +513,7 @@ for a new backend rather than something each one reimplements:
 | Method | Responsibility |
 |---|---|
 | `ensure_scaffold` | create the backend's directories and base config; idempotent, never clobbers user content |
-| `write_managed` | (re)write the roster- and version-dependent files: skill definitions, backend config, compiled regions |
+| `write_managed` | (re)write the roster- and version-dependent files: backend config, compiled regions, and each managed skill's pointer and body-file shape |
 | `generate_role_entry` | write this backend's entry for one role (a whole file or a section — either is valid) |
 | `generate_skill_entry` | write this backend's entry for one skill |
 | `remove_artifacts` | delete the backend's entry/entries for one item |

@@ -9,6 +9,7 @@ author: product-owner
 priority: medium
 refs:
 - FEAT-26
+- PRD-860:implements
 subentities:
 - local_id: US1
   title: Skills tell agents which comment command to use for each scope
@@ -20,7 +21,7 @@ subentities:
   title: Sub-entity @mentions reach the inbox as reliably as item-level ones
   status: Done
 created_at: '2026-06-12T09:49:28Z'
-updated_at: '2026-06-23T10:00:43Z'
+updated_at: '2026-09-01T13:48:10Z'
 ---
 <!-- sq:body -->
 ## Problem

@@ -8,6 +8,8 @@ author: product-owner
 refs:
 - REV-565
 - ADR-622:implements
+- PRD-858:implements
+- PRD-861:implements
 subentities:
 - local_id: US1
   title: Orphan-pointer warning on init/adopt
@@ -31,7 +33,7 @@ subentities:
   title: 'Adopter docs: recovering from a failed import'
   status: Done
 created_at: '2026-07-22T08:41:51Z'
-updated_at: '2026-07-24T07:49:29Z'
+updated_at: '2026-09-01T13:51:01Z'
 ---
 <!-- sq:body -->
 ## Capability

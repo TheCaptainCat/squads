@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - REV-448:addresses
 - FEAT-100
+- PRD-863:implements
 subentities:
 - local_id: US1
   title: Interactive item preview (custom webview)
@@ -29,7 +30,7 @@ subentities:
   title: Extension icon swap
   status: Done
 created_at: '2026-07-17T13:07:35Z'
-updated_at: '2026-07-17T16:35:27Z'
+updated_at: '2026-09-01T13:50:19Z'
 ---
 <!-- sq:body -->
 The outcome: an interactive, operator-aligned browse experience in VS Code, built on top of FEAT-100's read-only browse increment. This is the next EPIC-99 increment, seeded by REV-448 — the operator's change requests after actually using the shipped extension (findings F1-F13).

@@ -7,6 +7,8 @@ status: Done
 parent: EPIC-12
 author: product-owner
 priority: high
+refs:
+- PRD-859:implements
 description: squads/.templates/ overrides; lookup path and precedence join the durable
   contract, so it must land before 1.0
 subentities:
@@ -24,7 +26,7 @@ subentities:
   title: Supply agent names at init and role creation
   status: Todo
 created_at: '2026-06-10T12:41:06Z'
-updated_at: '2026-06-23T09:58:43Z'
+updated_at: '2026-09-01T13:47:18Z'
 ---
 <!-- sq:body -->
 ## Problem

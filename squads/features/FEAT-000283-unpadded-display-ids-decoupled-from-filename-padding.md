@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - ADR-282:implements
 - FEAT-27
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: IDs read unpadded on every human-facing surface (frontmatter, refs, prose,
@@ -29,7 +30,7 @@ subentities:
     verified clean
   status: Todo
 created_at: '2026-07-02T09:36:33Z'
-updated_at: '2026-07-04T23:23:53Z'
+updated_at: '2026-09-01T13:49:00Z'
 ---
 <!-- sq:body -->
 ## Problem

@@ -8,6 +8,7 @@ parent: EPIC-538
 author: product-owner
 refs:
 - ADR-604:implements
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: Role-object model, derivation, Plane-1 validation
@@ -19,7 +20,7 @@ subentities:
   title: CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet
   status: Done
 created_at: '2026-07-22T15:29:57Z'
-updated_at: '2026-07-22T16:57:05Z'
+updated_at: '2026-09-01T13:51:02Z'
 ---
 <!-- sq:body -->
 ## Capability

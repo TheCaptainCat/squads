@@ -5,6 +5,8 @@ type: feature
 title: sq check flags unwritten placeholder sub-entity bodies
 status: Done
 author: product-owner
+refs:
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: As a tech lead, I want sq check to flag unwritten sub-entity bodies
@@ -16,7 +18,7 @@ subentities:
   title: As a PO, I want the skill to state the body-write step as a done-criterion
   status: Todo
 created_at: '2026-07-04T20:16:38Z'
-updated_at: '2026-07-06T12:10:03Z'
+updated_at: '2026-09-01T13:49:08Z'
 ---
 <!-- sq:body -->
 ## Problem

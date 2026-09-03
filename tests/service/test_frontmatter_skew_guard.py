@@ -35,11 +35,10 @@ async def _crash_the_index_commit(svc, monkeypatch, mutate):
 async def test_a_real_skew_on_a_field_outside_status_or_parent_refuses_the_next_mutation(
     svc, monkeypatch
 ):
-    """Reproduces the finding this task closes end to end: fault the index commit during a
-    `description` update (deliberately outside {status, parent}, the narrower design's blind
-    spot) so the file is ahead; an ordinary status change on the same item must refuse before
-    writing anything, then succeed -- with both the interrupted value and the new delta on
-    disk -- once `sq repair` has run.
+    """The shape: a faulted index commit during a mutation, on a field outside
+    {status, parent}, so the file is ahead of the index on `description` alone. An ordinary
+    status change on the same item must refuse before writing anything, then succeed -- with
+    both the interrupted value and the new delta on disk -- once `sq repair` has run.
     """
     task = (await create_item(svc, "task", "Skew target")).item
 
@@ -107,10 +106,12 @@ async def test_repair_converges_and_further_mutations_are_unaffected(svc, monkey
 
 
 # ---------------------------------------------------------------------------------------------
-# False-refusal cases: all five are expected to pass on the FIRST run, by construction, because
-# the round trip through `Item.from_frontmatter(...).to_frontmatter_dict()` collapses every one
-# of these divergences structurally. Green immediately is the correct result here, not a sign
-# the guard is inert -- see the paired sabotage test below, which proves it is not.
+# False-refusal cases: shapes where the file and the index look different on the page but are
+# the same item. Each passes with no guard-side special-casing, because the round trip through
+# `Item.from_frontmatter(...).to_frontmatter_dict()` collapses the divergence structurally
+# before the guard ever compares the two sides. Green with nothing to explain it is the
+# correct result here, not a sign the guard is inert -- the real-skew cases at the top of this
+# file are what show it is not.
 # ---------------------------------------------------------------------------------------------
 
 
@@ -172,13 +173,11 @@ async def test_legacy_ref_kinds_map_does_not_false_refuse(svc, kind, legacy_kind
     JSON index round trip has nothing to fold (whatever shape ``refs`` last held is what a
     bare pydantic load returns verbatim).
 
-    Table-driven over both legs, restoring what this test was once narrowed to a single
-    non-default leg to sidestep a regression: the declared **default** kind (``kind=""``,
-    legacy map naming ``"related"``) is the leg that regression actually lived in -- the
-    encoding invariant forbids ever spelling the default kind out, so the reloaded item's ref
-    must come back **bare**, not merely present. The **non-default** leg (``"blocks"``) is
-    kept alongside it so the legacy-map reconstruction itself stays pinned, not only the
-    default-kind bare-normalisation riding along with it.
+    Table-driven over both legs, because they pin different things. The declared **default**
+    kind (``kind=""``, legacy map naming ``"related"``) exercises the encoding invariant that
+    forbids ever spelling the default kind out: the reloaded item's ref must come back
+    **bare**, not merely present. The **non-default** leg (``"blocks"``) pins the legacy-map
+    reconstruction on its own, so a green default leg cannot stand in for it.
     """
     a = (await create_item(svc, "task", "Ref source")).item
     b = (await create_item(svc, "task", "Ref target")).item
@@ -295,11 +294,10 @@ async def test_renumber_is_unaffected_by_a_real_skew(svc, monkeypatch):
 
 async def test_a_permitted_extra_key_ahead_of_the_index_is_never_falsely_refused(svc):
     """A healthy board, no crash anywhere: a role file whose frontmatter carries a
-    `PERMITTED_EXTRA_SKEW` key the index has not caught up on -- disk ahead by construction
-    here rather than by a writer that no longer exists (the resolved-skills cache this
-    reproduced against is gone along with `link-role`'s write of it) -- must not block an
-    ordinary mutation through a different seam right after, not refuse with a `sq repair`
-    pointer for a divergence that never happened."""
+    `PERMITTED_EXTRA_SKEW` key the index has not caught up on -- the divergence is written
+    here directly, since no live writer produces it -- must not block an ordinary mutation
+    through a different seam right after, nor refuse with a `sq repair` pointer for a
+    divergence that never happened."""
     role = await svc.activate_role("qa")
 
     path = svc.paths.abspath(role.path)
@@ -318,15 +316,14 @@ async def test_a_permitted_extra_key_ahead_of_the_index_is_never_falsely_refused
 
 
 async def test_a_catalog_field_merged_by_sync_reaches_the_index_and_never_false_refuses(svc):
-    """The second, broader trigger named in the finding: a role catalog gains a field (or an
-    override edit does the same) and `sync` merges it into the role's file. Simulated by
-    stripping a catalog field consistently from both sides, syncing, then mutating the role
-    through an unrelated seam.
+    """The broader shape: a role catalog gains a field (or an override edit does the same) and
+    `sync` merges it into the role's file, so the merge reaches a key the index has not seen.
+    Simulated by stripping a catalog field consistently from both sides, syncing, then
+    mutating the role through an unrelated seam.
 
-    Two properties, and the first one used to be the opposite: the merge now reaches the
-    *index* in the same transaction that writes the frontmatter, so a caller reading the item
-    back sees the merged value rather than the pre-merge one. The second is unchanged -- the
-    following mutation through a different seam must not be refused."""
+    Two properties. The merge reaches the *index* in the same transaction that writes the
+    frontmatter, so a caller reading the item back sees the merged value, not the pre-merge
+    one. And the following mutation through a different seam must not be refused."""
     role = await svc.activate_role("reviewer")  # a role whose catalog carries `agreements`
 
     path = svc.paths.abspath(role.path)
@@ -405,7 +402,7 @@ async def test_a_project_override_role_under_a_new_slug_is_not_falsely_refused_a
 
 
 async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_refusing(svc):
-    """Why the catalog half of the permitted set is KEPT now that `sync` mirrors its merge
+    """Why the catalog half of the permitted set is KEPT even though `sync` mirrors its merge
     into the index: a squad last synced by a release without that mirror carries an index that
     already lags on those keys, and the guard must not refuse the very mutation (or the very
     sync) that would otherwise converge it.
@@ -443,7 +440,7 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
 
 # ---------------------------------------------------------------------------------------------
 # The permitted set above is by *key name*; whether it actually applies is a further, per-item
-# question. `_refresh_catalog_extra` does resolve a dev role now (against a base built from the
+# question. `_refresh_catalog_extra` does resolve a dev role (against a base built from the
 # item's own stored identity, never a regenerated one), but it writes markdown and mirrors the
 # index inside one transaction, so it introduces no permanent lag on that account either. Its
 # catalog-shaped fields (`model`, `title`, ...) stay ordinary, transaction-guarded
@@ -456,11 +453,10 @@ async def test_interrupting_a_dev_roles_set_model_then_editing_elsewhere_refuses
     svc, monkeypatch
 ):
     """The counterpart to the two false-refusal cases above: this key-name collides with a
-    catalog role's exempt `model`, but a dev role's own catalog fields are not exempt (only
-    `extra.skills` is), so nothing here is permitted skew. Interrupting `--set model=` must be
-    treated as the real skew it is -- refusing the next mutation through any other seam --
-    rather than the old behaviour, which let the mutation through and clobbered the committed
-    value with the stale index-loaded one."""
+    catalog role's exempt `model`, but a dev role's own catalog fields are not exempt, so
+    nothing here is permitted skew. Interrupting `--set model=` must be treated as the real
+    skew it is -- refusing the next mutation through any other seam. Letting it through is the
+    loss this guards: the stale index-loaded value silently overwrites the committed one."""
     dev = await svc.add_dev("python")
 
     await _crash_the_index_commit(

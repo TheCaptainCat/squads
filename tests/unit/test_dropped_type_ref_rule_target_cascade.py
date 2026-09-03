@@ -2,7 +2,12 @@
 usable with no second edit in another type's block — the same courtesy
 ``_prune_orphaned_type_owned_views`` already gives a dropped type's own bundled view (see
 ``test_milestone_view_deselect_cascade.py``), extended to the ``RefRule.target``/
-``ref_rule_target_present:<T>`` coupling ``feature`` carries onto ``contract``.
+``ref_rule_target_present:<T>`` coupling onto ``contract``.
+
+Both halves of that coupling are driven, from their two different sources: ``feature``'s
+``ref_rules`` entry targeting ``contract`` is bundled, while a ``ref_rule_target_present:
+contract`` validator over it is opt-in — nothing bundled selects it — so the validator half is
+exercised through an override that declares it, which is the only way an adopter can meet it.
 
 Driven across the bundled non-roster surface: dropping most types is already a clean no-op
 (nothing targets them); ``contract`` is the one bundled type another type's block actually
@@ -35,7 +40,7 @@ def _write_override(squad_dir: Path, body: str) -> None:
     invalidate_squad_dir(squad_dir)
 
 
-def test_dropping_contract_strips_the_stale_ref_rules_and_validator_from_feature(
+def test_dropping_contract_strips_the_stale_ref_rules_entry_from_feature(
     tmp_path: Path,
 ) -> None:
     _write_override(tmp_path, _WITHOUT_CONTRACT)
@@ -44,7 +49,24 @@ def test_dropping_contract_strips_the_stale_ref_rules_and_validator_from_feature
 
     assert "contract" not in spec.items
     assert all(rr.target != "contract" for rr in spec.items["feature"].ref_rules)
-    assert "ref_rule_target_present:contract" not in spec.items["feature"].validators
+
+
+def test_dropping_contract_strips_an_opted_in_validator_selecting_it(tmp_path: Path) -> None:
+    """The validator half of the same cascade. It has to be declared here to be tested at all:
+    the bundled document types ``feature``'s implements edge without requiring it, so a squad
+    only carries ``ref_rule_target_present:contract`` if its own override adds it — and that
+    squad is exactly the one whose spec would otherwise refuse to load after the drop, with the
+    offending line sitting in a type block it never edited."""
+    _write_override(
+        tmp_path,
+        _WITHOUT_CONTRACT
+        + '\n[items.feature]\nvalidators = ["ref_rule_target_present:contract"]\n',
+    )
+
+    spec = load_workflow_spec(squad_dir=tmp_path)
+
+    assert "contract" not in spec.items
+    assert spec.items["feature"].validators == []
 
 
 def test_dropping_contract_lints_clean_not_just_loads_clean(tmp_path: Path) -> None:

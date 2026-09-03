@@ -8,6 +8,7 @@ parent: EPIC-206
 author: product-owner
 refs:
 - FEAT-208:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: Project admin can add custom types and statuses via .overrides/workflow.toml
@@ -20,7 +21,7 @@ subentities:
   title: Broken workflow spec hard-stops sq with a clear actionable error
   status: Todo
 created_at: '2026-06-25T13:18:46Z'
-updated_at: '2026-06-30T09:32:23Z'
+updated_at: '2026-09-01T13:48:36Z'
 ---
 <!-- sq:body -->
 ## What this delivers

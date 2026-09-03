@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - FEAT-176
 - FEAT-177
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: Stable SKILL-… ID per skill for cross-entity referencing
@@ -23,7 +24,7 @@ subentities:
   title: Architect ADR approved before implementation begins
   status: Todo
 created_at: '2026-06-23T12:51:19Z'
-updated_at: '2026-06-25T09:59:02Z'
+updated_at: '2026-09-01T13:48:28Z'
 ---
 <!-- sq:body -->
 ## Problem

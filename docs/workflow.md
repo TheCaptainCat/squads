@@ -410,33 +410,47 @@ sq feature <n> ref add PRD-<n> --kind implements   # from the feature
 sq contract <n> refs --in                          # every feature that has shaped this contract
 ```
 
-### The currency check
+### Keeping a contract current
 
-A living record that is not kept current lies, so `sq check` watches for the case it can see: a
-feature that reaches a **delivered** status — one whose role is `done` — without linking any
-contract. It reports a **warning**:
+A living record that is not kept current lies — and **squads ships no rule that requires a delivered
+feature to name a contract.** Whether it must is a question about how your team works, not one a
+bundled default can answer for every squad: plenty of features are internal refactors, test
+batteries or tooling that implement no user-facing promise at all, and a rule with no way to record
+"this one deliberately touches nothing" produces a warning that never clears.
+
+So the link is bundled and the obligation is yours. The bundled `feature` type declares a ref rule
+saying that an `implements` ref from a feature points at a contract — that is what makes
+`sq feature <n> refs` and `sq contract <n> refs --in` read as two ends of one relationship.
+Requiring the edge to be there is a separate decision, and you opt into it.
+
+**Opting in.** Name the `ref_rule_target_present` validator on `feature` in your own
+`.overrides/workflow.toml`, with the type the ref must reach as its parameter:
+
+```toml
+[items.feature]
+validators = ["ref_rule_target_present:contract"]
+```
+
+`sq check` then reports a **warning** on a feature that reaches a **delivered** status — one whose
+role is `done` — carrying no `implements` ref that resolves to a contract:
 
 ```
 warn FEAT-<n>: settled with no implements ref to a contract — its functional contract slice may be stale
 ```
 
 It is the delivered role specifically, not the broader "settled" property: a `Cancelled` feature
-delivered nothing and is never asked about, and an `InReview` one has not landed yet.
+delivered nothing and is never asked about, and an `InReview` one has not landed yet. It warns and
+never blocks — the transition goes through, and `sq check` still exits `0` for a squad whose only
+findings are warnings. That is the shape of the check even when you have asked for it: the only way
+a team clears a hard gate here is by adding a link that isn't true, which corrupts exactly the edge
+the check reads.
 
-**It warns and never blocks.** The transition goes through, and `sq check` still exits `0`
-for a squad whose only findings are warnings. That is deliberate, not an oversight: plenty of
-features touch no user-facing behaviour at all, and a hard gate would fire on every one of them. The
-only way a team clears a gate like that is by adding a link that isn't true — which corrupts exactly
-the edge the check reads. So the warning surfaces the question and leaves the answer with the person
-who knows whether this feature really touches no contract.
-
-**The check is inert until you author your first contract**, and this is worth understanding before
-you conclude it is broken. While a squad holds no contract at all, the check evaluates nothing and
-reports nothing, however many settled features it has — because the remedy it would name does not
-exist yet, and a warning whose fix is unavailable is noise. The moment the first contract is
-authored, the check becomes active for the whole corpus at once, features that settled long before
-that contract existed included. Expect a batch of warnings on the day you start, name the slices
-each of those features shaped, and the batch clears.
+Two things to expect once you turn it on. The check is **inert while your squad holds no contract at
+all** — it evaluates nothing however many settled features you have, because the remedy it would
+name does not exist yet. And the first contract you author activates it across the whole corpus at
+once, features that settled long before that contract included. So the day you start, expect a batch
+of warnings: name the slice each of those features shaped, or leave the ones that genuinely shaped
+none.
 
 ---
 

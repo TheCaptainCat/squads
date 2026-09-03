@@ -10,6 +10,8 @@ priority: high
 refs:
 - FEAT-40
 - FEAT-33
+- PRD-862:implements
+- PRD-861:implements
 description: sq role show displays the complete definition (working agreements included)
   and every onboarding text (CLAUDE.md section, skills) directs agents to sq commands
   instead of reading files under squads/
@@ -21,7 +23,7 @@ subentities:
   title: Onboarding texts prescribe sq commands only, not file reads
   status: Done
 created_at: '2026-06-11T09:02:40Z'
-updated_at: '2026-06-23T10:00:19Z'
+updated_at: '2026-09-01T13:48:06Z'
 ---
 <!-- sq:body -->
 ## Problem

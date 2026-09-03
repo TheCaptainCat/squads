@@ -91,18 +91,17 @@ def _exempt_extra_keys(item: Item) -> frozenset[str]:
     answering "what does a regen writer persist outside a transaction for *this* item",
     not "what key names does the exemption know about in general".
 
-    - A dev role (``extra.is_dev`` truthy) gets none of it. It once got a narrower exemption of
-      its own -- ``extra.skills`` alone, since the resolved-skills cache resynced every role's
-      ``extra`` this way, dev roles included -- but that cache and its writer are gone, and
-      nothing replaced them. ``_refresh_catalog_extra`` *does* resolve a dev role too, against
-      a base built from the item's own stored identity rather than a regenerated one, but it
-      writes markdown first and mirrors into the index inside the same transaction, so no
-      permanent index lag is introduced and nothing needs exempting on that account either.
-      Every field on a dev role (``model``, ``title``, ...) is therefore an ordinary,
-      transaction-guarded field, and must be compared like any other -- widening this would
-      reopen the exact loss class the exemption otherwise guards against: interrupt a dev
-      role's ``--set model=haiku``, then edit it through any other seam, and the stale
-      index-loaded value would silently overwrite the committed one.
+    - A dev role (``extra.is_dev`` truthy) gets none of it: no writer persists a dev role's
+      ``extra`` outside a transaction, so there is no permanent lag for an exemption to
+      tolerate. ``_refresh_catalog_extra`` *does* resolve a dev role too, against a base built
+      from the item's own stored identity rather than a regenerated one, but it writes markdown
+      first and mirrors into the index inside the same transaction, so it introduces no
+      permanent index lag and needs no exemption on that account either. Every field on a dev
+      role (``model``, ``title``, ...) is therefore an ordinary, transaction-guarded field, and
+      must be compared like any other -- widening this would reopen the exact loss class the
+      exemption otherwise guards against: interrupt a ``set_extra`` write of a dev role's
+      ``model``, then edit it through any other seam, and the stale index-loaded value silently
+      overwrites the committed one.
     - Any other role gets the whole permitted set. A role is identified here by
       ``item.type == ROSTER_ROLE`` -- the item's own declared type, not a key inside its
       ``extra`` -- rather than by asking whether its slug resolves in the *bundled* catalog.

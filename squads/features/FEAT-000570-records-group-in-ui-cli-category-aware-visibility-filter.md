@@ -11,6 +11,8 @@ refs:
 - FEAT-567
 - REV-565
 - FEAT-605:depends-on
+- PRD-862:implements
+- PRD-863:implements
 subentities:
 - local_id: US1
   title: category-aware default visibility + empty-view hint + --category filter
@@ -22,7 +24,7 @@ subentities:
   title: 'VS Code extension: dedicated records view'
   status: InProgress
 created_at: '2026-07-22T08:39:37Z'
-updated_at: '2026-07-23T07:09:27Z'
+updated_at: '2026-09-01T13:50:50Z'
 ---
 <!-- sq:body -->
 ## Capability

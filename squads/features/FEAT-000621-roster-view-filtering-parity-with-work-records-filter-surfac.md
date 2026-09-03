@@ -5,10 +5,12 @@ type: feature
 title: 'Roster view filtering: parity with work/records filter surfaces'
 status: Done
 author: product-owner
+refs:
+- PRD-863:implements
 description: Roster view (TUI + VS Code) lacks the type/status filtering work/records
   gained; deferred follow-up
 created_at: '2026-07-23T07:11:12Z'
-updated_at: '2026-07-29T12:46:16Z'
+updated_at: '2026-09-01T13:51:05Z'
 ---
 <!-- sq:body -->
 The Roster view (TUI + VS Code) lacks the type/status filtering that the work and records surfaces have. Add filter parity so the roster can be narrowed the same way. Deferred during the FEAT-570 dev-host pass; not scheduled.

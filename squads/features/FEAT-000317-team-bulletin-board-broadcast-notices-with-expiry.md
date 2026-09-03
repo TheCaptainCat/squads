@@ -8,6 +8,7 @@ parent: EPIC-316
 author: product-owner
 refs:
 - ADR-314:implements
+- PRD-860:implements
 subentities:
 - local_id: US1
   title: As a lead or operator, I can post a notice to the board with an optional
@@ -28,7 +29,7 @@ subentities:
     boundary
   status: Todo
 created_at: '2026-07-06T16:08:53Z'
-updated_at: '2026-07-15T13:14:46Z'
+updated_at: '2026-09-01T13:49:15Z'
 ---
 <!-- sq:body -->
 # Team bulletin board

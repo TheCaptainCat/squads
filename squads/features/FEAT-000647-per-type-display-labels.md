@@ -7,6 +7,7 @@ status: Done
 author: product-owner
 refs:
 - ADR-646:addresses
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: Labels schema field + label_for resolver
@@ -21,7 +22,7 @@ subentities:
   title: sq ui renders per-type display labels
   status: Done
 created_at: '2026-07-24T11:47:44Z'
-updated_at: '2026-07-27T08:32:01Z'
+updated_at: '2026-09-01T13:51:12Z'
 ---
 <!-- sq:body -->
 Adopters can declare a human-readable display name per item type, so clients render "Decisions"/"ADRs" instead of the bare lowercase type key, with acronym types kept correctly capitalized.

@@ -9,6 +9,7 @@ author: product-owner
 priority: medium
 refs:
 - FEAT-19:depends-on
+- PRD-858:implements
 description: 'sq <type> <n> retype <new-type>: fix a wrongly-filed item keeping its
   number, discussion and incoming refs'
 subentities:
@@ -19,7 +20,7 @@ subentities:
   title: Incoming refs and prose mentions rewritten to new ID after retype
   status: Done
 created_at: '2026-06-10T13:24:54Z'
-updated_at: '2026-06-23T09:59:30Z'
+updated_at: '2026-09-01T13:47:33Z'
 ---
 <!-- sq:body -->
 ## Problem

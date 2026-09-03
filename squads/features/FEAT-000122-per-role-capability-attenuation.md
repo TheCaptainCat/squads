@@ -9,6 +9,8 @@ author: product-owner
 priority: low
 refs:
 - FEAT-125
+- PRD-860:implements
+- PRD-861:implements
 subentities:
 - local_id: US1
   title: Full structured capability profile per role (Slice B — gated on FEAT-000125)
@@ -17,7 +19,7 @@ subentities:
   title: Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-000152)
   status: Done
 created_at: '2026-06-15T11:56:09Z'
-updated_at: '2026-06-22T13:49:32Z'
+updated_at: '2026-09-01T13:48:20Z'
 ---
 <!-- sq:body -->
 ## Lane-rules spec for Slice B (product-owner draft, 2026-06-22)

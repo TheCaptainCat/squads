@@ -10,6 +10,7 @@ refs:
 - FEAT-283:depends-on
 - ADR-282
 - ADR-295:implements
+- PRD-858:implements
 description: Block-shift a branch's new IDs into a reserved range before merge, preserving
   referential intent
 subentities:
@@ -29,7 +30,7 @@ subentities:
   title: Pre-merge shift and post-merge --renumber coexist
   status: Todo
 created_at: '2026-07-03T08:18:39Z'
-updated_at: '2026-07-06T10:18:42Z'
+updated_at: '2026-09-01T13:49:05Z'
 ---
 <!-- sq:body -->
 Problem. squads allocates IDs from a single global monotonic counter in .squads.json. When two collaborators work on separate git branches/clones, each runs sq create and both mint the same sequence number (both branch at counter 287 -> both create item 288). On merge you get duplicate global IDs.

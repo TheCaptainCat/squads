@@ -895,6 +895,11 @@ category = "work"
 validators = ["supersedes_incoming"]   # keep the check the category no longer turns on
 ```
 
+The same list is also how you turn on a check nothing bundled selects. `ref_rule_target_present` is
+the one that ships that way: squads types the `implements` edge from a feature to a contract but
+never requires it, and a squad that wants the obligation opts in here — see
+[workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current".
+
 `sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
 fix hint, where a plain `sq` command stops at the first:
 

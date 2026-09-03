@@ -5,6 +5,8 @@ type: feature
 title: Inline Mermaid diagrams across sq markdown surfaces
 status: Done
 author: product-owner
+refs:
+- PRD-862:implements
 subentities:
 - local_id: US1
   title: Fenced Mermaid output from sq graph
@@ -16,7 +18,7 @@ subentities:
   title: Spec-derived Mermaid diagrams in docs and the workflow cheatsheet
   status: Done
 created_at: '2026-07-10T09:04:53Z'
-updated_at: '2026-07-15T14:45:04Z'
+updated_at: '2026-09-01T13:50:15Z'
 ---
 <!-- sq:body -->
 VSCode, GitHub, PyCharm etc. already render a fenced ```mermaid block inline in any .md file. sq graph --format mermaid already emits a valid Mermaid graph body (graph_to_mermaid in _services/_refs.py) but it's raw, meant for piping to mmdc or pasting into Mermaid Live — not wrapped in a markdown fence. Wrapping that existing serializer in a fence, and reusing it in a couple more places, gets us free inline diagrams across sq's generated markdown with no new rendering engine.

@@ -360,12 +360,13 @@ def dev_base_from_item(item: Item) -> RoleDef:
     item predating this designation) by falling back to ``dev_role()``'s own default. Every
     other field (``title``, ``mission``, ``responsibilities``, ``can_spawn``, ``agreements``)
     is regenerated fresh from the tech template on every call, deliberately: those fields are
-    reachable through the generic ``sq <type> update --set`` escape hatch too, but
+    writable through the generic ``set_extra`` seam too (see :func:`role_base_from_item` for
+    what does and does not reach that seam), but
     :meth:`~squads._services._maintenance.MaintenanceMixin._refresh_catalog_extra`'s own
     reconciler treats a stored value for any of them as staleness to converge, never as a
     designation to preserve — carrying them here would fight that reconciler instead of
-    agreeing with it, and would make an ad-hoc ``--set`` on a field with no dedicated verb
-    outlive the next sync for no principled reason.
+    agreeing with it, and would make an ad-hoc write to a field with no dedicated verb outlive
+    the next sync for no principled reason.
     """
     stored_name = item.title
     name = stored_name if stored_name and stored_name.strip() else None
@@ -413,19 +414,29 @@ def role_base_from_item(item: Item, squad_dir: Path | None = None) -> RoleDef | 
       skips via its ``RoleNotFoundError`` catch, unaffected by this function returning ``None``
       for it.
 
-    **Why "dedicated verb" and not "the generic ``update --set`` allowlist," even though the
-    latter is wider.** ``EXTRA_FIELDS["role"]`` (``_models/_metadata.py``) also accepts
-    ``title``/``mission``/``responsibilities``/``model``/``color`` through ``sq role <slug>
-    update --set <key>=<value>`` — a real, shipped write path, distinct from the two dedicated
-    verbs above. It is deliberately **not** part of this base: ``_refresh_catalog_extra``'s
-    own reconciler already treats every one of those fields as a value to *converge* on the
-    next sync, not one to *preserve* — carrying them here would silently stop that
-    reconciliation working for whichever field happened to have been ``--set`` most recently,
-    reintroducing the same "can't tell a refresh from a preservation" defect for a wider field
-    set. The generic ``--set`` path is exactly that: a value visible until the next sync
-    converges it, never a permanent designation — only ``full_name`` and ``is_default`` have
-    dedicated verbs that make the stored value the operator's *lasting* answer, and only those
-    two are carried.
+    **Why "dedicated verb" and not "the generic ``set_extra`` allowlist," even though the
+    latter is wider.** ``EXTRA_FIELDS["role"]`` (``_models/_metadata.py``) also declares
+    ``title``/``mission``/``responsibilities``/``model``/``color`` settable, and
+    :meth:`Service.update`'s ``set_extra`` argument really does write them onto a role item.
+    That seam is reachable programmatically only: the role addressing group's verbs are
+    ``show``/``regen``/``rm``/``status``/``set-default``, and the generic ``<type> <n> update
+    --set`` command is built for non-roster types alone, so no role verb exposes it.
+
+    It is deliberately **not** part of this base: ``_refresh_catalog_extra``'s own reconciler
+    already treats every one of those fields as a value to *converge* on the next sync, not one
+    to *preserve* — carrying them here would silently stop that reconciliation working for
+    whichever field happened to have been written most recently, reintroducing the same "can't
+    tell a refresh from a preservation" defect for a wider field set. A generic ``set_extra``
+    write is exactly that: a value visible until the next sync converges it, never a permanent
+    designation — only ``full_name`` and ``is_default`` have dedicated verbs that make the
+    stored value the operator's *lasting* answer, and only those two are carried.
+
+    A consequence worth knowing at this call site, because it is silent: such a write lands in
+    ``extra`` and reports success, yet changes nothing a reader sees. A role is rendered from
+    the catalog, merged over the base this function builds — which carries ``full_name`` and
+    ``is_default`` and nothing else — so a ``title`` or ``model`` stored this way reaches
+    neither the role's generated pointer nor the managed regions ``sq sync`` compiles, and the
+    next sync converges the stored value back to the catalog's.
 
     ``full_name`` comes from ``item.title`` rather than ``extra.full_name`` — ``title`` is the
     uniform record's copy of the resolved name, kept in step with it by every write seam, so
@@ -434,11 +445,11 @@ def role_base_from_item(item: Item, squad_dir: Path | None = None) -> RoleDef | 
     tolerating its absence (a role item predating the designation) by falling back to the
     catalog's own default.
 
-    *squad_dir* defaults to ``None`` (bundled catalog only, exactly today's behaviour) so a
-    caller that has not been updated to pass it keeps its current answer rather than silently
-    losing the document layer; every caller that has a squad directory in hand should pass it
-    so an activated role picks up a project's catalog-document override the same way an
-    unactivated one already does via :func:`resolve_role`/:func:`resolve_role_with_base`.
+    *squad_dir* defaults to ``None``, which resolves against the bundled catalog alone — the
+    honest answer for a caller that has no squad directory to offer, rather than a silent drop
+    of the document layer. Every caller that does have one should pass it, so an activated role
+    picks up a project's catalog-document override the same way an unactivated one does via
+    :func:`resolve_role`/:func:`resolve_role_with_base`.
     """
     if item.extra.get(X.IS_DEV):
         return dev_base_from_item(item)

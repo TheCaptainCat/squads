@@ -30,15 +30,13 @@ class Artifact:
 class RoleView:
     """The roster entry passed to backends (decoupled from RoleDef internals).
 
-    Carries every role field a backend renders into a compiled managed region. ``mission`` and
-    ``responsibilities`` are here for a specific reason: without them the AGENTS.md backend
-    could not see either, and recovered the mission by string-matching the ``**Mission:**``
-    line back out of markdown it had itself generated one step earlier — a rendering
-    convention standing in for a declaration, over a template that is meant to be editable.
-    Relabelling that line silently emptied every mission in the compiled file, and
-    ``responsibilities`` was never recovered at all, so the section's responsibilities block
-    had never once rendered. A view field is the declaration; the generated text is output,
-    never an input.
+    Carries every role field a backend renders into a compiled managed region — explicitly,
+    ``mission`` and ``responsibilities`` included — because a view field is the declaration and
+    generated text is output, never an input. A backend that recovers a declaration by parsing
+    markdown it rendered itself makes a template's formatting the carrier of that declaration,
+    over a template that is meant to be editable: relabel the line and the field empties out of
+    the compiled file silently, with nothing reporting it. Anything a backend renders is
+    therefore declared here rather than read back off the page.
     """
 
     slug: str
