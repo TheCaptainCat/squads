@@ -32,7 +32,9 @@ from squads._itemfile import (
     SkewKey,
     frontmatter_skew,
     read_frontmatter,
+    read_item_text,
     rewrite_ids,
+    skew_message,
     stale_encoding_clause,
     update_frontmatter,
     write_text,
@@ -508,19 +510,16 @@ class MaintenanceMixin(ServiceCore):
     async def sync(self) -> list[str]:
         """Regenerate all tool-owned managed files to the current version; stamp the config.
 
-        **Deduplicated by exact text before returning.** Two or more writers can hit the same
-        skew check on the same roster item in one sweep (today, both
-        :meth:`_refresh_catalog_extra` and :meth:`_refresh_role_skills_extra` call
-        ``update_frontmatter`` against the same on-disk item, so a genuine divergence on it
-        raises the identical, item-and-fields-keyed message from both) — one divergence is one
-        thing to report, not one per writer that happened to notice it. Collapsing exact
+        **Deduplicated by exact text before returning.** A generic safety net over the
+        per-writer skip-report messages below, not tied to any one of them — collapsing exact
         duplicates (not de-duplicating by item id, or by any other looser key) is what keeps a
         second, genuinely different message about the *same* item — a different field set, a
         different reason — passing through untouched.
 
-        Returns one skip-report message per drifted roster item whose frontmatter was left
-        untouched (see :meth:`_refresh_catalog_extra`/:meth:`_refresh_role_skills_extra`),
-        one notice per live ``SKILL`` item this run just withdrew because its type is no
+        Returns one skip-report message per drifted roster role whose frontmatter was left
+        untouched (see :meth:`_detect_roster_item_skew`, and :meth:`_refresh_catalog_extra`
+        for the narrower catalog-merge case that can raise the same way), one notice per live
+        ``SKILL`` item this run just withdrew because its type is no
         longer declared (:func:`~squads._interactions.orphaned_skill_item_type`), and one per
         playbook guide **the adopter wrote** that this run just dropped from a generated
         ``sq-<type>`` skill because its role slug names no live role
@@ -560,8 +559,8 @@ class MaintenanceMixin(ServiceCore):
         for backend in backends:
             await backend.ensure_scaffold(ctx)
         # Recompute every role's resolved preload-skill set (system membership + scope
-        # edges) once, up front — shared by the projection ctx below and the extra.skills
-        # cache write, so a full sync is the single recomputation point for both surfaces.
+        # edges) once, up front, for the projection ctx below — a full sync is the single
+        # recomputation point that every per-entry backend pointer's list is built from.
         role_skills = await self._role_skills_map()
         proj_ctx = BackendContext(
             paths=self.paths, spec=self.spec, playbook=self.playbook, role_skills=role_skills
@@ -571,10 +570,11 @@ class MaintenanceMixin(ServiceCore):
         # every roster item's status is re-applied against the predicate on every run,
         # materialising a live entry and withdrawing every other one — including an entry
         # already retired before this landed, with no migration owed. The item's own
-        # sq-managed state (the catalog-extra merge, the resolved-skills cache, the rendered
-        # body) refreshes unconditionally regardless of liveness: only the *backend*
-        # projection — via ``_project_roster_item``, the same helper the single-item
-        # transition path uses — is gated.
+        # sq-managed state (the catalog-extra merge) refreshes unconditionally regardless of
+        # liveness: only the *backend* projection — via ``_project_roster_item``, the same
+        # helper the single-item transition path uses — is gated. The role's own definition
+        # renders at read time (``ServiceCore.role_definition_text``) and is not part of this
+        # sweep at all — nothing here writes a role's ``sq:body`` region.
         # Copied out of the snapshot before any mutation: ``list_items`` returns the read
         # scope's own aliases with no copy, and ``_refresh_catalog_extra`` below mutates
         # ``item.extra`` in place and then grafts that same object into a fresh
@@ -629,13 +629,13 @@ class MaintenanceMixin(ServiceCore):
         # Resolved once for the whole sync sweep, not per role.
         default_kind = self.spec.default_ref_kind()
         for it in roster_roles:
-            msgs = (
-                await self._refresh_catalog_extra(it, default_kind=default_kind),
-                await self._refresh_role_skills_extra(it, role_skills, default_kind=default_kind),
-            )
-            skipped.extend(msg for msg in msgs if msg is not None)
+            skew_msg = await self._detect_roster_item_skew(it, default_kind=default_kind)
+            if skew_msg is not None:
+                skipped.append(skew_msg)
+            msg = await self._refresh_catalog_extra(it, default_kind=default_kind)
+            if msg is not None:
+                skipped.append(msg)
             skipped += await self._project_roster_item(it, proj_ctx)
-            await self._regen_role_body(it)
         for it in roster_skills:
             stale_type = orphaned_skill_item_type(it.extra.get(X.SLUG, ""), self.spec)
             if stale_type is not None and it.status in self.spec.live_statuses(ROSTER_SKILL):
@@ -693,7 +693,7 @@ class MaintenanceMixin(ServiceCore):
                 override_guides=playbook_override_guide_pairs(self.paths.squad_dir),
             )
         ]
-        # Seed SKILL ids for every managed skill body ``write_managed`` just wrote, bundled
+        # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, bundled
         # and custom alike, in the same order ``init``/``adopt`` use (idempotent; a slug whose
         # convention-named file already exists is skipped without touching it).
         #
@@ -805,6 +805,38 @@ class MaintenanceMixin(ServiceCore):
             for md in sorted(folder.glob("*.md"))
             if not md.name.startswith(prefix)
         ]
+
+    async def _detect_roster_item_skew(self, item: Item, *, default_kind: str) -> str | None:
+        """Read *item*'s on-disk frontmatter and report -- never write -- a real divergence
+        from the index-loaded copy, unconditionally, for every roster item this pass touches.
+
+        :func:`~squads._itemfile.skew_message`'s own docstring names three reusers: the
+        refusal a single-mutation write seam raises, the ``ImportIssue`` the bulk importer's
+        pre-pass collects, and "the skip-and-report line ``sq sync`` emits for a drifted
+        roster item" -- the third one, and this is that check's home. Unconditionally is the
+        load-bearing word: a role whose catalog fields already agree with the index
+        (:meth:`_refresh_catalog_extra` finds nothing to merge) would otherwise never have its
+        frontmatter read again during a sync, so a drift on an ordinary field -- unrelated to
+        any catalog-merged value, e.g. an interrupted ``description`` edit -- would go
+        unnoticed until some unrelated seam happened to touch the same item.
+
+        Deliberately independent of :meth:`_refresh_catalog_extra`: both run unconditionally
+        over the same roster loop, so a real skew is reported the same way regardless of
+        whether the catalog merge also has something to say about the same item -- ``sync``'s
+        own dedup collapses the identical message if both happen to raise it.
+
+        A missing or unreadable file is not this check's business -- some other pass reports
+        that -- so it returns ``None`` rather than raising.
+        """
+        path = item_file(self.paths, item)
+        try:
+            text = await read_item_text(path, item.id)
+        except SquadsError:
+            return None
+        diverging = frontmatter_skew(text, item, default_kind=default_kind)
+        if not diverging:
+            return None
+        return skew_message(item, diverging)
 
     async def _refresh_catalog_extra(self, item: Item, *, default_kind: str) -> str | None:
         """Merge current catalog fields into a predefined role's item extra, and project the
@@ -976,15 +1008,16 @@ class MaintenanceMixin(ServiceCore):
     async def seed_bundled_skills(self) -> list[Item]:
         """Stamp SKILL-… ids onto the bundled managed skill body files (idempotent).
 
-        Called by ``sq init`` after ``refresh_managed()`` has written the skill body files.
+        Called by ``sq init`` after ``refresh_managed()`` has created the skill body files.
         Each bundled skill receives a full ``Item`` of the ``skill`` roster type with the
         roster-type profile (status ``Active``, no sub-entities), allocated through
         ``IndexStore.transaction()`` in lexical-by-slug order.
 
         Files are written with the convention-correct name
-        ``agents/skills/SKILL-<NNNNNN>-<slug>.md``. The legacy slug-named file written by
-        ``write_managed`` (``<slug>.md``) is renamed to the convention name at this step;
-        the ``sq init`` flow always ends with convention-named files on disk.
+        ``agents/skills/SKILL-<NNNNNN>-<slug>.md``. The legacy slug-named file ``write_managed``
+        creates (``<slug>.md``, carrying an empty ``sq:body`` region — a system skill's
+        definition is rendered on read, never stored) is renamed to the convention name at this
+        step; the ``sq init`` flow always ends with convention-named files on disk.
 
         Idempotent: if a convention-named file ``SKILL-*-<slug>.md`` already exists for a
         slug, it is left completely untouched.
@@ -1003,10 +1036,10 @@ class MaintenanceMixin(ServiceCore):
             if existing_convention:
                 continue  # already at convention name — leave id/sequence_id untouched
 
-            # Look for the legacy slug-named body file written by write_managed.
+            # Look for the legacy slug-named body file write_managed created.
             legacy_path = skills_folder / f"{slug}.md"
             if not legacy_path.is_file():
-                continue  # body file not written yet (shouldn't happen after refresh_managed)
+                continue  # body file not created yet (shouldn't happen after refresh_managed)
             existing_text = await _aio.read_text(legacy_path)
 
             # Allocate a new SKILL id through the single global counter.
@@ -1097,10 +1130,10 @@ class MaintenanceMixin(ServiceCore):
             if existing_convention:
                 continue  # already at convention name — leave id/sequence_id untouched
 
-            # Look for the legacy slug-named body file written by write_managed.
+            # Look for the legacy slug-named body file write_managed created.
             legacy_path = skills_folder / f"{slug}.md"
             if not legacy_path.is_file():
-                continue  # body file not written yet (write_managed must run first)
+                continue  # body file not created yet (write_managed must run first)
             existing_text = await _aio.read_text(legacy_path)
 
             # Allocate a new SKILL id through the single global counter.

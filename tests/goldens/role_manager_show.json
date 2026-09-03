@@ -15,5 +15,10 @@
     "Drive features through the loop (implement \u2192 review \u2192 fix) until done",
     "Keep the backlog and statuses honest",
     "Summarise progress for the operator"
+  ],
+  "skills": [
+    "squads",
+    "greeting",
+    "sq-memory"
   ]
 }

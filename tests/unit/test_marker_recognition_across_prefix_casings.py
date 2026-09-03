@@ -129,5 +129,5 @@ def test_every_marker_of_a_production_rendered_sub_entity_block_is_recognised() 
         discussion.build_block("finding", f"F{n}", f"finding {n}", body="prose") for n in (1, 2, 3)
     )
     present = _ANY_SQ_COMMENT.findall(text)
-    assert len(present) >= 24, "the block scaffold must carry its nested sub-regions"
+    assert len(present) >= 18, "the block scaffold must carry its nested sub-regions"
     assert len(sections.find_markers(text)) == len(present)

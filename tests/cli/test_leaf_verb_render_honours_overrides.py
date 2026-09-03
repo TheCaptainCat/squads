@@ -7,25 +7,22 @@ other template rendered off the leaf verb) must resolve an adopter's
 ``.overrides/templates/`` override on that two-crossing path, not just when a test calls
 ``render()``/``Service.render_view`` directly in one construction.
 
-The first test drives the exact proof the acceptance criterion names: override the bundled
-milestone roll-up in a test squad, then read it back through ``sq milestone <n> show`` — both
-rendered forms — with ``sq workflow view`` pinned alongside as the surface that already worked.
+The first test overrides the bundled milestone roll-up in a test squad, then reads it back
+through ``sq milestone <n> show`` — both rendered forms — with ``sq workflow view`` pinned
+alongside as a second surface onto the same template.
 
 The second is the guard: it enumerates render() call sites reached from double-bridge leaf
-verbs (a view template, and the sub-entity block/head/summary templates a later change is
-expected to route onto the same mechanism) by instrumenting the rendering engine itself, so a
-future leaf verb that starts rendering something new trips it automatically rather than
-needing a matching new test.
+verbs (a view template, and the sub-entity block/head/summary templates) by instrumenting the
+rendering engine itself, so a future leaf verb that starts rendering something new trips it
+automatically rather than needing a matching new test.
 
-The third falsifies the harness itself rather than the production fix: it disables the
-leaf-verb re-assertion via a monkeypatch (reintroducing the exact pre-fix seam, without
-touching production source) and asserts the resulting bundled-template fallback is actually
-observed. ``tests/conftest.py``'s ``invoke`` fixture resets the ambient render ContextVar/cache
-before every call, so this test needs no manual reset of its own — a prior version of this
-module carried two ``engine._active_squad_dir.set(None)`` lines to strip a leak the ``project``
-fixture's in-process ``service.init(...)`` left in this test's ambient context (``invoke``
-copies the calling context per call); that reset is now the harness's job, unconditionally, for
-every test in the suite.
+The third falsifies the harness rather than the code under test: it disables the leaf-verb
+re-assertion via a monkeypatch (opening the seam without touching production source) and asserts
+the resulting bundled-template fallback is actually observed. ``tests/conftest.py``'s ``invoke``
+fixture resets the ambient render ContextVar/cache before every call, so this test needs no
+manual reset of its own: without that harness-level reset, the leak the ``project`` fixture's
+in-process ``service.init(...)`` leaves in the ambient context (``invoke`` copies the calling
+context per call) would mask the break.
 """
 
 from collections.abc import MutableMapping
@@ -82,7 +79,7 @@ async def test_milestone_rollup_override_renders_through_show_show_raw_and_workf
     assert marker in r.output
     assert "## Delivered" not in r.output
 
-    # The surface that already worked before this fix must keep working (no regression).
+    # The dedicated view command resolves the same override template.
     r = await invoke(["workflow", "view", "milestone_rollup", mile_id])
     assert r.exit_code == 0, r.output
     assert marker in r.output
@@ -93,9 +90,10 @@ async def test_every_leaf_verb_render_call_sees_the_active_squad_dir(
 ) -> None:
     """Instrument the engine's template lookup to record, for every ``render()`` call made
     during a run of double-bridge commands, the template name and whatever squad dir
-    ``render()`` actually resolved against. None of them may see ``None`` — that's precisely
-    the seam this task closes — and the recorded set must include both a view template and a
-    sub-entity template, so the guard is not pinned to the one call site the first test drives.
+    ``render()`` actually resolved against. None of them may see ``None`` — a render that
+    resolves against no squad dir silently falls back to the bundled tree — and the recorded set
+    must include both a view template and a sub-entity template, so the guard is not pinned to
+    the one call site the first test drives.
     """
     calls: list[tuple[str, Path | None]] = []
     orig_env = engine._env
@@ -152,18 +150,19 @@ async def test_every_leaf_verb_render_call_sees_the_active_squad_dir(
 async def test_a_broken_leaf_verb_render_path_is_caught_once_the_harness_resets_ambient_state(
     project, invoke, monkeypatch
 ) -> None:
-    """Falsification for the harness's per-invocation reset itself, not for the production fix.
+    """Falsification for the harness's per-invocation reset itself, rather than for the
+    leaf-verb re-assertion that reset lets a test observe.
 
     Disables the leaf-verb re-assertion without touching production source, by monkeypatching
-    ``squads._cli._common.set_active_squad_dir`` to a no-op. That reintroduces exactly the
-    pre-fix seam: the item-type group's crossing still sets the ContextVar via
+    ``squads._cli._common.set_active_squad_dir`` to a no-op. That opens the seam this module
+    guards: the item-type group's crossing still sets the ContextVar via
     ``ServiceCore.__init__`` (a separate import binding in ``_services/_base.py``, untouched by
     this monkeypatch), but the leaf verb's crossing no longer re-asserts it, so its own
     ``render()`` call sees no active squad dir and falls back to the bundled template.
 
     With ``invoke`` correctly resetting the ambient ContextVar/cache before every call, that
     fallback is what actually happens here — asserted directly: the override marker is absent
-    and a bundled heading renders instead. If the per-invocation reset were ever reverted, the
+    and a bundled heading renders instead. Without that per-invocation reset, the
     ambient context the ``project`` fixture leaves behind (its own in-process
     ``service.init(...)``) would leak into this same invocation and mask the break — the override
     would render despite it, the same false pass a test written the "obvious way" gives: one

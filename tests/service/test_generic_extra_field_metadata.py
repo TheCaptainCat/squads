@@ -58,8 +58,17 @@ async def test_set_and_unset_a_badge_field_by_key_routes_through_set_badge_value
 
 
 async def test_setting_a_role_extra_field_regenerates_its_claude_pointer(svc, project):
+    """``color`` has no dedicated verb (unlike ``full_name``/``is_default``), so a generic
+    ``--set`` still lands on the item's own ``extra`` — the write itself is unaffected — but
+    the pointer regen this triggers resolves the role through the catalog rather than reading
+    that value back, and the catalog's own answer is what reaches the pointer. That is not
+    stale: the reconciler ('sq sync', via ``_refresh_catalog_extra``) already treats a
+    generically ``--set`` role field as staleness to converge, never a designation to
+    preserve, and the regen agreeing with it from the start is a currency win, not a bug: the
+    value the next sync would land on is the value the pointer already carries."""
     # the minimal roster registers `manager` as ROLE-000001 with a generated .claude pointer.
     await svc.update("ROLE-000001", set_extra={"color": "magenta"})
-    assert (await svc.get("ROLE-000001")).extra["color"] == "magenta"
+    assert (await svc.get("ROLE-000001")).extra["color"] == "magenta"  # the write itself lands
     pointer = (project.root / ".claude" / "agents" / "manager.md").read_text(encoding="utf-8")
-    assert "color: magenta" in pointer  # regenerated from the edited config, not stale
+    assert "color: cyan" in pointer  # the catalog's own answer, not the ad-hoc extra write
+    assert "color: magenta" not in pointer

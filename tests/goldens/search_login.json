@@ -24,11 +24,6 @@
         "snippet": "Implement login"
       },
       {
-        "region": "summary",
-        "location": "summary",
-        "snippet": "| --- | --- | --- | --- | --- | / | ST1 | Todo | manager | Write login handler | US1 |"
-      },
-      {
         "region": "subtask:ST1",
         "location": "subtask:ST1",
         "snippet": "### ST1 \u2014 Write login handler"

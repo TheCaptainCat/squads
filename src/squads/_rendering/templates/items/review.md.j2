@@ -17,9 +17,6 @@ _{{ field_label(finding_kind, field_code, spec) }}:_ {{ collection_legend(resolv
 
 _Add with `sq review {{ item.id | idnum }} add-{{ finding_kind }} "…" --{{ field_code }} {{ field_default(finding_kind, field_code, spec) }}`; track with `sq review {{ item.id | idnum }} {{ finding_kind }} <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 {{ tag | open_marker }}
 {{ tag | close_marker }}
 

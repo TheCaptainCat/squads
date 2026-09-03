@@ -74,16 +74,17 @@ async def test_a_live_dev_roles_show_renders_the_full_card_not_the_three_line_fa
 ) -> None:
     """Before this fix, ``resolve_role`` raised for every dev slug (override or not), so `show`
     degraded to the three-line item fallback (name, id, status). With a base it renders the
-    full card like every other role -- title, model, spawn, creates, mission,
-    responsibilities -- even with no override file present at all."""
+    full card like every other role -- title, model, spawn, creates, skills -- plus the
+    resolved definition beneath it (mission, responsibilities) -- even with no override file
+    present at all."""
     await svc.add_dev("python")
 
     result = await invoke(["role", "python-dev", "show"])
 
     assert result.exit_code == 0, result.output
-    assert "mission:" in result.output
-    assert "responsibilities:" in result.output
     assert "can spawn:" in result.output
+    assert "## Mission" in result.output
+    assert "## Responsibilities" in result.output
 
 
 async def test_a_live_dev_roles_json_show_carries_the_full_fields(project, svc, invoke) -> None:

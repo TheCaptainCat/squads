@@ -7,14 +7,14 @@ truth. Use `sq <type> <number> <verb>` to interact with work items.
 
 ## Agent roster
 
-- **Catherine Manager** — Manager (`manager`)
-- **Robert Architect** — Architect (`architect`)
-- **Olivia Lead** — Tech lead (`tech-lead`)
-- **Paul Reviewer** — Code reviewer (`reviewer`)
+- **Catherine Manager** — manager (`manager`)
+- **Robert Architect** — architect (`architect`)
+- **Olivia Lead** — tech lead (`tech-lead`)
+- **Paul Reviewer** — code reviewer (`reviewer`)
 - **Mara Tester** — QA engineer (`qa`)
 - **Hugo Ops** — DevOps engineer (`devops`)
-- **Nina Product** — Product owner (`product-owner`)
-- **Theo Writer** — Technical writer (`tech-writer`)
+- **Nina Product** — product owner (`product-owner`)
+- **Theo Writer** — technical writer (`tech-writer`)
 - **Elias Python** — Python developer (`python-dev`)
 
 ## Operators (people)
@@ -188,7 +188,7 @@ sq blocked                           # open items waiting on an open blocker
 
 ### Catherine Manager (`manager`)
 
-**Role:** Manager
+**Role:** manager
 
 **Mission:** Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.
 
@@ -201,7 +201,7 @@ sq blocked                           # open items waiting on an open blocker
 
 ### Robert Architect (`architect`)
 
-**Role:** Architect
+**Role:** architect
 
 **Mission:** Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.
 
@@ -213,7 +213,7 @@ sq blocked                           # open items waiting on an open blocker
 
 ### Olivia Lead (`tech-lead`)
 
-**Role:** Tech lead
+**Role:** tech lead
 
 **Mission:** Turn features into well-scoped tasks, sequence the work, and unblock the team.
 
@@ -227,7 +227,7 @@ sq blocked                           # open items waiting on an open blocker
 
 ### Paul Reviewer (`reviewer`)
 
-**Role:** Code reviewer
+**Role:** code reviewer
 
 **Mission:** Guard quality: review changes critically, request changes when needed, approve when sound.
 
@@ -260,7 +260,7 @@ sq blocked                           # open items waiting on an open blocker
 
 ### Nina Product (`product-owner`)
 
-**Role:** Product owner
+**Role:** product owner
 
 **Mission:** Represent the user: capture requirements as features and user stories, prioritise the backlog.
 
@@ -271,7 +271,7 @@ sq blocked                           # open items waiting on an open blocker
 
 ### Theo Writer (`tech-writer`)
 
-**Role:** Technical writer
+**Role:** technical writer
 
 **Mission:** Make the work understandable: write and maintain clear documentation and guides.
 

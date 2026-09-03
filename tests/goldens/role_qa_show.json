@@ -15,5 +15,13 @@
     "Derive test cases from acceptance criteria (user stories in the bundled workflow)",
     "Verify fixes and features",
     "Report defects as tracked items (bug items in the bundled workflow)"
+  ],
+  "skills": [
+    "squads",
+    "greeting",
+    "sq-memory",
+    "sq-feature",
+    "sq-task",
+    "sq-bug"
   ]
 }

@@ -1,24 +1,24 @@
 """Schema 0.11 → 0.14 runner: two new bundled item types join the vocabulary.
 
-Both types are declared entirely in code already shipped ahead of this runner (one
-``[items.<type>]`` block plus one ``[lifecycles.<type>]`` block each, in the bundled workflow
-spec) — this runner owns none of that declaration. What it owes an existing squad is the two
-things a declaration alone never produces on disk: the type's own folder, and its generated
-agent-facing surface (a managed ``sq-<type>`` skill body, that skill's ``.claude`` pointer, and
-the compiled ``CLAUDE.md``/``AGENTS.md`` regions that reference it) — every one of which ``sq
-init``/``sq adopt`` already write for a squad created after the declaration landed, and none of
-which a squad created *before* it ever gets on its own.
+Both types are declared entirely in the bundled workflow spec (one ``[items.<type>]`` block
+plus one ``[lifecycles.<type>]`` block each) — this runner owns none of that declaration. What
+it owes an existing squad is the two things a declaration alone never produces on disk: the
+type's own folder, and its generated agent-facing surface (a managed ``sq-<type>`` skill item,
+that skill's ``.claude`` pointer, and the compiled ``CLAUDE.md``/``AGENTS.md`` regions that
+reference it) — every one of which ``sq init``/``sq adopt`` already write for a squad created
+after the declaration landed, and none of which a squad created *before* it ever gets on its
+own. The skill's definition text is not among them: a system skill's definition renders from
+its template on every read (``ServiceCore.skill_definition_text``), so nothing stores it and
+nothing here writes it.
 
-No existing item data is rewritten: every write this runner performs is either creating a path
-that did not exist, or replacing a body region this same runner is the first-ever author of.
-Ordering mirrors ``init``'s own: the managed surface is (re)written first (mirroring
-``Service.refresh_managed``), then any not-yet-indexed skill body just written is stamped as a
+No existing item data is rewritten: every write this runner performs creates a path that did
+not exist. Ordering mirrors ``init``'s own: the managed surface is (re)written first (mirroring
+``Service.refresh_managed``), then any not-yet-indexed skill file just created is stamped as a
 ``SKILL`` item (mirroring ``Service.seed_bundled_skills``) — both idempotent, so a squad that
-already carries this content (this repository's own squad, synced after the two types were
-declared but before this runner shipped) sees no further writes at either step.
+already carries this content sees no further writes at either step.
 
 **Deliberately narrower than a full ``Service.sync()``.** This runner regenerates exactly the
-surface a type declaration grows — the two new skills' bodies/pointers and the compiled
+surface a type declaration grows — the two new skills' files/pointers and the compiled
 ``CLAUDE.md``/``AGENTS.md`` regions — by calling the same backend methods ``sync`` calls
 (``ensure_scaffold``, ``write_managed``) with the squad's current live roster read straight off
 the index. It does **not** touch any existing role's own per-entry pointer (each role's resolved
@@ -181,11 +181,11 @@ async def _regenerate_surface(
 ) -> None:
     """(Re)write every active backend's roster/version-dependent files — scaffolding plus
     ``write_managed`` — exactly the two calls ``Service.sync``'s own backend loop makes, so the
-    two new types' skill bodies, their ``.claude`` pointers, and the compiled
+    two new types' skill files, their ``.claude`` pointers, and the compiled
     ``CLAUDE.md``/``AGENTS.md`` regions appear the same way they would on a fresh ``sq init``.
-    Every *other* declared type's managed skill is rewritten too — ``write_managed`` has no
-    narrower entry point — but each is a body-region-only regen against already-correct content,
-    so an existing squad sees no effective change to anything but the two new types' files."""
+    Every *other* declared type's managed skill passes through too — ``write_managed`` has no
+    narrower entry point — but a skill file that already exists is left byte-untouched, so an
+    existing squad sees no change to anything but the two new types' files."""
     roster, operators, skill_paths = await _live_roster(paths, spec)
     ctx = BackendContext(paths=paths, skill_paths=skill_paths, spec=spec, playbook=playbook)
     for backend_name in paths.config.active_backends:
@@ -195,11 +195,11 @@ async def _regenerate_surface(
 
 
 async def _seed_new_type_skills(paths: SquadPaths, spec: WorkflowSpec) -> int:
-    """Stamp a ``SKILL`` item onto each new type's skill body ``_regenerate_surface`` just wrote,
-    the same allocate → stamp → rewrite-pointer shape every prior runner that seeds a skill
-    uses. Scoped to exactly the two slugs this runner is chartered to introduce — narrower than
-    ``Service.seed_bundled_skills``' full bundled-slug sweep, which is a standing ``sq sync``
-    responsibility this runner does not need to duplicate.
+    """Stamp a ``SKILL`` item onto each new type's skill file ``_regenerate_surface`` just
+    created, the same allocate → stamp → rewrite-pointer shape every prior runner that seeds a
+    skill uses. Scoped to exactly the two slugs this runner is chartered to introduce —
+    narrower than ``Service.seed_bundled_skills``' full bundled-slug sweep, which is a standing
+    ``sq sync`` responsibility this runner does not need to duplicate.
 
     Idempotent per slug: a convention-named file (``SKILL-<NNNNNN>-sq-<type>.md``) already
     present is left untouched, matching what a squad synced after the type was declared but
@@ -262,10 +262,10 @@ async def _seed_new_type_skills(paths: SquadPaths, spec: WorkflowSpec) -> int:
 
 async def migrate(paths: SquadPaths) -> int:
     """Create the two new types' folders, regenerate the managed agent-facing surface so their
-    skills/pointers/compiled regions appear, and stamp each new skill as an indexed ``SKILL``
-    item. Returns the count of folders created plus skills seeded (0 on a squad already carrying
-    this content — e.g. one synced after the two types were declared in code but before this
-    runner shipped)."""
+    skill files/pointers/compiled regions appear, and stamp each new skill as an indexed
+    ``SKILL`` item. Returns the count of folders created plus skills seeded (0 on a squad
+    already carrying this content — e.g. one synced after the two types were declared in code
+    but before this runner shipped)."""
     spec = _active_spec(paths)
     playbook = _active_playbook(paths, spec)
     changed = await _ensure_type_folders(paths, spec)

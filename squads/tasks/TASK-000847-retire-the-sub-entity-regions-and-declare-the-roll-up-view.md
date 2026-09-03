@@ -3,7 +3,7 @@ id: TASK-847
 sequence_id: 847
 type: task
 title: Retire the sub-entity regions and declare the roll-up view
-status: Ready
+status: Done
 parent: FEAT-694
 author: tech-lead
 priority: high
@@ -15,34 +15,34 @@ description: Stop writing the sub-entity summary and head regions, drop them fro
 subentities:
 - local_id: ST1
   title: Declare the three sub-entity roll-up views
-  status: Todo
+  status: Cancelled
   story: US1
 - local_id: ST2
   title: Presentation templates for the three roll-up views
-  status: Todo
+  status: Cancelled
   story: US1
 - local_id: ST3
   title: Drop the region writes from the live sub-entity path
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST4
   title: Keep set_head and ensure_summary as migration-only machinery
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST5
   title: Remove the regions from the bundled item and block templates
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST6
   title: Freeze the five shipped renderings and pin the badge divergence
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST7
   title: Regenerate the template manifest and content store
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-09-01T08:02:31Z'
-updated_at: '2026-09-01T08:08:45Z'
+updated_at: '2026-09-01T09:54:26Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -309,6 +309,10 @@ message, and an override's `selected.views` drops one.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-09-01T08:37:55Z] Elias Python:
+  - Declared story_rollup/subtask_rollup/finding_rollup as freestanding subentity-source views in workflow.toml, per field-order match to summary_columns.
+- [2026-09-01T09:04:11Z] Elias Python:
+  - Retired per architect ruling (ADR-776, third 2026-09-01 amendment): no bundled sub-entity roll-up view ships, freestanding or attached. Declarations removed from workflow.toml; the computed successor (_print_subentity_summary) already shipped and is untouched.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -347,6 +351,10 @@ produces.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-09-01T08:37:59Z] Elias Python:
+  - Added templates/views/{story,subtask,finding}_rollup.md.j2 -- thin table template over fields/groups, matching subentities/summary.md.j2's layout, new files (summary.md.j2 untouched).
+- [2026-09-01T09:04:19Z] Elias Python:
+  - Retired alongside ST1: the three templates/views/*_rollup.md.j2 presentation templates are deleted -- an override at that path proved to re-present sq workflow view only, never sq review N show, so there was nothing to re-present.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -385,6 +393,8 @@ sub-entity mutation test still passes with only the removed-region assertions up
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-09-01T08:38:02Z] Elias Python:
+  - Dropped ensure_summary/_refresh_head/_story_label from _services/_subentities.py; _write_block_file now only re-renders the block heading.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -424,6 +434,8 @@ the older fixtures pass unchanged, and a `vulture` run reports nothing new here.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-09-01T08:38:05Z] Elias Python:
+  - set_head/ensure_summary/render_summary and both subentities/{head,summary}.md.j2 kept, docstrings now name the exact frozen migration caller pinning each.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -464,6 +476,8 @@ scaffolded sub-entity block carries no `:head` region, a file still carrying a l
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-09-01T08:38:08Z] Elias Python:
+  - Removed sq:summary from items/{task,feature,review}.md.j2 and the :head scaffold from subentities/block.md.j2; _collab.py's region registry drops the summary entry; search-narrowing tests/goldens updated.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -515,6 +529,8 @@ documented at both ends.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-09-01T08:38:11Z] Elias Python:
+  - New tests/unit/test_computed_subentity_renderings_are_stable.py pins exact bytes for show/--full/--raw/--json/list-table on a severity finding, plus the badge-line/json in-memory (no-file) proof; badge-divergence documented at summary_row and the view declarations.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -551,6 +567,8 @@ the `0.14.0` entry, and the override freshness guard test is green.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-09-01T08:38:14Z] Elias Python:
+  - Regenerated the manifest (python scripts/gen_template_manifest.py); only the 0.14.0 entry moved, --check passes, 2 expected orphan blobs reported (not cleared, per convention).
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 <!-- sq:subtasks:end -->
@@ -558,4 +576,75 @@ the `0.14.0` entry, and the override freshness guard test is green.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-01T08:39:36Z] Elias Python:
+  - Implemented per the 2026-09-01 ADR-776 amendment: the roll-up is reissued as three freestanding views, the head has no successor.
+    
+    Removed:
+    - `ensure_summary`/`_refresh_head`/`_story_label` calls from `_services/_subentities.py`'s write path (add/status/assignee/update/remove) -- `_write_block_file` now only re-renders the block's own heading.
+    - `sq:summary` from `items/{task,feature,review}.md.j2`; the `:head` scaffold from `subentities/block.md.j2`.
+    - `_collab.py`'s `_add(markers.SUMMARY, "summary")` search-region entry (`markers.SUMMARY` itself stays, still in `_validators`' structural tag set).
+    
+    Stayed as migration-only machinery (docstrings now name the exact frozen caller pinning each): `set_head` (`_v0_2_to_v0_3`), `ensure_summary` (`_v0_1_to_v0_2`, twice), `render_summary`, and both `subentities/{head,summary}.md.j2` templates -- none touched.
+    
+    Views declared (workflow.toml), freestanding as specified, one comment block explaining why:
+    - `story_rollup` (feature -> story), `subtask_rollup` (task -> subtask, +Story column), `finding_rollup` (review -> finding, +Severity badge) -- each `source = {kind="subentity", name=...}`, `order_by=["id"]`, field order/labels matching `summary_columns`. Presentation templates at `templates/views/<name>.md.j2` (new files, generic table over `fields`/`groups`, `_(none yet)_` empty state per `milestone_rollup`'s precedent).
+    - Verified: `sq workflow views` lists all four bundled views; `sq workflow view finding_rollup <id>` resolves and renders label-form badges (`🔴 Critical`), diverging deliberately from the summary table's code-form (`🔴 critical`) -- documented at both `summary_row` and beside the view declarations, per your instruction not to reconcile them.
+    
+    Freestanding was right. Verified in code: `_print_item_content` already prints the built-in sub-entity summary unconditionally, then every attached view -- attaching would double-print. `views` is in `WORKFLOW_TOP_LEVEL_SECTIONS` so `selected.views` drops a freestanding one directly, and `_prune_orphaned_type_owned_views` only ever touches a *type-attached* bundled view, so these three are untouched by a type deselect (an accepted tradeoff, not a bug -- flagging per your ask, not deciding it).
+    
+    Five frozen renderings: new `tests/unit/test_computed_subentity_renderings_are_stable.py` pins exact bytes (not substrings) for `show`/`--full`/`--raw --full`/list-table on a `finding` carrying `severity`, plus a bare-`SubEntity`/`SubentityDetail` proof (no file, no `Item`) that `_subentity_badge_line`/`_subentity_pane_title_raw`/`build_subentity_json` need none of it. None of `_cli/_common.py`/`_cli/_items.py` were touched, so byte-identity holds by construction -- these five never read a body region to begin with.
+    
+    Manifest regenerated last (your `role.md.j2` change was already in the tree); only the 0.14.0 entry moved, `--check` passes. Two orphan blobs remain in the content store (old `role.md.j2` and `workflow.toml` hashes) -- expected residue per the release-mechanics note, left for the operator's cut, not cleared here.
+    
+    Consequence, accepted per the task: `sq search`/`sq inbox` narrow -- a sub-entity's status/assignee/story text is no longer scanned (it was only ever visible as roll-up-table prose). Updated `tests/goldens/search_login.json` and `search_login`'s underlying scenario; the sub-entity's own heading (title) is still matched.
+    
+    Undone: the corpus strip (TASK-849, already on the board) -- deliberately out of scope here, per your note that a live re-materialising write path would have undone it. `tests/meta` had 5 pre-existing-pattern failures, all in `test_override_manifest_and_stamp_freshness.py`, all traced to the 2 legitimate orphan blobs above (confirmed 0 orphans at HEAD before this session); not a regression in this change.
+    
+    @reviewer for review; @architect re: the freestanding-vs-attached call above.
+- [2026-09-01T08:54:57Z] Robert Architect:
+  - Ruled, and it changes the delivery. ADR-776 has a third 2026-09-01 amendment: **no bundled sub-entity roll-up view ships** — not freestanding, not attached. Your freestanding-vs-attached call was right on its own terms; the question underneath it was whether a bundled declaration belongs at all, and it does not.
+    
+    Why: the roll-up's computed successor already ships and you left it untouched (`_print_subentity_summary`, called unconditionally by `_print_item_content`). So the declared view is a second rendering of computed data, reachable only through `sq workflow view` — while naming bundled vocabulary an adopter is free to change. Driven on a scratch squad: an override that is only `[subentity_kinds.finding] fields = []` fails the whole CLI, not just the view. The two buys claimed for it don't land either — an override at `.overrides/templates/views/finding_rollup.md.j2` re-presents `sq workflow view` and changes nothing under `sq review <n> show`; the `[selected]` drop is the un-brick step, not a capability. TASK-830 found this and removed its bundled views for the same reason.
+    
+    What changes here (small, and mostly subtraction):
+    
+    - ST1 + ST2 retire: drop the three `[views]` entries and the freestanding-rationale comment block from `workflow.toml`, delete `templates/views/{story,subtask,finding}_rollup.md.j2`. `milestone_rollup` stays exactly as it is — amendment §6 says why the cases separate.
+    - ST6 stays as delivered. Keep the badge-convention note at `summary_row`; its "beside the view declarations" half has no home now, so fold what it said into that one note. Drop the three-line view coda at the end of `test_show_full_raw_json_and_list_table_pin_exact_bytes_for_a_severity_finding` — everything above it passes unchanged.
+    - Tests asserting the declarations: `test_workflow_views_cli.py::test_the_default_catalog_carries_the_bundled_rollup_views_and_nothing_else`, `test_view_declaration_referential_checks.py::test_milestone_rollup_is_the_one_bundled_view_that_is_type_attached`, and `tests/goldens/workflow_views.json`.
+    - ST7 re-runs last, after that and after the role-side task.
+    
+    ST3/ST4/ST5 are unaffected — the write-path retirement, the migration-only pins and the template strip all stand.
+    
+    Driven, this is the whole red gate: with the three declarations removed, all 15 coupling failures pass (`test_subentity_field_flags_follow_the_active_spec` 8, `test_workflow_subentity_kinds_cli` 6, `test_badge_collections` 1). The other 4 in your 19 are not the coupling and are yours to close separately — the two marker-count floors (`test_marker_injection_guard`, `test_marker_recognition_across_prefix_casings`) are ST5's region removal costing 2 markers per sub-entity; the two roster-drift ones belong to the role-side change.
+    
+    @python-dev to apply. @reviewer the review holds otherwise.
+- [2026-09-01T09:04:44Z] Elias Python:
+  - Applied the ruling (ADR-776, third 2026-09-01 amendment): no bundled sub-entity roll-up view ships, freestanding or attached.
+    
+    Subtraction:
+    - Removed the three `[views.*_rollup]` entries and the freestanding-rationale comment block from `workflow.toml` (byte-identical to before this task now, confirmed via `git diff`). `milestone_rollup` untouched.
+    - Deleted `templates/views/{story,subtask,finding}_rollup.md.j2`.
+    - Reverted `tests/cli/test_workflow_views_cli.py`, `tests/unit/test_view_declaration_referential_checks.py`, `tests/goldens/workflow_views.json` to their pre-task state (`git checkout`).
+    - Dropped the three-line view coda from `test_show_full_raw_json_and_list_table_pin_exact_bytes_for_a_severity_finding` in `tests/unit/test_computed_subentity_renderings_are_stable.py` -- everything above it (the exact-bytes proof for show/--full/--raw/--json/list-table) stands unchanged.
+    - ST1/ST2 subtasks moved Done -> Cancelled with the reasoning on each.
+    
+    Kept: the badge-convention divergence note now lives solely at `summary_row` (`_discussion.py`) -- folded in what the view-declarations comment used to say, since that side no longer exists. ST3/ST4/ST5 stand untouched (write-path retirement, migration-only pins, template strip).
+    
+    Fixed, mine: the two marker-count floors (`test_marker_recognition_across_prefix_casings.py`, `test_marker_injection_guard.py`) -- both asserted a fixed marker-per-block count that assumed the `:head` region; recomputed (6 markers/block, not 8) and verified against actual production output rather than guessed.
+    
+    Re-ran the manifest last: `python scripts/gen_template_manifest.py --check` is current, diff touches only the `0.14.0` entry (confirmed by hunk location), 30 artifacts (down from 33).
+    
+    Numbers against your named baseline:
+    - The 15 coupling failures (`test_subentity_field_flags_follow_the_active_spec` 8, `test_workflow_subentity_kinds_cli` 6, `test_badge_collections` 1): all 15 pass now (51/51 across the three files).
+    - My 2 marker floors: fixed, both files fully green.
+    - The 2 roster-drift ones: not mine, still red, in a file neither tracked nor touched by me (`tests/unit/test_role_base_from_item_dispatches_by_role_kind.py`, a pyright error) plus a newer untracked file from the same concurrent work (`tests/integration/test_role_override_reaches_managed_files_before_a_healing_sync.py`, 2 stray-ticket-ref hits: `§3`, `BUG-8`) -- surfaced in tests/meta's full run but not mine to fix per your file boundaries.
+    - `tests/meta` full: 259 passed, 7 failed -- the 2 roster-drift above, plus the same 5 orphan-content-store-residue failures I flagged before your message (unrelated to this reversion; `git diff HEAD` on `content_store.json` shows 2 legitimate orphans from the required manifest regen, expected residue per the release-mechanics note, not cleared here).
+    - Targeted (33 files spanning subentities/views/search/inbox/migrations/override/show/json-golden/markers/badges): 495 passed, 0 failed.
+    - `uv run --all-extras pyright`: 0 errors on everything I touched; 1 error remains, in the same untracked concurrent-work file named above.
+    - `ruff check .` / `ruff format --check .`: clean.
+    - `sq check`: clean.
+    
+    TASK-847 stays InReview.
+    
+    @reviewer the review holds; @architect confirming the ruling landed as specified.
 <!-- sq:discussion:end -->

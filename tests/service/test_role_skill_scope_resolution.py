@@ -9,6 +9,7 @@ import pytest
 
 from squads import _interactions as interactions
 from squads._itemfile import read_frontmatter
+from squads._roles._resolver import resolve_role_for_item
 
 pytestmark = pytest.mark.anyio
 
@@ -73,10 +74,11 @@ async def test_a_ref_of_a_different_kind_pointing_at_the_role_is_not_treated_as_
     )
 
 
-async def test_a_full_sync_persists_the_resolved_list_into_the_roles_extra_skills_cache(svc):
-    """The resolved list lands in the role's frontmatter ``extra.skills`` (invariant #1: the
-    ``.md`` file, not the rebuildable ``.squads.json`` index, is the source of truth a full
-    sync writes to) and the role body's rendered ``## Skills`` section."""
+async def test_a_full_sync_never_materialises_the_resolved_list_into_the_role(svc):
+    """The resolved list is a computed projection, not a cache: a full sync persists neither
+    ``extra.skills`` in the role's frontmatter nor a rendered ``## Skills`` section in its
+    resolved definition — ``resolved_skills_for_role`` answers the same list, recomputed from
+    the index on every call, with no I/O beyond what the caller already loaded."""
     role = await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
     await svc.add_ref(skill.id, role.id, kind="scopes")
@@ -85,9 +87,11 @@ async def test_a_full_sync_persists_the_resolved_list_into_the_roles_extra_skill
 
     path = svc.paths.abspath(role.path)
     fm = read_frontmatter(text=path.read_text(encoding="utf-8"))
-    resolved = await svc.resolved_skills_for_role("tech-writer")
-    assert fm["extra"]["skills"] == resolved
-    assert "release-runbook" in resolved  # sanity: the scoped skill is actually in there
+    assert "skills" not in fm["extra"]
 
-    body = await svc.role_body("tech-writer")
-    assert "`release-runbook`" in (body or "")
+    reloaded = await svc.get(role.id)
+    definition = svc.role_definition_text(resolve_role_for_item(reloaded, svc.paths.squad_dir))
+    assert "## Skills" not in definition
+
+    resolved = await svc.resolved_skills_for_role("tech-writer")
+    assert "release-runbook" in resolved  # sanity: the scoped skill is still resolved live

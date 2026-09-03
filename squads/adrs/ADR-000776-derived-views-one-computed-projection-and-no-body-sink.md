@@ -17,7 +17,7 @@ refs:
 - ADR-777
 - ADR-781
 created_at: '2026-08-22T09:28:29Z'
-updated_at: '2026-09-01T08:11:59Z'
+updated_at: '2026-09-01T10:41:16Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -727,6 +727,408 @@ status and the id, and under invariant 1 they remain the source of truth for exa
   skill templates' rendering path, so it queues behind the same version bump before the template
   manifest is regenerated, and moves with the managed-section golden and the generated-agent-text
   guards.
+
+## Amendment note — 2026-09-01 (second): where the read-time producer lives, and the order the substitution lands in
+
+The note above ruled that both bodies compute at show time "through the resolver each surface
+already has". That was true for the role body and imprecise for the skill body, whose producer is
+inside a backend and therefore unreachable by `sq skill <slug> show` under invariant 6. Ruled here:
+the producer's home, three consumer sites the note's §7 list misses, and the order the substitution
+has to land in. Everything above stands; §7 gains three entries.
+
+### 1. The home is decided by the import graph, and it refuses both scoped options
+
+`_rendering/_engine.py:25` imports `squads._interactions`, and `_interactions/__init__.py:35`
+imports `squads._roles._catalog`. The rendering engine therefore sits **above** both packages, and
+neither may import it without creating a cycle — the acyclic-graph rule this project verifies.
+Driven on the tree: neither package imports `_rendering` today, and the reason is structural rather
+than incidental.
+
+That refuses the placement the symmetry argument wants — each definition rendered by the package
+that owns its document, a role's by `_roles/` and a skill's by `_interactions/`. It is recorded here
+because it is the attractive answer and it will be re-proposed otherwise.
+
+**Ruled: both producers live on `ServiceCore` (`_services/_base.py`), as
+`role_definition_text(slug)` and `skill_definition_text(slug)`.** Three reasons, in order of force:
+
+- **It is the only layer that can host them.** `_rendering` is below `_services`, so a service may
+  call `render`; `ServiceCore` already does, in `_regen_role_body` (`_services/_base.py:1293`).
+- **A core consumer needs it.** `roster()`/`roster_all()` (`:1089`, `:1110`) are themselves
+  substitution sites (§2), and they live in the core. The concern mixins compose into `Service`;
+  they do not import one another, so a producer any core method needs cannot sit in a sibling
+  mixin. A new `_definitions.py` mixin would be a cleaner-looking name and an unreachable one.
+- **The role half does not move at all — it inverts.** `_regen_role_body` already renders
+  `agents/role.md.j2` in this exact place. It becomes a read-time producer taking the resolved
+  `RoleDef` as its context, and its write-time caller in the sync sweep is deleted. Putting the
+  skill half anywhere else would split one ruling across two layers for no gain.
+
+**Invariant 6 is satisfied by direction, not by exemption.** The service produces the text and the
+backend consumes nothing: `_write_managed_skill` loses its `body` parameter, and the five `render`
+calls that feed it — three in `write_managed`, two in `_write_item_skills` — move with it. Nothing
+reaches into `.claude/`, and the backend keeps its own pointer render, which needs only slug and
+description. There is exactly one producer to move and, after the move, one consumer:
+`sq skill <slug> show`. The `agents_md` backend writes no skill body, so it is untouched.
+
+### 2. Three more substitution sites; two of them fail silently, and the silent pair is the worst path in this work
+
+**`roster()` / `roster_all()` (`_services/_base.py:1089-1132`) build every `RoleView` off the
+mirror, and that view is what `write_managed` compiles `CLAUDE.md`, `AGENTS.md` and the pointers
+from — the files §5 above deliberately keeps materialised.** It is not a `from_extra` call, so §7's
+list missed it. Its per-field fallbacks decide the failure mode, and the split is exactly the one §3
+predicts:
+
+| `RoleView` field | fallback when the key is gone | outcome |
+| --- | --- | --- |
+| `full_name` | `it.title` | correct — `title` carries the resolved full name (§3) |
+| `mission` | `it.description` | correct — `description` carries the resolved mission (§3) |
+| `is_default` | key retained (§2d) | correct |
+| `title` (the role title) | `it.title` | **wrong, silently** — the role's title becomes the person's name |
+| `responsibilities` | `()` | **empty, silently** |
+
+So §3's ruling is what saves three of the five, and **the degradation set is precisely the fields
+with no uniform-record home**. That is the sharpest statement of why §3 draws its line where it
+does, and it is also why this site outranks the rest: it degrades without raising, into generated
+agent configuration, on the one path this decision deliberately leaves materialised.
+
+**`dev_base_from_item` (`_roles/_resolver.py:355`) reads `item.extra[X.FULL_NAME]` as a bare
+subscript and raises rather than degrading.** §7 named only `role_base_from_item`. Both take the
+name from `item.title` instead; this one is the loud failure and therefore the cheap one.
+
+**The migration runner's frozen local copy (`_migrations/_v0_11_to_v0_14.py:136-176`) must not be
+taught to resolve.** Its own docstring records why it is local — `_services` imports the migration
+registry, so calling `Service` from a runner would be a real cycle — and the general rule stands
+above that: a runner is frozen against the corpus vocabulary of the version it transforms, and that
+corpus still carries the mirror. Leave it reading `extra`.
+
+### 3. The order, stated as three stages and one prohibition
+
+- **Stage 1 — every consumer resolves, while the mirror is still written.** `roster`/`roster_all`,
+  the four `from_extra` sites, `dev_base_from_item`, `role_base_from_item`, and
+  `_without_permitted_extra_skew`'s `extra.mission` discriminator. Its falsifiable property: with
+  the roster held constant, regenerate every managed file before and after and diff to zero —
+  except where the mirror was already wrong, which is where the fix shows rather than where a
+  regression would. **This stage is separately shippable and separately valuable:** on its own it
+  ends the `set-default` revert and the pre-sync card/body disagreement, with no corpus change and
+  no migration.
+- **Stage 2 — the producers invert.** `sq role show` / `sq skill show` render at read time;
+  `_regen_role_body` and the backend's body renders are deleted; the card drops `mission` and
+  `responsibilities` (ADR-781's 2026-09-01 amendment §2).
+- **Stage 3 — stop writing, then strip.** The keys leave `RoleDef.to_extra()`,
+  `PERMITTED_EXTRA_SKEW` and its literal test narrow, and only then does the runner empty the
+  regions and delete the key set from the corpus.
+
+**The prohibition, because it is an ordering to not break rather than one to engineer.** The strip
+runner must sit **later in the registry than every runner that regenerates surfaces, and must
+regenerate none itself.** The registry's ordering then gives the right result on a full replay for
+free: `_v0_11_to_v0_14._regenerate_surface` runs against a corpus that still carries the mirror it
+reads, and the strip runs after it. And `sq migrate up` never syncs — it returns "run `sq sync` to
+refresh managed files" (read: `_cli/_migrate.py:50`) — so the live surfaces are rebuilt afterwards
+by the resolver-fed code Stage 1 has already landed.
+
+## Amendment note — 2026-09-01 (third): the roll-up ships no bundled view either
+
+The first 2026-09-01 amendment narrowed §6 from two reissues to one and left the roll-up's reissue
+standing as a declared view. Driven against the shipped mechanism, that one view has no reader and
+one real cost. Ruled here: **squads ships no bundled sub-entity roll-up view.** §5's "computed"
+verdict on the roll-up stands and is already satisfied; §6's "reissue as computed views" is met for
+the summary half by a rendering that shipped before this work began.
+
+### 1. Driven: the bundled declaration bricks an ordinary customisation
+
+Three freestanding views over the bundled sub-entity kinds — one each for `story`, `subtask` and
+`finding`, field-for-field matching `discussion.summary_columns` — driven against a scratch squad at
+0.14.0 carrying a feature, a task and a review with one sub-entity apiece.
+
+An override doing nothing but `[subentity_kinds.finding] fields = []` — shadowing a bundled kind's
+field list, an ordinary supported customisation with its own test — makes **every** command in that
+squad fail:
+
+```
+error: this squad's workflow override could not be loaded, so no command can answer
+with the vocabulary it declares.
+  cause: view 'finding_rollup': field 'severity' is neither a base attribute for a
+  'subentity' source nor a field 'finding' declares
+```
+
+Not the view — `sq list`, `sq show` and `sq check` alike, because the spec does not load. The second
+axis behaves the same: `[selected].subentity_kinds` dropping or replacing `finding` fails with
+"source names sub-entity kind 'finding', not declared". Fifteen tests in the suite exercise exactly
+those two customisations; all fifteen fail with the declarations present and pass with them removed.
+
+Neither axis is reachable by the pruner. `_prune_orphaned_type_owned_views` keys off
+`[selected].items` and takes only a view a *dropped type's own* `views` list named, so it reaches
+neither a freestanding view nor a sub-entity-kind or field deselection. Attaching the views through
+`items.<type>.views` does not change that: driven, the field drop still bricks the squad, and the
+attachment additionally makes `sq <type> <n> show` print the same table twice, because
+`_print_item_content` renders the built-in sub-entity table and then every attached view.
+
+### 2. Driven: what the bundled view was said to buy, it does not buy
+
+The first 2026-09-01 amendment justified keeping the roll-up's view on two capabilities a
+hand-rolled renderer cannot give — re-presentation through `templates/views/<name>.md.j2`, and a
+`[selected]` drop. Neither reaches the roll-up any reader sees.
+
+- **Re-presentation.** An override at `.overrides/templates/views/finding_rollup.md.j2` renders
+  through `sq workflow view finding_rollup <REV>` and changes nothing under `sq review <n> show`,
+  which keeps printing its own table (driven, both in one session). The roll-up a reader gets is
+  `_cli/_common.py::_print_subentity_summary` — a Rich table built from
+  `discussion.summary_columns`/`summary_row`, called unconditionally for any item hosting
+  sub-entities and rendered through no template at all. Re-presenting the view re-presents only the
+  view.
+- **The `[selected]` drop.** Dropping a view nothing reads removes nothing. It is not a capability
+  the declaration buys; it is the un-brick step §1 forces on an adopter who edits their own
+  vocabulary.
+
+The only surface a freestanding roll-up view reaches is `sq workflow view <name> <ID>`, a generic
+proof command carrying no specified consumer. The `--raw` dossier renders attached views only, and
+the retired region never appeared there either: `read_body` returns the `:body` region and the
+roll-up sat in its own.
+
+### 3. Ruled
+
+**The roll-up has no bundled declared successor.** No `[views]` entry over `story`, `subtask` or
+`finding` ships — attached or freestanding — and no presentation template for one.
+
+An adopter declaring a roll-up over their own sub-entity kinds is the ordinary case and is
+untouched: §7's placement, the merge semantics and the load-time refusal all continue to serve it.
+What retires is squads pre-declaring one over vocabulary the adopter is free to change.
+
+### 4. §6 narrows again, and to what
+
+§6's verb was "reissue", written when FEAT-694 was a conversion onto a body sink and the projection
+therefore had to be rebuilt somewhere. It does not have to be. The computed rendering that satisfies
+§4's sink rule existed before this work and is untouched by it, so for the summary half "reissue
+both projections as computed views" is met by `_print_subentity_summary` and the renderings beside
+it, and retiring the `:summary` region is a **deletion**, exactly as the head's is. The same two
+clauses of §5's finding decide both: the computed rendering already ships, and the region is read by
+nothing.
+
+That the declared-view grammar *can* express the roll-up remains proven, and remains the mechanism's
+adequacy bar. Expressing a shape is not a reason to ship an instance of it.
+
+§6's remaining clauses stand unchanged: the subject still inverts, the acceptance bar is still every
+computed rendering byte-identical rather than the regions' own bytes, and the corpus migration is
+still owed.
+
+### 5. The load-time refusal is not weakened, and why it did not have to be
+
+The 2026-08-26 refusal stands entire. Two rescues were weighed against it and both fail:
+
+- **Degrade rather than refuse** — render the view minus a field it can no longer resolve. That
+  reopens the absence contract that amendment closed: a column absent because an adopter dropped the
+  field becomes indistinguishable from a value absent on the record.
+- **Prune the bundled view instead of refusing.** On the `[selected]` axis this is the pruner's
+  existing courtesy and would be consistent. On the `fields` axis it is not a deselection at all but
+  ordinary shadowing, so the trigger would have to be "a view names a code the merged spec no longer
+  declares" — which is the refusal's own condition, and swallowing it silently would swallow an
+  adopter's typo in their own view identically. Scoping the swallow to *bundled* views buys one
+  grammar with two behaviours by provenance, which is the second-mechanism shape §1 exists to
+  remove.
+
+Both rescues spend real design to keep a rendering with no reader. The refusal is right; what was
+wrong was shipping a declaration for it to fire on. That amendment's own criterion — a refusal must
+name a remedy the author can perform — is what fails here in a new instance. The message names the
+two remedies a view's author has (declare the field on the kind, or name a base attribute); the
+adopter's actual remedy is a third one it never names, deleting a declaration they did not write.
+
+### 6. `milestone_rollup` is unaffected, and the discriminator that separates the cases
+
+`milestone_rollup` stays, and is not the same case on either clause.
+
+- **It is the reader.** No built-in computed milestone roll-up exists; the declared view *is* the
+  rendering, attached through `items.milestone.views` and printed by both `sq milestone <n> show`
+  and the `--raw` dossier (driven: a task carrying a `targets` ref appears under Outstanding).
+  Dropping it removes the only rendering of a milestone's membership.
+- **Its coupling runs to its type's own mechanism, not to an orthogonal field.** Its eight fields
+  are exactly the `ref` source's base attribute set, so no field or collection customisation can
+  reach it. Its source names the `targets` ref kind, which exists for it — `items.milestone`'s own
+  text states membership rides a `targets` ref and nothing else. Dropping the type takes the view
+  with it through the pruner (driven). The one residual is dropping `targets` while keeping
+  `milestone`, which the load-time refusal catches with an accurate message; that pair is an
+  incoherent declaration rather than an ordinary customisation, and refusing it is what the refusal
+  is for.
+
+The discriminator, stated so it decides the next one rather than being re-derived: **a bundled view
+earns its declaration when it is the only rendering of its data, and it is attached to the type that
+shows it.** A bundled view standing beside a rendering that already ships is a second rendering of
+computed data, paying the coupling cost of naming bundled vocabulary in exchange for nothing.
+
+## Amendment note — 2026-09-01 (fourth): the corpus strip is a repair-side sweep, not a schema step
+
+§6 ruled that a corpus migration is owed. The breakdown read "migration" as "a step inside the
+release's runner", and driven, that vehicle reaches neither corpus the retirement stranded. Ruled
+here: the corpus edit is still owed, and its mechanism is not a schema transition. §1–§7 stand;
+§6's "a migration **is** owed" narrows to "a corpus sweep is owed", and nothing else moves.
+
+### 1. Driven: who is stranded, and why it is not a one-off of this release
+
+The write path retired ahead of the strip, so the regions sit in a corpus already stamped at the
+target schema. The single record for this release declares `from_schema="0.11"`,
+`to_schema="0.14"`, and this squad's index reads `0.14`: `sq migrate up` answers "already at
+schema v0.14; nothing to migrate" and exits 0. There is no precondition left for the runner to
+match, and none can be manufactured without asserting a format change that did not happen.
+
+Measured on this corpus: **632 files carry a `sq:summary` region, and 436 files carry 1545
+balanced `<kind>:<local-id>:head` regions.** Both halves are stranded, and both are already
+wrong rather than merely vestigial — driven, one task file's `ST1` frontmatter reads `Cancelled`
+and its `ST3` reads `Done`, while both stored head regions read `**Status:** ⚪ Todo`.
+
+**A correction, recorded because a false number was about to narrow this ruling to half the
+corpus.** A probe reported zero head regions on the ground that `_models/_markers.py` declares
+`SUMMARY` and no `HEAD`. The premise is true and the conclusion does not follow: the head tag is
+not declared there. `_discussion._head_tag` renders `<kind>:<local-id>:head` at write time, and
+the regions are present, balanced and countable. Absence of a constant in one module is not
+absence of a region in the corpus — the corpus is the thing to count.
+
+**And the stranded class recurs with no release doing anything.** `adopt` over a folder carrying
+no `.squads.toml` writes a fresh config whose `schema_version` defaults to the build's own
+`SCHEMA_VERSION` (`_models/_config.py:23`) and then rebuilds from disk, so a pre-existing corpus
+is stamped current with no runner ever visiting it. The stamp axis therefore cannot be the axis a
+corpus sweep runs on. That is a property of how a squad can arrive at a stamp, not a consequence
+of this release's staging, and it is what decides the vehicle.
+
+### 2. Ruled: the sweep is a step in `repair`, and no registry entry ships
+
+**The corpus strip is a sweep inside `Service.repair()`'s corpus walk. There is no second
+`Migration` record, no `SCHEMA_VERSION` change, and no strip step inside any runner.**
+
+Four reasons, in order of force.
+
+- **It is the only walk that reaches both populations with one implementation.**
+  `run_pending_migrations` runs the ordered runners, then calls `repair()`, then stamps
+  (`_services/_maintenance.py:984-988`). So a squad at 0.11 or below gets the sweep on its way up
+  with nothing declared for it, and a squad already stamped current gets it from the ordinary
+  verb. One step, both ends of the gap, and no vehicle that has to be told which squad it is
+  looking at.
+- **The seam exists and already has this exact shape.** `_rebuild_index_from_disk` already
+  rewrites file *content*, not only the index: every file whose on-disk ref encoding differs from
+  what the fold produced is queued into `pending_canonicalization`, written after the
+  corpus-alignment refusal check, markdown before the index commit, and reported back as
+  `canonicalized` (`:1504-1520`, `:1593-1601`). The sweep is one more recorder in that same
+  per-file loop, on that same deferred list, inheriting the idempotence the method already
+  documents in place: a corpus needing no correction writes no file at all, and a second pass
+  over a corrected corpus is byte-identical to the first.
+- **The ordering prohibition stops being a rule and becomes a property.** The requirement that a
+  strip never run ahead of a surface regeneration reading what it removes cannot be violated
+  here. `require_current_schema` refuses every subcommand but `migrate` on a mismatched stamp
+  (`_cli/_common.py:1237-1250`), so `sq repair` can only ever run against a corpus already at the
+  current schema; the single call on a behind-schema corpus is the tail of
+  `run_pending_migrations`, after every runner has finished. `_regenerate_surface` therefore
+  always reads a mirror that is still there. What was a prohibition someone could break by
+  tidying two adjacent lines inside `migrate()` is now a consequence of where the verb sits.
+- **This is hygiene, and this decision already forbids calling it a format change.** A corpus
+  carrying the retired regions must keep loading, showing and checking clean — that tolerance is
+  what an un-migrated adopter file needs, and it is asserted against the frozen fixture. A stamp
+  that separates two corpora which are both valid, read identically and check identically is not
+  a schema version. The strip changes what a file *stores*; it does not change what the format
+  *means*.
+
+### 3. The rule that governs what the sweep may remove
+
+Repair is not thereby a place to put content deletions. It may remove only a **named retired
+region or key** — one for which, in this same build: no live write path produces it; no read path
+consumes it as authoritative, its computed replacement having already shipped; and its content is
+derived, never authored. The names are a frozen list. Adding to that list is a decision, not a
+dev's choice, and a name may not be added before its writer retires.
+
+The guard that keeps the list honest is falsifiable: for every name on it, a fresh squad driven
+through the write path produces none of them — restore a writer and the assertion reddens. A name
+added early does not merely leave dead bytes behind; it puts the sweep and the writer into a loop
+where each undoes the other on alternate commands.
+
+Emptying is removal under this rule: a role body and a system-skill body lose their contents and
+keep their `sq:body` markers, for the reason the second 2026-09-01 note §6 already gives. The
+sweep deletes no region that a live surface still reads as a shape.
+
+### 4. The vehicles refused
+
+- **A new registry entry behind a further schema bump.** It would stamp a difference that does
+  not exist: both corpora load, render and check identically, which this decision requires. It
+  also names a release that has not shipped, against the release-tracking convention
+  `_models/_schema.py` documents, and it answers this instance while leaving the class — every
+  future mid-release retirement would buy its own bump, and `adopt` would keep manufacturing
+  corpora that no bump reaches.
+- **A dedicated one-shot maintenance verb.** The population that needs it is exactly the
+  population that does not know it needs it: the harm is a silent stale hit in `sq search`, and
+  the announcement is a changelog line. A cleanup nobody runs is not delivered — and it would
+  reimplement repair's corpus walk, its idempotence and its write ordering beside repair.
+- **Relaxing the frozen-runner rule.** It reaches nobody in the gap, who are past every runner,
+  and it trades a bounded cleanup for an unbounded cost: a runner whose behaviour changes after
+  squads have run it makes "migrated" a claim with no fixed referent, and every replay assertion
+  becomes a test of the current tree rather than of history.
+- **The runner step plus a hand-rewound stamp for this repository.** Withdrawn. Editing
+  `.squads.toml` and `.squads.json` back to `"0.11"` to make a runner fire is a procedure that
+  inverts invariant 1's direction, cannot be handed to any adopter, and leaves the class unowned
+  once this repository is clean.
+- **The write path keeps the regions current while they exist.** It reinstates the
+  refresh-on-mutation obligation §5 retired, for a region §5 found is read by nothing, and it
+  makes the head's two foreign resolutions live again — the staleness this decision was written
+  to remove, re-adopted in order to maintain what is being deleted.
+
+### 5. The failure mode accepted
+
+Named rather than mitigated away, because both are real.
+
+- **`repair`'s advertised job is the index, and it now rewrites content.** An operator who runs it
+  to reconcile an index gets a content diff they did not ask for; on this corpus that is over a
+  thousand regions across 632 and 436 files. The answer is announcement, not prevention: the
+  sweep reports the files it touched the way `canonicalized` already does, in the result and in
+  the reflog delta, so the diff is stated rather than discovered. An adopter running `sq repair`
+  over a dirty working tree cannot separate the sweep's changes from their own. That is the price
+  of the sweep being unconditional, and the alternative — a flag — is the one-shot verb again
+  under another name.
+- **Nothing compels it.** A squad that neither migrates nor repairs keeps its stranded regions and
+  keeps serving them to `sq search`. The read path tolerates them deliberately, so the sweep is
+  available and free on the next maintenance pass rather than forced. A `sq check` rule reporting
+  a region that disagrees with frontmatter is **not** ruled in here: it would fire on precisely
+  the corpora the read path is required to tolerate, and its remedy already runs unconditionally
+  on the next repair. If it is wanted for the window between a mutation and that repair, it is a
+  separate decision against a named reader.
+
+### 6. Adopter safety: unconditional, with no corpus precondition
+
+- **A squad that never carried the regions is untouched.** The scan matches nothing, no file is
+  written, and repair behaves byte-identically to today. This is not a new tolerance being
+  claimed; it is the property `_rebuild_index_from_disk` already documents for canonicalization.
+- **No authored content is reachable.** Marker regions are sq-managed, no verb writes an arbitrary
+  marker, and `find_markers` is strict, so prose naming a tag inside backticks is not matched.
+  The adopter-shaped case runs the other way and is a feature: a head region belonging to a
+  sub-entity kind an adopter declared and later dropped is still removed, because the scan matches
+  tag *shape* rather than a list of declared kinds.
+- **The one real destruction risk is not a corpus condition, it is the discriminator.** A custom
+  (authored) skill body must survive, and the folder, the item type and the `sq-` prefix each get
+  it wrong. `is_system_skill(slug, spec)`, and nothing cheaper.
+- **The cross-version hazard closes itself.** A squad swept by this build and then opened by an
+  older `sq` is refused by that older build's own schema gate on the ahead-of-build branch, so no
+  earlier binary ever reads a stripped file and mistakes an emptied body for a missing one.
+- **The precondition that does exist is on the build, not on the squad** — §3's rule. It is
+  checked once, when a name joins the list, by a guard that drives the write path; it is never a
+  runtime gate on corpus state.
+
+### 7. What this changes downstream, and what it leaves alone
+
+- No `SCHEMA_VERSION` change, no version bump, no new `Migration` record, no new corpus fixture,
+  no strip step in any runner.
+- **The runner's docstring correction is withdrawn.** With the sweep in repair, "no existing item
+  data is rewritten" stays true of the runner, and the registry `summary` line stays about the
+  two new types. What is still owed is the adopter-facing `MANUAL` section, which must say the
+  removal happens in the rebuild at the end of `sq migrate up` rather than attribute it to the
+  runner — an adopter migrating from 0.11 does experience it, and the sentence has to be true
+  about where.
+- **The already-stamped population has no runbook path**, because `chlog` is keyed to a schema
+  transition they will not perform. Their announcement is the release's changelog: `sq repair`
+  removes the retired regions and the role mirror.
+- **The frozen `v0_14` fixture stays frozen and its no-op assertion stands unchanged.**
+  `run_pending_migrations` calls `repair()` only when a runner applied, so a corpus already at the
+  current stamp still migrates to nothing and still carries its regions — which remains the right
+  proof that the read path tolerates them.
+- **This repository's own corpus is stripped by running `sq repair`**, reading the diff, and
+  committing it. No stamp is rewound and no index is hand-edited.
+- **One coupling the sweep introduces that a runner step did not.** The walk builds each index
+  entry from the same frontmatter it rewrites, so a key the sweep removes from a file must also be
+  removed from the `Item` before it is added to the rebuilt index — otherwise file and index
+  disagree on exactly the key just deleted, and the skew guard is the only thing standing between
+  that and a silent divergence.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -750,4 +1152,33 @@ status and the id, and under invariant 1 they remain the source of truth for exa
   - Direction, general rather than case by case: existing files should be shrunk of all duplicated data. The markdown files are the storage; the only read surface is the CLI; and views are the way to present derived content. Anything materialised into a file that the CLI can compute is duplication and comes out.
 - [2026-09-01T08:01:03Z] Pierre Chat:
   - This lands in 0.14, not later: the shrink rides the same migration runner and the same schema bump as the region retirement.
+- [2026-09-01T08:13:44Z] Robert Architect:
+  - Amended in place (2026-09-01 note, second one): the shrink rule applied, scoped, and the views fork ruled.
+    - In class, exhaustively: the whole `sq:body` region of every role item, and of every SYSTEM skill item; plus the role `extra` mirror keys (title/mission/responsibilities/agreements/color/can_spawn/description/skills, and model for a non-dev role). Out: a CUSTOM (authored) skill body — `releasing-squads` is one in this corpus, 10.1 KB. 22 of our 23 files are in class; a migration keyed on folder/type/`sq-` prefix destroys the 23rd. Key on `is_system_skill(slug, spec)`, which already ships and which `set_body` already uses to refuse exactly these writes.
+    - `title`/`description` STAY — uniform-record fields read by surfaces that cannot resolve a role catalog. The duplication inside that pair is `item.title` vs `extra.full_name`: keep the top-level field, drop the extra copy.
+    - Views do NOT widen. All three source kinds are relations of one item resolved off the index; a skill body is spec data keyed by item type and a role body catalog data keyed by slug — no relation to invert, and a widening would break the uniform record shape and leave the load-time referential pass with a second document and no clause to apply. These compute at show time through the resolver each surface already has; the deletion half is a call-site move, not new machinery. That is a shape judgement, and it lands whole in this release.
+    - Driven, and worse than drift: `sq role qa set-default` is silently reverted by the next `sq sync`, `sq check` exit 0 on both sides — `is_default` is operator-settable AND a catalog mirror key.
+    - Three couplings the breakdown needs before the build: `_without_permitted_extra_skew` identifies a role by `extra.mission` (the key we remove); `sq check`'s pointer-currency expectation is built from `RoleDef.from_extra` (the mirror we remove — ADR-781 §2c goes void unless it moves to the resolver); `PERMITTED_EXTRA_SKEW`'s literal test pin.
+    - Marker safety holds: the only out-of-region content in a role file is frontmatter and a static `## Discussion` heading; the body is one region already rewritten wholesale every sync. @tech-lead this is the scope for the FEAT-694 breakdown.
+- [2026-09-01T08:55:17Z] Robert Architect:
+  - Amended in place, third 2026-09-01 note: the roll-up ships no bundled view either. Tracked, per the audit rule:
+    
+    - **Added** amendment note §§1-6. §1-2 are the driving (scratch squad at 0.14.0); §3 the ruling; §4 the further narrowing of §6; §5 the reconciliation with the 2026-08-26 refusal; §6 `milestone_rollup` and the discriminator.
+    - **§6 narrows again.** "Reissue both projections as computed views" becomes: for the summary half, satisfied by the rendering that already shipped. Its other clauses are untouched.
+    - **§5 is unchanged.** Its verdict on the roll-up ("computed") was always right; what changes is that nothing new has to be built to meet it.
+    - **The 2026-08-26 refusal is unchanged and unweakened** — §5 of the new note records why neither rescue (degrade-instead-of-refuse, prune-bundled-instead-of-refuse) survives it, so neither is re-proposed cheaply.
+    - **Nothing is superseded** and no ref changes: this is a clause-level narrowing inside the same decision.
+- [2026-09-01T10:41:16Z] Robert Architect:
+  - Amended in place, fourth 2026-09-01 note: the corpus strip is a repair-side sweep, not a schema step. Tracked per the audit rule:
+    
+    - **Added** amendment §§1-7. §1 the driving and the stranded population, §2 the ruling, §3 the rule governing what the sweep may remove, §4 the four refused vehicles, §5 the accepted failure mode, §6 adopter safety, §7 the downstream narrowings.
+    - **§6 narrows**: "a migration **is** owed" becomes "a corpus sweep is owed". Its other clauses — the inverted subject and the byte-identical-computed-rendering bar — are untouched.
+    - **§5 is unchanged.** Its "computed" verdicts stand; what is settled is the mechanism that removes what they replaced.
+    - **Nothing is superseded** and no ref changes: a clause-level narrowing inside the same decision.
+    
+    What decided it, and it is not this release's staging: `adopt` over a folder with no `.squads.toml` stamps the build's own `SCHEMA_VERSION` (`_models/_config.py:23`) and rebuilds from disk, so a corpus can arrive at the current stamp with no runner ever visiting it. The stamp axis cannot be the axis a corpus sweep runs on. `repair` is the only walk that reaches both populations with one implementation, its per-file loop already rewrites content (the ref canonicalization), and the ordering prohibition becomes structural because `require_current_schema` means repair can only run at the current schema and the one behind-schema call is the migration tail.
+    
+    Two corrections the driving turned up: the corpus carries 1545 balanced head regions across 436 files (the report of zero came from a missing `HEAD` constant in `_models/_markers.py` — the tag is built by `_discussion._head_tag`), and this repository's strip needs no stamp rewind, only `sq repair`.
+    
+    @tech-lead the rewrite is on TASK-849. @op-pierre the accepted cost, stated rather than mitigated: `sq repair` now rewrites file content as well as the index, so it produces a large announced diff on any corpus still carrying the regions.
 <!-- sq:discussion:end -->

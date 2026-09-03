@@ -279,9 +279,9 @@ async def test_diff_plain_output_renders_for_the_playbook_kind_too(project, invo
 
 async def test_scaffold_diff_and_update_all_reach_the_roles_catalog_kind(project, invoke) -> None:
     """The whole-document role-catalog kind's scaffold/diff/update, driven through the real
-    CLI end to end — both the ``roles`` positional name and the ``--roles-catalog`` flag form —
-    the CLI wiring this override kind previously had none of (every verb fell through to the
-    template branch and named the wrong kind in its error)."""
+    CLI end to end — both the ``roles`` positional name and the ``--roles-catalog`` flag form.
+    Every verb must reach the catalog branch; falling through to the template branch names the
+    wrong kind in its error."""
     scaffolded = await invoke(["override", "scaffold", "roles"])
     assert scaffolded.exit_code == 0, scaffolded.output
     assert "kind='template'" not in scaffolded.output

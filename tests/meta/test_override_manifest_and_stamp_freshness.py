@@ -475,8 +475,8 @@ def test_write_mode_never_removes_a_blob_only_a_historic_entry_names(
 ) -> None:
     """A hash the *current* version's entry does not name at all, while an older entry does,
     must survive a write-mode run at that unreleased version. Write mode has no removal path at
-    all now, but this is the regression test for the case the withdrawn sweep once had to
-    reason its way around instead of simply not having."""
+    all, so this must hold unconditionally: no run at an unreleased version may cost a blob an
+    older entry still names."""
     built = rebuild_tree("9.9.9")
     gen = built.gen
     manifest_before, store_before = _docs(gen)  # "9.9.9" has no entry yet — this is its first run
@@ -535,8 +535,8 @@ def test_seed_content_store_rebuild_prefers_the_tag_even_when_it_is_also_the_run
     is deleted, the sweep is withdrawn) — then run the rebuild *without moving the version away
     from the damaged release first*, and assert the damaged entry is corrected back to what its
     tag actually ships, the shipped blob is still in the store, and the whole index resolves.
-    This is the regression test for the finding: the tag winning only while the running version
-    happens to differ from it is exactly the discriminator that failed."""
+    A tag that wins only while the running version happens to differ from it is not
+    publication-based discrimination at all, and this is the case that separates the two."""
     built = rebuild_tree("0.9.0")  # 0.9.0 is a real, already-tagged release
     gen, seed = built.gen, built.seed
 
@@ -552,7 +552,8 @@ def test_seed_content_store_rebuild_prefers_the_tag_even_when_it_is_also_the_run
     manifest_damaged, _store_damaged = _docs(gen)
     assert manifest_damaged["0.9.0"] != real_manifest["0.9.0"], "fixture setup: damage did not take"
 
-    # [project].version is still "0.9.0" here — the exact state the finding turned on.
+    # [project].version is still "0.9.0" here: the rebuild must correct the entry without the
+    # version being moved off the damaged release first.
     seed._rebuild_mode()
 
     manifest, store = _docs(gen)
@@ -767,10 +768,9 @@ def test_rebuild_reports_a_drop_only_run_as_dropped_not_restored(
 def test_rebuild_reports_a_restore_and_a_drop_in_the_same_run_as_two_separate_counts(
     rebuild_tree: Callable[[str], types.SimpleNamespace], capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The exact case the finding turned on: a shipped release's blob restored and a stale
-    orphan dropped in the same pass. The net-delta formula this replaces would print
-    ``0 dropped`` here (the two changes cancel in size) and read as though nothing happened;
-    set-based counting must report both independently."""
+    """A shipped release's blob restored and a stale orphan dropped in the same run. A net size
+    delta would print ``0 dropped`` here — the two changes cancel exactly — and read as though
+    nothing happened; set-based counting must report both independently."""
     built = rebuild_tree("9.9.9")
     gen, seed = built.gen, built.seed
     _run_write_mode(gen)

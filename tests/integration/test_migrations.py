@@ -32,7 +32,7 @@ async def _write_legacy_task(svc) -> str:
 async def test_v0_1_to_v0_2_folds_ref_kinds_inline_and_is_idempotent(svc):
     task_id = await _write_legacy_task(svc)
     path = svc.paths.abspath((await svc.get(task_id)).path)
-    body_before = sections.split_frontmatter(path.read_text(encoding="utf-8"))[1]
+    body_before = sections.get_section(path.read_text(encoding="utf-8"), markers.BODY)
 
     changed = _v0_1_to_v0_2.migrate(svc.paths)
     assert changed == 1
@@ -40,9 +40,15 @@ async def test_v0_1_to_v0_2_folds_ref_kinds_inline_and_is_idempotent(svc):
     fm = read_frontmatter(path)
     assert fm["refs"] == ["GUIDE-000002", "BUG-000003:fixes"]
     assert "extra" not in fm
-    assert sections.split_frontmatter(path.read_text(encoding="utf-8"))[1] == body_before
+    # The runner's own summary-scaffold step also fires here (unconditional on the subtasks
+    # container's presence, not on any pre-0.14 marker) -- inert since nothing on the live
+    # write path populates or reads it any more, and a later corpus-strip removes it. Pin
+    # what the module docstring actually promises: the agent-authored `:body` region survives
+    # untouched, not the whole raw byte span around it.
+    body_after = sections.get_section(path.read_text(encoding="utf-8"), markers.BODY)
+    assert body_after == body_before
 
-    assert _v0_1_to_v0_2.migrate(svc.paths) == 0  # idempotent
+    assert _v0_1_to_v0_2.migrate(svc.paths) == 0  # idempotent from here on
 
 
 def test_v0_1_to_v0_2_frozen_fold_collapses_the_declared_default_kind_to_bare():
@@ -66,9 +72,15 @@ def test_v0_1_to_v0_2_frozen_fold_collapses_the_declared_default_kind_to_bare():
 async def test_v0_1_to_v0_2_migrate_writes_a_legacy_default_kind_map_bare_on_disk(svc):
     """End-to-end byte assertion (not just the fold function in isolation): a pre-0.2 file
     whose legacy map names the declared default kind migrates to a bare ref on disk, exactly
-    the byte shape a native ``add_ref`` with no ``--kind`` would have written."""
+    the byte shape a native ``add_ref`` with no ``--kind`` would have written.
+
+    ``other`` (the ref target) is a ``bug`` rather than a second ``task`` deliberately: a
+    ``task`` also carries the runner's own summary-scaffold step (see the idempotency test
+    below), which would change *its* file too and break the single-file ``changed`` count this
+    test is actually about.
+    """
     task = (await create_item(svc, "task", "t")).item
-    other = (await create_item(svc, "task", "o")).item
+    other = (await create_item(svc, "bug", "o")).item
     path = svc.paths.abspath(task.path)
     text = path.read_text(encoding="utf-8")
     fm, _ = sections.split_frontmatter(text)
@@ -94,8 +106,15 @@ def test_v0_1_to_v0_2_never_imports_the_live_vocabulary_aware_fold():
     assert not hasattr(_v0_1_to_v0_2, "fold_legacy_kinds")
 
 
-async def test_v0_1_to_v0_2_is_a_noop_on_an_already_current_squad(svc):
-    await create_item(svc, "task", "fresh")  # already written in the new format
+async def test_v0_1_to_v0_2_is_idempotent_on_an_already_current_squad(svc):
+    """A freshly created task carries no ``:summary`` region any more -- that write-path
+    obligation is retired -- yet the runner's own summary-scaffold step is unconditional on
+    the subtasks container's presence, not on any pre-0.14 marker, so its first pass over such
+    a file still adds an empty one. Inert (nothing on the live write path populates or reads
+    it) and exactly what a full replay is expected to do -- the corpus-strip task removes it
+    again later. The second pass is where "already current" actually means "unchanged"."""
+    await create_item(svc, "task", "fresh")
+    assert _v0_1_to_v0_2.migrate(svc.paths) == 1
     assert _v0_1_to_v0_2.migrate(svc.paths) == 0
 
 

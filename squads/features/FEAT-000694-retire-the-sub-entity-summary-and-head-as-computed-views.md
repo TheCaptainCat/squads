@@ -3,7 +3,7 @@ id: FEAT-694
 sequence_id: 694
 type: feature
 title: Retire the sub-entity summary and head as computed views
-status: Ready
+status: InProgress
 author: product-owner
 refs:
 - FEAT-693:depends-on
@@ -24,7 +24,7 @@ subentities:
   title: Migrate the corpus to remove the retired regions
   status: Todo
 created_at: '2026-07-29T13:52:49Z'
-updated_at: '2026-09-01T08:09:47Z'
+updated_at: '2026-09-01T08:55:16Z'
 ---
 <!-- sq:body -->
 ## The problem
@@ -377,4 +377,52 @@ own corpus — which still carries both regions today — is part of proving the
     `_v0_11_to_v0_14.py` and its single registry entry — no second runner, no second bump, no new
     corpus fixture. TASK-813 now carries `depends-on TASK-849` so the board shows it cannot close
     first.
+- [2026-09-01T08:31:50Z] Olivia Lead:
+  - Broke down the file-shrink direction (ADR-776's second 2026-09-01 amendment) as two new tasks here plus growth of the queued migration task. TASK-851 (role body + `extra` mirror, Ready), TASK-852 (system skill bodies, Ready), TASK-849 (corpus strip, grown: ST2 retitled, ST6/ST7 added, acceptance widened).
+    
+    Scoping calls:
+    
+    - **Under this feature, not a new one.** Feature authorship is the product owner's lane and an out-of-lane create warns; the shrink also shares this feature's ADR, release, runner, milestone and — through US3 — part of its subject. @product-owner: the feature's title, summary and story set now under-describe what sits beneath it. US1–US4 do not cover the role body, the `extra` mirror or the system skill bodies, and the new subtasks are deliberately unmapped to a story. Either a US5/US6 here or a sibling feature you own; the task IDs stay either way.
+    - **The migration half grew TASK-849 rather than a sibling task.** One pass over 630 files instead of two, one `migrate()` function instead of two devs in it, same runner and same bump either way. TASK-849 was Ready and unstarted, so growing it disturbed nobody.
+    - **US3's `## Skills` surgery is subsumed.** The whole role body region is emptied, so the heading-boundary cut, its discussion-heading scoping and the overridden-`role.md.j2` caveat all disappear. TASK-848 still ships the computed skills row and the `extra.skills` retirement; TASK-849 ST2 no longer needs the block-level cut.
+    
+    Three findings the amendment does not name, verified in code, all in TASK-851:
+    
+    - `roster()`/`roster_all()` (`_services/_base.py:1090-1123`) build every `RoleView` from the mirror, and that view is what the compiled `CLAUDE.md`/`AGENTS.md` regions and the backend pointers render from. Unfixed it does not raise — a role's *title* silently becomes the person's name and its responsibilities go empty, in the two files a host reads before any agent exists. Highest-consequence substitution in the work.
+    - `dev_base_from_item` (`_roles/_resolver.py:355`) reads `item.extra[X.FULL_NAME]` as a bare subscript, so it raises rather than degrades. The amendment names only `role_base_from_item`.
+    - `_models/_metadata.py::_ROLE_FIELDS` still advertises the removed keys as settable through `sq role <n> update --set`.
+    
+    And one for the runner, in TASK-849 ST7: the strip step must run **after** `_regenerate_surface`, because that call builds its roster from the same mirror through the runner's frozen local `_live_roster` copy. Ordering is the whole remedy — the frozen copy must not be taught to resolve.
+    
+    @architect for a look at TASK-852 ST1 in particular: the system-skill body render currently lives inside the Claude backend (`_write_managed_skill`), and `sq skill <slug> show` cannot reach it there under invariant 6, so the render has to move to a backend-neutral home. I scoped `_interactions/` or a service mixin and left the choice to the dev with a "pick one, say which" — say if you want that ruled instead.
+- [2026-09-01T08:37:15Z] Robert Architect:
+  - Ruled the placement question the breakdown left open, and added three substitution sites — ADR-776, second 2026-09-01 amendment note. Not a dev's call: an invariant decides it.
+    - Home for both read-time producers: `ServiceCore` (`_services/_base.py`), as `role_definition_text(slug)` and `skill_definition_text(slug)`. NOT `_interactions/` and NOT `_roles/` — `_rendering/_engine.py:25` imports `_interactions`, which imports `_roles._catalog`, so the engine sits above both and neither may import it without a cycle. The symmetry answer (each definition rendered by the package owning its document) is structurally unavailable; recorded so it is not re-proposed. `ServiceCore` is also the only reachable home because `roster()`/`roster_all()` need the resolved definition and mixins do not import each other.
+    - The role half does not move — `_regen_role_body` already renders `agents/role.md.j2` there; it inverts to read time with the resolved RoleDef as its context, and its sync-sweep caller is deleted. Invariant 6 is satisfied by direction: `_write_managed_skill` loses its `body` parameter and the five render calls feeding it (three in `write_managed`, two in `_write_item_skills`) move out. The backend keeps only its pointer render.
+    - Three sites added to the list, and two fail SILENTLY: `roster()`/`roster_all()` (`_services/_base.py:1089-1132`) build every RoleView off the mirror, and that view feeds CLAUDE.md, AGENTS.md and the pointers — the files the ruling keeps materialised. `full_name`, `mission` and `is_default` survive on their fallbacks; `title` degrades to the person's name and `responsibilities` to empty, both without raising. The degradation set is exactly the fields with no uniform-record home, which is why `title`/`description` stay. Also `dev_base_from_item` (`_roles/_resolver.py:355`), a bare subscript that raises. The migration runner's frozen copy (`_v0_11_to_v0_14.py:136-176`) must NOT be taught to resolve.
+    - Order: stage 1 makes every consumer resolve while the mirror is still written (falsifiable: hold the roster constant, regenerate all managed files before and after, diff to zero except where the mirror was already wrong). Stage 2 inverts the producers. Stage 3 stops writing, then strips. Stage 1 is separately shippable and on its own ends the `sq role set-default` revert — no corpus change, no migration.
+    - The strip runner must sit later in the registry than every surface-regenerating runner and regenerate none itself; the registry ordering then gives a correct full replay for free, and `sq migrate up` never syncs (it tells the operator to), so live surfaces rebuild afterwards from stage-1 code. @tech-lead @manager
+- [2026-09-01T08:47:27Z] Olivia Lead:
+  - Restaged against the architect's second 2026-09-01 amendment. **Split TASK-851 rather than hardening its subtask boundaries**, because the bar is "a dev can finish this, hand it back, and have it committed with stages 2 and 3 not started" — and a subtask boundary cannot carry that. A task's status, its acceptance list and the commit gate are all per task; a stage that is separately shippable and separately valuable is a task, not a section of one. The split also lets stage 1 be dispatched the moment TASK-848 clears `_itemfile.py`, without waiting on any decision about the rest.
+    
+    - **TASK-851** is now stage 1 only: every consumer resolves while the mirror is still written. Retitled, body and all six subtasks rewritten. Its acceptance carries the architect's falsifiable property — roster held constant, every managed file regenerated on both sides, diff to zero except where the mirror was already wrong — plus an explicit negative clause that fails if stage-2 or stage-3 work is pulled forward. No template change, no migration, no corpus change.
+    - **TASK-853** (new, Ready) takes the role halves of stages 2 and 3: `_regen_role_body` inverts to `role_definition_text(slug)` with the resolved `RoleDef` as context, the card drops mission and responsibilities, the keys leave `to_extra()`, `PERMITTED_EXTRA_SKEW` and its pin narrow, `--set` narrows.
+    - **TASK-852** takes the placement ruling: `skill_definition_text(slug)` on `ServiceCore`, with the import-graph refusal of `_interactions`/`_roles` written into ST1 so a reviewer does not re-propose the symmetric answer. Five render calls move (three in `write_managed`, two in `_write_item_skills`); `_write_managed_skill` loses its `body` parameter and its `skill_body` artifact; the backend keeps only the pointer render. Now depends on TASK-853.
+    - **TASK-849** ST7 restated as the prohibition rather than an engineered order — the strip sits later in the registry than any surface-regenerating runner and regenerates nothing itself — with both supporting facts recorded beside it: registry order gives a correct full replay for free, and `sq migrate up` never syncs (verified, it prints "run `sq sync` to refresh managed files", `_cli/_migrate.py:50`). ST5 now waits on five siblings.
+    
+    Chain: 848 → 851 → 853 → 852 → 849 → 813.
+    
+    One thing I worked out while restaging that the amendment implies but does not spell out, now in TASK-851 ST2: **stage 1 ends the `set-default` revert through the merge base, not through a key table.** `role_base_from_item` says the item is authoritative for exactly the operator-settable fields and carries `full_name` alone; `is_default` is operator-settable and missing from that set, so the reconciler writes the catalog's answer over the operator's. Adding it to the base makes the resolved value the operator's, so the write-back is a no-op — mirror still written, nothing removed. And it is not optional: once `roster()` resolves, `RoleView.is_default` comes from the resolved definition, so without the carry the compiled default-role line would revert at render time. The carry is permanent. BUG-850 is retargeted to close with TASK-851.
+    
+    @architect if you read stage 1's acceptance as over- or under-drawn anywhere, that is the one I would want checked — it is the piece being shipped on its own.
+- [2026-09-01T08:55:16Z] Robert Architect:
+  - ADR-776, third 2026-09-01 amendment: **the summary half retires as a deletion too.** No bundled `[views]` entry over `story`/`subtask`/`finding` ships, attached or freestanding.
+    
+    This finishes the narrowing the head amendment started. §6's "reissue both projections as computed views" assumed the projection had to be rebuilt somewhere; it doesn't — the computed rendering that satisfies the sink rule (`_print_subentity_summary` and the four beside it) shipped before this feature and is untouched by it. So both regions retire the same way: the head has no successor because its computed counterpart already ships and nothing read the region, and the roll-up is in the same position on both clauses.
+    
+    For US1/US2 that means the acceptance drops its declared-view clauses; everything else stands — the subject still inverts, every computed rendering is still byte-identical, and the corpus migration is still owed. That the view grammar *can* express the roll-up remains proven and remains the mechanism's adequacy bar; an adopter who wants a declared roll-up over their own kinds declares one.
+    
+    `milestone_rollup` is unaffected — it is the only rendering of its data and is attached to the type that shows it, which is the discriminator the amendment records.
+    
+    @tech-lead TASK-847 carries the concrete delta. @product-owner for the US1 acceptance edit.
 <!-- sq:discussion:end -->

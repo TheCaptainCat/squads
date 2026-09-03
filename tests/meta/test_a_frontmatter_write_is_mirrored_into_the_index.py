@@ -24,13 +24,12 @@ _WRITER = "update_frontmatter"
 
 #: Writers that persist to the ``.md`` without mirroring into the index, each with the reason
 #: it is sound. Keyed ``module::function``.
-_UNMIRRORED_BY_DESIGN = {
-    # The resolved-skills cache is re-derived from role membership plus `scopes` ref edges on
-    # every sync; it is never authored, and `sq repair` rebuilds it from the frontmatter this
-    # writes. `extra.skills` is the durability decision's named permitted skew
-    # (`_itemfile.PERMITTED_EXTRA_SKEW`) precisely because of this writer.
-    "_base.py::_refresh_role_skills_extra": "resolved-skills cache; permitted skew by design",
-}
+#:
+#: Empty today: the one writer that used to live here (the role's resolved-skills cache,
+#: `_base.py::_refresh_role_skills_extra`) is gone along with the cache it maintained -- see
+#: `test_the_allowlist_names_only_writers_that_still_exist` below, which is exactly the guard
+#: that would have caught a stale entry left pointing at it.
+_UNMIRRORED_BY_DESIGN: dict[str, str] = {}
 
 
 def _repo_root() -> Path:

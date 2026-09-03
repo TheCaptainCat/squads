@@ -135,12 +135,29 @@ async def skill_show(
     if it.extra.get(X.WHEN_TO_USE):
         rows.append(f"[bold]when to use:[/bold] {e(it.extra[X.WHEN_TO_USE])}")
     console.print(Panel("\n".join(rows), expand=False))
-    body = await svc.read_body(it.id)
-    render_body_text(
-        body,
-        raw=raw,
-        empty_hint="(empty — run `sq sync` to regenerate the skill definition)",
-    )
+    # Where the body comes from is decided by `system` — the value the `kind:` row above
+    # already computed from `is_system_skill` — and by nothing else. A system skill's
+    # definition is template-owned and renders fresh on this call; a custom skill's body is
+    # authored storage and is read from the file. Neither the folder, the item type, nor the
+    # `sq-` prefix separates the two, and each of those picks the wrong set.
+    if system:
+        # Empty only for a system skill whose item type the active spec no longer declares:
+        # there is no definition to render and no sync that would produce one, so the hint
+        # says that rather than pointing at a command with no such effect.
+        render_body_text(
+            await svc.skill_definition_text(slug),
+            raw=raw,
+            empty_hint=(
+                "(no definition — the item type this skill described is no longer declared; "
+                "restore the type, or retire this skill)"
+            ),
+        )
+    else:
+        render_body_text(
+            await svc.read_body(it.id),
+            raw=raw,
+            empty_hint=f'(empty — write it with `sq skill {slug} body -m "…"`)',
+        )
 
 
 @_addr.command("body")

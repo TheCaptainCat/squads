@@ -230,8 +230,8 @@ async def test_closed_items_are_hidden_by_default_and_revealed_by_include_closed
 
 
 async def test_an_undeclared_kind_edge_traverses_with_a_null_semantic_in_both_directions(svc):
-    """The core of the defect: previously this edge simply wasn't there. Both directions,
-    because ``_out_neighbours`` and ``_in_neighbours`` each had their own copy of the drop."""
+    """An edge whose kind the merged spec does not declare must still traverse — in both
+    directions, since ``_out_neighbours`` and ``_in_neighbours`` filter independently."""
     a = (await create_item(svc, "task", "A")).item
     b = (await create_item(svc, "task", "B")).item
     _plant_undeclared_ref(svc, a, b.id, "banana")

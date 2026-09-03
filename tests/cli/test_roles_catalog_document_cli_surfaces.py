@@ -22,8 +22,8 @@ def _write_catalog_document(squad_dir, content: str) -> None:
 
 
 async def test_role_show_reaches_the_document_only_after_activation(project, invoke) -> None:
-    """The exact contrast this task fixes: before activation the document already applied
-    (unchanged, proven here too); after activation it previously did not."""
+    """``sq role show`` reads the catalog document on both sides of activation: it applies
+    to a not-yet-activated slug, and keeps applying once the slug is activated."""
     _write_catalog_document(
         project.squad_dir, '[[roles]]\nslug = "reviewer"\ntitle = "Chief Reviewer"\n'
     )

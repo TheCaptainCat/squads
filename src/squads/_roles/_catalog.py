@@ -164,6 +164,47 @@ class RoleDef:
             can_spawn=extra.get(X.CAN_SPAWN, False),
         )
 
+    @classmethod
+    def from_extra_or_item(
+        cls, extra: dict[str, Any], *, title: str, slug: str, description: str
+    ) -> RoleDef:
+        """Build a ``RoleDef`` from a role item's own top-level fields, tolerating an
+        ``extra`` that carries no role projection at all — the shape a bare
+        ``Service.create('role', …)`` call produces (no CLI verb reaches this; the roster's
+        own creators, ``activate_role``/``add_dev``, always pass a full ``role.to_extra()``
+        as ``extra``, so this path is a fallback for that one, and only that one).
+
+        Falls back field by field to the item's own ``title``/``slug``/``description``
+        whenever ``extra`` is silent on the corresponding key — absent *or* blank, the same
+        pair of cases :meth:`from_extra` already treats alike for ``full_name`` — the same
+        graceful degradation the pre-inversion template applied inline via
+        ``extra.get(key, item.title)``, so it happens once, here, rather than being
+        re-litigated in Jinja. This is the create-time counterpart to
+        :meth:`from_extra`'s stricter contract (a genuinely-resolved mirror): every caller
+        that renders ``agents/role.md.j2`` must hand it a complete ``RoleDef``, never
+        ``None`` and never a missing attribute — this method is how a caller with only a
+        partial ``extra`` still produces one.
+
+        Never raises for any well-formed item — ``title``/``slug`` are required, non-blank
+        ``Item`` fields, so ``full_name``/``slug`` always resolve to *something*. If a title
+        were somehow whitespace-only, :class:`RoleDef`'s own ``__post_init__`` still refuses
+        it — as the clean :class:`~squads._errors.SquadsError` it already is, never a bare
+        ``KeyError`` out of a dict subscript.
+        """
+        return cls(
+            slug=extra.get(X.SLUG) or slug,
+            full_name=extra.get(X.FULL_NAME) or title,
+            title=extra.get(X.TITLE, "") or title,
+            description=extra.get(X.DESCRIPTION, "") or description,
+            mission=extra.get(X.MISSION, "") or description,
+            responsibilities=tuple(extra.get(X.RESPONSIBILITIES, [])),
+            agreements=tuple(extra.get(X.AGREEMENTS, [])),
+            model=extra.get(X.MODEL),
+            color=extra.get(X.COLOR),
+            is_default=extra.get(X.IS_DEFAULT, False),
+            can_spawn=extra.get(X.CAN_SPAWN, False),
+        )
+
 
 def role_spec_to_def(rs: RoleSpec) -> RoleDef:
     """Convert a ``RoleSpec`` from the loaded catalog to a ``RoleDef``."""

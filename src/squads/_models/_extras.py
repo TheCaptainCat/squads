@@ -16,7 +16,6 @@ class ExtraKey:
     IS_DEFAULT = "is_default"
     CAN_SPAWN = "can_spawn"
     DESCRIPTION = "description"
-    SKILLS = "skills"
     AGREEMENTS = "agreements"
     # developers
     IS_DEV = "is_dev"

@@ -96,9 +96,10 @@ def _dropped_guide_warnings(issues, slug: str) -> list[str]:
     return [i.message for i in issues if i.level == "warn" and f"{slug!r}" in i.message]
 
 
-async def _task_skill_body(squad_dir: Path) -> str:
-    path = squad_dir / "agents" / "skills" / f"{interactions.item_skill_name('task')}.md"
-    return path.read_text(encoding="utf-8") if path.exists() else ""
+async def _task_skill_body(svc) -> str:
+    """The ``sq-task`` definition as *svc* resolves it — rendered on read from the live roster
+    and the merged playbook, which is exactly what decides whether a guide appears."""
+    return await svc.skill_definition_text(interactions.item_skill_name("task"))
 
 
 # ------------------------------------------------------------------- trigger 1: never activated
@@ -130,12 +131,12 @@ async def test_the_guidance_really_is_absent_from_the_generated_skill(project):
 
     svc = service.open_service(dir_override=str(project.squad_dir))
     await svc.refresh_managed()
-    assert "Do the ops thing" not in await _task_skill_body(project.squad_dir)
+    assert "Do the ops thing" not in await _task_skill_body(svc)
 
     await svc.activate_role("sre")
     reopened = service.open_service(dir_override=str(project.squad_dir))
     await reopened.refresh_managed()
-    assert "Do the ops thing" in await _task_skill_body(project.squad_dir)
+    assert "Do the ops thing" in await _task_skill_body(reopened)
 
 
 async def test_no_warning_once_the_project_role_is_live(project):

@@ -23,10 +23,7 @@ async def dev_add(
     """Bootstrap a developer for a technology (e.g. `sq dev add --tech dotnet`)."""
     svc = get_service()
     item = await svc.add_dev(tech, name=name, model=model)
-    console.print(
-        f"added [bold]{e(item.extra.get(X.FULL_NAME, item.title))}[/bold] "
-        f"(`{item.extra.get(X.SLUG)}`) {item.id}"
-    )
+    console.print(f"added [bold]{e(item.title)}[/bold] (`{item.extra.get(X.SLUG)}`) {item.id}")
 
 
 @dev_app.command("list")
@@ -45,7 +42,7 @@ async def dev_list():
         table.add_row(
             it.id,
             it.extra.get(X.SLUG, it.slug),
-            e(it.extra.get(X.FULL_NAME, it.title)),
+            e(it.title),
             it.extra.get(X.TECH, ""),
         )
     console.print(table)

@@ -1,5 +1,5 @@
 """The bundled ``sq-memory`` skill is generated like the other cross-role managed skills
-(``squads``/``greeting``): a real body under the squad folder, a thin pointer under
+(``squads``/``greeting``): a definition the service resolves on read, a thin pointer under
 ``.claude/``, and it's preloaded on every role's pointer — not just one type's, since it's
 cross-role behaviour rather than a per-item-type ``sq-<type>`` skill. It also teaches the
 team bulletin board (``sq board ...``), folded into this same skill rather than duplicated
@@ -14,12 +14,12 @@ from squads._services import _service as service
 pytestmark = pytest.mark.anyio
 
 
-async def test_memory_skill_has_a_real_body_and_a_thin_pointer(project):
+async def test_memory_skill_has_a_resolved_definition_and_a_thin_pointer(svc, project):
     pointer = (project.root / ".claude" / "skills" / "sq-memory" / "SKILL.md").read_text(
         encoding="utf-8"
     )
     assert "sq skill sq-memory show" in pointer
-    body = (project.squad_dir / "agents" / "skills" / "sq-memory.md").read_text(encoding="utf-8")
+    body = await svc.skill_definition_text("sq-memory")
     assert "start of a run" in body
     assert "One fact per memory" in body
     assert "sq memory <role> forget <slug>" in body
@@ -29,14 +29,14 @@ async def test_memory_skill_has_a_real_body_and_a_thin_pointer(project):
     assert "sq memory <role> add" in body
 
 
-async def test_memory_skill_states_the_memory_vs_board_boundary(project):
-    body = (project.squad_dir / "agents" / "skills" / "sq-memory.md").read_text(encoding="utf-8")
+async def test_memory_skill_states_the_memory_vs_board_boundary(svc):
+    body = await svc.skill_definition_text("sq-memory")
     assert "personal" in body.lower()
     assert "board is shared" in body.lower()
 
 
-async def test_memory_skill_teaches_board_posting_discipline_and_commands(project):
-    body = (project.squad_dir / "agents" / "skills" / "sq-memory.md").read_text(encoding="utf-8")
+async def test_memory_skill_teaches_board_posting_discipline_and_commands(svc):
+    body = await svc.skill_definition_text("sq-memory")
     assert "short and prescriptive" in body.lower()
     assert "--until" in body
     assert "sq board post" in body

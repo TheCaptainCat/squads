@@ -49,8 +49,8 @@ def test_dropping_contract_strips_the_stale_ref_rules_and_validator_from_feature
 
 def test_dropping_contract_lints_clean_not_just_loads_clean(tmp_path: Path) -> None:
     """The strip must run wherever the merged mapping is validated, not only in the fail-fast
-    loader — otherwise ``sq workflow lint`` still reports the stale coupling as an error on a
-    squad that ``open_service`` now accepts, the exact asymmetry this task exists to close."""
+    loader — otherwise ``sq workflow lint`` reports the stale coupling as an error on a squad
+    that ``open_service`` accepts, and the two disagree about the same override."""
     _write_override(tmp_path, _WITHOUT_CONTRACT)
 
     findings = lint_workflow_spec(tmp_path)

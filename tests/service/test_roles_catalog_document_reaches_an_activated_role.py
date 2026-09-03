@@ -48,8 +48,8 @@ def _write_slug_override(squad_dir: Path, slug: str, content: str) -> None:
 
 
 async def test_a_catalog_document_field_reaches_an_already_activated_role_via_sync(project, svc):
-    """Before this task: the same override applied to a not-yet-activated slug and silently
-    stopped applying the moment the slug was activated — exactly the shape that reads as a
+    """One override must apply on both sides of activation: an override that reaches a
+    not-yet-activated slug and then silently stops the moment the slug is activated reads as a
     bug. Proven here on the *activated* side."""
     role = await svc.activate_role("architect")
     _write_catalog_document(
@@ -131,9 +131,15 @@ async def test_sq_check_role_override_resolve_now_reads_the_catalog_document(pro
 
 
 async def test_sq_check_stays_clean_for_the_same_per_slug_file_with_no_document(project, svc):
-    """Isolates the cause: remove the document (keep the same per-slug file) and the error
-    disappears — proving the document's blank ``color`` is what produced it, not the per-slug
-    file alone."""
+    """Isolates the cause: remove the document (keep the same per-slug file) and the
+    ``error``-level issue disappears — proving the document's blank ``color`` is what produced
+    it, not the per-slug file alone.
+
+    A ``warn`` remains, and is expected: the per-slug override changes the resolved title
+    after ``activate_role`` already wrote the pointer under the bundled one, and the pointer
+    expectation now resolves through the override directly rather than through the item's own
+    not-yet-synced mirror, so it correctly reports that genuine currency gap — not a false
+    positive, and not what this test isolates."""
     await svc.activate_role("architect")
     _write_slug_override(
         project.squad_dir,
@@ -141,14 +147,19 @@ async def test_sq_check_stays_clean_for_the_same_per_slug_file_with_no_document(
         f'# squads:override-base:{__version__}\ntitle = "Chief Architect (per-slug)"\n',
     )
 
-    assert not await svc.check()
+    issues = await svc.check()
+    assert not [i for i in issues if i.level == "error"]
+    assert [i.level for i in issues] == ["warn"]  # only the expected pointer-currency gap
 
 
 async def test_sq_check_stays_clean_for_a_valid_document_field_reaching_the_same_role(project, svc):
     """The positive case: a *valid* document field change plus a per-slug file overriding a
-    different field resolves cleanly through the same check call site (no false positive from
-    threading squad_dir in), and the sync path (already proven above) confirms both values
-    actually land on the activated item."""
+    different field resolves with no ``error`` through the same check call site (no false
+    positive from threading squad_dir in), and the sync path (already proven above) confirms
+    both values actually land on the activated item.
+
+    The same expected ``warn`` as the isolation test above rides along here too: neither
+    override has been synced onto the pointer yet."""
     role = await svc.activate_role("architect")
     _write_catalog_document(
         project.squad_dir,
@@ -161,9 +172,12 @@ async def test_sq_check_stays_clean_for_a_valid_document_field_reaching_the_same
         f'# squads:override-base:{__version__}\ntitle = "Chief Architect (per-slug)"\n',
     )
 
-    assert not await svc.check()
+    issues = await svc.check()
+    assert not [i for i in issues if i.level == "error"]
+    assert [i.level for i in issues] == ["warn"]
 
     await svc.sync()
+    assert not await svc.check()  # the warn clears once the sync it names has run
     reloaded = await svc.get(role.id)
     assert reloaded.extra[X.MISSION] == "Own the whole system's shape and its security posture."
     assert reloaded.extra[X.TITLE] == "Chief Architect (per-slug)"

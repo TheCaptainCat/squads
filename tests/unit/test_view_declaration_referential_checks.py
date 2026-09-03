@@ -416,9 +416,8 @@ def test_a_dropped_declared_view_still_attached_by_its_type_is_refused_at_load(
 ) -> None:
     """``[selected] views = []`` drops every declared view, including the bundled
     ``milestone_rollup`` — but ``items.milestone`` still names it in its own ``views`` list.
-    Previously this loaded and linted clean and only failed on the first
-    ``sq milestone <n> show``; now it is refused at load, naming the type, the dangling view
-    name, and the ``[selected]`` provenance."""
+    That dangling attachment is refused at load, naming the type, the dangling view name and the
+    ``[selected]`` provenance, rather than surviving until the first ``sq milestone <n> show``."""
     _write_override(tmp_path, "[selected]\nviews = []\n")
     with pytest.raises(SquadsError, match=r"milestone.*milestone_rollup.*selected\.views"):
         load_workflow_spec(squad_dir=tmp_path)

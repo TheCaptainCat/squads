@@ -21,10 +21,9 @@ from squads._backends._claude_code._frontmatter import (
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
-from squads._models._vocab import label_for
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
-from squads._workflow import ROSTER_SKILL, linearize_lifecycle
+from squads._workflow import ROSTER_SKILL
 
 _AGENTS = "agents"
 _SKILLS = "skills"
@@ -103,45 +102,20 @@ class ClaudeCodeBackend(AgentBackend):
     ) -> list[Artifact]:
         squad_dir = ctx.paths.config.squad_dir
         artifacts: list[Artifact] = []
-        # squads skill (real body under squads/agents/skills/, thin pointer in .claude/)
+        # The three always-on cross-role skills: a thin pointer in .claude/, and a body file
+        # under squads/ whose sq:body region this backend leaves for the service to render at
+        # read time (ServiceCore.skill_definition_text) — see _write_managed_skill.
         from squads._workflow import bundled_spec
 
         spec = ctx.spec if ctx.spec is not None else bundled_spec()
-        artifacts += await self._write_managed_skill(
-            ctx,
-            name="squads",
-            description=interactions.skill_description("squads"),
-            body=render(
-                "agents/squads_skill.md.j2",
-                squad_dir=squad_dir,
-                spec=spec,
-                # roles=... so the included workflow.md.j2 cheatsheet's authoring bullets
-                # (authoring_owner) can filter by the LIVE roster, and so the example
-                # `--assignee` names a slug this squad actually carries — matches the
-                # CLAUDE.md managed section below.
-                roles=[
-                    {"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster
-                ],
-                # playbook=... so those same bullets resolve the create-lane through the
-                # ACTIVE (merged) playbook: an override-declared authoring role is named here
-                # instead of the type silently losing its authoring line.
-                playbook=ctx.playbook,
-            ),
-        )
-        # greeting skill — the start-of-conversation ritual (detect the human, register, greet)
-        artifacts += await self._write_managed_skill(
-            ctx,
-            name="greeting",
-            description=interactions.skill_description("greeting"),
-            body=render("agents/greeting_skill.md.j2", squad_dir=squad_dir),
-        )
-        # sq-memory skill — cross-role memory workflow + curation discipline
-        artifacts += await self._write_managed_skill(
-            ctx,
-            name=interactions.MEMORY_SKILL,
-            description=interactions.skill_description(interactions.MEMORY_SKILL),
-            body=render("agents/memory_skill.md.j2", squad_dir=squad_dir),
-        )
+        for slug in (
+            interactions.SQUADS_SKILL,
+            interactions.GREETING_SKILL,
+            interactions.MEMORY_SKILL,
+        ):
+            artifacts += await self._write_managed_skill(
+                ctx, name=slug, description=interactions.skill_description(slug)
+            )
         # CLAUDE.md managed section
         default = next((r for r in roster if r.is_default), None)
         section = render(
@@ -152,8 +126,8 @@ class ClaudeCodeBackend(AgentBackend):
             # No live role carrying `is_default` is a legitimate state, not a gap to paper over
             # with a fabricated slug: the template omits the default-role line and the
             # orchestration paragraph's name entirely rather than inventing one, the same
-            # degradation `has_dev` already performs below when the last developer role
-            # retires.
+            # degradation the generated skills' `has_dev` gate performs when the last developer
+            # role retires (that gate lives with the render, on ServiceCore).
             default_role_full_name=default.full_name if default else None,
             default_role_slug=default.slug if default else None,
             spec=spec,
@@ -169,13 +143,24 @@ class ClaudeCodeBackend(AgentBackend):
             else None
         )
         artifacts.append(Artifact(ctx.rel(claude_md_path), "claude_md", self.name, warning=warning))
-        artifacts.extend(await self._write_item_skills(ctx, roster))
+        artifacts.extend(await self._write_item_skills(ctx))
         return artifacts
 
     async def _write_managed_skill(
-        self, ctx: BackendContext, *, name: str, description: str, body: str
+        self, ctx: BackendContext, *, name: str, description: str
     ) -> list[Artifact]:
-        """Write a managed skill's real body under squads/ and a thin pointer in .claude/.
+        """Write a managed skill's thin pointer in .claude/, and make sure its body file under
+        squads/ exists with a well-formed, EMPTY ``sq:body`` region.
+
+        **This backend does not write a system skill's definition.** That text renders on read,
+        from the service (``ServiceCore.skill_definition_text``), so nothing here needs it and
+        the pointer never did: ``claude/pointer_skill.md.j2`` renders from *name* and
+        *description* alone.
+
+        What is still owed is the file's *shape*. The seeding step
+        (``Service.seed_bundled_skills``/``seed_custom_skills``) stamps a ``SKILL`` id onto the
+        slug-named file this writes, so a managed skill with no file on disk is never seeded and
+        never becomes an indexed item at all.
 
         Body path derivation:
         - If the skill is already in the index (i.e. it has been stamped as a SKILL item),
@@ -186,13 +171,10 @@ class ClaudeCodeBackend(AgentBackend):
           landing spot.  ``seed_bundled_skills`` will rename it to the convention name
           immediately afterwards.
 
-        Body-region-only regen: if the skill file already exists and carries sq frontmatter
-        (i.e. it has been stamped as a SKILL item), only the ``sq:body`` region is replaced —
-        the frontmatter and every other region are left intact.
-
-        If the file does not yet exist or has no frontmatter, the body is written wrapped in
-        ``sq:body`` markers so the file is region-compatible for future frontmatter-preserving
-        regenerations (invariant 3).
+        A file that already carries a ``sq:body`` region is left byte-untouched, whatever that
+        region holds — including a definition an older release stored there, which is a corpus
+        concern and not this writer's to rewrite. So a second run over a synced squad writes no
+        skill body file at all, and produces no diff on one.
         """
         # Resolve the body path from the caller-supplied skill_paths map.
         # refresh_managed() populates ctx.skill_paths from the index before calling
@@ -213,37 +195,23 @@ class ClaudeCodeBackend(AgentBackend):
             body_path = ctx.squad_dir / spec.items[ROSTER_SKILL].folder / f"{name}.md"
         await _aio.mkdir(body_path.parent, parents=True, exist_ok=True)
 
-        # Wrap the rendered body in sq:body markers so the file is marker-structured.
-        # This makes the region detectable on subsequent syncs regardless of whether
-        # frontmatter has been stamped yet.
-        body_with_markers = (
-            f"{markers.open_marker(markers.BODY)}\n{body}\n{markers.close_marker(markers.BODY)}\n"
-        )
+        # An empty, marker-structured region: detectable on subsequent syncs regardless of
+        # whether frontmatter has been stamped yet, and the shape every item file shares.
+        empty_body = f"{markers.open_marker(markers.BODY)}\n{markers.close_marker(markers.BODY)}\n"
 
         if await _aio.path_exists(body_path):
             existing = await _aio.read_text(body_path)
             fm, _ = sections.split_frontmatter(existing, source=str(body_path))
-            if fm and sections.has_section(existing, markers.BODY):
-                # File has been stamped with frontmatter: preserve it, only update body region.
-                # This is squad data (an indexed SKILL item's .md) — atomic replace, not the
-                # plain truncating writer.
-                new_inner = f"\n{body}\n"
-                updated = sections.replace_section(existing, markers.BODY, new_inner)
-                await _aio.atomic_write_text(body_path, updated)
-            elif fm:
-                # Frontmatter present but sq:body region absent/partial — fail-safe: re-emit
-                # the existing frontmatter so the stamped id/sequence_id are never lost.
-                # Body region becomes freshly wrapped.
-                await _aio.atomic_write_text(
-                    body_path, sections.join_frontmatter(fm, body_with_markers)
-                )
-            else:
-                # Genuinely no frontmatter (first-write or pre-stamp file): write bare body
-                # with markers.  We do NOT invent frontmatter here — allocation is a separate
-                # step.
-                await _aio.atomic_write_text(body_path, body_with_markers)
+            if not sections.has_section(existing, markers.BODY):
+                # Region absent or partial. Fail-safe: re-emit any frontmatter that is there so
+                # a stamped id/sequence_id is never lost, and give the file the region back.
+                # This is squad data (a possibly-indexed SKILL item's .md) — atomic replace,
+                # not the plain truncating writer. No frontmatter is invented here when there
+                # is none: allocation is a separate step.
+                text = sections.join_frontmatter(fm, empty_body) if fm else empty_body
+                await _aio.atomic_write_text(body_path, text)
         else:
-            await _aio.atomic_write_text(body_path, body_with_markers)
+            await _aio.atomic_write_text(body_path, empty_body)
 
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / name / _SKILL_FILE
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
@@ -255,118 +223,50 @@ class ClaudeCodeBackend(AgentBackend):
                 description=oneline(description),
             ),
         )
-        return [
-            Artifact(ctx.rel(body_path), "skill_body", self.name),
-            Artifact(ctx.rel(pointer), "skill_pointer", self.name),
-        ]
+        return [Artifact(ctx.rel(pointer), "skill_pointer", self.name)]
 
-    async def _write_item_skills(
-        self, ctx: BackendContext, roster: list[RoleView]
-    ) -> list[Artifact]:
-        """One managed skill per item type, with a section per *active* interacting role.
+    async def _write_item_skills(self, ctx: BackendContext) -> list[Artifact]:
+        """One managed skill per item type: its ``.claude`` pointer, and its body file's shape.
 
-        The shared ``developers`` section renders only when the roster has at least one developer
-        (a ``<tech>-dev`` role), so a squad with no devs yet doesn't carry guidance for an actor
-        that can't act.
+        The definitions themselves are not written here — they render on read, from the service
+        (``ServiceCore.skill_definition_text``), which is also where the rich/thin split and the
+        ``has_dev`` gate on the shared ``developers`` section now live. What survives in this
+        backend is the enumeration: which per-type skills a squad materialises at all — which
+        needs no roster, since a pointer is rendered from a slug and a description.
 
         A type with no entry in the active playbook — built-in or project-declared alike (there
-        is no static built-in/custom split any more) — also gets a thin auto-generated skill:
-        lifecycle string (from ``linearize_lifecycle``), the standard command list, and no role
-        sections (graceful degradation).
+        is no static built-in/custom split any more) — still gets its own skill, so the two
+        loops below differ in nothing but which vocabulary names the slug and the description.
         """
         from squads._workflow import bundled_spec
 
-        by_slug = {r.slug: r for r in roster}
-        has_dev = any(interactions.is_dev_slug(r.slug) for r in roster)
         spec = ctx.spec if ctx.spec is not None else bundled_spec()
         playbook = ctx.playbook if ctx.playbook is not None else interactions.get_playbook_spec()
         out: list[Artifact] = []
 
-        # Types with a playbook entry — rich skill with full role guidance. The active,
-        # per-request playbook (ctx.playbook, merged with any .overrides/playbook.toml) decides
-        # this set, not the bundled singleton — a project override's added/removed coverage is
-        # what should decide rich-vs-thin here. A type the active spec has dropped or renamed
-        # away must still produce no skill at all — never a stale one under its old name — so a
-        # type absent from the active spec is skipped outright rather than falling back to the
-        # playbook prose — the "no orphan" bar a shadowing override has to clear.
+        # Types with a playbook entry. The active, per-request playbook (ctx.playbook, merged
+        # with any .overrides/playbook.toml) decides this set, not the bundled singleton. A type
+        # the active spec has dropped or renamed away must produce no skill at all — never a
+        # stale one under its old name — so a type absent from the active spec is skipped
+        # outright: the "no orphan" bar a shadowing override has to clear.
         for item_type in interactions.managed_item_types(playbook):
             if item_type not in spec.items:
                 continue
-            pb = playbook.types[item_type]
-            sections: list[dict[str, Any]] = []
-            for guide in pb.roles:
-                if guide.slug == interactions.DEV:
-                    if not has_dev:
-                        continue
-                    title = "developers"
-                elif guide.slug in by_slug:
-                    r = by_slug[guide.slug]
-                    title = f"{r.full_name} (`{r.slug}`)"
-                else:
-                    continue
-                sections.append(
-                    {
-                        "title": title,
-                        "enter": guide.enter,
-                        "do": guide.do,
-                        "handoff": guide.handoff,
-                        "watch": guide.watch,
-                    }
-                )
-            # Lifecycle + sub-entity kind derive from the active spec (not the frozen
-            # playbook prose) so an override on a kept built-in type stays correct; the guard
-            # above already skipped a type the spec has dropped, so item_type is always in
-            # spec.items here.
-            subentity_kind = spec.item_subentity_kind(item_type)
-            lifecycle_str = linearize_lifecycle(spec.machine_for(item_type))
             name = interactions.item_skill_name(item_type)
-            body = render(
-                "agents/item_skill.md.j2",
-                title=label_for(item_type, "singular", spec),
-                type=item_type,
-                overview=pb.overview,
-                lifecycle=lifecycle_str,
-                commands=list(pb.commands),
-                sections=sections,
-                subentity_kind=subentity_kind,
-                subentity_plural=spec.subentity_plural(subentity_kind) if subentity_kind else None,
-            )
             out += await self._write_managed_skill(
-                ctx,
-                name=name,
-                description=interactions.skill_description(name),
-                body=body,
+                ctx, name=name, description=interactions.skill_description(name)
             )
 
-        # Types with no active-playbook entry — thin skill with auto-derived lifecycle +
-        # standard command list. This is the sole "custom vs built-in" line now: any type
-        # absent from the active playbook falls back here, whether or not it's a bundled type.
+        # Types with no active-playbook entry. This is the sole "custom vs built-in" line now:
+        # any type absent from the active playbook falls back here, bundled or not.
         if ctx.spec is not None:
             for ctype, ctype_spec in ctx.spec.items.items():
                 if ctype in playbook.types or ctype_spec.category == "roster":
                     continue
-                machine = ctx.spec.machine_for(ctype)
-                lifecycle_str = linearize_lifecycle(machine)
-                name = interactions.custom_item_skill_name(ctype)
-                custom_subentity_kind = ctx.spec.item_subentity_kind(ctype)
-                body = render(
-                    "agents/item_skill.md.j2",
-                    title=label_for(ctype, "singular", ctx.spec),
-                    type=ctype,
-                    overview="",
-                    lifecycle=lifecycle_str,
-                    commands=interactions.custom_item_skill_commands(ctype),
-                    sections=[],
-                    subentity_kind=custom_subentity_kind,
-                    subentity_plural=ctx.spec.subentity_plural(custom_subentity_kind)
-                    if custom_subentity_kind
-                    else None,
-                )
                 out += await self._write_managed_skill(
                     ctx,
-                    name=name,
+                    name=interactions.custom_item_skill_name(ctype),
                     description=interactions.custom_item_skill_description(ctype),
-                    body=body,
                 )
         return out
 

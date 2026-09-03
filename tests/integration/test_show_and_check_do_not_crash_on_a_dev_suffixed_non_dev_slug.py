@@ -56,7 +56,7 @@ async def test_a_genuine_dev_role_still_shows_and_checks_cleanly_alongside_the_f
 
     assert shown.exit_code == 0, shown.output
     assert "Traceback" not in shown.output
-    assert "mission:" in shown.output  # the full card, not the old fallback
+    assert "skills:" in shown.output  # the full card, not the old fallback
 
     assert checked.exit_code == 0, checked.output
     assert "Traceback" not in checked.output

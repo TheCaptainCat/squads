@@ -1,9 +1,11 @@
-"""Generated role-body content (``sq role <slug> show`` reads this back): the body lists the
-role's own skills, carries the two-regime operating contract, a reviewer's body carries the
+"""Generated role-body content, populated at activation from the same resolved definition
+``sq role <slug> show`` renders fresh on every call: the body no longer lists the role's own
+skills, carries the two-regime operating contract, a reviewer's body carries the
 findings-agreement clause (and a non-reviewer's does not), a comment-scoping pointer names the
 convention by pointing at the squads skill rather than restating it, the product-owner's body
-cites a real (not illustrative-only) ``add-story`` command, and ``sync`` regenerates a
-corrupted role body in place.
+cites a real (not illustrative-only) ``add-story`` command, and ``sync`` no longer touches the
+region at all — a corrupted body stays corrupted on disk, while ``show`` keeps rendering the
+correct definition regardless.
 """
 
 import pytest
@@ -11,11 +13,15 @@ import pytest
 pytestmark = pytest.mark.anyio
 
 
-async def test_role_body_lists_the_roles_own_skills(svc):
+async def test_role_body_no_longer_lists_the_roles_own_skills(svc):
+    """The resolved skills list left the body for the computed catalog card (``sq role <slug>
+    show``'s ``skills:`` row) — the body carries neither the heading nor the list, though the
+    list itself is still resolvable live."""
     item = await svc.activate_role("tech-writer")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
-    assert "## Skills" in body
-    assert "`sq-guide`" in body
+    assert "## Skills" not in body
+    assert "`sq-guide`" not in body
+    assert "sq-guide" in await svc.resolved_skills_for_role("tech-writer")
 
 
 async def test_role_body_carries_the_two_regime_operating_contract(svc):
@@ -69,9 +75,13 @@ async def test_role_body_no_longer_carries_the_startup_command_set(svc):
     assert "Operate as **Mara Tester**" in body  # the rest of the working-agreements line stays
 
 
-async def test_sync_regenerates_a_corrupted_role_body_in_place(svc):
+async def test_sync_no_longer_touches_a_corrupted_role_body(svc):
+    """The producer inverted to read time: nothing writes a role's ``sq:body`` region any
+    more, so a corrupted stored body is not a defect ``sq sync`` heals. ``sq role <slug>
+    show`` still renders the correct definition regardless — it never reads the region."""
     from squads import _sections as sections
     from squads._models import _markers as markers
+    from squads._roles._resolver import resolve_role_for_item
 
     item = await svc.activate_role("qa")
     path = svc.paths.abspath(item.path)
@@ -82,7 +92,11 @@ async def test_sync_regenerates_a_corrupted_role_body_in_place(svc):
     assert "Spawned as a subagent" not in path.read_text(encoding="utf-8")
 
     await svc.sync()
-    restored = path.read_text(encoding="utf-8")
-    assert "### Spawned as a subagent" in restored
-    assert "### Live with the operator" in restored
-    assert "Record what the next reader needs, when it becomes true" in restored
+    on_disk = path.read_text(encoding="utf-8")
+    assert "_corrupted_" in on_disk  # sync leaves the region untouched, corruption and all
+    assert "### Spawned as a subagent" not in on_disk
+
+    definition = svc.role_definition_text(resolve_role_for_item(item, svc.paths.squad_dir))
+    assert "### Spawned as a subagent" in definition
+    assert "### Live with the operator" in definition
+    assert "Record what the next reader needs, when it becomes true" in definition

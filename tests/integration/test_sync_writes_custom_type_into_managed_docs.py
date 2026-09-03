@@ -63,12 +63,10 @@ async def test_sync_writes_the_custom_type_into_claude_md_via_the_squads_skill(
     paths = init_result.paths
     _write_override(paths.squad_dir)
     spec = load_workflow_spec(squad_dir=paths.squad_dir)
-    await service.Service(paths, spec=spec).sync()
+    svc = service.Service(paths, spec=spec)
+    await svc.sync()
 
-    skills_folder = paths.squad_dir / "agents" / "skills"
-    convention_files = list(skills_folder.glob("SKILL-*-squads.md"))
-    skill_file = convention_files[0] if convention_files else skills_folder / "squads.md"
-    text = skill_file.read_text(encoding="utf-8")
+    text = await svc.skill_definition_text("squads")
     assert "incident" in text and "`inc`" in text
 
 

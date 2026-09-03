@@ -4,7 +4,7 @@ sequence_id: 845
 type: bug
 title: 'CLI test harness can''t see a startup-state bug: fixtures pre-seed the render
   ContextVar'
-status: Open
+status: Fixed
 author: qa
 priority: medium
 refs:
@@ -14,7 +14,7 @@ description: project/svc build a Service in-process, leaking the correct active-
   ContextVar into every invoke() call via asyncio.to_thread's context copy — a CLI
   test passes whether or not the code under test establishes that state itself
 created_at: '2026-09-01T07:38:33Z'
-updated_at: '2026-09-01T08:05:41Z'
+updated_at: '2026-09-01T08:12:43Z'
 ---
 <!-- sq:body -->
 ## Mechanism

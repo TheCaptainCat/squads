@@ -3,7 +3,7 @@ id: TASK-846
 sequence_id: 846
 type: task
 title: Make the CLI test harness start from a real process's ambient state
-status: InReview
+status: Done
 author: tech-lead
 priority: high
 refs:
@@ -22,7 +22,7 @@ subentities:
   title: Retire the workarounds the fix subsumes, keep the load-bearing ones
   status: Done
 created_at: '2026-09-01T07:47:01Z'
-updated_at: '2026-09-01T08:10:11Z'
+updated_at: '2026-09-01T08:12:38Z'
 ---
 <!-- sq:body -->
 ## Problem

@@ -2,8 +2,12 @@
 
 Their machine state (status/assignee/severity/story) lives in the parent item's frontmatter as
 ``Item.subentities``; this layer mutates that model (atomically, via the index transaction) and
-re-renders the body's presentation regions (``:head`` per block, the parent's ``:summary`` table).
-Each sub-entity's prose (``:body`` + ``:discussion``) stays marker-owned in the body.
+re-renders the block's own ``### <local_id> — title`` heading. It materialises no
+presentation mirror of that state into the body: the ``:head`` badge line and the parent's
+``:summary`` roll-up table are computed on request instead (``_cli._common._subentity_badge_line``
+and a declared ``subentity``-source view, respectively) — see ``_discussion.set_head``/
+``ensure_summary`` for why those renderers still exist as migration-only machinery. Each
+sub-entity's prose (``:body`` + ``:discussion``) stays marker-owned in the body.
 """
 
 from collections.abc import Callable
@@ -237,7 +241,7 @@ class SubentitiesMixin(ServiceCore):
             raise SquadsError(f"no {container} section in {item_id}")
         block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
         text = sections.append_to_section(text, container, block)
-        await self._write_block_file(db, item, path, text=text, head_for=sub, base=base)
+        await self._write_block_file(item, path, text=text, sub=sub, base=base)
         # Advisory title-length check.
         # Fires when title length > TITLE_ADVISORY_MAX.  Service must NOT print;
         # the warning rides back on the result to be rendered at the CLI edge.
@@ -430,7 +434,7 @@ class SubentitiesMixin(ServiceCore):
         item, sub, old_status, base = self._set_block_status_model(
             db, parent_id, kind, local_id, status, force=force
         )
-        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
+        await self._write_block_file(item, item_file(self.paths, item), sub=sub, base=base)
         self.store.log(
             "subentity",
             item.id,
@@ -510,7 +514,7 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         """The sub-entity assignee mutation core: takes an already-open transaction's ``db``."""
         item, sub, base = self._set_block_assignee_model(db, parent_id, kind, local_id, assignee)
-        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
+        await self._write_block_file(item, item_file(self.paths, item), sub=sub, base=base)
         self.store.log(
             "subentity",
             item.id,
@@ -590,7 +594,7 @@ class SubentitiesMixin(ServiceCore):
         if status is not None:
             self._apply_subentity_status(kind, sub, status, force=force)
         item.updated_at = clock.now()
-        await self._write_block_file(db, item, item_file(self.paths, item), head_for=sub, base=base)
+        await self._write_block_file(item, item_file(self.paths, item), sub=sub, base=base)
         self.store.log(
             "subentity",
             item.id,
@@ -649,10 +653,11 @@ class SubentitiesMixin(ServiceCore):
         await self._locked_section_edit(parent_id, mutate)
 
     async def remove_block(self, parent_id: str, kind: str, local_id: str) -> None:
-        """Hard-delete a story/subtask/finding sub-entity: drop it from ``item.subentities``,
-        excise its whole body/head/discussion span marker-safely (:func:`sections.remove_section`
-        on the block's own tag removes the nested regions too — they all live between its open
-        and matching ``:end`` marker), and re-render the parent's roll-up ``:summary`` table.
+        """Hard-delete a story/subtask/finding sub-entity: drop it from ``item.subentities`` and
+        excise its whole body/discussion span marker-safely (:func:`sections.remove_section` on
+        the block's own tag removes the nested regions too — they all live between its open and
+        matching ``:end`` marker). The parent's roll-up is a declared view, computed fresh on
+        request — nothing here re-renders it.
 
         Mirrors ``remove_work_item``'s hard-delete contract (guard/confirmation lives at the CLI
         edge): atomic within one ``store.transaction()``, reflog'd, and the freed local id is
@@ -666,7 +671,6 @@ class SubentitiesMixin(ServiceCore):
         ``maps_parent_story`` flag, the same one :meth:`_check_maps_parent_story` gates on),
         not a ``kind == "story"`` literal, so a renamed story-equivalent kind stays covered.
         """
-        container = self._container_for(kind)
         async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind)
             sub = self._find(item, kind, local_id)
@@ -686,7 +690,6 @@ class SubentitiesMixin(ServiceCore):
             ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
             text = sections.remove_section(text, f"{kind}:{local_id}")
             text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
-            text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
             await write_text(path, text)
             self.store.log(
                 "subentity",
@@ -726,54 +729,29 @@ class SubentitiesMixin(ServiceCore):
 
     async def _write_block_file(
         self,
-        db: SquadsDB,
         item: Item,
         path: Path,
         *,
         text: str | None = None,
-        head_for: SubEntity,
+        sub: SubEntity,
         base: Item,
     ) -> None:
-        """Persist the item's frontmatter from the model + re-render its block's head + summary.
+        """Persist the item's frontmatter from the model and re-render *sub*'s own block heading.
+
+        Its ``:head`` badge line and the parent's ``:summary`` roll-up are computed on request
+        (``_cli._common._subentity_badge_line``, a declared ``subentity``-source view) — this no
+        longer maintains a materialised mirror of either.
 
         ``base`` is *item* as loaded before the caller's own delta — checked against the
         on-disk frontmatter (already in ``text``, whether read here or supplied by the caller)
         before it is substituted for the index-derived one.
         """
         kind = self.subentity_kind[item.type]
-        container = self._container_for(kind)
         text = await self._read_item_file(item, path) if text is None else text
         ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
-        text = discussion.set_heading(text, kind, head_for.local_id, head_for.title)
-        text = await self._refresh_head(text, db, item, kind, head_for)
-        text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
+        text = discussion.set_heading(text, kind, sub.local_id, sub.title)
         await write_text(path, text)
-
-    async def _refresh_head(
-        self, text: str, db: SquadsDB, item: Item, kind: str, sub: SubEntity
-    ) -> str:
-        """Re-render the block's ``:head`` from its current state (resolving slugs/story titles)."""
-        return discussion.set_head(
-            text,
-            kind,
-            sub.local_id,
-            status=sub.status,
-            severity=sub.severity,
-            story=self._story_label(db, item, sub.story),
-            assignee_name=await self.author(sub.assignee) if sub.assignee else None,
-            spec=self.spec,
-        )
-
-    def _story_label(self, db: SquadsDB, task: Item, us_id: str | None) -> str | None:
-        """A subtask's mapped story as ``USn — title`` (just the id if no title resolves)."""
-        if not us_id or not task.parent:
-            return us_id
-        parent = db.get(task.parent)
-        if parent is None:
-            return us_id
-        title = next((s.title for s in parent.subentities if s.local_id == us_id), "")
-        return f"{us_id} — {title}" if title else us_id
 
     def _validate_subtask_story(self, db: SquadsDB, task: Item, story: str) -> None:
         required = self.spec.item_parent_required(task.type)

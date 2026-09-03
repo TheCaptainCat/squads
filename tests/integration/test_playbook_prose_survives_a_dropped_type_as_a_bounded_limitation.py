@@ -77,23 +77,26 @@ def _write_override(squad_dir, content: str) -> None:
 
 
 async def _preloaded_skill_bodies(paths, invoke) -> dict[str, str]:
-    """Every skill an agent is preloaded with after a real sync, keyed by slug, body included.
+    """Every skill definition an agent is preloaded with after a real sync, keyed by slug.
 
     Keyed off the backend's pointer set rather than the skill corpus: a skill item stays on disk
     once written (`sq sync` never deletes an item), and what changes when a type is dropped is
-    which pointers are written — so reading the corpus alone would report a withdrawn skill as
-    still live.
+    which pointers are written — so enumerating the corpus alone would report a withdrawn skill
+    as still live.
+
+    Each definition is resolved through the service against the *overridden* spec (that is what
+    `open_service` reads), which is the same text `sq skill <slug> show` prints to the agent.
     """
     synced = await invoke(["sync"])
     assert synced.exit_code == 0, synced.output  # the sync has to have happened to mean anything
 
+    from squads._services import _service as service
+
     pointers = {p.name for p in (paths.root / ".claude" / "skills").iterdir() if p.is_dir()}
-    bodies: dict[str, str] = {}
-    for path in sorted((paths.squad_dir / "agents" / "skills").glob("*.md")):
-        slug = path.stem.split("-", 2)[-1] if path.stem.startswith("SKILL-") else path.stem
-        if slug in pointers:
-            bodies[slug] = path.read_text(encoding="utf-8")
-    assert pointers == set(bodies), pointers ^ set(bodies)  # every pointer resolved to a body
+    svc = service.open_service()
+    bodies = {slug: await svc.skill_definition_text(slug) for slug in sorted(pointers)}
+    empty = sorted(slug for slug, body in bodies.items() if not body)
+    assert not empty, empty  # every preloaded pointer resolved to a real definition
     return bodies
 
 

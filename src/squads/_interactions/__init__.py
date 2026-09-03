@@ -773,12 +773,19 @@ def authoring_owner(
     skill) should pass it, so the cheatsheet never assigns authorship to a role that doesn't
     exist in this squad.
 
-    *role_titles* is the live slug→title map, consulted **only** when the catalog has no entry
-    for the owner: a project role declared solely in ``.overrides/roles/`` has no bundled
-    catalog entry, so without it an override-declared authoring role resolves to ``None`` and
-    its type silently loses its authoring bullet. The catalog stays first because its titles
-    are the lower-case sentence forms this prose is written around, while a live roster entry
-    carries the display-cased form.
+    *role_titles* is the live slug→title map and is consulted **first**, because it is the only
+    one of the two sources that can see a project override. A roster entry's ``title`` is the
+    role *title* — the same value in the same casing the bundled catalog carries, only resolved
+    through the project's role overrides; the person's display-cased name is ``full_name``, a
+    different field this function never reads. So on a squad with no override the two sources
+    agree and the ordering is invisible, and on one that retitles a role only the live map is
+    right — with the catalog first, one compiled managed region rendered a role's title two
+    different ways, the roster line resolved and the authoring bullet not.
+
+    The bundled catalog is the fallback, for a caller that threads no live roster at all (a
+    bundled reference render). Past it, a project role declared solely in ``.overrides/roles/``
+    that is also absent from the map has no title in hand, and loses its authoring bullet rather
+    than naming a role by its slug.
     """
     owners = in_lane_owner(item_type, playbook)
     if len(owners) != 1:
@@ -786,13 +793,13 @@ def authoring_owner(
     (slug,) = owners
     if roster_slugs is not None and slug not in roster_slugs:
         return None
+    if role_titles is not None and slug in role_titles:
+        return slug, role_titles[slug]
     try:
         return slug, role_by_slug(slug).title
     except RoleNotFoundError:
-        # Not in the catalog: a project-declared role (title from the live roster, when the
-        # caller supplied one), the *dev sentinel, or an as-yet-uncataloged slug.
-        if role_titles is not None and slug in role_titles:
-            return slug, role_titles[slug]
+        # Neither a live roster title nor a catalog entry: the *dev sentinel, or an
+        # as-yet-uncataloged slug.
         return None
 
 

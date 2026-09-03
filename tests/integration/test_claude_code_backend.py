@@ -118,14 +118,10 @@ async def test_retiring_the_default_role_drops_it_from_the_claude_md_default_lin
     assert "When you coordinate a larger piece of work, you" in after
 
 
-def _sq_task_skill_body(project) -> str:
-    """The real ``sq-task`` skill body — the ``.claude/`` file is only a thin pointer to it.
-
-    Unseeded (this fixture skips skill seeding), so it sits at the temporary slug-named path
-    (``sq-task.md``) rather than the convention ``SKILL-<n>-sq-task.md`` name."""
-    skills_dir = project.squad_dir / "agents" / "skills"
-    (body_path,) = skills_dir.glob("*sq-task.md")
-    return body_path.read_text(encoding="utf-8")
+async def _sq_task_skill_body(svc) -> str:
+    """The ``sq-task`` skill definition — resolved on read from the live roster, which is what
+    the ``has_dev`` gate below reads. The ``.claude/`` file is only a thin pointer."""
+    return await svc.skill_definition_text("sq-task")
 
 
 async def test_retiring_the_only_developer_drops_the_developer_gated_skill_text(
@@ -135,10 +131,10 @@ async def test_retiring_the_only_developer_drops_the_developer_gated_skill_text(
     — retiring the only dev role must remove the '## For developers' section from a generated
     per-item-type skill, not merely change the roster table."""
     dev = await svc.add_dev("python")
-    assert "## For developers" in _sq_task_skill_body(project)
+    assert "## For developers" in await _sq_task_skill_body(svc)
 
     await svc.set_status(dev.id, "Archived")
-    assert "## For developers" not in _sq_task_skill_body(project)
+    assert "## For developers" not in await _sq_task_skill_body(svc)
 
 
 async def test_the_init_then_sync_round_trip_survives_a_retired_default_role(

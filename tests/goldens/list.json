@@ -36,12 +36,7 @@
       "color": "cyan",
       "is_default": true,
       "can_spawn": true,
-      "description": "Default agent: triages the operator's request and routes it to the right specialist.",
-      "skills": [
-        "squads",
-        "greeting",
-        "sq-memory"
-      ]
+      "description": "Default agent: triages the operator's request and routes it to the right specialist."
     },
     "id": "ROLE-1",
     "badges": {}

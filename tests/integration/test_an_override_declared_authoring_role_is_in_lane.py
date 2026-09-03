@@ -118,7 +118,7 @@ async def test_the_generated_skill_and_the_lane_check_agree(project) -> None:
     await svc.activate_role("devops")
     await svc.refresh_managed()
 
-    body = (project.squad_dir / "agents" / "skills" / "sq-bug.md").read_text(encoding="utf-8")
+    body = await svc.skill_definition_text("sq-bug")
     assert "file the incident as a bug" in body  # the generated instruction
 
     res = await svc.create("bug", "Deploy wedges on rollback", author="devops")
