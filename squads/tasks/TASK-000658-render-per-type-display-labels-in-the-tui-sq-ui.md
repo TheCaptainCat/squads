@@ -40,21 +40,10 @@ Python, terminal text only. No schema bump. No operator visual gate needed — b
 
 _Add with `sq task 658 add-subtask "<title>"`; track with `sq task 658 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Filter dropdown + any other TUI type-display via label_for | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Filter dropdown + any other TUI type-display via label_for
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — sq ui renders per-type display labels
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Routed the filter dropdown, search-type dropdown, and search-hit type badge through label_for; added TUI tests.

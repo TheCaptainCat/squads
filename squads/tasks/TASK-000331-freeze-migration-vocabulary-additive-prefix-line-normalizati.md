@@ -72,22 +72,10 @@ inside those enum-deletion tasks.
 
 _Add with `sq task 331 add-subtask "<title>"`; track with `sq task 331 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Additive prefix-line normalization pass wired into MIGRATIONS | US4 |
-| ST2 | Todo |  | Assess/decide/record the SCHEMA_VERSION bump | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Additive prefix-line normalization pass wired into MIGRATIONS
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Unmodified default squad behaves identically
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add an additive sq migrate step that stamps the now-canonical prefix line onto every legacy built-in item file (so the from_frontmatter omit-branch can later be deleted). Wire it into _migrations/_registry.py MIGRATIONS with its Migration record + manual runbook; runs through sq migrate up (then repair + stamp). Reads already tolerate its absence via TASK-328's load backfill; this normalizes on disk.
@@ -101,11 +89,6 @@ Add an additive sq migrate step that stamps the now-canonical prefix line onto e
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Assess/decide/record the SCHEMA_VERSION bump
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Unmodified default squad behaves identically
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Assess and decide the SCHEMA_VERSION bump: not required for read correctness (backfill at load), but reasonable to normalize every file. Record the rationale in this task's discussion; if bumping, add the ordered migration + stamp per the migrate runbook. Coordinate with the EPIC-280/FEAT-281 migration owners. NOTE: the migration-vocabulary freeze (ItemType/Status) formerly in this task moved to TASK-328/TASK-330.

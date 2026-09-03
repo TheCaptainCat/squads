@@ -27,21 +27,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 468 add-finding "…" --severity medium`; track with `sq review 468 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | WontFix |  | Blockquoted mermaid fence could collide on line-derived DOM id |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Blockquoted mermaid fence could collide on line-derived DOM id
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `mermaidFenceIds(start)` derives the source/output DOM ids from the fence's start line index (`sq-mermaid-fence-<line>-source/output`), unique within a single render pass. But `renderMarkdownToHtml` recurses for blockquotes and threads `renderMermaidFences` through, restarting line numbering at 0 for the inner render — so a top-level mermaid fence at line 0 and a mermaid fence nested inside a blockquote (inner line 0) would both mint `sq-mermaid-fence-0-*`, a duplicate id (`getElementById` would then resolve only the first, dropping the second diagram's render).

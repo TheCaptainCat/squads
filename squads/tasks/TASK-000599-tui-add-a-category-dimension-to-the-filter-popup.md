@@ -38,9 +38,6 @@ No colour work in the popup itself, but keep the category Select consistent with
 
 _Add with `sq task 599 add-subtask "<title>"`; track with `sq task 599 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -30,21 +30,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 93 add-finding "…" --severity high`; track with `sq review 93 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | No autouse fixture resets engine ContextVar/cache between tests |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — No autouse fixture resets engine ContextVar/cache between tests
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 No autouse fixture resets engine module-state between tests (_active_squad_dir ContextVar + _env_cache dict). conftest resets the clock but not the engine: ServiceCore.__init__ sets the _active_squad_dir ContextVar and never restores it, so a test that constructs a service leaves that squad dir active for any later test that calls bare render() without setting it. Today it doesn't bite (override tests set it explicitly; fresh tmp_path keys avoid cache collisions), but it's order-dependent coupling that will grow as T88/T89 add override tests. Suggest an autouse fixture that calls set_active_squad_dir(None) (and optionally clears _env_cache) on teardown, mirroring _reset_clock_override.

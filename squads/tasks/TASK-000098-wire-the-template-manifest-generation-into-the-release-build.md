@@ -33,9 +33,6 @@ REV-97 F1 added a guard test (`test_manifest_freshness_all_bundled_templates`) t
 
 _Add with `sq task 98 add-subtask "<title>"`; track with `sq task 98 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

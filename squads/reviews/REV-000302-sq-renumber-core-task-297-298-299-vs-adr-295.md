@@ -50,23 +50,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 302 add-finding "…" --severity high`; track with `sq review 302 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | sq-item IDs embedded in source (worst: CLI --help) |
-| F2 | 🟢 low | Fixed |  | Padded-filename seam test would pass even if filenames regressed to unpadded |
-| F3 | 🟢 low | Fixed |  | renumber not wrapped in a single IndexStore.transaction() |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sq-item IDs embedded in source (worst: CLI --help)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Must-fix (operator-flagged, non-negotiable).** This diff introduces sq-item-ID references into source. Per the repo's no-ticket-IDs-in-code rule, the decision pointer belongs in the sq item / PR, not the shipped source — and the CLI-help case is a user-facing leak (an operator running `sq renumber --help` sees a raw ADR id).
@@ -91,11 +78,6 @@ Newly-added locations (only `+` lines from this working-tree diff — the pre-ex
 <!-- sq:finding:F2 -->
 ### F2 — Padded-filename seam test would pass even if filenames regressed to unpadded
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Weak guard on a load-bearing invariant.** The padded-filename seam (ADR-282: filenames stay padded to `db.padding`=6 while content is unpadded) is the load-bearing correctness property TASK-298 ST2 exists to protect, but the service test that supposedly covers it only asserts:
 
@@ -118,11 +100,6 @@ Secondary coverage note: the intent-preservation tests cover shifted->shifted re
 
 <!-- sq:finding:F3 -->
 ### F3 — renumber not wrapped in a single IndexStore.transaction()
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **Divergence from the task's literal wording (informational, not a blocker).** TASK-299 scope says: "Run the whole thing inside `IndexStore.transaction()` so the mutation is atomic and the refuse-path leaves the tree untouched." The implementation does not do that. `renumber` instead: loads the index (lock acquired+released), scans, runs `_offset_plan`, then `_apply_remap` rewrites+renames files with **no lock held**, then `_rebuild_index_from_disk` commits via `store.overwrite` (a separate locked write). The multi-file rewrite/rename and the index commit are therefore not a single atomic critical section.

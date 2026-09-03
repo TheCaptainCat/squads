@@ -111,34 +111,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 840 add-finding "…" --severity medium`; track with `sq review 840 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Template overrides are ignored on the show path |
-| F2 | 🟡 medium | Fixed |  | order_by on a badge field ignores the declared badge order |
-| F3 | 🟡 medium | Fixed |  | order_by on id sorts lexicographically, mis-ordering the bundled roll-up |
-| F4 | 🟡 medium | Fixed |  | Migrate leaves role pointers stale while the runbook says no action is required |
-| F5 | 🟡 medium | Fixed |  | The roll-up files settled-but-not-done members as outstanding forever |
-| F6 | 🟠 high | Fixed |  | ItemSpec.views is unvalidated on four axes; each bricks a type's read path |
-| F7 | 🟢 low | Fixed |  | A ref-source view can project no badge field, though the resolver handles it |
-| F8 | 🟢 low | Fixed |  | Documented group.count does not exist in the template context |
-| F9 | 🟢 low | Fixed |  | Six [selected] fixtures silently gained a milestone drop; comments now false |
-| F10 | 🟢 low | Fixed |  | Two view templates ship in the wheel that no bundled declaration can reach |
-| F11 | 🟢 low | Fixed |  | The scaffolded view example has no template, so it tracebacks on render |
-| F12 | 🟢 low | Fixed |  | A paramless ref_rule_target_present loads clean and is permanently inert |
-| F13 | 🟢 low | Fixed |  | Dropping the bundled contract type bricks the squad until feature is also edited |
-| F14 | 🟢 low | Fixed |  | target_date is settable and validated but never shown on a human surface |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Template overrides are ignored on the show path
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **driven.** A view's presentation template is *not* adopter-overridable on `sq <type> <n> show`,
@@ -219,11 +195,6 @@ the same mechanism.
 <!-- sq:finding:F2 -->
 ### F2 — order_by on a badge field ignores the declared badge order
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **driven.** `order_by` on a badge field sorts by the badge's `code` string, alphabetically,
 ignoring the collection's declared badge order — even though the collection declares
@@ -290,11 +261,6 @@ branch of `_sort_key` that handles badges has no coverage of its result.
 <!-- sq:finding:F3 -->
 ### F3 — order_by on id sorts lexicographically, mis-ordering the bundled roll-up
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **driven.** `order_by` on `id` compares the *formatted* id string, so ids sort lexicographically
 rather than by sequence number. The bundled `milestone_rollup` declares
@@ -341,11 +307,6 @@ sort on `number_for_id`, not on the string.
 
 <!-- sq:finding:F4 -->
 ### F4 — Migrate leaves role pointers stale while the runbook says no action is required
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 **driven.** After `sq migrate up`, every role whose preload list gained one of the two new item
@@ -420,11 +381,6 @@ it: the affected roles are architect, product-owner and tech-lead.
 <!-- sq:finding:F5 -->
 ### F5 — The roll-up files settled-but-not-done members as outstanding forever
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **driven.** The roll-up splits members on `group.key == "done"`, so every member whose status
 resolves to a settled-but-not-delivered role — `retired`, `superseded`, `in_force` — is filed under
@@ -480,11 +436,6 @@ blank line). Cosmetic under CommonMark, but inconsistent within one template.
 
 <!-- sq:finding:F6 -->
 ### F6 — ItemSpec.views is unvalidated on four axes; each bricks a type's read path
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **driven.** QA has filed the two individual cases (BUG-837, the dangling `[selected].views`
@@ -566,11 +517,6 @@ typo, the incompatible source and the missing template are all untested.
 <!-- sq:finding:F7 -->
 ### F7 — A ref-source view can project no badge field, though the resolver handles it
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 **driven.** A `ref`-source view may project only base attributes; naming any badge field is
 refused at load. That makes the bundled `milestone_rollup` structurally unable to show a member's
@@ -644,11 +590,6 @@ with the architect rather than in a patch.
 <!-- sq:finding:F8 -->
 ### F8 — Documented group.count does not exist in the template context
 
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
-
 <!-- sq:finding:F8:body -->
 **driven.** `docs/workflow.md` tells adopters that a presentation template receives groups with a
 `count`:
@@ -688,11 +629,6 @@ template context should not disagree about the shape of the same object.
 
 <!-- sq:finding:F9 -->
 ### F9 — Six [selected] fixtures silently gained a milestone drop; comments now false
-
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
 **read**, sampled across all ~34 fixture edits in the range; the pattern below is the only one that
@@ -762,11 +698,6 @@ under-describes the edit.
 <!-- sq:finding:F10 -->
 ### F10 — Two view templates ship in the wheel that no bundled declaration can reach
 
-<!-- sq:finding:F10:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F10:head:end -->
-
 <!-- sq:finding:F10:body -->
 **driven + read.** `src/squads/_rendering/templates/views/finding_summary.md.j2` and
 `finding_summary_line.md.j2` ship as package data and are listed in
@@ -809,11 +740,6 @@ rather than in the wheel, unless the intent is to declare the two views for real
 <!-- sq:finding:F11 -->
 ### F11 — The scaffolded view example has no template, so it tracebacks on render
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 **driven.** `sq override scaffold workflow` writes a commented `[views.related_incidents]` example
 (`src/squads/_overrides/_service.py:530-539`). An adopter who uncomments it gets a view that loads
@@ -843,11 +769,6 @@ does **not** have. The one it does have (renders to a traceback) is outside what
 
 <!-- sq:finding:F12 -->
 ### F12 — A paramless ref_rule_target_present loads clean and is permanently inert
-
-<!-- sq:finding:F12:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F12:head:end -->
 
 <!-- sq:finding:F12:body -->
 **driven.** A type declaring `validators = ["ref_rule_target_present"]` with **no** `:<T>` parameter
@@ -904,11 +825,6 @@ explicit check in `_check_ref_rule_targets`'s second loop.
 <!-- sq:finding:F13 -->
 ### F13 — Dropping the bundled contract type bricks the squad until feature is also edited
 
-<!-- sq:finding:F13:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F13:head:end -->
-
 <!-- sq:finding:F13:body -->
 **driven.** Dropping the bundled `contract` type through `[selected].items` — a supported
 customisation of a non-reserved type — bricks the squad. Every command exits 1 until the adopter
@@ -962,11 +878,6 @@ recording.
 
 <!-- sq:finding:F14 -->
 ### F14 — target_date is settable and validated but never shown on a human surface
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 **driven.** `target_date` is settable, validated and stored, but never rendered on any human

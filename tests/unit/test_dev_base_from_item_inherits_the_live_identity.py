@@ -35,7 +35,7 @@ def _dev_item(tech: str, full_name: str, *, model: str | None = "sonnet") -> Ite
         created_at=_NOW,
         updated_at=_NOW,
         extra={
-            **role.to_extra(),
+            **role.to_extra(is_dev=True),
             X.IS_DEV: True,
             X.TECH: tech,
         },
@@ -74,18 +74,20 @@ def test_the_is_dev_and_tech_markers_are_not_part_of_the_returned_roledef() -> N
 
 
 def test_the_name_comes_from_item_title_not_extra_full_name() -> None:
-    """The mirror and the uniform record are made to disagree on purpose — proves the read
-    goes through ``item.title``, never ``extra.full_name``."""
+    """A legacy corpus's stored mirror and the uniform record are made to disagree on purpose —
+    proves the read goes through ``item.title``, never ``extra.full_name``."""
     item = _dev_item("python", "a stale mirrored name")
+    item.extra[X.FULL_NAME] = "a stale mirrored name"  # the shape an older release wrote
     item.title = "Elias Python"
     assert dev_base_from_item(item).full_name == "Elias Python"
 
 
 def test_a_developer_role_with_no_extra_full_name_at_all_resolves_from_item_title() -> None:
-    """The bare-subscript read this used to be would raise ``KeyError`` here; reading
-    ``item.title`` instead makes this a non-raising, self-healing read."""
+    """The shape the write path now produces — nothing stores ``full_name`` any more. The bare
+    subscript this read used to be would raise ``KeyError`` on every developer role; reading
+    ``item.title`` instead makes it a non-raising, self-healing read."""
     item = _dev_item("python", "Elias Python")
-    del item.extra[X.FULL_NAME]
+    assert X.FULL_NAME not in item.extra  # the shape under test, asserted not assumed
     assert dev_base_from_item(item).full_name == "Elias Python"
 
 
@@ -96,6 +98,8 @@ def test_the_is_default_designation_is_carried_from_the_item() -> None:
 
 
 def test_with_no_stored_is_default_it_falls_back_to_false() -> None:
+    """``is_default`` is written only by ``sq role set-default``, so a developer role created
+    and never designated carries no key at all — the shape ``_dev_item`` produces."""
     item = _dev_item("python", "Elias Python")
-    del item.extra[X.IS_DEFAULT]
+    assert X.IS_DEFAULT not in item.extra
     assert dev_base_from_item(item).is_default is False

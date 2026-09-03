@@ -76,9 +76,6 @@ as it stands; do not restructure the job graph while pinning.
 
 _Add with `sq task 748 add-subtask "<title>"`; track with `sq task 748 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

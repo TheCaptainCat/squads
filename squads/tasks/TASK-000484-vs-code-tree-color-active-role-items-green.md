@@ -37,9 +37,6 @@ Color 'work in flight' items green in the tree, keyed generically on a spec-decl
 
 _Add with `sq task 484 add-subtask "<title>"`; track with `sq task 484 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

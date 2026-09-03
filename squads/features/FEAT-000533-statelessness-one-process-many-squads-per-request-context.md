@@ -160,24 +160,10 @@ module global.
 
 _Add with `sq feature 533 add-story "As a <role>, I want … so that …"`; track with `sq feature 533 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Static-state inventory and enforcement guard |
-| US2 | Done |  | Request-scoped context primitive + clock/actor seam |
-| US3 | Done |  | Per-request squad resolution from the client cwd |
-| US4 | Done |  | Code-vs-data cache boundary and concurrency-isolation acceptance |
-| US5 | Done |  | Active-spec / active-dir seam onto the request context |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Static-state inventory and enforcement guard
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Produce the definitive triage of every module-level binding in the engine, classified **data**
@@ -231,10 +217,6 @@ sweep, is the lasting output.
 <!-- sq:story:US2 -->
 ### US2 — Request-scoped context primitive + clock/actor seam
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Introduce the request-scoped **context primitive** — the single object that carries per-request
 ambient state — following the `ContextVar` precedent already proven in `_rendering/_engine.py`
@@ -277,10 +259,6 @@ observe each other's values; a single one-shot CLI invocation behaves exactly as
 <!-- sq:story:US3 -->
 ### US3 — Per-request squad resolution from the client cwd
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 Make squad resolution (--dir > .squads.toml walk-up > cwd) take the requesting client's working directory as an explicit input rather than reading the process cwd via Path.cwd() in _paths.resolve()/the walk-up. In one-shot CLI use the client cwd IS the process cwd (no behaviour change); in a server the client supplies it per request.
 
@@ -296,10 +274,6 @@ Acceptance: one process resolving two requests whose client cwds point at two di
 <!-- sq:story:US4 -->
 ### US4 — Code-vs-data cache boundary and concurrency-isolation acceptance
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 Codify and prove the cache boundary: module/spec/definition caches (the backend registry, the bundled specs, compiled Jinja environments) may persist across requests; squad DATA (items, index, sub-entity state) must never be cached across requests — every request re-reads through the filelock'd store (Invariant #1). Bound/evict the per-squad-dir Jinja _env_cache so a long-lived multi-squad process does not leak Environments.
 
@@ -314,10 +288,6 @@ Acceptance test: a long-lived process serving N interleaved requests across ≥2
 
 <!-- sq:story:US5 -->
 ### US5 — Active-spec / active-dir seam onto the request context
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 The second half of the former oversized US2 (its sibling is the context-primitive + clock/actor

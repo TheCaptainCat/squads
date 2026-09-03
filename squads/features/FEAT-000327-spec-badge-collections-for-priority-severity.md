@@ -132,23 +132,10 @@ rather than fork one — see the discussion note left on FEAT-212.
 
 _Add with `sq feature 327 add-story "As a <role>, I want … so that …"`; track with `sq feature 327 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Priority/severity become spec badge collections |
-| US2 | Todo |  | CLI derives filter/sort/badges from fields |
-| US3 | Todo |  | Bug severity migration preserves data |
-| US4 | Todo |  | Spec load fails closed on bad field decls |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Priority/severity become spec badge collections
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a project admin, I want priority and severity to be ordinary spec-defined badge collections so I can rename, relabel, or add axes without code changes.
@@ -165,10 +152,6 @@ As a project admin, I want priority and severity to be ordinary spec-defined bad
 <!-- sq:story:US2 -->
 ### US2 — CLI derives filter/sort/badges from fields
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a developer, I want the CLI's filter/sort/badge support to derive generically from declared fields.
 
@@ -184,10 +167,6 @@ As a developer, I want the CLI's filter/sort/badge support to derive generically
 <!-- sq:story:US3 -->
 ### US3 — Bug severity migration preserves data
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As an existing squads user, I want my bug severities preserved exactly across the storage migration.
 
@@ -202,10 +181,6 @@ As an existing squads user, I want my bug severities preserved exactly across th
 
 <!-- sq:story:US4 -->
 ### US4 — Spec load fails closed on bad field decls
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As a project admin, I want spec loading to reject invalid badge field declarations with a clear error.

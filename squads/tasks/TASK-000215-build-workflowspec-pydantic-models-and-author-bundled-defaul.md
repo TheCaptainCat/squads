@@ -81,22 +81,10 @@ both consume these models and this TOML.
 
 _Add with `sq task 215 add-subtask "<title>"`; track with `sq task 215 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | WorkflowSpec/TypeSpec/StatusSpec/StateMachine models, enum-typed fields | US1 |
-| ST2 | Todo |  | Author bundled default_workflow.toml encoding today's vocabulary | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — WorkflowSpec/TypeSpec/StatusSpec/StateMachine models, enum-typed fields
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a maintainer, I want workflow spec loaded from TOML so behavior is in data not code
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers building the pyright-strict pydantic v2 WorkflowSpec tree per ADR-214 §1: WorkflowSpec (types/statuses/machines/subentity_machines + derived reverse indexes), TypeSpec (prefix/folder/machine/parents/aliases — no F2 capability flags), StatusSpec (terminal/optional badge), and StateMachine (initial/transitions with derived .states). Enum-typed fields stay enum-typed — parse from TOML strings and coerce/validate into ItemType/Status, raising on an unknown name (no str widening).
@@ -110,11 +98,6 @@ Covers building the pyright-strict pydantic v2 WorkflowSpec tree per ADR-214 §1
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Author bundled default_workflow.toml encoding today's vocabulary
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a maintainer, I want workflow spec loaded from TOML so behavior is in data not code
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers authoring the bundled src/squads/_workflow/default_workflow.toml (promoting _workflow.py into a _workflow/ package that re-exports the same public names so import sites are unchanged) encoding today's vocabulary byte-for-byte: the seven distinct machines plus two sub-entity machines with initial+transitions, all statuses with terminal flags mirroring TERMINAL, sub-entity status badges (STATUS_EMOJI), and every type's prefix/folder/machine/parents/aliases matching today's PREFIX_BY_TYPE/FOLDER_BY_TYPE/ALLOWED_PARENTS/TYPE_ALIASES. Priority/severity badges are out of scope.

@@ -86,21 +86,10 @@ If squads can detect and/or prevent self-review, then:
 
 _Add with `sq feature 124 add-story "As a <role>, I want … so that …"`; track with `sq feature 124 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | sq check flags self-review by same spawn lineage |
-| US2 | Todo |  | Suppressible self-review guard for solo workflows |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — sq check flags self-review by same spawn lineage
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squad manager, I want `sq check` to flag any review whose author lineage matches the target item's author lineage, so that I can detect self-review before the review closes.
@@ -116,10 +105,6 @@ As a squad manager, I want `sq check` to flag any review whose author lineage ma
 
 <!-- sq:story:US2 -->
 ### US2 — Suppressible self-review guard for solo workflows
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a solo operator running a single-agent workflow, I want to suppress the self-review guard with `--force` and a rationale comment, so that the check does not block legitimate single-agent use.

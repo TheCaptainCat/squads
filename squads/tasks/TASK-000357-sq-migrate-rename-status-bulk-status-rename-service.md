@@ -32,21 +32,10 @@ Depends on TASK-356 (shares the RenameMixin module + RenameResult; sequenced aft
 
 _Add with `sq task 357 add-subtask "<title>"`; track with `sq task 357 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Bulk rename-status service scoped to the type's lifecycle | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Bulk rename-status service scoped to the type's lifecycle
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a project admin, I want sq migrate rename-status to safely rename a status across all items of a type
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Added `RenameMixin.rename_status(type, old_status, new_status)` — a single-transaction, frontmatter-only relabel of every item of one type currently at a given status, scoped per-type (status names are global vocabulary, so only that type's items are touched). `new_status` is validated as a member of that type's lifecycle states (a relabel, not a workflow move), `Item.subentities` is left untouched, and it reuses TASK-356's `RenameResult` plus the snapshot/rollback atomicity.

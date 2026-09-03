@@ -44,21 +44,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 296 add-finding "…" --severity high`; track with `sq review 296 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | BackendContext.version now unread — vestigial after removing the skill-render kwargs |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — BackendContext.version now unread — vestigial after removing the skill-render kwargs
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Severity: low (cleanliness / non-blocking — no functional impact).

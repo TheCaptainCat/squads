@@ -53,22 +53,10 @@ Implements US2 of the parent feature.
 
 _Add with `sq task 394 add-subtask "<title>"`; track with `sq task 394 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Short slug derivation + --slug override | US2 |
-| ST2 | Done |  | Tests: derivation, override, collision, legacy resolve | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Short slug derivation + --slug override
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Short, human-friendly memory slugs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Derive a short handle in _store.add (first few words / capped at a word boundary) instead of slugifying the whole fact; add an optional --slug override on the CLI add command, plumbed through the service. Full fact stays in summary/body; collision -2/-3 via _unique_slug preserved.
@@ -82,11 +70,6 @@ Derive a short handle in _store.add (first few words / capped at a word boundary
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Tests: derivation, override, collision, legacy resolve
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Short, human-friendly memory slugs
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Service-level test + CLI smoke test: long fact yields a short slug (summary/body keep full text); --slug names the handle; colliding short slugs get -2; an existing long-slug memory still resolves via show/forget.

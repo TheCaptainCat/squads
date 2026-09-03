@@ -132,23 +132,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 723 add-finding "…" --severity medium`; track with `sq review 723 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Wheel packaging check ignores the package path it is given |
-| F2 | 🟢 low | Open |  | Open downstream task bodies still send devs to the dead path |
-| F3 | 🟢 low | Open |  | ADR-696 guard clause still names the retired _bundled path |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Wheel packaging check ignores the package path it is given
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `tests/meta/test_bundled_toml_packaging.py::test_asset_ships_in_the_built_wheel` is parametrized
@@ -198,11 +185,6 @@ is genuinely wrong rather than merely unavailable.
 <!-- sq:finding:F2 -->
 ### F2 — Open downstream task bodies still send devs to the dead path
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Two tasks that have not yet been implemented still instruct their implementer to read the retired
 directory:
@@ -239,11 +221,6 @@ briefing inconsistency, not a miss by the implementer.
 
 <!-- sq:finding:F3 -->
 ### F3 — ADR-696 guard clause still names the retired _bundled path
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 ADR-696 is Accepted, and its **Guard** clause states the standing rule with the retired path:

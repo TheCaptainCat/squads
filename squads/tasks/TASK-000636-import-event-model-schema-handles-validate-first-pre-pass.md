@@ -62,9 +62,6 @@ This is one of the two sizable core tasks (with the apply task). Do NOT fold app
 
 _Add with `sq task 636 add-subtask "<title>"`; track with `sq task 636 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

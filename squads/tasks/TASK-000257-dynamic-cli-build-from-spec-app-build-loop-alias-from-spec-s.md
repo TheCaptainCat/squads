@@ -77,9 +77,6 @@ resolves are settled in ADR-263 — follow it; do not re-litigate the choice.
 
 _Add with `sq task 257 add-subtask "<title>"`; track with `sq task 257 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

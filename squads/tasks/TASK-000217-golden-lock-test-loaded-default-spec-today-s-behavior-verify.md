@@ -70,22 +70,10 @@ green throughout F2–F6.
 
 _Add with `sq task 217 add-subtask "<title>"`; track with `sq task 217 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Golden-lock test: loaded default spec == frozen snapshot of today | US2 |
-| ST2 | Todo |  | Build test: default_workflow.toml ships in the wheel | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Golden-lock test: loaded default spec == frozen snapshot of today
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a maintainer, I want a golden test asserting default spec == today's behavior so regressions are caught immediately
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the golden-lock regression gate for EPIC-206: build a frozen snapshot directly from today's `WORKFLOWS`/`TERMINAL`/`ALLOWED_PARENTS`/`PREFIX_BY_TYPE`/`FOLDER_BY_TYPE`/`TYPE_ALIASES`/`STATUS_EMOJI` literals and assert structural equality with the loaded default `WorkflowSpec` — the set of `ItemType`s and each type's prefix/folder/aliases/parents, every machine's `initial` + full transitions map, the `TERMINAL` set status-by-status, the sub-entity machines per kind, and the status badges. Fails on any drift; CI-enforced and stays green through F2-F6. This is what proves TASK-215/216's externalization is behavior-preserving. (US2)
@@ -99,11 +87,6 @@ Covers the golden-lock regression gate for EPIC-206: build a frozen snapshot dir
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Build test: default_workflow.toml ships in the wheel
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a maintainer, I want a golden test asserting default spec == today's behavior so regressions are caught immediately
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the packaging verification: a build/packaging test asserting `default_workflow.toml` is present in the built wheel, mirroring the existing templates-in-wheel test and relying on the `packages = ["src/squads"]` sweep of non-`.py` files (confirm the path fires, don't add a per-file include). Also confirms `sq workflow` renders the same cheatsheet as part of the regression surface. (US2)

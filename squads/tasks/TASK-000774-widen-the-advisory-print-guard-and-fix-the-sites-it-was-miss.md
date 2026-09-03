@@ -52,22 +52,10 @@ that sentence gets corrected when this lands.
 
 _Add with `sq task 774 add-subtask "<title>"`; track with `sq task 774 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Accept an attribute receiver in the advisory-print guard |  |
-| ST2 | Done |  | Soft-wrap the root --at timestamp refusal |  |
-| ST3 | Done |  | Send human-mode unreadable-file errors to stderr |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Accept an attribute receiver in the advisory-print guard
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The class guard `tests/meta/test_single_line_advisory_prints_stay_soft_wrapped.py` resolves a print's
@@ -156,10 +144,6 @@ record, and so is declining to add the rule.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Soft-wrap the root --at timestamp refusal
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The root callback's `--at` timestamp refusal is unwrapped, so its ISO example splits across a real
 newline when stderr is piped. It was one of the sites the earlier sweep named explicitly and did not
@@ -212,10 +196,6 @@ Do not edit `CHANGELOG.md` yourself.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Send human-mode unreadable-file errors to stderr
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `sq board list`, `sq memory <role> list` and `sq memory <role> search` print their per-file

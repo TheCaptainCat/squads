@@ -44,9 +44,6 @@ Authored as one cohesive core task because A1/A2/A3 are one surface subfamily (t
 
 _Add with `sq task 481 add-subtask "<title>"`; track with `sq task 481 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -124,24 +124,10 @@ source comment.
 
 _Add with `sq task 700 add-subtask "<title>"`; track with `sq task 700 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Build the config-integrity clause predicates | US6 |
-| ST2 | Done |  | Register the roster config-integrity validator in the closed catalog | US6 |
-| ST3 | Done |  | Name the dependants and the implicating types in each finding | US6 |
-| ST4 | Done |  | Cover the reporter against the recorded repro | US6 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Build the config-integrity clause predicates
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As a team, sq check reports a roster entry already in a broken config state
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 C1, C2 and C3 as pure functions over an already-loaded index snapshot plus the active spec and the active backend list — no I/O, so the gate task can call the identical predicates from the transition's pure half. This is the shared definition; nothing else may restate it.
@@ -170,11 +156,6 @@ Done when each clause is callable against a hand-built snapshot and returns find
 <!-- sq:subtask:ST2 -->
 ### ST2 — Register the roster config-integrity validator in the closed catalog
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As a team, sq check reports a roster entry already in a broken config state
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Register one report-mode validator that runs the clauses and emits their findings through `sq check`'s existing collected report — one line per issue, the existing severity and exit-code convention, not a separate command.
 
@@ -196,11 +177,6 @@ Done when `sq check` reports the clauses on an affected squad and stays silent o
 <!-- sq:subtask:ST3 -->
 ### ST3 — Name the dependants and the implicating types in each finding
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As a team, sq check reports a roster entry already in a broken config state
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Each finding names the same specifics a transition-time refusal would, because an operator reading it has to be able to act on it: the dependent entity or entities, and where the dependency is a `sq-<type>` implication, the implicating type or types.
 
@@ -221,11 +197,6 @@ Done when each finding is specific enough to act on and no finding recommends dr
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Cover the reporter against the recorded repro
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As a team, sq check reports a roster entry already in a broken config state
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Two homes, tests named by behaviour, no ticket ID in any file name, test name or source comment.

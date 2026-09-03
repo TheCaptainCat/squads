@@ -284,7 +284,7 @@
     "_rendering/templates/subentities/summary.md.j2": "8a025754bdfdda21747270a9f7fbee0420c17e6070b2a3bc5e38c2d8dd60f0e7",
     "_rendering/templates/views/milestone_rollup.md.j2": "3396e93139c8301a4c3effe1f3a44d744a3795c1ab8be3f545e6748c6c05a271",
     "_rendering/templates/workflow.md.j2": "0dbe069be73ee0932f86314bd7daba87ca34b6fb363620a010deceb3b6b85a77",
-    "_rendering/templates/workflow_static.md.j2": "acb317041dad510969bdf1da35acbac6b716ec8d21aa4749851ada66fc107f83",
+    "_rendering/templates/workflow_static.md.j2": "202f59ea4ebc813805047f1e1cad7156d885187d816481e805b1e3eeebb69c90",
     "_specs/playbook.toml": "7a932cb755738a8de3855b24f2a392ad8778db0a24b6c0b995d44bdfa57acbf0",
     "_specs/roles.toml": "4a9ea074f72a67d5f2070932e7973497edd84c6ffb0bdc3ab4b6b5ecd7f33adf",
     "_specs/workflow.toml": "885b1b3c9213b3394ca6e54d10fd7c363ef5dc068ec175ea04bc15f391f5041a"

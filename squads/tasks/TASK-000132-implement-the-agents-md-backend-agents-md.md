@@ -69,22 +69,10 @@ Mostly **new files** — low conflict. The only shared edits are the registry re
 
 _Add with `sq task 132 add-subtask "<title>"`; track with `sq task 132 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Implement AgentsMdBackend writing/refreshing AGENTS.md | US1 |
-| ST2 | Done |  | Parametrize the conformance suite over agents_md and make both backends pass it | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Implement AgentsMdBackend writing/refreshing AGENTS.md
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — AGENTS.md backend for non-Claude agent tooling
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow, skill content); sq init/sync target it; README.
@@ -98,11 +86,6 @@ Implement AgentsMdBackend writing/refreshing project AGENTS.md (roster, workflow
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Parametrize the conformance suite over agents_md and make both backends pass it
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers parametrizing the shared TASK-131 conformance suite over the new agents_md backend (via the backend-factory fixture) and making both claude_code and agents_md pass it unchanged — the proof that the AgentBackend ABC is honest and free of Claude-specific assumptions. Includes the agents_md-specific test (valid AGENTS.md, managed markers intact, user prose preserved, roster/workflow content present) and a sq init --backend agents_md + sq sync smoke test.

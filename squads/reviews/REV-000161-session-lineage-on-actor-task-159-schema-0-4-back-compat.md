@@ -48,21 +48,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 161 add-finding "…" --severity high`; track with `sq review 161 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | v0_4 corpus fixture: .squads.json stuck at schema 0.3 (toml says 0.4) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — v0_4 corpus fixture: .squads.json stuck at schema 0.3 (toml says 0.4)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The new fixture tests/fixtures/corpus/v0_4/ has .squads.toml stamped schema_version="0.4" but its .squads.json still carries "schema_version": "0.3". Other corpus fixtures (v0_3) are internally consistent (toml and json agree). The corpus README states each fixture ships ".squads.json with the index at that version's shape" — this fixture violates that contract: it is a copy-and-stamp artifact where only the toml was re-stamped.

@@ -70,21 +70,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 218 add-finding "…" --severity high`; track with `sq review 218 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Loader does not enforce Status-enum completeness (ADR 5-6 partial) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Loader does not enforce Status-enum completeness (ADR 5-6 partial)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 src/squads/_workflow/_models.py:222-233 (WorkflowSpec._validate, §5-6 enums-intact check).

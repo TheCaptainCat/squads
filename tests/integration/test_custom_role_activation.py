@@ -15,6 +15,7 @@ import pytest
 
 from squads._models._extras import ExtraKey as X
 from squads._overrides._service import scaffold_new_role
+from squads._roles._resolver import resolve_role_for_item
 from squads._sections import split_frontmatter
 
 pytestmark = pytest.mark.anyio
@@ -50,9 +51,13 @@ class TestActivationCreatesTheTrackedItemAndPointer:
         item = await svc.activate_role("security-analyst")
         assert item.type == "role"
         assert item.extra.get(X.SLUG) == "security-analyst"
-        assert item.extra.get(X.FULL_NAME) == "Sam Security"
-        assert item.extra.get(X.TITLE) == "security analyst"
-        assert item.extra.get(X.MISSION) == "Keep the codebase free of security regressions."
+        # The uniform record carries the resolved name and mission; the rest of the definition
+        # is resolved from the override document on every read, never copied onto the item.
+        assert item.title == "Sam Security"
+        assert item.description == "Keep the codebase free of security regressions."
+        resolved = resolve_role_for_item(item, svc.paths.squad_dir)
+        assert resolved.title == "security analyst"
+        assert resolved.mission == "Keep the codebase free of security regressions."
 
     async def test_the_pointer_is_written_with_the_custom_full_name_and_no_bundled_fallback(
         self, project, svc
@@ -101,7 +106,7 @@ class TestCanSpawnOptIn:
             mission="Keep the codebase free of security regressions.",
         )
         item = await svc.activate_role("security-analyst")
-        assert item.extra.get(X.CAN_SPAWN) is False
+        assert resolve_role_for_item(item, svc.paths.squad_dir).can_spawn is False
         fm, _ = split_frontmatter(_read_pointer(project, "security-analyst"))
         assert fm.get("disallowedTools") == "Agent"
 
@@ -117,7 +122,7 @@ class TestCanSpawnOptIn:
             mission="Plan and delegate work across the custom role roster.",
         )
         item = await svc.activate_role("orchestrator")
-        assert item.extra.get(X.CAN_SPAWN) is True
+        assert resolve_role_for_item(item, svc.paths.squad_dir).can_spawn is True
         fm, _ = split_frontmatter(_read_pointer(project, "orchestrator"))
         assert "disallowedTools" not in fm
 

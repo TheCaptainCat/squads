@@ -53,22 +53,10 @@ Add an always-seen directive to the role boot definition telling a spawning agen
 
 _Add with `sq task 393 add-subtask "<title>"`; track with `sq task 393 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add the boot directive to role.md.j2 | US1 |
-| ST2 | Done |  | Regenerate manifest; flag golden churn | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add the boot directive to role.md.j2
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Boot directive: review memory + board before starting
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add the always-seen 'review your memory + the board before starting, apply what's relevant' directive to the shared role boot template. Covers both surfaces in one line; must render cleanly with an empty memory pool and empty board.
@@ -82,11 +70,6 @@ Add the always-seen 'review your memory + the board before starting, apply what'
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Regenerate manifest; flag golden churn
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Boot directive: review memory + board before starting
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Regenerate templates_manifest.json (mid-cycle template change). If the list command or managed-section goldens shift from the new boot text, flag the churn for the main loop to verify against the full suite rather than rewriting expectations blindly.

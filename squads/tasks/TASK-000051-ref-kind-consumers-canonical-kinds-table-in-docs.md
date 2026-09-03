@@ -54,22 +54,10 @@ The **stability-contract doc wording** ("vocabulary is closed in 1.0; unknown ki
 
 _Add with `sq task 51 add-subtask "<title>"`; track with `sq task 51 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Single canonical eight-row kinds table in workflow.md.j2 (meaning/direction/consumer); ref add --kind help points at it | US3 |
-| ST2 | Done |  | depends-on equivalence in sq blocked (A depends-on B == B blocks A; mixed usage works) | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Single canonical eight-row kinds table in workflow.md.j2 (meaning/direction/consumer); ref add --kind help points at it
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Ship the single canonical eight-row kinds table in _rendering/templates/workflow.md.j2 (shared by the squads skill and sq workflow), each row giving kind / meaning / direction convention / consumer, with no 'add your own' footnote. Update the ref add --kind CLI help (and create --ref help) to enumerate the eight or point at sq workflow, replacing the stale five-kind list (US3).
@@ -83,11 +71,6 @@ Ship the single canonical eight-row kinds table in _rendering/templates/workflow
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — depends-on equivalence in sq blocked (A depends-on B == B blocks A; mixed usage works)
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Teach sq blocked to treat depends-on as the inverse of blocks: 'A depends-on B' (edge on the dependent A) means A is blocked by B, equivalent to 'B blocks A'. Handles the direction difference correctly and supports a squad mixing both spellings, showing each blocked item once with its blocker(s) (US4).

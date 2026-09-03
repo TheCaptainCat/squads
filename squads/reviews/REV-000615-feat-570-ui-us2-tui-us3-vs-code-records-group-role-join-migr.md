@@ -25,21 +25,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 615 add-finding "…" --severity medium`; track with `sq review 615 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | Records view ignores squads.typeIcons override |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Records view ignores squads.typeIcons override
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 recordsTreeDataProvider.refresh() calls buildRecordsView with a hardcoded {} for iconOverrides, so the squads.typeIcons user setting (which the work tree threads via getTypeIconOverrides) does not reach records leaves. Because decision/guide (and any custom records type) are category-excluded from the work tree, they render ONLY in the records view — so a typeIcons override for a records type has no effect anywhere in the UI. Low/non-blocking: icon-override polish, not a correctness or contract break; buildRecordsView already accepts the param. Fix = thread getTypeIconOverrides() into the provider, matching treeDataProvider.

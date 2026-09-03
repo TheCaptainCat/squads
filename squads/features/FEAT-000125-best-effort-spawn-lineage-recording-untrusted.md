@@ -61,21 +61,10 @@ Relates to ADR-158 (Agent identity & spawn lineage: spawner-minted session nonce
 
 _Add with `sq feature 125 add-story "As a <role>, I want … so that …"`; track with `sq feature 125 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Structured actor record in the reflog (slug + session + parent) |
-| US2 | Done |  | Spawn-tree view in sq reflog |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Structured actor record in the reflog (slug + session + parent)
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As any agent or operator, I want the reflog to record a structured actor (slug + optional session ID + optional parent session ID) on every mutating operation, so that I can trace which session performed which operations and reconstruct spawn lineage for forensic review.
@@ -96,10 +85,6 @@ As any agent or operator, I want the reflog to record a structured actor (slug +
 
 <!-- sq:story:US2 -->
 ### US2 — Spawn-tree view in sq reflog
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a squad manager, I want `sq reflog` to render a spawn-tree view, so that I can trace which agent lineage performed which operations and identify structurally non-independent work (e.g. a self-review) by inspecting the recorded spawn edges.

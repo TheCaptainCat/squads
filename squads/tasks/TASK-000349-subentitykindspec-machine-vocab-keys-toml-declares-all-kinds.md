@@ -52,21 +52,10 @@ None — foundation. TASK-350 sequences immediately after (same two core files).
 
 _Add with `sq task 349 add-subtask "<title>"`; track with `sq task 349 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Declare custom-kind machine/vocab in TOML; bundled kinds byte-identical | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Declare custom-kind machine/vocab in TOML; bundled kinds byte-identical
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a project admin, I want to define custom sub-entity kinds for my custom types in TOML
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Extended `SubentityKindSpec` with the stored machine/vocab keys (`lifecycle`, `plural`, `local_prefix`, `placeholder`, `maps_parent_story`) and fully declared story/subtask/finding in `default_workflow.toml`, rewiring the three accessors to resolve the machine via `kind_spec.lifecycle` instead of the kind-name convention. Bundled kinds reproduce prior behaviour byte-identically, and a kind referencing an undeclared lifecycle or a duplicate plural/local_prefix now fails spec load.

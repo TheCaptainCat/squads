@@ -80,22 +80,10 @@ the CLI itself should be able to be its client, not just a browser.
 
 _Add with `sq feature 33 add-story "As a <role>, I want … so that …"`; track with `sq feature 33 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | CLI decoupled from concrete Service via Python Protocols |
-| US2 | Todo |  | Full offline/remote parity: transport never changes how I work |
-| US3 | Todo |  | Remote mode opt-in via .squads.toml; offline is the default |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — CLI decoupled from concrete Service via Python Protocols
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a maintainer of the codebase, I want the CLI decoupled from the concrete Service behind Python Protocols, so that plugging a different service implementation (remote or otherwise) is possible without touching the commands.
@@ -110,10 +98,6 @@ As a maintainer of the codebase, I want the CLI decoupled from the concrete Serv
 <!-- sq:story:US2 -->
 ### US2 — Full offline/remote parity: transport never changes how I work
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an operator or agent on a remote squad, I want every offline command and flag to work identically in remote mode, so that the transport never changes how I work.
 <!-- sq:story:US2:body:end -->
@@ -126,10 +110,6 @@ As an operator or agent on a remote squad, I want every offline command and flag
 
 <!-- sq:story:US3 -->
 ### US3 — Remote mode opt-in via .squads.toml; offline is the default
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a squad owner, I want the mode set in .squads.toml with offline as the default, so that remote is an explicit per-squad choice and existing squads are untouched.

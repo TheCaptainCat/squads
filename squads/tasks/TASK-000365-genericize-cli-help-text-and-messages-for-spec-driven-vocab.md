@@ -59,9 +59,6 @@ Files: `_cli/_items.py`, `_cli/_create.py`, `_cli/_main.py`, `_cli/_override.py`
 
 _Add with `sq task 365 add-subtask "<title>"`; track with `sq task 365 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

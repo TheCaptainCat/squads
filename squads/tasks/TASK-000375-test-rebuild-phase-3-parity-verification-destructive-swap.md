@@ -55,21 +55,10 @@ not run concurrently with any authoring.
 
 _Add with `sq task 375 add-subtask "<title>"`; track with `sq task 375 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Verify ledger parity before deleting the old suite | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Verify ledger parity before deleting the old suite
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Coverage ledger preserves previously-caught bugs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The parity gate before the destructive swap: verified the new four-pillar battery fully supersedes the old flat suite via an objective old-vs-new line-coverage diff (driven to 0 gap lines, new a superset of old) rather than the leaky ledger cross-check, with the remaining gaps homed and the surviving suite green standalone under `--run-slow`. op-pierre pre-authorized the swap contingent on parity; the old ~80 `test_*.py` files were then deleted, keeping the frozen corpus fixtures, the in-use goldens, and the layered tree.

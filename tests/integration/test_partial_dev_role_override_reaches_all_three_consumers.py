@@ -123,7 +123,7 @@ async def test_declaring_full_name_renames_via_the_sync_cli_command(project, svc
 
     assert result.exit_code == 0, result.output
     assert json.loads(shown.output)["full_name"] == "Zara Typescript"
-    assert second.extra["full_name"] != "Zara Typescript"
+    assert second.title != "Zara Typescript"
 
 
 async def test_omitting_full_name_preserves_it_via_the_sync_cli_command(
@@ -137,4 +137,4 @@ async def test_omitting_full_name_preserves_it_via_the_sync_cli_command(
     shown = await invoke(["role", "typescript-dev", "show", "--json"])
 
     assert result.exit_code == 0, result.output
-    assert json.loads(shown.output)["full_name"] == second.extra["full_name"]
+    assert json.loads(shown.output)["full_name"] == second.title

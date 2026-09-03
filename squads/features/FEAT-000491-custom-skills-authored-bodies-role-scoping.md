@@ -67,24 +67,10 @@ and there's no way to say "these roles preload this skill."
 
 _Add with `sq feature 491 add-story "As a <role>, I want … so that …"`; track with `sq feature 491 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a squad author, I want to write and edit a custom skill's body so my team has a real, persistent runbook |
-| US2 | Done |  | As a squad author, I want custom skills distinguished from bundled ones |
-| US3 | Done |  | As a squad author, I want to scope a custom skill to one or more roles so exactly those agents preload it |
-| US4 | Done |  | As a squad author, I want role pointers to stay current when I link or unlink a skill without a manual full resync |
-| US5 | Done |  | As a squad author upgrading a squad, I want existing skills preserved unchanged |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a squad author, I want to write and edit a custom skill's body so my team has a real, persistent runbook
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 ## Acceptance criteria
@@ -107,10 +93,6 @@ _Add with `sq feature 491 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US2 -->
 ### US2 — As a squad author, I want custom skills distinguished from bundled ones
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 ## Acceptance criteria
 
@@ -130,10 +112,6 @@ _Add with `sq feature 491 add-story "As a <role>, I want … so that …"`; trac
 
 <!-- sq:story:US3 -->
 ### US3 — As a squad author, I want to scope a custom skill to one or more roles so exactly those agents preload it
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 ## Acceptance criteria
@@ -158,10 +136,6 @@ _Add with `sq feature 491 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US4 -->
 ### US4 — As a squad author, I want role pointers to stay current when I link or unlink a skill without a manual full resync
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 ## Acceptance criteria
 
@@ -181,10 +155,6 @@ _Add with `sq feature 491 add-story "As a <role>, I want … so that …"`; trac
 
 <!-- sq:story:US5 -->
 ### US5 — As a squad author upgrading a squad, I want existing skills preserved unchanged
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 ## Acceptance criteria

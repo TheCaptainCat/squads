@@ -32,9 +32,6 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 172 add-finding "…" --severity high`; track with `sq review 172 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 <!-- sq:findings:end -->
 

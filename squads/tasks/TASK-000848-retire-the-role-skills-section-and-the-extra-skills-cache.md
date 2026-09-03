@@ -175,24 +175,10 @@ identical before and after, including for a role with a custom `scopes`-scoped s
 
 _Add with `sq task 848 add-subtask "<title>"`; track with `sq task 848 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Add the computed skills row to the role show card | US3 |
-| ST2 | Todo |  | Remove the Skills block from role.md.j2 and regenerate | US3 |
-| ST3 | Todo |  | Delete the extra.skills cache and its writers | US3 |
-| ST4 | Todo |  | Narrow PERMITTED_EXTRA_SKEW and update its pinning test | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add the computed skills row to the role show card
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — Retire the role Skills section and extra.skills cache
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add a `skills:` row to `sq role <slug> show`'s computed catalog card, beside the `creates:` row it
@@ -232,11 +218,6 @@ including a role with a custom skill scoped through the `preload` ref kind.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Remove the Skills block from role.md.j2 and regenerate
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — Retire the role Skills section and extra.skills cache
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Delete the `{% if extra.get('skills') %}` block from
 `src/squads/_rendering/templates/roles/role.md.j2` (verified: lines 18-26 today, between
@@ -270,11 +251,6 @@ Done when a freshly synced role body carries no `## Skills` section,
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Delete the extra.skills cache and its writers
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — Retire the role Skills section and extra.skills cache
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Delete the `extra.skills` cache and every writer of it. Verified sites:
@@ -316,11 +292,6 @@ role file carrying a stale `skills:` key loads, shows and checks clean.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Narrow PERMITTED_EXTRA_SKEW and update its pinning test
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — Retire the role Skills section and extra.skills cache
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Narrow the skew-guard exemption now that the cache it existed for is gone.

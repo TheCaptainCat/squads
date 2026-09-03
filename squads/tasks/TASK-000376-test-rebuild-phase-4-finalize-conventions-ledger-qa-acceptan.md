@@ -46,9 +46,6 @@ Depends on Phase 3 (swap complete). Last phase; on QA acceptance, FEAT-231 close
 
 _Add with `sq task 376 add-subtask "<title>"`; track with `sq task 376 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

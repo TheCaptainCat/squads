@@ -58,9 +58,6 @@ non-byte-identical change in FEAT-568:
 
 _Add with `sq task 584 add-subtask "<title>"`; track with `sq task 584 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

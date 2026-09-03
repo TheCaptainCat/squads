@@ -37,23 +37,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 562 add-finding "…" --severity medium`; track with `sq review 562 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | WontFix |  | VS Code built-in filter can silently hide legitimate sq search hits |
-| F2 | 🟢 low | Verified |  | Displayed row order is VS Code fuzzy-score order, not sq search's returned rank |
-| F3 | 🟢 low | Verified |  | Enter mid-debounce can open a stale highlighted result instead of submitting the refined query |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — VS Code built-in filter can silently hide legitimate sq search hits
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **What.** searchQuickPick.ts enables matchOnDescription/matchOnDetail to widen VS Code's always-on QuickPick filter so a server hit whose *title* doesn't contain the query still survives on its snippet. The module comment claims this is safe because "every hit's detail always carries the matched snippet (which does contain the query)". That invariant does not hold.
@@ -74,11 +61,6 @@ _Add with `sq review 562 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:finding:F2 -->
 ### F2 — Displayed row order is VS Code fuzzy-score order, not sq search's returned rank
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **What.** searchResults.ts documents 'Rows are rendered in the exact order sq search --json returned them — no client-side re-ranking'. End-to-end that invariant is not upheld: with matchOnDescription/matchOnDetail on, VS Code sorts the surviving items by its own fuzzy match score against the current value, so the user sees results in relevance-to-query order, not sq's returned rank.
 
@@ -93,11 +75,6 @@ _Add with `sq review 562 add-finding "…" --severity medium`; track with `sq re
 
 <!-- sq:finding:F3 -->
 ### F3 — Enter mid-debounce can open a stale highlighted result instead of submitting the refined query
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **What.** onDidAccept disambiguates via decideAccept(quickPick.selectedItems[0]): a selected row → open; nothing selected → debounce-bypass submit. This is correct in the common case. The sharp edge: after results render, the first row is auto-active; if the user then types a refinement, the OLD results stay displayed until the new result arrives (items are only replaced in applyOutcome). If a stale row still fuzzy-matches the new value it remains selectedItems[0].

@@ -83,21 +83,10 @@ by this change (ADR-155 boundary caveat).
 
 _Add with `sq task 156 add-subtask "<title>"`; track with `sq task 156 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Block leaf roles from spawning (US2) | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Block leaf roles from spawning (US2)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-152)
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the leaf-no-spawn boundary (FEAT-122 Slice A, fixes BUG-152) across three seams per ADR-155: a can_spawn bool on RoleDef (True only for manager + tech-lead; False default, dev_role() leaves False), the claude_code backend emitting disallowedTools: Agent into the rendered agent pointer frontmatter for leaf roles (covering the legacy Task alias), and surfacing can_spawn via sq role <slug> show. Backend test parses the rendered YAML asserting leaf denies Agent while manager/tech-lead retain spawn authority.

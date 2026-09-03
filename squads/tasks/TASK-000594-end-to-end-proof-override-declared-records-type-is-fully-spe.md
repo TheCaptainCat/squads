@@ -33,9 +33,6 @@ Implements FEAT-569 acceptance. A single integration proof that a genuinely NEW 
 
 _Add with `sq task 594 add-subtask "<title>"`; track with `sq task 594 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

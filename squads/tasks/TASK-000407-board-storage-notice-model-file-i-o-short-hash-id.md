@@ -52,23 +52,10 @@ Build the storage/model layer for the team bulletin board on the model fixed by 
 
 _Add with `sq task 383 add-subtask "<title>"`; track with `sq task 383 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Notice model + file I/O: short-hash id, author/posted-at/until/body | US1 |
-| ST2 | Done |  | Generate squads/board/.index.jsonl via the shared generator | US1 |
-| ST3 | Done |  | Read-time expiry filter; reads never mutate files | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Notice model + file I/O: short-hash id, author/posted-at/until/body
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `post` writes a notice `.md` under `squads/board/` with a short-hash stable id plus author, posted-at, optional `until`, and body. No global-counter id. Distinct hash ids across branches (no merge collision).
@@ -83,11 +70,6 @@ _Add with `sq task 383 add-subtask "<title>"`; track with `sq task 383 subtask <
 <!-- sq:subtask:ST2 -->
 ### ST2 — Generate squads/board/.index.jsonl via the shared generator
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Reuse the shared `.index.jsonl` generator (from the memory storage task) to write `squads/board/.index.jsonl` in the same sorted, unexpired order the CLI lists in; `slug` field carries the notice's short-hash id. Regenerated whole on post/clear and `sq sync`.
 <!-- sq:subtask:ST2:body:end -->
@@ -100,11 +82,6 @@ Reuse the shared `.index.jsonl` generator (from the memory storage task) to writ
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Read-time expiry filter; reads never mutate files
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As anyone, I can list current notices to see what's active
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Expired notices (past `until`) are excluded from the generated index and listings at read time. A read must not mutate git-tracked files or manufacture spurious diffs; physical removal only on explicit `clear`.

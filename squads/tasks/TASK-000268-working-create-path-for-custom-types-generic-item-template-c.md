@@ -45,9 +45,6 @@ The create path calls `allocate_id`/`format_id` and stamps `Item.prefix` — tho
 
 _Add with `sq task 268 add-subtask "<title>"`; track with `sq task 268 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

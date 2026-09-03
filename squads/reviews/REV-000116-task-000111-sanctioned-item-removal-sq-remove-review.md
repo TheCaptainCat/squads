@@ -39,22 +39,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 116 add-finding "…" --severity high`; track with `sq review 116 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | Unlink runs after the transaction commits, not inside it |
-| F2 | 🟢 low | Verified |  | Width-tolerant ref matcher forked instead of shared |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Unlink runs after the transaction commits, not inside it
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 ADR-114 §1 specifies removal unlinks the .md AND deletes the index entry `in one store.transaction()`. In `remove_work_item` (_services/_items.py) the `del db.items[seq]` is committed when the `with self.store.transaction()` block exits (atomic os.replace), but `path.unlink(missing_ok=True)` runs *after* the block, outside the lock.
@@ -77,11 +65,6 @@ Compare: unlinking *before* the index write (inside the transaction) gives the s
 
 <!-- sq:finding:F2 -->
 ### F2 — Width-tolerant ref matcher forked instead of shared
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 `_items.py::_ref_id_matches` (lines 19-29) is byte-identical to `_refs.py::_id_matches` (lines 14-25) — the same width-tolerant (prefix, seq) ref matcher. ADR-114 §3 explicitly says forced removal should *reuse* the `_id_matches` sever logic in _services/_refs.py; the dev forked it to dodge a pyright reportPrivateUsage warning.

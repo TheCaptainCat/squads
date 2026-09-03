@@ -63,25 +63,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 201 add-finding "…" --severity high`; track with `sq review 201 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Open |  | migrate chlog hint points at the wrong release range — 0.5 manual steps are unreachable |
-| F2 | 🟡 medium | Open |  | Interrupted migration can mint duplicate SKILL ids (counter persisted once at end, not per-allocation) |
-| F3 | 🟢 low | Open |  | Dead/misleading manual .squads.json write in the runner — clobbered by the following repair() |
-| F4 | 🟢 low | Open |  | v0_5 corpus fixture is mislabeled — schema_version=0.4 on disk under a dir registered as 0.5 |
-| F5 | 🟢 low | Open |  | _skip_skill_seed test hook is now load-bearing suite-wide; seeded state under-covered by default |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — migrate chlog hint points at the wrong release range — 0.5 manual steps are unreachable
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **File:** src/squads/_migrations/_registry.py:58 (version="0.5.0") + src/squads/_cli/_migrate.py:49-53; src/squads/__init__.py:3 (__version__ = "0.4.1").
@@ -102,11 +87,6 @@ The runner DID author a useful MANUAL (the 'missing skill body file -> run sq sy
 <!-- sq:finding:F2 -->
 ### F2 — Interrupted migration can mint duplicate SKILL ids (counter persisted once at end, not per-allocation)
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **File:** src/squads/_migrations/_v0_4_to_v0_5.py:100-159 (the stamp loop; _write_index_sync at 158-159 runs ONCE after the loop).
 
@@ -123,11 +103,6 @@ The parallel path seed_bundled_skills (_services/_maintenance.py:212) does this 
 
 <!-- sq:finding:F3 -->
 ### F3 — Dead/misleading manual .squads.json write in the runner — clobbered by the following repair()
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **File:** src/squads/_migrations/_v0_4_to_v0_5.py:64-74 (_read_index_sync/_write_index_sync), 136-159 (raw['items'][...] mirror + _write_index_sync), and the module docstring lines 18-23.
@@ -146,11 +121,6 @@ Beyond being dead, it's a second, non-locked, non-atomic index writer duplicatin
 <!-- sq:finding:F4 -->
 ### F4 — v0_5 corpus fixture is mislabeled — schema_version=0.4 on disk under a dir registered as 0.5
 
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **File:** tests/fixtures/corpus/v0_5/.squads.toml (schema_version = "0.4", squads_version = "0.4.0") + tests/test_migration_corpus.py:37 (registered as ("0.5", "v0_5")).
 
@@ -167,11 +137,6 @@ Functionally this is the lucky case — because it's at 0.4, run_pending_migrati
 
 <!-- sq:finding:F5 -->
 ### F5 — _skip_skill_seed test hook is now load-bearing suite-wide; seeded state under-covered by default
-
-<!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 **File:** src/squads/_services/_service.py:52 + tests/conftest.py:84-95 (project fixture now passes _skip_skill_seed=True); src/squads/_cli/_main.py:145-153 (hidden --no-seed-skills flag).

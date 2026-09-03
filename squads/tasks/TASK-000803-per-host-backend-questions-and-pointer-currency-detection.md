@@ -201,24 +201,10 @@ and would flag every pointer in the corpus the moment it does. Both tasks also e
 
 _Add with `sq task 803 add-subtask "<title>"`; track with `sq task 803 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Declare the five per-host questions without growing the abstract seven | US3 |
-| ST2 | Done |  | Both bundled backends answer all five questions explicitly | US3 |
-| ST3 | Done |  | sq check compares a fresh render against disk, at two severities | US4 |
-| ST4 | Done |  | sq sync reports what it regenerated for a currency fix | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Declare the five per-host questions without growing the abstract seven
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Five per-host questions on the AgentBackend ABC
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Declare ADR-781 section 2d's five questions on `AgentBackend`, each phrased so an author who has
@@ -267,11 +253,6 @@ and that unit test passes unedited.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Both bundled backends answer all five questions explicitly
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Five per-host questions on the AgentBackend ABC
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Both bundled backends answer all five questions explicitly, and their answers differ for a stated
 reason rather than by accident.
@@ -311,11 +292,6 @@ why the two differ without reading ADR-781.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — sq check compares a fresh render against disk, at two severities
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Currency detection for per-entry pointers
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `sq check` renders a fresh copy of each declared live per-entry artifact (question 5) and compares
@@ -366,11 +342,6 @@ assertion shipped in `383d5e8` still passes unedited.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — sq sync reports what it regenerated for a currency fix
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Currency detection for per-entry pointers
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 `sq sync` states what it regenerated for a currency fix, in the same shape BUG-784 already

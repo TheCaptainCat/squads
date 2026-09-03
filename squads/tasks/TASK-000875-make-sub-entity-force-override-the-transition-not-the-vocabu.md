@@ -3,7 +3,7 @@ id: TASK-875
 sequence_id: 875
 type: task
 title: Make sub-entity --force override the transition, not the vocabulary
-status: Ready
+status: InProgress
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -15,7 +15,7 @@ description: A sub-entity status update under --force writes a value outside tha
 subentities:
 - local_id: ST1
   title: Membership check on the sub-entity status path
-  status: Todo
+  status: InProgress
 - local_id: ST2
   title: Recovery from an already-invalid stored status
   status: Todo
@@ -23,7 +23,7 @@ subentities:
   title: Close the same write on the import route
   status: Todo
 created_at: '2026-09-02T09:58:51Z'
-updated_at: '2026-09-02T10:02:46Z'
+updated_at: '2026-09-02T12:22:53Z'
 ---
 <!-- sq:body -->
 ## What is wrong

@@ -36,21 +36,10 @@ Depends on TASK-355 (the extracted primitive).
 
 _Add with `sq task 356 add-subtask "<title>"`; track with `sq task 356 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Bulk rename-type service under rename-specific validation | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Bulk rename-type service under rename-specific validation
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Added `RenameMixin.rename_type(old_type, new_type)` — a single-transaction bulk move of every item of one work type to another already-declared type, reusing the TASK-355 primitive with `carry_status=True`. Validation is fail-closed before any mutation (both types declared work types, non-reserved-meta, `old != new`, no child left with an invalid parent); sub-entities and status carry over unconditionally, and a snapshot/rollback layer keeps disk, index, and reflog byte-identical on any failure. Returns a `RenameResult`.

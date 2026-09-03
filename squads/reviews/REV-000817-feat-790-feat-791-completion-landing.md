@@ -175,29 +175,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 817 add-finding "…" --severity medium`; track with `sq review 817 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Generator sweep deletes shipped store history when the running version is already released |
-| F2 | 🟡 medium | Fixed |  | Uniformity guard cannot see a sixth kind, and omits CLI reachability |
-| F3 | 🟡 medium | Fixed |  | Roles catalog refusals blame the bundled catalog for an adopter's own override |
-| F4 | 🟡 medium | Fixed |  | Unknown-top-level-key refusal never names the running version |
-| F5 | 🟡 medium | Fixed |  | Migration import guard is bypassed by a module import plus attribute access |
-| F6 | 🟢 low | Fixed |  | Catalog [dev] override does not reach the un-added dev-role preview |
-| F7 | 🟢 low | Fixed |  | Roles-catalog stamp finding still says the CLI has no roles verbs |
-| F8 | 🟢 low | Fixed |  | Cheatsheet lost the duplicates-are-closed-as-Cancelled guidance |
-| F9 | 🟢 low | Fixed |  | New hygiene scans carry hand-maintained literal lists unpinned to their sources |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Generator sweep deletes shipped store history when the running version is already released
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Severity: high. Driven.**
@@ -292,11 +273,6 @@ sweep test that runs at an already-carried version is the leg the guard is missi
 <!-- sq:finding:F2 -->
 ### F2 — Uniformity guard cannot see a sixth kind, and omits CLI reachability
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Severity: medium. Read, with the CLI half driven.**
 
@@ -358,11 +334,6 @@ true of the service layer and not of the CLI layer, and the distinction is exact
 <!-- sq:finding:F3 -->
 ### F3 — Roles catalog refusals blame the bundled catalog for an adopter's own override
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **Severity: medium. Driven.**
 
@@ -423,11 +394,6 @@ when the unknown slug is one `[selected]` removed.
 <!-- sq:finding:F4 -->
 ### F4 — Unknown-top-level-key refusal never names the running version
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **Severity: medium. Driven, then read.**
 
@@ -477,11 +443,6 @@ the closure without the compensation the decision traded for it.
 
 <!-- sq:finding:F5 -->
 ### F5 — Migration import guard is bypassed by a module import plus attribute access
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 **Severity: medium. Driven falsification of the guard.**
@@ -541,11 +502,6 @@ naming a forbidden identifier, and add the resolves-in-`_models._item` pin.
 <!-- sq:finding:F6 -->
 ### F6 — Catalog [dev] override does not reach the un-added dev-role preview
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 **Severity: low. Driven.**
 
@@ -598,11 +554,6 @@ The scaffold path emits no field values today, so the visible consequence is con
 <!-- sq:finding:F7 -->
 ### F7 — Roles-catalog stamp finding still says the CLI has no roles verbs
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 **Severity: low. Driven, then read.**
 
@@ -649,11 +600,6 @@ Also stale for the same reason: `_overrides/_service.py:1290-1293`'s reference t
 
 <!-- sq:finding:F8 -->
 ### F8 — Cheatsheet lost the duplicates-are-closed-as-Cancelled guidance
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **Severity: low. Read, against the goldens.**
@@ -707,11 +653,6 @@ the supersession clause is — not back in a hand-written row.
 
 <!-- sq:finding:F9 -->
 ### F9 — New hygiene scans carry hand-maintained literal lists unpinned to their sources
-
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
 **Severity: low. Read, with the pin check driven.**

@@ -49,9 +49,6 @@ Implements FEAT-100 story **US3** — "Filter and group tree by type/state, refr
 
 _Add with `sq task 431 add-subtask "<title>"`; track with `sq task 431 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

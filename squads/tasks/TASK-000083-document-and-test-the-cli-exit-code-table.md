@@ -53,21 +53,10 @@ This is frozen contract material (FEAT-13 deferral).
 
 _Add with `sq task 83 add-subtask "<title>"`; track with `sq task 83 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Documented exit-code table asserted in tests | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Documented exit-code table asserted in tests
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a CI pipeline author, I want documented exit codes, so that I can gate builds on commands like sq check
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Implement and document the frozen exit-code table and assert every code in tests: 0 success, 1 squads runtime error (SquadsError / schema mismatch), 2 usage error (bad --at, Typer/Click), 3 check found error-level issues. Flips check to raise typer.Exit(3) (was 1), documents the table inline on the CLI surface (linking the stability-doc home deferred to FEAT-000013), and adds CliRunner tests asserting each code including exit 3 on a seeded error-level check issue (US2).

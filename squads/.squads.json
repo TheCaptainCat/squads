@@ -1,7 +1,7 @@
 {
   "schema_version": "0.14",
   "squads_version": "0.14.0",
-  "counter": 879,
+  "counter": 882,
   "padding": 6,
   "items": {
     "12": {
@@ -21659,7 +21659,7 @@
         {
           "local_id": "ST2",
           "title": "Empty every role body and strip the role extra mirror",
-          "status": "Blocked",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -21686,7 +21686,7 @@
         {
           "local_id": "ST5",
           "title": "Strip this repository's own squad corpus",
-          "status": "Blocked",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -21713,7 +21713,7 @@
       ],
       "path": "tasks/TASK-000849-strip-the-retired-regions-corpus-wide-in-the-repair-sweep.md",
       "created_at": "2026-09-01T08:04:14Z",
-      "updated_at": "2026-09-02T10:01:57Z",
+      "updated_at": "2026-09-02T11:33:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -21879,7 +21879,7 @@
       "type": "task",
       "title": "Render the role definition at read time and stop storing it",
       "slug": "render-the-role-definition-at-read-time-and-stop-storing-it",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "The role definition producer inverts to a read-time ServiceCore method and the role extra mirror stops being written",
       "parent": "FEAT-694",
       "author": "tech-lead",
@@ -21923,8 +21923,8 @@
         {
           "local_id": "ST4",
           "title": "Stop writing the role extra mirror keys",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -21932,8 +21932,8 @@
         {
           "local_id": "ST5",
           "title": "Narrow PERMITTED_EXTRA_SKEW, its pin, and the settable fields",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
@@ -21941,7 +21941,7 @@
       ],
       "path": "tasks/TASK-000853-render-the-role-definition-at-read-time-and-stop-storing-it.md",
       "created_at": "2026-09-01T08:43:24Z",
-      "updated_at": "2026-09-02T10:03:22Z",
+      "updated_at": "2026-09-02T10:55:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22159,6 +22159,191 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-866"
+    },
+    "874": {
+      "sequence_id": 874,
+      "type": "task",
+      "title": "Refuse an empty --parent on the create path as update does",
+      "slug": "refuse-an-empty-parent-on-the-create-path-as-update-does",
+      "status": "Ready",
+      "description": "Three sites in the create path discard an empty --parent and report success; the update door refuses it. Collapse them onto one shared resolution helper.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-871:fixes"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000874-refuse-an-empty-parent-on-the-create-path-as-update-does.md",
+      "created_at": "2026-09-02T09:58:45Z",
+      "updated_at": "2026-09-02T10:02:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-874"
+    },
+    "875": {
+      "sequence_id": 875,
+      "type": "task",
+      "title": "Make sub-entity --force override the transition, not the vocabulary",
+      "slug": "make-sub-entity-force-override-the-transition-not-the-vocabu",
+      "status": "InProgress",
+      "description": "A sub-entity status update under --force writes a value outside that kind's lifecycle at exit 0 and the integrity gate then errors; add the membership check the add path already performs.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-873:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Membership check on the sub-entity status path",
+          "status": "InProgress",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Recovery from an already-invalid stored status",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Close the same write on the import route",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000875-make-sub-entity-force-override-the-transition-not-the-vocabu.md",
+      "created_at": "2026-09-02T09:58:51Z",
+      "updated_at": "2026-09-02T12:22:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-875"
+    },
+    "876": {
+      "sequence_id": 876,
+      "type": "task",
+      "title": "Name the id-collision remedy in agent guidance and guard the class",
+      "slug": "name-the-id-collision-remedy-in-agent-guidance-and-guard-the",
+      "status": "InReview",
+      "description": "Two shipped commands are named in no agent-facing surface; add the collision condition and its remedy to the carriers, give the repair flag help text, and guard that no future command can be invisible.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-872:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Name the collision condition and both remedy verbs",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Give the repair renumber flag help text",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Guard the class with a documented exemption list",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000876-name-the-id-collision-remedy-in-agent-guidance-and-guard-the.md",
+      "created_at": "2026-09-02T09:58:56Z",
+      "updated_at": "2026-09-02T12:17:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-876"
+    },
+    "877": {
+      "sequence_id": 877,
+      "type": "task",
+      "title": "Anchor and mark the cyclic component in bare sq tree",
+      "slug": "anchor-and-mark-the-cyclic-component-in-bare-sq-tree",
+      "status": "Ready",
+      "description": "Bare tree omits every item in or under a parent cycle at exit 0; anchor each cyclic component at a cycle member, mark the anchor, and pin coverage against list.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-870:fixes",
+        "TASK-849:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Anchor each cyclic component in the bare tree's roots",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Mark the anchor in the rendering and on the wire",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Pin coverage and bare-versus-targeted agreement",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000877-anchor-and-mark-the-cyclic-component-in-bare-sq-tree.md",
+      "created_at": "2026-09-02T10:08:03Z",
+      "updated_at": "2026-09-02T10:09:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-877"
     },
     "11": {
       "sequence_id": 11,
@@ -24263,6 +24448,157 @@
       "extra": {},
       "id": "BUG-869"
     },
+    "870": {
+      "sequence_id": 870,
+      "type": "bug",
+      "title": "Bare sq tree silently omits every item in or under a parent cycle",
+      "slug": "bare-sq-tree-silently-omits-every-item-in-or-under-a-parent",
+      "status": "Open",
+      "description": "Every tree form exits 0 while leaving out the whole component containing a cycle; sq check is the only surface that reports it.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-865"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000870-bare-sq-tree-silently-omits-every-item-in-or-under-a-parent.md",
+      "created_at": "2026-09-02T08:49:46Z",
+      "updated_at": "2026-09-02T10:24:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-870"
+    },
+    "871": {
+      "sequence_id": 871,
+      "type": "bug",
+      "title": "sq create --parent \"\" exits 0 and creates a parentless item",
+      "slug": "sq-create-parent-exits-0-and-creates-a-parentless-item",
+      "status": "Open",
+      "description": "The truthiness shape fixed in the update path is still live at three sites in the create path; the empty value is discarded and success reported.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-865"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000871-sq-create-parent-exits-0-and-creates-a-parentless-item.md",
+      "created_at": "2026-09-02T08:49:48Z",
+      "updated_at": "2026-09-02T10:01:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-871"
+    },
+    "872": {
+      "sequence_id": 872,
+      "type": "bug",
+      "title": "No agent-facing surface names sq renumber, the id-collision remedy",
+      "slug": "no-agent-facing-surface-names-sq-renumber-the-id-collision-r",
+      "status": "Open",
+      "description": "renumber is one of only two shipped commands absent from all 1744 lines of agent-facing guidance, and no surface detects a duplicate id either.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-865"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000872-no-agent-facing-surface-names-sq-renumber-the-id-collision-r.md",
+      "created_at": "2026-09-02T08:49:51Z",
+      "updated_at": "2026-09-02T10:02:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-872"
+    },
+    "873": {
+      "sequence_id": 873,
+      "type": "bug",
+      "title": "Sub-entity update --force writes a status sq check calls an error",
+      "slug": "sub-entity-update-force-writes-a-status-sq-check-calls-an-er",
+      "status": "Open",
+      "description": "sq <type> <n> <kind> <k> update --status <S> --force accepts a status outside that kind's lifecycle at exit 0; sq check then errors on the corpus. No sub-entity write door reaches ValidatorEngine.gate.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "BUG-865"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000873-sub-entity-update-force-writes-a-status-sq-check-calls-an-er.md",
+      "created_at": "2026-09-02T09:46:36Z",
+      "updated_at": "2026-09-02T10:24:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-873"
+    },
+    "878": {
+      "sequence_id": 878,
+      "type": "bug",
+      "title": "sq import reports error-level findings as warnings at exit 0",
+      "slug": "sq-import-reports-error-level-findings-as-warnings-at-exit-0",
+      "status": "Open",
+      "description": "sq import flattens error- and warn-level validator findings into one warning: list, exits 0 and keeps the write; driven on two unrelated error-level members.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "BUG-873"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000878-sq-import-reports-error-level-findings-as-warnings-at-exit-0.md",
+      "created_at": "2026-09-02T10:21:15Z",
+      "updated_at": "2026-09-02T10:23:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-878"
+    },
+    "879": {
+      "sequence_id": 879,
+      "type": "bug",
+      "title": "VS Code tree ignores the cycle-anchor flag and shows a fabricated root",
+      "slug": "vs-code-tree-ignores-the-cycle-anchor-flag-and-shows-a-fabri",
+      "status": "Open",
+      "description": "The client maps tree JSON through a closed field list, so the anchor mark never reaches the display model; the fabricated root renders as an ordinary one. Not reachable until the core change lands.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "BUG-870",
+        "TASK-877:depends-on"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000879-vs-code-tree-ignores-the-cycle-anchor-flag-and-shows-a-fabri.md",
+      "created_at": "2026-09-02T10:23:06Z",
+      "updated_at": "2026-09-02T10:24:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-879"
+    },
     "49": {
       "sequence_id": 49,
       "type": "decision",
@@ -26110,6 +26446,29 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-864"
+    },
+    "880": {
+      "sequence_id": 880,
+      "type": "decision",
+      "title": "Views as a source plus a template rendered at a document tag",
+      "slug": "views-as-a-source-plus-a-template-rendered-at-a-document-tag",
+      "status": "Proposed",
+      "description": "Retire the projection layer; keep and widen sources; a content-free tag marks where a view renders on read",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "adrs/ADR-000880-views-as-a-source-plus-a-template-rendered-at-a-document-tag.md",
+      "created_at": "2026-09-02T12:23:01Z",
+      "updated_at": "2026-09-02T12:23:27Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-880"
     },
     "858": {
       "sequence_id": 858,
@@ -35375,6 +35734,97 @@
       "extra": {},
       "id": "REV-854"
     },
+    "881": {
+      "sequence_id": 881,
+      "type": "review",
+      "title": "Corpus strip in the repair sweep",
+      "slug": "corpus-strip-in-the-repair-sweep",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-849:addresses",
+        "ADR-776",
+        "TASK-853"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Both adopter announcements deny the role half of the sweep",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "sq migrate up never announces the content it rewrote",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "A declared type shadowing an authored skill slug deletes its body",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Four of ten skill-body corpus params pass with the sweep disabled",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "The ADR gives a false reason for authored content being unreachable",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "The frozen list's own prose miscounts it and documents the wrong constant",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "docs still describe sq repair as an index-only job",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000881-corpus-strip-in-the-repair-sweep.md",
+      "created_at": "2026-09-02T12:23:23Z",
+      "updated_at": "2026-09-02T12:26:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-881"
+    },
     "79": {
       "sequence_id": 79,
       "type": "guide",
@@ -35434,29 +35884,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Catherine Manager",
         "slug": "manager",
-        "title": "manager",
-        "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done — keeping everything tracked in squads.",
-        "responsibilities": [
-          "Triage incoming requests and clarify intent",
-          "Delegate work to the right specialist agents and integrate their results",
-          "Drive features through the loop (implement → review → fix) until done",
-          "Keep the backlog and statuses honest",
-          "Summarise progress for the operator"
-        ],
-        "model": "opus",
-        "color": "cyan",
-        "is_default": true,
-        "description": "Default agent: triages the operator's request and routes it to the right specialist.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "releasing-squads"
-        ],
-        "agreements": [],
-        "can_spawn": true
+        "is_default": true
       },
       "id": "ROLE-1"
     },
@@ -35481,31 +35910,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Robert Architect",
         "slug": "architect",
-        "title": "architect",
-        "mission": "Own the system's shape: design coherent solutions, record decisions as ADRs, and guide implementation.",
-        "responsibilities": [
-          "Design components and their interactions",
-          "Record significant design decisions (ADRs in the bundled workflow)",
-          "Author cross-cutting guides",
-          "Review designs before implementation"
-        ],
-        "model": "opus",
-        "color": "blue",
-        "is_default": false,
-        "description": "System design and architecture decisions (ADRs).",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-epic",
-          "sq-decision",
-          "sq-contract",
-          "sq-guide"
-        ],
-        "agreements": [],
-        "can_spawn": false
+        "is_default": false
       },
       "id": "ROLE-2"
     },
@@ -35530,37 +35936,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Olivia Lead",
         "slug": "tech-lead",
-        "title": "tech lead",
-        "mission": "Turn features into well-scoped tasks, sequence the work, and unblock the team.",
-        "responsibilities": [
-          "Break each feature into scoped units of work, parented to the feature they implement (bundled default: `sq create task --parent FEAT-<n>`)",
-          "Map each unit of work's sub-items to a single user story where the type supports it (bundled default: `sq task <n> add-subtask \"…\" --story USn`)",
-          "For a fix or review follow-up, link via refs rather than re-describing the work (bundled default: `sq task <n> ref add <id> --kind fixes|addresses`)",
-          "Leave purely-technical work items unlinked to a feature",
-          "Sequence and assign work; unblock developers",
-          "Co-author guides with the architect"
-        ],
-        "model": "opus",
-        "color": "purple",
-        "is_default": false,
-        "description": "Coordination and breaking features into tasks.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-epic",
-          "sq-feature",
-          "sq-task",
-          "sq-bug",
-          "sq-decision",
-          "sq-contract",
-          "sq-milestone",
-          "sq-guide"
-        ],
-        "agreements": [],
-        "can_spawn": true
+        "is_default": false
       },
       "id": "ROLE-3"
     },
@@ -35585,31 +35962,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Paul Reviewer",
         "slug": "reviewer",
-        "title": "code reviewer",
-        "mission": "Guard quality: review changes critically, request changes when needed, approve when sound.",
-        "responsibilities": [
-          "Review diffs for correctness and clarity",
-          "Drive code-review items to a verdict",
-          "Flag risks and missing tests"
-        ],
-        "model": "opus",
-        "color": "red",
-        "is_default": false,
-        "description": "Reviews code changes for correctness, clarity, and consistency.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-task",
-          "sq-bug",
-          "sq-review"
-        ],
-        "agreements": [
-          "File review findings as tracked sub-entities — `sq review <n> add-finding` with its badge field(s) set (severity in the bundled workflow), statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure."
-        ],
-        "can_spawn": false
+        "is_default": false
       },
       "id": "ROLE-4"
     },
@@ -35634,29 +35988,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Mara Tester",
         "slug": "qa",
-        "title": "QA engineer",
-        "mission": "Prove the software works: design test cases from user stories and verify fixes.",
-        "responsibilities": [
-          "Derive test cases from acceptance criteria (user stories in the bundled workflow)",
-          "Verify fixes and features",
-          "Report defects as tracked items (bug items in the bundled workflow)"
-        ],
-        "model": "sonnet",
-        "color": "green",
-        "is_default": false,
-        "description": "Designs and runs tests; verifies behaviour against acceptance criteria.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-feature",
-          "sq-task",
-          "sq-bug"
-        ],
-        "agreements": [],
-        "can_spawn": false
+        "is_default": false
       },
       "id": "ROLE-5"
     },
@@ -35681,27 +36014,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Hugo Ops",
         "slug": "devops",
-        "title": "DevOps engineer",
-        "mission": "Keep delivery smooth: maintain CI/CD, infrastructure, and the release process.",
-        "responsibilities": [
-          "Maintain CI/CD pipelines",
-          "Manage infrastructure and environments",
-          "Run releases"
-        ],
-        "model": "sonnet",
-        "color": "orange",
-        "is_default": false,
-        "description": "CI/CD, infrastructure, and releases.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "releasing-squads"
-        ],
-        "agreements": [],
-        "can_spawn": false
+        "is_default": false
       },
       "id": "ROLE-6"
     },
@@ -35726,30 +36040,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Nina Product",
         "slug": "product-owner",
-        "title": "product owner",
-        "mission": "Represent the user: capture requirements as features and user stories, prioritise the backlog.",
-        "responsibilities": [
-          "Author features and capture requirements (`sq create feature` in the bundled workflow)",
-          "Write each feature's user stories (bundled default: `sq feature <n> add-story`)",
-          "Prioritise the backlog and define acceptance criteria"
-        ],
-        "model": "sonnet",
-        "color": "yellow",
-        "is_default": false,
-        "description": "Requirements, user stories, and backlog priorities.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-epic",
-          "sq-feature",
-          "sq-contract",
-          "sq-milestone"
-        ],
-        "agreements": [],
-        "can_spawn": false
+        "is_default": false
       },
       "id": "ROLE-7"
     },
@@ -35774,27 +36066,8 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Theo Writer",
         "slug": "tech-writer",
-        "title": "technical writer",
-        "mission": "Make the work understandable: write and maintain clear documentation and guides.",
-        "responsibilities": [
-          "Write user- and developer-facing docs",
-          "Keep guides current"
-        ],
-        "model": "haiku",
-        "color": "pink",
-        "is_default": false,
-        "description": "Documentation and guides.",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-guide",
-          "releasing-squads"
-        ],
-        "agreements": [],
-        "can_spawn": false
+        "is_default": false
       },
       "id": "ROLE-8"
     },
@@ -35819,32 +36092,11 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Elias Python",
         "slug": "python-dev",
-        "title": "Python developer",
-        "mission": "Implement assigned tasks in Python, following the project's guides, with tests.",
-        "responsibilities": [
-          "Implement tasks in Python",
-          "Write tests for changes",
-          "Follow the relevant guides; ask the architect when unsure"
-        ],
         "model": "sonnet",
-        "color": "green",
         "is_default": false,
-        "description": "Implements Python code following the project's guides and standards.",
         "is_dev": true,
-        "tech": "python",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-task",
-          "sq-bug",
-          "sq-contract",
-          "sq-review"
-        ],
-        "agreements": [],
-        "can_spawn": false
+        "tech": "python"
       },
       "id": "ROLE-9"
     },
@@ -35869,32 +36121,11 @@
       "created_session": null,
       "modified_session": null,
       "extra": {
-        "full_name": "Ada Typescript",
         "slug": "typescript-dev",
-        "title": "Typescript developer",
-        "mission": "Implement assigned tasks in Typescript, following the project's guides, with tests.",
-        "responsibilities": [
-          "Implement tasks in Typescript",
-          "Write tests for changes",
-          "Follow the relevant guides; ask the architect when unsure"
-        ],
-        "agreements": [],
         "model": "sonnet",
-        "color": "green",
         "is_default": false,
-        "can_spawn": false,
-        "description": "Implements Typescript code following the project's guides and standards.",
         "is_dev": true,
-        "tech": "typescript",
-        "skills": [
-          "squads",
-          "greeting",
-          "sq-memory",
-          "sq-task",
-          "sq-bug",
-          "sq-contract",
-          "sq-review"
-        ]
+        "tech": "typescript"
       },
       "id": "ROLE-426"
     },
@@ -36256,191 +36487,13 @@
       },
       "id": "OP-10"
     },
-    "870": {
-      "sequence_id": 870,
-      "type": "bug",
-      "title": "Bare sq tree silently omits every item in or under a parent cycle",
-      "slug": "bare-sq-tree-silently-omits-every-item-in-or-under-a-parent",
-      "status": "Open",
-      "description": "Every tree form exits 0 while leaving out the whole component containing a cycle; sq check is the only surface that reports it.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": "medium",
-      "severity": null,
-      "labels": [],
-      "refs": [
-        "BUG-865"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000870-bare-sq-tree-silently-omits-every-item-in-or-under-a-parent.md",
-      "created_at": "2026-09-02T08:49:46Z",
-      "updated_at": "2026-09-02T10:24:41Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "BUG-870"
-    },
-    "871": {
-      "sequence_id": 871,
-      "type": "bug",
-      "title": "sq create --parent \"\" exits 0 and creates a parentless item",
-      "slug": "sq-create-parent-exits-0-and-creates-a-parentless-item",
-      "status": "Open",
-      "description": "The truthiness shape fixed in the update path is still live at three sites in the create path; the empty value is discarded and success reported.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": "low",
-      "severity": null,
-      "labels": [],
-      "refs": [
-        "BUG-865"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000871-sq-create-parent-exits-0-and-creates-a-parentless-item.md",
-      "created_at": "2026-09-02T08:49:48Z",
-      "updated_at": "2026-09-02T10:01:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "BUG-871"
-    },
-    "872": {
-      "sequence_id": 872,
-      "type": "bug",
-      "title": "No agent-facing surface names sq renumber, the id-collision remedy",
-      "slug": "no-agent-facing-surface-names-sq-renumber-the-id-collision-r",
-      "status": "Open",
-      "description": "renumber is one of only two shipped commands absent from all 1744 lines of agent-facing guidance, and no surface detects a duplicate id either.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": "high",
-      "severity": null,
-      "labels": [],
-      "refs": [
-        "BUG-865"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000872-no-agent-facing-surface-names-sq-renumber-the-id-collision-r.md",
-      "created_at": "2026-09-02T08:49:51Z",
-      "updated_at": "2026-09-02T10:02:23Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "BUG-872"
-    },
-    "873": {
-      "sequence_id": 873,
-      "type": "bug",
-      "title": "Sub-entity update --force writes a status sq check calls an error",
-      "slug": "sub-entity-update-force-writes-a-status-sq-check-calls-an-er",
-      "status": "Open",
-      "description": "sq <type> <n> <kind> <k> update --status <S> --force accepts a status outside that kind's lifecycle at exit 0; sq check then errors on the corpus. No sub-entity write door reaches ValidatorEngine.gate.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": "medium",
-      "severity": "medium",
-      "labels": [],
-      "refs": [
-        "BUG-865"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000873-sub-entity-update-force-writes-a-status-sq-check-calls-an-er.md",
-      "created_at": "2026-09-02T09:46:36Z",
-      "updated_at": "2026-09-02T10:24:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "BUG-873"
-    },
-    "874": {
-      "sequence_id": 874,
+    "882": {
+      "sequence_id": 882,
       "type": "task",
-      "title": "Refuse an empty --parent on the create path as update does",
-      "slug": "refuse-an-empty-parent-on-the-create-path-as-update-does",
-      "status": "Ready",
-      "description": "Three sites in the create path discard an empty --parent and report success; the update door refuses it. Collapse them onto one shared resolution helper.",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "low",
-      "severity": null,
-      "labels": [],
-      "refs": [
-        "BUG-871:fixes"
-      ],
-      "subentities": [],
-      "path": "tasks/TASK-000874-refuse-an-empty-parent-on-the-create-path-as-update-does.md",
-      "created_at": "2026-09-02T09:58:45Z",
-      "updated_at": "2026-09-02T10:02:45Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-874"
-    },
-    "875": {
-      "sequence_id": 875,
-      "type": "task",
-      "title": "Make sub-entity --force override the transition, not the vocabulary",
-      "slug": "make-sub-entity-force-override-the-transition-not-the-vocabu",
-      "status": "Ready",
-      "description": "A sub-entity status update under --force writes a value outside that kind's lifecycle at exit 0 and the integrity gate then errors; add the membership check the add path already performs.",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "medium",
-      "severity": null,
-      "labels": [],
-      "refs": [
-        "BUG-873:fixes"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Membership check on the sub-entity status path",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Recovery from an already-invalid stored status",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Close the same write on the import route",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        }
-      ],
-      "path": "tasks/TASK-000875-make-sub-entity-force-override-the-transition-not-the-vocabu.md",
-      "created_at": "2026-09-02T09:58:51Z",
-      "updated_at": "2026-09-02T10:02:46Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-875"
-    },
-    "876": {
-      "sequence_id": 876,
-      "type": "task",
-      "title": "Name the id-collision remedy in agent guidance and guard the class",
-      "slug": "name-the-id-collision-remedy-in-agent-guidance-and-guard-the",
-      "status": "Ready",
-      "description": "Two shipped commands are named in no agent-facing surface; add the collision condition and its remedy to the carriers, give the repair flag help text, and guard that no future command can be invisible.",
+      "title": "Measure the command-guidance guard against generated output only",
+      "slug": "measure-the-command-guidance-guard-against-generated-output",
+      "status": "Draft",
+      "description": "The guard credits five commands to this repo's hand-written contributor prose, so it certifies the dogfood rather than the product.",
       "parent": null,
       "author": "tech-lead",
       "assignee": "python-dev",
@@ -36448,149 +36501,17 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "BUG-872:fixes"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Name the collision condition and both remedy verbs",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Give the repair renumber flag help text",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Guard the class with a documented exemption list",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        }
-      ],
-      "path": "tasks/TASK-000876-name-the-id-collision-remedy-in-agent-guidance-and-guard-the.md",
-      "created_at": "2026-09-02T09:58:56Z",
-      "updated_at": "2026-09-02T10:02:48Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-876"
-    },
-    "877": {
-      "sequence_id": 877,
-      "type": "task",
-      "title": "Anchor and mark the cyclic component in bare sq tree",
-      "slug": "anchor-and-mark-the-cyclic-component-in-bare-sq-tree",
-      "status": "Ready",
-      "description": "Bare tree omits every item in or under a parent cycle at exit 0; anchor each cyclic component at a cycle member, mark the anchor, and pin coverage against list.",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "priority": "medium",
-      "severity": null,
-      "labels": [],
-      "refs": [
-        "BUG-870:fixes",
-        "TASK-849:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Anchor each cyclic component in the bare tree's roots",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Mark the anchor in the rendering and on the wire",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Pin coverage and bare-versus-targeted agreement",
-          "status": "Todo",
-          "assignee": null,
-          "severity": null,
-          "story": null,
-          "extra": {}
-        }
-      ],
-      "path": "tasks/TASK-000877-anchor-and-mark-the-cyclic-component-in-bare-sq-tree.md",
-      "created_at": "2026-09-02T10:08:03Z",
-      "updated_at": "2026-09-02T10:09:55Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "TASK-877"
-    },
-    "878": {
-      "sequence_id": 878,
-      "type": "bug",
-      "title": "sq import reports error-level findings as warnings at exit 0",
-      "slug": "sq-import-reports-error-level-findings-as-warnings-at-exit-0",
-      "status": "Open",
-      "description": "sq import flattens error- and warn-level validator findings into one warning: list, exits 0 and keeps the write; driven on two unrelated error-level members.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": "medium",
-      "severity": "medium",
-      "labels": [],
-      "refs": [
-        "BUG-873"
+        "BUG-872",
+        "TASK-876"
       ],
       "subentities": [],
-      "path": "bugs/BUG-000878-sq-import-reports-error-level-findings-as-warnings-at-exit-0.md",
-      "created_at": "2026-09-02T10:21:15Z",
-      "updated_at": "2026-09-02T10:23:55Z",
+      "path": "tasks/TASK-000882-measure-the-command-guidance-guard-against-generated-output.md",
+      "created_at": "2026-09-02T12:28:24Z",
+      "updated_at": "2026-09-02T12:28:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
-      "id": "BUG-878"
-    },
-    "879": {
-      "sequence_id": 879,
-      "type": "bug",
-      "title": "VS Code tree ignores the cycle-anchor flag and shows a fabricated root",
-      "slug": "vs-code-tree-ignores-the-cycle-anchor-flag-and-shows-a-fabri",
-      "status": "Open",
-      "description": "The client maps tree JSON through a closed field list, so the anchor mark never reaches the display model; the fabricated root renders as an ordinary one. Not reachable until the core change lands.",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "priority": "medium",
-      "severity": "medium",
-      "labels": [],
-      "refs": [
-        "BUG-870",
-        "TASK-877:depends-on"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-000879-vs-code-tree-ignores-the-cycle-anchor-flag-and-shows-a-fabri.md",
-      "created_at": "2026-09-02T10:23:06Z",
-      "updated_at": "2026-09-02T10:24:14Z",
-      "created_session": null,
-      "modified_session": null,
-      "extra": {},
-      "id": "BUG-879"
+      "id": "TASK-882"
     }
   }
 }

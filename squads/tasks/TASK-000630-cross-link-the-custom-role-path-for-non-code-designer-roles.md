@@ -52,9 +52,6 @@ coding `--tech` (e.g. a designer/UX role), from the place an adopter looks for i
 
 _Add with `sq task 630 add-subtask "<title>"`; track with `sq task 630 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -48,22 +48,10 @@ Leave Draft/Todo — do not promote.
 
 _Add with `sq task 654 add-subtask "<title>"`; track with `sq task 654 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | All agents: memory+board load-on-start in CLAUDE.md/AGENTS.md + role sheet | US1 |
-| ST2 | Done |  | Manager: load squads skill on start + after compaction | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — All agents: memory+board load-on-start in CLAUDE.md/AGENTS.md + role sheet
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — All agents: memory+board load-on-start guidance
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Added memory+board load-on-start to CLAUDE.md/AGENTS.md managed regions (new Start of a run section) and refined role.md.j2's existing line to also mention sq memory show <slug>.
@@ -77,11 +65,6 @@ Added memory+board load-on-start to CLAUDE.md/AGENTS.md managed regions (new Sta
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Manager: load squads skill on start + after compaction
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Manager: load squads skill on start and after compaction
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Added skill-load-on-start-and-after-compaction line to the Orchestration loop section of claude_section.md.j2 (read unconditionally every session, unlike a skill).

@@ -32,9 +32,6 @@ The webview panels (item preview + workflow cheatsheet) are created via `createW
 
 _Add with `sq task 476 add-subtask "<title>"`; track with `sq task 476 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

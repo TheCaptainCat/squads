@@ -103,23 +103,10 @@ shipped. Regenerate freely; do not re-derive this and do not run `scripts/bump_v
 
 _Add with `sq task 793 add-subtask "<title>"`; track with `sq task 793 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add the read-side half to the four named bundled templates |  |
-| ST2 | Done |  | Rule on the role body and the two generated pointers |  |
-| ST3 | Done |  | Carry the read-side half into the adopter-facing docs |  |
-| ST4 | Done |  | Regenerate the template manifest and the goldens it moves |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add the read-side half to the four named bundled templates
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The four carriers BUG-789 names. Each states the sq-managed rule for writes only;
@@ -163,10 +150,6 @@ generated `squads` and `sq-<type>` skill bodies) shows it.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Rule on the role body and the two generated pointers
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Three more bundled templates carry the same rule in a shorter spelling and are not in
 BUG-789's list:
@@ -205,10 +188,6 @@ or have a recorded decision explaining why they do not.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Carry the read-side half into the adopter-facing docs
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 The adopter-facing documentation carries the same write-only rule and needs the same
@@ -249,10 +228,6 @@ packaged) surfaces the new text.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Regenerate the template manifest and the goldens it moves
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The gate step that closes the change, run once after the template edits land.

@@ -82,23 +82,10 @@ markdown"**, and **US4 — "Status/priority/assignee at a glance"**. Add three s
 
 _Add with `sq task 519 add-subtask "<title>"`; track with `sq task 519 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Tree selection loads item into reader panel | US1 |
-| ST2 | Done |  | Body-as-Markdown tab | US2 |
-| ST3 | Done |  | At-a-glance status/priority/assignee header | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Tree selection loads item into reader panel
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Selecting a node shows its detail
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Split layout into tree + reader; on tree-selection change load the item via svc.get + svc.read_body and update the panel; re-loads on reselection. In-process, read-only. Done: selecting/changing a node updates the panel.
@@ -113,11 +100,6 @@ Split layout into tree + reader; on tree-selection change load the item via svc.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Body-as-Markdown tab
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Body renders as markdown
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Render the markdown body in a TabbedContent body tab via Textual's Markdown widget (headings/lists/emphasis/code blocks), with a dim empty state for an empty body. Done: body renders formatted, not raw source.
 <!-- sq:subtask:ST2:body:end -->
@@ -130,11 +112,6 @@ Render the markdown body in a TabbedContent body tab via Textual's Markdown widg
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — At-a-glance status/priority/assignee header
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Status/priority/assignee at a glance
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Header/summary line above the tabs, always visible: status (item.status), assignee (item.assignee), priority via item.badge_value('priority') resolved through the active spec (no hard-coded emoji/label); graceful when unset. Done: header shows all three, no crash when priority/assignee missing.

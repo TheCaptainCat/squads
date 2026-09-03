@@ -25,21 +25,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 52 add-finding "…" --severity high`; track with `sq review 52 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Function-local Status import in _check_decisions; hoist to module top |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Function-local Status import in _check_decisions; hoist to module top
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Style: _check_decisions() in _maintenance.py uses a function-local 'from squads._models._enums import Status' (line ~332) when ItemType is already imported from that same module at the top. Hoist Status to the module-level import for consistency. Non-blocking — no cycle, gates clean.

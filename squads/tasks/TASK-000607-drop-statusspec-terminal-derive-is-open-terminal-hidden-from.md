@@ -37,9 +37,6 @@ Implements FEAT-605 US1. Drop the explicit `terminal` field and re-express termi
 
 _Add with `sq task 607 add-subtask "<title>"`; track with `sq task 607 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

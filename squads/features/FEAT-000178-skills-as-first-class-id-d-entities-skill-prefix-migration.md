@@ -82,23 +82,10 @@ See ADR-181 for full context, trade-off analysis, and consequences.
 
 _Add with `sq feature 178 add-story "As a <role>, I want … so that …"`; track with `sq feature 178 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Stable SKILL-… ID per skill for cross-entity referencing |
-| US2 | Todo |  | Automatic migration retrofits existing skills with IDs on sq migrate up |
-| US3 | Todo |  | Fresh sq init produces skills already carrying IDs from the start |
-| US4 | Todo |  | Architect ADR approved before implementation begins |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Stable SKILL-… ID per skill for cross-entity referencing
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squad member, I want each skill to carry a stable `SKILL-…` ID so that I can reference it from a feature, task, or decision without ambiguity — and so the reference survives renames of the underlying file.
@@ -115,10 +102,6 @@ As a squad member, I want each skill to carry a stable `SKILL-…` ID so that I 
 <!-- sq:story:US2 -->
 ### US2 — Automatic migration retrofits existing skills with IDs on sq migrate up
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a team using an existing squad directory, I want `sq migrate up` to automatically stamp SKILL IDs into all existing skill files so that I don't have to do anything manual to get skills into the index.
 
@@ -134,10 +117,6 @@ As a team using an existing squad directory, I want `sq migrate up` to automatic
 <!-- sq:story:US3 -->
 ### US3 — Fresh sq init produces skills already carrying IDs from the start
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a new user running `sq init`, I want the bundled skills to already carry `SKILL-…` IDs from the moment the squad is created, so that skills are first-class from day one without needing a migration step.
 
@@ -152,10 +131,6 @@ As a new user running `sq init`, I want the bundled skills to already carry `SKI
 
 <!-- sq:story:US4 -->
 ### US4 — Architect ADR approved before implementation begins
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As the team, we want the architect ADR (ADR-181) to reach Approved status before any implementation code is written, so that the settled model-design decision is on the record and the implementation does not need to be reversed.

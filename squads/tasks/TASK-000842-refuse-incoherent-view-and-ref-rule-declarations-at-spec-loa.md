@@ -119,27 +119,10 @@ no hand-built partial spec goes through. The render-boundary refusal is needed e
 
 _Add with `sq task 842 add-subtask "<title>"`; track with `sq task 842 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Validate ItemSpec.views on its three spec-resolvable axes | US1 |
-| ST2 | Done |  | Missing presentation template raises a SquadsError | US2 |
-| ST3 | Done |  | Repair the spec fixtures and the six [selected] enumerations | US1 |
-| ST4 | Done |  | Refuse a paramless ref_rule_target_present at load |  |
-| ST5 | Done |  | A [selected] drop strips the declarations targeting that type |  |
-| ST6 | Done |  | Scaffolded view example says it needs its own template | US1 |
-| ST7 | Done |  | Let a ref source project a badge some declared type carries | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Validate ItemSpec.views on its three spec-resolvable axes
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Validate `ItemSpec.views` reciprocally, on the three axes a spec can resolve without touching the
@@ -180,11 +163,6 @@ and driving `show`/`--json`/`--raw` on the affected type is no longer how an ado
 <!-- sq:subtask:ST2 -->
 ### ST2 — Missing presentation template raises a SquadsError
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Turn the missing-presentation-template case into a `SquadsError` at the render boundary. This is
 BUG-838, and it is the one axis a load-time spec check cannot cover on its own: an override's
@@ -213,11 +191,6 @@ traceback reaches the user, and a test drives it through the CLI rather than thr
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Repair the spec fixtures and the six [selected] enumerations
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Repair the spec fixtures the new load-time check exposes, and the six `[selected]` enumerations that
@@ -272,10 +245,6 @@ longer what the code does.
 <!-- sq:subtask:ST4 -->
 ### ST4 — Refuse a paramless ref_rule_target_present at load
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 Refuse a `ref_rule_target_present` declaration that carries no `:<T>` parameter. It currently loads
 clean, lints clean, and is permanently inert — nothing ever fires, and nothing tells the adopter why.
@@ -314,10 +283,6 @@ parameter is required, and the surplus-parameter refusal on other catalog names 
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — A [selected] drop strips the declarations targeting that type
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Make dropping a bundled type through `[selected].items` a single edit, the way the same release
@@ -362,11 +327,6 @@ working with no second edit, and the `parents` coupling on `epic`/`feature` is u
 <!-- sq:subtask:ST6 -->
 ### ST6 — Scaffolded view example says it needs its own template
 
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST6:head:end -->
-
 <!-- sq:subtask:ST6:body -->
 Make the scaffolded view example teach the whole shape. `sq override scaffold workflow` writes a
 commented `[views.related_incidents]` example (`src/squads/_overrides/_service.py:530-539`). An
@@ -398,11 +358,6 @@ write, and the meta test would catch the next example that loads but cannot rend
 
 <!-- sq:subtask:ST7 -->
 ### ST7 — Let a ref source project a badge some declared type carries
-
-<!-- sq:subtask:ST7:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST7:head:end -->
 
 <!-- sq:subtask:ST7:body -->
 Narrow the `ref`-source field check so it refuses what it is actually reaching for.

@@ -49,22 +49,10 @@ rather than inventing one.
 
 _Add with `sq task 782 add-subtask "<title>"`; track with `sq task 782 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Refuse a blank operator-supplied role name at one seam |  |
-| ST2 | Done |  | Report one skew divergence once, and fix the interrupted-write test |  |
-| ST3 | Done |  | Correct two false in-code justifications in the same seam |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Refuse a blank operator-supplied role name at one seam
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The blank/whitespace-string refusal lives entirely in `_apply_override` — the merge point for a
@@ -167,10 +155,6 @@ silently accepted — but confirm what each does now, and say so.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Report one skew divergence once, and fix the interrupted-write test
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Two deliverables here, both settled. The larger question the reported behaviour raises is **not** this
@@ -285,10 +269,6 @@ way it lands.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Correct two false in-code justifications in the same seam
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Two stale in-code justifications in the same seam. **Comment-only: no behaviour changes, no test

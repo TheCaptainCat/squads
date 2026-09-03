@@ -34,9 +34,6 @@ Roster view (roles / skills / operators) polish — two findings, one file.
 
 _Add with `sq task 478 add-subtask "<title>"`; track with `sq task 478 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -41,9 +41,6 @@ Separate from US7 (Part A) by design: this axis is a spec-TOML edit plus a catal
 
 _Add with `sq task 483 add-subtask "<title>"`; track with `sq task 483 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

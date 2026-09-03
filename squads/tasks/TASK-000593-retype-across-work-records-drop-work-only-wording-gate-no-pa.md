@@ -32,9 +32,6 @@ Implements FEAT-569 (records-category retype). Make `sq <type> retype` category-
 
 _Add with `sq task 593 add-subtask "<title>"`; track with `sq task 593 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

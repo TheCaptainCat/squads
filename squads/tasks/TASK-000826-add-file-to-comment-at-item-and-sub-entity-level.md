@@ -126,22 +126,10 @@ if anything is.
 
 _Add with `sq task 826 add-subtask "<title>"`; track with `sq task 826 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Wire --file into both comment commands |  |
-| ST2 | Done |  | Cover the comment input-source contract in tests |  |
-| ST3 | Done |  | Teach the agent-facing guidance to use --file for comments |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Wire --file into both comment commands
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add a `--file` option to the item-level `comment` command and the sub-entity-level
@@ -174,10 +162,6 @@ untouched.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Cover the comment input-source contract in tests
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add CLI coverage mirroring the existing body input-source tests
 (`tests/cli/test_body_content_source_and_mutual_exclusion_cli.py` and
@@ -207,10 +191,6 @@ Name the files by behaviour, not by ticket.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Teach the agent-facing guidance to use --file for comments
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 The fix only reduces the risk if the guidance an agent reads tells it to use `--file` for

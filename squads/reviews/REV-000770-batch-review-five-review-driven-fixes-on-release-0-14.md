@@ -178,28 +178,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 770 add-finding "…" --severity medium`; track with `sq review 770 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | sq sync silently discards an operator-set role name |
-| F2 | 🟡 medium | Fixed |  | Soft-wrap sweep missed --at; CHANGELOG says it is fixed |
-| F3 | 🟡 medium | Fixed |  | Class guard is blind to the common.<console>.print form |
-| F4 | 🟡 medium | WontFix |  | Blank-field refusal does not cover the --name flag |
-| F5 | 🟢 low | WontFix |  | Interrupted projection no longer self-heals on the next sync |
-| F6 | 🟢 low | WontFix |  | Interrupted-write test skips the shape it is named for |
-| F7 | 🟢 low | WontFix |  | Reconciled-key table's stated justification is false |
-| F8 | 🟢 low | WontFix |  | resolved_spec contract misnames its callers in three places |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sq sync silently discards an operator-set role name
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **driven**, with the before/after measured on a git worktree at the parent commit `ac0bebb`.
@@ -282,11 +264,6 @@ projection that discards `--name` passes it.
 <!-- sq:finding:F2 -->
 ### F2 — Soft-wrap sweep missed --at; CHANGELOG says it is fixed
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **driven** (the wrap), **read** (the two `sq import` sites, proven by AST scan rather than by
 running an import).
@@ -338,11 +315,6 @@ against and files a bug on.
 
 <!-- sq:finding:F3 -->
 ### F3 — Class guard is blind to the common.<console>.print form
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **driven**, by running the guard's own walk over both the real tree and planted trees.
@@ -407,11 +379,6 @@ written to prevent.
 <!-- sq:finding:F4 -->
 ### F4 — Blank-field refusal does not cover the --name flag
 
-<!-- sq:finding:F4:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **driven** on two commands and all four generated surfaces.
 
@@ -469,11 +436,6 @@ the name through a seam both paths share.
 <!-- sq:finding:F5 -->
 ### F5 — Interrupted projection no longer self-heals on the next sync
 
-<!-- sq:finding:F5:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **driven**, on both this commit and its parent.
 
@@ -524,11 +486,6 @@ worth someone's judgement rather than a code change decided here:
 <!-- sq:finding:F6 -->
 ### F6 — Interrupted-write test skips the shape it is named for
 
-<!-- sq:finding:F6:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 **read** (the test), **driven** (the behaviour it does not cover — see F5).
 
@@ -574,11 +531,6 @@ re-derived:
 
 <!-- sq:finding:F7 -->
 ### F7 — Reconciled-key table's stated justification is false
-
-<!-- sq:finding:F7:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 **read**, with the history checked.
@@ -626,11 +578,6 @@ be.
 
 <!-- sq:finding:F8 -->
 ### F8 — resolved_spec contract misnames its callers in three places
-
-<!-- sq:finding:F8:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **read**, with the no-consequence claim driven.

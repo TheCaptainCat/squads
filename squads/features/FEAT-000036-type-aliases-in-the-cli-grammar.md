@@ -79,21 +79,10 @@ at 1.0 — best chosen *now*, deliberately, rather than bolted on under freeze p
 
 _Add with `sq feature 36 add-story "As a <role>, I want … so that …"`; track with `sq feature 36 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Short type aliases (sq f/t/b) work everywhere the full word does |
-| US2 | Done |  | Aliases hidden from help but documented in one table |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Short type aliases (sq f/t/b) work everywhere the full word does
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous.
@@ -107,10 +96,6 @@ As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type 
 
 <!-- sq:story:US2 -->
 ### US2 — Aliases hidden from help but documented in one table
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity.

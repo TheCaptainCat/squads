@@ -38,21 +38,10 @@ Add a managed guiding skill for the board, generated like the other skills.
 
 _Add with `sq task 386 add-subtask "<title>"`; track with `sq task 386 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Managed board skill + memory-vs-board boundary | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Managed board skill + memory-vs-board boundary
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an agent, a guiding skill teaches board posting discipline and the memory-vs-board boundary
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 A managed skill documents: keep notices short and prescriptive; set `--until`; clear when stale; and the boundary (cross-cutting → board, personal-learned → memory). Own `sq-board` skill or folded into the shared knowledge skill — implementation's choice.

@@ -84,22 +84,10 @@ escape back).
 
 _Add with `sq task 531 add-subtask "<title>"`; track with `sq task 531 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Open search page, query, results list with snippets | US1 |
-| ST2 | Done |  | Empty-query and no-results states; escape back to browse | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Open search page, query, results list with snippets
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Open the search page and enter a query
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 SearchScreen (full Screen) pushed from BrowseScreen via a search key; query input + results list. On submit call svc.search(text) (async on Textual's loop, optionally @work(exclusive=True)); render id/type/title + hit.snippet(s) per SearchResult, escaping markup. Done: submitting a query lists hits with snippets.
@@ -113,11 +101,6 @@ SearchScreen (full Screen) pushed from BrowseScreen via a search key; query inpu
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Empty-query and no-results states; escape back to browse
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Empty-query and no-results states, escape back to browse
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Guard empty/blank query -> 'type to search' state without calling svc.search (it raises on empty needle); zero-match query -> clean 'no results' state; neither is a traceback. Escape pops SearchScreen back to BrowseScreen with the tree's prior position intact (focus restored automatically). Done: empty prompt (search not called), no-results state, escape returns to browse.

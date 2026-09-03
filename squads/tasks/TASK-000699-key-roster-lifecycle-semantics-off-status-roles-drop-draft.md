@@ -128,25 +128,10 @@ name, test name, or source comment.
 
 _Add with `sq task 699 add-subtask "<title>"`; track with `sq task 699 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add the role-keyed status accessors to WorkflowSpec |  |
-| ST2 | Done |  | Convert the nine literal call sites and retire the reserved surface |  |
-| ST3 | Done |  | Enforce the roster lifecycle floor at spec load |  |
-| ST4 | Done |  | Guard the no-status-literal rule with a meta scan |  |
-| ST5 | Done |  | Collapse the bundled roster lifecycle to two states |  |
-| ST6 | Done |  | Keep a squad holding the dropped status operable and remappable |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add the role-keyed status accessors to WorkflowSpec
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Two derived accessors on `WorkflowSpec`, computed from `machine_for(item_type).states` and the existing per-status role resolution. No stored field, nothing an adopter declares twice.
@@ -167,10 +152,6 @@ Done when both accessors exist, are covered for the zero, one and many cases, an
 <!-- sq:subtask:ST2 -->
 ### ST2 — Convert the nine literal call sites and retire the reserved surface
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Convert the nine sites per ADR-696 §2's table: the four creates in `_services/_roster.py` (`activate_role`, `add_dev`, `add_skill`, `add_operator`), the four skill-seed sites in `_services/_maintenance.py`, and the roster table's active tick in `_cli/_role.py:124`. A read becomes `role_statuses(..., "active")`; a write becomes `sole_role_status(..., "active")`.
 
@@ -189,10 +170,6 @@ Done when the nine sites read through the accessors, the constants are gone from
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Enforce the roster lifecycle floor at spec load
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 The additional floor clauses for a lifecycle bound to a `category = "roster"` type, per ADR-696 §3. The universal clauses are already enforced and need no change.
@@ -217,10 +194,6 @@ Done when a spec violating either clause is refused at load with the offending t
 <!-- sq:subtask:ST4 -->
 ### ST4 — Guard the no-status-literal rule with a meta scan
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 A `tests/meta` scan keeping the rule true after this lands: no bundled roster status name may appear as a literal in `src/squads/` outside `_bundled/workflow.toml` and `_migrations/`.
 
@@ -239,10 +212,6 @@ Done when the scan is green on the converted tree and fails when a literal is re
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Collapse the bundled roster lifecycle to two states
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Collapse the bundled `role`/`skill`/`operator` lifecycle to the live status plus one settled retired status, dropping the third, unreachable state. Nothing in the bundled spec ever transitioned into it, every roster-create verb writes the live status directly, and this repository's own squad holds no roster item at it.
@@ -264,10 +233,6 @@ Done when the bundled roster lifecycle has exactly two states and every rendered
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Keep a squad holding the dropped status operable and remappable
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 The dropped status is reachable today through `--force`, so an existing squad may hold a roster item at it. This subtask makes that squad's state visible and fixable in place. Two load-path claims below were established by reading the code, and both must be asserted as tests rather than trusted — if either turns out false, stop and say so before proceeding.

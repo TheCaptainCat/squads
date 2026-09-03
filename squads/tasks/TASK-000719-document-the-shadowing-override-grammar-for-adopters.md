@@ -143,23 +143,10 @@ a fix and not left to ship as an unmentioned side effect of the new grammar.
 
 _Add with `sq task 719 add-subtask "<title>"`; track with `sq task 719 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Override grammar reference in the overrides guide | US1 |
-| ST2 | Done |  | Rewrite the published override stability contract | US2 |
-| ST3 | Done |  | Drop and rename behaviour, plus the changelog entry | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Override grammar reference in the overrides guide
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a spec author, I want to shadow a built-in status/lifecycle/type via override instead of only adding new ones
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The grammar reference in `docs/overrides.md`.
@@ -228,11 +215,6 @@ escaping.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Rewrite the published override stability contract
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Shadowed roster lifecycle validated against the R1/R1'/R2 floor
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The published stability contract in `docs/stability.md`.
 
@@ -269,11 +251,6 @@ everywhere it appears.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Drop and rename behaviour, plus the changelog entry
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Every consumer absorbs a dropped/renamed/re-prefixed type cleanly
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 What an adopter sees when a type is dropped, renamed, or re-prefixed — plus the changelog entry.

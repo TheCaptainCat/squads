@@ -53,26 +53,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 265 add-finding "…" --severity high`; track with `sq review 265 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | Custom-type item id ignores the spec prefix — stored id is TYPE.upper(), not the declared prefix |
-| F2 | 🟠 high | Verified |  | No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound |
-| F3 | 🟡 medium | Verified |  | sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet) |
-| F4 | 🟡 medium | Verified |  | Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs) |
-| F5 | 🟢 low | Verified |  | get_command broad except masks genuine custom-type build errors as 'No such command' |
-| F6 | 🟢 low | Verified |  | Alias-table guard silently drops a future built-in work type that declares no aliases |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Custom-type item id ignores the spec prefix — stored id is TYPE.upper(), not the declared prefix
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **File:** `src/squads/_models/_item.py:162` (Item.id computed field).
@@ -101,11 +85,6 @@ prefix: str = _PREFIX_BY_TYPE.get(self.type, self.type.upper())
 
 <!-- sq:finding:F2 -->
 ### F2 — No create path for custom types: sq create <type> static + svc.create raises TemplateNotFound
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 **Files:** `src/squads/_cli/_create.py` (create_app, lines 22-99) and `src/squads/_services/_base.py:213-217` (_template_for).
@@ -136,11 +115,6 @@ jinja2.exceptions.TemplateNotFound: items/incident.md.j2
 <!-- sq:finding:F3 -->
 ### F3 — sq workflow does not render any type's lifecycle string (AC#2/#3 partially unmet)
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **File:** `src/squads/_rendering/templates/workflow.md.j2` (the spec-rendered cheatsheet).
 
@@ -166,11 +140,6 @@ jinja2.exceptions.TemplateNotFound: items/incident.md.j2
 <!-- sq:finding:F4 -->
 ### F4 — Auto-generated thin skill advertises non-functional commands (sq create <type>, sub-entity verbs)
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **File:** `src/squads/_interactions/__init__.py:custom_item_skill_commands` (lines ~244-261) and the generated skill body.
 
@@ -194,11 +163,6 @@ Secondary: the shared item-skill template footer references `sq incident <n> <ki
 <!-- sq:finding:F5 -->
 ### F5 — get_command broad except masks genuine custom-type build errors as 'No such command'
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **File:** `src/squads/_cli/__init__.py:171` — the `except Exception: return None` at the bottom of `_CustomTypeGroup.get_command`.
 
@@ -219,11 +183,6 @@ Severity low because no current code path is known to throw past line 152; this 
 
 <!-- sq:finding:F6 -->
 ### F6 — Alias-table guard silently drops a future built-in work type that declares no aliases
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **File:** `src/squads/_rendering/templates/workflow.md.j2:40`:

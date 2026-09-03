@@ -47,7 +47,7 @@ class TestNameFlag:
         from squads._paths import resolve
 
         svc = service.Service(resolve())
-        assert _role_item_sync(svc, "manager").extra.get(X.FULL_NAME) == "Grace Hopper"
+        assert _role_item_sync(svc, "manager").title == "Grace Hopper"
 
     def test_name_flag_can_be_repeated_for_multiple_roles(
         self, runner, tmp_path, monkeypatch, frozen_time
@@ -71,8 +71,8 @@ class TestNameFlag:
         from squads._paths import resolve
 
         svc = service.Service(resolve())
-        assert _role_item_sync(svc, "manager").extra.get(X.FULL_NAME) == "Grace Hopper"
-        assert _role_item_sync(svc, "architect").extra.get(X.FULL_NAME) == "Ada Lovelace"
+        assert _role_item_sync(svc, "manager").title == "Grace Hopper"
+        assert _role_item_sync(svc, "architect").title == "Ada Lovelace"
 
     def test_malformed_name_missing_equals_sign_exits_1(
         self, runner, tmp_path, monkeypatch, frozen_time
@@ -144,7 +144,7 @@ class TestTtyAndDefaultNamesPrompting:
 
         svc = service.Service(resolve())
         bundled = next(role for role in PREDEFINED if role.slug == "manager")
-        assert _role_item_sync(svc, "manager").extra.get(X.FULL_NAME) == bundled.full_name
+        assert _role_item_sync(svc, "manager").title == bundled.full_name
 
     def test_non_tty_behaves_as_default_names(self, runner, tmp_path, monkeypatch, frozen_time):
         import squads._cli._main as main_mod
@@ -172,7 +172,7 @@ class TestTtyAndDefaultNamesPrompting:
         from squads._paths import resolve
 
         svc = service.Service(resolve())
-        assert _role_item_sync(svc, "manager").extra.get(X.FULL_NAME) == "Grace Hopper"
+        assert _role_item_sync(svc, "manager").title == "Grace Hopper"
 
     def test_tty_blank_answer_keeps_the_bundled_default(
         self, runner, tmp_path, monkeypatch, frozen_time
@@ -189,7 +189,7 @@ class TestTtyAndDefaultNamesPrompting:
 
         svc = service.Service(resolve())
         bundled = next(role for role in PREDEFINED if role.slug == "manager")
-        assert _role_item_sync(svc, "manager").extra.get(X.FULL_NAME) == bundled.full_name
+        assert _role_item_sync(svc, "manager").title == bundled.full_name
 
     def test_a_role_already_named_via_flag_is_not_prompted(
         self, runner, tmp_path, monkeypatch, frozen_time
@@ -238,7 +238,7 @@ class TestTtyAndDefaultNamesPrompting:
         from squads._paths import resolve
 
         svc = service.Service(resolve())
-        assert _role_item_sync(svc, "manager").extra.get(X.FULL_NAME) == "Grace Hopper"
+        assert _role_item_sync(svc, "manager").title == "Grace Hopper"
 
     def test_name_flag_wins_over_a_config_name_for_the_same_slug(
         self, runner, tmp_path, monkeypatch, frozen_time
@@ -271,7 +271,7 @@ class TestTtyAndDefaultNamesPrompting:
         from squads._paths import resolve
 
         svc = service.Service(resolve())
-        assert _role_item_sync(svc, "manager").extra.get(X.FULL_NAME) == "From Flag"
+        assert _role_item_sync(svc, "manager").title == "From Flag"
 
 
 class TestRoleActivateNameFlag:
@@ -283,7 +283,7 @@ class TestRoleActivateNameFlag:
         item = next(
             i for i in await svc.list_items(item_type="role") if i.extra.get(X.SLUG) == "architect"
         )
-        assert item.extra.get(X.FULL_NAME) == "Ada Lovelace"
+        assert item.title == "Ada Lovelace"
 
     async def test_activate_name_reaches_claude_md(self, project, invoke) -> None:
         await invoke(["role", "activate", "reviewer", "--name", "Helen Reviewer"])
@@ -297,7 +297,7 @@ class TestRoleActivateNameFlag:
             i for i in await svc.list_items(item_type="role") if i.extra.get(X.SLUG) == "qa"
         )
         bundled = next(role for role in PREDEFINED if role.slug == "qa")
-        assert item.extra.get(X.FULL_NAME) == bundled.full_name
+        assert item.title == bundled.full_name
 
     async def test_activate_name_reaches_the_agent_pointer_file(self, project, invoke) -> None:
         await invoke(["role", "activate", "devops", "--name", "Dev Ops Custom"])

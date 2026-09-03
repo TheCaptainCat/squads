@@ -135,26 +135,10 @@ is in the tree. `docs/stability.md` is not package data and carries no such cons
 
 _Add with `sq task 798 add-subtask "<title>"`; track with `sq task 798 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | tech-writer | Retire the closed-vocabulary passage from docs/stability.md | US5 |
-| ST2 | Done | tech-writer | Retire the closed-vocabulary line from the cheatsheet template | US5 |
-| ST3 | Done | tech-writer | Regenerate the template manifest and managed artifacts | US5 |
-| ST4 | Done | tech-writer | Make the cheatsheet kinds table spec-driven | US5 |
-| ST5 | Done | tech-writer | Retire the closed-vocabulary claim from the README | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Retire the closed-vocabulary passage from docs/stability.md
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US5 — Reissue the ref-kind contract prose (tech-writer)
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Replace the passage at `docs/stability.md:322-328` — "The nine built-in kinds are frozen … A
@@ -183,12 +167,6 @@ with no residual promise of a closed or numerically-fixed vocabulary.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Retire the closed-vocabulary line from the cheatsheet template
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US5 — Reissue the ref-kind contract prose (tech-writer)
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Replace the line at `_rendering/templates/workflow_static.md.j2` — "The vocabulary is closed —
@@ -220,12 +198,6 @@ the policy line nor the bare-ref sentence names a kind by a spelling the templat
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Regenerate the template manifest and managed artifacts
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US5 — Reissue the ref-kind contract prose (tech-writer)
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Editing a bundled template forces a template-manifest regeneration, and the generator replaces
@@ -259,12 +231,6 @@ still reads 0.14.0.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Make the cheatsheet kinds table spec-driven
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US5 — Reissue the ref-kind contract prose (tech-writer)
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The cheatsheet's ref-kinds table is hand-written: ten literal `| ... |` rows in
@@ -309,12 +275,6 @@ kind gains a row with no template change, and no test pins the row count to a li
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Retire the closed-vocabulary claim from the README
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US5 — Reissue the ref-kind contract prose (tech-writer)
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Retire the closed-nine-kinds claim from `README.md:320`, the third carrier and the most

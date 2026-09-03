@@ -201,26 +201,10 @@ traps.
 
 _Add with `sq task 797 add-subtask "<title>"`; track with `sq task 797 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Convert the dependency bindings to the declared semantic | US2 |
-| ST2 | Done |  | Convert the preload bindings to the declared semantic | US2 |
-| ST3 | Done |  | Convert the supersession binding to the declared semantic | US2 |
-| ST4 | Done |  | tests/meta scan for bundled ref-kind literals | US2 |
-| ST5 | Done |  | Per-capability floor on the merged spec | US3 |
-| ST6 | Done |  | Live-corpus refusal for a dropped or renamed ref kind | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Convert the dependency bindings to the declared semantic
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Replace the literal `blocks` / `depends-on` checks with resolution through the declared
@@ -251,11 +235,6 @@ blocked-by display working, and neither literal appears as a bare string constan
 <!-- sq:subtask:ST2 -->
 ### ST2 — Convert the preload bindings to the declared semantic
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Replace the literal `scopes` checks with resolution through the declared `preload` semantic: a
 skill's forward edge to the role that preloads it, inverted by the roster resolver.
@@ -282,11 +261,6 @@ check and the retirement gate working, and the literal appears nowhere the scan 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Convert the supersession binding to the declared semantic
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Replace the literal `supersedes` comparison with resolution through the declared `supersession`
 semantic.
@@ -312,11 +286,6 @@ and a spec declaring no supersession kind at all loads and produces no such find
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — tests/meta scan for bundled ref-kind literals
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Add the repo-hygiene scan, in the shape of
@@ -348,11 +317,6 @@ justified line by line.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Per-capability floor on the merged spec
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Per-capability floor and the live-corpus refusal
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Check the floor on the **merged** spec, fail-closed, collecting **every** violation in one pass
@@ -402,11 +366,6 @@ OK".
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Live-corpus refusal for a dropped or renamed ref kind
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Per-capability floor and the live-corpus refusal
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 Extend the live-corpus cross-check to ref kinds, on the same terms it already covers a dropped

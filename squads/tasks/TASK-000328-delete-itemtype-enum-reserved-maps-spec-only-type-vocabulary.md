@@ -120,24 +120,10 @@ grep/pyright-clean once every reference is gone.
 
 _Add with `sq task 328 add-subtask "<title>"`; track with `sq task 328 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Delete ItemType + RESERVED_*/TYPE_ALIASES; prefix_for is spec-only | US1 |
-| ST2 | Done |  | Carry prefix on every Item frontmatter; spec-free id round-trip + load backfill | US1 |
-| ST3 | Done |  | Narrow type floor to three is_meta types; META_* constants for meta refs | US1 |
-| ST4 | Done |  | Freeze ItemType refs in all four migration runners to inline frozen local constants | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Delete ItemType + RESERVED_*/TYPE_ALIASES; prefix_for is spec-only
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Full self-service type vocabulary in spec
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Remove the ItemType StrEnum (with WORK_TYPES/TYPE_ALIASES and the .prefix/.folder properties) and the RESERVED_PREFIX/RESERVED_FOLDER/RESERVED_TYPE_BY_PREFIX/is_reserved maps in _vocab.py. prefix_for(type, spec) becomes spec.items[type].prefix for every type; an unknown type raises SquadsError with no upper()-guess fallback.
@@ -152,11 +138,6 @@ Remove the ItemType StrEnum (with WORK_TYPES/TYPE_ALIASES and the .prefix/.folde
 <!-- sq:subtask:ST2 -->
 ### ST2 — Carry prefix on every Item frontmatter; spec-free id round-trip + load backfill
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Full self-service type vocabulary in spec
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Drop the built-in-only prefix guard in to_frontmatter_dict so every item writes a prefix line; remove the reserved-map fallbacks in Item.id and from_frontmatter so the id formats purely from the stored prefix (no _workflow import). Backfill prefix onto legacy built-in files at the spec-aware IndexStore.load() post-load pass, tolerant of a missing line.
 <!-- sq:subtask:ST2:body:end -->
@@ -170,11 +151,6 @@ Drop the built-in-only prefix guard in to_frontmatter_dict so every item writes 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Narrow type floor to three is_meta types; META_* constants for meta refs
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Full self-service type vocabulary in spec
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Narrow WorkflowSpec._validate's type completeness floor to the three is_meta types (role/skill/operator, not droppable). Add META_TYPES + META_ROLE/META_SKILL/META_OPERATOR name constants and repoint the meta-type references in _maintenance.py/_roster.py/_base.py/backends at them, resolving skill folder+prefix from spec.items[skill].
 <!-- sq:subtask:ST3:body:end -->
@@ -187,11 +163,6 @@ Narrow WorkflowSpec._validate's type completeness floor to the three is_meta typ
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Freeze ItemType refs in all four migration runners to inline frozen local constants
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Full self-service type vocabulary in spec
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Replace ItemType.X, 'for item_type in ItemType', and the _BODY_KIND enum map in _v0_1_to_v0_2/_v0_2_to_v0_3/_v0_4_to_v0_5/_v0_5_to_v0_7 with inline frozen local constants — type-name literals AND the prefix/folder values as they existed at each runner's target schema version. Convert the ItemType-passing call sites (paths.folder_for, db.allocate_id, paths.squad_relative, .prefix/.folder) to the frozen string literals now those APIs take str. Point-in-time snapshot pinned into the runner, never the live spec or the removed enum. _v0_4_to_v0_5.py's Status refs are TASK-330's.

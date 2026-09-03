@@ -64,25 +64,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 395 add-finding "…" --severity medium`; track with `sq review 395 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Push boot-surfacing + unconditional directive vs conditional sections = dangling reference on fresh installs |
-| F2 | 🟠 high | Fixed |  | The .index.jsonl becomes readerless once surfacing is removed — derived data stored for no consumer |
-| F3 | 🟠 high | Fixed |  | Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and drop the .index.jsonl machinery |
-| F4 | 🟠 high | Fixed | python-dev | sq-memory skill still teaches push-at-boot surfacing — contradicts the pull directive (F1 relapse) |
-| F5 | 🟢 low | Fixed | python-dev | Stale .index.jsonl references survive in the two content-model docstrings |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Push boot-surfacing + unconditional directive vs conditional sections = dangling reference on fresh installs
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Problem.** The boot-engagement directive in `agents/role.md.j2` is unconditional:
@@ -104,11 +89,6 @@ But the sections it names are conditional. `## Your memory` renders only under `
 
 <!-- sq:finding:F2 -->
 ### F2 — The .index.jsonl becomes readerless once surfacing is removed — derived data stored for no consumer
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 **Problem.** The per-folder `.index.jsonl` roll-up exists solely to feed boot-surfacing. Verified reader graph:
@@ -135,11 +115,6 @@ This is stored/derived data kept in sync for no reader — the "don't store what
 
 <!-- sq:finding:F3 -->
 ### F3 — Resolution (Full): role-sheet pull-at-startup; rip out boot-surfacing and drop the .index.jsonl machinery
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **Resolution — directed by op-pierre (see the discussion comment for his own words). Full scope.**
@@ -178,12 +153,6 @@ Replace push-into-managed-files with a **pull-at-startup** model, and drop the n
 <!-- sq:finding:F4 -->
 ### F4 — sq-memory skill still teaches push-at-boot surfacing — contradicts the pull directive (F1 relapse)
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟠 High
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 Rewrote both passages in memory_skill.md.j2 to pull form (sq memory <role> list / sq board list at start of a run); regenerated squads/agents/skills/sq-memory.md + templates_manifest.json.
 <!-- sq:finding:F4:body:end -->
@@ -196,12 +165,6 @@ Rewrote both passages in memory_skill.md.j2 to pull form (sq memory <role> list 
 
 <!-- sq:finding:F5 -->
 ### F5 — Stale .index.jsonl references survive in the two content-model docstrings
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 Dropped the .index.jsonl clause from _memory/_model.py and _board/_model.py docstrings.

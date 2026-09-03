@@ -113,23 +113,10 @@ is what the `depends-on` edges on this item record.
 
 _Add with `sq task 816 add-subtask "<title>"`; track with `sq task 816 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Rewrite the targets hint to describe the shipped kind | US1 |
-| ST2 | Done | python-dev | Refresh the goldens, content store and manifest entry | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Rewrite the targets hint to describe the shipped kind
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Rewrite the `targets` entry's `hint` in `src/squads/_specs/workflow.toml:337` so it describes the
@@ -164,12 +151,6 @@ unbuilt work.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Refresh the goldens, content store and manifest entry
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Move every frozen copy of the hint text with the edit, in the same change.

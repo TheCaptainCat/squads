@@ -45,25 +45,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 536 add-finding "…" --severity medium`; track with `sq review 536 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Search results panel only fills half the screen |
-| F2 | 🟡 medium | Fixed |  | No running indicator while a search is in flight |
-| F3 | 🟡 medium | Fixed |  | Reader sub-entities tab shows no sub-entity body |
-| F4 | 🟢 low | Fixed |  | Discussion tab should render markdown (bullet lists etc.) |
-| F5 | 🟡 medium | Fixed |  | Split the tree into Work and Roster top-level nodes |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Search results panel only fills half the screen
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The search results ListView leaves a large empty gap between the type/status selects and the list — the results area doesn't expand to fill the available height. Give the results list the remaining height (1fr) so it fills the screen.
@@ -81,11 +66,6 @@ The search results ListView leaves a large empty gap between the type/status sel
 <!-- sq:finding:F2 -->
 ### F2 — No running indicator while a search is in flight
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 The @work search gives no feedback — the UI looks frozen. Show a 'Searching…' state (status line and/or a loading indicator) while the worker runs, cleared when results arrive.
 <!-- sq:finding:F2:body:end -->
@@ -101,11 +81,6 @@ The @work search gives no feedback — the UI looks frozen. Show a 'Searching…
 
 <!-- sq:finding:F3 -->
 ### F3 — Reader sub-entities tab shows no sub-entity body
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 The sub-entities tab renders only the summary row (status/assignee/title), not each sub-entity's body prose. Show the body for each story/subtask/finding (e.g. head line + rendered body per sub-entity), not just the table.
@@ -123,11 +98,6 @@ The sub-entities tab renders only the summary row (status/assignee/title), not e
 <!-- sq:finding:F4 -->
 ### F4 — Discussion tab should render markdown (bullet lists etc.)
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 Comments render as plain text; bullet lists and other markdown aren't rendered. Render each comment body as markdown (like the body tab), keeping author/timestamp headers.
 <!-- sq:finding:F4:body:end -->
@@ -143,11 +113,6 @@ Comments render as plain text; bullet lists and other markdown aren't rendered. 
 
 <!-- sq:finding:F5 -->
 ### F5 — Split the tree into Work and Roster top-level nodes
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 Mirror the VS Code extension: two top-level groups — Work (epics/features/tasks/bugs/decisions/reviews/…) and Roster (roles/operators/skills) — instead of one flat forest mixing them. Group tree_view's roots by meta-vs-work type under two synthetic parents.

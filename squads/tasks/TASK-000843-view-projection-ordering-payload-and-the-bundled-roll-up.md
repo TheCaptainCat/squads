@@ -111,26 +111,10 @@ and it falsifies the same acceptance line the type was built against.
 
 _Add with `sq task 843 add-subtask "<title>"`; track with `sq task 843 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | order_by on a badge field follows the declared badge order | US1 |
-| ST2 | Done |  | order_by on id sorts by sequence number | US1 |
-| ST3 | Done |  | A projected group exposes count in the template context | US2 |
-| ST4 | Done |  | Roll-up separates settled-not-delivered from outstanding | US4 |
-| ST5 | Done |  | Resolve the two unreachable bundled view templates | US2 |
-| ST6 | Done |  | Show a milestone's target date on its panel | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — order_by on a badge field follows the declared badge order
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Make `order_by` on a badge field follow the collection's declared badge order.
@@ -169,11 +153,6 @@ collection or unresolvable value degrades to today's behaviour rather than crash
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — order_by on id sorts by sequence number
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Make `order_by` on `id` sort by sequence number instead of by the formatted string.
@@ -219,11 +198,6 @@ mixed-type group's ordering is deliberate rather than incidental.
 <!-- sq:subtask:ST3 -->
 ### ST3 — A projected group exposes count in the template context
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Give `ViewGroup` a `count`, so the two documented consumers of one projection agree about the shape
 of the same object.
@@ -255,11 +229,6 @@ and the docs line is true as written.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Roll-up separates settled-not-delivered from outstanding
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Milestone roll-up as the first declared view
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Make the roll-up able to answer "what is left" with zero. Today it cannot.
@@ -316,11 +285,6 @@ in the template.
 <!-- sq:subtask:ST5 -->
 ### ST5 — Resolve the two unreachable bundled view templates
 
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST5:head:end -->
-
 <!-- sq:subtask:ST5:body -->
 Resolve the two view templates that ship in the wheel but that no bundled declaration can reach.
 
@@ -368,11 +332,6 @@ the manifest is consistent with the tree.
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Show a milestone's target date on its panel
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — The MILE- item type, its lifecycle and target date
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 Show a milestone's target date on a human surface.

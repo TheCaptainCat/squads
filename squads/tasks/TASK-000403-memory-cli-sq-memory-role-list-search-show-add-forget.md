@@ -50,23 +50,10 @@ Build the `sq memory <role> ...` command group over the memory storage layer. Ro
 
 _Add with `sq task 379 add-subtask "<title>"`; track with `sq task 379 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | sq memory <role> add [--file] | US1 |
-| ST2 | Done |  | sq memory <role> list / search <query> / show <slug> | US3 |
-| ST3 | Done |  | sq memory <role> forget <slug>; clean errors | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq memory <role> add [--file]
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Wire `add` to the storage layer: create the slug-named file and regenerate the index. `--file` reads a raw-markdown body from a path ('-' = stdin).
@@ -81,11 +68,6 @@ Wire `add` to the storage layer: create the slug-named file and regenerate the i
 <!-- sq:subtask:ST2 -->
 ### ST2 — sq memory <role> list / search <query> / show <slug>
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As an agent, I can list, search, and show my role's memories to pull full content when relevant
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 `list` prints the index entries; `search` matches over content; `show <slug>` prints the full body addressed by slug, not index position.
 <!-- sq:subtask:ST2:body:end -->
@@ -98,11 +80,6 @@ Wire `add` to the storage layer: create the slug-named file and regenerate the i
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — sq memory <role> forget <slug>; clean errors
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `forget <slug>` prunes a memory. An unknown role or slug raises a clean `SquadsError`, not a stack trace.

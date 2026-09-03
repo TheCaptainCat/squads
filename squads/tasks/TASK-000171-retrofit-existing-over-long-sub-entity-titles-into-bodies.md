@@ -39,9 +39,6 @@ All edits go through sq commands; never hand-edit the .md files or the sq marker
 
 _Add with `sq task 171 add-subtask "<title>"`; track with `sq task 171 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

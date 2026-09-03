@@ -53,9 +53,6 @@ TASK-349 — needs subentity_kinds carrying the other keys first; shares _models
 
 _Add with `sq task 350 add-subtask "<title>"`; track with `sq task 350 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

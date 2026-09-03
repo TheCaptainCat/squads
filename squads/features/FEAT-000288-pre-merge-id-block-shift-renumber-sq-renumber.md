@@ -54,24 +54,10 @@ Dependency. Sequenced after FEAT-283 (Unpadded display IDs, decoupled from filen
 
 _Add with `sq feature 288 add-story "As a <role>, I want … so that …"`; track with `sq feature 288 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Pre-merge shift preserves referential intent |
-| US2 | Todo |  | Shifted block is disjoint from the other branch's range |
-| US3 | Todo |  | Reflog and inline ID mentions are rewritten, not just frontmatter |
-| US4 | Todo |  | Filenames keep their padded width after a shift |
-| US5 | Todo |  | Pre-merge shift and post-merge --renumber coexist |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Pre-merge shift preserves referential intent
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a collaborator merging branches, when I block-shift my branch's IDs before merging, refs that pointed at my items still point at my items after the shift (unlike post-merge --renumber, which can silently repoint a collided ref to the item that kept the number).
@@ -86,10 +72,6 @@ As a collaborator merging branches, when I block-shift my branch's IDs before me
 <!-- sq:story:US2 -->
 ### US2 — Shifted block is disjoint from the other branch's range
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an operator naming the boundary (--from/--onto/--by, or derived via git merge-base), the tool refuses or computes an offset that lands my shifted block strictly above the other branch's counter, so old and new ranges never overlap and single-pass whole-word substitution is safe regardless of processing order.
 <!-- sq:story:US2:body:end -->
@@ -102,10 +84,6 @@ As an operator naming the boundary (--from/--onto/--by, or derived via git merge
 
 <!-- sq:story:US3 -->
 ### US3 — Reflog and inline ID mentions are rewritten, not just frontmatter
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As an operator running the shift, every occurrence of a shifted ID is updated: frontmatter id:/refs, body prose mentions, AND the append-only reflog's target fields -- so history still resolves and no reference is left dangling or stale.
@@ -120,10 +98,6 @@ As an operator running the shift, every occurrence of a shifted ID is updated: f
 <!-- sq:story:US4 -->
 ### US4 — Filenames keep their padded width after a shift
 
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 As an operator, after a block-shift the renamed files are still padded to the squad's filename width (format_item_id(prefix, seq, filename_padding)) so on-disk lexical sort is unaffected, even though display/prose forms may be unpadded per FEAT-283.
 <!-- sq:story:US4:body:end -->
@@ -136,10 +110,6 @@ As an operator, after a block-shift the renamed files are still padded to the sq
 
 <!-- sq:story:US5 -->
 ### US5 — Pre-merge shift and post-merge --renumber coexist
-
-<!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As an operator, pre-merge block-shift is the preferred path when I control the yielding branch ahead of merge; post-merge sq repair --renumber remains available as the 'too late, make it valid' fallback for collisions that already happened -- the two are documented as complementary, not as one replacing the other.

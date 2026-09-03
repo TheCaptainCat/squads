@@ -429,14 +429,12 @@ async def test_an_interrupted_index_commit_is_healed_by_repair_then_a_further_sy
     either side".
 
     Simulated directly — roll the index back on the role's own projected
-    ``title``/``description`` (and their ``extra`` mirrors) to what it held before the
-    override applied, leaving the ``.md`` file exactly as the earlier, real sync left it.
+    ``title``/``description`` to what it held before the override applied, leaving the ``.md``
+    file exactly as the earlier, real sync left it.
     """
     role = await svc.activate_role("architect")
     original_title = role.title
     original_description = role.description
-    original_full_name = role.extra[X.FULL_NAME]
-    original_mission = role.extra[X.MISSION]
     _place_override(
         project.squad_dir,
         "architect",
@@ -458,8 +456,6 @@ async def test_an_interrupted_index_commit_is_healed_by_repair_then_a_further_sy
         assert stale is not None
         stale.title = original_title
         stale.description = original_description
-        stale.extra[X.FULL_NAME] = original_full_name
-        stale.extra[X.MISSION] = original_mission
         db.add(stale)
 
     on_disk_before = _on_disk_frontmatter(svc, role)

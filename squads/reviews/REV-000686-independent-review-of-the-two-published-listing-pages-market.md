@@ -52,24 +52,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 686 add-finding "…" --severity medium`; track with `sq review 686 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Worked example fails as written: python-dev role does not exist after sq init --roles all |
-| F2 | 🟡 medium | Fixed |  | Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states |
-| F3 | 🟡 medium | Fixed |  | PyPI page states its present-tense limits without the directional pairing the Marketplace page already has |
-| F4 | 🟢 low | Open |  | Manifest positioning, audience split, and all checkable factual claims verified clean |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Worked example fails as written: python-dev role does not exist after sq init --roles all
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Both pages carry the identical "What using it looks like" worked example, and it does not run as
@@ -102,11 +88,6 @@ example, e.g. `tech-lead`).
 <!-- sq:finding:F2 -->
 ### F2 — Marketplace page omits the pre-1.0/schema-instability disclosure PyPI states
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 `PYPI.md` has an explicit "Where it is" section: squads is pre-1.0, surfaces are still settling,
 a release can change the on-disk schema, `sq migrate up` carries a squad forward, and a stability
@@ -138,11 +119,6 @@ bloating the page.
 
 <!-- sq:finding:F3 -->
 ### F3 — PyPI page states its present-tense limits without the directional pairing the Marketplace page already has
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 Per the coordinator's mid-review steer sharpening criterion 4: honesty about the present is the
@@ -181,11 +157,6 @@ only tells its reader this is early.
 
 <!-- sq:finding:F4 -->
 ### F4 — Manifest positioning, audience split, and all checkable factual claims verified clean
-
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 Recording the parts that verified clean rather than only the defects, per the brief's request not

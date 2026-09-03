@@ -36,9 +36,6 @@ Implements FEAT-570 US1 (folds REV-565 F9). Make the default (non-`--all`) visib
 
 _Add with `sq task 596 add-subtask "<title>"`; track with `sq task 596 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

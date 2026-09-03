@@ -197,24 +197,10 @@ restructuring around the guard. Run `tests/meta` before handing back.
 
 _Add with `sq task 720 add-subtask "<title>"`; track with `sq task 720 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Playbook loader over the shared merge engine | US1 |
-| ST2 | Done |  | Merged playbook resolved on the request context | US2 |
-| ST3 | Done |  | Thread every playbook consumer onto the merged spec | US2 |
-| ST4 | Done |  | sq override gains the playbook as a fourth kind | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Playbook loader over the shared merge engine
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a spec author, I want a playbook loader that merges .overrides/playbook.toml onto the bundled base
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Built: `_interactions/_loader.py` extends `load_playbook(catalog, spec=None, squad_dir=None)` — merges `.overrides/playbook.toml` over bundled raw via the shared engine (single top-level section `types`, empty selected-sections set so any `[selected]` table is refused, no independent deselect). Coverage validates against the passed-in `spec` (the active/merged workflow spec on the request path); a new `_base_raw_for(spec)` filters the bundled base's `types` table to `spec.non_roster_types()` BEFORE merging, so a type dropped via a workflow override never surfaces as a coverage false positive. Also fixed a scope bug found while falsifying: the 'missing entry' coverage direction is now scoped to bundled type names only — a project-declared type with no playbook entry is the existing thin-skill fallback, not a violation.
@@ -232,11 +218,6 @@ Built: `_interactions/_loader.py` extends `load_playbook(catalog, spec=None, squ
 <!-- sq:subtask:ST2 -->
 ### ST2 — Merged playbook resolved on the request context
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As sq, I want the merged playbook resolved per request, not cached as an import-time singleton
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Built: `_context.RequestContext` gains `active_playbook: PlaybookSpec | None = None` (TYPE_CHECKING import, mirrors `active_spec`). `_interactions/__init__.py::get_active_playbook_spec()` is the one accessor — reads the context, falls back to the bundled `_PLAYBOOK_SPEC` singleton when unbound. `Service.playbook: PlaybookSpec` (ServiceCore.__init__) is the threaded-below-the-edge carrier (ADR-249's shape, same split as Service.spec), resolved by a new `_services/_service.py::resolve_playbook(spec, squad_dir)` — a zero-reparse fast path when spec is the untouched bundled singleton AND no override file exists, else `load_playbook(...)`. Wired into `init`/`adopt`/`open_service`. CLI edge: `_cli/__init__.py::_bind_active_playbook` binds it into the RequestContext alongside active_spec in `main_callback`, mirroring `_bind_active_spec` exactly. The bundled `_PLAYBOOK_SPEC`/`PLAYBOOK` stayed completely untouched (no removal, no laziness, no rebinding).
 <!-- sq:subtask:ST2:body:end -->
@@ -251,11 +232,6 @@ Built: `_context.RequestContext` gains `active_playbook: PlaybookSpec | None = N
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Thread every playbook consumer onto the merged spec
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As sq, I want the merged playbook resolved per request, not cached as an import-time singleton
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Threaded the active/merged playbook (default-arg, bundled-blind unless a caller passes it — same contract as WorkflowSpec) through every named consumer: _interactions/__init__.py (managed_item_types, item_types_for_role, skills_for_role, bundled_skill_slugs, custom_skill_slugs, is_system_skill, orphaned_skill_item_type all gained an optional playbook param); _backends/_base.py::BackendContext gained a playbook field, resolved_skills_for threads it; _backends/_claude_code/_backend.py's rich-vs-thin skill-writer split now reads ctx.playbook instead of the bundled PLAYBOOK global; _services/_base.py (ServiceCore.playbook + every BackendContext construction + skills_for_role call), _services/_maintenance.py (seed_bundled_skills/seed_custom_skills/orphan detection/ValidatorEngine construction), _services/_roster.py, _services/_config_integrity.py (check_all/check_preloaded_skill/_always_on_floor gained the param), _services/_validators.py (SquadGlobalContext + ValidatorEngine gained it), _services/_retirement.py::enforce, _services/_items.py, _services/_import.py, _cli/_skill.py all thread it. Simplified skill_description() to compute the generic per-type description on the fly (same template custom_item_skill_description already used) instead of a PLAYBOOK-keyed lookup table, so a type gaining coverage via override needs no dict entry added. Audited (no change needed, confirmed via read + tests): authoring_owner/cheatsheet_anchor_* and the sq workflow cheatsheet (workflow.md.j2 + _cli/_workflow_cmd.py) never read PLAYBOOK content at all — only CREATE_LANES/spec — so they're playbook-content-invariant by construction. Migration runners (_v0_4_to_v0_5.py, _v0_8_to_v0_10.py) untouched: they call the same functions with no playbook arg, which is the bundled default — the exemption falls out of the default-arg design, not a special case.
@@ -277,11 +253,6 @@ Threaded the active/merged playbook (default-arg, bundled-blind unless a caller 
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — sq override gains the playbook as a fourth kind
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As an adopter, I want sq override to scaffold/diff/update the playbook like any other override kind
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Mirrored the workflow kind exactly, in _overrides/_service.py + _cli/_override.py: OverrideEntry kind 'playbook'; scan_overrides gains a single-file entry (mirrors the workflow entry, same STATE_CURRENT/DRIFTED contract, TOML has no markers so never BROKEN); scaffold_playbook writes the stamp + a commented worked example that IS the append idiom ('roles = ["$(*self)", {...}]'); _diff_playbook gives the same Delta-mine (vs bundled_playbook_toml_text())/Delta-upgrade (stamp-vs-running-version) pair, degrading the same way on no/stale stamp; update_stamp's _update_one/_update_all gained the playbook branch; check_override_issues gained _check_playbook_override_issues, sharing playbook_stamp_finding's decision shape with workflow_stamp_finding via the same three-state contract (shadow+unstamped=error, stale stamp=warn, add-only+unstamped=nothing). CLI: --playbook flag alongside --workflow on scaffold/diff/update, plus the bare positional 'playbook' name form; list already generic. Unknown-kind error message now names playbook among the accepted kinds.

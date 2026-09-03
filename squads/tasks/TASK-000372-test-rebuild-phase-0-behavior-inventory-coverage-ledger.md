@@ -66,22 +66,10 @@ proceed until every ledger row has a verified green home.
 
 _Add with `sq task 372 add-subtask "<title>"`; track with `sq task 372 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Coverage ledger maps every previously-caught bug-class to a new home | US4 |
-| ST2 | Done |  | Profile durations + coverage to find duplicate-invariant clusters | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Coverage ledger maps every previously-caught bug-class to a new home
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Coverage ledger preserves previously-caught bugs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Delivered: tests/COVERAGE_LEDGER.md — 111 rows across 18 contract groups, every Principle-5 bug-class + four-pillar edge case mapped to a layer/pillar home. 4 gaps flagged (none blocking). 8 duplicate-invariant clusters flagged.
@@ -95,11 +83,6 @@ Delivered: tests/COVERAGE_LEDGER.md — 111 rows across 18 contract groups, ever
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Profile durations + coverage to find duplicate-invariant clusters
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Each invariant asserted once, at the right layer
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Profiled once via uv run pytest (durations2.log/notslow.log, not re-run repeatedly). Full suite incl. slow: 129.13s. -m 'not slow': 25.78s (already under the 30s AC / sub-minute goal, no code change needed). The 5 tests in test_scale.py are the entire slow-marker set; no other O(n) test found hiding outside it.

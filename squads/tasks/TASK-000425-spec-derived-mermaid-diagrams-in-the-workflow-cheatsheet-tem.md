@@ -44,21 +44,10 @@ Assert the rendered cheatsheet contains the fenced hierarchy flowchart and a per
 
 _Add with `sq task 401 add-subtask "<title>"`; track with `sq task 401 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2; regen manifest | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2; regen manifest
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Spec-derived Mermaid diagrams in docs and the workflow cheatsheet
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Emit two spec-derived fenced Mermaid diagrams in `workflow.md.j2`: a hierarchy flowchart (from `parent_chain`/`spec.items`) and a per-type lifecycle `stateDiagram-v2` (from `spec.machine_for`/`_workflow.py`; expose a transitions helper in `_engine.py` if the edges aren't already reachable). Fully spec-driven, regen `templates_manifest.json`, degrade to a plain fence in the Rich terminal.

@@ -64,22 +64,10 @@ traversal or ID handling.
 
 _Add with `sq feature 513 add-story "As a <role>, I want … so that …"`; track with `sq feature 513 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Launch and quit cleanly |
-| US2 | Todo |  | Tree matches sq tree at launch |
-| US3 | Todo |  | Navigate siblings, into children, back to parent |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Launch and quit cleanly
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 sq ui opens a full-screen TUI and exits cleanly on quit, leaving the terminal in a normal state.
@@ -94,10 +82,6 @@ sq ui opens a full-screen TUI and exits cleanly on quit, leaving the terminal in
 <!-- sq:story:US2 -->
 ### US2 — Tree matches sq tree at launch
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 The tree pane shows the full hierarchy for the current squad, matching sq tree's structure, reflecting on-disk state as of launch.
 <!-- sq:story:US2:body:end -->
@@ -110,10 +94,6 @@ The tree pane shows the full hierarchy for the current squad, matching sq tree's
 
 <!-- sq:story:US3 -->
 ### US3 — Navigate siblings, into children, back to parent
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 Keyboard moves the selection between sibling nodes, down into a node's children, and back out to its parent, with the current selection always visible.

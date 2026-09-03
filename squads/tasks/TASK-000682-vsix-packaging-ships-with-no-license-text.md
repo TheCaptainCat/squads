@@ -73,9 +73,6 @@ webview bundle; nothing to act on.
 
 _Add with `sq task 682 add-subtask "<title>"`; track with `sq task 682 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

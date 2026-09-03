@@ -150,23 +150,10 @@ region materialized to paper over it.
 
 _Add with `sq feature 694 add-story "As a <role>, I want … so that …"`; track with `sq feature 694 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Retire the sub-entity summary as a computed view |
-| US2 | Todo |  | Retire the head badge line as a computed view |
-| US3 | Todo |  | Retire the role Skills section and extra.skills cache |
-| US4 | Todo |  | Migrate the corpus to remove the retired regions |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Retire the sub-entity summary as a computed view
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 The sub-entity roll-up summary retires from the body and becomes a declared derived view, on the
@@ -204,10 +191,6 @@ the migration in the sibling story, not authored back in a different form.
 <!-- sq:story:US2 -->
 ### US2 — Retire the head badge line as a computed view
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 The head badge line retires from the body and is computed on every read instead of written once
 and left to go stale, resolving the assignee's display name and the mapped story's title the same
@@ -240,10 +223,6 @@ region, resolved fresh on every read, byte-identical to what `_refresh_head` use
 <!-- sq:story:US3 -->
 ### US3 — Retire the role Skills section and extra.skills cache
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 A role's `## Skills` section retires from the rendered role body and becomes one more computed
 row in `sq role <slug> show`'s existing card, beside the `creates:` row it already prints,
@@ -264,10 +243,6 @@ materialized, foreign-sourced region for the same reason.
 
 <!-- sq:story:US4 -->
 ### US4 — Migrate the corpus to remove the retired regions
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 A migration step strips the `sq:summary` and `sq:<kind>:<id>:head` marker regions from every

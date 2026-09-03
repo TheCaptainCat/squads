@@ -64,26 +64,10 @@ REV-565 (adopter-project migration, squads 0.11.1): a pre-existing hand-written 
 
 _Add with `sq feature 576 add-story "As a <role>, I want … so that …"`; track with `sq feature 576 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Orphan-pointer warning on init/adopt |
-| US2 | Done |  | Document the pre-existing CLAUDE.md/.claude adoption runbook |
-| US3 | Done |  | Import event model: schema, validate-first pre-pass, handles |
-| US4 | Done |  | Warn when a managed CLAUDE.md region meets pre-existing content |
-| US5 | Done |  | Import apply: single transaction, per-event clock/actor, reflog |
-| US6 | Done |  | `sq import` CLI: --dry-run, --json, --at/--as |
-| US7 | Done |  | Adopter docs: recovering from a failed import |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Orphan-pointer warning on init/adopt
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 List pre-existing `.claude` agent-pointer files AND skill files this run did not generate/overwrite (candidate orphans), as a warning — never delete them. Today a slug match silently overwrites (e.g. `architect.md`) while a non-matching file (`lead.md`, `ux-ui-dev.md`, `.index.md`) is left with no signal either way (F8).
@@ -98,10 +82,6 @@ List pre-existing `.claude` agent-pointer files AND skill files this run did not
 <!-- sq:story:US2 -->
 ### US2 — Document the pre-existing CLAUDE.md/.claude adoption runbook
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Adopter-facing runbook: "adopting into a project that already has CLAUDE.md/.claude" — what init/adopt overwrites (slug-matching pointers), what it leaves as a candidate orphan, and how to reconcile a hand-written CLAUDE.md with the appended managed block by hand. No sq/ticket/dev-process references — this is tool documentation for adopters (F8).
 <!-- sq:story:US2:body:end -->
@@ -114,10 +94,6 @@ Adopter-facing runbook: "adopting into a project that already has CLAUDE.md/.cla
 
 <!-- sq:story:US3 -->
 ### US3 — Import event model: schema, validate-first pre-pass, handles
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 Per ADR-622 v1: the JSONL event model (common `op`/`at`/`as` fields inherited across lines, the v1 op set — create/status/body/comment/ref/add-story|add-subtask|add-finding/sub-status/sub-body/assign/update), client-handle addressing (handle -> allocated-id / (parent-id, local-id), resolved before literal IDs), and the validate-first pre-pass: resolve every handle, simulate ID allocation, check type/status vocab, transition legality, parent eligibility, ref kinds, actor registration, and marker-safety of every prose field — collecting ALL errors, not just the first. `--dry-run` stops exactly here (F2).
@@ -132,10 +108,6 @@ Per ADR-622 v1: the JSONL event model (common `op`/`at`/`as` fields inherited ac
 <!-- sq:story:US4 -->
 ### US4 — Warn when a managed CLAUDE.md region meets pre-existing content
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 When init/adopt finds a CLAUDE.md with real hand-written content but no squads markers, still insert the managed `<!-- squads:start -->` region rather than refusing — but warn that the hand-written operating model may contradict it. Consider placing the managed block at the top of the file so the authoritative instructions lead, rather than appending below existing prose (F8).
 <!-- sq:story:US4:body:end -->
@@ -148,10 +120,6 @@ When init/adopt finds a CLAUDE.md with real hand-written content but no squads m
 
 <!-- sq:story:US5 -->
 ### US5 — Import apply: single transaction, per-event clock/actor, reflog
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 Per ADR-622 v1: once the pre-pass is fully clean, apply inside one `IndexStore.transaction()` — mutate the loaded db in memory, allocate fresh IDs from the single global counter (never from IDs in the file), write each item's .md through the marker-safe section/frontmatter helpers, commit the index once at the end. Each event rebinds the ambient clock/actor via the RequestContext seam for its own `at`/`as` and still emits its own reflog entry. Every created/updated item passes the same ValidatorEngine.gate() interactive commands run; board-debt conditions (unwritten sub-entity bodies, over-long titles) surface as import warnings, not silent debt. Factor each op's mutation core into a db-taking apply-helper shared with the existing single-op service method, per the ADR's implementation note — one code path per mutation, not a parallel importer (F2).
@@ -166,10 +134,6 @@ Per ADR-622 v1: once the pre-pass is fully clean, apply inside one `IndexStore.t
 <!-- sq:story:US6 -->
 ### US6 — `sq import` CLI: --dry-run, --json, --at/--as
 
-<!-- sq:story:US6:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US6:head:end -->
-
 <!-- sq:story:US6:body -->
 Top-level `sq import <file>` (`-` reads JSONL from stdin) per ADR-622 v1: `--dry-run` runs the validate pre-pass only, writes nothing, prints the handle -> id plan and per-op counts; `--json` returns per-op counts, the resolved handle -> id map, and the ordered error list on failure; `--at`/`--as` supply file-level defaults events inherit when they omit their own; `--dir` is the usual squad selector. On any validation error: exit non-zero, write nothing, list every error with its line number (F2).
 <!-- sq:story:US6:body:end -->
@@ -182,10 +146,6 @@ Top-level `sq import <file>` (`-` reads JSONL from stdin) per ADR-622 v1: `--dry
 
 <!-- sq:story:US7 -->
 ### US7 — Adopter docs: recovering from a failed import
-
-<!-- sq:story:US7:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US7:head:end -->
 
 <!-- sq:story:US7:body -->
 ADR-622's one flagged rough edge: a mid-apply crash (rare I/O failure after the pre-pass already passed) can leave a partial write that `sq repair` folds into the index, but re-running the same file is NOT safe (v1 has no idempotency — it allocates fresh IDs and duplicates items). Add a short recovery note to the adoption/import docs: run `repair` first, inspect what was actually written before touching the file again, and don't blind-retry an import file. Adopter-facing only — no sq/ticket/dev-process references (F2).

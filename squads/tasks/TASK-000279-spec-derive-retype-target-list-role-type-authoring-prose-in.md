@@ -81,9 +81,6 @@ squads skill, `src/squads/_interactions.py` / playbook loader for the authoring 
 
 _Add with `sq task 279 add-subtask "<title>"`; track with `sq task 279 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

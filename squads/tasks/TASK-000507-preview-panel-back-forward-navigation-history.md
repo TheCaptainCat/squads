@@ -90,22 +90,10 @@ acceptable — `'reload'` naturally lands at top. State the choice in a task com
 
 _Add with `sq task 507 add-subtask "<title>"`; track with `sq task 507 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | History stack: back/forward + forward-stack truncation | US1 |
-| ST2 | Done |  | Discoverable controls: title-bar buttons, keybinding, inert at ends | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — History stack: back/forward + forward-stack truncation
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a user browsing linked items in the preview, I want back/forward navigation so I can retrace my steps
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Per-panel navigation history in itemPreviewManager.ts (list of ids + current index), independent across open panels. New navigation (tree/link/@mention into the panel) pushes at index+1 and truncates forward entries (browser semantics); back/forward move the index and re-render the item at the new position through the existing 'reload' render path. Watcher 'patch' refresh must not mutate history. Prefer a pure, unit-testable history helper (push/truncate/back/forward/bounds) under domain/. Acceptance: independent per-panel histories; back retraces, forward re-advances; navigating while positioned back drops the old forward stack (unreachable via forward).
@@ -119,11 +107,6 @@ Per-panel navigation history in itemPreviewManager.ts (list of ids + current ind
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Discoverable controls: title-bar buttons, keybinding, inert at ends
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a user navigating the preview, I want discoverable back/forward controls
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Discoverable back/forward controls. New squads.previewBack/previewForward commands (commands.ts -> manager methods); title-bar buttons via editor/title/navigation menu gated to the item-preview panel only (when: activeWebviewPanelId == squadsItemPreview, not the workflow panel), with arrow-left/arrow-right codicons; optional Alt+Left/Right keybindings scoped to the focused preview. Inert at ends via setContext keys (squads.previewCanGoBack/canGoForward) recomputed on every navigation AND on active-panel change (onDidChangeViewState), referenced in menu when/enablement. Acceptance: controls visible + keybinding on the preview panel; back inert at oldest, forward inert at newest, both inert on a freshly opened panel.

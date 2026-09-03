@@ -43,9 +43,6 @@ VS Code's built-in markdown preview does not render mermaid natively, so the che
 
 _Add with `sq task 456 add-subtask "<title>"`; track with `sq task 456 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -35,21 +35,10 @@ Surface the current board notices at role-boot through the active backend into t
 
 _Add with `sq task 385 add-subtask "<title>"`; track with `sq task 385 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Surface unexpired notices content-and-all via backend | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Surface unexpired notices content-and-all via backend
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As any agent, current board notices are surfaced at the start of a run so I'm aware of standing notices
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 At boot, unexpired notices are surfaced content-and-all through the active backend into the managed region. Expired notices excluded; an empty or all-expired board surfaces nothing. Backend-neutral.

@@ -41,9 +41,6 @@ Must stay spec-driven: no hardcoded type list in the client; fetch the order map
 
 _Add with `sq task 457 add-subtask "<title>"`; track with `sq task 457 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

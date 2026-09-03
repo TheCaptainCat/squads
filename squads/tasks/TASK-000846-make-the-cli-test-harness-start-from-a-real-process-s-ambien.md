@@ -153,23 +153,10 @@ not bundled here, because the harness gap is real whatever that decision turns o
 
 _Add with `sq task 846 add-subtask "<title>"`; track with `sq task 846 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Reset both leaking ambient values at the invoke boundary |  |
-| ST2 | Done |  | Permanent falsification: a broken render path must fail the suite |  |
-| ST3 | Done |  | Enumerate and guard the set of values the harness must reset |  |
-| ST4 | Done |  | Retire the workarounds the fix subsumes, keep the load-bearing ones |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Reset both leaking ambient values at the invoke boundary
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Make `invoke()` begin each CLI invocation from the ambient state a fresh `sq` process has:
@@ -206,10 +193,6 @@ Done when: a `project`+`invoke` test observes `_active_squad_dir is None` and an
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Permanent falsification: a broken render path must fail the suite
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Commit the falsification. The acceptance for this task is a false pass becoming a failure, and
@@ -250,10 +233,6 @@ Done when: the test is committed, fails if the harness reset is reverted, and pa
 <!-- sq:subtask:ST3 -->
 ### ST3 — Enumerate and guard the set of values the harness must reset
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Close the class rather than the two instances. The durable output of this task is that the set
 of ambient values the harness must reset is **enumerable and enforced**, not that two specific
@@ -291,10 +270,6 @@ not reset fails a test, and that failure has been observed rather than assumed.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Retire the workarounds the fix subsumes, keep the load-bearing ones
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Remove the hand-rolled workarounds the harness fix makes redundant, and leave the ones that are

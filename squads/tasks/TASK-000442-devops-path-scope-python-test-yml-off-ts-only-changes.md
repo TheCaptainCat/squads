@@ -80,9 +80,6 @@ REV-438 F3 (low).
 
 _Add with `sq task 442 add-subtask "<title>"`; track with `sq task 442 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -67,21 +67,10 @@ TASK-242 (lint), which call the same `validate()`. Coordinate test-isolation wit
 
 _Add with `sq task 240 add-subtask "<title>"`; track with `sq task 240 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | open_service loads merged spec and hard-stops on invalid | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — open_service loads merged spec and hard-stops on invalid
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Broken workflow spec hard-stops sq with a clear actionable error
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers threading the merged spec into runtime via the squad-dir-aware singleton-rebind seam (the low-risk approach confirmed for FEAT-209 over full per-Service threading): `open_service`/`Service` calls `load_workflow_spec(squad_dir=...)` after resolving the squad dir and installs it with a `use_spec(spec)` that rebinds `_DEFAULT_SPEC`/`WORKFLOWS`/`TERMINAL`/`ALLOWED_PARENTS`/`SUBENTITY_WORKFLOWS`, resetting to bundled for no-override squads so the rebind does not leak across tmp squads in the suite. A broken override hard-stops BEFORE any command body runs, re-raising `SquadsError` with a "run `sq workflow lint`" pointer. (US3)

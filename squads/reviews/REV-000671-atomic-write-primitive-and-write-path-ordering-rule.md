@@ -329,39 +329,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 671 add-finding "…" --severity medium`; track with `sq review 671 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | Stamped skill item files still written non-atomically by sync |
-| F2 | 🟡 medium | Verified |  | Interruption tests pass with the primitive sabotaged |
-| F3 | 🟡 medium | Verified |  | Whole-file rewrites of partly hand-authored files stay non-atomic |
-| F4 | 🟡 medium | Verified |  | Markdown-ahead skew is reverted by the next mutation |
-| F5 | 🟢 low | Verified |  | Migration-runner exemption's recorded reason covers only ordering |
-| F6 | 🟢 low | Verified |  | Post-commit role-file writes in link-role carry no exemption note |
-| F7 | 🟢 low | Verified |  | Temp files leak on the error path; config temp escapes gitignore |
-| F8 | 🟢 low | Verified |  | Dry-run filesystem fix landed without a regression test |
-| F9 | 🟢 low | Verified |  | No changelog entry for the durability change |
-| F10 | 🟠 high | Verified |  | Confirm round drops a durable drift when the index path is stale |
-| F11 | 🟢 low | Verified |  | Interruption tests hook os.fsync, which the ADR may remove |
-| F12 | 🟢 low | Verified |  | Root gitignore pattern never reaches an existing squad |
-| F13 | 🟢 low | Verified |  | Nested different-store transaction silently drops the outer log |
-| F14 | 🟡 medium | Verified |  | Guard ignore-set is per-writer, not per-field: roles refuse after resync |
-| F15 | 🟡 medium | Verified |  | Stale-path clean failure covers read verbs only; update still crashes raw |
-| F16 | 🟢 low | Open |  | One unparseable item file aborts sq check and sq repair board-wide |
-| F17 | 🟢 low | Fixed |  | Permitted-skew set over-exempts dev-role and skill extra fields |
-| F18 | 🟢 low | Fixed |  | Bulk rename's board-wide snapshot read still crashes raw |
-| F19 | 🟢 low | Fixed |  | Throwaway RoleDef instance at import time to enumerate keys |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Stamped skill item files still written non-atomically by sync
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `src/squads/_backends/_claude_code/_backend.py::_write_managed_skill` writes the skill body with
@@ -408,11 +379,6 @@ fields exist nowhere else, and losing them is what makes the state above unrecov
 
 <!-- sq:finding:F2 -->
 ### F2 — Interruption tests pass with the primitive sabotaged
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 Replacing the primitive's body with a bare `path.write_text(text, encoding="utf-8")` — no temp file,
@@ -469,11 +435,6 @@ index-backed output.
 <!-- sq:finding:F3 -->
 ### F3 — Whole-file rewrites of partly hand-authored files stay non-atomic
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 Two exempt writers rewrite a *whole file* whose contents are only partly generated, so the exemption's
 premise ("losing it costs a re-sync") does not hold for the part that is hand-authored.
@@ -508,11 +469,6 @@ async, or leaving them sync and using the same temp+replace shape inline).
 
 <!-- sq:finding:F4 -->
 ### F4 — Markdown-ahead skew is reverted by the next mutation
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 The decision's §1 promises the surviving skew is "healed losslessly and by construction" because
@@ -560,11 +516,6 @@ divergence), or §1 gains the qualifier "provided repair runs before the next mu
 <!-- sq:finding:F5 -->
 ### F5 — Migration-runner exemption's recorded reason covers only ordering
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 The recorded audit note leaves `_migrations/_v0_4_to_v0_5.py` and `_v0_8_to_v0_10.py` unfixed with the
 justification that "`sq migrate up` ends in repair + stamp, which reconciles the surviving state".
@@ -602,11 +553,6 @@ stop telling a future reader that repair covers a truncation.
 
 <!-- sq:finding:F6 -->
 ### F6 — Post-commit role-file writes in link-role carry no exemption note
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 `link_role` / `unlink_role` (and `sync`'s roster sweep) call `_resync_role_skills` *after* their
@@ -646,11 +592,6 @@ regions of an item `.md` the committing transaction did not mirror").
 <!-- sq:finding:F7 -->
 ### F7 — Temp files leak on the error path; config temp escapes gitignore
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 Two small holes in the primitive's temp-file story.
 
@@ -686,11 +627,6 @@ make the two diverge. Fixing it in both places keeps them identical.
 <!-- sq:finding:F8 -->
 ### F8 — Dry-run filesystem fix landed without a regression test
 
-<!-- sq:finding:F8:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
-
 <!-- sq:finding:F8:body -->
 The `(item, delta, rename)` split — the pure half no longer touching the filesystem, the physical move
 performed only by `_update_core` — is the whole fix for the dry-run-mutates-disk defect, and nothing
@@ -724,11 +660,6 @@ One service-level test per family, patching `_aio.write_text` to raise if reache
 <!-- sq:finding:F9 -->
 ### F9 — No changelog entry for the durability change
 
-<!-- sq:finding:F9:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 The decision's consequences and this work's own final subtask both call for an adopter-facing line: an
 interrupted mutation now always leaves the repairable skew — markdown ahead of the index — instead of,
@@ -756,11 +687,6 @@ internal primitive.
 
 <!-- sq:finding:F10 -->
 ### F10 — Confirm round drops a durable drift when the index path is stale
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 The confirm round re-reads a drift candidate's file at `item_file(self.paths, fresh_item)` — the
@@ -819,11 +745,6 @@ item whose index path is stale must still be reported.
 <!-- sq:finding:F11 -->
 ### F11 — Interruption tests hook os.fsync, which the ADR may remove
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 Both interruption tests now fault the live primitive by monkeypatching `os.fsync`. That is a real
 improvement over the stub — I verified it catches a bare truncate-in-place *and* an in-place write
@@ -858,11 +779,6 @@ same global patch).
 <!-- sq:finding:F12 -->
 ### F12 — Root gitignore pattern never reaches an existing squad
 
-<!-- sq:finding:F12:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F12:head:end -->
-
 <!-- sq:finding:F12:body -->
 `_ensure_root_tmp_ignored` is called from `init` and `adopt` only. Neither runs again on a squad that
 already exists, so every squad initialised before this release keeps the hole the finding described:
@@ -892,11 +808,6 @@ both delivered as written.
 
 <!-- sq:finding:F13 -->
 ### F13 — Nested different-store transaction silently drops the outer log
-
-<!-- sq:finding:F13:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F13:head:end -->
 
 <!-- sq:finding:F13:body -->
 The store-scoped guard is right, and the concurrency fix it delivers is real: I restored the
@@ -940,11 +851,6 @@ loses log lines rather than assuming parity with the old attribute.
 
 <!-- sq:finding:F14 -->
 ### F14 — Guard ignore-set is per-writer, not per-field: roles refuse after resync
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 The exclusion is attached to the **writer**, not to the **field**. The two regen writers pass
@@ -1010,11 +916,6 @@ Nothing in the suite exercises that pair today, which is why it landed.
 <!-- sq:finding:F15 -->
 ### F15 — Stale-path clean failure covers read verbs only; update still crashes raw
 
-<!-- sq:finding:F15:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F15:head:end -->
-
 <!-- sq:finding:F15:body -->
 `_read_item_file` converts a missing file into a clean, actionable error — but only five callers were
 routed through it. Every mutating seam still calls `_aio.read_text` directly on an index-derived path,
@@ -1073,11 +974,6 @@ or narrow it to the read verbs it currently describes.
 <!-- sq:finding:F16 -->
 ### F16 — One unparseable item file aborts sq check and sq repair board-wide
 
-<!-- sq:finding:F16:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F16:head:end -->
-
 <!-- sq:finding:F16:body -->
 One item file whose frontmatter YAML doesn't parse takes down both the gate and the recovery command
 for the entire board:
@@ -1123,11 +1019,6 @@ a release blocker.
 
 <!-- sq:finding:F17 -->
 ### F17 — Permitted-skew set over-exempts dev-role and skill extra fields
-
-<!-- sq:finding:F17:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F17:head:end -->
 
 <!-- sq:finding:F17:body -->
 Moving the exclusion from the writer to the field is the right correction, and it closes both
@@ -1184,11 +1075,6 @@ The conditional fix removes that as well.
 <!-- sq:finding:F18 -->
 ### F18 — Bulk rename's board-wide snapshot read still crashes raw
 
-<!-- sq:finding:F18:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F18:head:end -->
-
 <!-- sq:finding:F18:body -->
 Of the two reads deliberately left on raw `_aio.read_text`, one is fine and one is the same
 partial-coverage shape as before.
@@ -1229,11 +1115,6 @@ to the `_items.py` site, which it isn't — that one has an existence check, thi
 
 <!-- sq:finding:F19 -->
 ### F19 — Throwaway RoleDef instance at import time to enumerate keys
-
-<!-- sq:finding:F19:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F19:head:end -->
 
 <!-- sq:finding:F19:body -->
 Asked to rule on the new `_itemfile` → `_roles/_catalog` dependency and the throwaway `RoleDef`.

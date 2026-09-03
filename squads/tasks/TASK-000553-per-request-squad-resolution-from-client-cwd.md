@@ -60,9 +60,6 @@ run in parallel with it once the shared fixture ownership is settled.
 
 _Add with `sq task 553 add-subtask "<title>"`; track with `sq task 553 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -75,7 +75,6 @@ async def test_a_bundled_roles_activate_name_survives_two_consecutive_syncs(proj
     no-op."""
     role = await svc.activate_role("architect", name="Ada Lovelace")
     assert role.title == "Ada Lovelace"
-    assert role.extra[X.FULL_NAME] == "Ada Lovelace"
 
     for _ in range(2):  # two consecutive syncs, not one
         issues = await svc.check()
@@ -85,7 +84,6 @@ async def test_a_bundled_roles_activate_name_survives_two_consecutive_syncs(proj
 
         reloaded = await svc.get(role.id)
         assert reloaded.title == "Ada Lovelace"
-        assert reloaded.extra[X.FULL_NAME] == "Ada Lovelace"
         assert _on_disk_frontmatter(svc, reloaded)["title"] == "Ada Lovelace"
         assert await _list_title(svc, role.id) == "Ada Lovelace"
         assert "Ada Lovelace" in _claude_md(project)
@@ -101,14 +99,13 @@ async def test_a_developer_roles_name_survives_two_consecutive_syncs(project, sv
     developer named at creation must be just as durable through `role_base_from_item` as it
     was through the old dev-only special case."""
     dev = await svc.add_dev("python", name="Hank Python")
-    assert dev.extra[X.FULL_NAME] == "Hank Python"
+    assert dev.title == "Hank Python"
 
     for _ in range(2):
         skipped = await svc.sync()
         assert not skipped
         reloaded = await svc.get(dev.id)
         assert reloaded.title == "Hank Python"
-        assert reloaded.extra[X.FULL_NAME] == "Hank Python"
         assert "Hank Python" in _claude_md(project)
 
 
@@ -136,7 +133,6 @@ async def test_init_time_name_survives_two_consecutive_syncs(tmp_path, frozen_ti
         assert not skipped
         reloaded = await svc2.get(role.id)
         assert reloaded.title == "Ada Lovelace"
-        assert reloaded.extra[X.FULL_NAME] == "Ada Lovelace"
         assert "Ada Lovelace" in (result.paths.root / "CLAUDE.md").read_text(encoding="utf-8")
 
 
@@ -181,7 +177,6 @@ async def test_a_declared_override_still_renames_over_the_items_own_different_na
 
     reloaded = await svc.get(role.id)
     assert reloaded.title == "Marie Curie"
-    assert reloaded.extra[X.FULL_NAME] == "Marie Curie"
 
 
 async def test_a_declared_override_still_renames_over_the_items_own_different_name_dev(
@@ -194,7 +189,6 @@ async def test_a_declared_override_still_renames_over_the_items_own_different_na
 
     reloaded = await svc.get(dev.id)
     assert reloaded.title == "Grace Hopper"
-    assert reloaded.extra[X.FULL_NAME] == "Grace Hopper"
 
 
 # --------------------------------------------------------------------------------------------
@@ -213,18 +207,26 @@ async def test_tier_3_bundled_default_and_dev_pool_name_with_no_item_and_no_over
 
 
 # --------------------------------------------------------------------------------------------
-# Catalog refresh still works: a RoleDef field an operator never sets (mission,
-# responsibilities, can_spawn) still reaches an item whose stored copy is stale, in the very
-# same sync that also preserves the operator's own name. A fix that simply froze the whole
-# definition to the item would pass every test above and fail only this one.
+# Catalog resolution still works: a RoleDef field an operator never sets (mission,
+# responsibilities, can_spawn) still reaches every reader of an item whose stored copy is
+# stale, in the very same sync that also preserves the operator's own name. A fix that simply
+# froze the whole definition to the item would pass every test above and fail only this one.
+#
+# The stale copy is planted in `extra` and stays there: nothing writes those keys any more and
+# nothing reads them, so "the current catalog value reaches the item" is now asserted where the
+# value is actually consumed -- the uniform record's `description`, the resolved definition, the
+# generated pointer -- rather than on a mirror that no longer exists.
 # --------------------------------------------------------------------------------------------
 
 
-async def test_catalog_refresh_still_reaches_a_stale_item_alongside_a_preserved_name(project, svc):
+async def test_catalog_resolution_still_reaches_a_stale_item_alongside_a_preserved_name(
+    project, svc
+):
     role = await svc.activate_role("architect", name="Ada Lovelace")
 
     from squads._index._resolver import item_file
     from squads._itemfile import update_frontmatter
+    from squads._roles._resolver import resolve_role_for_item
 
     current = await svc.get(role.id)
     base = current.model_copy(deep=True)
@@ -243,14 +245,18 @@ async def test_catalog_refresh_still_reaches_a_stale_item_alongside_a_preserved_
     assert not skipped
 
     healed = await svc.get(role.id)
-    # Non-operator-settable fields reconverge to the *current* catalog value.
-    assert healed.extra[X.MISSION] == _BUNDLED_ARCHITECT.mission
+    # The uniform record's own field reconverges to the *current* catalog value.
     assert healed.description == _BUNDLED_ARCHITECT.mission
-    assert list(healed.extra[X.RESPONSIBILITIES]) == list(_BUNDLED_ARCHITECT.responsibilities)
-    assert healed.extra[X.CAN_SPAWN] == _BUNDLED_ARCHITECT.can_spawn
+    # And every field with no uniform-record home is answered by the resolver, over the top of
+    # the stale copy still sitting in `extra`.
+    resolved = resolve_role_for_item(healed, svc.paths.squad_dir)
+    assert resolved.mission == _BUNDLED_ARCHITECT.mission
+    assert list(resolved.responsibilities) == list(_BUNDLED_ARCHITECT.responsibilities)
+    assert resolved.can_spawn == _BUNDLED_ARCHITECT.can_spawn
+    # The stale copy is inert, not healed -- pinned so a reader knows which of the two it is.
+    assert healed.extra[X.MISSION] == "a long-obsolete mission statement"
     # The operator's own name is untouched by the very same sync.
     assert healed.title == "Ada Lovelace"
-    assert healed.extra[X.FULL_NAME] == "Ada Lovelace"
 
 
 # --------------------------------------------------------------------------------------------

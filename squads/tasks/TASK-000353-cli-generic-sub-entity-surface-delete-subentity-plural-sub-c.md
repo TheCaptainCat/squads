@@ -57,21 +57,10 @@ TASK-351 (public kind-taking service surface) and TASK-352 (shared column deriva
 
 _Add with `sq task 353 add-subtask "<title>"`; track with `sq task 353 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | add-<kind> verb built dynamically from spec; e.g. incident add-action | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — add-<kind> verb built dynamically from spec; e.g. incident add-action
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a project admin, I want to define custom sub-entity kinds for my custom types in TOML
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Rebuilt the whole sub-entity CLI surface generically from the resolved kind spec — `add-<kind>`, the `<plural>` list verb, and the nested `<kind> <n> show|update|body|comment` subgroup are all built from a dynamic signature (one `--<field-code>` flag per declared field, `--story` only when the kind maps a parent story), and `_SUBENTITY_PLURAL`/`_SUB_COLS` were deleted. A custom type's custom kind now works with no code change (e.g. `sq incident <n> add-action`), while built-in story/subtask/finding verbs, flags, and output stay unchanged.

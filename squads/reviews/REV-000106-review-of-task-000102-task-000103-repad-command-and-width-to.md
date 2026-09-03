@@ -38,23 +38,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 106 add-finding "…" --severity high`; track with `sq review 106 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | repad leaves sq repair reporting EVERY item as a spurious 'missing' warning |
-| F2 | 🟢 low | Verified |  | repad hand-rolls the zero-pad width instead of routing through format_item_id |
-| F3 | 🟢 low | Verified |  | End-to-end test does not exercise sq repair after repad, so the missing_ids regression slipped through |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — repad leaves sq repair reporting EVERY item as a spurious 'missing' warning
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 PROBLEM: After `sq migrate repad <w>`, running `sq repair` prints a spurious 'indexed but no markdown file found (deleted?)' warning for EVERY item, even though all files are present and correct. Reproduced at the CLI level: after repad(7) on a 3-item squad, `sq repair` emits 'rebuilt index: 3 items, counter=3' followed by 3 warn lines (FEAT-0000002, ROLE-0000001, TASK-0000003).
@@ -77,11 +64,6 @@ SUGGESTED FIX: compute missing_ids by sequence number, not full-ID string — mi
 <!-- sq:finding:F2 -->
 ### F2 — repad hand-rolls the zero-pad width instead of routing through format_item_id
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 PROBLEM: repad() formats the new digit-run by hand rather than through the canonical formatter. FILE: src/squads/_services/_maintenance.py:255 — new_id_part = f'{seq:0{new_padding}d}'.
 
@@ -100,11 +82,6 @@ SUGGESTED FIX: base = format_item_id(item_type.prefix, seq, new_padding); new_na
 
 <!-- sq:finding:F3 -->
 ### F3 — End-to-end test does not exercise sq repair after repad, so the missing_ids regression slipped through
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 PROBLEM: test_end_to_end_repad_resolution (tests/test_service.py:980) is otherwise strong — it covers parent resolution, refs_in, backrefs, both old- and new-width CLI addressing, and svc.check() clean — but it never runs svc.repair() / 'sq repair' after the repad and asserts missing_ids == []. That is precisely the gap that let F1 through: check() is seq-keyed and stays clean, while repair()'s missing_ids is the broken path.

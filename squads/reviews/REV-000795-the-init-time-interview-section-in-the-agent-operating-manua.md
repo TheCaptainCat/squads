@@ -109,24 +109,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 795 add-finding "…" --severity medium`; track with `sq review 795 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Skill scoped to one role does not load in every session |
-| F2 | 🟢 low | Fixed |  | Named hard floor contradicts the overrides documentation |
-| F3 | 🟢 low | Fixed |  | Pointers name an init-time interview the section never calls that |
-| F4 | 🟢 low | Fixed |  | Custom-skill command block duplicates the roles.md sequence |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Skill scoped to one role does not load in every session
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Where.** `docs/agents.md` line 50–51 ("The answers then become durable, discoverable guidance
@@ -169,11 +155,6 @@ one role — `link-role` takes one role per call and can be run repeatedly for t
 <!-- sq:finding:F2 -->
 ### F2 — Named hard floor contradicts the overrides documentation
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Where.** `docs/agents.md` lines 59–62: "`sq` enforces a hard floor — stable IDs, the status
 lifecycle, the shape of an item — and stops there, because how a squad is actually run day to
@@ -213,11 +194,6 @@ item shape as immutable is the part that misfires.
 <!-- sq:finding:F3 -->
 ### F3 — Pointers name an init-time interview the section never calls that
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **Where.** The three pointers, against the heading they point at:
 
@@ -256,11 +232,6 @@ same meaning without contradicting its own first clause.
 
 <!-- sq:finding:F4 -->
 ### F4 — Custom-skill command block duplicates the roles.md sequence
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 **Where.** `docs/agents.md` lines 44–48 (the three-command block) against `docs/roles.md`

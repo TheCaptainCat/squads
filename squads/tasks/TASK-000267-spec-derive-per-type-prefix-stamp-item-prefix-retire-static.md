@@ -58,9 +58,6 @@ Retire as call-site lookups: `PREFIX_BY_TYPE`, `TYPE_BY_PREFIX`, `FOLDER_BY_TYPE
 
 _Add with `sq task 267 add-subtask "<title>"`; track with `sq task 267 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

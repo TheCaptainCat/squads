@@ -48,24 +48,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 557 add-finding "…" --severity medium`; track with `sq review 557 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | AST guard blind to non-literal mutable caches (OrderedDict/defaultdict/helper) mutated in place |
-| F2 | 🟡 medium | Verified |  | Acceptance test's uncommitted-write / cross-squad-DATA isolation claims exceed what it exercises |
-| F3 | 🟢 low | Verified |  | env_cache LRU dict mutations are not thread-safe (safe only under the single-thread asyncio model) |
-| F4 | 🟢 low | Verified |  | Plant tests prove the detector function, not the wired guard's file-walk + allowlist diff |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — AST guard blind to non-literal mutable caches (OrderedDict/defaultdict/helper) mutated in place
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The detector (`_is_mutable_binding`) flags a module-scope assignment only when the value is a dict/list/set literal, a dict/list/set COMPREHENSION, or a Call whose func name is literally `dict`/`list`/`set`; plus any `global` statement. Verified empirically against the shipped detector: `_leak = {}`, `_leak: dict = {}`, `_leak = dict()`, `_leak = []`, and the scalar-reassigned-via-`global` pattern are all CAUGHT — but `OrderedDict()`, `defaultdict(list)`, `Counter()`, and `_leak = _helper()` (any factory returning a mutable) are all MISSED.
@@ -86,11 +72,6 @@ Note the allowlist already enumerates every function-built singleton (_BUNDLED_S
 <!-- sq:finding:F2 -->
 ### F2 — Acceptance test's uncommitted-write / cross-squad-DATA isolation claims exceed what it exercises
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 `test_a_concurrent_b_request_never_observes_as_write_or_ambient_state` docstring + line-92 comment claim B 'never observes A's data' and that B's list is 'untouched by A's concurrent (not-yet-committed) write'. Both framings overstate what runs. (1) A's write executes STRICTLY AFTER B finishes reading — B sets `b_checked`, which is what unblocks A's `await b_checked.wait()` before A calls `svc.create(...)`. There is no in-flight/concurrent write during B's read; it hasn't started. (2) B reads squad B's store while A writes squad A's store — separate dirs, files, filelocks — so B could never observe A's write regardless of any in-process isolation. The empty-list assertion is trivially true by squad separation, not by an isolation mechanism.
 
@@ -110,11 +91,6 @@ Recommendation: (a) add a same-squad interleave — request A holds an open writ
 <!-- sq:finding:F3 -->
 ### F3 — env_cache LRU dict mutations are not thread-safe (safe only under the single-thread asyncio model)
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 `_env()` now mutates the shared module dict `_env_cache` with pop+reinsert on a hit and insert+`del _env_cache[next(iter(...))]` on an evicting miss. Under the project's stated concurrency model this is SAFE: anyio is pinned to asyncio (conftest `anyio_backend`), `_env()` has no `await`, so each call runs atomically to completion within its task — no interleaving.
 
@@ -131,11 +107,6 @@ Not a defect in the shipped increment (async single-loop is the design per ADR-1
 
 <!-- sq:finding:F4 -->
 ### F4 — Plant tests prove the detector function, not the wired guard's file-walk + allowlist diff
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 The two plant tests call `_mutable_state_hits` on a synthetic tmp_path module and assert the DETECTOR flags the plant. They do not exercise the real guard's wiring — the src-tree file-walk and the `names - ALLOWLIST` set-difference in `test_module_level_mutable_state_matches_the_allowlist_exactly`. So the automated proof stops at 'the detector works'; the acceptance step 'a planted _leak in a real engine module makes the guard red' was, per the task, a manual temporary edit + revert, not an assertion.

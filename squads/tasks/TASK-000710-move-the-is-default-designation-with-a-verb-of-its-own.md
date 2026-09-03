@@ -101,21 +101,10 @@ move-semantics verb makes a second holder unreachable through the verb.
 
 _Add with `sq task 710 add-subtask "<title>"`; track with `sq task 710 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Designate by moving, refusing a non-live target |  |
-| ST2 | Done |  | Expose it as its own verb and document it |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Designate by moving, refusing a non-live target
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 One transaction designates a live role and clears every other holder, because the projection resolves by first match and nothing validates a single holder at item level — a plain set silently yields two holders and an arbitrary winner. Designating a non-live role is refused rather than stored: a designation the projection cannot read is not a designation. Re-designating the current holder is a reported no-op.
@@ -129,10 +118,6 @@ One transaction designates a live role and clears every other holder, because th
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Expose it as its own verb and document it
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 A verb on the role surface, not a flag on status — moving a designation and retiring an entry are unrelated acts. It reports what changed including the holder it cleared, reflogs the move, and refreshes the generated default-role line and the orchestration prose that reads the same value. Adopter-facing text names it as the way back from a squad with no designated role.

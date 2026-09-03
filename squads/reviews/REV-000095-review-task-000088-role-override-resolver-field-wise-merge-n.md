@@ -37,22 +37,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 95 add-finding "…" --severity high`; track with `sq review 95 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | New-slug admission checks key presence only, not non-emptiness |
-| F2 | 🟢 low | Open |  | RoleDef frozen dataclass: scalar override values not type-validated |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — New-slug admission checks key presence only, not non-emptiness
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 New-slug admission checks key presence only, not non-emptiness. A TOML with required keys present but empty (title="", mission="") admits a degenerate role with blank fields. _apply_override uses [f for f in _REQUIRED_FOR_NEW if f not in data]; an empty string passes. Inconsistent with the NonEmpty guard used for titles elsewhere. ADR §2 does not strictly mandate non-empty, and the project owns its own TOML, so non-blocking.
@@ -66,11 +54,6 @@ New-slug admission checks key presence only, not non-emptiness. A TOML with requ
 
 <!-- sq:finding:F2 -->
 ### F2 — RoleDef frozen dataclass: scalar override values not type-validated
-
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 RoleDef is a frozen dataclass, so scalar override values are not type-validated. e.g. model=42 in a TOML is accepted and stored verbatim, flowing to extra/pointer; only TypeError (unknown/missing kwargs) is caught and wrapped. Low risk (project-owned file), but a wrong-typed model/color/is_default passes silently. Consider validating scalar types or coercing in _apply_override.

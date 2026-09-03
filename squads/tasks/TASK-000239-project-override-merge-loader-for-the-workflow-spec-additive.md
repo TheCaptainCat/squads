@@ -85,22 +85,10 @@ FIRST. TASK-240 (threading) and TASK-241 (index cross-check) build on this loade
 
 _Add with `sq task 239 add-subtask "<title>"`; track with `sq task 239 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Additive-only merge of project override over bundled default | US1 |
-| ST2 | Cancelled |  | (duplicate — see ST1) | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Additive-only merge of project override over bundled default
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Project admin can add custom types and statuses via .squads.toml
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the loader core of FEAT-209: `load_workflow_spec(squad_dir)` layers a project override (`.overrides/workflow.toml`, the canonical single source pinned with TASK-244) over the bundled default with ADDITIVE-ONLY semantics. New types/statuses/lifecycles are accepted; redefining any built-in type/status/lifecycle is REJECTED with an actionable `SquadsError` naming the offending key; a new type may REFERENCE a built-in lifecycle (not a redefinition). Derived reverse indexes (prefix_to_type/alias_to_type) are built over the merged set so collisions are caught by the existing uniqueness checks, and the override is parsed through `model_validate` so `extra="forbid"` fires on typo'd keys. The no-arg call stays byte-identical (F1 golden green). (US1)
@@ -114,11 +102,6 @@ Covers the loader core of FEAT-209: `load_workflow_spec(squad_dir)` layers a pro
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — (duplicate — see ST1)
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚫ Cancelled
-**Implements:** US1 — Project admin can add custom types and statuses via .squads.toml
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Cancelled — created as a duplicate of ST1; the additive-only merge is fully covered by ST1. No separate scope. (US1)

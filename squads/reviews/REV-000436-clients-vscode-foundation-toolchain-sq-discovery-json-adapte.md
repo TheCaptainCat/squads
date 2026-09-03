@@ -48,24 +48,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 436 add-finding "…" --severity medium`; track with `sq review 436 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Squad item IDs embedded in production source and README |
-| F2 | 🟢 low | Fixed |  | No hygiene enforcement covers clients/ going forward |
-| F3 | 🟢 low | Fixed |  | usage-error argv omits the resolved command, weakening the diagnostic |
-| F4 | 🟢 low | Fixed |  | squads.command with an absolute-path first element never resolves |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Squad item IDs embedded in production source and README
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The task's implementer note is explicit: 'sq/ticket IDs must not appear in source (this task's ID included).' Yet src/extension.ts:4 carries 'Foundation only (TASK-428)', and ADR-427 is cited in comments in src/discovery.ts (lines 4, 106), src/sqAdapter.ts:3, eslint.config.mjs:2, and throughout README.md.
@@ -88,11 +74,6 @@ Fix: remove TASK-428 and the ADR-427 citations from source comments and README p
 <!-- sq:finding:F2 -->
 ### F2 — No hygiene enforcement covers clients/ going forward
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 The no-ticket-IDs rule (and any other src-hygiene invariant) has no automated guard under clients/: the Python meta scan is scoped to src/docs/tests by design, and the TS gate has no equivalent rule. So finding 1's cleanup can silently regress in future TS work with nothing to catch it.
 
@@ -110,11 +91,6 @@ Recommend a TS-side guard — an ESLint no-restricted-syntax/regex rule or a sma
 <!-- sq:finding:F3 -->
 ### F3 — usage-error argv omits the resolved command, weakening the diagnostic
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 On exit 2 the adapter returns { kind: 'usage-error', argv } so 'our bug' can be logged. But buildArgv returns [...invocation.args, ...subcommandArgs] and drops invocation.command. For a venv invocation (args: []) the logged argv is e.g. ['tree','EPIC-99','--json'] — the sq binary itself is gone; for uv it is ['run','sq',...] — 'uv' is gone. The logged line can't be replayed to reproduce the usage bug.
 
@@ -131,11 +107,6 @@ Suggest including invocation.command in the argv captured for the usage-error pa
 
 <!-- sq:finding:F4 -->
 ### F4 — squads.command with an absolute-path first element never resolves
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 tryConfigCommand (src/discovery.ts) validates command[0] via env.isOnPath(first), which only PATH-scans a bare name. If an operator sets squads.command to e.g. ['/opt/py/bin/python','-m','squads'], isOnPath('/opt/py/bin/python') scans PATH dirs for that literal and fails, so config-command is silently skipped and discovery falls through to venv/uv/... — surprising for an explicit override.

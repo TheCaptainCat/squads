@@ -63,22 +63,10 @@ Any change to `_base.py` (the ABC) or to the `claude_dir`/`claude_md` seam touch
 
 _Add with `sq task 131 add-subtask "<title>"`; track with `sq task 131 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Write the shared backend conformance suite (parametrized factory fixture) and make it green against claude_code | US2 |
-| ST2 | Done |  | Merge the ABC corrections the suite surfaces (de-Claude-ify the contract) so a non-Claude backend can implement it | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Write the shared backend conformance suite (parametrized factory fixture) and make it green against claude_code
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a future backend implementer, I want a backend conformance test suite, so that I know exactly what the AgentBackend contract requires of me
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the shared, parametrized backend conformance suite (tests/test_backend_conformance.py) driven by a backend-factory fixture and asserting the AgentBackend contract — not Claude file layout: ensure_scaffold idempotence/non-clobber with root-relative existing Artifact paths, idempotent write_managed (region replaced not duplicated), per-item generate_role/skill_pointer, remove_artifacts exactness + missing_ok, Artifact.path root-relative forward-slash + backend name, and the scaffold→write→generate→remove round-trip leaving no orphans. Run green against claude_code.
@@ -92,11 +80,6 @@ Covers the shared, parametrized backend conformance suite (tests/test_backend_co
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Merge the ABC corrections the suite surfaces (de-Claude-ify the contract) so a non-Claude backend can implement it
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so that we can run squads with our own tooling
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers merging the ABC corrections the conformance exercise surfaces to de-Claude-ify the contract: docstring/comment vocabulary in _backends/_base.py (Artifact.kind, write_managed/pointer naming), the claude_dir/claude_md seam in _paths.py so a second root-file backend has a clean path-ownership story, and the _registry.py registration story accommodating a non-Claude backend. Signature/seam changes gated behind an accepted architect ADR.

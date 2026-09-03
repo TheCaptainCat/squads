@@ -119,22 +119,10 @@ conversion ships. Until then there is nothing to branch on. Recorded as a `depen
 
 _Add with `sq task 810 add-subtask "<title>"`; track with `sq task 810 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Branch edge labelling on the declared semantic | US2 |
-| ST2 | Done |  | Client-side coverage for the semantic edge binding | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Branch edge labelling on the declared semantic
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Convert `edgeLabel` (`clients/vscode/src/domain/graphDiagrams.ts:130-134`) to branch on the
@@ -171,11 +159,6 @@ node with and without the field, and no literal kind name appears in the branch.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Client-side coverage for the semantic edge binding
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Cover the conversion in `clients/vscode/test/graphDiagrams.test.ts`, in the client's own suite,

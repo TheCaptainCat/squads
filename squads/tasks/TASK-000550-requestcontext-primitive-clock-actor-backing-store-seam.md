@@ -90,9 +90,6 @@ TASK-553 (client cwd).
 
 _Add with `sq task 550 add-subtask "<title>"`; track with `sq task 550 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -44,21 +44,10 @@ See below.
 
 _Add with `sq feature 392 add-story "As a <role>, I want … so that …"`; track with `sq feature 392 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Boot directive: review memory + board before starting |
-| US2 | Todo |  | Short, human-friendly memory slugs |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Boot directive: review memory + board before starting
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a spawning agent, I want an always-seen boot directive to run `sq memory
@@ -98,10 +87,6 @@ telling a spawning agent, in substance: before you start, run `sq memory
 
 <!-- sq:story:US2 -->
 ### US2 — Short, human-friendly memory slugs
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a role authoring a memory entry, I want a short, human-friendly slug so

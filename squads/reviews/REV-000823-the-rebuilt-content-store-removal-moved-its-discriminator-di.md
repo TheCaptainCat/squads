@@ -105,28 +105,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 823 add-finding "…" --severity medium`; track with `sq review 823 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🔴 critical | Fixed |  | Rebuild destroys a shipped release's blobs once its tag exists |
-| F2 | 🟠 high | Fixed |  | Rebuild has no floor: an unreadable or artifact-less tag empties an entry |
-| F3 | 🟡 medium | Fixed |  | Store-coverage failure names a remedy that cannot fix it |
-| F4 | 🟡 medium | Fixed |  | Runbook's rebuild and release-gate steps contradict each other on order |
-| F5 | 🟡 medium | Fixed |  | A mistyped flag silently runs write mode; --check --rebuild writes |
-| F6 | 🟢 low | Fixed |  | Rebuild reports a net size delta as a drop count; restorations invisible |
-| F7 | 🟢 low | Fixed |  | Rebuild's two writes are neither atomic nor rolled back |
-| F8 | 🟢 low | Fixed |  | Release-gate success line is identical to --check's |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Rebuild destroys a shipped release's blobs once its tag exists
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔴 Critical
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Severity: critical. Driven.**
@@ -210,11 +192,6 @@ wrong.
 <!-- sq:finding:F2 -->
 ### F2 — Rebuild has no floor: an unreadable or artifact-less tag empties an entry
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Severity: high. Driven.**
 
@@ -277,11 +254,6 @@ is the thing to fix, since it promises a refusal the tool does not perform.
 <!-- sq:finding:F3 -->
 ### F3 — Store-coverage failure names a remedy that cannot fix it
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **Severity: medium. Driven.**
 
@@ -338,11 +310,6 @@ name both. And SKILL-000508 §1 should distinguish the two failures rather than 
 <!-- sq:finding:F4 -->
 ### F4 — Runbook's rebuild and release-gate steps contradict each other on order
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **Severity: medium. Read, against a driven consequence.**
 
@@ -388,11 +355,6 @@ finding.
 <!-- sq:finding:F5 -->
 ### F5 — A mistyped flag silently runs write mode; --check --rebuild writes
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **Severity: medium. Driven.**
 
@@ -435,11 +397,6 @@ four lines and removes the whole class.
 <!-- sq:finding:F6 -->
 ### F6 — Rebuild reports a net size delta as a drop count; restorations invisible
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 **Severity: low. Driven.**
 
@@ -478,11 +435,6 @@ each reported on its own.
 
 <!-- sq:finding:F7 -->
 ### F7 — Rebuild's two writes are neither atomic nor rolled back
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 **Severity: low. Read, with one inconclusive probe.**
@@ -527,11 +479,6 @@ entirely and narrows the window to two adjacent renames.
 
 <!-- sq:finding:F8 -->
 ### F8 — Release-gate success line is identical to --check's
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **Severity: low. Driven.**

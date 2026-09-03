@@ -29,21 +29,10 @@ This feature adds per-panel back/forward history to the preview webview, mirrori
 
 _Add with `sq feature 506 add-story "As a <role>, I want … so that …"`; track with `sq feature 506 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a user browsing linked items in the preview, I want back/forward navigation so I can retrace my steps |
-| US2 | Done |  | As a user navigating the preview, I want discoverable back/forward controls |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a user browsing linked items in the preview, I want back/forward navigation so I can retrace my steps
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Acceptance criteria:
@@ -60,10 +49,6 @@ Acceptance criteria:
 
 <!-- sq:story:US2 -->
 ### US2 — As a user navigating the preview, I want discoverable back/forward controls
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 Acceptance criteria:

@@ -293,24 +293,10 @@ back; the roster-status-literal guard also lives there.
 
 _Add with `sq task 718 add-subtask "<title>"`; track with `sq task 718 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Merge at the raw-mapping layer, retire the additive refusal | US1 |
-| ST2 | Done |  | Loader floor: roster key lock and the naming refusal | US2 |
-| ST3 | Done |  | Drift stamp for an override that shadows a built-in | US1 |
-| ST4 | Done |  | Consumer audit: every site reads the merged spec | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Merge at the raw-mapping layer, retire the additive refusal
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a spec author, I want to shadow a built-in status/lifecycle/type via override instead of only adding new ones
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Move the override merge from the model layer to the raw-mapping layer and retire the
@@ -366,11 +352,6 @@ the additive-only rule.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Loader floor: roster key lock and the naming refusal
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Shadowed roster lifecycle validated against the R1/R1'/R2 floor
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 The loader-level floor: what refuses, and what the refusal says.
@@ -454,11 +435,6 @@ live items lists their IDs; a shadowed lifecycle violating the floor fails at lo
 <!-- sq:subtask:ST3 -->
 ### ST3 — Drift stamp for an override that shadows a built-in
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a spec author, I want to shadow a built-in status/lifecycle/type via override instead of only adding new ones
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Drift stamping for an override that shadows.
 
@@ -531,11 +507,6 @@ spec.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Consumer audit: every site reads the merged spec
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Every consumer absorbs a dropped/renamed/re-prefixed type cleanly
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The consumer audit: every site downstream of the loader reads the merged/active spec, never a

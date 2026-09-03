@@ -45,23 +45,10 @@ updated_at: '2026-07-06T12:31:55Z'
 
 _Add with `sq task 306 add-subtask "<title>"`; track with `sq task 306 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Implement the leading-banner detector helper + wire into check | US1 |
-| ST2 | Done |  | Add positive + negative detector tests | US1 |
-| ST3 | Done |  | Reconcile broken fixtures/goldens without weakening the detector | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Implement the leading-banner detector helper + wire into check
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — The tracker's status is never contradicted by body prose
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add a `_check_*` helper in src/squads/_services/_maintenance.py mirroring _check_unwritten_subentity_bodies: iterate index items, read the `:body` region via _sections.get_section(text, "body") from the on_disk file text, and inspect item.description. Emit one warn CheckIssue per item whose body/description OPENS with a `STATUS:` / `**STATUS…**` banner or a leading `## Status`/`### Status` heading. Anchor to leading/heading position (not a whole-body grep); skip the sq:discussion region entirely. Wire into the check pipeline beside the sibling calls. Message names the item and says move state to frontmatter / a dated comment. Record the warn-severity rationale in a comment. No sq IDs in the source. Done when the helper lands, is wired, and runs at warn level.
@@ -78,11 +65,6 @@ Add a `_check_*` helper in src/squads/_services/_maintenance.py mirroring _check
 <!-- sq:subtask:ST2 -->
 ### ST2 — Add positive + negative detector tests
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — The tracker's status is never contradicted by body prose
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add service-level + CLI-smoke tests, named by behavior (no sq IDs in filenames or bodies). POSITIVE: a body opening with `STATUS: …`, a body with a leading `## Status` heading, and a `description:` opening with a banner each emit exactly one warn. NEGATIVE (must stay silent): a mid-body topical lifecycle mention ('the Draft→Ready transition'), a cross-reference ('blocks TASK-x until it lands'), a fenced code block containing `STATUS:`, and a banner living in the sq:discussion region. Done when both suites pass and prove the detector fires on banners and only on banners.
 <!-- sq:subtask:ST2:body:end -->
@@ -97,11 +79,6 @@ Add service-level + CLI-smoke tests, named by behavior (no sq IDs in filenames o
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Reconcile broken fixtures/goldens without weakening the detector
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — The tracker's status is never contradicted by body prose
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Like FEAT-289, adding the rule may trip existing tests/goldens whose fixtures carry banner-shaped body prose or whose golden `sq check` output changes. Reconcile them: fill/fix fixture bodies to be state-free, or update the expected golden output to include the new warn lines. NEVER relax the regex or narrow the scope just to make a test pass — the detector's precision is the deliverable. Done when the full suite is green with the detector unweakened.

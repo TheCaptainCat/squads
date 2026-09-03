@@ -34,22 +34,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 547 add-finding "…" --severity medium`; track with `sq review 547 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | scaffold_new_role does not validate the slug — path traversal / absolute-path arbitrary file write |
-| F2 | 🟢 low | Verified |  | No slug-safety test — the highest-risk edge is unpinned |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — scaffold_new_role does not validate the slug — path traversal / absolute-path arbitrary file write
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 scaffold_new_role builds `dest = _role_overrides_dir(squad_dir) / f"{slug}.toml"` and writes to it after only one check (slug not in _BUNDLED_ROLE_SLUGS). The slug is never validated or slugified, and this write bypasses the _paths.abspath traversal guard the codebase relies on everywhere else.
@@ -69,11 +57,6 @@ Note: the pre-existing scaffold_role (--role) shares the identical flaw (verifie
 
 <!-- sq:finding:F2 -->
 ### F2 — No slug-safety test — the highest-risk edge is unpinned
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 The new tests are thorough on clobber/--force, bundled-slug rejection, --role/--new mutual exclusion, can_spawn true/false, the resolve_role round-trip, activation + pointer denylist, and catalog --json shape. But there is no test for a hostile/malformed slug (traversal '../', absolute path, empty/whitespace). That is exactly the surface F1 flags, so the regression that would catch a fix is missing.

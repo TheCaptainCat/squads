@@ -73,23 +73,10 @@ through an ADR before implementation.
 
 _Add with `sq feature 14 add-story "As a <role>, I want … so that …"`; track with `sq feature 14 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Override item templates from squads/.templates/ |
-| US2 | Todo |  | As a project lead, I want to add or override role definitions for my project, so that the squad matches my actual team |
-| US3 | Todo |  | Defined precedence and staleness behaviour for overrides |
-| US4 | Todo |  | Supply agent names at init and role creation |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Override item templates from squads/.templates/
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** dropping a template under squads/.templates/ shadows the bundled one for item rendering, without touching package data; covered by a test.
@@ -106,10 +93,6 @@ As a project lead, I want to override item templates from squads/.templates/, so
 <!-- sq:story:US2 -->
 ### US2 — As a project lead, I want to add or override role definitions for my project, so that the squad matches my actual team
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** a project-local role definition is picked up by sync/spawn flows with the same precedence rule as templates; covered by a test.
 <!-- sq:story:US2:body:end -->
@@ -122,10 +105,6 @@ As a project lead, I want to override item templates from squads/.templates/, so
 
 <!-- sq:story:US3 -->
 ### US3 — Defined precedence and staleness behaviour for overrides
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** the ADR from the design phase defines lookup order (project override → bundled default), partial-override behaviour, and what happens when an override goes stale across an upgrade; sq surfaces stale overrides rather than failing silently.
@@ -141,10 +120,6 @@ As a maintainer upgrading squads, I want defined precedence and staleness behavi
 
 <!-- sq:story:US4 -->
 ### US4 — Supply agent names at init and role creation
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 **Acceptance:** `sq init` accepts per-role names (and the role-creation command accepts a name) instead of always drawing from the bundled pool; roles without a supplied name still get a pool name; the chosen names flow through to the roster, pointer files and CLAUDE.md section; covered by a test.

@@ -56,9 +56,6 @@ while `sq check` reports clean).
 
 _Add with `sq feature 572 add-story "As a <role>, I want … so that …"`; track with `sq feature 572 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

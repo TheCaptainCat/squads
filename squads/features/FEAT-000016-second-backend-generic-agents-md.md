@@ -54,21 +54,10 @@ exercise surfaces, made *before* 1.0.
 
 _Add with `sq feature 16 add-story "As a <role>, I want … so that …"`; track with `sq feature 16 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | AGENTS.md backend for non-Claude agent tooling |
-| US2 | Done |  | Backend conformance test suite for AgentBackend implementers |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — AGENTS.md backend for non-Claude agent tooling
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** sq init / sq sync can target the agents-md backend and produce a valid AGENTS.md carrying roster, workflow and skill content; documented in the README.
@@ -84,10 +73,6 @@ As a team using a non-Claude agent tool, I want sq to generate an AGENTS.md, so 
 
 <!-- sq:story:US2 -->
 ### US2 — Backend conformance test suite for AgentBackend implementers
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 **Acceptance:** a shared conformance suite runs against both backends and passes; any AgentBackend ABC changes surfaced by the second implementation are merged before 1.0.

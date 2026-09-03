@@ -97,21 +97,10 @@ sibling feature under EPIC-280.
 
 _Add with `sq feature 212 add-story "As a <role>, I want … so that …"`; track with `sq feature 212 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a project admin, I want to define custom sub-entity kinds for my custom types in TOML |
-| US2 | Cancelled |  | As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a project admin, I want to define custom sub-entity kinds for my custom types in TOML
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on an `incident` type) in `.overrides/workflow.toml` with its own machine and summary columns, so that my custom types can have structured nested work items beyond reusing the built-in story/subtask/finding kinds.
@@ -127,10 +116,6 @@ As a project admin, I want to declare a custom sub-entity kind (e.g. `action` on
 
 <!-- sq:story:US2 -->
 ### US2 — As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad
-
-<!-- sq:story:US2:head -->
-**Status:** ⚫ Cancelled
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 **Moved.** This story's scope (safe rename migrations for built-in types/statuses) moved to a new sibling feature under EPIC-280, per ADR-274's F6 split. See that feature's US1 for the current spec of this work. Cancelled here, not deleted, to preserve history.

@@ -77,9 +77,6 @@ the pointer stays here and in the commit/PR.
 
 _Add with `sq task 338 add-subtask "<title>"`; track with `sq task 338 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

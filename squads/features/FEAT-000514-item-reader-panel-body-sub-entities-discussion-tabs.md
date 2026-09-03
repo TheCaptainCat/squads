@@ -67,23 +67,10 @@ through the shared resolver from FEAT-19.
 
 _Add with `sq feature 514 add-story "As a <role>, I want … so that …"`; track with `sq feature 514 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Selecting a node shows its detail |
-| US2 | Todo |  | Body renders as markdown |
-| US3 | Todo |  | Sub-entities and discussion as tabs |
-| US4 | Todo |  | Status/priority/assignee at a glance |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Selecting a node shows its detail
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Selecting any tree node populates the reader panel with that item's body, sub-entities, and discussion; changing selection updates the panel.
@@ -98,10 +85,6 @@ Selecting any tree node populates the reader panel with that item's body, sub-en
 <!-- sq:story:US2 -->
 ### US2 — Body renders as markdown
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 The body tab renders the item's markdown (headings, lists, emphasis, code blocks) rather than showing raw source.
 <!-- sq:story:US2:body:end -->
@@ -115,10 +98,6 @@ The body tab renders the item's markdown (headings, lists, emphasis, code blocks
 <!-- sq:story:US3 -->
 ### US3 — Sub-entities and discussion as tabs
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 Stories/subtasks/findings and the discussion history each get their own tab, switchable by keyboard, with empty-state handling when there's none.
 <!-- sq:story:US3:body:end -->
@@ -131,10 +110,6 @@ Stories/subtasks/findings and the discussion history each get their own tab, swi
 
 <!-- sq:story:US4 -->
 ### US4 — Status/priority/assignee at a glance
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 Status, priority, and assignee are visible in a header/summary line without switching tabs.

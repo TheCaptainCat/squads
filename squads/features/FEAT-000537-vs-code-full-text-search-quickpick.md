@@ -76,23 +76,10 @@ the same submit path drops to fast with no rework here.
 
 _Add with `sq feature 537 add-story "As a <role>, I want … so that …"`; track with `sq feature 537 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Open the search QuickPick and enter a query |
-| US2 | Todo |  | Narrow results by item type and/or status |
-| US3 | Todo |  | Select a result to open it in the reader |
-| US4 | Todo |  | Empty-query, no-results, and busy states |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Open the search QuickPick and enter a query
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squads user in VS Code, I want to open a search palette and type a query, so I can find items by content without walking the tree.
@@ -109,10 +96,6 @@ As a squads user in VS Code, I want to open a search palette and type a query, s
 <!-- sq:story:US2 -->
 ### US2 — Narrow results by item type and/or status
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a user with a large board, I want to narrow a search by item type and/or status, so results stay relevant.
 
@@ -128,10 +111,6 @@ As a user with a large board, I want to narrow a search by item type and/or stat
 <!-- sq:story:US3 -->
 ### US3 — Select a result to open it in the reader
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a user, I want to pick a result and land in the item, so search is a jumping-off point, not a dead end.
 
@@ -146,10 +125,6 @@ As a user, I want to pick a result and land in the item, so search is a jumping-
 
 <!-- sq:story:US4 -->
 ### US4 — Empty-query, no-results, and busy states
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As a user, I want empty, no-match, and loading states to be clean, so the feature never looks broken.

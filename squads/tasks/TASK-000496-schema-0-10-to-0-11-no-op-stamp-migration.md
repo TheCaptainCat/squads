@@ -73,21 +73,10 @@ conventions (adopter-facing wording — describe the tool, no repo/sq-internal r
 
 _Add with `sq task 496 add-subtask "<title>"`; track with `sq task 496 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Upgrade preserves existing skills and scoping | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Upgrade preserves existing skills and scoping
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As a squad author upgrading a squad, I want existing skills preserved unchanged
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Schema 0.10->0.11 no-op stamp migration: every existing skill stays present/unchanged, no role's preload set changes from the upgrade alone, sq check stays clean, and repair round-trips authored bodies + scopes edges.

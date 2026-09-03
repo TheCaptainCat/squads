@@ -69,9 +69,6 @@ is resolved (e.g. `sq` run outside a squad), matching today's behaviour.
 
 _Add with `sq task 253 add-subtask "<title>"`; track with `sq task 253 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

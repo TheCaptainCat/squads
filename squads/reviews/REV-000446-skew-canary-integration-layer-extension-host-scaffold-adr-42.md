@@ -53,22 +53,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 446 add-finding "…" --severity medium`; track with `sq review 446 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't caught at core-PR time |
-| F2 | 🟢 low | Fixed |  | Extension-host smoke layer follow-up is noted in README only, not tracked as an sq item |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Skew canary is path-filtered to clients/vscode/**, so core-only drift isn't caught at core-PR time
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The canary job lives in vscode-client.yml, which triggers only on clients/vscode/** changes. So a CORE-only PR that alters the sq tree/list --json or show --raw shape does NOT run the skew canary — the drift is caught only on the next PR that happens to touch clients/vscode/**. This is consistent with ADR-427 #3's accepted isolation ('cross-language coupling is caught only by the integration skew canary, by design', dev-time lanes kept non-cross-blocking), and TASK-441 wired the canary exactly where the ADR specified — so it is NOT a defect in this implementation. Recording it as an operational coverage caveat: the guard's effectiveness depends on client-side churn to fire. Optional mitigation for the team to weigh (out of scope here): add a scheduled/nightly canary run, or also trigger it on the core --json/--raw surface files, so core-introduced drift is caught promptly rather than latently. Low/informational.
@@ -84,11 +72,6 @@ The canary job lives in vscode-client.yml, which triggers only on clients/vscode
 
 <!-- sq:finding:F2 -->
 ### F2 — Extension-host smoke layer follow-up is noted in README only, not tracked as an sq item
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 ADR-427 #3's third layer (a @vscode/test-electron extension-host smoke test) is correctly deferred for 0.10 — the scaffold is present and honest (a no-op run(), not a fake pass), and it's documented in README.md + the code as needing Xvfb + a compiled out/. That deferral is acceptable and matches my REV-438 ruling (lower priority than the skew canary). The gap: the follow-up is captured only as a README/handoff note, not as a tracked sq work item, so ADR-427 #3's third layer could quietly fall off the backlog. Recommend creating a tracked task for 'wire the @vscode/test-electron extension-host smoke test (headless Xvfb + out/ build)' so the remaining ADR layer stays visible. Low; tracking hygiene, not a code defect.

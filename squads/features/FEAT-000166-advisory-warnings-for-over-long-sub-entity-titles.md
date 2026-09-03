@@ -96,22 +96,10 @@ architect / tech lead; this feature does not pre-decide them.
 
 _Add with `sq feature 166 add-story "As a <role>, I want … so that …"`; track with `sq feature 166 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As an agent author, I want a warning when I give a sub-entity a long title |
-| US2 | Todo |  | As a team lead, I want sq check to flag over-long sub-entity titles corpus-wide |
-| US3 | Todo |  | As any agent, I want the sq-review / sq-task / sq-feature skills to tell me titles are handles |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As an agent author, I want a warning when I give a sub-entity a long title
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 ## User story
@@ -146,10 +134,6 @@ threshold, so that I am prompted to move the prose into the body instead.
 
 <!-- sq:story:US2 -->
 ### US2 — As a team lead, I want sq check to flag over-long sub-entity titles corpus-wide
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 ## User story
@@ -187,10 +171,6 @@ without blocking normal `sq check` usage.
 
 <!-- sq:story:US3 -->
 ### US3 — As any agent, I want the sq-review / sq-task / sq-feature skills to tell me titles are handles
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 ## User story

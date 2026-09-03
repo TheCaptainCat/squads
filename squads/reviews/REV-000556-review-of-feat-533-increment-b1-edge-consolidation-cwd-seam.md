@@ -34,21 +34,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 556 add-finding "…" --severity medium`; track with `sq review 556 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | _bind_active_spec does not thread client_cwd; diverges from the other spec-resolution path |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — _bind_active_spec does not thread client_cwd; diverges from the other spec-resolution path
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 In main_callback, active_spec is resolved via _bind_active_spec(dir), which calls resolve(dir_override) WITHOUT passing client_cwd — so it uses resolve's Path.cwd() fallback. Its sibling reach-in fix, _CustomTypeGroup._resolve_spec_for_ctx, was correctly updated to pass resolve(dir_override, client_cwd=get_context().client_cwd). Two spec-resolution paths now disagree on how they obtain the resolution base.

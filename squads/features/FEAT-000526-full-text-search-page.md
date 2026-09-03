@@ -62,23 +62,10 @@ existing method and renders what it returns.
 
 _Add with `sq feature 526 add-story "As a <role>, I want … so that …"`; track with `sq feature 526 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Open the search page and enter a query |
-| US2 | Todo |  | Narrow results by item type and/or status |
-| US3 | Todo |  | Select a result to open it in the reader |
-| US4 | Todo |  | Empty-query and no-results states, escape back to browse |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Open the search page and enter a query
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 A keyboard shortcut opens a full-screen search page; typing a query and submitting lists matching items with id, type, title, and matched snippet(s).
@@ -93,10 +80,6 @@ A keyboard shortcut opens a full-screen search page; typing a query and submitti
 <!-- sq:story:US2 -->
 ### US2 — Narrow results by item type and/or status
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 The query can be narrowed by item type and/or status, AND-composed with the text, same as svc.search's own parameters.
 <!-- sq:story:US2:body:end -->
@@ -110,10 +93,6 @@ The query can be narrowed by item type and/or status, AND-composed with the text
 <!-- sq:story:US3 -->
 ### US3 — Select a result to open it in the reader
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 Selecting a result opens that item in the reader panel, positioned at that item's node in the tree.
 <!-- sq:story:US3:body:end -->
@@ -126,10 +105,6 @@ Selecting a result opens that item in the reader panel, positioned at that item'
 
 <!-- sq:story:US4 -->
 ### US4 — Empty-query and no-results states, escape back to browse
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 An empty query shows a clean prompt state and a zero-match query shows a clean no-results state, never an error; Escape/back returns to the browse view at its prior position.

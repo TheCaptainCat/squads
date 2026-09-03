@@ -1,5 +1,9 @@
 """Agent naming precedence at the service layer: explicit name > TOML role-override
-name > bundled default, flowing into the ROLE item's extra.full_name and CLAUDE.md.
+name > bundled default, flowing onto the ROLE item's own ``title`` and into CLAUDE.md.
+
+``title`` is where the resolved name lives -- the uniform-record field every type-agnostic
+surface reads, and the one ``role_base_from_item`` takes the operator-settable name from. The
+role's ``extra`` carries no copy of it.
 
 CLI-surface naming (--name flag parsing, TTY prompting) lives in
 tests/cli/test_init_naming_flags.py; the [init.names] config-model round-trip lives in
@@ -25,26 +29,26 @@ async def _role_item(svc, slug: str):
 class TestActivateRoleName:
     async def test_explicit_name_wins_over_the_bundled_default(self, project, svc) -> None:
         item = await svc.activate_role("architect", name="Ada Lovelace")
-        assert item.extra.get(X.FULL_NAME) == "Ada Lovelace"
+        assert item.title == "Ada Lovelace"
 
     async def test_explicit_name_wins_over_a_toml_role_override_name(self, project, svc) -> None:
         overrides_dir = project.squad_dir / ".overrides" / "roles"
         overrides_dir.mkdir(parents=True, exist_ok=True)
         (overrides_dir / "qa.toml").write_text('full_name = "TOML QA"\n', encoding="utf-8")
         item = await svc.activate_role("qa", name="Grace Tester")
-        assert item.extra.get(X.FULL_NAME) == "Grace Tester"
+        assert item.title == "Grace Tester"
 
     async def test_no_name_falls_back_to_the_bundled_default(self, project, svc) -> None:
         item = await svc.activate_role("reviewer")
         bundled = next(r for r in PREDEFINED if r.slug == "reviewer")
-        assert item.extra.get(X.FULL_NAME) == bundled.full_name
+        assert item.title == bundled.full_name
 
     async def test_no_name_falls_back_to_a_toml_role_override_name(self, project) -> None:
         overrides_dir = project.squad_dir / ".overrides" / "roles"
         overrides_dir.mkdir(parents=True, exist_ok=True)
         (overrides_dir / "devops.toml").write_text('full_name = "Ops Override"\n', encoding="utf-8")
         item = await service.Service(project).activate_role("devops")
-        assert item.extra.get(X.FULL_NAME) == "Ops Override"
+        assert item.title == "Ops Override"
 
 
 class TestInitNames:
@@ -59,8 +63,8 @@ class TestInitNames:
             names={"architect": "Ada Lovelace", "manager": "Grace Hopper"},
         )
         svc = service.Service(result.paths)
-        assert (await _role_item(svc, "architect")).extra.get(X.FULL_NAME) == "Ada Lovelace"
-        assert (await _role_item(svc, "manager")).extra.get(X.FULL_NAME) == "Grace Hopper"
+        assert (await _role_item(svc, "architect")).title == "Ada Lovelace"
+        assert (await _role_item(svc, "manager")).title == "Grace Hopper"
 
     async def test_a_role_absent_from_names_uses_the_bundled_default(
         self, tmp_path, monkeypatch, frozen_time
@@ -72,7 +76,7 @@ class TestInitNames:
         svc = service.Service(result.paths)
         mgr = await _role_item(svc, "manager")
         bundled = next(r for r in PREDEFINED if r.slug == "manager")
-        assert mgr.extra.get(X.FULL_NAME) == bundled.full_name
+        assert mgr.title == bundled.full_name
 
     async def test_names_are_persisted_to_the_init_names_config_section(
         self, tmp_path, monkeypatch, frozen_time

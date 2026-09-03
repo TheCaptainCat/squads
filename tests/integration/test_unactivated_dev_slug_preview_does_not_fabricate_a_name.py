@@ -36,7 +36,7 @@ async def test_an_unactivated_preview_does_not_name_a_developer_activation_will_
     assert preview_name is None  # never a concrete, guessable name
 
     after_name = json.loads(after.output)["full_name"]
-    assert after_name == added.extra["full_name"]
+    assert after_name == added.title
 
 
 async def test_the_text_card_marks_an_unactivated_preview_as_unassigned_not_a_fabricated_name(

@@ -80,24 +80,10 @@ Service + CLI smoke per CLAUDE.md. Cover: default (panel+body+summary), --commen
 
 _Add with `sq task 58 add-subtask "<title>"`; track with `sq task 58 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Render body as styled markdown on a TTY | US1 |
-| ST2 | Done |  | Plain/byte-stable output when piped, --raw, or NO_COLOR; --json unchanged | US2 |
-| ST3 | Done |  | Root sq show <id|number> for any work-item type | US3 |
-| ST4 | Done |  | Default summary table + --comments main discussion panes | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Render body as styled markdown on a TTY
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an operator reading the backlog in my terminal, I want show to render the markdown, so that sq tree + sq show covers browsing and reading without external viewers
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Render the item body as styled markdown on a TTY using rich's Markdown (headings, bold, bullets, fenced code) at a sensible width without hard-wrapping inside code blocks, replacing the plain-body render in the default show path (US1).
@@ -112,11 +98,6 @@ Render the item body as styled markdown on a TTY using rich's Markdown (headings
 <!-- sq:subtask:ST2 -->
 ### ST2 — Plain/byte-stable output when piped, --raw, or NO_COLOR; --json unchanged
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As an agent or script consuming show output, I want piped/--raw/NO_COLOR output plain and stable, so that rendering never breaks my parsing
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Byte-stable degradation: auto-plain when stdout is not a TTY or NO_COLOR is set (panes collapse to plain delimited, parseable text), plus a --raw opt-out that emits exact file text (today's panel+plain-body behaviour). --json stays presentation-independent, byte-identical to pre-change regardless of flags (US2).
 <!-- sq:subtask:ST2:body:end -->
@@ -130,11 +111,6 @@ Byte-stable degradation: auto-plain when stdout is not a TTY or NO_COLOR is set 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Root sq show <id|number> for any work-item type
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a user with an ID or number in hand, I want a root sq show command that displays any item regardless of type, so that I can read anything in one step without naming its type
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Add the root sq show <id|number> top-level command in _cli/_main.py that resolves any work-item type via the FEAT-19 shared resolver (resolve_item_id_any), renders with the same output + flags as the per-type show, and errors cleanly on an unknown id/number (bare numbers unambiguous via the global counter) (US3).
 <!-- sq:subtask:ST3:body:end -->
@@ -147,11 +123,6 @@ Add the root sq show <id|number> top-level command in _cli/_main.py that resolve
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Default summary table + --comments main discussion panes
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As a reader of a feature, task or review, I want show to include the sub-entity summary table and the discussion, so that one command gives me the whole item, not just its body
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Render the sub-entity summary table in default show output (driven from the item's subentities roll-up, not a markdown re-parse) and add the --comments facet: the main discussion rendered as one rich Panel per comment (author + timestamp title, markdown body), via an inverse-of-format_comment splitter placed next to format_comment in _discussion.py (US4).

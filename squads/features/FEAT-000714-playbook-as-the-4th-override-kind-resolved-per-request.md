@@ -81,22 +81,10 @@ Settled input: EPIC-538 (epic body "Dependencies/relationships" — explicitly f
 
 _Add with `sq feature 714 add-story "As a <role>, I want … so that …"`; track with `sq feature 714 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a spec author, I want a playbook loader that merges .overrides/playbook.toml onto the bundled base |
-| US2 | Done |  | As sq, I want the merged playbook resolved per request, not cached as an import-time singleton |
-| US3 | Done |  | As an adopter, I want sq override to scaffold/diff/update the playbook like any other override kind |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a spec author, I want a playbook loader that merges .overrides/playbook.toml onto the bundled base
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Build the playbook loader on the shared merge engine (FEAT-712): single-file keyed-table delta, per ADR-696 4c, using deep-merge and splat-refs. No independent selected/deselect for the playbook type set — it derives from the workflow spec's active types via the existing coverage rule.
@@ -111,10 +99,6 @@ Build the playbook loader on the shared merge engine (FEAT-712): single-file key
 <!-- sq:story:US2 -->
 ### US2 — As sq, I want the merged playbook resolved per request, not cached as an import-time singleton
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Fold the merged playbook onto the same request-scoped context primitive FEAT-533 built for the active workflow spec. The bundled _PLAYBOOK_SPEC stays a module-level immutable default; nothing new is cached as a mutable singleton. Coverage checks, generated sq-<type> skill text, and cheatsheet rendering all read the per-request merged playbook.
 <!-- sq:story:US2:body:end -->
@@ -127,10 +111,6 @@ Fold the merged playbook onto the same request-scoped context primitive FEAT-533
 
 <!-- sq:story:US3 -->
 ### US3 — As an adopter, I want sq override to scaffold/diff/update the playbook like any other override kind
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 sq override scaffold/diff/update treat the playbook as a fourth kind alongside workflow/roles/templates, with the same override_base drift stamp and CLI verb shape.

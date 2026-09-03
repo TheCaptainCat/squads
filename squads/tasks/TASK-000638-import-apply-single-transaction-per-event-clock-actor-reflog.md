@@ -51,9 +51,6 @@ The second of the two sizable core tasks (with the event-model/pre-pass task). T
 
 _Add with `sq task 638 add-subtask "<title>"`; track with `sq task 638 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

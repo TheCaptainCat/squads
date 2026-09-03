@@ -58,9 +58,6 @@ call sites to read `self.spec.<method>` instead of the module-level free functio
 
 _Add with `sq task 252 add-subtask "<title>"`; track with `sq task 252 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

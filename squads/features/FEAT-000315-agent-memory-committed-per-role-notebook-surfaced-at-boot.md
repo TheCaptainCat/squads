@@ -90,25 +90,10 @@ out of scope here.
 
 _Add with `sq feature 315 add-story "As a <role>, I want … so that …"`; track with `sq feature 315 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As an agent, I can jot a small learned fact to my role's memory so it persists for future runs |
-| US2 | Todo |  | As an agent, my role's memory index is surfaced at boot so relevant facts don't slip past me |
-| US3 | Todo |  | As an agent, I can list, search, and show my role's memories to pull full content when relevant |
-| US4 | Todo |  | As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy |
-| US5 | Todo |  | As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches |
-| US6 | Todo |  | As an agent, the sq-memory skill teaches the memory workflow and curation discipline |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an agent, I want to jot a small learned fact to my role's memory so it persists for future runs.
@@ -128,10 +113,6 @@ As an agent, I want to jot a small learned fact to my role's memory so it persis
 
 <!-- sq:story:US2 -->
 ### US2 — As an agent, my role's memory index is surfaced at boot so relevant facts don't slip past me
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As an agent, I want my role's memory index surfaced at the start of a run so relevant facts don't slip past me.
@@ -153,10 +134,6 @@ As an agent, I want my role's memory index surfaced at the start of a run so rel
 <!-- sq:story:US3 -->
 ### US3 — As an agent, I can list, search, and show my role's memories to pull full content when relevant
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As an agent, I want to list, search, and show my role's memories so I can pull full content when relevant.
 
@@ -176,10 +153,6 @@ As an agent, I want to list, search, and show my role's memories so I can pull f
 <!-- sq:story:US4 -->
 ### US4 — As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy
 
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 As an agent or operator, I want to prune a stale or wrong memory so the pool stays trustworthy.
 
@@ -197,10 +170,6 @@ As an agent or operator, I want to prune a stale or wrong memory so the pool sta
 
 <!-- sq:story:US5 -->
 ### US5 — As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches
-
-<!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As a teammate, I want committed per-role memory to arrive on checkout and merge cleanly across branches so shared knowledge travels with the project.
@@ -220,10 +189,6 @@ As a teammate, I want committed per-role memory to arrive on checkout and merge 
 
 <!-- sq:story:US6 -->
 ### US6 — As an agent, the sq-memory skill teaches the memory workflow and curation discipline
-
-<!-- sq:story:US6:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->
 As an agent, I want the sq-memory skill to teach the memory workflow and curation discipline so the pool does not rot.

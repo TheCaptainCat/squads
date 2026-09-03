@@ -37,9 +37,6 @@ Surface priority/severity collection badges in the tree-item hover tooltip. Toda
 
 _Add with `sq task 482 add-subtask "<title>"`; track with `sq task 482 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

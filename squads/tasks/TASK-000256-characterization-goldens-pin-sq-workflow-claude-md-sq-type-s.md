@@ -57,9 +57,6 @@ ALL inputs frozen so the comparison is deterministic:
 
 _Add with `sq task 256 add-subtask "<title>"`; track with `sq task 256 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -183,9 +183,6 @@ and the tech lead applies it.
 
 _Add with `sq task 767 add-subtask "<title>"`; track with `sq task 767 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

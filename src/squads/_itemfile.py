@@ -38,13 +38,20 @@ from squads._sections import join_frontmatter, replace_frontmatter, split_frontm
 from squads._workflow._models import ROSTER_ROLE
 
 #: The durability model's permitted skew, as a property of the *field* rather than of whichever
-#: writer happens to persist it: every catalog-merged identity field a predefined role's
-#: ``extra`` carries (``RoleDef.to_extra()``'s key set, via :meth:`RoleDef.extra_keys`).
+#: writer happens to persist it: the ``extra`` keys a role item's own catalog merge writes
+#: (``RoleDef.to_extra()``'s key set, via :meth:`RoleDef.extra_keys`).
 #: Derived from ``RoleDef.extra_keys()`` (not a hand-duplicated list of key names) so a field
 #: later added to the catalog is exempt automatically, the same day it starts being written
 #: this way -- never a second list to remember to update.
 #:
-#: The case this covers is a *legacy* one. ``_refresh_catalog_extra`` mirrors its merge into
+#: **This set is small, and it shrank on purpose.** A role's definition is no longer mirrored
+#: into its ``extra`` at all -- title, mission, responsibilities, agreements, colour and spawn
+#: authority resolve from the catalog on every read -- so what is left to forgive is the
+#: residue that merge still writes. Narrowing is the safe direction for an exemption: a key
+#: that leaves it is compared like any other field again, which can only produce a (spurious,
+#: repair-clearable) refusal, never a masked skew.
+#:
+#: The case it covers is a *legacy* one. ``_refresh_catalog_extra`` mirrors its merge into
 #: the index inside the transaction that writes the frontmatter, because those values carry a
 #: project role override's title onto the item and every consumer of a role title reads the
 #: index. The exemption is kept deliberately, for a squad last synced by a release that shipped
@@ -55,11 +62,10 @@ from squads._workflow._models import ROSTER_ROLE
 #: further, per-item question (see :func:`_exempt_extra_keys`): these are ``extra`` key
 #: *names*, and the same name can legitimately belong to a different item type/role shape
 #: that ``_refresh_catalog_extra`` never touches (e.g. a skill item's own ``model``). A dev
-#: role's own ``RoleDef`` fields (its ``model``, ``title``, ...) are *not* such a case --
-#: ``_refresh_catalog_extra`` resolves a dev role too, against a base built from the item's
-#: own stored identity and never a regenerated one, so those fields are ordinary,
-#: transaction-guarded ones for a dev role exactly like for any other. See
-#: :func:`_exempt_extra_keys` for what that means for the per-item exemption below.
+#: role's own ``model`` is *not* such a case -- ``_refresh_catalog_extra`` resolves a dev role
+#: too, against a base built from the item's own stored identity and never a regenerated one,
+#: so it is an ordinary, transaction-guarded field for a dev role exactly like for any other.
+#: See :func:`_exempt_extra_keys` for what that means for the per-item exemption below.
 PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset(RoleDef.extra_keys())
 
 
@@ -96,8 +102,8 @@ def _exempt_extra_keys(item: Item) -> frozenset[str]:
       tolerate. ``_refresh_catalog_extra`` *does* resolve a dev role too, against a base built
       from the item's own stored identity rather than a regenerated one, but it writes markdown
       first and mirrors into the index inside the same transaction, so it introduces no
-      permanent index lag and needs no exemption on that account either. Every field on a dev
-      role (``model``, ``title``, ...) is therefore an ordinary, transaction-guarded field, and
+      permanent index lag and needs no exemption on that account either. A dev role's
+      ``model`` is therefore an ordinary, transaction-guarded field, and
       must be compared like any other -- widening this would reopen the exact loss class the
       exemption otherwise guards against: interrupt a ``set_extra`` write of a dev role's
       ``model``, then edit it through any other seam, and the stale index-loaded value silently

@@ -81,22 +81,10 @@ this being behavior-preserving.
 
 _Add with `sq task 216 add-subtask "<title>"`; track with `sq task 216 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | load_workflow_spec with importlib.resources/tomllib + fail-closed enum validation | US1 |
-| ST2 | Todo |  | Rewire _workflow/_enums tables and free functions onto the loaded spec singleton | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — load_workflow_spec with importlib.resources/tomllib + fail-closed enum validation
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a maintainer, I want workflow spec loaded from TOML so behavior is in data not code
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers load_workflow_spec() reading default_workflow.toml via importlib.resources (offline package-data access), parsing with stdlib tomllib, coercing every type/status string into its enum, building derived reverse indexes, and running fail-closed WorkflowSpec.validate() per ADR-214 §5 (initial declared; transition sources/targets exist; terminal ⊆ statuses; reachability; machine/parents references declared; prefix/folder/alias unique; enums-intact — spec type set equals set(ItemType)). A corrupt/invalid bundled spec raises SquadsError.
@@ -110,11 +98,6 @@ Covers load_workflow_spec() reading default_workflow.toml via importlib.resource
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Rewire _workflow/_enums tables and free functions onto the loaded spec singleton
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a maintainer, I want workflow spec loaded from TOML so behavior is in data not code
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers rewiring _workflow.py/_enums.py so WORKFLOWS/TERMINAL/ALLOWED_PARENTS/prefix+folder/alias maps and the free functions (workflow_for, initial_status, can_transition, is_open, parent_allowed, parent_hint) are thin shims reading a module-level default-spec singleton built once via load_workflow_spec() — behavior byte-identical, zero call-site churn, equivalent WorkflowSpec methods exposed for explicit-spec surfaces. Leaves parent_hint's TASK message-text branch as-is (F2) and keeps the import graph acyclic.

@@ -161,9 +161,6 @@ second anchor. Do not attempt both here, and do not build an anchor that only th
 
 _Add with `sq task 759 add-subtask "<title>"`; track with `sq task 759 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -59,23 +59,10 @@ This overrides an earlier scoping call that a grouping toggle is meaningless on 
 
 _Add with `sq task 689 add-subtask "<title>"`; track with `sq task 689 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Group-by-type toggle on Roster and Records |  |
-| ST2 | Done |  | Hide-terminal button on Records |  |
-| ST3 | Done |  | Visible active state and clear, both views |  |
-| ST4 | Done | op-pierre | Dev-host verification per increment |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Group-by-type toggle on Roster and Records
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Flatten toggle defaulting to grouped, two-command icon-swap idiom, on both views.
@@ -94,10 +81,6 @@ Flatten toggle defaulting to grouped, two-command icon-swap idiom, on both views
 <!-- sq:subtask:ST2 -->
 ### ST2 — Hide-terminal button on Records
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Hide superseded/deprecated decisions and deprecated guides, via the spec's status role, not a literal status string.
 <!-- sq:subtask:ST2:body:end -->
@@ -115,10 +98,6 @@ Hide superseded/deprecated decisions and deprecated guides, via the spec's statu
 <!-- sq:subtask:ST3 -->
 ### ST3 — Visible active state and clear, both views
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Roster and Records each get a call-site-documented clear back to default (grouped, terminal hidden).
 <!-- sq:subtask:ST3:body:end -->
@@ -135,11 +114,6 @@ Roster and Records each get a call-site-documented clear back to default (groupe
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Dev-host verification per increment
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Pierre Chat
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Live verification on the Windows dev host.

@@ -29,22 +29,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 649 add-finding "…" --severity medium`; track with `sq review 649 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | LabelForm is a bare alias, not PEP-695 type |
-| F2 | 🟢 low | Verified |  | Empty-string pin fallback is untested |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — LabelForm is a bare alias, not PEP-695 type
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `_models/_vocab.py:33` declares `LabelForm = Literal["singular", "plural", "singular_lower", "plural_lower"]` as a bare assignment. The project convention (and an explicit operator preference) is PEP-695 `type LabelForm = Literal[...]`, matching the 5 existing aliases (_loader.py, _util.py, _validators.py, _maintenance.py, _import_model.py). Severity: low (convention/consistency, not correctness). One-line fix.
@@ -58,11 +46,6 @@ _Add with `sq review 649 add-finding "…" --severity medium`; track with `sq re
 
 <!-- sq:finding:F2 -->
 ### F2 — Empty-string pin fallback is untested
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 The resolver correctly falls back on an empty-string pin (`return pinned if pinned else _fallback_label(...)`, and the docstring promises "present and non-empty"), but no test proves it. The four-form/partial/acronym/no-spec/undeclared/extra=forbid cases are all covered; only the empty-string-pin edge is unproven. Severity: low (coverage). Add one assertion, e.g. LabelSpec(singular="") resolves to the derived form.

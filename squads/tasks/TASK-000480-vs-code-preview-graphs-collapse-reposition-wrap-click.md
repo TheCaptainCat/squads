@@ -36,9 +36,6 @@ Presentation + interaction fixes to the preview's two mermaid graphs (children/s
 
 _Add with `sq task 480 add-subtask "<title>"`; track with `sq task 480 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

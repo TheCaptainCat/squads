@@ -219,23 +219,10 @@ See attached stories on this feature.
 
 _Add with `sq feature 231 add-story "As a <role>, I want … so that …"`; track with `sq feature 231 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Behavior-named tests, not development archaeology |
-| US2 | Todo |  | Default test run under 30 seconds |
-| US3 | Todo |  | Each invariant asserted once, at the right layer |
-| US4 | Todo |  | Coverage ledger preserves previously-caught bugs |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Behavior-named tests, not development archaeology
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a maintainer reading tests, I want behavior-named tests organized by contract so that I can understand system guarantees without reverse-engineering development history (no `layer_b`/`golden-lock`/FEAT-number names).
@@ -250,10 +237,6 @@ As a maintainer reading tests, I want behavior-named tests organized by contract
 <!-- sq:story:US2 -->
 ### US2 — Default test run under 30 seconds
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an AI agent iterating on a fix, I want the default test run to complete in under 30 seconds (slow/scale tests opt-in) so that I can verify correctness without thrashing on a ~4-minute cycle.
 <!-- sq:story:US2:body:end -->
@@ -267,10 +250,6 @@ As an AI agent iterating on a fix, I want the default test run to complete in un
 <!-- sq:story:US3 -->
 ### US3 — Each invariant asserted once, at the right layer
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a code reviewer, I want each invariant asserted exactly once at the right layer (unit/service/CLI/integration) so that a failing test pinpoints which contract is broken instead of lighting up redundant overlapping tests.
 <!-- sq:story:US3:body:end -->
@@ -283,10 +262,6 @@ As a code reviewer, I want each invariant asserted exactly once at the right lay
 
 <!-- sq:story:US4 -->
 ### US4 — Coverage ledger preserves previously-caught bugs
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As a future developer introducing a schema change, I want a coverage ledger mapping tests to previously-caught bug classes (retype is/== identity, dangling .claude pointers, FORCE_COLOR ANSI, has_dev gate, migration edges) so that I can verify no hard-won coverage was silently dropped in the rebuild.

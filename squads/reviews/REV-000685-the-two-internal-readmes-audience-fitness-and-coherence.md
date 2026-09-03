@@ -165,29 +165,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 685 add-finding "…" --severity medium`; track with `sq review 685 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Root README has no contributor onboarding |
-| F2 | 🟡 medium | Fixed |  | Ordering serves neither arrival |
-| F3 | 🟡 medium | Fixed |  | Extension README serves neither of its audiences |
-| F4 | 🟡 medium | Fixed |  | Extension README describes two views; there are three |
-| F5 | 🟡 medium | Fixed |  | Ref-kind list is five of nine valid kinds |
-| F6 | 🟡 medium | Fixed |  | Extension README omits search and display labels |
-| F7 | 🟢 low | Fixed |  | Review-finding id leaked into the extension README |
-| F8 | 🟢 low | Fixed |  | Dropped 'meta' terminology still in the extension README |
-| F9 | 🟢 low | Fixed |  | Neither README acknowledges its sibling documents |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Root README has no contributor onboarding
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Contributor onboarding is one of the root README's two stated jobs, and the file does almost none of
@@ -229,11 +210,6 @@ thin onboarding leaves open from the other side.
 <!-- sq:finding:F2 -->
 ### F2 — Ordering serves neither arrival
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 The root README's content is largely right; its order serves neither arrival.
 
@@ -269,11 +245,6 @@ agents" up above the command reference.
 
 <!-- sq:finding:F3 -->
 ### F3 — Extension README serves neither of its audiences
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 `clients/vscode/README.md` is 88 lines, and it serves neither of its two audiences.
@@ -314,11 +285,6 @@ contributor, and would be structurally resistant to going stale.
 <!-- sq:finding:F4 -->
 ### F4 — Extension README describes two views; there are three
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 The two documents disagree about how many activity-bar views the extension has, and the extension's
 own README is the one that is wrong.
@@ -357,11 +323,6 @@ Verified via `package.json`'s `views` block, not by comparing the two documents.
 <!-- sq:finding:F5 -->
 ### F5 — Ref-kind list is five of nine valid kinds
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 The root README's command reference lists five of the nine valid ref kinds, and the omission is the
 kind that makes a correct command look invalid.
@@ -399,11 +360,6 @@ Verified against `VALID_REF_KINDS`, not against another document.
 <!-- sq:finding:F6 -->
 ### F6 — Extension README omits search and display labels
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 The extension README's feature description stopped being updated two releases ago.
 
@@ -439,11 +395,6 @@ Verified against `package.json`'s contributed commands and keybindings, the pres
 <!-- sq:finding:F7 -->
 ### F7 — Review-finding id leaked into the extension README
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 An internal review-finding reference leaked into a published-on-GitHub document.
 
@@ -476,11 +427,6 @@ that becomes convention if it stays.
 
 <!-- sq:finding:F8 -->
 ### F8 — Dropped 'meta' terminology still in the extension README
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 The extension README uses the terminology the project decided to drop.
@@ -515,11 +461,6 @@ edited anyway for the view-count error, so the cost of fixing it is zero.
 
 <!-- sq:finding:F9 -->
 ### F9 — Neither README acknowledges its sibling documents
-
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
 Four documents now describe this product across two audiences, and neither README acknowledges the

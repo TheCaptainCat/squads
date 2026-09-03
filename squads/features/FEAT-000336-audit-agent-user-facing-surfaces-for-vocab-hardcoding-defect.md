@@ -102,22 +102,10 @@ only.
 
 _Add with `sq feature 336 add-story "As a <role>, I want … so that …"`; track with `sq feature 336 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a planner, I want the full surface list confirmed complete |
-| US2 | Todo |  | As a planner, I want each surface's audience/altitude/vocab captured |
-| US3 | Todo |  | As a planner, I want a recommended fix per surface |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a planner, I want the full surface list confirmed complete
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Walk the repo (templates under _rendering/templates/, docs/, _backends/, squads/agents/roles + skills, .claude/ pointers, CLI --help text) and reconcile against the starting candidate list in the feature body.
@@ -135,10 +123,6 @@ Acceptance: for each surface, the audit records the exact file(s)/command(s) tha
 
 <!-- sq:story:US2 -->
 ### US2 — As a planner, I want each surface's audience/altitude/vocab captured
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 For each confirmed surface, capture audience, altitude/role, whether it hardcodes vocab (with the specific hardcoded names/branches), and whether it duplicates another surface (naming which one).
@@ -158,10 +142,6 @@ Acceptance: a duplication finding names the specific other surface and the speci
 
 <!-- sq:story:US3 -->
 ### US3 — As a planner, I want a recommended fix per surface
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 For each surface, assign exactly one recommended fix: genericize, dedupe, redefine altitude, or leave.

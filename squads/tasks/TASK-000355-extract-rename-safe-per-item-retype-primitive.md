@@ -32,21 +32,10 @@ Files owned: src/squads/_services/_retype.py; tests/test_retype.py (only if the 
 
 _Add with `sq task 355 add-subtask "<title>"`; track with `sq task 355 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Extract reusable per-item type-rewrite primitive from retype() | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Extract reusable per-item type-rewrite primitive from retype()
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Extracted the per-item type-rewrite core out of `retype()` into a reusable `_apply_type_change(...)` primitive (prefix/id/status/file-move/frontmatter/sub-entity container), with status carry made a parameter, and generalised `_resync_edges`/`rewrite_ids` to take a `{old:new}` remap so both retype (one entry) and the bulk rename path (N entries) share one O(N) edge-rewrite pass. Pure extraction — `retype()` behaviour and its audit trail (reflog line + comment) stay byte-identical.

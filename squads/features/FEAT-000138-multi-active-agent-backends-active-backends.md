@@ -98,22 +98,10 @@ add/switch/remove/list command group and active artifact cleanup on removal.
 
 _Add with `sq feature 138 add-story "As a <role>, I want … so that …"`; track with `sq feature 138 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Maintain multiple active backends at once |
-| US2 | Done |  | Empty active_backends and deactivation-ignore semantics |
-| US3 | Done |  | Legacy default_backend squads load unchanged |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Maintain multiple active backends at once
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a team using mixed agent tooling, I want a squad to keep several backends active at once, so that both `CLAUDE.md` and `AGENTS.md` stay generated and refreshed from one squad.
@@ -130,10 +118,6 @@ As a team using mixed agent tooling, I want a squad to keep several backends act
 <!-- sq:story:US2 -->
 ### US2 — Empty active_backends and deactivation-ignore semantics
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a squad operator, I want an empty `active_backends = []` to be a valid configuration (work tracked, no agent files generated), so that squads can be used as a pure work-tracker without any backend artifact.
 
@@ -148,10 +132,6 @@ As a squad operator, I want an empty `active_backends = []` to be a valid config
 
 <!-- sq:story:US3 -->
 ### US3 — Legacy default_backend squads load unchanged
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As an operator with an existing squad, I want a legacy `default_backend` config to keep working, so that no migration or version bump is needed to adopt multi-active backends.

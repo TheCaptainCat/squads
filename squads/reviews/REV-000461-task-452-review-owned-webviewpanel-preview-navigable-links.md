@@ -45,24 +45,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 461 add-finding "…" --severity medium`; track with `sq review 461 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Security: escaping + CSP are solid — no XSS path found |
-| F2 | 🟢 low | Fixed |  | Hardening: markdown link href has no scheme allowlist |
-| F3 | 🟢 low | Open |  | Lifecycle (F9) + link interception (F10) verified correct |
-| F4 | 🟢 low | Open |  | Dead-code removal, renderer correctness, gate + canary all clean |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Security: escaping + CSP are solid — no XSS path found
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 SECURITY ASSESSMENT (the headline focus). No exploitable finding — recorded as an informational PASS so the review captures the trace.
@@ -83,11 +69,6 @@ CSP (previewDocument.ts): default-src 'none'; style-src 'nonce-<n>'; script-src 
 <!-- sq:finding:F2 -->
 ### F2 — Hardening: markdown link href has no scheme allowlist
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 In renderInlineToken, a markdown link [text](url) renders as <a href="${escapeHtml(linkUrl)}">. escapeHtml prevents attribute breakout, but there is no scheme allowlist — a body containing [x](javascript:alert(1)) produces <a href="javascript:alert(1)">. That anchor is NOT an a.sq-item-link, so the webview click handler ignores it and the browser would attempt navigation.
 
@@ -107,11 +88,6 @@ Suggested (optional, non-blocking) hardening: allowlist the URL scheme in the li
 <!-- sq:finding:F3 -->
 ### F3 — Lifecycle (F9) + link interception (F10) verified correct
 
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 OBSERVATION / PASS. F9: the preview is an extension-owned WebviewPanel (VIEW_TYPE squadsItemPreview, retainContextWhenHidden), never a dynamic markdown preview — opening other markdown files cannot hijack it. Tree-click routes via routeForTreeSelection(activePanel!==undefined): reuses the single owned panel if present, else opens one; onDidDispose clears activePanel only when the disposed panel IS the active one. The old markdown.showPreview / squads: virtual-doc path is fully gone (showPreview.ts + showDocumentProvider.ts + the scheme deleted); remaining 'squads:'/'showPreview' hits are only doc-comments and captured-dossier fixtures — fine.
 
@@ -126,11 +102,6 @@ F10: item-id linkification is spec-agnostic (single generic regex, no hardcoded 
 
 <!-- sq:finding:F4 -->
 ### F4 — Dead-code removal, renderer correctness, gate + canary all clean
-
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 PASS. Dead-code: npm run check green (tsc noUnusedLocals + eslint zero-warnings) proves no orphan imports; removed modules leave no dangling code refs. vsce ls exit 0 — VSIX ships the compiled new modules (out/src/domain/markdown.js etc.), no source .ts leak, no stale removed-module output.

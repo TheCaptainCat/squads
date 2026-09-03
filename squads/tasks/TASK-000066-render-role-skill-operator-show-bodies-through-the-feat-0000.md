@@ -66,23 +66,10 @@ Per the brief: operator bodies are likely a no-op in practice (operators rarely 
 
 _Add with `sq task 66 add-subtask "<title>"`; track with `sq task 66 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Route role/skill/operator show bodies through the FEAT-26 styled path (TTY/raw/piped) | US2 |
-| ST2 | Done |  | Preserve role catalog card + activation-hint fallback; add operator show | US2 |
-| ST3 | Done |  | Styled-vs-raw rendering tests; full-suite regression check on print_item | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Route role/skill/operator show bodies through the FEAT-26 styled path (TTY/raw/piped)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Route the sq role/skill/operator show body rendering through the FEAT-000026 styled markdown path (the same helper feature show uses): styled Rich Markdown on a TTY gated by _is_styled(), --raw for plain byte-stable body, plain when piped/NO_COLOR — by relaxing the print_item ROLE/SKILL guard or factoring a shared render_body helper rather than duplicating the styled-vs-plain logic. Metadata panel unchanged (US2).
@@ -97,11 +84,6 @@ Route the sq role/skill/operator show body rendering through the FEAT-000026 sty
 <!-- sq:subtask:ST2 -->
 ### ST2 — Preserve role catalog card + activation-hint fallback; add operator show
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Preserve role show's extra behaviour through the reroute: the catalog card (full name/title/model/mission/responsibilities) and the graceful 'no active item — run sq role activate' fallback when role_body is None (only the active-item body flows through the styled renderer). Wire the new operator show with the same styled-body treatment plus its id/slug/name card, degrading an empty body to a clean '(no body)' line (US2).
 <!-- sq:subtask:ST2:body:end -->
@@ -114,11 +96,6 @@ Preserve role show's extra behaviour through the reroute: the catalog card (full
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Styled-vs-raw rendering tests; full-suite regression check on print_item
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Add styled-vs-raw rendering tests (reusing the FEAT-000026 forced-styled-console idiom) for role/skill/operator show — styled markdown on a TTY, --raw plain, piped byte-stable — plus an operator show smoke test, and run the full suite since print_item is shared by every item type to catch feature/task/review show regressions from relaxing the guard (US2).

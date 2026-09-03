@@ -73,21 +73,10 @@ the squad is remote; text that says "run `sq role show`" doesn't.
 
 _Add with `sq feature 41 add-story "As a <role>, I want … so that …"`; track with `sq feature 41 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | sq role show gives complete definition including working agreements |
-| US2 | Done |  | Onboarding texts prescribe sq commands only, not file reads |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — sq role show gives complete definition including working agreements
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job.
@@ -101,10 +90,6 @@ As an agent adopting my persona, I want sq role show to give me the complete def
 
 <!-- sq:story:US2 -->
 ### US2 — Onboarding texts prescribe sq commands only, not file reads
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely.

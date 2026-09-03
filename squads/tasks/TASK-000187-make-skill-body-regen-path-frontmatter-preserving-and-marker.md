@@ -65,22 +65,10 @@ Implement this **first**, before the allocation/migration work.
 
 _Add with `sq task 187 add-subtask "<title>"`; track with `sq task 187 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Body-region-only marker-safe regen preserves stamped frontmatter | US1 |
-| ST2 | Done |  | Idempotence test: sq sync twice leaves id/sequence_id unchanged | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Body-region-only marker-safe regen preserves stamped frontmatter
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Stable SKILL-… ID per skill for cross-entity referencing
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers converting _write_managed_skill in the claude_code backend from a blunt full-file overwrite to a body-region-only, marker-safe replacement that preserves stamped sq frontmatter (id/sequence_id/status/schema_version) — mirroring _regen_role_body's read-existing-then-replace-only-the-sq:body-region approach (invariant 3). Handles the not-yet-stamped skill file case without corrupting it (no id invention — that is TASK-188).
@@ -94,11 +82,6 @@ Covers converting _write_managed_skill in the claude_code backend from a blunt f
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Idempotence test: sq sync twice leaves id/sequence_id unchanged
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Stable SKILL-… ID per skill for cross-entity referencing
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the dedicated idempotence test (FEAT-178 AC#4, ADR-181 #4): stamp a skill (or use a stamped fixture), run sq sync twice, and assert the skill's id and sequence_id are unchanged after both runs — proving re-sync never churns skill identity. Plus service-level and CLI smoke tests per convention.

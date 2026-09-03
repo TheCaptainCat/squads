@@ -46,22 +46,10 @@ sq f 26 story 4 show ≡ sq feature 26 story 4 show, and likewise for e/t/b/d/r/
 
 _Add with `sq task 107 add-subtask "<title>"`; track with `sq task 107 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add a canonical ALIASES map and register each type sub-app under its hidden alias names | US1 |
-| ST2 | Done |  | CLI test matrix: every alias routes deep chains; output and errors stay canonical | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add a canonical ALIASES map and register each type sub-app under its hidden alias names
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the routing implementation: a single canonical ALIASES map keyed by ItemType (co-located with WORK_TYPES in _models/_enums.py) and registering each type's built sub-app Typer object under its hidden alias names (epic→e, feature→feat/f, task→t, bug→b, decision→dec/d, review→rev/r, guide→g) via the same hidden=True add_typer pattern used for the _addr subgroups, so an alias exposes the entire nested verb + ref + sub-entity tree.
@@ -75,11 +63,6 @@ Covers the routing implementation: a single canonical ALIASES map keyed by ItemT
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — CLI test matrix: every alias routes deep chains; output and errors stay canonical
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a daily CLI user, I want sq f / sq t / sq b to work everywhere the full type word does, so that the commands I type all day are as short as they are unambiguous
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the CLI test matrix asserting alias/canonical equivalence: each alias sampled with at least one deep verb + sub-entity chain (e.g. sq f 26 story 4 show ≡ sq feature 26 story 4 show), plus assertions that output, confirmations, errors and --json print the canonical type name and full IDs regardless of which alias was typed.

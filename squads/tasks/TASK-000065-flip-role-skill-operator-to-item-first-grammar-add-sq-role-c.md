@@ -113,26 +113,10 @@ Existing CLI tests use the old grammar and WILL break; update them:
 
 _Add with `sq task 65 add-subtask "<title>"`; track with `sq task 65 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Item-first grammar for role/skill/operator show/regen/rm (slug|id|n, exact match) | US1 |
-| ST2 | Done |  | Extend the resolver with exact slug lookup (full-id, then number, then slug) | US1 |
-| ST3 | Done |  | Add sq role catalog; remove role/skill/operator list and --available (no shim) | US3 |
-| ST4 | Done |  | Update grammar in claude_section / greeting / squads templates; regen artifacts | US3 |
-| ST5 | Done |  | Rewrite CLI tests to item-first; add slug/id/n + catalog + removed-list coverage | US1 |
-| ST6 | Done |  | Top up the FEAT-13 deferral comment if the shipped grammar deviated from the PO note | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Item-first grammar for role/skill/operator show/regen/rm (slug|id|n, exact match)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Flip sq role/skill/operator existing-item verbs (show/regen/rm, plus a new operator show) from verb-first to item-first grammar: sq role <slug|id|n> show|regen|rm etc., accepting slug / full ID / bare number with exact (non-fuzzy) match. Creation verbs (activate/add) stay verb-first at the group level (US1).
@@ -149,11 +133,6 @@ Flip sq role/skill/operator existing-item verbs (show/regen/rm, plus a new opera
 <!-- sq:subtask:ST2 -->
 ### ST2 — Extend the resolver with exact slug lookup (full-id, then number, then slug)
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Extend the shared resolver with an exact slug lookup: resolution order full-ID shape, then bare number, then slug, matching exactly against extra[X.SLUG] (fallback it.slug) via the _role_item/_skill_item/_operator_item service helpers in one DB read. Non-matching tokens raise a clear error naming the type (US1).
 <!-- sq:subtask:ST2:body:end -->
@@ -167,11 +146,6 @@ Extend the shared resolver with an exact slug lookup: resolution order full-ID s
 <!-- sq:subtask:ST3 -->
 ### ST3 — Add sq role catalog; remove role/skill/operator list and --available (no shim)
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Add the group-level sq role catalog subcommand (the bundled PREDEFINED table: slug/full name/title/default indicator) replacing sq role list --available, and remove sq role/skill/operator list plus the --available flag with no deprecation shim (pre-1.0 removal allowed). Tracked-item listing stays via sq list -t role|skill|operator (US3).
 <!-- sq:subtask:ST3:body:end -->
@@ -184,11 +158,6 @@ Add the group-level sq role catalog subcommand (the bundled PREDEFINED table: sl
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Update grammar in claude_section / greeting / squads templates; regen artifacts
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Update the templates that emit the old grammar into generated artifacts — claude_section.md.j2 (sq operator list -> sq list -t operator, sq role show <slug> -> sq role <slug> show), greeting_skill.md.j2 and squads_skill.md.j2 (sq operator list -> sq list -t operator) — then regenerate the managed .md via the service refresh / sq sync rather than hand-editing (US3).
@@ -205,11 +174,6 @@ Update the templates that emit the old grammar into generated artifacts — clau
 <!-- sq:subtask:ST5 -->
 ### ST5 — Rewrite CLI tests to item-first; add slug/id/n + catalog + removed-list coverage
 
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions
-<!-- sq:subtask:ST5:head:end -->
-
 <!-- sq:subtask:ST5:body -->
 Rewrite the existing CLI tests that used the old verb-first grammar (test_cli.py role/skill/operator cases, test_operators.py operator list) to item-first, and add new coverage: slug/full-ID/bare-number resolution for role and skill show/rm, the new sq operator <addr> show, sq role catalog output, generated-doc assertions to the new grammar, and asserting the removed list subcommands error (US1).
 <!-- sq:subtask:ST5:body:end -->
@@ -224,11 +188,6 @@ Rewrite the existing CLI tests that used the old verb-first grammar (test_cli.py
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Top up the FEAT-13 deferral comment if the shipped grammar deviated from the PO note
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 Reconcile the FEAT-000013 deferral comment: if the shipped Typer construction / grammar deviated from the PO note, top up that deferral record so the contract reflects what actually shipped (US3).

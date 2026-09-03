@@ -36,9 +36,6 @@ Pure engineering hygiene: the loaded data is byte-identical, only its on-disk ho
 
 _Add with `sq feature 652 add-story "As a <role>, I want … so that …"`; track with `sq feature 652 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

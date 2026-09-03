@@ -65,22 +65,10 @@ Already fine (leave as-is): sub-entity `<k>` uses `resolve_local_id`.
 
 _Add with `sq task 47 add-subtask "<title>"`; track with `sq task 47 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Wire all ID-accepting paths through the resolver | US2 |
-| ST2 | Done |  | Uniform unknown-item error wording mentioning both accepted forms everywhere | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Wire all ID-accepting paths through the resolver
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a user copy-pasting an ID from a comment or tree, I want it accepted by every command including tree, --parent and ref add, so that handoffs never need manual reformatting
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator targets, subtask --story through the resolver.
@@ -94,11 +82,6 @@ Wire tree root, --parent, --ref, ref add/rm, list --parent, role/skill/operator 
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Uniform unknown-item error wording mentioning both accepted forms everywhere
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Make unknown-item error wording uniform across every ID-accepting surface: each surface names both accepted forms (full ID and bare number) consistently, so the error is the same everywhere regardless of which command produced it (US3 wording).

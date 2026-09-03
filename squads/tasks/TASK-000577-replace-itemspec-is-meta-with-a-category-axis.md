@@ -50,9 +50,6 @@ If a `_CATEGORIES` frozenset (or similar) module-level constant is introduced in
 
 _Add with `sq task 577 add-subtask "<title>"`; track with `sq task 577 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

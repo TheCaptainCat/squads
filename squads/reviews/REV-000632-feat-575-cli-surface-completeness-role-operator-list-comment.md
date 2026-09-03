@@ -30,22 +30,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 632 add-finding "…" --severity medium`; track with `sq review 632 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | stability.md frozen-surface bullet lists non-existent 'skill list -t skill' |
-| F2 | 🟢 low | Verified |  | role list --json emits derived 'active' alongside 'status' |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — stability.md frozen-surface bullet lists non-existent 'skill list -t skill'
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 docs/stability.md, frozen-surface bullet (touched by this diff): 'The catalog and roster viewers: role catalog, role list, operator list, skill list -t skill (all with --json)'. 'skill list -t skill' is not a real command — a carryover from the removed standalone-list text. It contradicts the adjacent new prose in the same file ('sq skill list has no dedicated verb; use sq list -t skill'). Correct form is 'list -t skill'. Low, but notable given the feature-family's docs-accuracy theme.
@@ -61,11 +49,6 @@ docs/stability.md, frozen-surface bullet (touched by this diff): 'The catalog an
 
 <!-- sq:finding:F2 -->
 ### F2 — role list --json emits derived 'active' alongside 'status'
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 sq role list --json (src/squads/_cli/_role.py) emits both 'status' and 'active', where active = (status == 'Active') — fully derivable. Now pinned in tests/goldens/role_list.json, so it becomes frozen contract. Roles can be Draft/Active/Archived so active is a genuine convenience (is-in-live-roster) rather than a pure binary of status, but it is still redundant with what a consumer can derive. Flagging per the project's don't-emit-what-you-can-derive lean; keep it consciously or drop it before the golden freezes. Non-blocking.

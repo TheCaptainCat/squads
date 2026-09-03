@@ -30,21 +30,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 144 add-finding "…" --severity high`; track with `sq review 144 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Stale schema_version="0.4" in test_agent_naming.py config-parsing tests |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Stale schema_version="0.4" in test_agent_naming.py config-parsing tests
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 tests/test_agent_naming.py:186 and :198 pass schema_version="0.4" to SquadsConfig.from_toml_dict. These are residue from the reverted 0.4 work. HARMLESS — from_toml_dict has model_config extra=ignore and does not validate schema_version against SCHEMA_VERSION; the tests only assert init_names hoisting, so they pass and exercise the right path. But the literal "0.4" is now misleading (current schema is 0.3) and is the only 0.4 string left in non-doc code. Recommend changing both to "0.3" for hygiene. Not blocking.

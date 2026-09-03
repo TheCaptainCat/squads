@@ -79,23 +79,10 @@ onto the SKILL items (frontmatter-as-source-of-truth, like ROLE items already do
 
 _Add with `sq task 204 add-subtask "<title>"`; track with `sq task 204 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Single slug->description registry in _interactions; backend reads it for pointers; descriptions on items | US1 |
-| ST2 | Todo |  | Migration stamps and backfills descriptions onto skill items | US2 |
-| ST3 | Todo |  | Fresh sq init stamps skill descriptions from the registry | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Single slug->description registry in _interactions; backend reads it for pointers; descriptions on items
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Stable SKILL-… ID per skill for cross-entity referencing
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers establishing ONE slug→description registry for the 9 bundled skills alongside bundled_skill_slugs() in _interactions.py (bespoke text for squads/greeting, the templated 'Working with <type> items…' for each sq-<type>), removing the now-duplicated literal strings from the backend so it reads the registry, and stamping item.description from it so generate_skill_entry reads a populated description (correct pointer) instead of falling through to the slug title.
@@ -110,11 +97,6 @@ Covers establishing ONE slug→description registry for the 9 bundled skills alo
 <!-- sq:subtask:ST2 -->
 ### ST2 — Migration stamps and backfills descriptions onto skill items
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — Automatic migration retrofits existing skills with IDs on sq migrate up
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Covers the 0.4→0.5 migration setting item.description from the registry AND backfilling it onto already-stamped-but-description-less skill items (this repo's current state), not only freshly-stamped ones — idempotent once descriptions are present. Frontmatter-as-source-of-truth (invariant 1); sq repair reconstructs it.
 <!-- sq:subtask:ST2:body:end -->
@@ -127,11 +109,6 @@ Covers the 0.4→0.5 migration setting item.description from the registry AND ba
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Fresh sq init stamps skill descriptions from the registry
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — Fresh sq init produces skills already carrying IDs from the start
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Covers fresh sq init (seeding) stamping each SKILL item's description from the single registry so the .claude pointer description and sq list -t skill / sq skill show all show the real rich text rather than the bare slug.

@@ -657,7 +657,18 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 
 @app.command()
 @common.command
-async def repair(renumber: bool = typer.Option(False, "--renumber")):
+async def repair(
+    renumber: bool = typer.Option(
+        False,
+        "--renumber",
+        help=(
+            "Also resolve duplicate sequence numbers before rebuilding: where two trees' "
+            "merged files both claim a number, keep one item and mint a fresh number for the "
+            "rest, rewriting every reference to them. This is the after-the-fact fixer; "
+            "`sq renumber` shifts a range deliberately BEFORE a merge so no collision happens."
+        ),
+    ),
+):
     """Rebuild the index from the markdown frontmatter.
 
     Uses :func:`common.get_service_bypassing_index_cross_check` rather than the plain
@@ -674,6 +685,15 @@ async def repair(renumber: bool = typer.Option(False, "--renumber")):
     svc = common.get_service_bypassing_index_cross_check()
     result = await svc.repair(renumber=renumber)
     console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
+    if result.stripped:
+        # Announced, not prevented: repair's advertised job is the index, and the sweep also
+        # rewrites content. Saying so here is what makes the resulting diff stated rather
+        # than discovered by an operator who ran this to reconcile an index.
+        console.print(
+            f"stripped retired regions from {len(result.stripped)} item "
+            f"{'file' if len(result.stripped) == 1 else 'files'} — review the diff",
+            soft_wrap=True,
+        )
     for mid in result.missing_ids:
         console.print(
             f"[yellow]warn[/yellow] [dim]{mid}[/dim]: indexed but no markdown file found (deleted?)"

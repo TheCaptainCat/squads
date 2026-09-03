@@ -85,22 +85,10 @@ backend must be rebuildable from them with `sq repair`.
 
 _Add with `sq feature 32 add-story "As a <role>, I want … so that …"`; track with `sq feature 32 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Real transactions for parallel sq calls without global file lock |
-| US2 | Todo |  | Indexed store keeps list/tree/search fast at thousands of items |
-| US3 | Todo |  | Store switching via config plus sq repair, reversible both ways |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Real transactions for parallel sq calls without global file lock
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** a concurrency test with N parallel writers shows no lost updates and no global-lock serialization on the SQLite store; JSON store behaviour unchanged.
@@ -117,10 +105,6 @@ As a team running many agents in parallel, I want the index behind real transact
 <!-- sq:story:US2 -->
 ### US2 — Indexed store keeps list/tree/search fast at thousands of items
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** on the FEAT-17 ~1000-item fixture, list/tree/search/backrefs on the SQLite store meet the scale test's time bounds.
 
@@ -135,10 +119,6 @@ As an owner of a large squad, I want an indexed store keeping list/tree/search f
 
 <!-- sq:story:US3 -->
 ### US3 — Store switching via config plus sq repair, reversible both ways
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** store chosen in .squads.toml; sq repair rebuilds the configured store from frontmatter alone; a squad switched json→sqlite→json is byte-equivalent in its .md files and behaviour-equivalent in every command.

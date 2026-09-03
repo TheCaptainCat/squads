@@ -131,23 +131,10 @@ generic string-keyed item/type model.
 
 _Add with `sq feature 326 add-story "As a <role>, I want … so that …"`; track with `sq feature 326 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Full self-service type vocabulary in spec |
-| US2 | Todo |  | Statuses become ordinary spec vocabulary |
-| US3 | Todo |  | Playbook + CLI register types generically |
-| US4 | Todo |  | Unmodified default squad behaves identically |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Full self-service type vocabulary in spec
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a project admin, I want to omit or rename any built-in work type in my spec and have squads load it without complaint.
@@ -164,10 +151,6 @@ As a project admin, I want to omit or rename any built-in work type in my spec a
 <!-- sq:story:US2 -->
 ### US2 — Statuses become ordinary spec vocabulary
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a project admin, I want every built-in status to be ordinary spec vocabulary so I can rename or drop one without hitting a hardcoded floor.
 
@@ -183,10 +166,6 @@ As a project admin, I want every built-in status to be ordinary spec vocabulary 
 <!-- sq:story:US3 -->
 ### US3 — Playbook + CLI register types generically
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a developer extending squads, I want the playbook and CLI to register every type from one generic code path so adding a type never means touching a static dispatch table.
 
@@ -201,10 +180,6 @@ As a developer extending squads, I want the playbook and CLI to register every t
 
 <!-- sq:story:US4 -->
 ### US4 — Unmodified default squad behaves identically
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As an existing squads user, I want my unmodified default squad to behave identically after this change.

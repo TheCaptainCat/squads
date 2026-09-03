@@ -41,21 +41,10 @@ Add `sq migrate repad <new-width>` — a sibling of `up`/`help`/`chlog` under th
 
 _Add with `sq task 102 add-subtask "<title>"`; track with `sq task 102 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | sq migrate repad <width>: one-way bump renaming all item files | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq migrate repad <width>: one-way bump renaming all item files
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a squad owner raising the padding, I want one command that renames every file to the new width and rebuilds the index, so that the squad stays uniform without hand-work
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 sq migrate repad <width>: one-way bump, renames all item files to new width, rebuilds index, refuses to lower, file contents byte-untouched; sq check clean after.

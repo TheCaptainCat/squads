@@ -90,22 +90,10 @@ the fly via `is_system_skill`. Add the same classification to the `--json` outpu
 
 _Add with `sq task 493 add-subtask "<title>"`; track with `sq task 493 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Author and persist a custom skill body | US1 |
-| ST2 | Done |  | Distinguish custom from system skills; reject system body edits | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Author and persist a custom skill body
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a squad author, I want to write and edit a custom skill's body so my team has a real, persistent runbook
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 sq skill <n> body -m/--file/--append writes into the :body region; edits are re-readable and the freshly-added no-body skill still renders coherently. Authored body survives sync/regen/repair unchanged (prove with a test; add no new regeneration path).
@@ -119,11 +107,6 @@ sq skill <n> body -m/--file/--append writes into the :body region; edits are re-
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Distinguish custom from system skills; reject system body edits
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a squad author, I want custom skills distinguished from bundled ones
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 is_system_skill(slug, spec) derived predicate drives: sq skill show labels system vs custom (+ --json field), and set_body rejects a template-owned skill with a clear message while sync/regen keep regenerating system skills as today.

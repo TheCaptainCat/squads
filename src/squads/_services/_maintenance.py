@@ -1,6 +1,7 @@
 """Whole-squad maintenance: sync managed files, repair/renumber the index, check, migrate."""
 
 import contextlib
+import dataclasses
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
@@ -21,6 +22,7 @@ from squads._interactions import (
     custom_item_skill_description,
     custom_skill_slugs,
     is_live_roster_entry,
+    is_system_skill,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
     orphaned_skill_item_type,
@@ -51,9 +53,11 @@ from squads._models._item import (
     format_item_id,
     prefix_from_id,
 )
+from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
+from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_with_base, role_base_from_item
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
@@ -207,22 +211,225 @@ def _ref_encoding_is_stale(data: dict[str, Any], item: Item) -> bool:
     return isinstance(extra, dict) and "ref_kinds" in extra
 
 
-def _record_pending_canonicalization(
-    pending: list[tuple[Path, str, str]],
+#: Suffix of a retired sub-entity badge region's tag. The tag itself
+#: (``<kind>:<local-id>:head``) is composed at write time and is **not** declared in
+#: ``_models/_markers.py``, so there is no constant to compare against and an absent one
+#: proves nothing about what a corpus holds. Matching on the suffix is deliberate: it is
+#: vocabulary-blind, so a badge region belonging to a sub-entity kind a project declared and
+#: later dropped is recognised too, without this sweep having to read the live spec's kind
+#: list. A local id is a declared ``local_prefix`` plus a number, free-form and uppercase for
+#: every bundled kind, which is why nothing here may assume its spelling — a scan whose
+#: character class assumes lowercase matches none of them and reports an empty corpus.
+_RETIRED_HEAD_SUFFIX = ":head"
+
+
+def _retired_region_tags(text: str) -> list[str]:
+    """Every retired marker region present in *text*, as section tags in file order.
+
+    Two families, matched by tag **shape** rather than by any declared vocabulary: the fixed
+    :data:`~squads._models._markers.SUMMARY` region, and every tag ending in
+    :data:`_RETIRED_HEAD_SUFFIX`. Both are derived renderings whose writers have retired and
+    whose replacements are computed on every read, so what is on disk can only disagree with
+    the frontmatter that is now the sole source.
+
+    Close markers are skipped (their tag carries a trailing ``:end``) so each region is named
+    once, and a tag whose region is not balanced in *text* is skipped outright — an unclosed
+    region is a marker defect for ``check`` to report, never something to cut through.
+    """
+    seen: list[str] = []
+    for raw in sections.find_markers(text):
+        tag = raw[len(markers.PREFIX) :]
+        if tag.endswith(":end") or tag in seen:
+            continue
+        if tag != markers.SUMMARY and not tag.endswith(_RETIRED_HEAD_SUFFIX):
+            continue
+        if sections.has_section(text, tag):
+            seen.append(tag)
+    return seen
+
+
+def _strip_retired_regions(text: str, *, empty_body: bool) -> str:
+    """*text* with every retired region removed, and its ``sq:body`` region emptied when
+    *empty_body* — the sweep's whole content transformation, as one pure function of the
+    file's bytes.
+
+    Cuts are marker-safe: each region is excised from its own open marker through its own
+    close marker by :func:`~squads._sections.remove_section`, which also absorbs the blank
+    separator line the region was inserted with, so a stripped file matches what the live
+    write path produces today rather than leaving a doubled blank line behind.
+
+    Emptying is not deletion. A body region loses its contents and keeps its marker pair: the
+    pair is the shape every item file shares, and a *removed* region is what
+    ``sq role show``/``sq skill show`` read as "no item for this slug" — a false and alarming
+    answer for an entry that is live.
+
+    Idempotent by construction: a file with none of these regions, a region already absent and
+    a body already empty are each a no-op, so the returned text is the input text unchanged.
+    """
+    for tag in _retired_region_tags(text):
+        text = sections.remove_section(text, tag)
+    if empty_body and (sections.get_section(text, markers.BODY) or "").strip():
+        text = sections.replace_section(text, markers.BODY, "")
+    return text
+
+
+def _retired_role_extra_keys(item: Item) -> frozenset[str]:
+    """The retired mirror keys *item*'s ``extra`` still carries — empty for anything that is
+    not a role item, and empty for a role that carries none of them.
+
+    The set is a difference between two declarations, never a list written out here:
+
+    - the candidates are :data:`~squads._models._metadata.RETIRED_ROLE_EXTRA_KEYS` (the eight
+      definition keys, declared beside the refusals that name where each value lives now)
+      widened by :meth:`RoleDef.extra_keys`, so every name the mirror ever wrote is a
+      candidate whether or not some role shape still stores it;
+    - what is taken back out is :meth:`RoleDef.stored_extra_keys` for *this* role's shape,
+      read off the tables that decide what ``to_extra`` writes.
+
+    That subtraction is the whole reason a developer's ``model`` survives while a non-dev
+    role's is removed, and it is why the answer cannot drift from the writer: restore a key to
+    either table and this stops proposing it, with no second list to remember. Getting it
+    wrong in the other direction is unrecoverable rather than untidy — a developer's ``model``
+    is an operator setting with no catalog answer, so a stripped one is re-rolled from the dev
+    pool as a different value, not resolved back.
+
+    A role is identified by its item type and its shape by ``extra.is_dev``, the same stored
+    marker :meth:`~squads._roles._catalog.RoleDef.to_extra`'s callers pass — never by the
+    slug's spelling, which decides nothing about what a role item stores.
+
+    An operator item carries a ``full_name`` of its own (``add_operator`` writes it and
+    ``sq operator list`` reads it back): the type check above is what keeps this sweep off it.
+    """
+    if item.type != ROSTER_ROLE:
+        return frozenset()
+    stored = RoleDef.stored_extra_keys(is_dev=bool(item.extra.get(X.IS_DEV)))
+    retired = (RETIRED_ROLE_EXTRA_KEYS | RoleDef.extra_keys()) - stored
+    return retired & frozenset(item.extra)
+
+
+@dataclasses.dataclass
+class _PendingRewrites:
+    """The file rewrites :meth:`MaintenanceMixin._rebuild_index_from_disk`'s per-file loop has
+    decided on but not yet performed — deferred to after the corpus-alignment refusal check,
+    so a refusal that aborts the whole rebuild never leaves a rewritten file behind with no
+    matching index commit.
+
+    ``files`` holds one ``(path, new_text)`` entry **per path**, never two. Both
+    transformations a file can need — the ref-encoding canonicalisation and the retired-region
+    strip — are composed into that single replacement text by :func:`_record_pending_rewrite`.
+    Queuing them as two independent entries, each built from the file's original text, would
+    mean whichever was written last silently discarded the other's edit.
+
+    ``canonicalized`` and ``stripped`` name the items each transformation actually applied to,
+    kept apart because they are different facts about a corpus and are reported separately.
+    An item can appear in both.
+    """
+
+    files: list[tuple[Path, str]] = dataclasses.field(default_factory=list[tuple[Path, str]])
+    canonicalized: list[str] = dataclasses.field(default_factory=list[str])
+    stripped: list[str] = dataclasses.field(default_factory=list[str])
+
+
+def _frontmatter_without(data: dict[str, Any], keys: frozenset[str]) -> dict[str, Any]:
+    """*data* — the file's own parsed frontmatter — with *keys* removed from its ``extra``
+    mapping and **everything else left exactly as the file had it**, top-level keys and their
+    order included.
+
+    Deliberately not ``item.to_frontmatter_dict()``, which is what the ref canonicalisation
+    writes. That mapping is the model's canonical projection, so writing it back also drops
+    any frontmatter key the model accepts on the way in but derives rather than stores — a
+    legacy top-level ``slug:``, which every corpus fixture predating the filename-derived slug
+    still carries, is one. Dropping it loses nothing (the filename answers it) but it is not a
+    name on this sweep's frozen list, and a sweep that removes anything beyond that list is
+    the defect the list exists to prevent. When a file needs the canonicalisation too, that
+    rewrite runs instead and its own wider projection is what lands — the same bytes it has
+    always written, on the same files it has always written them to.
+
+    ``extra`` is dropped entirely if the removal empties it, matching what
+    ``to_frontmatter_dict`` writes for an item with no ``extra`` at all, so the two rewrites
+    cannot disagree about how an empty mapping is spelled. A role always keeps ``slug``, so
+    this is the shape of a defensive branch rather than a case a corpus reaches.
+    """
+    out = dict(data)
+    extra = {
+        k: v for k, v in cast("dict[str, Any]", out.get("extra") or {}).items() if k not in keys
+    }
+    if extra:
+        out["extra"] = extra
+    else:
+        out.pop("extra", None)
+    return out
+
+
+def _record_pending_rewrite(
+    pending: _PendingRewrites,
     md: Path,
     text: str,
     data: dict[str, Any],
     item: Item,
+    *,
+    empty_body: bool,
 ) -> None:
-    """Append *item*'s write-back entry — ``(path, new_text, item_id)`` — to *pending* when its
-    on-disk ref encoding is stale (:func:`_ref_encoding_is_stale`); a no-op otherwise. Split out
-    of :meth:`MaintenanceMixin._rebuild_index_from_disk`'s per-file loop purely to keep that
-    already-long method under the complexity ceiling — the write itself is deferred to the
-    caller, after the corpus-alignment refusal check (see there)."""
-    if not _ref_encoding_is_stale(data, item):
+    """Queue *item*'s write-back onto *pending* when its file needs one; a no-op otherwise.
+
+    Two independent reasons a file is rewritten, composed here into **one** replacement text
+    and **one** queued entry (see :class:`_PendingRewrites`):
+
+    - its on-disk ref encoding is stale (:func:`_ref_encoding_is_stale`), so the frontmatter is
+      rewritten to the canonical encoding the fold already produced;
+    - it carries a retired region, or a body this sweep empties
+      (:func:`_strip_retired_regions`);
+    - it is a role item whose ``extra`` still carries retired mirror keys
+      (:func:`_retired_role_extra_keys`).
+
+    The regions go first and the frontmatter rewrite last, over the stripped text:
+    :func:`~squads._sections.replace_frontmatter` preserves the body verbatim, so the order
+    only decides which text the later transformation reads, never what any of them produces.
+
+    There is exactly **one** frontmatter rewrite, never two, and the two reasons pick
+    different mappings for it. Canonicalisation writes ``item.to_frontmatter_dict()``, the
+    model's own projection — it has to, since the canonical ref encoding exists only on the
+    parsed ``Item``; the mirror keys are already gone from that ``Item`` by then, so the one
+    rewrite serves both. A file needing only the key removal is rewritten from its own parsed
+    frontmatter instead (:func:`_frontmatter_without`), which is the narrower edit: the model's
+    projection would also drop a key the model derives rather than stores, and this sweep
+    removes only what is on its list.
+
+    **The mirror keys leave the** :class:`~squads._models._item.Item` **as well as the file**,
+    and that is the coupling this vehicle introduces which a migration step did not have: the
+    caller's very next statement is ``db.add(item)``, so an ``Item`` still carrying a key the
+    file no longer does would put the index and the markdown into disagreement on exactly the
+    key just removed. Those keys are no longer in ``PERMITTED_EXTRA_SKEW`` either, so the
+    disagreement would not be forgiven — it would refuse every later read of that item.
+
+    Nothing is queued when the composed text equals the original — the identity that makes a
+    second rebuild over an already-corrected corpus write no file at all.
+
+    Split out of the per-file loop purely to keep that already-long method under the
+    complexity ceiling; the writes themselves are the caller's, after the refusal check.
+    """
+    new_text = _strip_retired_regions(text, empty_body=empty_body)
+    stripped = new_text != text
+    retired_keys = _retired_role_extra_keys(item)
+    for key in retired_keys:
+        del item.extra[key]
+    canonicalized = _ref_encoding_is_stale(data, item)
+    if canonicalized:
+        new_text = sections.replace_frontmatter(
+            new_text, item.to_frontmatter_dict(), source=str(md)
+        )
+    elif retired_keys:
+        new_text = sections.replace_frontmatter(
+            new_text, _frontmatter_without(data, retired_keys), source=str(md)
+        )
+    if new_text == text:
         return
-    canonical_text = sections.replace_frontmatter(text, item.to_frontmatter_dict(), source=str(md))
-    pending.append((md, canonical_text, item.id))
+    stripped = stripped or bool(retired_keys)
+    pending.files.append((md, new_text))
+    if canonicalized:
+        pending.canonicalized.append(item.id)
+    if stripped:
+        pending.stripped.append(item.id)
 
 
 def _marker_issues(text: str) -> list[str]:
@@ -839,18 +1046,20 @@ class MaintenanceMixin(ServiceCore):
         return skew_message(item, diverging)
 
     async def _refresh_catalog_extra(self, item: Item, *, default_kind: str) -> str | None:
-        """Merge current catalog fields into a predefined role's item extra, and project the
-        resolved name/mission onto the item's own top-level ``title``/``description``.
+        """Reconcile a role item against its resolved definition: merge
+        :meth:`RoleDef.to_extra`'s keys into the item's ``extra``, and project the resolved
+        name/mission onto the item's own top-level ``title``/``description``.
 
-        When a new field is added to :class:`RoleDef` (e.g. ``agreements``), existing items
-        created before that field existed will lack it in their frontmatter.  Sync is the
-        reconciliation point: for every predefined role we pull the authoritative definition
-        from the catalog and merge its ``to_extra()`` output into the live item, then persist
-        the updated frontmatter so subsequent reads see the new fields. The same loop, over
-        :meth:`RoleDef.to_item_fields` instead, assigns the resolved ``full_name``/``mission``
-        directly onto ``item.title``/``item.description`` — the pairing declared once, beside
-        ``to_extra``'s own key table, so a declared override reaches the item's own record and
-        not only its ``extra`` mirror.
+        **What this merges is deliberately small.** ``to_extra()`` no longer carries a copy of
+        the definition — a role's title, mission, responsibilities, agreements, colour and
+        spawn authority resolve from the catalog on every read, so there is nothing about them
+        left to reconcile here. What the merge still converges is the stored residue
+        (:data:`~squads._roles._catalog.RoleDef._EXTRA_FIELD_KEYS`) and, through
+        :meth:`RoleDef.to_item_fields`, the resolved ``full_name``/``mission`` onto
+        ``item.title``/``item.description`` — the uniform-record fields read by every surface
+        that does not know the item is a role and so cannot resolve a role catalog. That
+        pairing is declared once, beside ``to_extra``'s own key table, so a declared override
+        reaches the item's own record and not only its ``extra``.
 
         Every role, dev or bundled, resolves through
         :func:`~squads._roles._resolver.resolve_role_with_base` with a base built by
@@ -904,10 +1113,11 @@ class MaintenanceMixin(ServiceCore):
         slug of its title, and this call must never move the file.
 
         The ``extra`` keys this call writes stay exempt from the skew guard everywhere — see
-        ``_itemfile.PERMITTED_EXTRA_SKEW``. That exemption no longer describes *this* writer's
-        steady state (the mirror above is what removed the permanent lag) but is still what
-        lets a squad synced by an older release, whose index already lags on those keys,
-        converge on its next sync instead of being refused by the guard first. The projected
+        ``_itemfile.PERMITTED_EXTRA_SKEW``, now narrowed to the same short residue this merges.
+        That exemption no longer describes *this* writer's steady state (the index mirror
+        above is what removed the permanent lag) but is still what lets a squad synced by an
+        older release, whose index already lags on those keys, converge on its next sync
+        instead of being refused by the guard first. The projected
         top-level ``title``/``description`` fields are ordinary frontmatter keys the skew guard
         already compares like any other — see ``_itemfile._without_permitted_extra_skew``,
         which structurally cannot reach a top-level field, so nothing here needs a matching
@@ -920,7 +1130,9 @@ class MaintenanceMixin(ServiceCore):
             catalog_role = resolve_role_with_base(slug, self.paths.squad_dir, base=base_role)
         except RoleNotFoundError:
             return None  # orphaned custom role item: no catalog entry, no override file
-        catalog_extra = catalog_role.to_extra()
+        # The developer marker lives on the item, and it is what decides whether the
+        # dev-only column (``model``) is part of this merge — see ``RoleDef.to_extra``.
+        catalog_extra = catalog_role.to_extra(is_dev=bool(item.extra.get(X.IS_DEV)))
         item_fields = catalog_role.to_item_fields()
         base = item.model_copy(deep=True)
         previous_extra: dict[str, Any] = {}
@@ -978,6 +1190,12 @@ class MaintenanceMixin(ServiceCore):
 
         Rebuilds the index from the migrated frontmatter and stamps the new schema version.
         Returns the applied :class:`Migration` records (empty when already current).
+
+        The :meth:`repair` call below is the one place that verb runs against a corpus not yet
+        at the current schema, and it sits after every runner deliberately: see
+        :meth:`repair` for the ordering prohibition that placement satisfies. It is also why a
+        squad already at the current stamp is not swept here — no runner applies, so nothing
+        rebuilds, and the ordinary verb is that corpus's only route to the sweep.
         """
         disk = self.paths.config.schema_version
         applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
@@ -1436,13 +1654,51 @@ class MaintenanceMixin(ServiceCore):
                     f"running `sq repair`"
                 )
 
+    def _sweep_empties_body(self, item: Item) -> bool:
+        """Whether the repair sweep empties *item*'s ``sq:body`` region.
+
+        True for a role, true for a **template-owned** skill, false for everything else. Both
+        definitions are rendered at read time — ``role_definition_text`` on every
+        ``sq role <slug> show``, ``skill_definition_text`` on every ``sq skill <slug> show`` —
+        so a stored copy is a derived duplicate, and the only copy that can go stale, since
+        nothing refreshes it. A **custom (authored)** skill's body is authored storage and is
+        never touched.
+
+        A role needs no discriminator, unlike a skill: every body-writing seam refuses a role
+        outright — ``set_body`` and the importer's body event both — and the scaffold
+        ``_create_core`` renders for a new role already empties the region, so a stored role
+        body is residue from a release that rendered one, not prose someone wrote.
+
+        The discriminator is :func:`~squads._interactions.is_system_skill` — not the folder,
+        not the item type, not the ``sq-`` prefix. All three are cheaper and all three are
+        wrong: every skill, authored or generated, sits in the same folder with the same item
+        type and the same frontmatter shape, and the ``sq-`` prefix is not reserved to squads,
+        so an author is free to name a skill with it. The same function already backs
+        ``set_body``'s refusal of exactly these writes, which is what keeps the two ends of
+        that rule from drifting apart.
+
+        It reads the **live** spec deliberately, and that is why it must not be "fixed" back
+        to a frozen slug list: a project that renamed or dropped an item type changes which
+        per-type skills are template-owned, and a literal list would mistake that project's
+        own authored skill for a generated one and empty it.
+
+        Keeping the marker pair is the point of *emptying* rather than removing, on both
+        types: a removed region is what those two ``show`` paths read as "no item for this
+        slug", a false and alarming answer for an entry that is live.
+        """
+        if item.type == ROSTER_ROLE:
+            return True
+        if item.type != ROSTER_SKILL:
+            return False
+        return is_system_skill(item.extra.get(X.SLUG, item.slug), self.spec)
+
     async def _rebuild_index_from_disk(
         self,
         *,
         previous_counter: int,
         previous_padding: int,
         known_corpus: SquadsDB | None = None,
-    ) -> tuple[SquadsDB, list[str], list[str]]:
+    ) -> tuple[SquadsDB, list[str], list[str], list[str]]:
         """Scan every item file fresh and commit a rebuilt index — the core of :meth:`repair`,
         factored out so :meth:`renumber` can reuse it *without* repair's previous-snapshot /
         missing-file / reflog bookkeeping, which is specific to the ``sq repair`` verb (a
@@ -1466,9 +1722,9 @@ class MaintenanceMixin(ServiceCore):
         only when something a previous index actually knew about truly stopped resolving —
         never on a merely-reconstructed metadata quirk that doesn't affect where the file is.
 
-        Returns ``(db, unreadable, canonicalized)`` — ``unreadable`` names every file whose
-        content could not be read or parsed, **or** that parsed but cannot become an item (no
-        ``id``, or a type-invalid field — :meth:`Item.from_frontmatter` is the load boundary
+        Returns ``(db, unreadable, canonicalized, stripped)`` — ``unreadable`` names every file
+        whose content could not be read or parsed, **or** that parsed but cannot become an item
+        (no ``id``, or a type-invalid field — :meth:`Item.from_frontmatter` is the load boundary
         for the latter, raising :class:`SquadsError` for both). Each is reported, never silently
         dropped: caught here per file so one bad file never aborts the rebuild for the rest of
         the corpus. Its *previous* index entry — recovered from ``known_corpus`` via the
@@ -1514,16 +1770,40 @@ class MaintenanceMixin(ServiceCore):
         all, and a second rebuild over an already-canonical corpus is byte-identical to the
         first — the on-disk encoding a comparison like :func:`_ref_encoding_is_stale` reads is
         exactly what the previous rebuild just wrote.
+
+        **Retired regions are stripped, in the same walk and the same deferred write.** A
+        marker region whose writer has retired and whose replacement is computed on every read
+        can only disagree with the frontmatter that is now its sole source, so it is removed
+        wherever it is still stored (:func:`_strip_retired_regions`), and so are the retired
+        ``extra`` keys a role item still mirrors (:func:`_retired_role_extra_keys`) — from the
+        parsed ``Item`` as well as from the file, since the index entry committed below is
+        built from it. ``stripped`` names every item so rewritten. What may be removed is a
+        **frozen list** of named regions and keys, each satisfying three conditions in this
+        same build: no live write path produces it, no read path consumes it as authoritative
+        because its computed replacement has already shipped, and its content is derived
+        rather than authored. Adding a name is a
+        decision, not a developer's choice, and a name added before its writer retires puts
+        this sweep and that writer into a loop where each undoes the other on alternate
+        commands. ``tests/service/test_repair_strips_only_retired_regions.py`` is the
+        falsifiable guard: it drives a fresh squad through the write path and asserts none of
+        the listed names comes back.
+
+        The same properties as canonicalization hold, for the same reason — a corpus carrying
+        none of them writes no file at all, and a second rebuild over a stripped corpus is
+        byte-identical to the first, since the strip's own output is what the next scan reads.
+        Every transformation composes into **one** queued entry per path
+        (:func:`_record_pending_rewrite`), so none of them can discard another's edit.
         """
         db = SquadsDB(squads_version=__version__, counter=0)
         max_n = 0
         max_filename_width = 0
         unreadable: list[str] = []
-        # (path, new_text, item_id) for every file whose ref encoding needs canonicalising —
-        # collected here and written only after the corpus-alignment refusal check below
-        # passes, so a refusal that aborts the whole rebuild (nothing committed) never leaves
-        # a canonicalised file behind with no matching index commit.
-        pending_canonicalization: list[tuple[Path, str, str]] = []
+        # Every file this rebuild decides to rewrite — one entry per path, composing both
+        # transformations a file can need — collected here and written only after the
+        # corpus-alignment refusal check below passes, so a refusal that aborts the whole
+        # rebuild (nothing committed) never leaves a rewritten file behind with no matching
+        # index commit. See _PendingRewrites.
+        pending = _PendingRewrites()
         # Resolved once for the whole rebuild, before the per-file loop and its own
         # per-file SquadsError handling below — a spec declaring the wrong number of
         # default ref kinds must fail as one clean refusal naming the spec, never be
@@ -1558,7 +1838,9 @@ class MaintenanceMixin(ServiceCore):
                 continue
             _carry_forward_indexed_timestamps(item, data, known_corpus)
             self._raise_unless_vocab_valid(item, md)
-            _record_pending_canonicalization(pending_canonicalization, md, text, data, item)
+            _record_pending_rewrite(
+                pending, md, text, data, item, empty_body=self._sweep_empties_body(item)
+            )
             db.add(item)
             max_n = max(max_n, number_for_id(item.id))
             # Derive the filename digit-run width (PREFIX-<digits>-<slug>.md).
@@ -1591,17 +1873,42 @@ class MaintenanceMixin(ServiceCore):
                 f"them:\n{bullet_list}"
             )
 
-        # Markdown before the index, as everywhere else: every canonicalised file is written
+        # Markdown before the index, as everywhere else: every rewritten file is written
         # here, now that the rebuild is known to proceed, strictly before the index commit
         # below.
-        for md, canonical_text, _item_id in pending_canonicalization:
-            await write_text(md, canonical_text)
-        canonicalized = [item_id for _md, _text, item_id in pending_canonicalization]
+        for md, new_text in pending.files:
+            await write_text(md, new_text)
 
         await self.store.overwrite(db)
-        return db, unreadable, canonicalized
+        return db, unreadable, pending.canonicalized, pending.stripped
 
     async def repair(self, *, renumber: bool = False) -> RepairResult:
+        """Rebuild the index from the markdown frontmatter, and sweep the corpus while walking
+        it (:meth:`_rebuild_index_from_disk`).
+
+        **A strip must never run ahead of a surface regeneration that reads what it removes,
+        and must regenerate nothing itself.** That is a constraint on where a stripping step
+        may sit relative to a surface-touching one, not an instruction to order two particular
+        calls — a local phrasing survives only until someone reorders two adjacent lines for
+        tidiness, whereas a property is inherited by a future step without being told.
+
+        On this verb the first half holds **by construction**, which is worth recording rather
+        than re-engineering. ``require_current_schema`` (``_cli/_common.py``) refuses every
+        subcommand but ``migrate`` on a mismatched stamp, so ``sq repair`` can only ever run
+        against a corpus already at the current schema; the single call on a behind-schema
+        corpus is the tail of :meth:`run_pending_migrations`, after every ordered runner has
+        finished — a runner's own surface regeneration included. A regeneration therefore
+        always reads a corpus this sweep has not yet touched.
+
+        What that protects is not hypothetical: a runner's surface step compiles the managed
+        regions and every backend pointer from the roster projection it reads off the corpus,
+        and a strip landing first would regenerate them from what it had just removed —
+        silently, with nothing near the cause failing. The second half of the prohibition (the
+        sweep regenerates nothing itself) is asserted by outcome in
+        ``tests/integration/test_migration_corpus.py``: the compiled regions and pointers are
+        byte-identical across the sweep. An assertion about which call ran first would pass on
+        a sweep that quietly rewrote them.
+        """
         # Snapshot the previous index (if any) before rebuilding, so we can:
         #  (a) preserve the high-water mark of the counter,
         #  (b) preserve the padding floor, and
@@ -1634,7 +1941,7 @@ class MaintenanceMixin(ServiceCore):
         if renumber:
             await self._renumber()
 
-        db, unreadable, canonicalized = await self._rebuild_index_from_disk(
+        db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
             previous_counter=previous_counter,
             previous_padding=previous_padding,
             known_corpus=known_corpus,
@@ -1659,13 +1966,18 @@ class MaintenanceMixin(ServiceCore):
                 "missing": missing_ids,
                 "unreadable": unreadable,
                 "canonicalized": canonicalized,
+                "stripped": stripped,
             },
             session_id=sid,
             parent_session_id=psid,
         )
 
         return RepairResult(
-            db=db, missing_ids=missing_ids, unreadable=unreadable, canonicalized=canonicalized
+            db=db,
+            missing_ids=missing_ids,
+            unreadable=unreadable,
+            canonicalized=canonicalized,
+            stripped=stripped,
         )
 
     # ------------------------------------------------------------------ repad
@@ -1995,7 +2307,7 @@ class MaintenanceMixin(ServiceCore):
             # _scan_records() above already read every file's frontmatter unguarded, so an
             # unreadable file would have aborted this verb before any rename ever ran —
             # nothing unreadable survives to reach the rebuild below.
-            db, _unreadable, _canonicalized = await self._rebuild_index_from_disk(
+            db, _unreadable, _canonicalized, _stripped = await self._rebuild_index_from_disk(
                 previous_counter=counter, previous_padding=padding
             )
             # Reflog: appended after the index commit above (never in-place rewriting a

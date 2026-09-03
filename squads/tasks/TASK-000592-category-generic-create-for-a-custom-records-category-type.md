@@ -31,9 +31,6 @@ Implements FEAT-569 (records-category create path). Make `sq create` fully spec-
 
 _Add with `sq task 592 add-subtask "<title>"`; track with `sq task 592 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

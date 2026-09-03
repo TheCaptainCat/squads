@@ -55,21 +55,10 @@ ADR to fix the exact mapping before either starts.
 
 _Add with `sq task 139 add-subtask "<title>"`; track with `sq task 139 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Bump SCHEMA_VERSION 0.3→0.4 + _v0_3_to_v0_4 runner and fixture | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Bump SCHEMA_VERSION 0.3→0.4 + _v0_3_to_v0_4 runner and fixture
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Legacy default_backend squads load unchanged
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Bump SCHEMA_VERSION 0.3→0.4, add _v0_3_to_v0_4 runner (default_backend→active_backends in .squads.toml) + register it, commit a v0_4 corpus fixture and wire it into _CORPUS_CASES.

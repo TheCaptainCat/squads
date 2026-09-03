@@ -64,22 +64,10 @@ anywhere in `src/`.
 
 _Add with `sq task 298 add-subtask "<title>"`; track with `sq task 298 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Offset lands the shifted block disjoint from both ranges | US2 |
-| ST2 | Done |  | Rename targets minted at filename padding, content unpadded | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Offset lands the shifted block disjoint from both ranges
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Shifted block is disjoint from the other branch's range
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Done when the offset planner lands the shifted block strictly above BOTH the other branch's counter (via --onto: delta = max(M,C)+1-N) AND this branch's own max C, and a --by n offset that fails N+n>C is refused with SquadsError / exit 1 / no files touched, reporting the minimum safe offset (ADR-295 §3). sq stays git-agnostic: --from/--onto/--by cross in as plain integers only — no subprocess/git/merge-base added to src/ (grep gate clean).
@@ -93,11 +81,6 @@ Done when the offset planner lands the shifted block strictly above BOTH the oth
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Rename targets minted at filename padding, content unpadded
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Filenames keep their padded width after a shift
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Done when the padded-disk / unpadded-content seam holds across the shift: rename targets are minted at filename padding via format_item_id(prefix, seq, db.padding) so on-disk lexical sort survives, while the remap fed to rewrite_ids uses the unpadded DISPLAY_ID_PADDING form (ADR-282). A test asserts renamed files keep the squad's filename width and that frontmatter/refs/prose read unpadded.

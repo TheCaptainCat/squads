@@ -92,22 +92,10 @@ apply/refresh_tree keeping ancestors).
 
 _Add with `sq task 529 add-subtask "<title>"`; track with `sq task 529 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Open/dismiss popup; seed from and dismiss BrowseState | US1 |
-| ST2 | Done |  | ItemFilter dimensions; apply -> refresh_tree keeps ancestors | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Open/dismiss popup; seed from and dismiss BrowseState
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Open/dismiss the filter+sort popup by keyboard
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Filter key binding on BrowseScreen does push_screen(FilterScreen(self.state), self._apply) (callback form). FilterScreen is a ModalScreen seeded with the current BrowseState so it opens pre-populated; apply dismiss()es a new BrowseState, escape/cancel dismiss(None). _apply returns on None. Done: open pre-populated, escape leaves tree unchanged, state persists across opens.
@@ -121,11 +109,6 @@ Filter key binding on BrowseScreen does push_screen(FilterScreen(self.state), se
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — ItemFilter dimensions; apply -> refresh_tree keeps ancestors
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Set filters and apply, tree updates keeping ancestors as context
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 FilterScreen offers item type, status, assignee, label, and a spec-declared badge field (generic via the active spec's fields, not hard-coded to priority). refresh_tree() re-runs tree_view(filter=state.filter, include_closed=state.include_closed) and repopulates via _tree.py; ancestors stay visible because tree_view already returns match+ancestor (path_only) nodes. Done: applying a dimension narrows the tree, an ancestor of a match stays visible, no re-implemented pruning.

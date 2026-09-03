@@ -74,23 +74,10 @@ and the positioning decision; the mechanics land when the server work begins.
 
 _Add with `sq feature 319 add-story "As a <role>, I want … so that …"`; track with `sq feature 319 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As an operator, I can connect my hosted squad to a Claude app as a remote MCP connector via OAuth |
-| US2 | Todo |  | As an app, I get a small curated set of MCP tools for core squads operations, not every CLI verb |
-| US3 | Todo |  | As an operator, MCP access is authenticated and scoped to my squad |
-| US4 | Todo |  | As a maintainer, the MCP endpoint is a third frontend over the service layer, matching CLI behaviour |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As an operator, I can connect my hosted squad to a Claude app as a remote MCP connector via OAuth
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an operator, I want to connect my hosted squad to a Claude app as a remote MCP connector via OAuth so I can drive it from the app.
@@ -110,10 +97,6 @@ As an operator, I want to connect my hosted squad to a Claude app as a remote MC
 <!-- sq:story:US2 -->
 ### US2 — As an app, I get a small curated set of MCP tools for core squads operations, not every CLI verb
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an app, I want a small curated set of MCP tools for the core squads operations so the connector stays light in my context.
 
@@ -132,10 +115,6 @@ As an app, I want a small curated set of MCP tools for the core squads operation
 <!-- sq:story:US3 -->
 ### US3 — As an operator, MCP access is authenticated and scoped to my squad
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As an operator, I want MCP access authenticated and scoped to my squad so a connector only sees what I am authorized for.
 
@@ -153,10 +132,6 @@ As an operator, I want MCP access authenticated and scoped to my squad so a conn
 
 <!-- sq:story:US4 -->
 ### US4 — As a maintainer, the MCP endpoint is a third frontend over the service layer, matching CLI behaviour
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As a maintainer, I want the MCP endpoint to be a third frontend over `_services` so its behaviour matches the CLI and web UI with no duplicated logic.

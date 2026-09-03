@@ -60,21 +60,10 @@ FR can proceed in parallel with F2–F5 once the loader pattern from F1/FEAT-207
 
 _Add with `sq feature 219 add-story "As a <role>, I want … so that …"`; track with `sq feature 219 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a maintainer, I want role definitions loaded from roles.toml so adding a role needs no Python edit |
-| US2 | Todo |  | As a maintainer, I want a golden test asserting the loaded catalog == today's hardcoded roles so regressions are caught |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a maintainer, I want role definitions loaded from roles.toml so adding a role needs no Python edit
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squads maintainer, I want the 8 bundled role definitions (slug, name, title, mission, responsibilities) and the dev-name pool loaded from a `roles.toml` at runtime, so that role content lives in data rather than a hardcoded Python module and can be updated without a code change.
@@ -90,10 +79,6 @@ As a squads maintainer, I want the 8 bundled role definitions (slug, name, title
 
 <!-- sq:story:US2 -->
 ### US2 — As a maintainer, I want a golden test asserting the loaded catalog == today's hardcoded roles so regressions are caught
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a squads maintainer, I want a golden test that asserts the loaded `RoleCatalogSpec` is identical to a frozen snapshot of today's `_catalog.py` role definitions, so that any accidental drift in the bundled catalog is caught as a test failure before it reaches users.

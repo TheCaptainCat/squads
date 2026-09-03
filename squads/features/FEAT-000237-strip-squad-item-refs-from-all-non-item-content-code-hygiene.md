@@ -103,24 +103,10 @@ The gate is what converts a cleanup into a durable invariant; the cleanup pass a
 
 _Add with `sq feature 237 add-story "As a <role>, I want … so that …"`; track with `sq feature 237 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Code comments carry no squad-item references |
-| US2 | Todo |  | Src comments describe current behavior, not history |
-| US3 | Todo |  | CI guard blocks squad-item refs outside item files |
-| US4 | Todo |  | User-facing content carries no squad-item references |
-| US5 | Todo |  | Bundled prose stripped of refs without churning wording |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Code comments carry no squad-item references
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a developer reading the source, I want comments and docstrings in src/squads/ (including the structural comments in the bundled TOML) to carry no squad-item references (FEAT-/TASK-/ADR-/REV-/BUG-/EPIC- ids, US/ST numbers, ADR §N refs), so that the code explains itself on its own terms and I never chase a closed ticket to understand a line.
@@ -135,10 +121,6 @@ As a developer reading the source, I want comments and docstrings in src/squads/
 <!-- sq:story:US2 -->
 ### US2 — Src comments describe current behavior, not history
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a developer maintaining the source, I want src/squads/ comments to describe the code as it currently is — not its history (no 'previously/now', 'used to', 'as of vX', change-log narration) and terse rather than restating the code — so comments stay true as the code evolves and git history remains the single place for how it got here. (Restyle is confined to src/ code; user-facing prose keeps its wording.)
 <!-- sq:story:US2:body:end -->
@@ -151,10 +133,6 @@ As a developer maintaining the source, I want src/squads/ comments to describe t
 
 <!-- sq:story:US3 -->
 ### US3 — CI guard blocks squad-item refs outside item files
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a maintainer, I want an enforced lint/CI gate whose sole allowlist is the dogfood squad's item files (squads/** item markdown) and whose forbidden territory is everything else in the repo (src/, docs/, README, shipped markdown, CLI output strings, bundled prose, CLAUDE.md), so a squad-item reference on any non-item surface fails the build. The gate must allow legitimate CLI-syntax templates (e.g. --parent FEAT-…) and illustrative example payloads (e.g. a reflog sample carrying a TASK id) so it does not false-positive, and it must fire on a newly-introduced reference (verified by a negative check).
@@ -169,10 +147,6 @@ As a maintainer, I want an enforced lint/CI gate whose sole allowlist is the dog
 <!-- sq:story:US4 -->
 ### US4 — User-facing content carries no squad-item references
 
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 As a user reading the shipped docs, README, and CLI output, I want them to carry no squad-item references — a doc, README, or CLI string states its guarantees on its own terms, never by citing an internal FEAT-/TASK-/ADR-/REV-/BUG-/EPIC- id, US/ST number, or ADR §N — so nothing user-facing points at a closed internal ticket. (This captures the previously-untracked 'shipped docs must not cite internal items' principle.)
 <!-- sq:story:US4:body:end -->
@@ -185,10 +159,6 @@ As a user reading the shipped docs, README, and CLI output, I want them to carry
 
 <!-- sq:story:US5 -->
 ### US5 — Bundled prose stripped of refs without churning wording
-
-<!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As a maintainer of the agent-facing guidance, I want the bundled role/skill/playbook prose and CLAUDE.md to have their squad-item references removed WITHOUT their guidance wording being restyled, shortened, or rewritten, so the diff on those product surfaces is reference removals only — their phrasing (product content) is preserved while the invariant is satisfied.

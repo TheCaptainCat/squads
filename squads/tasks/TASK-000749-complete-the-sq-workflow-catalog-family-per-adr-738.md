@@ -105,22 +105,10 @@ leaving it to be inferred from the implementation.
 
 _Add with `sq task 749 add-subtask "<title>"`; track with `sq task 749 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Publish the sq workflow lifecycles catalog |  |
-| ST2 | Done |  | Confirm the kind catalog and type-row keys match the decision |  |
-| ST3 | Done |  | Retire the lifecycle forward-reference in the adopter docs |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Publish the sq workflow lifecycles catalog
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The half the reporting bug asks for, and the whole of what it asks for: a machine-readable lifecycle
@@ -148,10 +136,6 @@ project-declared lifecycle appears in the catalog and a dropped one does not.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Confirm the kind catalog and type-row keys match the decision
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 The sub-entity-kind half of the decision is already on disk — `sq workflow subentity-kinds --json`
@@ -186,10 +170,6 @@ everything matches, that is a valid outcome and the record is the deliverable.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Retire the lifecycle forward-reference in the adopter docs
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 The adopter docs currently tell a reader that `lifecycle` names a machine no catalog publishes. Once

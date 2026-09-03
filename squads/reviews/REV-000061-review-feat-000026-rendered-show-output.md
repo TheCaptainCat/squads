@@ -37,23 +37,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 61 add-finding "…" --severity high`; track with `sq review 61 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw path |
-| F2 | 🟢 low | Fixed |  | Nit: badge/column duplication between _common.py and _discussion.py |
-| F3 | 🟢 low | Fixed |  | Nit: test gap — no assertion for literal-bracket fidelity in plain pane titles |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw path
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 src/squads/_cli/_common.py: _subentity_pane_title (line ~148) runs e() on local_id/title/assignee/story because the result feeds a Rich Panel title (correct for the styled path). But the plain branch of _print_full_panes (line ~213) prints that same pre-escaped string with console.print(..., markup=False).
@@ -82,11 +69,6 @@ Fix: the plain renderers should print the raw (un-e()'d) values. Either pass raw
 <!-- sq:finding:F2 -->
 ### F2 — Nit: badge/column duplication between _common.py and _discussion.py
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 src/squads/_cli/_common.py: _status_badge_for_pane (line ~165) duplicates _discussion._status_badge (same regex camel-split + STATUS_EMOJI lookup); _SUMMARY_COLS_BY_KIND (line ~284) duplicates _discussion._SUMMARY_COLS verbatim.
 
@@ -101,11 +83,6 @@ Non-blocking. Consider reusing the _discussion helpers/constant to keep the badg
 
 <!-- sq:finding:F3 -->
 ### F3 — Nit: test gap — no assertion for literal-bracket fidelity in plain pane titles
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 tests/test_show_render.py has strong split_discussion and four-cell coverage but no test asserts that a sub-entity title (or comment) containing markup brackets like [red] or [x] renders the LITERAL brackets in the plain/piped path.

@@ -62,21 +62,10 @@ Olivia flagged AC#3 as ambiguous between (a) adding new top-level item status ba
 
 _Add with `sq feature 211 add-story "As a <role>, I want … so that …"`; track with `sq feature 211 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses |
-| US2 | Done |  | As a team member, I want custom status badges to render without crashing, with a graceful default |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a team member using a custom workflow, I want `sq list --status Triage`, `sq blocked`, and the default closed-item filter to correctly classify items by my custom statuses' open/terminal designations, so that the standard query commands reflect my team's actual workflow state.
@@ -92,10 +81,6 @@ As a team member using a custom workflow, I want `sq list --status Triage`, `sq 
 
 <!-- sq:story:US2 -->
 ### US2 — As a team member, I want custom status badges to render without crashing, with a graceful default
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a team member, I want custom statuses to resolve to their declared badge emoji wherever badges render today (sub-entity summaries, discussion heads), and fall back to a neutral default when no badge is declared — instead of crashing — so the display is always coherent.

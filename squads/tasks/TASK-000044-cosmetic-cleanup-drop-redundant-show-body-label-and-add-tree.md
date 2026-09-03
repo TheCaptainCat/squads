@@ -40,9 +40,6 @@ Two cosmetic fixes to the human-readable CLI surface, plus a consistency sweep. 
 
 _Add with `sq task 44 add-subtask "<title>"`; track with `sq task 44 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

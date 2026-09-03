@@ -12,6 +12,7 @@ from squads._backends._agents_md._managed import END, START
 from squads._backends._base import BackendContext, OperatorView, RoleView
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
+from squads._roles._resolver import resolve_role_for_item
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -130,7 +131,9 @@ class TestUsefulnessPin:
         assert "**Responsibilities:**" in text
         role = await svc.roster_item("role", "manager")
         assert role is not None
-        for responsibility in role.extra["responsibilities"]:
+        resolved = resolve_role_for_item(role, svc.paths.squad_dir)
+        assert resolved.responsibilities  # sanity: the catalog really does declare some
+        for responsibility in resolved.responsibilities:
             assert f"- {responsibility}" in text
 
     async def test_a_full_sync_creates_no_staging_directory_at_all(self, tmp_path, monkeypatch):

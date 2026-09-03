@@ -83,23 +83,10 @@ without it, the same class of drift will recur at the next verb rename.
 
 _Add with `sq feature 574 add-story "As a <role>, I want … so that …"`; track with `sq feature 574 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Fix role-catalog/add-story/add-subtask verb drift in docs |
-| US2 | Done |  | Refresh stale override-base version examples in docs/overrides.md |
-| US3 | Done |  | Cross-link the custom-role path for non-code/designer roles |
-| US4 | Done |  | Add a docs command-test that shells documented verbs against the live CLI |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Fix role-catalog/add-story/add-subtask verb drift in docs
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Correct docs/roles.md, docs/recipes.md, docs/agents.md, docs/adoption.md, docs/tutorial.md to use the real verbs (sq role catalog; add-story/add-subtask on the addressed item), not the non-existent ones (F3, F5).
@@ -114,10 +101,6 @@ Correct docs/roles.md, docs/recipes.md, docs/agents.md, docs/adoption.md, docs/t
 <!-- sq:story:US2 -->
 ### US2 — Refresh stale override-base version examples in docs/overrides.md
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Replace the 0.4.2-era example strings so they don't read as an old release; prefer a version-agnostic phrasing where practical (F6).
 <!-- sq:story:US2:body:end -->
@@ -131,10 +114,6 @@ Replace the 0.4.2-era example strings so they don't read as an old release; pref
 <!-- sq:story:US3 -->
 ### US3 — Cross-link the custom-role path for non-code/designer roles
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 Add a short pointer in docs/roles.md or docs/agents.md to the .overrides/roles/<slug>.toml + sq role activate walkthrough already in docs/overrides.md, for a role that isn't a coding --tech (F7 doc note).
 <!-- sq:story:US3:body:end -->
@@ -147,10 +126,6 @@ Add a short pointer in docs/roles.md or docs/agents.md to the .overrides/roles/<
 
 <!-- sq:story:US4 -->
 ### US4 — Add a docs command-test that shells documented verbs against the live CLI
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 Mechanical guard: extract/assert the sq invocations shown in the docs and fail the build if a documented verb no longer resolves (covers F3+F5+F6 recurrence).

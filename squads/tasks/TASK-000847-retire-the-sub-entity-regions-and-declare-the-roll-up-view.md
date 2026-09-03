@@ -254,27 +254,10 @@ change rather than assuming.
 
 _Add with `sq task 847 add-subtask "<title>"`; track with `sq task 847 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Declare the three sub-entity roll-up views | US1 |
-| ST2 | Todo |  | Presentation templates for the three roll-up views | US1 |
-| ST3 | Todo |  | Drop the region writes from the live sub-entity path | US2 |
-| ST4 | Todo |  | Keep set_head and ensure_summary as migration-only machinery | US2 |
-| ST5 | Todo |  | Remove the regions from the bundled item and block templates | US1 |
-| ST6 | Todo |  | Freeze the five shipped renderings and pin the badge divergence | US1 |
-| ST7 | Todo |  | Regenerate the template manifest and content store | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Declare the three sub-entity roll-up views
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Retire the sub-entity summary as a computed view
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Declare one `[views]` entry per bundled sub-entity kind in `src/squads/_specs/workflow.toml`:
@@ -319,11 +302,6 @@ message, and an override's `selected.views` drops one.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Presentation templates for the three roll-up views
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Retire the sub-entity summary as a computed view
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Three presentation templates under `src/squads/_rendering/templates/views/`, one per view name —
 `_views.py::render_view` resolves the template from the view's own key
@@ -361,11 +339,6 @@ produces.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Drop the region writes from the live sub-entity path
 
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — Retire the head badge line as a computed view
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Stop maintaining the two regions in the live write path.
 
@@ -400,11 +373,6 @@ sub-entity mutation test still passes with only the removed-region assertions up
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Keep set_head and ensure_summary as migration-only machinery
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — Retire the head badge line as a computed view
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Keep the retired renderers reachable, because two frozen migration runners call them — verified:
@@ -442,11 +410,6 @@ the older fixtures pass unchanged, and a `vulture` run reports nothing new here.
 <!-- sq:subtask:ST5 -->
 ### ST5 — Remove the regions from the bundled item and block templates
 
-<!-- sq:subtask:ST5:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Retire the sub-entity summary as a computed view
-<!-- sq:subtask:ST5:head:end -->
-
 <!-- sq:subtask:ST5:body -->
 Take the regions out of the bundled templates so a newly created item never carries one.
 
@@ -483,11 +446,6 @@ scaffolded sub-entity block carries no `:head` region, a file still carrying a l
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Freeze the five shipped renderings and pin the badge divergence
-
-<!-- sq:subtask:ST6:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Retire the sub-entity summary as a computed view
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 Prove the frozen renderings did not move, and pin the divergence that would move them.
@@ -536,11 +494,6 @@ documented at both ends.
 
 <!-- sq:subtask:ST7 -->
 ### ST7 — Regenerate the template manifest and content store
-
-<!-- sq:subtask:ST7:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Retire the sub-entity summary as a computed view
-<!-- sq:subtask:ST7:head:end -->
 
 <!-- sq:subtask:ST7:body -->
 Regenerate the template manifest and the content store, last.

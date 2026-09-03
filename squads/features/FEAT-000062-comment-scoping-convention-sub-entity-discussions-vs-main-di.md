@@ -77,22 +77,10 @@ _Main item discussion_ — cross-cutting material:
 
 _Add with `sq feature 62 add-story "As a <role>, I want … so that …"`; track with `sq feature 62 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Skills tell agents which comment command to use for each scope |
-| US2 | Done |  | Sub-entity panes hold their scoped discussion, not a cross-cutting blob |
-| US3 | Done |  | Sub-entity @mentions reach the inbox as reliably as item-level ones |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Skills tell agents which comment command to use for each scope
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion.
@@ -112,10 +100,6 @@ As an agent writing a comment, I want the skills I load to tell me whether to us
 <!-- sq:story:US2 -->
 ### US2 — Sub-entity panes hold their scoped discussion, not a cross-cutting blob
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion.
 <!-- sq:story:US2:body:end -->
@@ -133,10 +117,6 @@ As an agent reading a dossier with `--full --comments`, I want each sub-entity p
 
 <!-- sq:story:US3 -->
 ### US3 — Sub-entity @mentions reach the inbox as reliably as item-level ones
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written.

@@ -32,22 +32,10 @@ The first, browse-only increment of the VS Code extension (EPIC-99). A `SquadsTr
 
 _Add with `sq feature 100 add-story "As a <role>, I want … so that …"`; track with `sq feature 100 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Squad hierarchy in VS Code sidebar with status and blocked-state |
-| US2 | Done |  | Clicking a tree node opens sq show --raw in markdown preview |
-| US3 | Done |  | Filter and group tree by type/state, refresh on demand |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Squad hierarchy in VS Code sidebar with status and blocked-state
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an operator, I want the squad hierarchy in a VS Code sidebar tree with status, assignee and blocked-state at a glance, so that I can navigate the squad without leaving the editor.
@@ -62,10 +50,6 @@ As an operator, I want the squad hierarchy in a VS Code sidebar tree with status
 <!-- sq:story:US2 -->
 ### US2 — Clicking a tree node opens sq show --raw in markdown preview
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an operator, I want clicking a tree item to open its `sq show --raw` clean-markdown output in the markdown preview, so that I read a clean item without frontmatter or marker noise.
 <!-- sq:story:US2:body:end -->
@@ -78,10 +62,6 @@ As an operator, I want clicking a tree item to open its `sq show --raw` clean-ma
 
 <!-- sq:story:US3 -->
 ### US3 — Filter and group tree by type/state, refresh on demand
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As an operator, I want to filter and group the tree by type and open/closed state and refresh it on demand, so that I can focus on the work that matters right now.

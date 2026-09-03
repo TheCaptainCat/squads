@@ -44,9 +44,6 @@ When `adopt` meets a `.claude` corpus authored outside squads, a slug match sile
 
 _Add with `sq task 634 add-subtask "<title>"`; track with `sq task 634 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

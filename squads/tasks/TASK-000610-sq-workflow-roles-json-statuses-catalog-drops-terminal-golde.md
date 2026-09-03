@@ -35,9 +35,6 @@ Implements FEAT-605 US2. Expose the role catalog on the machine surface and drop
 
 _Add with `sq task 610 add-subtask "<title>"`; track with `sq task 610 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

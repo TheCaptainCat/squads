@@ -53,24 +53,10 @@ Build the storage/model layer for agent memory, on the storage/id model fixed by
 
 _Add with `sq task 378 add-subtask "<title>"`; track with `sq task 378 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Write a memory as a slug-named .md; no global-counter id | US1 |
-| ST2 | Done |  | Shared whole-folder .index.jsonl generator with header stamp | US1 |
-| ST3 | Done |  | Forget removes the memory file (real deletion) | US4 |
-| ST4 | Done |  | Off-counter, outside .squads.json; repair leaves it alone | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Write a memory as a slug-named .md; no global-counter id
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `add` derives a slug from the fact and writes `squads/agents/memory/<role>/<slug>.md` with light frontmatter (summary, created_at) over a freeform body. No id is drawn from the global sequence counter. `--file` supplies a longer body in place of inline text (the file holds raw markdown only).
@@ -85,11 +71,6 @@ _Add with `sq task 378 add-subtask "<title>"`; track with `sq task 378 subtask <
 <!-- sq:subtask:ST2 -->
 ### ST2 — Shared whole-folder .index.jsonl generator with header stamp
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Regenerate a folder's `.index.jsonl` whole from its `.md` files (never append/hand-edit) on add/forget/edit and `sq sync`. One JSON object per entry line, schema `{slug, filename, description}`; first line a header `{schema: "squads.index/1", generated: <stamp>}` where `generated` is the plain-text do-not-hand-edit stamp honouring the generated-file contract. Backend-neutral; reused by the board storage layer.
 <!-- sq:subtask:ST2:body:end -->
@@ -103,11 +84,6 @@ Regenerate a folder's `.index.jsonl` whole from its `.md` files (never append/ha
 <!-- sq:subtask:ST3 -->
 ### ST3 — Forget removes the memory file (real deletion)
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `forget <slug>` deletes the `<slug>.md` file (a real removal, history retained in git) and triggers index regeneration. A read never deletes.
 <!-- sq:subtask:ST3:body:end -->
@@ -120,11 +96,6 @@ Regenerate a folder's `.index.jsonl` whole from its `.md` files (never append/ha
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Off-counter, outside .squads.json; repair leaves it alone
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Memory lives entirely outside `.squads.json` and off the global counter. `sq repair` neither rebuilds nor disturbs memory files or their `.index.jsonl`. Committed (not gitignored) so a checkout inherits the pool; git resolves merges at the file level.

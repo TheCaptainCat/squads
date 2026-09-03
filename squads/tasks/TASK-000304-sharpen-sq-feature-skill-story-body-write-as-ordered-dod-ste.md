@@ -37,22 +37,10 @@ No sq/FEAT IDs in the shipped skill text or source; referencing FEAT-289/US3 in 
 
 _Add with `sq task 304 add-subtask "<title>"`; track with `sq task 304 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Split story-body write into its own PO Do step in playbook.toml | US3 |
-| ST2 | Done |  | Add the Watch-for DoD line + regen skill via sq sync | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Split story-body write into its own PO Do step in playbook.toml
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a PO, I want the skill to state the body-write step as a done-criterion
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Done when: in `playbook.toml` under the feature product-owner role, the add-story 'Do' bullet no longer carries the body-writing guidance as a parenthetical, and a new standalone 'Do' bullet (ordered after add-story) instructs the PO to write each story's body with `sq feature <n> story <k> body -m …`, stating that acceptance criteria live there. The add-story bullet keeps only the title/persona-phrase guidance.
@@ -66,11 +54,6 @@ Done when: in `playbook.toml` under the feature product-owner role, the add-stor
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Add the Watch-for DoD line + regen skill via sq sync
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a PO, I want the skill to state the body-write step as a done-criterion
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Done when: the feature product-owner 'Watch for' list gains the DoD line 'a story is not done until its body carries acceptance criteria — an unwritten placeholder body is a defect even if the title reads fine.', and `sq sync` regenerates `SKILL-000196-sq-feature.md` on disk so the new Do step + Watch-for line appear there (verified by diff, not by hand-editing the generated file).

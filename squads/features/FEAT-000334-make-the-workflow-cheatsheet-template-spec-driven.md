@@ -125,22 +125,10 @@ the what/why only.
 
 _Add with `sq feature 334 add-story "As a <role>, I want … so that …"`; track with `sq feature 334 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a team using a customized vocabulary spec, I want an accurate, non-blank workflow cheatsheet |
-| US2 | Todo |  | As a reader of the cheatsheet, I want a concise cross-type overview, not a repeat of the sq-<type> skills |
-| US3 | Todo |  | As the operator of the bundled default squad, I want the cheatsheet to stay at least as good as it is today |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a team using a customized vocabulary spec, I want an accurate, non-blank workflow cheatsheet
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Generate the cheatsheet against a spec that renames, drops, and adds item types/roles (not the bundled default) and inspect the rendered output.
@@ -160,10 +148,6 @@ Acceptance: renaming a type in the spec (e.g. feature -> capability) changes onl
 
 <!-- sq:story:US2 -->
 ### US2 — As a reader of the cheatsheet, I want a concise cross-type overview, not a repeat of the sq-<type> skills
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 The cheatsheet is reviewed side by side with the generated sq-<type> skills to confirm it sits at a different, complementary altitude rather than dumping the same content twice.
@@ -185,10 +169,6 @@ Non-goal note: this story does not ask to rewrite the sq-<type> skill templates 
 
 <!-- sq:story:US3 -->
 ### US3 — As the operator of the bundled default squad, I want the cheatsheet to stay at least as good as it is today
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 Render the cheatsheet for the bundled, unmodified squad (default roster + default playbook) before and after the redesign and diff them.

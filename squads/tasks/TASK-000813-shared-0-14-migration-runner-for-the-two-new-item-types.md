@@ -223,24 +223,10 @@ run the repair `sq migrate up` had just run for them.
 
 _Add with `sq task 813 add-subtask "<title>"`; track with `sq task 813 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Schema bump and the shared registry entry |  |
-| ST2 | Done |  | Create both new types' folders on an existing squad |  |
-| ST3 | Done |  | Regenerate and verify the agent-facing surface |  |
-| ST4 | Done |  | Manual runbook entry for both new types |  |
-| ST5 | Done |  | Frozen corpus fixture tests/fixtures/corpus/v0_14 |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Schema bump and the shared registry entry
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Bump `_models/_schema.py::SCHEMA_VERSION` from `"0.11"` (verified) to `"0.14"`, and append one
@@ -289,10 +275,6 @@ the registry guard holds, and `sq migrate help` lists the step naming both types
 <!-- sq:subtask:ST2 -->
 ### ST2 — Create both new types' folders on an existing squad
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The runner's deterministic step: create each new type's folder on an existing squad.
 
@@ -336,10 +318,6 @@ nothing, and the runner rewrites no item file.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Regenerate and verify the agent-facing surface
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Regenerate the managed agent-facing surface so both new types appear, and verify the result on
 the **migrate** path and not only on `init`.
@@ -381,10 +359,6 @@ asserted rather than performed by hand, `sq sync` is a no-op on a freshly migrat
 <!-- sq:subtask:ST4 -->
 ### ST4 — Manual runbook entry for both new types
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 Write the runner's `manual` runbook entry — one entry covering both new types, surfaced by
 `sq migrate chlog`.
@@ -417,10 +391,6 @@ about ref encoding, and it carries no internal references.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Frozen corpus fixture tests/fixtures/corpus/v0_14
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Add the frozen corpus fixture `tests/fixtures/corpus/v0_14` that

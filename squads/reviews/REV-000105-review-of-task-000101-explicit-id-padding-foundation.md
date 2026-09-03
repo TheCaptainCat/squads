@@ -41,23 +41,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 105 add-finding "…" --severity high`; track with `sq review 105 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | _renumber_plan emits DEFAULT-width IDs, ignoring db.padding (_maintenance.py:246) |
-| F2 | 🟢 low | Open |  | repair's filename-recompute arm (max stored_floor/filename_width) is untested |
-| F3 | 🟢 low | Open |  | Dead/redundant code in the repair padding computation |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — _renumber_plan emits DEFAULT-width IDs, ignoring db.padding (_maintenance.py:246)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `_renumber_plan` formats collision-renumber IDs at DEFAULT padding, not `db.padding`. `src/squads/_services/_maintenance.py:246` calls `format_item_id(item_type.prefix, next_free)` with no padding arg, so it always emits width-6 IDs. On a squad that has been repadded to width 7, a merge-collision `repair --renumber` would mint width-6 filenames into an otherwise width-7 corpus, re-introducing exactly the mixed-width state this feature exists to prevent. Borderline scope (renumber is merge-collision repair; the repad command is TASK-102), but the fix is one argument.
@@ -74,11 +61,6 @@ _Add with `sq review 105 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F2 -->
 ### F2 — repair's filename-recompute arm (max stored_floor/filename_width) is untested
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 No test exercises the filename-recompute arm of repair's `max(stored_floor, max_filename_width)`. Every padding test (`test_service.py:92-127`, `test_cli.py:1529`) only manipulates the STORED padding and keeps filenames at width 6; none creates item files whose digit-run is width 7 with a stored floor of 6 and asserts repair raises padding to 7. That recompute (`src/squads/_services/_maintenance.py:199-203`) is the heart of ADR-104 and the architect's explicit guard (read the digit-run width, ignore non-item files). It is currently unverified.
 
@@ -93,11 +75,6 @@ No test exercises the filename-recompute arm of repair's `max(stored_floor, max_
 
 <!-- sq:finding:F3 -->
 ### F3 — Dead/redundant code in the repair padding computation
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 Dead/redundant code in the repair padding computation. `src/squads/_services/_maintenance.py:204-208`: `max_filename_width if max_filename_width > 0 else 0` is a no-op (a value is already >0 or it is 0), and the following `if db.padding < DEFAULT_ID_PADDING: db.padding = DEFAULT_ID_PADDING` guard can never fire — `previous_padding` is seeded to `DEFAULT_ID_PADDING` (6) and carried as the floor, so `db.padding = max(>=6, ...)` is always >=6. Harmless but it obscures the actual invariant.

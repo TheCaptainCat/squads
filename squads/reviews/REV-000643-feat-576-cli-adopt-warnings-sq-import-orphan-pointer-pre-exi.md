@@ -31,21 +31,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 643 add-finding "…" --severity medium`; track with `sq review 643 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | WontFix |  | Claude orphan-skill warning cites <dir>/SKILL.md that may not exist |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Claude orphan-skill warning cites <dir>/SKILL.md that may not exist
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `ClaudeCodeBackend.candidate_orphans` reports an orphan skill directory as `ctx.rel(p / _SKILL_FILE)` — i.e. it points the warning at `.claude/skills/<name>/SKILL.md` even when that directory has no SKILL.md inside (it only gates on `p.is_dir()`). For a real adopter corpus the file exists, so this is cosmetic only: the emitted path could name a non-existent file for an empty orphan dir. The role-pointer and agents_md paths point at files that do exist. Non-blocking; optionally point at the directory itself when SKILL.md is absent, or keep SKILL.md as the canonical citation and accept it. Read-only safety is unaffected.

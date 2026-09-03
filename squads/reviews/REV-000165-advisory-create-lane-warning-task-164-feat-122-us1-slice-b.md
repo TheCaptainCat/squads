@@ -55,22 +55,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 165 add-finding "…" --severity high`; track with `sq review 165 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Inline duplicate json imports in _cli/_create.py |
-| F2 | 🟢 low | Fixed |  | Internal artifact create writes advisory lane_warning reflog noise |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Inline duplicate json imports in _cli/_create.py
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Inline duplicate json imports in _cli/_create.py (import json in _make, import json as _json in create_guide) — prefer one top-level import json reused in both. Cosmetic; ruff clean.
@@ -84,11 +72,6 @@ Inline duplicate json imports in _cli/_create.py (import json in _make, import j
 
 <!-- sq:finding:F2 -->
 ### F2 — Internal artifact create writes advisory lane_warning reflog noise
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 Internal artifact commands (sq dev add, role activate) routed through ServiceCore.create write an advisory lane_warning to the reflog with expected:[] (e.g. architect authoring a 'role' item). Harmless + not surfaced to the user (only _create.py renders it), but it is reflog noise. Consider exempting non-CREATE_LANES item types (role/skill/operator/dev) or internal-author paths in a follow-up. Not a blocker for this advisory cut.

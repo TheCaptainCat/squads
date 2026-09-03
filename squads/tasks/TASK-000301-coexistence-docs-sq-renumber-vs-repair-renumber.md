@@ -50,21 +50,10 @@ replacement** (ADR-295 §5), and record the FEAT-13 deferral touchpoint for the 
 
 _Add with `sq task 301 add-subtask "<title>"`; track with `sq task 301 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Pre-merge shift and post-merge --renumber documented as complementary | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Pre-merge shift and post-merge --renumber documented as complementary
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — Pre-merge shift and post-merge --renumber coexist
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Done when docs/help present sq renumber (preferred pre-merge, intent-preserving) and sq repair --renumber (post-merge 'too late, make it valid' fallback) as a complementary pair, not a replacement (ADR-295 §5), including the git-agnostic --onto recipe (git show <mainref>:squads/.squads.json | jq .counter). Shipped docs/ carry no sq item IDs or external URLs, and the FEAT-13 deferral note (the new verb grammar + the new renumber reflog op/delta shape) is recorded.

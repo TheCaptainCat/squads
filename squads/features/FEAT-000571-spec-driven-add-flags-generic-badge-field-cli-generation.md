@@ -68,9 +68,6 @@ This feature derives the flag set from the spec instead.
 
 _Add with `sq feature 571 add-story "As a <role>, I want … so that …"`; track with `sq feature 571 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

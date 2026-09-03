@@ -198,23 +198,10 @@ activated role at all. Different things.)
 
 _Add with `sq task 814 add-subtask "<title>"`; track with `sq task 814 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Wire the roles kind into the override CLI verbs | US3 |
-| ST2 | Done |  | Apply the catalog document to an activated role | US3 |
-| ST3 | Done |  | sq role catalog lists project-declared roles | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Wire the roles kind into the override CLI verbs
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Wire the roles catalog document into `sq override scaffold`, `sq override diff` and
@@ -267,11 +254,6 @@ Driven end to end (scaffold roles / diff roles / update roles) on a scratch squa
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Apply the catalog document to an activated role
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Make the roles catalog document apply to a role that has already been activated.
@@ -342,11 +324,6 @@ Permanent coverage: tests/service/test_roles_catalog_document_reaches_an_activat
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — sq role catalog lists project-declared roles
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Make `sq role catalog` show the roles a project actually declares.

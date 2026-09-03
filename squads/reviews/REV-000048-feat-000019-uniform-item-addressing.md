@@ -39,24 +39,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 48 add-finding "…" --severity high`; track with `sq review 48 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | Type-mismatch wording differs between full-ID and bare-number forms |
-| F2 | 🟡 medium | Verified |  | Unknown-item error wording drifts across the four resolver branches |
-| F3 | 🟢 low | Verified |  | Dead code: old resolve_item_id; lexical munging now written 3x |
-| F4 | 🟢 low | Verified |  | Grammar: 'not a operator'/'not a epic' a/an agreement in mismatch msgs |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Type-mismatch wording differs between full-ID and bare-number forms
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Type-mismatch wording is inconsistent on typed surfaces depending on input form. For the SAME item, 'sq task 2 show' errors '2 is FEAT-000002 (feature), not a task' (names actual item+type, matches the recorded decision) but 'sq task FEAT-000002 show' errors 'FEAT-000002 is not a task (expected TASK-…)' — it never tells the user FEAT-000002 IS a feature. resolve_item_id_typed short-circuits the full-ID branch on the prefix string check (_common.py ~line 280) before the DB lookup, reusing the old wording. Acceptance requires wrong-type errors 'consistently everywhere, naming the actual item and type'. Fix: in the full-ID branch, when prefix mismatches, do the DB lookup and emit the same 'X is <id> (<type>), not a <type>' wording as the bare-number branch.
@@ -71,11 +57,6 @@ Type-mismatch wording is inconsistent on typed surfaces depending on input form.
 <!-- sq:finding:F2 -->
 ### F2 — Unknown-item error wording drifts across the four resolver branches
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Unknown-item error wording drifts across the four resolver branches; acceptance demands 'both accepted forms, consistently everywhere'. Variants observed: (a) typed bare: 'no item with number 999 (use TASK-000999 or bare 999)'; (b) any bare: 'no item with number 999 (use a bare number like 999 or a full ID like TYPE-000999)'; (c) any full-ID: 'no item with number 999 (tried FEAT-000999 or bare 999)' — this one names neither form as a 'form' and omits the full-ID guidance; (d) typed full-ID uses the command prefix while any uses literal 'TYPE-'. Pick one canonical phrasing for 'mentions both forms' and use it in all four branches of resolve_item_id_typed/_any in _common.py.
 <!-- sq:finding:F2:body:end -->
@@ -89,11 +70,6 @@ Unknown-item error wording drifts across the four resolver branches; acceptance 
 <!-- sq:finding:F3 -->
 ### F3 — Dead code: old resolve_item_id; lexical munging now written 3x
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 Old resolve_item_id (_common.py:231) is now dead production code — no production caller remains after _items.py switched its verb callback to resolve_item_id_typed (only its own test_resolve_item_id references it). The two new resolvers re-implement the same lexical prefix/rpartition munging internally, so the lexical phase is now written three times. Either delete resolve_item_id (and fold its lexical assertions into the typed test) or have the new resolvers delegate to it for the lexical phase. Quality/maintainability, not correctness.
 <!-- sq:finding:F3:body:end -->
@@ -106,11 +82,6 @@ Old resolve_item_id (_common.py:231) is now dead production code — no producti
 
 <!-- sq:finding:F4 -->
 ### F4 — Grammar: 'not a operator'/'not a epic' a/an agreement in mismatch msgs
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 Minor grammar in type-mismatch messages: 'not a operator' / 'not a epic' (a/an agreement) — produced for OPERATOR and EPIC types. The recorded example is 'not a task' so it reads fine for most types but not vowel-initial ones. Low cosmetic; can be folded with the F1/F2 wording cleanup.

@@ -58,21 +58,10 @@ seam that 240 establishes). Its output feeds TASK-242 (lint) and TASK-243 (sq ch
 
 _Add with `sq task 241 add-subtask "<title>"`; track with `sq task 241 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Parent-cycle + live-index cross-check validation | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Parent-cycle + live-index cross-check validation
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Broken workflow spec hard-stops sq with a clear actionable error
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers extending the fail-closed validation with the two checks the feature names: (a) parent-cycle detection — a pure-spec `_check_*` helper in `WorkflowSpec._validate` that walks the `items[t].parents` graph and raises naming any cycle; and (b) a live-index cross-check — `validate_against_index(spec, db)` (outside the pure model validator, since it needs the index) returning human-readable errors listing offending item IDs when a type/status on a live item is absent from the merged spec. Wired at the `open_service`/`sq check` seam. Bundled-default behavior unchanged. (US3)

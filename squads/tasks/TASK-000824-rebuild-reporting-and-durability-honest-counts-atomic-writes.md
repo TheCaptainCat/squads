@@ -172,24 +172,10 @@ and how it is written, never what is computed.
 
 _Add with `sq task 824 add-subtask "<title>"`; track with `sq task 824 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Report restored and dropped as two counted sets | US1 |
-| ST2 | Done | python-dev | Write both documents atomically in both scripts | US1 |
-| ST3 | Done | python-dev | Let the release gate's success line state what it verified | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Report restored and dropped as two counted sets
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `scripts/seed_content_store.py:360` is `dropped = store_before_size - len(new_store)` — a size
@@ -223,12 +209,6 @@ regression this subtask exists to prevent.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Write both documents atomically in both scripts
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 `_write_json` is a bare `path.write_text` in both scripts —
@@ -269,12 +249,6 @@ parses. A test that only checks the happy path proves nothing here.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Let the release gate's success line state what it verified
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `scripts/gen_template_manifest.py` threads `release_gate` into the failure path (`:206-207`) and

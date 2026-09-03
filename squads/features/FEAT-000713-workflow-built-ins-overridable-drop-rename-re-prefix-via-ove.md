@@ -76,22 +76,10 @@ Settled input: EPIC-538, ADR-541 (roster-locked floor, category axis), ADR-696 (
 
 _Add with `sq feature 713 add-story "As a <role>, I want … so that …"`; track with `sq feature 713 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a spec author, I want to shadow a built-in status/lifecycle/type via override instead of only adding new ones |
-| US2 | Done |  | Shadowed roster lifecycle validated against the R1/R1'/R2 floor |
-| US3 | Done |  | Every consumer absorbs a dropped/renamed/re-prefixed type cleanly |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a spec author, I want to shadow a built-in status/lifecycle/type via override instead of only adding new ones
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Wire the shared merge engine into the workflow loader: an override key naming a built-in overrides it via deep-merge, replacing _collect_additive_conflicts's blanket refusal with _collect_floor_violations. Both calling modes preserved: fail-fast for open_service, collect-all for sq workflow lint. An override that shadows at least one built-in key carries the '# squads:override-base' comment stamp for drift warning (not a top-level override_base key); add-only overrides need none.
@@ -106,10 +94,6 @@ Wire the shared merge engine into the workflow loader: an override key naming a 
 <!-- sq:story:US2 -->
 ### US2 — Shadowed roster lifecycle validated against the R1/R1'/R2 floor
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Enforce ADR-696's universal floor on every lifecycle (every state reachable, at least one settled status, declared roles/colors/fallback) plus the roster-specific R1 (>=1 live status), R1' (exactly one live status when initial is not live), and R2 (>=1 settled non-live status reachable from a live one). A shadowed roster lifecycle that violates the floor fails closed at load with a fix hint, not at runtime. The three roster type keys (role/skill/operator) stay locked against add/deactivate/rename; their lifecycle and other non-identity fields are ordinary field-mergeable customization per ADR-696 section 4's stated exception to ADR-541's floor.
 <!-- sq:story:US2:body:end -->
@@ -122,10 +106,6 @@ Enforce ADR-696's universal floor on every lifecycle (every state reachable, at 
 
 <!-- sq:story:US3 -->
 ### US3 — Every consumer absorbs a dropped/renamed/re-prefixed type cleanly
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 Audit generated sq-<type> skill text, sq check's parent/sub-entity invariants, and prefix/folder maps (paths resolution, backend pointer-file generation) so each reads the active/merged spec rather than a hardcoded built-in list. A dropped type simply does not appear at any of these; a renamed/re-prefixed type appears under its new name/prefix everywhere, with no orphaned reference and no traceback.

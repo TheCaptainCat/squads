@@ -102,24 +102,10 @@ Widening either scan's reach beyond Python source. The ref-kind literal scan rea
 
 _Add with `sq task 819 add-subtask "<title>"`; track with `sq task 819 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Walk module imports and attribute access in the migration guard | US2 |
-| ST2 | Done | python-dev | Pin the wire-encoding primitive names to _models._item | US2 |
-| ST3 | Done | python-dev | Pin the ref-kind literal set to the bundled spec's ref_kinds | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Walk module imports and attribute access in the migration guard
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Extend `_imported_forbidden_names` past `ast.ImportFrom`. Two shapes have to be caught:
@@ -148,12 +134,6 @@ The existing planted-runner tests are the pattern to follow: plant each shape in
 <!-- sq:subtask:ST2 -->
 ### ST2 — Pin the wire-encoding primitive names to _models._item
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add an assertion that every name in `_WIRE_ENCODING_PRIMITIVES` resolves in `squads._models._item`,
 with a failure message saying what a miss means: the name was renamed or moved, and the guard is now
@@ -171,12 +151,6 @@ protecting a primitive nobody notices it stopped protecting.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Pin the ref-kind literal set to the bundled spec's ref_kinds
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Add an assertion that `_REF_KIND_LITERALS` equals the set of codes the bundled workflow spec

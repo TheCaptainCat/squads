@@ -26,8 +26,8 @@ async def test_set_body_replaces_by_default_and_appends_with_a_blank_line_separa
     assert (await svc.read_body(task.id)).endswith("Full body content.\n\nMore detail.")
 
 
-async def test_set_body_on_a_role_is_rejected_as_generated_from_its_fields(svc):
-    with pytest.raises(SquadsError, match="generated from its fields"):
+async def test_set_body_on_a_role_is_rejected_as_resolved_from_the_catalog(svc):
+    with pytest.raises(SquadsError, match="resolved from the role catalog"):
         await svc.set_body("ROLE-000001", "free-form body")
 
 

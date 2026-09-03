@@ -61,21 +61,10 @@ Serialization format changes (markdown → JSON/XML). Those are tracked in FEAT-
 
 _Add with `sq feature 176 add-story "As a <role>, I want … so that …"`; track with `sq feature 176 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Single configurable global ID/folder prefix |
-| US2 | Todo |  | Flat single-directory file layout |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Single configurable global ID/folder prefix
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a team, I want one configurable ID/folder prefix for all item types so that our squad reflects our project code instead of the built-in type taxonomy.
@@ -96,10 +85,6 @@ As a team, I want one configurable ID/folder prefix for all item types so that o
 
 <!-- sq:story:US2 -->
 ### US2 — Flat single-directory file layout
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a team, I want all item files in one flat directory so that our squad doesn't fragment files across per-type subfolders.

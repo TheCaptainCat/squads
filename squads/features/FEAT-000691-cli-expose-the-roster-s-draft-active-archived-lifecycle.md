@@ -103,25 +103,10 @@ entity's status. It is out of scope here so this feature stays scoped to the mis
 
 _Add with `sq feature 691 add-story "As a <role>, I want … so that …"`; track with `sq feature 691 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a manager, I can set a role's/skill's/operator's status from the CLI |
-| US2 | Done |  | As a maintainer, the status verb keys off declared roles, not names |
-| US3 | Done |  | As a team, the generated CLI help and skill text teach the new verb |
-| US4 | Done |  | As an operator, retiring a roster entry withdraws it from generated backend config |
-| US5 | Done |  | As an operator, retiring a still-depended-on roster entry is refused, with a remedy |
-| US6 | Done |  | As a team, sq check reports a roster entry already in a broken config state |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a manager, I can set a role's/skill's/operator's status from the CLI
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 sq role/skill/operator <addr> status <S>, wired onto the existing generic set_status core; transitions validated against the type's own declared lifecycle, not a hardcoded roster name set; --force works the same as it does for work items.
@@ -135,10 +120,6 @@ sq role/skill/operator <addr> status <S>, wired onto the existing generic set_st
 
 <!-- sq:story:US2 -->
 ### US2 — As a maintainer, the status verb keys off declared roles, not names
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 Delivered by TASK-695/ST3: `sq role|skill|operator <addr> status <S>` reads its allowed targets
@@ -171,10 +152,6 @@ tracked separately from FEAT-691.
 <!-- sq:story:US3 -->
 ### US3 — As a team, the generated CLI help and skill text teach the new verb
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 sq role/skill/operator --help and the regenerated .claude/AGENTS.md surfaces mention status alongside show/regen/rm; no change needed to sq check itself (roster items are outside its work-item rules).
 <!-- sq:story:US3:body:end -->
@@ -187,10 +164,6 @@ sq role/skill/operator --help and the regenerated .claude/AGENTS.md surfaces men
 
 <!-- sq:story:US4 -->
 ### US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 Per ADR-697 §1-6, §10-11: a materialised roster entry is a pure projection of its frontmatter,
@@ -239,10 +212,6 @@ here.
 
 <!-- sq:story:US5 -->
 ### US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 Per ADR-697 §7-9: retiring a roster entry is refused when it would leave a generated config
@@ -297,10 +266,6 @@ BUG-698 so the two stay linked.
 
 <!-- sq:story:US6 -->
 ### US6 — As a team, sq check reports a roster entry already in a broken config state
-
-<!-- sq:story:US6:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->
 Per ADR-697's consequences: C1-C3 gate *transitions*, they cannot see a squad already sitting in

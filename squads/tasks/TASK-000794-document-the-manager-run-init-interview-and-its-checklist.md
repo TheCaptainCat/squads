@@ -86,23 +86,10 @@ FEAT-642 is Done, so nothing gates this work. It also matters to the content —
 
 _Add with `sq task 794 add-subtask "<title>"`; track with `sq task 794 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Write the interview recommendation into docs/agents.md | US1 |
-| ST2 | Done |  | Ship the seven-area checklist as offered prompts | US2 |
-| ST3 | Done |  | Re-verify the grouping-style routing caveat before writing it | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Write the interview recommendation into docs/agents.md
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Recommend an init-time interview in docs/agents.md
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Maps to US1.
@@ -142,11 +129,6 @@ change; nothing under `src/`, `tests/` or `clients/` changed.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Ship the seven-area checklist as offered prompts
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Ship the seven-area interview checklist as offered prompts
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Maps to US2.
@@ -194,11 +176,6 @@ agents` surfaces them; nothing under `src/`, `tests/` or `clients/` changed.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Re-verify the grouping-style routing caveat before writing it
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Ship the seven-area interview checklist as offered prompts
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Maps to US2.

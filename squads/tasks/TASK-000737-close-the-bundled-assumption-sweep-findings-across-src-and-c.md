@@ -125,27 +125,10 @@ current state before starting a subtask — parts of F7 are already done (see ST
 
 _Add with `sq task 737 add-subtask "<title>"`; track with `sq task 737 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Integrity core: marker regex, timestamps, per-file degradation |  |
-| ST2 | Done | python-dev | An override is honoured or reported, never silently ignored |  |
-| ST3 | Done | python-dev | CLI and TUI per-type flag surfaces derive from the active spec |  |
-| ST4 | Done | python-dev | Generated agent text follows the active spec and live roster |  |
-| ST5 | Done | python-dev | Sync and backend integrity: index, seeding, model, mission |  |
-| ST6 | Done | typescript-dev | VS Code client reads the spec it already fetches |  |
-| ST7 | Done | python-dev | Migration runners stop persisting state the spec never validates |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Integrity core: marker regex, timestamps, per-file degradation
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Three defects in the integrity core, each of which lets a corrupt or degraded corpus pass the
@@ -225,11 +208,6 @@ original blind spot survived because no test carried an uppercase prefix.
 <!-- sq:subtask:ST2 -->
 ### ST2 — An override is honoured or reported, never silently ignored
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Eight findings, one acceptance statement: a declaration an adopter writes is either honoured or
 reported — never silently ignored, and never answered with the bundled vocabulary instead.
@@ -300,11 +278,6 @@ stays paired with the plurals `workflow.toml` declares.
 <!-- sq:subtask:ST3 -->
 ### ST3 — CLI and TUI per-type flag surfaces derive from the active spec
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 ST3 delivered both halves.
 
@@ -370,11 +343,6 @@ result. Adopter-visible surface changes are listed in the handoff comment on TAS
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Generated agent text follows the active spec and live roster
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Five findings in the text squads generates for the agents that use it — skills, the CLAUDE.md and
@@ -448,11 +416,6 @@ what the old test's pinning-to-a-literal-table could not do.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Sync and backend integrity: index, seeding, model, mission
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Sync and backend integrity: four findings, one shape — generated state and the index disagreed
@@ -532,11 +495,6 @@ passed, 6 skipped, 0 failed.
 <!-- sq:subtask:ST6 -->
 ### ST6 — VS Code client reads the spec it already fetches
 
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Assignee:** Ada Typescript
-<!-- sq:subtask:ST6:head:end -->
-
 <!-- sq:subtask:ST6:body -->
 Two findings in the VS Code client, both the same shape: the client already fetches spec data from
 `sq`, shape-guards it, and then renders from a hardcoded grammar or a hardcoded field name instead of
@@ -601,11 +559,6 @@ field for F23.
 
 <!-- sq:subtask:ST7 -->
 ### ST7 — Migration runners stop persisting state the spec never validates
-
-<!-- sq:subtask:ST7:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST7:head:end -->
 
 <!-- sq:subtask:ST7:body -->
 Two findings, one surface: a frozen migration runner writes durable frontmatter that the live model

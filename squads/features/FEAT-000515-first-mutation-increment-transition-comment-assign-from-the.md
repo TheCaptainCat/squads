@@ -44,9 +44,6 @@ FEAT-514). Captured now so the epic's full arc is visible on the board.
 
 _Add with `sq feature 515 add-story "As a <role>, I want … so that …"`; track with `sq feature 515 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

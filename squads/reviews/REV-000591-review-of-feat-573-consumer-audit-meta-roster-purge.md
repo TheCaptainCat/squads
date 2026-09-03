@@ -32,22 +32,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 591 add-finding "…" --severity medium`; track with `sq review 591 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | Test file name still says 'meta_type' after the terminology purge |
-| F2 | 🟢 low | WontFix |  | retype validator name/message still uses 'work' for the non-roster (work+records) set |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Test file name still says 'meta_type' after the terminology purge
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 TASK-590 purged the docstring inside tests/cli/test_meta_type_address_verbs_and_list_removal.py (meta-type -> roster-type) but left the FILENAME as test_meta_type_address_verbs_and_list_removal.py. This now contradicts both its own updated docstring and the new CONTRIBUTING convention (no 'meta' for the roster-type concept). Behavior-neutral; a rename to test_roster_type_address_verbs_and_list_removal.py would complete the purge. Renaming test files was not in TASK-590's enumerated scope, hence Low, but the feature's stated intent was 'drop meta repo-wide'.
@@ -61,11 +49,6 @@ TASK-590 purged the docstring inside tests/cli/test_meta_type_address_verbs_and_
 
 <!-- sq:finding:F2 -->
 ### F2 — retype validator name/message still uses 'work' for the non-roster (work+records) set
-
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 src/squads/_services/_retype.py: _validate_work_types() now checks spec.non_roster_types() (work+records) but keeps the name _validate_work_types and the message 'only work items can be retyped'. This imprecision (records like decision/guide are valid retype targets) predates this work and is behavior-preserving, so not a regression. Noting it because the audit touched this exact site; whether records SHOULD be retype targets is a design question, not a bug. Optional tightening.

@@ -107,6 +107,27 @@ touches the counter high-water mark — the freed number is never reissued.  A g
 with that sequence number existed and was removed."  `sq check` and `sq repair` treat gaps as
 normal; the reflog records a reconstructable removal line that explains each gap.
 
+## Duplicate numbers across trees
+
+The counter that mints sequence numbers lives in each tree's own index, so a worktree, a branch
+or a second clone allocates from its own sequence knowing nothing of the others.  Two trees that
+both create work therefore hand out the same number, and merging them lands both files in one
+folder — one number, two items.  Recognise it by the number rather than by an error: the same
+sequence number turns up on two items (often under two different prefixes), or an ID resolves to
+something you did not expect.  Two verbs, one for each side of the merge:
+
+```bash
+sq renumber --from <n> --onto <other-counter>   # before the merge: shift this tree's block clear
+sq repair --renumber                            # after the merge: reassign whatever arrived twice
+```
+
+`sq renumber` is the planned move, run deliberately in one tree while the trees are still
+separate: every local item numbered at or above `--from` shifts into a range above both counters,
+so nothing can collide.  `sq repair --renumber` is the recovery once the collision is already on
+disk: for each number held more than once it keeps one item and mints a fresh number for the
+rest, rewriting the refs, parent links, prose mentions and filenames that pointed at them, then
+rebuilds the index.
+
 ## Ref kinds
 
 Ref kinds are declared vocabulary. The bundled set is the default; a project may declare its own, and may rename or drop a built-in it does not use — refused while live refs still carry it. A kind the merged spec does not declare is rejected. Engine behaviour binds to a kind's declared semantic role, never to its name: a renamed dependency kind keeps driving `sq blocked`, and a kind with no semantic is navigational. Use `sq <type> <n> ref add <id> --kind <kind>`; the table below is what this squad declares.

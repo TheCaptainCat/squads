@@ -39,22 +39,10 @@ Docs + contract task for FEAT-14 (feature Acceptance: 'sq check/docs explain the
 
 _Add with `sq task 91 add-subtask "<title>"`; track with `sq task 91 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Document override + naming mechanism in guide/skill surface | US3 |
-| ST2 | Done |  | List the .overrides layout among durable surfaces in the contract doc | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Document override + naming mechanism in guide/skill surface
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers documenting the override + naming mechanism in the user-facing guide/skill surface: the .overrides/{templates,roles}/ layout and per-file precedence, the sq override workflow (scaffold → edit → sq check drift warning → override diff → hand-merge → override update re-stamp), and the naming surface (--name slug=…, [init.names], TTY prompt/--default-names, extra.full_name, canonical non-renamable slugs).
@@ -68,11 +56,6 @@ Covers documenting the override + naming mechanism in the user-facing guide/skil
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — List the .overrides layout among durable surfaces in the contract doc
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers adding the override layout to the FEAT-13 durable-contract doc (co-authored with the architect): the four frozen surfaces — the .overrides root/tree, the per-file precedence rule, the staleness+update contract (override-base version stamp, sq check drift behaviour, sq migrate never rewrites, the sq override group as the upgrade path), and the naming contract — plus the explicit note of what is deliberately NOT frozen (extra .overrides categories, exact prompt wording).

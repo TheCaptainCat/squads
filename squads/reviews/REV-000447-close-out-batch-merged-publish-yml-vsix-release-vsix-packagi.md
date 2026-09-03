@@ -71,23 +71,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 447 add-finding "…" --severity medium`; track with `sq review 447 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | publish.yml step name still carries an ADR ref missed by the workflow-ref sweep |
-| F2 | 🟢 low | Fixed |  | engines.vscode floor raised to ^1.125 to fix the vsce mismatch — wrong knob |
-| F3 | 🟢 low | Open |  | Version guard protects only the VSIX job, not the PyPI publish |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — publish.yml step name still carries an ADR ref missed by the workflow-ref sweep
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 This round deliberately swept squad-item refs out of the workflow files — test.yml's ONLY change is dropping '(REV-438 F3)' from a comment, and vscode-client.yml dropped '(ADR-427 #1/#3)'. But publish.yml line 44 still reads: 'name: read core version (unified version, ADR-427 #5)'. It is in a step NAME (surfaced in the Actions UI/logs), the one ref the sweep missed. For consistency with the sweep (and workflow-comment-hygiene check), drop the ADR ref -> 'read core version (unified version)'. Low/nit; no functional impact.
@@ -101,11 +88,6 @@ This round deliberately swept squad-item refs out of the workflow files — test
 
 <!-- sq:finding:F2 -->
 ### F2 — engines.vscode floor raised to ^1.125 to fix the vsce mismatch — wrong knob
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 package.json bumped engines.vscode ^1.85.0 -> ^1.125.0 to clear vsce's refusal-to-package when engines.vscode is lower than @types/vscode (^1.125). It works and vsce packages, but it is the wrong side to move: the extension uses only long-stable VS Code APIs (TreeDataProvider, TextDocumentContentProvider, window.showErrorMessage, commands, workspace config, ThemeIcon/ThemeColor, markdown.showPreview) — none newer than 1.85 — so raising the DECLARED minimum to 1.125 overstates the extension's real requirement and needlessly narrows the install floor. The principled fix is the opposite: LOWER @types/vscode to the true minimum (^1.85) so the two agree AND typing against the real floor would flag any accidental use of a newer API. In practice ~everyone is past 1.125 by now so the user impact is negligible, but the contract is dishonest. This was a real pre-existing mismatch — recommend a tracked item to reconcile engines.vscode and @types/vscode at the intended minimum. Low.
@@ -123,11 +105,6 @@ package.json bumped engines.vscode ^1.85.0 -> ^1.125.0 to clear vsce's refusal-t
 
 <!-- sq:finding:F3 -->
 ### F3 — Version guard protects only the VSIX job, not the PyPI publish
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 The tag-vs-pyproject version guard lives in the vsix job only. The publish (PyPI) job has no such guard and builds from pyproject regardless of the release tag, and the two jobs run in parallel (no needs:). So on a tag/pyproject mismatch, PyPI still publishes (the pyproject version) while the vsix job fails the guard — you get a PyPI release with a mismatched tag and no matching VSIX asset, rather than a clean stop. Not a break (PyPI is unchanged and independent; this is why 'no way PyPI breaks' holds) and the scenario is operator error on a manually-created release, but the guard's protection is asymmetric. Optional hardening: hoist the tag==version check into a shared pre-flight (or a job both depend on) so a mismatch stops the whole bundle, not just the VSIX. Low/informational.

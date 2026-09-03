@@ -57,21 +57,10 @@ the additive-only error messages (TASK-239) being settled so the doc matches shi
 
 _Add with `sq task 245 add-subtask "<title>"`; track with `sq task 245 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | sq docs workflow override-format doc + worked example | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq docs workflow override-format doc + worked example
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Project admin can add custom types and statuses via .squads.toml
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers adding a `workflow` doc topic to `_docfiles.py` (served by `sq docs workflow`, listed in `sq docs`): admin-facing prose covering what the workflow override is and where it lives (`.overrides/workflow.toml`), the TOML shape (`[items.<type>]` with prefix/folder/lifecycle/parents/aliases + capability flags, `[statuses.<Name>]`, `[lifecycles.<name>]` with initial + transitions), the additive-only rules stated plainly (add/reuse allowed; redefine/remove a built-in rejected; a removed-but-still-in-use status fails closed), the author loop (scaffold → edit → lint → commit; `sq check` flags invalid), and a copy-pasteable `incident` (Triage → Mitigating → Resolved) worked example. No internal sq-item refs or external URLs per the shipped-docs convention. (US1)

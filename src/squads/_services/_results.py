@@ -211,12 +211,21 @@ class RepairResult:
     literal) differed from the folded frontmatter now stored — the file, not only the index,
     made canonical. Empty when the corpus needed no correction; a corpus already canonical
     triggers no write at all.
+
+    ``stripped`` holds the ID of every item whose file was rewritten because it still stored a
+    retired region — a derived rendering whose writer has retired and whose replacement is
+    computed on every read. Repair's advertised job is the index, and this is content: the
+    operator who ran it to reconcile an index gets a content diff they did not ask for, so it
+    is reported here (and in the reflog delta) to be stated rather than discovered. Empty on a
+    corpus that carries none, which writes no file at all. An item can appear in both this
+    list and ``canonicalized``: a file needing both corrections gets both, in one write.
     """
 
     db: SquadsDB
     missing_ids: list[str] = field(default_factory=list[str])
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
+    stripped: list[str] = field(default_factory=list[str])
 
 
 @dataclass

@@ -50,23 +50,10 @@ updated_at: '2026-06-23T09:58:09Z'
 
 _Add with `sq task 63 add-subtask "<title>"`; track with `sq task 63 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | State the scoping convention once in squads_skill.md.j2 | US1 |
-| ST2 | Done |  | Add role-specific scoped-comment guidance in _interactions.py | US2 |
-| ST3 | Done |  | Tests: scoping convention in skills/roles + @mention inbox no-regression | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — State the scoping convention once in squads_skill.md.j2
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent writing a comment, I want the skills I load to tell me whether to use `sq <type> <n> <kind> <k> comment` or `sq <type> <n> comment`, so that I never route fix rationale or acceptance notes to the wrong discussion
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 State the convention once in squads_skill.md.j2 (single source): sub-entity command for scoped material, main command for cross-cutting, with one example per sub-entity type; add the brief scoping-principle sentence + reference to role.md.j2 working agreements (both regimes).
@@ -85,11 +72,6 @@ State the convention once in squads_skill.md.j2 (single source): sub-entity comm
 <!-- sq:subtask:ST2 -->
 ### ST2 — Add role-specific scoped-comment guidance in _interactions.py
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As an agent reading a dossier with `--full --comments`, I want each sub-entity pane to contain the discussion that is scoped to it, so that I can brief on a finding or story without hunting through the parent item's main discussion
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add role-specific scoped-comment guidance to the per-role lines in _interactions.py — REVIEW reviewer/dev (finding-scoped), FEATURE po/tech-lead (story-scoped), TASK dev (subtask-scoped) — each pointing at the squads-skill convention, not restating it; verify sq sync regenerates every skill + role file with markers intact.
 <!-- sq:subtask:ST2:body:end -->
@@ -105,11 +87,6 @@ Add role-specific scoped-comment guidance to the per-role lines in _interactions
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Tests: scoping convention in skills/roles + @mention inbox no-regression
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As an agent reading my inbox, I want @mentions placed in sub-entity discussions to reach me just as reliably as item-level mentions, so that I can trust the inbox regardless of where in the item the mention was written
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Tests: assert generated squads/sq-review/sq-feature/sq-task skills + role files carry the convention/guidance, and a no-regression assertion that an @mention in a sub-entity discussion is surfaced by sq inbox; keep pyright + ruff clean.

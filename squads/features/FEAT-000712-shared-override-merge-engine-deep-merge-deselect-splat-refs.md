@@ -77,22 +77,10 @@ Settled input, not open questions: EPIC-538 (outcome list, epic body "The design
 
 _Add with `sq feature 712 add-story "As a <role>, I want … so that …"`; track with `sq feature 712 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a spec author, I want overrides to deep-merge onto the bundled base so I only declare what changes |
-| US2 | Done |  | As a spec author, I want a selected list to drop built-ins I don't want, refused cleanly if the result is unsafe |
-| US3 | Done |  | As a spec author, I want a splat-ref to append to a bundled list without restating it |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a spec author, I want overrides to deep-merge onto the bundled base so I only declare what changes
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Given a bundled base document and an override document, the merge recurses into tables per key and replaces leaf values; plain arrays are replaced wholesale (never element-merged) unless a splat-ref is present. Acceptance: an override touching one field of a built-in leaves every other field of that built-in unchanged in the merged result.
@@ -107,10 +95,6 @@ Given a bundled base document and an override document, the merge recurses into 
 <!-- sq:story:US2 -->
 ### US2 — As a spec author, I want a selected list to drop built-ins I don't want, refused cleanly if the result is unsafe
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 A top-level [selected] table, keyed by section name, names the surviving set per section. Order of operations: resolve splats against the bundled base, deep-merge, apply selected, build the resulting spec, run its own validation, then the live-index cross-check. selected adds no validation of its own; a violation on the resulting spec that traces to a selected line says so in its message. Acceptance: dropping a status/lifecycle/type still referenced by the resulting spec fails with the existing referential-integrity check, naming the selected line as the cause.
 <!-- sq:story:US2:body:end -->
@@ -123,10 +107,6 @@ A top-level [selected] table, keyed by section name, names the surviving set per
 
 <!-- sq:story:US3 -->
 ### US3 — As a spec author, I want a splat-ref to append to a bundled list without restating it
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 $(path) splices the bundled value at path as one element; $(*path) spreads a bundled list's elements (the append idiom, ["$(*self)", x]); $(self)/$(*self) addresses the key currently being written. Resolution is against the bundled base only (no cycles, order-independent); compose-only (no element removal); fails closed on a dangling path, a type mismatch, or a surviving unparsed token; $$( escapes a literal. A splatted array of tables uses TOML's inline-array form; resolution completes before model validation. Acceptance: two overrides of unrelated keys produce the same merged result in either order; each of the three failure modes is caught and reported, not silently swallowed.

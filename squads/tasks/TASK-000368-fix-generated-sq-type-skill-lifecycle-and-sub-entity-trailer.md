@@ -68,9 +68,6 @@ to avoid snapshot merge conflicts.
 
 _Add with `sq task 368 add-subtask "<title>"`; track with `sq task 368 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

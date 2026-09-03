@@ -111,22 +111,10 @@ request, engine-internal, and mutated by appending to its reflog buffer.
 
 _Add with `sq task 666 add-subtask "<title>"`; track with `sq task 666 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Bind the transaction context task-locally, inside the locks |  |
-| ST2 | Todo |  | Scope the ambient context to its owning store |  |
-| ST3 | Todo |  | Drop the pre-lock load and pin reflog attribution |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Bind the transaction context task-locally, inside the locks
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Replace the `self._current_ctx` instance attribute with a module-level `ContextVar` in
@@ -159,10 +147,6 @@ Acceptance:
 <!-- sq:subtask:ST2 -->
 ### ST2 — Scope the ambient context to its owning store
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The transaction context carries the identity of the store that opened it, and `_log()` ignores an
 ambient context whose owner is a different store.
@@ -191,10 +175,6 @@ Acceptance:
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Drop the pre-lock load and pin reflog attribution
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Remove the pre-lock `load()`. It exists only to build a context that is immediately discarded and

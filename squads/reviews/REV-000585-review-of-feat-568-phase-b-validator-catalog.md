@@ -27,21 +27,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 585 add-finding "…" --severity medium`; track with `sq review 585 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | WontFix |  | create/update/reparent gate now runs the full per-item error-level set |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — create/update/reparent gate now runs the full per-item error-level set
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 gate() runs the item's full effective per-item set and aborts on the first error-level issue. Since the catalog is now populated, create/update/reparent hard-abort on item_status_valid / subtask_story_mapping / subentity_status_valid / parent_in — where today only parent-TYPE (via _check_parent) and author/assignee were hard gates; those three error-level checks were previously sq-check-report-only. reparent/link, which today only checked parent existence+type, now gates the full set on the child.

@@ -47,25 +47,10 @@ Grouped into stories below by user-facing outcome; each story's body lists the R
 
 _Add with `sq feature 449 add-story "As a <role>, I want … so that …"`; track with `sq feature 449 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Interactive item preview (custom webview) |
-| US2 | Done |  | Toolbar & display controls |
-| US3 | Done |  | Meta-items view section |
-| US4 | Done |  | Workflow cheatsheet view |
-| US5 | Done |  | Type-group ordering |
-| US6 | Done |  | Extension icon swap |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Interactive item preview (custom webview)
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an operator, I want the item preview in its own dedicated tab that never gets hijacked by opening another markdown file, so that it stays put while I read.
@@ -87,10 +72,6 @@ Covers REV-448 findings: F9, F10, F11.
 
 <!-- sq:story:US2 -->
 ### US2 — Toolbar & display controls
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As an operator, I want display and grouping controls as one-click view-title icons instead of buried in a menu, so that browsing the tree is faster.
@@ -119,10 +100,6 @@ Covers REV-448 findings: F2, F3, F4, F5, F6, F7.
 <!-- sq:story:US3 -->
 ### US3 — Meta-items view section
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As an operator, I want to browse role/skill/operator meta items in their own view section, so that they don't clutter the work-item tree but are still reachable.
 
@@ -143,10 +120,6 @@ Covers REV-448 finding: F12.
 
 <!-- sq:story:US4 -->
 ### US4 — Workflow cheatsheet view
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As an operator, I want a title button that opens the workflow cheatsheet as rendered markdown, so that I can check the lifecycle rules without leaving the editor.
@@ -169,10 +142,6 @@ Covers REV-448 finding: F8.
 <!-- sq:story:US5 -->
 ### US5 — Type-group ordering
 
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
-
 <!-- sq:story:US5:body -->
 As an operator, I want type groups ordered by the spec's declared per-type order, so that the tree reads epic-feature-task-bug-...-guide rather than alphabetically.
 
@@ -191,10 +160,6 @@ Covers REV-448 finding: F1.
 
 <!-- sq:story:US6 -->
 ### US6 — Extension icon swap
-
-<!-- sq:story:US6:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->
 As an operator, I want the activity-bar icon to be the dedicated VS Code variant, not a repurposed mono icon, so that it looks intentional in the sidebar.

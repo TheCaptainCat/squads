@@ -24,9 +24,6 @@ Fix: ruff check --fix on the F401s + ruff format src/squads/_discussion.py, then
 
 _Add with `sq task 45 add-subtask "<title>"`; track with `sq task 45 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -77,23 +77,10 @@ avoid collisions. Do NOT delete any old test here.
 
 _Add with `sq task 374 add-subtask "<title>"`; track with `sq task 374 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Behavior-named taxonomy across the four pillars, no dev-archaeology | US1 |
-| ST2 | Todo |  | Fast by default: mark scale slow, flip addopts to -m not slow, under 30s | US2 |
-| ST3 | Todo |  | Each invariant asserted once at the lowest meaningful layer | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Behavior-named taxonomy across the four pillars, no dev-archaeology
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Behavior-named tests, not development archaeology
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The rebuilt four-pillar battery (generic-engine-once, spec-as-artifact + goldens, behavioural spine, and a first-class failure/edge surface) was authored under `tests/{unit,service,cli,integration}/` with every file, class, and test named for the behaviour it guarantees. No `layer_a/b`, `golden_lock`, ticket-ID filenames, or FEAT-/TASK-/ADR- references remain in the tree, verified by the ref-hygiene scan.
@@ -108,11 +95,6 @@ The rebuilt four-pillar battery (generic-engine-once, spec-as-artifact + goldens
 <!-- sq:subtask:ST2 -->
 ### ST2 — Fast by default: mark scale slow, flip addopts to -m not slow, under 30s
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — Default test run under 30 seconds
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Fast-by-default. The scale/stress split was implemented standalone ahead of Phase 2 (a `--run-slow` opt-in in `tests/conftest.py` that skips the slow scale-bound tests by default), so this phase did not redo the addopts/marker flip; the requirement here was to author the battery without regressing the ~30s default. Default `uv run pytest` stays green and under the 30s target, and `--run-slow` runs the scale paths.
 <!-- sq:subtask:ST2:body:end -->
@@ -125,11 +107,6 @@ Fast-by-default. The scale/stress split was implemented standalone ahead of Phas
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Each invariant asserted once at the lowest meaningful layer
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — Each invariant asserted once, at the right layer
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Each invariant is asserted once at the lowest meaningful layer, using the Phase-0 duplicate-invariant clusters to collapse redundant multi-layer assertions — CLI tests prove a clean exit plus parseable output rather than re-checking model-field well-formedness, which is a unit concern. Dedup preserved every distinct case across the authoring chunks, confirmed per-chunk in review.

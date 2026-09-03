@@ -73,21 +73,10 @@ ID prefix and layout changes — those are tracked in FEAT-176 and can ship inde
 
 _Add with `sq feature 177 add-story "As a <role>, I want … so that …"`; track with `sq feature 177 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | JSON item-file serialization |
-| US2 | Todo |  | XML item-file serialization |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — JSON item-file serialization
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a team using agent tooling, I want item files stored as JSON so that I can use standard JSON tooling and skip the markdown parser.
@@ -109,10 +98,6 @@ As a team using agent tooling, I want item files stored as JSON so that I can us
 
 <!-- sq:story:US2 -->
 ### US2 — XML item-file serialization
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a team integrating with XML-based systems, I want item files stored as XML so that I can pipe squad data into existing XML toolchains without conversion.

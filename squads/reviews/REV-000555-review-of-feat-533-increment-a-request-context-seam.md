@@ -33,23 +33,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 555 add-finding "…" --severity medium`; track with `sq review 555 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | Stale main_callback comment: clock no longer force-reset at edge |
-| F2 | 🟢 low | Verified |  | CLI edge not yet fresh-context-per-request (clock leak pre-US5) |
-| F3 | 🟢 low | Verified |  | TASK-548 code-cache allowlist not exhaustive for TASK-549 guard |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Stale main_callback comment: clock no longer force-reset at edge
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 In main_callback (_cli/__init__.py, the block above actor.set_actor("system")), the comment states that the unconditional re-set 'is the same mechanism apply_timestamp uses for the clock (no try/finally needed).' That is no longer true: this increment made apply_timestamp a no-op when --at is absent, so the clock is NOT force-reset at the edge the way actor/session are. The comment now misdescribes the code.
@@ -70,11 +57,6 @@ Recommendation: update the comment to say the actor/session force-reset is a bel
 <!-- sq:finding:F2 -->
 ### F2 — CLI edge not yet fresh-context-per-request (clock leak pre-US5)
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Observation, forward-looking (adjacent to this increment, not a defect in it). main_callback force-resets actor (set_actor("system")) and session (seed_session(from_env=True)) on every invocation, but after this change does not reset the clock. For one-shot CLI use this is invisible and correct (a fresh process starts with clock_override=None). It does mean the CLI edge is not yet 'one fresh RequestContext per request' — that consolidation is US5/TASK-552's bind_context(RequestContext(...)) per the architect's boundary rule.
 
@@ -93,11 +75,6 @@ Recommendation: none for this increment — single-shot is correct. Flagging so 
 
 <!-- sq:finding:F3 -->
 ### F3 — TASK-548 code-cache allowlist not exhaustive for TASK-549 guard
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 TASK-548's acceptance says the sanctioned-code allowlist for the TASK-549 AST guard is 'enumerated exactly'. It is not exhaustive. A module-scope dict/list/set scan across the engine also hits immutable constant lookup tables not on the list: _models/_metadata._GENERIC_FIELDS, _workflow/_models._SIDE_PRIORITY, _services/_retype._BUNDLED_CONTAINER_HEADINGS, _roles/_resolver._PREDEFINED_BY_SLUG, _backends/_claude_code/_frontmatter._VALID_MODELS, and the migration tables (_v0_2_to_v0_3._KIND_BY_TYPE, _v0_1_to_v0_2._BODY_KIND, _meta_compat._LOCAL_ID_PREFIX). Also minor: the audit places _PREDEFINED_BY_SLUG in _catalog.py; it lives in _resolver.py.

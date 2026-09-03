@@ -25,21 +25,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 94 add-finding "…" --severity high`; track with `sq review 94 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | print_block --json uses 'file' key vs show --json 'path' for same path |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — print_block --json uses 'file' key vs show --json 'path' for same path
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 print_block (add-story/add-subtask/add-finding --json) emits the .md file location under key 'file', while read-side show --json emits the same path concept under 'path'. Both are the item's markdown file path; a JSON consumer must special-case the key per command. Documented in the module docstring per Catherine's REV-86 carry-over (rename-or-document was sanctioned), and print_block is outside this task's frozen read surface — non-blocking. Recorded so a future consumer/contributor sees the asymmetry is deliberate, not accidental. Recommend revisiting file->path alignment when the write surface gets its own goldens.

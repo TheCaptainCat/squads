@@ -41,22 +41,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 286 add-finding "…" --severity high`; track with `sq review 286 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Jinja capitalize lowercases acronym role titles (cosmetic) |
-| F2 | 🟢 low | WontFix |  | Jinja capitalize lowercases acronym role titles (cosmetic) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Jinja capitalize lowercases acronym role titles (cosmetic)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 workflow.md.j2 renders the owner role title through Jinja's `| capitalize`, which lowercases the tail. A custom owner role whose title is an acronym (e.g. 'QA') would render 'Qa engineer'. Harmless for the bundled team — only product-owner/tech-lead reach this path and neither is an acronym — and CLAUDE.md's claude_section path uses the raw title (no capitalize) so it's unaffected. Pure cosmetic edge for a hypothetical custom-role-authoring project, which is not a supported spec concept yet. Flagging as a note for the eventual custom-role/lane feature; non-blocking for TASK-279.
@@ -70,11 +58,6 @@ workflow.md.j2 renders the owner role title through Jinja's `| capitalize`, whic
 
 <!-- sq:finding:F2 -->
 ### F2 — Jinja capitalize lowercases acronym role titles (cosmetic)
-
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 Duplicate of F1 (accidental double add-finding). See F1.

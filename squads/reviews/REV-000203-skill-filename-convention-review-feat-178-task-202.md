@@ -72,24 +72,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 203 add-finding "…" --severity high`; track with `sq review 203 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Backend swallows index-corruption errors with bare except |
-| F2 | 🟢 low | Open |  | Orphan slug.md beside a convention file is never detected or cleaned |
-| F3 | 🟢 low | Open |  | Backend reaches into IndexStore directly (layering smell) |
-| F4 | 🔵 info | Open |  | Freshly-migrated unstamped skills get an empty pointer description |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Backend swallows index-corruption errors with bare except
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The backend's skill-writing path resolves IDs by reading the index, and wraps that read in a broad/bare `except` that swallows every error — including the `SquadsError` a corrupt index raises on load.
@@ -108,11 +94,6 @@ Recommendation: narrow the catch to the expected lookup-miss case and let index-
 <!-- sq:finding:F2 -->
 ### F2 — Orphan slug.md beside a convention file is never detected or cleaned
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 The migration's "convention file already exists" branch skips cleanly (correct, idempotent), but it does not check for a leftover slug-named body file sitting beside the convention-named one. If both are present, the orphan `<slug>.md` is neither detected nor removed.
 
@@ -130,11 +111,6 @@ Recommendation: in the skip branch, detect and `unlink` an orphan slug-named sib
 <!-- sq:finding:F3 -->
 ### F3 — Backend reaches into IndexStore directly (layering smell)
 
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 The skill backend reaches into `IndexStore` directly to resolve IDs rather than receiving a resolved value or going through the service layer. This crosses the intended `_cli → _services → (index store, backends)` layering, where backends are meant to be driven by the service, not to open the store themselves.
 
@@ -151,11 +127,6 @@ Recommendation: have the service resolve the ID and hand the backend the value i
 
 <!-- sq:finding:F4 -->
 ### F4 — Freshly-migrated unstamped skills get an empty pointer description
-
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 In the unstamped-skill migration branch (allocate + stamp + write + unlink + pointer rewrite), the freshly written `.claude` pointer gets an empty description, whereas the init path populates it via `generate_skill_entry`. The two paths reach parity on file location but not on pointer description.

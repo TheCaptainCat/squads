@@ -10,8 +10,8 @@ issues throughout.
 The three functions below are the read-boundary seams a role item's own stored ``extra`` passes
 through: :func:`role_base_from_item` and :func:`dev_base_from_item` (both in
 ``squads._roles._resolver``, used by ``sq sync``'s catalog refresh and ``sq role <slug> show``),
-and :meth:`RoleDef.from_extra` (in ``squads._roles._catalog``, used by ``sq role <slug> regen``
-and the sync roster sweep's per-entry pointer projection). None of them must ever hand a stored
+and :meth:`RoleDef.from_extra_or_item` (in ``squads._roles._catalog``, the boundary a role item
+that resolves against nothing is read through). None of them must ever hand a stored
 blank to :class:`RoleDef.__post_init__` -- that would weaponise an input-side refusal against a
 fact this codebase itself used to write and call healthy. Each must instead self-heal to the
 value the next full ``sq sync`` would converge the item onto: the bundled catalog's own name for
@@ -107,34 +107,59 @@ async def test_dev_base_from_item_with_a_real_name_is_unaffected(svc):
     assert base.full_name == "Elias Python"
 
 
-# -------------------------------------------------------------------------- RoleDef.from_extra
+# ------------------------------------------------------------------ RoleDef.from_extra_or_item
 
 
 @pytest.mark.parametrize("blank", ["", "   ", "\t\n"], ids=["empty", "spaces", "tab-newline"])
-async def test_role_def_from_extra_tolerates_a_stored_blank_full_name_bundled(svc, blank):
+async def test_from_extra_or_item_tolerates_a_stored_blank_full_name_bundled(svc, blank):
     item = await svc.activate_role("devops")
     stored_extra = dict(item.extra)
     stored_extra[X.FULL_NAME] = blank
 
-    role = RoleDef.from_extra(stored_extra)
+    role = RoleDef.from_extra_or_item(
+        stored_extra, title=item.title, slug=item.slug, description=item.description
+    )
 
     assert role.full_name.strip()
 
 
 @pytest.mark.parametrize("blank", ["", "   ", "\t\n"], ids=["empty", "spaces", "tab-newline"])
-async def test_role_def_from_extra_tolerates_a_stored_blank_full_name_dev(svc, blank):
+async def test_from_extra_or_item_tolerates_a_stored_blank_full_name_dev(svc, blank):
     item = await svc.add_dev("python", name="Elias Python")
     stored_extra = dict(item.extra)
     stored_extra[X.FULL_NAME] = blank
 
-    role = RoleDef.from_extra(stored_extra)
+    role = RoleDef.from_extra_or_item(
+        stored_extra, title=item.title, slug=item.slug, description=item.description
+    )
 
     assert role.full_name.strip()
 
 
-async def test_role_def_from_extra_with_a_real_name_is_unaffected(svc):
+async def test_from_extra_or_item_tolerates_the_key_being_absent_entirely(svc):
+    """The other corpus shape this boundary has to take: an item whose ``extra`` carries no
+    ``full_name`` at all, which is what the current write path produces. A subscript here
+    would raise on every such role -- the failure a read boundary must never introduce."""
+    item = await svc.activate_role("devops")
+    assert X.FULL_NAME not in item.extra  # the shape under test, asserted not assumed
+
+    role = RoleDef.from_extra_or_item(
+        item.extra, title=item.title, slug=item.slug, description=item.description
+    )
+
+    assert role.full_name == item.title
+
+
+async def test_from_extra_or_item_with_a_real_stored_name_is_unaffected(svc):
+    """The legacy shape: an ``extra`` that still carries the mirror a previous release wrote
+    is read from, not ignored."""
     item = await svc.activate_role("qa", name="Mara Tester")
-    role = RoleDef.from_extra(item.extra)
+    stored_extra = {**item.extra, X.FULL_NAME: "Mara Tester"}
+
+    role = RoleDef.from_extra_or_item(
+        stored_extra, title="something else", slug=item.slug, description=item.description
+    )
+
     assert role.full_name == "Mara Tester"
 
 

@@ -45,22 +45,10 @@ Root --help shows only the seven canonical names (asserted in a CLI test). The a
 
 _Add with `sq task 108 add-subtask "<title>"`; track with `sq task 108 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Hide aliases from root help; mention the table once (epilog or type help) | US2 |
-| ST2 | Done |  | Render the alias table in the workflow cheatsheet with the add-only rule; tie into FEAT-13 contract | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Hide aliases from root help; mention the table once (epilog or type help)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers keeping root help clean: a help-output test asserting sq --help lists only the seven canonical type commands (hidden=True aliases stay off the list), plus surfacing the alias table exactly once — via the root app epilog or a per-type help line, not both.
@@ -74,11 +62,6 @@ Covers keeping root help clean: a help-output test asserting sq --help lists onl
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Render the alias table in the workflow cheatsheet with the add-only rule; tie into FEAT-13 contract
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a newcomer reading help and docs, I want aliases out of the command list but documented in one table, so that discoverability doesn't cost clarity
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers documenting the alias table in the shared workflow cheatsheet partial (workflow.md.j2, rendered by both the squads skill and sq workflow), rendered from the single canonical ALIASES map so docs cannot drift from routing, with the add-only evolution rule recorded alongside it and a ref/note tying it into the FEAT-13 stability contract (which owns docs/stability.md, not authored here).

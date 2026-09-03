@@ -183,25 +183,10 @@ which `gen_template_manifest.py --release-gate` requires. Do not add a deletion 
 
 _Add with `sq task 831 add-subtask "<title>"`; track with `sq task 831 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Declare [items.milestone] and its lifecycle | US3 |
-| ST2 | Done |  | The target date field and its generic --set path | US3 |
-| ST3 | Done |  | Membership by targets refs, written only on the work item | US3 |
-| ST4 | Done |  | Playbook entries and the generated sq-milestone surface | US3 |
-| ST5 | Done |  | The milestone roll-up as the first declared view | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Declare [items.milestone] and its lifecycle
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — The MILE- item type, its lifecycle and target date
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add one `[items.milestone]` block and one `[lifecycles.milestone]` block to
@@ -244,11 +229,6 @@ group exists with no per-type module, `sq workflow types --json` and `sq workflo
 <!-- sq:subtask:ST2 -->
 ### ST2 — The target date field and its generic --set path
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — The MILE- item type, its lifecycle and target date
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Give a milestone a target date, and give the field a path that survives a rename of the type.
 
@@ -286,11 +266,6 @@ is refused with a field-naming message, and the meta test above passes.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Membership by targets refs, written only on the work item
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — The MILE- item type, its lifecycle and target date
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Wire the already-shipped `targets` ref kind to milestone membership.
 
@@ -327,11 +302,6 @@ appears outside the spec layer.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Playbook entries and the generated sq-milestone surface
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — The MILE- item type, its lifecycle and target date
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Grow the managed agent-facing surface for the new type, and verify it on the migrate path as well
@@ -378,11 +348,6 @@ pointer presence and currency gate passes.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — The milestone roll-up as the first declared view
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Milestone roll-up as the first declared view
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Declare the milestone roll-up: the mechanism's first consumer, and the proof it works

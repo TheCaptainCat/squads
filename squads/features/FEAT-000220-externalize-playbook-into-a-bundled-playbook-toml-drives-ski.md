@@ -71,22 +71,10 @@ FP can proceed in parallel with F2–F5 once FR and the F1 loader pattern exist.
 
 _Add with `sq feature 220 add-story "As a <role>, I want … so that …"`; track with `sq feature 220 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content lives in data not code |
-| US2 | Todo |  | Project admin can add playbook entries for custom types so generated skills have role guidance |
-| US3 | Todo |  | As a maintainer, I want a golden test asserting generated skills are byte-identical before and after this change |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content lives in data not code
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squads maintainer, I want the entire `PLAYBOOK` dict (per-type overview, lifecycle text, commands, and per-role enter/do/handoff/watch guides) loaded from a `playbook.toml` at runtime, so that skill content lives in data rather than a hardcoded Python module.
@@ -103,10 +91,6 @@ As a squads maintainer, I want the entire `PLAYBOOK` dict (per-type overview, li
 <!-- sq:story:US2 -->
 ### US2 — Project admin can add playbook entries for custom types so generated skills have role guidance
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a project admin with a custom type, I want to add `[playbook.types.incident]` entries in my playbook override file (per-role enter/do/handoff/watch text), so the generated `sq-incident` skill carries proper, actionable role guidance rather than the thin auto-generated default.
 
@@ -121,10 +105,6 @@ As a project admin with a custom type, I want to add `[playbook.types.incident]`
 
 <!-- sq:story:US3 -->
 ### US3 — As a maintainer, I want a golden test asserting generated skills are byte-identical before and after this change
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a squads maintainer, I want a golden test that asserts `sq sync` produces byte-identical skill files before and after the playbook externalization, so that no skill content drifts during the migration.

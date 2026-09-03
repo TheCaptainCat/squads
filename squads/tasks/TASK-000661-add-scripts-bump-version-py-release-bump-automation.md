@@ -73,22 +73,10 @@ skill body via `sq skill releasing-squads body --file` or a marker-safe edit; le
 
 _Add with `sq task 661 add-subtask "<title>"`; track with `sq task 661 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Implement scripts/bump_version.py (pure helpers + orchestration + --dry-run) |  |
-| ST2 | Done |  | Unit-test version-rewrite helpers + --dry-run smoke test |  |
-| ST3 | Done |  | Update releasing-squads (SKILL-508) Prep to call the script |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Implement scripts/bump_version.py (pure helpers + orchestration + --dry-run)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Implemented scripts/bump_version.py: pure rewrite helpers (read_pyproject_version/set_pyproject_version, read_package_json_version/set_package_json_version) plus orchestration steps 1-8, --dry-run (no writes/subprocess), fail-loud via BumpError.
@@ -103,10 +91,6 @@ Implemented scripts/bump_version.py: pure rewrite helpers (read_pyproject_versio
 <!-- sq:subtask:ST2 -->
 ### ST2 — Unit-test version-rewrite helpers + --dry-run smoke test
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Added tests/meta/test_release_version_bump_script.py: rewrite-helper correctness/idempotency/malformed-input tests plus a --dry-run smoke test (subprocess.run and Path.write_text patched to raise, asserts no file changed).
 <!-- sq:subtask:ST2:body:end -->
@@ -119,10 +103,6 @@ Added tests/meta/test_release_version_bump_script.py: rewrite-helper correctness
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Update releasing-squads (SKILL-508) Prep to call the script
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Replaced the individual bump/manifest/goldens/sq-sync bullets in SKILL-508 Prep with one 'run scripts/bump_version.py X.Y.Z' bullet; kept git fetch --tags, CHANGELOG-authoring, schema/migration note, uv build. Marker-safe body edit; sq check clean.

@@ -35,24 +35,10 @@ SRC WAVE (part 2 of 2). Scope: all Python under src/squads/_services, _index, _m
 
 _Add with `sq task 309 add-subtask "<title>"`; track with `sq task 309 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Strip refs from comments/docstrings | US1 |
-| ST2 | Done | python-dev | Restyle: terse + history-free | US2 |
-| ST3 | Done | python-dev | Remove refs from CLI help/output strings | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Strip refs from comments/docstrings
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Code comments carry no squad-item references
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Remove every squad-item reference — (FEAT|TASK|ADR|REV|BUG|EPIC)-<n>, US/ST numbers, bare §N — from comments and docstrings in src/squads/_services, _index, _migrations, _cli, _backends, _rendering, and top-level src/squads/*.py. Restate load-bearing rationale on the code's own terms. Done when: grep of the ref pattern over these files returns zero.
@@ -67,12 +53,6 @@ Remove every squad-item reference — (FEAT|TASK|ADR|REV|BUG|EPIC)-<n>, US/ST nu
 <!-- sq:subtask:ST2 -->
 ### ST2 — Restyle: terse + history-free
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US2 — Src comments describe current behavior, not history
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Same files: describe the code as it is — no 'previously/now', 'used to', 'as of vX', change-log narration; drop restate-the-code comments; trim docstring preambles to intent/contract. src/ code commentary only. Done when: no history narration or restate-the-code comments remain; suite green and unchanged.
 <!-- sq:subtask:ST2:body:end -->
@@ -85,12 +65,6 @@ Same files: describe the code as it is — no 'previously/now', 'used to', 'as o
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Remove refs from CLI help/output strings
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US4 — User-facing content carries no squad-item references
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 This cluster owns _cli: remove real-citation squad-item refs from help text, error messages, and printed table content WITHOUT rewording. Keep illustrative CLI-syntax templates (--parent FEAT-…, sq task <n>) and example IDs — those are non-violations. Done when: no real-citation ref remains in user-facing strings emitted from these files.

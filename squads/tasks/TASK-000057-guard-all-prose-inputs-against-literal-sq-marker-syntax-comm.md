@@ -114,22 +114,10 @@ anywhere in the text, code spans included. Rejection is the only safe option.
 
 _Add with `sq task 57 add-subtask "<title>"`; track with `sq task 57 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Add one shared marker-syntax guard; apply to comment messages and sub-entity titles (create + update) |  |
-| ST2 | Done | python-dev | Tests for marker-syntax guard on newly-guarded paths |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add one shared marker-syntax guard; apply to comment messages and sub-entity titles (create + update)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Lift the existing marker-syntax rejection into one shared helper (seeded from _subentities.py::_reject_markers, using _sections.find_markers) and apply it, before any mutation, to comment messages in _collab.py::comment and to sub-entity titles on create (_add_block) and update (_update_block). Raises SquadsError in the same 'must not contain sq marker comments' family, pointing the author at the unwrapped formulation and noting backticks do not neutralize. Existing body-guard paths converge on the same helper.
@@ -143,11 +131,6 @@ Lift the existing marker-syntax rejection into one shared helper (seeded from _s
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Tests for marker-syntax guard on newly-guarded paths
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Tests: each newly-guarded path rejects marker tags (incl. backtick-wrapped); item title/description false-positive guard; body behaviour unchanged.

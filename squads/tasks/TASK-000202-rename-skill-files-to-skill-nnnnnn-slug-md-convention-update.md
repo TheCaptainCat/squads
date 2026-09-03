@@ -76,23 +76,10 @@ status profile, and idempotence are unchanged from the original tasks.
 
 _Add with `sq task 202 add-subtask "<title>"`; track with `sq task 202 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Migration renames legacy slug-named files to SKILL-NNNNNN-slug.md idempotently | US2 |
-| ST2 | Done |  | Fresh sq init seeds skill files with the SKILL-NNNNNN-slug.md convention | US3 |
-| ST3 | Done |  | Backend derives body path from id; .claude pointer resolves to renamed file | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Migration renames legacy slug-named files to SKILL-NNNNNN-slug.md idempotently
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Automatic migration retrofits existing skills with IDs on sq migrate up
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the 0.4→0.5 migration renaming each legacy slug-named agents/skills/<slug>.md to the agents/skills/SKILL-<NNNNNN>-<slug>.md convention and rewriting the .claude pointer's body path — idempotently (skip files already at the convention), reusing the existing lexical-by-slug allocation and never reallocating ids (ADR #4).
@@ -107,11 +94,6 @@ Covers the 0.4→0.5 migration renaming each legacy slug-named agents/skills/<sl
 <!-- sq:subtask:ST2 -->
 ### ST2 — Fresh sq init seeds skill files with the SKILL-NNNNNN-slug.md convention
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Fresh sq init produces skills already carrying IDs from the start
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Covers fresh sq init (seed_bundled_skills) naming skill body files with the SKILL-<NNNNNN>-<slug>.md convention from the start, reusing the shared lexical-by-slug allocation so init and migration produce parity-ordered filenames.
 <!-- sq:subtask:ST2:body:end -->
@@ -124,11 +106,6 @@ Covers fresh sq init (seed_bundled_skills) naming skill body files with the SKIL
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Backend derives body path from id; .claude pointer resolves to renamed file
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Stable SKILL-… ID per skill for cross-entity referencing
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Covers the backend _write_managed_skill (+ regen path) building the skill body path from the skill's ID resolved through the index (as roles do via _regen_role_body), not the bare slug, so the body file is SKILL-<NNNNNN>-<slug>.md and the .claude/skills/<slug>/SKILL.md pointer (dir stays slug-keyed) resolves to the renamed file — staying marker-safe / frontmatter-preserving (invariant 3).

@@ -75,22 +75,10 @@ same story; split for reviewability).
 
 _Add with `sq task 520 add-subtask "<title>"`; track with `sq task 520 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Sub-entities tab with empty state | US3 |
-| ST2 | Done |  | Discussion tab with empty state | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Sub-entities tab with empty state
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Sub-entities and discussion as tabs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Sub-entities tab: resolve kind via spec.item_subentity_kind(item.type), list rows from item.subentities using the shared summary_columns/summary_row derivation (status/assignee/title); empty state when the type has no kind or the item has none. Done: rows show for applicable types, empty state otherwise.
@@ -104,11 +92,6 @@ Sub-entities tab: resolve kind via spec.item_subentity_kind(item.type), list row
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Discussion tab with empty state
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Sub-entities and discussion as tabs
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Discussion tab: read svc.read_discussion + _discussion.split_discussion into Comment records; show comments in order with author + timestamp; empty state when none. Keyboard-switchable alongside body/sub-entities tabs. Done: ordered comments with author/timestamp, empty state when none.

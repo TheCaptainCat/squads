@@ -64,22 +64,10 @@ comment and it gets applied there.
 
 _Add with `sq task 785 add-subtask "<title>"`; track with `sq task 785 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Declare and check per-entry backend pointers for live entries |  |
-| ST2 | Done |  | Report a per-entry artifact sync had to regenerate |  |
-| ST3 | Done |  | Report a frontmatter/index value divergence from sq check |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Declare and check per-entry backend pointers for live entries
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `sq check` does not notice a missing per-entry backend pointer. Driven on a fresh squad with both
@@ -195,10 +183,6 @@ Implementation: added `is_live_roster_entry(item, spec)` (squads/_interactions/_
 <!-- sq:subtask:ST2 -->
 ### ST2 — Report a per-entry artifact sync had to regenerate
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 `sq sync` silently recreates a missing per-entry pointer. Driven as part of the same investigation:
 with a role's pointer deleted, `sq sync` regenerates it and says nothing — a clean, silent fix that
@@ -277,10 +261,6 @@ Implementation: sync() (squads/_services/_maintenance.py) computes the same rost
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Report a frontmatter/index value divergence from sq check
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `sq check` says "no issues" on a squad whose own `sq sync`, seconds earlier, said to run `sq repair`.

@@ -181,26 +181,10 @@ either task's own work waits on the other.
 
 _Add with `sq task 822 add-subtask "<title>"`; track with `sq task 822 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Withdraw the sweep from the generator's write mode | US1 |
-| ST2 | Done | python-dev | Rebuild the store from the tags, all-or-nothing | US1 |
-| ST3 | Done | python-dev | Widen --check to the whole index and state what it checked | US1 |
-| ST4 | Done | python-dev | Move the orphan assertion to the release gate | US1 |
-| ST5 | Done | python-dev | Parametrise the retention fixture off the running version | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Withdraw the sweep from the generator's write mode
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Delete the reachability sweep at `scripts/gen_template_manifest.py:186-193` and the `swept` counter
@@ -233,12 +217,6 @@ changing it.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Rebuild the store from the tags, all-or-nothing
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Give `scripts/seed_content_store.py` a rebuild capability: recompute the store as the closure of
@@ -280,12 +258,6 @@ recovery, not just the recovery.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Widen --check to the whole index and state what it checked
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `_check_mode` binds `recorded = manifest[version]` at `:127` and verifies coverage for that one
 entry, then prints `store coverage ok` at `:161`. A store missing a shipped revision reports clean,
@@ -317,12 +289,6 @@ documents are byte-identical afterwards.
 <!-- sq:subtask:ST4 -->
 ### ST4 — Move the orphan assertion to the release gate
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 An orphan-free store is a property of the release artifact, not of the working tree. Between
 releases, discarded revisions of the working version are ordinary development residue and assert
@@ -350,12 +316,6 @@ shape of problem this whole change exists to remove.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Parametrise the retention fixture off the running version
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 The `sweep_tree` fixture copies the repository's `pyproject.toml` verbatim

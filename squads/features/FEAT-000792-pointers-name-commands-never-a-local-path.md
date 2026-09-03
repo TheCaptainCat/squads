@@ -142,24 +142,10 @@ detection, and the invariant wording. It does not re-do presence.
 
 _Add with `sq feature 792 add-story "As a <role>, I want … so that …"`; track with `sq feature 792 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Drop squad_path from all four pointer/entry templates |
-| US2 | Done |  | Slug-bound startup commands and the definition-fetch command |
-| US3 | Done |  | Five per-host questions on the AgentBackend ABC |
-| US4 | Done |  | Currency detection for per-entry pointers |
-| US5 | Done |  | Reword invariant 5 to state the containment rule |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Drop squad_path from all four pointer/entry templates
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 All four pointer/entry templates lose `squad_path`: `pointer_agent.md.j2` and
@@ -179,10 +165,6 @@ runner.
 
 <!-- sq:story:US2 -->
 ### US2 — Slug-bound startup commands and the definition-fetch command
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 The Claude Code agent and skill pointers gain, in place of the dropped path: the slug-bound
@@ -205,10 +187,6 @@ decides frontmatter contents: `name`/`description`/`model`/`color`/`disallowedTo
 
 <!-- sq:story:US3 -->
 ### US3 — Five per-host questions on the AgentBackend ABC
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 `AgentBackend`'s ABC declares the five per-host questions ADR-781 §2d states, each phrased so a
@@ -233,10 +211,6 @@ with — rather than as an unexplained asymmetry with the Claude Code backend.
 <!-- sq:story:US4 -->
 ### US4 — Currency detection for per-entry pointers
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 Currency joins presence (already shipped by BUG-784) as the second half of pointer detection:
 `sq check` renders a fresh copy of each declared live per-entry artifact and compares it byte-for-
@@ -259,10 +233,6 @@ regenerated for a currency fix, the same shape BUG-784 already established for a
 
 <!-- sq:story:US5 -->
 ### US5 — Reword invariant 5 to state the containment rule
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 CLAUDE.md's invariant 5 is reworded at its template source (`claude/claude_section.md.j2`, not the

@@ -62,9 +62,6 @@ Implements FEAT-100 (release/packaging, spans US1–US3). Addresses ADR-427.
 
 _Add with `sq task 433 add-subtask "<title>"`; track with `sq task 433 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

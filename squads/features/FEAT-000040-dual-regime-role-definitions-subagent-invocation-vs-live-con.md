@@ -79,22 +79,10 @@ fixing the upstream wording first means forks inherit the distinction instead of
 
 _Add with `sq feature 40 add-story "As a <role>, I want … so that …"`; track with `sq feature 40 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Role tells spawned agent exactly what to record before returning |
-| US2 | Done |  | Live-regime role: record decisions separately from signalling handoffs |
-| US3 | Done |  | Every inbox @mention is a real, current call-to-action |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Role tells spawned agent exactly what to record before returning
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates.
@@ -109,10 +97,6 @@ As an agent spawned for a job, I want my role to tell me exactly what must be on
 <!-- sq:story:US2 -->
 ### US2 — Live-regime role: record decisions separately from signalling handoffs
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox.
 <!-- sq:story:US2:body:end -->
@@ -125,10 +109,6 @@ As an agent working live with the operator, I want agreements that separate reco
 
 <!-- sq:story:US3 -->
 ### US3 — Every inbox @mention is a real, current call-to-action
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue.

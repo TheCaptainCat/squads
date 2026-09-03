@@ -47,9 +47,6 @@ Follow-up to FEAT-377 (which added the diagrams in 0.9.0).
 
 _Add with `sq task 435 add-subtask "<title>"`; track with `sq task 435 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

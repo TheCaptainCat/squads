@@ -26,21 +26,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 641 add-finding "…" --severity medium`; track with `sq review 641 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | add-sub with unknown kind crashes the validate pre-pass |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — add-sub with unknown kind crashes the validate pre-pass
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 A generic `add-sub` event naming an unknown sub-entity `kind` (with no `fields`) raises an uncaught `KeyError` during the validate pre-pass, aborting the whole import instead of being collected as an ImportIssue on that line.

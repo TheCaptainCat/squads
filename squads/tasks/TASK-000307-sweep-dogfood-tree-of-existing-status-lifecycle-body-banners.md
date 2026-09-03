@@ -38,23 +38,10 @@ For each flagged body/`description:`: remove the leading status/lifecycle banner
 
 _Add with `sq task 307 add-subtask "<title>"`; track with `sq task 307 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Enumerate + clean flagged item bodies via the guard | US1 |
-| ST2 | Done |  | Verify markers/frontmatter intact after the sweep | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Enumerate + clean flagged item bodies via the guard
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US1 — The tracker's status is never contradicted by body prose
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Run `sq check` over the live squads/ tree and collect every warn from the new banner rule. For each flagged item, remove the leading banner from the body/description and, where the state is worth keeping, move it to a dated discussion comment via `sq … comment` (never back into the body). Edit only through `sq … body -m` — never hand-edit the .md. Re-run until the rule reports zero warnings. Done when the sweep is complete and the guard is silent across squads/.
@@ -68,11 +55,6 @@ Run `sq check` over the live squads/ tree and collect every warn from the new ba
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Verify markers/frontmatter intact after the sweep
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — The tracker's status is never contradicted by body prose
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 After the sweep, confirm every edited item still parses: valid YAML frontmatter, intact sq: markers, and frontmatter `status:` unchanged (only body/description prose moved). Spot-check the known offenders (the once-`STATUS: Proposed` ADR, any `BLOCKED ON …`/`## Status` self-declarations). Done when all touched items are structurally intact and the board's status fields are untouched.

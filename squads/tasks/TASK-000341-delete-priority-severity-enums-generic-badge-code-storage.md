@@ -112,22 +112,10 @@ if this task touches them, freeze, never track the live collections.
 
 _Add with `sq task 341 add-subtask "<title>"`; track with `sq task 341 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Delete enums/*_EMOJI/DEFAULT_SEVERITY/severity_field; fields_for severity lookup | US1 |
-| ST2 | Todo |  | Generic storage: badge code only, bug severity -> top-level, render fallback | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Delete enums/*_EMOJI/DEFAULT_SEVERITY/severity_field; fields_for severity lookup
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Priority/severity become spec badge collections
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Delete Priority/Severity/*_EMOJI/DEFAULT_SEVERITY from _enums.py and severity_field/item_has_severity from _workflow; flip all annotations to str; 'carries severity' becomes fields_for(t) has code 'severity'.
@@ -141,11 +129,6 @@ Delete Priority/Severity/*_EMOJI/DEFAULT_SEVERITY from _enums.py and severity_fi
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Generic storage: badge code only, bug severity -> top-level, render fallback
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Priority/severity become spec badge collections
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Store only the badge code per field; add top-level Item.severity written to frontmatter; from_frontmatter tolerantly reads legacy extra[X.SEVERITY]; load-boundary backfill + badge-code validation; render resolves label/emoji from the spec with raw-code fallback.

@@ -94,22 +94,10 @@ change to be justified, not absorbed.
 
 _Add with `sq task 233 add-subtask "<title>"`; track with `sq task 233 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add capability flags to TypeSpec/StatusSpec + encode in default_workflow.toml | US2 |
-| ST2 | Done |  | extra=forbid + model_validate hardening; characterization tests pin 22 checks | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add capability flags to TypeSpec/StatusSpec + encode in default_workflow.toml
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a maintainer, I want engine spine checks replaced by TypeSpec flags so custom types can declare their own semantics
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers adding the additive capability-flag surface to the workflow spec models (ADR-232 §2) and encoding their values in `default_workflow.toml` for all 10 types: `TypeSpec` gains `is_meta`, `subentity_kind`, `severity_field`, `parent_required`, and `ref_rules` (with a new `RefRule` model); `StatusSpec` gains `role` (the semantic-status marker, e.g. `"superseded"`). The bundled default sets every flag to reproduce today's behavior exactly (is_meta on role/skill/operator, subentity_kind on feature/task/review, severity_field on bug, parent_required on task, ref_rules for task+decision, StatusSpec.role on Superseded) — flags are NOT yet consumed by the engine. (US2)
@@ -123,11 +111,6 @@ Covers adding the additive capability-flag surface to the workflow spec models (
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — extra=forbid + model_validate hardening; characterization tests pin 22 checks
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a maintainer, I want engine spine checks replaced by TypeSpec flags so custom types can declare their own semantics
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the fail-closed hardening + the characterization safety net (ADR-232 §5/§6): add `ConfigDict(extra="forbid")` to every workflow spec model and route the loader through `model_validate(...)` (folding in the FEAT-209/ADR-214 gap), with a test that a typo'd TOML key is rejected. Lands the characterization tests pinning the current behavior of all 22 `is ItemType.X`/`is Status.X` identity checks (meta-type handling, skill-prefix rule, task→feature parent, sub-entity-kind, bug severity row, the Superseded warning, etc.) so TASK-234's reification is proven equivalent, not assumed. (US2)

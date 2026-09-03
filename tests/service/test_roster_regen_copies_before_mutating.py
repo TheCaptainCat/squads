@@ -37,12 +37,12 @@ async def _make_role_stale(svc, role_id: str, key: str) -> None:
 
 async def test_sync_never_mutates_an_item_a_caller_is_still_holding_from_list_items(project):
     svc = service.Service(project)
-    await _make_role_stale(svc, "ROLE-1", X.AGREEMENTS)
+    await _make_role_stale(svc, "ROLE-1", X.SLUG)
 
     with read_scope():
         before = await svc.list_items(item_type=ROSTER_ROLE)
         held = next(it for it in before if it.id == "ROLE-1")
-        assert X.AGREEMENTS not in held.extra  # sanity: genuinely stale within this scope
+        assert X.SLUG not in held.extra  # sanity: genuinely stale within this scope
 
         skipped = await svc.sync()
         assert not skipped, skipped
@@ -50,26 +50,26 @@ async def test_sync_never_mutates_an_item_a_caller_is_still_holding_from_list_it
         # The object this test is still holding — handed out by list_items before sync ran —
         # must be exactly as it was. If sync mutated the snapshot's own alias in place (the
         # bug the copy fixes), this would now carry the merged field.
-        assert X.AGREEMENTS not in held.extra
+        assert X.SLUG not in held.extra
 
     # The commit itself is real: a fresh read (a new Service, no scope) sees the field
     # restored, so the copy is locality-only and changes no observable behaviour.
     refreshed = await service.Service(project).get("ROLE-1")
-    assert X.AGREEMENTS in refreshed.extra
+    assert X.SLUG in refreshed.extra
 
 
 async def test_sync_output_and_frontmatter_are_unchanged_by_the_copy(project):
     """The copy is locality, not a behaviour change: ``sync`` still reports the same skip
     messages and still writes the same merged frontmatter, scope or no scope."""
     svc = service.Service(project)
-    await _make_role_stale(svc, "ROLE-1", X.AGREEMENTS)
+    await _make_role_stale(svc, "ROLE-1", X.SLUG)
 
     scoped_svc = service.Service(project)
     with read_scope():
         scoped_skipped = await scoped_svc.sync()
     scoped_extra = (await service.Service(project).get("ROLE-1")).extra
 
-    await _make_role_stale(svc, "ROLE-1", X.AGREEMENTS)
+    await _make_role_stale(svc, "ROLE-1", X.SLUG)
     unscoped_skipped = await service.Service(project).sync()
     unscoped_extra = (await service.Service(project).get("ROLE-1")).extra
 

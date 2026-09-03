@@ -44,21 +44,10 @@ Sequence after TASK-82 (needs the new `check`/sub-entity shapes) and ideally aft
 
 _Add with `sq task 84 add-subtask "<title>"`; track with `sq task 84 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Golden files freezing every --json shape | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Golden files freezing every --json shape
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a tool builder, I want the JSON shapes frozen by tests, so that an sq upgrade can't break my parser unannounced
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Introduce a golden-file/snapshot harness (fixtures dir of expected JSON per command + a CliRunner helper comparing parsed JSON against the golden, with an UPDATE_GOLDENS regenerate path) and pin every --json emitter: list/tree/inbox/search/blocked/workload/mine/root show, item show, item refs, create, plus TASK-82's new check and sub-entity list shapes. Determinism via frozen time, a fixed id-counter seed, and pinned dev-name pool so goldens are byte-stable; a shape change becomes a reviewed fixture diff (US3).

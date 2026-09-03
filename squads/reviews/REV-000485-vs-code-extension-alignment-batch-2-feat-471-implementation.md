@@ -81,23 +81,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 485 add-finding "…" --severity medium`; track with `sq review 485 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | Stale comment: collections vocab now IS surfaced (preview head) |
-| F2 | 🟢 low | WontFix |  | F17 watcher glue has no unit test (only resolveSquadDir is covered) |
-| F3 | 🟢 low | Verified |  | MarkdownString tooltip: assignee not markdown-escaped |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Stale comment: collections vocab now IS surfaced (preview head)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 clients/vscode/src/domain/previewDocument.ts::buildSubEntityHeadLine — the doc comment states the sub-entity head shows raw severity codes because "no machine surface exposes that vocabulary to the client yet". That is now stale: this same batch (TASK-450-lineage / ADR-474 Part A) shipped `sq workflow collections --json`, so the vocabulary IS surfaced. The raw-code head is still acceptable per F15 (which only requires the head line), but the justification is factually wrong and masks a deliberate inconsistency: the tree tooltip (F19) renders real glyphs via the collections catalog while the preview head does not. Fix: correct the comment (the preview simply doesn't fetch/join the catalog here), or — as a follow-up enhancement, not required by F15 — plumb the resolved badges into the preview head for parity with the hover. Non-blocking.
@@ -114,11 +101,6 @@ clients/vscode/src/domain/previewDocument.ts::buildSubEntityHeadLine — the doc
 <!-- sq:finding:F2 -->
 ### F2 — F17 watcher glue has no unit test (only resolveSquadDir is covered)
 
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 clients/vscode/src/squadWatcher.ts (F17/TASK-477) — the pure resolution helpers (resolveSquadDir/parseSquadDirKey/findSquadConfig in domain/squadDir.ts) are unit-tested, but watchSquadIndex itself is not: the non-file-scheme no-op, the unresolved-squad-dir no-op, and the 150ms debounce coalescing (create+change burst -> one refresh) have no coverage. This is consistent with the project's testing boundary — vscode-API-bound glue (treeItemRendering.ts, the providers, itemPreviewManager) is not vitest-covered and the extension-host suite doesn't exercise it either — so it is not a regression in discipline. Flagged low because the debounce/no-op branches are non-trivial logic that could be extracted behind the injectable env (as squadDir already is) and unit-tested. Non-blocking.
 <!-- sq:finding:F2:body:end -->
@@ -133,11 +115,6 @@ clients/vscode/src/squadWatcher.ts (F17/TASK-477) — the pure resolution helper
 
 <!-- sq:finding:F3 -->
 ### F3 — MarkdownString tooltip: assignee not markdown-escaped
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 clients/vscode/src/treeItemRendering.ts::toTreeItem now wraps the tooltip in `new vscode.MarkdownString(node.tooltip)` (F19) so badge glyphs render on their own line. buildTooltip (domain/displayNode.ts) interpolates the assignee display name unescaped, so a name containing markdown metacharacters (_ * `) would render as emphasis/code in the tooltip. Not a security issue — MarkdownString.isTrusted defaults false, so no command-link injection — but it is an escaping inconsistency versus the preview, which escapes all interpolated fields. Field/badge/status text is spec-controlled and safe; assignee is the only user-derived line. Fix: markdown-escape the interpolated values (or at least assignee) before joining. Low/nit.

@@ -90,21 +90,10 @@ plus the missing-extra failure path). Add one subtask mapped `--story US1`.
 
 _Add with `sq task 517 add-subtask "<title>"`; track with `sq task 517 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Launchable, cleanly-quitting sq ui shell + missing-extra guard | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Launchable, cleanly-quitting sq ui shell + missing-extra guard
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Launch and quit cleanly
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add the tui extra (floor-pinned Textual), the squads/_tui package with a minimal full-screen App (quit binding + placeholder), and the plain-sync sq ui command in _cli/_ui.py that resolves the squad, runs the missing-extra guard (ModuleNotFoundError -> SquadsError install hint), and calls App.run() outside anyio.run. Done: sq ui launches/quits cleanly, missing-extra prints a clean one-line error + exit 1, sq --help unaffected.

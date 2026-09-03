@@ -80,22 +80,10 @@ Also interacts with FEAT-178 (skill ID allocation for new managed types).
 
 _Add with `sq feature 210 add-story "As a <role>, I want … so that …"`; track with `sq feature 210 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML |
-| US2 | Done |  | As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet |
-| US3 | Done |  | AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a project admin, I want sq <my-type> create/list/show/update to work for a type I defined in TOML
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a project admin, I want `sq <my-type> create`, `sq <my-type> show`, `sq <my-type> list`, `sq <my-type> update`, and related commands to work for any type I declared in `.overrides/workflow.toml`, so that my team can track custom-vocabulary items with the same CLI they use for built-in types.
@@ -112,10 +100,6 @@ As a project admin, I want `sq <my-type> create`, `sq <my-type> show`, `sq <my-t
 <!-- sq:story:US2 -->
 ### US2 — As a project admin, I want sq workflow to show my custom type and its lifecycle in the team cheatsheet
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a project admin, I want `sq workflow` to render a live cheatsheet that includes my custom types and their state machine lifecycles, so the team always sees the current vocabulary.
 
@@ -130,10 +114,6 @@ As a project admin, I want `sq workflow` to render a live cheatsheet that includ
 
 <!-- sq:story:US3 -->
 ### US3 — AI agents learn custom vocab from the squads skill and AGENTS.md after sq sync
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As an AI agent working in a squad with custom types, I want the AGENTS.md workflow section and my `squads` skill to reflect the custom vocabulary after `sq sync`, so I know what types and lifecycles are available without reading the TOML directly.

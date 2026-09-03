@@ -72,23 +72,10 @@ leaves the enum-deletion task inheriting `str`-keyed consumers.
 
 _Add with `sq task 329 add-subtask "<title>"`; track with `sq task 329 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Playbook keyed by str; coverage over work_types(); thin auto-skill fallback | US3 |
-| ST2 | Done |  | CLI registers all spec.items types dynamically in deterministic order | US3 |
-| ST3 | Done |  | SUBENTITY_* + sq check subtask literal rederive from spec | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Playbook keyed by str; coverage over work_types(); thin auto-skill fallback
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Playbook + CLI register types generically
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Key the playbook by str and delete the ItemType(name) coercion in _interactions/_loader.py. _check_coverage requires a playbook entry only for each spec.work_types() entry; a work type with no bundled entry falls back to a thin auto-generated sq-<type> skill rather than failing coverage.
@@ -103,11 +90,6 @@ Key the playbook by str and delete the ItemType(name) coercion in _interactions/
 <!-- sq:subtask:ST2 -->
 ### ST2 — CLI registers all spec.items types dynamically in deterministic order
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Playbook + CLI register types generically
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Register per-type command groups for all spec.items entries dynamically in _cli/__init__.py and _cli/_create.py; remove the _builtin_work_type_names/_ORDERED_WORK_TYPES static branch and the hardcoded work-type tuple. Derive registration order from a documented deterministic spec order, not implicit TOML insertion order.
 <!-- sq:subtask:ST2:body:end -->
@@ -120,11 +102,6 @@ Register per-type command groups for all spec.items entries dynamically in _cli/
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — SUBENTITY_* + sq check subtask literal rederive from spec
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Playbook + CLI register types generically
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Rederive the SUBENTITY_* kind-to-type maps in _services/_base.py from the spec's per-type subentity_kind, and route sq check's residual 'subtask' literal through the spec so a dropped or renamed type cleanly loses its sub-entity checks instead of silently keeping them.

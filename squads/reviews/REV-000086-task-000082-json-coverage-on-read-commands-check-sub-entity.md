@@ -49,22 +49,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 86 add-finding "…" --severity high`; track with `sq review 86 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | JSON show shapes use 'file' for the path; sibling --json surfaces use 'path' |
-| F2 | 🟡 medium | Verified |  | check table path still exits 1 on errors while check --json exits 3 — same command, divergent exit codes |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — JSON show shapes use 'file' for the path; sibling --json surfaces use 'path'
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The new role/skill/operator `show --json` shapes expose the markdown file path as "file" (`{"file": it.path}`).
@@ -84,11 +72,6 @@ Medium, not high: behaviour is correct; this is contract-naming hygiene. But it 
 
 <!-- sq:finding:F2 -->
 ### F2 — check table path still exits 1 on errors while check --json exits 3 — same command, divergent exit codes
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 `sq check --json` correctly emits the issue array then `raise typer.Exit(3)` when any error-level issue exists, exactly as the task ruled. The warnings-only and clean cases exit 0. That part is right.

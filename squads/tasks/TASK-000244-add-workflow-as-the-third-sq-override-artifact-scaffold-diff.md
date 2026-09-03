@@ -72,21 +72,10 @@ lint/check tasks. The `_overrides` work is independent of the validation core.
 
 _Add with `sq task 244 add-subtask "<title>"`; track with `sq task 244 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | workflow as third sq override artifact (scaffold/diff/drift) | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — workflow as third sq override artifact (scaffold/diff/drift)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Project admin can add custom types and statuses via .squads.toml
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers making the workflow spec the third overridable artifact in the `_overrides/` + `sq override` machinery, alongside templates and roles (kind "workflow"). `sq override scaffold workflow` writes a stamped starter `.overrides/workflow.toml` (the canonical path TASK-239's loader reads) with a `# squads:override-base:<version>` stamp + a commented worked example — not a full copy, since additive-only means the override holds only the team's additions. `diff workflow` shows the team's additions (Δ-mine vs an empty reference), `list`/`scan_overrides` reports its kind/stamp/state, `update` re-stamps, and `check_override_issues` flags drift/unstamped consistent with roles. CLI accepts `workflow` as a scaffold/diff/update target. (US1)

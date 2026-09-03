@@ -24,21 +24,10 @@ SRC WAVE. Scope: the structural comments in the three bundled package-data TOMLs
 
 _Add with `sq task 310 add-subtask "<title>"`; track with `sq task 310 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Strip refs from TOML structural comments | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Strip refs from TOML structural comments
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Code comments carry no squad-item references
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Stripped squad-item refs from the structural comments in default_workflow.toml, roles.toml, and playbook.toml (ADR-000214/ADR-000221/ADR-000226/ADR-000232 citations removed, reworded to plain descriptions). Data/keys untouched; the --story US1 CLI-syntax example line in playbook.toml is a legitimate illustrative payload and was left as-is. Files still parse; full suite green.

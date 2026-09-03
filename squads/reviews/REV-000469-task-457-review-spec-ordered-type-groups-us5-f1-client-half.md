@@ -46,21 +46,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 469 add-finding "…" --severity medium`; track with `sq review 469 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | sortTypesByOrder exported but used only by tests, not production source |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sortTypesByOrder exported but used only by tests, not production source
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 domain/typeOrder.ts exports sortTypesByOrder(types, orderMap), but production source never calls it — listView.ts and treeMapping.ts both sort inline with .sort((a, b) => compareTypesByOrder(orderMap, a, b)). Only test/typeOrder.test.ts uses the wrapper. It is a thin, correct helper (delegates to the comparator under test), so this is purely a hygiene note: either route the two inline sorts through sortTypesByOrder to DRY the pattern, or drop the export. Non-blocking; does not affect behaviour or the gate.

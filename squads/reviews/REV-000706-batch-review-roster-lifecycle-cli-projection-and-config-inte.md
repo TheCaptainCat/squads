@@ -176,42 +176,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 706 add-finding "…" --severity medium`; track with `sq review 706 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | Reactivation regenerates an incomplete role pointer |
-| F2 | 🟠 high | Verified |  | C2 names a remedy no command can perform |
-| F3 | 🟠 high | Verified |  | Changelog omits retirement's two biggest effects |
-| F4 | 🟡 medium | Verified |  | Always-on floor is a hand-maintained list |
-| F5 | 🟡 medium | Verified |  | C2 and C3 refuse in a squad with no active backend |
-| F6 | 🟢 low | Verified |  | Build-process narration and stale prose in shipped source |
-| F7 | 🟢 low | Verified |  | A second status-transition seam is ungated |
-| F8 | 🟢 low | Verified |  | Participation gate reports a retired slug as unknown |
-| F9 | 🟢 low | Verified |  | Operator exemption severs before it exempts |
-| F10 | 🔴 critical | Verified |  | Gate refuses transitions it did not cause |
-| F11 | 🟠 high | Verified |  | Unlink severs edges the refusal never enumerated |
-| F12 | 🟢 low | Verified |  | C3 tier 2 masks a co-existing tier 1 dependency |
-| F13 | 🔵 info | Open |  | Improvements: duplication, dead parameter, docs, attribution |
-| F14 | 🟠 high | Verified |  | Delta compares whole findings, so a shrinking violation reads as new |
-| F15 | 🟡 medium | Verified |  | Scoped-edge remedy is reused on a reactivation, where --unlink is refused |
-| F16 | 🟢 low | Verified |  | Meaningless-unlink message asserts the target is live when it is not |
-| F17 | 🟢 low | Verified |  | Nothing reports a two-holder default designation |
-| F18 | 🟢 low | Verified |  | ADR-697 section 9 still says the designation verb is owed |
-| F19 | 🔵 info | Verified |  | Judgement: unlink help text carries engine vocabulary |
-| F20 | 🟢 low | Open |  | Validator docstring records the rationale the ADR withdrew |
-| F21 | 🟢 low | Fixed |  | This repo's own squads skill still says eight ref kinds |
-| F22 | 🔵 info | Open |  | Simplification: the stored scoped-edge remedy is the exception, not the rule |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Reactivation regenerates an incomplete role pointer
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Defect — rank 2 of 12.**
@@ -271,11 +239,6 @@ cost (see F13).
 <!-- sq:finding:F2 -->
 ### F2 — C2 names a remedy no command can perform
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Defect — rank 4 of 12.**
 
@@ -327,11 +290,6 @@ message. Proper fix: add the verb that owns the designation, and amend §9 to st
 
 <!-- sq:finding:F3 -->
 ### F3 — Changelog omits retirement's two biggest effects
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **Defect — rank 5 of 12.** Adopter-facing surface.
@@ -386,11 +344,6 @@ drop or qualify "`--force` included".
 
 <!-- sq:finding:F4 -->
 ### F4 — Always-on floor is a hand-maintained list
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 **Defect — rank 6 of 12.**
@@ -448,11 +401,6 @@ express.
 <!-- sq:finding:F5 -->
 ### F5 — C2 and C3 refuse in a squad with no active backend
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **Defect — rank 7 of 12.**
 
@@ -507,11 +455,6 @@ conditioned on an active backend, not just C1.
 <!-- sq:finding:F6 -->
 ### F6 — Build-process narration and stale prose in shipped source
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 **Defect — rank 8 of 12.** Shipped-source prose.
 
@@ -556,11 +499,6 @@ sequencing accident. Restate the durable reason and delete the rest.
 <!-- sq:finding:F7 -->
 ### F7 — A second status-transition seam is ungated
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 **Defect — rank 9 of 12.** Latent, not currently reachable.
 
@@ -597,11 +535,6 @@ that no roster item's status can change through any path that does not call `ret
 
 <!-- sq:finding:F8 -->
 ### F8 — Participation gate reports a retired slug as unknown
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **Defect — rank 10 of 12.** Message quality.
@@ -642,11 +575,6 @@ Active`"). The full-roster lookup needed to detect it is already one call away.
 
 <!-- sq:finding:F9 -->
 ### F9 — Operator exemption severs before it exempts
-
-<!-- sq:finding:F9:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
 **Defect — rank 11 of 12.**
@@ -693,11 +621,6 @@ site in `_set_status_model`.
 
 <!-- sq:finding:F10 -->
 ### F10 — Gate refuses transitions it did not cause
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟢 Verified
-**Severity:** 🔴 Critical
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 **Defect — rank 1 of 12.**
@@ -783,11 +706,6 @@ an unrelated reason — the operator branch returns before `check_all` runs at a
 <!-- sq:finding:F11 -->
 ### F11 — Unlink severs edges the refusal never enumerated
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 **Defect — rank 3 of 12.**
 
@@ -847,11 +765,6 @@ uses a skill with exactly one scopes edge, so over-severance cannot show.
 <!-- sq:finding:F12 -->
 ### F12 — C3 tier 2 masks a co-existing tier 1 dependency
 
-<!-- sq:finding:F12:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F12:head:end -->
-
 <!-- sq:finding:F12:body -->
 **Defect — rank 12 of 12.**
 
@@ -890,11 +803,6 @@ finding. `check_all`'s list shape already supports several findings per entry.
 
 <!-- sq:finding:F13 -->
 ### F13 — Improvements: duplication, dead parameter, docs, attribution
-
-<!-- sq:finding:F13:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F13:head:end -->
 
 <!-- sq:finding:F13:body -->
 **Improvements, not defects.** Nothing here is wrong; each is something I would change if the
@@ -954,11 +862,6 @@ deliberately rather than inheriting, given `--unlink` mutates entities the opera
 
 <!-- sq:finding:F14 -->
 ### F14 — Delta compares whole findings, so a shrinking violation reads as new
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 **Defect — the one blocker of this round.** Residual of F10, in the fix rather than the original.
@@ -1052,11 +955,6 @@ correctly refused today — see F15 for the message problem that case exposes).
 <!-- sq:finding:F15 -->
 ### F15 — Scoped-edge remedy is reused on a reactivation, where --unlink is refused
 
-<!-- sq:finding:F15:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F15:head:end -->
-
 <!-- sq:finding:F15:body -->
 **Defect.** Message correctness, exposed by the delta fix rather than caused by it.
 
@@ -1120,11 +1018,6 @@ the current text mentions it.
 <!-- sq:finding:F16 -->
 ### F16 — Meaningless-unlink message asserts the target is live when it is not
 
-<!-- sq:finding:F16:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F16:head:end -->
-
 <!-- sq:finding:F16:body -->
 **Defect.** Introduced by F9's fix.
 
@@ -1178,11 +1071,6 @@ and let the two cases share it: `--unlink only applies to a retirement; {item.id
 
 <!-- sq:finding:F17 -->
 ### F17 — Nothing reports a two-holder default designation
-
-<!-- sq:finding:F17:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F17:head:end -->
 
 <!-- sq:finding:F17:body -->
 **Defect.** A gap the new verb's own design identifies and nothing reports.
@@ -1253,11 +1141,6 @@ that exists, unlike the one the withdrawn clause offered. The predicate is two l
 <!-- sq:finding:F18 -->
 ### F18 — ADR-697 section 9 still says the designation verb is owed
 
-<!-- sq:finding:F18:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F18:head:end -->
-
 <!-- sq:finding:F18:body -->
 **Defect.** The ADR, not the code — recorded because the ADR is the standard the code is measured
 against, and it now describes a future that has arrived.
@@ -1308,11 +1191,6 @@ the two quoted sentences restated in the present tense, and the consequences lin
 
 <!-- sq:finding:F19 -->
 ### F19 — Judgement: unlink help text carries engine vocabulary
-
-<!-- sq:finding:F19:head -->
-**Status:** 🟢 Verified
-**Severity:** 🔵 Info
-<!-- sq:finding:F19:head:end -->
 
 <!-- sq:finding:F19:body -->
 **Judgement call, referred by the coordinator. My call: it does not block approval. Follow-up, not
@@ -1379,11 +1257,6 @@ instead of overriding it. Error on a transition that is not a retirement."*
 
 <!-- sq:finding:F20 -->
 ### F20 — Validator docstring records the rationale the ADR withdrew
-
-<!-- sq:finding:F20:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F20:head:end -->
 
 <!-- sq:finding:F20:body -->
 **Defect — documentation, in code.** The behaviour is right; the reason recorded next to it is the
@@ -1452,11 +1325,6 @@ sentence entirely rather than qualifying it.
 <!-- sq:finding:F21 -->
 ### F21 — This repo's own squads skill still says eight ref kinds
 
-<!-- sq:finding:F21:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F21:head:end -->
-
 <!-- sq:finding:F21:body -->
 **Defect — release hygiene in this repo, not in the shipped tool.**
 
@@ -1517,11 +1385,6 @@ this batch touched.
 
 <!-- sq:finding:F22 -->
 ### F22 — Simplification: the stored scoped-edge remedy is the exception, not the rule
-
-<!-- sq:finding:F22:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F22:head:end -->
 
 <!-- sq:finding:F22:body -->
 **Improvement, offered because simplification was put on the table.** Behaviour is correct; this is

@@ -19,9 +19,6 @@ A generic, first-class **link** concept between items — richer than today's ty
 
 _Add with `sq feature 566 add-story "As a <role>, I want … so that …"`; track with `sq feature 566 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

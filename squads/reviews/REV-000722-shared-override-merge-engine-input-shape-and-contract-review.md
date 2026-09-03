@@ -149,34 +149,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 722 add-finding "…" --severity medium`; track with `sq review 722 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | selected on a non-table section silently drops nothing |
-| F2 | 🟡 medium | WontFix |  | Splice type mismatch is never detected |
-| F3 | 🟡 medium | Fixed |  | Out-of-grammar splat path reports the wrong reason |
-| F4 | 🟢 low | Fixed |  | Splat tokens in key positions are never scanned |
-| F5 | 🟢 low | Fixed |  | Token regex accepts a trailing newline |
-| F6 | 🟢 low | Fixed |  | Deep override nesting raises RecursionError |
-| F7 | 🟢 low | Fixed |  | apply_selected misstates its return contract |
-| F8 | 🟢 low | Fixed |  | deep_merge overclaims independence from the override |
-| F9 | 🟢 low | Fixed |  | Nested-list star-self resolves against the outer key |
-| F10 | 🟢 low | Fixed |  | Suite pins mechanisms, not pipeline invariants |
-| F11 | 🟡 medium | Fixed |  | The engine's own selected key is refused by its top-level check |
-| F12 | 🟢 low | Fixed |  | The closed top-level key space defaults to no check at all |
-| F13 | 🔵 info | WontFix |  | One structural fault is reported two or three times |
-| F14 | 🔵 info | Fixed |  | A leading literal double-dollar sigil cannot be written |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — selected on a non-table section silently drops nothing
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Reproduced.**
@@ -229,11 +205,6 @@ the loader-agnostic boundary.
 <!-- sq:finding:F2 -->
 ### F2 — Splice type mismatch is never detected
 
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Reproduced.**
 
@@ -285,11 +256,6 @@ fail-closed case with no code and no note is the part that needs closing.
 
 <!-- sq:finding:F3 -->
 ### F3 — Out-of-grammar splat path reports the wrong reason
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **Reproduced.**
@@ -359,11 +325,6 @@ separate finding — but the same widening should account for it.
 <!-- sq:finding:F4 -->
 ### F4 — Splat tokens in key positions are never scanned
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **Reproduced.**
 
@@ -409,11 +370,6 @@ state is neither.
 <!-- sq:finding:F5 -->
 ### F5 — Token regex accepts a trailing newline
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **Reproduced.**
 
@@ -449,11 +405,6 @@ suffices for `_parse_token`'s only call sites.
 
 <!-- sq:finding:F6 -->
 ### F6 — Deep override nesting raises RecursionError
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **Reproduced.**
@@ -501,11 +452,6 @@ covering pathological nesting.
 <!-- sq:finding:F7 -->
 ### F7 — apply_selected misstates its return contract
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 **Reproduced.**
 
@@ -547,11 +493,6 @@ at the cost of a slightly noisier signature.
 
 <!-- sq:finding:F8 -->
 ### F8 — deep_merge overclaims independence from the override
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **Reproduced.**
@@ -599,11 +540,6 @@ of a full merge over the real bundled workflow document is ~0.1 ms), or narrow t
 <!-- sq:finding:F9 -->
 ### F9 — Nested-list star-self resolves against the outer key
 
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 **Reproduced.**
 
@@ -649,11 +585,6 @@ explicitly the enclosing key — and add the two pinning tests above either way.
 
 <!-- sq:finding:F10 -->
 ### F10 — Suite pins mechanisms, not pipeline invariants
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 108 tests, all green, and none of them could have found any of the three defects that were
@@ -724,11 +655,6 @@ Recommendation, in priority order:
 <!-- sq:finding:F11 -->
 ### F11 — The engine's own selected key is refused by its top-level check
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 **Reproduced.** In the new closed top-level key space.
 
@@ -785,11 +711,6 @@ implicit is the part that needs closing either way.
 <!-- sq:finding:F12 -->
 ### F12 — The closed top-level key space defaults to no check at all
 
-<!-- sq:finding:F12:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F12:head:end -->
-
 <!-- sq:finding:F12:body -->
 **Reproduced.** An API-shape observation on the new mechanism, not a defect in its logic.
 
@@ -833,11 +754,6 @@ place.
 <!-- sq:finding:F13 -->
 ### F13 — One structural fault is reported two or three times
 
-<!-- sq:finding:F13:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🔵 Info
-<!-- sq:finding:F13:head:end -->
-
 <!-- sq:finding:F13:body -->
 **Reproduced.** Report quality on the collected channel, not correctness.
 
@@ -878,11 +794,6 @@ Neither is worth a fix on its own — worth doing if this code is touched again.
 
 <!-- sq:finding:F14 -->
 ### F14 — A leading literal double-dollar sigil cannot be written
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 **Reproduced.** A documentation obligation, not a code defect — the behaviour follows from the

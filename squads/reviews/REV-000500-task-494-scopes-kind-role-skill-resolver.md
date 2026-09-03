@@ -27,21 +27,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 500 add-finding "…" --severity medium`; track with `sq review 500 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Resolver re-loads the index O(roles) times per sync |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Resolver re-loads the index O(roles) times per sync
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 _services/_base.py: _role_skills_map() calls resolved_skills_for_role() once per role, and each call loads the index twice — once via _role_item(slug) and again via 'db = await self.store.load()'. IndexStore.load() is uncached (full JSON parse + counter-backfill + vocab/badge re-validation on every call), so a full sync / refresh_managed does 1 + 2*N full index parses for N roles.

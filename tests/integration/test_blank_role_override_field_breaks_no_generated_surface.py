@@ -116,7 +116,7 @@ async def test_removing_the_override_and_resyncing_restores_the_real_values(
     """The bug's own closing note: this is a validation gap, not a corruption one. Confirmed
     here rather than only asserted -- the role's real, pre-override values survive untouched."""
     dev = await svc.add_dev("python")
-    real_full_name = dev.extra["full_name"]
+    real_full_name = dev.title
 
     _place_blank_override(project, "python-dev")
     refused = await invoke(["sync"])
@@ -127,4 +127,4 @@ async def test_removing_the_override_and_resyncing_restores_the_real_values(
     assert recovered.exit_code == 0, recovered.output
 
     fm = read_frontmatter(path=project.abspath(dev.path))
-    assert fm["extra"]["full_name"] == real_full_name
+    assert fm["title"] == real_full_name

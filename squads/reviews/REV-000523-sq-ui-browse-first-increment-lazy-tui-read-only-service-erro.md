@@ -91,23 +91,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 523 add-finding "…" --severity medium`; track with `sq review 523 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Missing-extra guard is too broad — masks nested import errors |
-| F2 | 🟡 medium | Fixed |  | tui extra floor pin is unverified and too low for the APIs used |
-| F3 | 🟢 low | Open |  | Glance line hardcodes the priority axis, not spec-generic |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Missing-extra guard is too broad — masks nested import errors
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Concerns: FEAT-513 / ADR-516 (§2, "clean failure when the extra is missing").
@@ -145,11 +132,6 @@ not exercise — and would not catch — the nested-failure misreport.
 <!-- sq:finding:F2 -->
 ### F2 — tui extra floor pin is unverified and too low for the APIs used
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Concerns: ADR-516 (§1, "floor set against the widgets actually used") / FEAT-514.
 
@@ -183,11 +165,6 @@ use, verified against Textual's changelog.
 
 <!-- sq:finding:F3 -->
 ### F3 — Glance line hardcodes the priority axis, not spec-generic
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 Concerns: FEAT-514 (status/priority/assignee at a glance).

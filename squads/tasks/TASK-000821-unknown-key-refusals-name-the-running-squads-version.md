@@ -116,23 +116,10 @@ shape validation. Message content only.
 
 _Add with `sq task 821 add-subtask "<title>"`; track with `sq task 821 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Name the running version in the shared unknown-key message | US4 |
-| ST2 | Done | python-dev | Update every carrier of the old refusal text | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Name the running version in the shared unknown-key message
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US4 — Close the role override top-level key space (align ADR-696 §4b)
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Import `__version__` from `squads` into `_specmerge.py` and fold it into the fix hint built at
@@ -161,12 +148,6 @@ note.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Update every carrier of the old refusal text
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US4 — Close the role override top-level key space (align ADR-696 §4b)
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Find every test, golden and fixture asserting the old message and update it. A grep for

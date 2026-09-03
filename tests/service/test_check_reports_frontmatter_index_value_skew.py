@@ -127,7 +127,7 @@ async def test_a_permanently_exempt_extra_key_is_still_never_reported(svc):
     path = svc.paths.abspath(role.path)
     fm = read_frontmatter(path=path)
     extra = dict(fm["extra"])
-    extra["color"] = "magenta"
+    extra["model"] = "haiku"  # a `PERMITTED_EXTRA_SKEW` member, on a non-dev role
     _edit_frontmatter(path, extra=extra)
 
     issues = await svc.check()

@@ -31,9 +31,6 @@ Implements FEAT-570 US1. Add a `--category roster|work|records` filter dimension
 
 _Add with `sq task 597 add-subtask "<title>"`; track with `sq task 597 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 
