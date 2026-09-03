@@ -3,7 +3,7 @@ id: TASK-803
 sequence_id: 803
 type: task
 title: Per-host backend questions and pointer currency detection
-status: Ready
+status: Done
 parent: FEAT-792
 author: tech-lead
 assignee: python-dev
@@ -17,22 +17,22 @@ description: Declare ADR-781's five per-host questions on the AgentBackend ABC a
 subentities:
 - local_id: ST1
   title: Declare the five per-host questions without growing the abstract seven
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: Both bundled backends answer all five questions explicitly
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST3
   title: sq check compares a fresh render against disk, at two severities
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST4
   title: sq sync reports what it regenerated for a currency fix
-  status: Todo
+  status: Done
   story: US4
 created_at: '2026-08-25T14:42:10Z'
-updated_at: '2026-08-25T14:44:52Z'
+updated_at: '2026-08-26T12:04:48Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -204,10 +204,10 @@ _Add with `sq task 803 add-subtask "<title>"`; track with `sq task 803 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Declare the five per-host questions without growing the abstract seven | US3 |
-| ST2 | Todo |  | Both bundled backends answer all five questions explicitly | US3 |
-| ST3 | Todo |  | sq check compares a fresh render against disk, at two severities | US4 |
-| ST4 | Todo |  | sq sync reports what it regenerated for a currency fix | US4 |
+| ST1 | Done |  | Declare the five per-host questions without growing the abstract seven | US3 |
+| ST2 | Done |  | Both bundled backends answer all five questions explicitly | US3 |
+| ST3 | Done |  | sq check compares a fresh render against disk, at two severities | US4 |
+| ST4 | Done |  | sq sync reports what it regenerated for a currency fix | US4 |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -216,7 +216,7 @@ _Add with `sq task 803 add-subtask "<title>"`; track with `sq task 803 subtask <
 ### ST1 — Declare the five per-host questions without growing the abstract seven
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — Five per-host questions on the AgentBackend ABC
 <!-- sq:subtask:ST1:head:end -->
 
@@ -268,7 +268,7 @@ and that unit test passes unedited.
 ### ST2 — Both bundled backends answer all five questions explicitly
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US3 — Five per-host questions on the AgentBackend ABC
 <!-- sq:subtask:ST2:head:end -->
 
@@ -313,7 +313,7 @@ why the two differ without reading ADR-781.
 ### ST3 — sq check compares a fresh render against disk, at two severities
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US4 — Currency detection for per-entry pointers
 <!-- sq:subtask:ST3:head:end -->
 
@@ -368,7 +368,7 @@ assertion shipped in `383d5e8` still passes unedited.
 ### ST4 — sq sync reports what it regenerated for a currency fix
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 **Implements:** US4 — Currency detection for per-entry pointers
 <!-- sq:subtask:ST4:head:end -->
 
@@ -404,4 +404,20 @@ presence lines are byte-identical to what shipped in `383d5e8`, and
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-08-26T12:00:08Z] Elias Python:
+  - Five questions declared on AgentBackend (docstring + two non-abstract seams): Q1 execute-commands, Q2 expressible-set (model_drop_warning precedent), Q3 irreducible-set, Q4 restriction_fragment(role) -> str|None, Q5 render_role_entry/render_skill_entry(ctx,item,...) -> str|None. Still exactly seven abstractmethods; seven-method test passes unedited.
+  - claude_code answers all five at its class docstring: yes / whole frontmatter surface / name+description / disallowedTools via restriction_fragment / render_*_entry sharing the same render helpers generate_*_entry writes from. agents_md answers all five at its class docstring: not knowably / identity+prose only / not applicable (no per-entry file) / None (no boundary expressed) / None (nothing to render) -- explicit inherited defaults, not silent gaps.
+  - Currency: sq check does a full render-and-compare per live entry at SCAN time (against the already-loaded index, never a second store.load) and only a genuine mismatch becomes a confirm-round candidate -- mirrors how frontmatter value-skew already works, so a clean board pays one read per live entry and nothing else (pinned by test_check_confirms_cross_source_claims.py, which I had to fix an early design against: my first pass built candidates off mere file-existence and doubled the index load on every check).
+  - Never-read-back guard: the comparison lives entirely in _services/_validators.py + _maintenance.py, never inside a backend; a backend only renders on request via render_role_entry/render_skill_entry. Path always comes from managed_entry_paths scoped to one slug (backend_entry_path helper), so the checker never invents a path. tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py passes with no allowlist change.
+  - Severities: restriction_fragment(role) returns "disallowedTools: Agent" iff not can_spawn, else None. A drift is error only when that fragment is expected AND absent from disk (capability escalation); every other drift is warn. Driven live on a scratch squad: removed disallowedTools from a leaf role pointer -> error; hand-edited a skill description -> warn; sq sync fixed both and reported "had drifted" (distinct from presence's "was missing"); sq check clean after.
+  - Retire/reactivate driven live end-to-end on the same scratch squad: sq check stays clean at every step (active, archived, reactivated) -- no false finding on the retired side.
+- [2026-08-26T12:00:18Z] Elias Python:
+  - Currency detection is real: it changed the observable output of sq sync for any pointer that was stale relative to CURRENT squad state, not only hand-edited ones. Fixed 10 pre-existing tests across 4 files (test_roles_catalog_document_reaches_an_activated_role.py, test_frontmatter_skew_guard.py, test_role_projects_resolved_name_and_mission_onto_item_fields.py x7, test_a_role_override_title_reaches_every_generated_roster.py) that asserted "sync produced no report" for scenarios (activate role, then place/apply an override before the first sync) that are genuinely a pointer written stale then first regenerated -- now correctly reported as "had drifted", exactly the class of case this decision exists to surface.
+  - Two pre-existing latent defects this surfaced and left unfixed (out of this task's scope, both proven live via a repro script, not just read): (1) an unrelated item.update() on a role whose index is lagging on a catalog-mirrored key (title/agreements) projects the backend pointer from that STALE in-memory item, briefly writing a blank role title into the pointer until the next sync notices; (2) sync's own skip-and-rollback path on a frontmatter/index skew leaves the item at the rolled-back (stale) values rather than the disk-truthful ones before projecting, so the same sync pass that reports the skew can also regress the pointer to a stale identity for one cycle. Both are pre-existing gaps in _refresh_catalog_extra's skip path, invisible before because nothing ever compared pointer CONTENT. Recommend a bug for the architect/tech-lead to size.
+- [2026-08-26T12:00:24Z] Elias Python:
+  - @architect open question carried, not settled here per this task's instruction: sq role <slug> show still prints mission/responsibilities twice (computed card + stored body) -- ADR-781 names this its own consequence to settle, and TASK-802 made sq role show an agent's primary definition read, which is what turns the duplication from cosmetic into something an agent can act on wrongly. The two named options (drop the overlapping card rows, or render the body from the resolved definition on every show) are unchanged from the decision. Needs a ruling, does not block this task.
+- [2026-08-26T12:02:05Z] Elias Python:
+  - Gates clean: pyright (0 errors), ruff check ., ruff format --check . -- all --all-extras, whole repo. tests/meta: 258 passed. tests/service+cli+unit+integration: 3842 passed, 2 skipped (up from 3834/3824 baseline -- +8 new: my test_backend_entry_currency_detection.py). Did not run the full suite (tests/tui, --run-slow) per instruction -- that is the main loop's gate.
+  - Files touched: src/squads/_backends/_base.py (five questions + restriction_fragment/render_role_entry/render_skill_entry), _claude_code/_backend.py (answers + shared render helpers + _resolve_model pairing fix), _agents_md/_backend.py (answers, no code change -- inherited defaults), _services/_validators.py (backend_entry_path/backend_entry_drift), _services/_maintenance.py (_scan_backend_entry_drift/_confirm_backend_entry_drift_candidates/_entry_content_snapshot/_entry_drift_report), docs/backends.md + docs/stability.md. New test: tests/service/test_backend_entry_currency_detection.py. 10 pre-existing tests updated across 4 files (see prior comment) for the new, correct sync report.
+  - sq check clean on this repo throughout. Moving to InReview.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: FEAT-792
 sequence_id: 792
 type: feature
 title: Pointers name commands, never a local path
-status: Ready
+status: Done
 author: product-owner
 refs:
 - ADR-781:implements
@@ -11,21 +11,21 @@ refs:
 subentities:
 - local_id: US1
   title: Drop squad_path from all four pointer/entry templates
-  status: Todo
+  status: Done
 - local_id: US2
   title: Slug-bound startup commands and the definition-fetch command
-  status: Todo
+  status: Done
 - local_id: US3
   title: Five per-host questions on the AgentBackend ABC
-  status: Todo
+  status: Done
 - local_id: US4
   title: Currency detection for per-entry pointers
-  status: Todo
+  status: Done
 - local_id: US5
   title: Reword invariant 5 to state the containment rule
-  status: Todo
+  status: Done
 created_at: '2026-08-24T18:28:02Z'
-updated_at: '2026-08-25T14:44:54Z'
+updated_at: '2026-08-26T12:05:02Z'
 ---
 <!-- sq:body -->
 ## The problem
@@ -143,11 +143,11 @@ _Add with `sq feature 792 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | Drop squad_path from all four pointer/entry templates |
-| US2 | Todo |  | Slug-bound startup commands and the definition-fetch command |
-| US3 | Todo |  | Five per-host questions on the AgentBackend ABC |
-| US4 | Todo |  | Currency detection for per-entry pointers |
-| US5 | Todo |  | Reword invariant 5 to state the containment rule |
+| US1 | Done |  | Drop squad_path from all four pointer/entry templates |
+| US2 | Done |  | Slug-bound startup commands and the definition-fetch command |
+| US3 | Done |  | Five per-host questions on the AgentBackend ABC |
+| US4 | Done |  | Currency detection for per-entry pointers |
+| US5 | Done |  | Reword invariant 5 to state the containment rule |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -156,7 +156,7 @@ _Add with `sq feature 792 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — Drop squad_path from all four pointer/entry templates
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -179,7 +179,7 @@ runner.
 ### US2 — Slug-bound startup commands and the definition-fetch command
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -205,7 +205,7 @@ decides frontmatter contents: `name`/`description`/`model`/`color`/`disallowedTo
 ### US3 — Five per-host questions on the AgentBackend ABC
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -232,7 +232,7 @@ with — rather than as an unexplained asymmetry with the Claude Code backend.
 ### US4 — Currency detection for per-entry pointers
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
@@ -259,7 +259,7 @@ regenerated for a currency fix, the same shape BUG-784 already established for a
 ### US5 — Reword invariant 5 to state the containment rule
 
 <!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->

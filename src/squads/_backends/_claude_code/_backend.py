@@ -32,8 +32,41 @@ _SKILL_FILE = "SKILL.md"
 _CLAUDE_DIR = ".claude"
 _CLAUDE_MD = "CLAUDE.md"
 
+#: The slug-bound startup command set an agent pointer names, in priority order — the concrete
+#: rendering of the protocol CLAUDE.md's managed section states generically for every agent
+#: (``claude/claude_section.md.j2``'s "Start of a run" section). One declaration, so a command
+#: added here appears on every generated agent pointer with no template edit.
+#: ``{slug}`` is substituted per role by ``_startup_commands``.
+_STARTUP_COMMAND_TEMPLATES: list[str] = [
+    "sq memory {slug} list",
+    "sq memory {slug} show <slug>",
+    "sq board list",
+    "sq mine {slug}",
+    "sq inbox {slug}",
+]
+
+
+def _startup_commands(slug: str) -> list[str]:
+    """The startup command set with *slug* substituted, in declared order."""
+    return [c.format(slug=slug) for c in _STARTUP_COMMAND_TEMPLATES]
+
 
 class ClaudeCodeBackend(AgentBackend):
+    """Question 1: **yes** — a Claude Code agent runs `sq` itself, which is the containment
+    rule's whole premise, so a runtime fetch substitutes for anything that only *supplies*
+    content.
+    Question 2: the expressible set is this backend's whole frontmatter surface — ``name``,
+    ``description``, ``model`` (``_VALID_MODELS``/``model_drop_warning`` below), ``color``,
+    ``disallowedTools``, the resolved ``skills`` list; nothing squads projects onto a role falls
+    outside it today.
+    Question 3: the irreducible set is ``name`` and ``description`` — Claude Code's own
+    discovery contract (a `name`-keyed dispatch identifier plus the selection text read before
+    any agent exists to run anything).
+    Question 4: :meth:`restriction_fragment` — ``disallowedTools``, Claude Code's spelling of
+    the squad's own spawn-tool attenuation.
+    Question 5: :meth:`render_role_entry`/:meth:`render_skill_entry`.
+    """
+
     name = "claude_code"
 
     # ------------------------------------------------------------------ scaffold
@@ -220,7 +253,6 @@ class ClaudeCodeBackend(AgentBackend):
                 "claude/pointer_skill.md.j2",
                 slug=name,
                 description=oneline(description),
-                squad_path=ctx.rel(body_path),
             ),
         )
         return [
@@ -339,45 +371,101 @@ class ClaudeCodeBackend(AgentBackend):
         return out
 
     # ------------------------------------------------------------------ entries
+    @staticmethod
+    def _resolve_model(role: RoleDef) -> tuple[str | None, str | None]:
+        """Pair ``normalize_model`` with ``model_drop_warning`` in one place — every render
+        path (write or pure) resolves a role's model through here, never through the
+        normalizer alone, so a model this host cannot express is never dropped without also
+        computing what would report it (whether or not this particular caller has anywhere to
+        surface that warning)."""
+        return normalize_model(role.model), model_drop_warning(role.slug, role.model)
+
+    def _render_role_pointer(self, ctx: BackendContext, role: RoleDef, *, model: str | None) -> str:
+        """The one place ``pointer_agent.md.j2`` is rendered — shared by
+        :meth:`generate_role_entry` (writes it) and :meth:`render_role_entry` (question 5: the
+        same render, without writing), so the two can never drift onto different content for
+        the same role. *model* is already resolved (:meth:`_resolve_model`) — never normalized
+        again here."""
+        return render(
+            "claude/pointer_agent.md.j2",
+            slug=role.slug,
+            full_name=role.full_name,
+            role_title=role.title,
+            description=oneline(role.description),
+            model=model,
+            color=role.color,
+            startup_commands=_startup_commands(role.slug),
+            skills=ctx.resolved_skills_for(role.slug),
+            can_spawn=role.can_spawn,
+        )
+
     async def generate_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> Artifact:
         pointer = ctx.root / _CLAUDE_DIR / _AGENTS / f"{role.slug}.md"
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
-        await _aio.write_text(
-            pointer,
-            render(
-                "claude/pointer_agent.md.j2",
-                slug=role.slug,
-                full_name=role.full_name,
-                role_title=role.title,
-                description=oneline(role.description),
-                model=normalize_model(role.model),
-                color=role.color,
-                squad_path=ctx.root_relative(item),
-                skills=ctx.resolved_skills_for(role.slug),
-                can_spawn=role.can_spawn,
-            ),
-        )
+        model, warning = self._resolve_model(role)
+        await _aio.write_text(pointer, self._render_role_pointer(ctx, role, model=model))
         # WARN-only, never a refusal: a model this host cannot express is dropped from the
         # rendered pointer, and the artifact is what carries that fact back to the caller.
-        return Artifact(
-            ctx.rel(pointer), "agent", self.name, warning=model_drop_warning(role.slug, role.model)
-        )
+        return Artifact(ctx.rel(pointer), "agent", self.name, warning=warning)
+
+    def _skill_pointer_description(self, ctx: BackendContext, item: Item, slug: str) -> str:
+        """The description :meth:`generate_skill_entry` renders for *slug* — but for a
+        **system** skill (bundled or a per-type ``sq-<type>``, :func:`interactions
+        .is_system_skill`), ``write_managed``'s own compiled-description call
+        (:meth:`_write_managed_skill`/:meth:`_write_item_skills`) is what runs *last* in a full
+        ``sync`` and so is this slug's real current content, not *item*'s own (possibly
+        seed-time-stale — nothing refreshes a ``SKILL`` item's ``description`` the way
+        ``_refresh_catalog_extra`` refreshes a role's) description. :meth:`render_skill_entry`
+        (question 5) must answer with whichever of the two is actually this slug's last writer,
+        or a system skill whose bundled description text moved since it was seeded would read
+        as permanently drifted. An author-defined (non-system) skill has only one writer
+        (:meth:`generate_skill_entry` itself), so its own description is exactly right.
+        """
+        from squads._workflow import bundled_spec
+
+        spec = ctx.spec if ctx.spec is not None else bundled_spec()
+        if interactions.is_system_skill(slug, spec):
+            return interactions.skill_description(slug)
+        return item.extra.get(X.DESCRIPTION) or item.description or item.title
+
+    def _render_skill_pointer(self, slug: str, description: str) -> str:
+        """The one place ``pointer_skill.md.j2`` is rendered for an item-scoped skill entry —
+        shared by :meth:`generate_skill_entry` and :meth:`render_skill_entry`, same rationale
+        as :meth:`_render_role_pointer`. ``_write_managed_skill`` renders the same template
+        directly for the compiled managed skills (squads/greeting/memory/per-type) — that path
+        stays separate since it has no ``Item`` to hand this method, but both calls pass through
+        the identical ``oneline``-normalised template with the same two variables."""
+        return render("claude/pointer_skill.md.j2", slug=slug, description=oneline(description))
 
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
         slug = item.extra.get(X.SLUG, item.slug)
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / slug / _SKILL_FILE
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
         description = item.extra.get(X.DESCRIPTION) or item.description or item.title
-        await _aio.write_text(
-            pointer,
-            render(
-                "claude/pointer_skill.md.j2",
-                slug=slug,
-                description=oneline(description),
-                squad_path=ctx.root_relative(item),
-            ),
-        )
+        await _aio.write_text(pointer, self._render_skill_pointer(slug, description))
         return Artifact(ctx.rel(pointer), "skill_pointer", self.name)
+
+    def restriction_fragment(self, role: RoleDef) -> str | None:
+        """Question 4: ``disallowedTools: Agent`` — the literal line ``pointer_agent.md.j2``
+        renders exactly when ``not role.can_spawn`` (see the template's own ``{% if %}``), or
+        ``None`` when this role currently carries spawn authority and no restriction applies."""
+        return None if role.can_spawn else "disallowedTools: Agent"
+
+    def render_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> str | None:
+        """Question 5 for a role — see :meth:`_render_role_pointer`, the shared render this
+        reuses verbatim. The warning half of :meth:`_resolve_model` is discarded here (not
+        ``_``-bound into unreachable code — this method has no caller with anywhere to report
+        it), never skipped: the pairing itself is what the drop-report guard requires, and a
+        model this host cannot express is still absent from the render either way."""
+        model, _warning = self._resolve_model(role)
+        return self._render_role_pointer(ctx, role, model=model)
+
+    def render_skill_entry(self, ctx: BackendContext, item: Item) -> str | None:
+        """Question 5 for a skill — see :meth:`_render_skill_pointer`/
+        :meth:`_skill_pointer_description`, the shared render and description resolution this
+        reuses verbatim."""
+        slug = item.extra.get(X.SLUG, item.slug)
+        return self._render_skill_pointer(slug, self._skill_pointer_description(ctx, item, slug))
 
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         slug = item.extra.get(X.SLUG, item.slug)

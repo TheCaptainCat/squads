@@ -42,6 +42,66 @@ That is the whole ABC — seven methods, and it does not grow.
 - **`managed_paths`** — the root-relative paths this backend owns, read-only, for `sq check` to
   verify scaffolding is present (a presence check, not a currency/drift check).
 
+Two more methods are non-abstract, with a working default — they don't grow the seven above (a
+subclass implementing only the seven still instantiates), but a bundled backend overrides them to
+answer question 4 and question 5 below:
+
+- **`restriction_fragment(role)`** — pure, synchronous: the exact substring this backend's
+  rendered role entry carries when the role's capability boundary currently applies, or `None`.
+  Used to key `sq check`'s currency severity to the containment rule instead of a hard-coded field
+  name — see "Detection: presence and currency" below.
+- **`render_role_entry`/`render_skill_entry`** — the pure render of what
+  `generate_role_entry`/`generate_skill_entry` would write, without writing it. `None` when this
+  backend has no per-entry file for that kind.
+
+## The five per-host questions
+
+A generated pointer materialises only what its host needs before an agent can act, plus the
+commands that fetch the rest — never a local path, never more state than a containment rule
+allows. That rule is universal: a value belongs in the pointer only when the host consumes it at
+or before spawn **and** a runtime fetch cannot substitute for its effect (it *restricts* or
+*configures* the session, rather than merely *supplying* content). What is **not** universal is
+each host's *answer*, so a new backend answers five questions from its own host's documentation
+alone — no reading of squads internals required:
+
+1. **Can an agent running under this host execute a command at all?** `True`, `False`, or "not
+   knowably" — the normal condition for a backend whose target host's command capability is
+   declared by whoever builds it, not by us.
+2. **Which of the values squads projects does this host's configuration have a place for?** The
+   expressible set. A value squads projects that this host cannot express is reported once, at
+   write time, and dropped — never silently, and never re-validated a second time at storage time
+   (`ClaudeCodeBackend`'s `_VALID_MODELS`/`model_drop_warning` is the worked example for one
+   field).
+3. **Which of those must be present for this host to find and dispatch an entry at all?** The
+   irreducible set, from the host's own discovery contract.
+4. **Which of those constrain what the session may do, rather than configure how it runs?** The
+   capability boundary — `restriction_fragment`.
+5. **What would you write for this entry, without writing it?** The pure render —
+   `render_role_entry`/`render_skill_entry` — that the currency check below compares against disk.
+
+`ClaudeCodeBackend` and `AgentsMdBackend` each answer all five explicitly at their own class
+docstring — read those for two worked examples, including why they differ (a host that can run
+`sq` fetches its definition; a host that cannot keeps compiled prose instead).
+
+## Detection: presence and currency
+
+`sq check` reports two findings over the same declared-path widening
+(`managed_entry_paths`/`managed_paths`), scoped to the roster's currently **live** entries:
+
+- **Presence** — does a declared path exist. Reported at error for a backend's fixed top-level
+  files (`managed_paths`), at warn for a per-entry pointer (`managed_entry_paths`).
+- **Currency** — does an existing per-entry pointer's content match a fresh render right now
+  (question 5). A drifted or missing capability restriction (question 4) is an **error** — a stale
+  pointer still granting authority the squad revoked is a live capability escalation, unrepairable
+  from inside the session it governs; any other content drift is a **warn**. A correct,
+  already-current pointer produces no finding.
+
+Both are cross-source (they compare the index against the disk), so both go through `sq check`'s
+one confirm round rather than being reported straight off the scan — a mutation racing the check
+(most commonly a retirement withdrawing the very pointer being checked) resolves rather than
+producing a false positive. `sq sync` reports what it regenerated for each, worded "was missing"
+or "had drifted" so an operator can tell the two facts about their repository apart.
+
 `BackendContext` carries the resolved `SquadPaths` and helpers (each backend computes its own
 `.claude/`-equivalent directory internally — there's no shared `claude_dir` on `SquadPaths`):
 
@@ -64,11 +124,13 @@ seven methods above and you inherit that behaviour — do **not** add a status b
 ## The recommended shape: pointers, not copies
 
 Follow the Claude Code pattern: keep the **real, durable content under the squad folder** and write
-**thin pointers** in the tool's config that reference it. ClaudeCodeBackend writes a role's real
-definition to `squads/agents/roles/ROLE-*.md` and a pointer to `.claude/agents/<slug>.md` that
-`@`-imports it; managed skill bodies live in `squads/agents/skills/<name>.md` with a pointer in
-`.claude/skills/<name>/SKILL.md`. This keeps the "`.claude/` is pointers" invariant and means the
-content survives even if the backend config is regenerated. The `_interactions` playbook
+**thin pointers** in the tool's config that name the command to fetch it — never a local path (see
+"The five per-host questions" below). ClaudeCodeBackend writes a role's real definition to
+`squads/agents/roles/ROLE-*.md` and a pointer to `.claude/agents/<slug>.md` that names `sq role
+<slug> show`; managed skill bodies live in `squads/agents/skills/<name>.md` with a pointer in
+`.claude/skills/<name>/SKILL.md` naming `sq skill <slug> show`. This keeps the "`.claude/` is
+pointers" invariant and means the content survives even if the backend config is regenerated. The
+`_interactions` playbook
 (`skills_for_role`, `PLAYBOOK`) tells you which skills a role gets and what each item skill should
 say — reuse it.
 

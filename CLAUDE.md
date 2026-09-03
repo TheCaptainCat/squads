@@ -104,7 +104,10 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
    agent-authored body. Markers are `<!-- sq:<tag> -->` / `<!-- sq:<tag>:end -->`.
 4. **Forward edges only.** `item.refs` holds outgoing refs; backrefs are computed by inversion
    (`SquadsDB.backrefs`), never persisted.
-5. **`.claude/` files are pointers**, not content. Real definitions live under `squads/`.
+5. **`.claude/` files are pointers**, not content. A pointer carries only what the host must read
+   before an agent can run — its identity, the text the host selects it by, and the constraints
+   squads imposes on the session — plus the commands that fetch the rest. Anything `sq` can answer,
+   a pointer does not hold.
 6. **Backends are pluggable.** Don't reach into `.claude/` outside a backend; go through the ABC.
 7. **Every backend stamps its own generated agent-facing files as tool-generated.** A managed
    region (the `CLAUDE.md`/`AGENTS.md` section) or a whole owned file (a `.claude/` pointer) must

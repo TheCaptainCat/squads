@@ -34,7 +34,7 @@ from typing import Any, Protocol
 
 from squads import _discussion as discussion
 from squads import _sections as sections
-from squads._backends._base import BackendContext
+from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
 from squads._interactions import (
     TITLE_ADVISORY_MAX,
@@ -49,6 +49,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._paths import SquadPaths, number_for_id
+from squads._roles._catalog import RoleDef
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
@@ -633,6 +634,85 @@ def backend_entry_missing(
         return None
     return CheckIssue(
         "warn", rel_path, f"managed pointer missing — run `sq sync` (backend: {backend_name})"
+    )
+
+
+def backend_entry_path(
+    backend: AgentBackend, paths: SquadPaths, kind: str, slug: str
+) -> str | None:
+    """The one declared path for a single live role/skill *slug* — never a second
+    path-construction rule of this module's own: reuses :meth:`~squads._backends._base.
+    AgentBackend.managed_entry_paths` scoped down to just this one slug (an empty
+    ``BackendContext`` otherwise), which is this backend's only declared source of a per-entry
+    path. ``None`` when *backend* declares no path for a slug of this *kind* (e.g. ``agents_md``,
+    which declares none at all). Shared by :func:`backend_entry_drift_candidates` (scan) and the
+    currency confirm round (:class:`~squads._services._maintenance.MaintenanceMixin`), so a
+    candidate and its confirmation are always compared against the identical path."""
+    ctx = (
+        BackendContext(paths=paths, live_role_slugs=frozenset({slug}))
+        if kind == "role"
+        else BackendContext(paths=paths, live_skill_slugs=frozenset({slug}))
+    )
+    found = backend.managed_entry_paths(ctx)
+    return found[0] if found else None
+
+
+def backend_entry_drift(
+    backend: AgentBackend,
+    kind: str,
+    item: Item,
+    *,
+    paths: SquadPaths,
+    spec: WorkflowSpec,
+    playbook: PlaybookSpec | None,
+    role_skills: dict[str, list[str]],
+    rel_path: str,
+) -> CheckIssue | None:
+    """Re-observe one currency candidate: render *item* fresh (question 5) and compare it
+    against *rel_path*'s content on disk right now. This is the checker reading generated
+    output as the **subject under test** — every declaration still comes from *item*, and the
+    fresh render is the expectation, never a value recovered *from* the file — so it does not
+    breach ``tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py``'s guard
+    (that guard forbids a *backend* recovering a *declaration* from its own output; this is the
+    checker comparing two renders).
+
+    ``None`` (no finding) when the file has gone since the caller's own existence check (a race,
+    resolved the same way an absent path resolves for presence), or when the fresh render
+    agrees with disk byte-for-byte. Otherwise **error** when the drift sits inside the
+    containment fragment *backend*'s own :meth:`~squads._backends._base.AgentBackend
+    .restriction_fragment` (question 4) currently requires present — a stale pointer still
+    granting authority the squad revoked, unrepairable from inside the session it governs — and
+    **warn** for any other content drift.
+
+    *role_skills* must already carry this role's **freshly resolved** preload-skill list when
+    *kind* is ``"role"`` (the caller resolves it against the same fresh index the confirm round
+    reloaded — see ``MaintenanceMixin``) — an empty/stale map would make a role using a
+    ``scopes``-preloaded skill read as permanently drifted, since the pure system-membership
+    fallback (:meth:`~squads._backends._base.BackendContext.resolved_skills_for`) does not know
+    about it.
+    """
+    disk_path = paths.root / rel_path
+    try:
+        disk_text = disk_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    bctx = BackendContext(paths=paths, spec=spec, playbook=playbook, role_skills=role_skills)
+    role = RoleDef.from_extra(item.extra) if kind == "role" else None
+    fresh = (
+        backend.render_role_entry(bctx, item, role)
+        if role is not None
+        else backend.render_skill_entry(bctx, item)
+    )
+    if fresh is None or fresh == disk_text:
+        return None
+    level = "warn"
+    if role is not None:
+        expected = backend.restriction_fragment(role)
+        if expected is not None and expected not in disk_text:
+            level = "error"
+    verb = "capability restriction had drifted" if level == "error" else "had drifted"
+    return CheckIssue(
+        level, rel_path, f"managed pointer {verb} — run `sq sync` (backend: {backend.name})"
     )
 
 

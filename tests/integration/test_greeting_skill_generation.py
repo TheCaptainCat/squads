@@ -14,7 +14,7 @@ async def test_greeting_skill_has_a_real_body_and_a_thin_pointer(project):
     pointer = (project.root / ".claude" / "skills" / "greeting" / "SKILL.md").read_text(
         encoding="utf-8"
     )
-    assert "@squads/agents/skills/greeting.md" in pointer
+    assert "sq skill greeting show" in pointer
     body = (project.squad_dir / "agents" / "skills" / "greeting.md").read_text(encoding="utf-8")
     assert "spawned as a subagent" in body  # subagents skip the greeting
     assert "sq list -t operator" in body and "git config user.name" in body

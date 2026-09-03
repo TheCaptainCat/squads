@@ -114,7 +114,14 @@ async def _rewrite_pointer(
     description: str,
     new_body_rel: str,
 ) -> None:
-    """Rewrite the ``.claude/skills/<slug>/SKILL.md`` pointer to reference ``new_body_rel``."""
+    """Rewrite the ``.claude/skills/<slug>/SKILL.md`` pointer to today's shape.
+
+    ``new_body_rel`` is kept as a parameter for call-site compatibility with the callers below,
+    which still track the renamed body's location for their own frontmatter/index work, but the
+    pointer itself no longer names a path — a migration runner is frozen against the corpus
+    vocabulary of the schema version it transforms, never against a regenerable artifact like
+    this pointer, so it renders today's template rather than pinning a historical copy.
+    """
     pointer = root.root / _CLAUDE_DIR / _SKILLS / slug / _SKILL_FILE
     if not pointer.parent.is_dir():
         return  # no .claude dir — nothing to rewrite
@@ -124,7 +131,6 @@ async def _rewrite_pointer(
             "claude/pointer_skill.md.j2",
             slug=slug,
             description=oneline(description),
-            squad_path=new_body_rel,
         ),
     )
 

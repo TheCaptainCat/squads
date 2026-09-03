@@ -1,6 +1,6 @@
 """The override provenance manifest + content store mechanics:
 the shipped index carries a current-version hash for every overridable bundled artifact — the
-26 bundled templates plus workflow.toml, roles.toml, playbook.toml (the manifest-freshness
+24 bundled templates plus workflow.toml, roles.toml, playbook.toml (the manifest-freshness
 guard — an artifact edit without re-running the generator script fails loudly, not silently) —
 `artifact_changed_since` is content-gated and version-aware, the template/TOML stamp comment
 round-trips insert-vs-replace, and the retention guards (every index-named

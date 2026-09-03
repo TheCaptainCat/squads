@@ -52,6 +52,27 @@ def _also_creatable_types(spec: WorkflowSpec, anchor_type: str | None) -> str:
 
 
 class AgentsMdBackend(AgentBackend):
+    """Question 1: **not knowably** — this is the answer, not a gap. ``AGENTS.md`` targets
+    tools whose command-execution capability is declared by whoever builds a backend for them,
+    not by us; not knowing a host's capabilities is the normal condition for every backend an
+    adopter brings, not a hole in our knowledge to work around. That is why this backend keeps
+    compiled roster prose (full name, slug, title, mission, responsibilities) instead of a
+    fetch command: clause 2 asks whether a runtime fetch can substitute, and a host that cannot
+    run a command has no fetch available.
+    Question 2: the expressible set is identity plus prose only — no ``model``, no ``color``, no
+    capability-boundary field, no preload list: the compiled document has no per-entry frontmatter
+    at all, only the roster/mission text ``write_managed`` renders.
+    Question 3: not applicable — there is no per-entry file for a host to discover and dispatch;
+    ``AGENTS.md`` is one whole document, found the way the host finds any file.
+    Question 4: no capability boundary is expressed (:meth:`restriction_fragment`'s inherited
+    ``None`` default is the honest answer, not an oversight) — the compiled document carries no
+    field a host could read as a spawn restriction.
+    Question 5: no per-entry artifact to render (:meth:`render_role_entry`/
+    :meth:`render_skill_entry`'s inherited ``None`` default) — ``write_managed`` compiles the
+    whole document from the roster view in one pass; see the module docstring for why
+    ``generate_role_entry``/``generate_skill_entry`` write nothing to render a pure copy of.
+    """
+
     name = "agents_md"
 
     # ------------------------------------------------------------------ scaffold

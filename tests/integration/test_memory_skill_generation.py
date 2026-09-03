@@ -18,7 +18,7 @@ async def test_memory_skill_has_a_real_body_and_a_thin_pointer(project):
     pointer = (project.root / ".claude" / "skills" / "sq-memory" / "SKILL.md").read_text(
         encoding="utf-8"
     )
-    assert "@squads/agents/skills/sq-memory.md" in pointer
+    assert "sq skill sq-memory show" in pointer
     body = (project.squad_dir / "agents" / "skills" / "sq-memory.md").read_text(encoding="utf-8")
     assert "start of a run" in body
     assert "One fact per memory" in body

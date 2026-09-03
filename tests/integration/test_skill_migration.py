@@ -122,9 +122,13 @@ async def test_migration_renames_an_already_stamped_but_still_slug_named_file(
     assert "path" not in fm
 
 
-async def test_migration_leaves_a_pointer_that_resolves_to_the_renamed_body_file(
+async def test_migration_leaves_a_pointer_naming_the_fetch_command_not_a_path(
     tmp_path, monkeypatch, frozen_time
 ):
+    """A migration runner is frozen against the schema version it transforms, never against a
+    regenerable artifact like this pointer — so it renders today's pointer shape, which names
+    the definition-fetch command rather than a path (regardless of the body file's own renamed,
+    convention-stamped location)."""
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     await migrate_v0_4_to_v0_5(paths)
 
@@ -135,7 +139,8 @@ async def test_migration_leaves_a_pointer_that_resolves_to_the_renamed_body_file
         if not pointer.exists():
             continue
         content = pointer.read_text(encoding="utf-8")
-        assert "SKILL-" in content
+        assert f"sq skill {slug} show" in content
+        assert "SKILL-" not in content
         assert list(skills_dir.glob(f"SKILL-*-{slug}.md"))
 
 
@@ -185,9 +190,9 @@ async def test_migration_backfills_description_onto_an_already_stamped_conventio
 async def test_description_backfill_still_rewrites_the_pointer_with_no_path_frontmatter_key(
     tmp_path, monkeypatch, frozen_time
 ):
-    """The pointer target must be derived from the convention file's own location, not a stored
-    `path:` frontmatter key — the live model never writes one, so every current-build file hits
-    this description-backfill branch with `path` absent."""
+    """The backfill branch runs with a `path:` frontmatter key absent — the live model never
+    writes one — and must still rewrite a stale pointer to today's shape, which names the
+    definition-fetch command rather than any location, convention file's own or otherwise."""
     from squads._sections import replace_frontmatter, split_frontmatter
 
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
@@ -210,7 +215,8 @@ async def test_description_backfill_still_rewrites_the_pointer_with_no_path_fron
 
     content = pointer.read_text(encoding="utf-8")
     assert "STALE" not in content
-    assert f"agents/skills/{convention.name}" in content
+    assert f"sq skill {slug} show" in content
+    assert convention.name not in content
 
 
 async def test_backfill_strips_a_stale_path_key_even_with_a_description_already_present(

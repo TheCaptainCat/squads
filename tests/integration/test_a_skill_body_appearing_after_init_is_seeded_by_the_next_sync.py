@@ -75,12 +75,14 @@ async def test_a_type_restored_after_init_gets_its_skill_indexed_on_the_next_syn
     assert skill is not None, "the restored type's skill body was written but never indexed"
     assert skill.path.split("/")[-1].startswith("SKILL-")  # convention-named, not the bare slug
     assert skill.path.endswith("-sq-guide.md")
-    # No bare slug-named residue left behind, and the body the pointer names is the indexed one.
+    # No bare slug-named residue left behind, and the pointer names the fetch command that
+    # resolves to the indexed skill (a path, not a command, would go stale the moment the
+    # convention-named file is renamed again).
     assert "sq-guide.md" not in _skill_files(paths)
     pointer = (tmp_path / ".claude" / "skills" / "sq-guide" / "SKILL.md").read_text(
         encoding="utf-8"
     )
-    assert skill.path in pointer
+    assert "sq skill sq-guide show" in pointer
 
 
 async def test_seeding_on_sync_is_idempotent_and_allocates_nothing_the_second_time(
