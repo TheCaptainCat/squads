@@ -3,7 +3,7 @@ id: TASK-828
 sequence_id: 828
 type: task
 title: Bound the undeclared-ref-kind refusal; repair canonicalises the file
-status: Ready
+status: Done
 author: tech-lead
 priority: medium
 refs:
@@ -14,18 +14,18 @@ description: An undeclared ref kind refuses at the write and lint boundary only,
 subentities:
 - local_id: ST1
   title: Bound the refusal to the write and lint boundary
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Repair canonicalises the file, not only the index
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Correct the three refusal and hint messages
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Drive the recovery sequence end to end in tests
-  status: Todo
+  status: Done
 created_at: '2026-08-26T11:51:47Z'
-updated_at: '2026-08-26T11:53:06Z'
+updated_at: '2026-08-26T13:05:30Z'
 ---
 <!-- sq:body -->
 ## What is wrong
@@ -169,10 +169,10 @@ _Add with `sq task 828 add-subtask "<title>"`; track with `sq task 828 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Bound the refusal to the write and lint boundary |  |
-| ST2 | Todo |  | Repair canonicalises the file, not only the index |  |
-| ST3 | Todo |  | Correct the three refusal and hint messages |  |
-| ST4 | Todo |  | Drive the recovery sequence end to end in tests |  |
+| ST1 | Done |  | Bound the refusal to the write and lint boundary |  |
+| ST2 | Done |  | Repair canonicalises the file, not only the index |  |
+| ST3 | Done |  | Correct the three refusal and hint messages |  |
+| ST4 | Done |  | Drive the recovery sequence end to end in tests |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -181,7 +181,7 @@ _Add with `sq task 828 add-subtask "<title>"`; track with `sq task 828 subtask <
 ### ST1 — Bound the refusal to the write and lint boundary
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -207,6 +207,10 @@ the corpus already holds (permitted). An ordinary item mutation, the retype ref 
 (`_services/_retype.py:308`) and the retirement unlink (`_services/_retirement.py:124-130`) all
 rewrite existing refs and must keep working, or the recovery sequence this whole change exists
 to enable cannot be performed.
+
+
+
+Done: dropped _collect_ref_kind_alignment_errors from validate_against_index (_workflow/_loader.py); it stays wired into lint_workflow_spec unchanged. Confirmed the write gate (create/_add_ref_model/importer), the sq check finding, and the null-semantic graph read already existed and agree — no fourth gate added. Confirmed retype's ref remap and retirement's unlink don't call the write gate at all, so persisting an existing undeclared-kind edge is unaffected; only introducing a new one refuses.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -219,7 +223,7 @@ to enable cannot be performed.
 ### ST2 — Repair canonicalises the file, not only the index
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -241,6 +245,10 @@ Repair keeps its documented bypass and stays runnable in every state the remaini
 cross-checks can refuse over. It is the verb that creates the locked state today by folding a
 legacy map under a renamed spec and storing the spelled kind; after this it is the verb that
 prevents it.
+
+
+
+Done: _rebuild_index_from_disk now writes back every file whose raw refs/extra.ref_kinds encoding differs from the folded canonical form (_ref_encoding_is_stale), markdown before the index commit, deferred until after the corpus-alignment refusal check so an aborted rebuild never leaves an orphaned file write behind. RepairResult gained a canonicalized: list[str] field. Converges byte-identical on a second run; a clean corpus writes nothing.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -253,7 +261,7 @@ prevents it.
 ### ST3 — Correct the three refusal and hint messages
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -280,6 +288,10 @@ true.
 Check whether any generated or adopter-facing text repeats the retired claims (the workflow
 cheatsheet, the override docs) and correct it there too; regenerate any golden the wording
 change touches.
+
+
+
+Done: removed the false 'sq workflow lint is the one command that still runs' claim from spec_refusal (shared by every unloadable-override family). Corrected the ref-kind refusal and lint's own fix hint to state the sequence and name sq repair as the legacy-map remedy, dropping 'no command rewrites a corpus's ref kinds' from both. Updated docs/workflow.md and docs/overrides.md, which repeated the retired claims; the rendering workflow cheatsheet does not mention ref-kind refusals so needed no change.
 <!-- sq:subtask:ST3:body:end -->
 
 #### Discussion
@@ -292,7 +304,7 @@ change touches.
 ### ST4 — Drive the recovery sequence end to end in tests
 
 <!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
@@ -317,6 +329,10 @@ repair's own convergence case: a corpus needing correction is rewritten once, a 
 is byte-identical, and a corpus needing none is not written at all.
 
 Name the files by behaviour, not by ticket.
+
+
+
+Done: tests/service/test_undeclared_ref_kind_bounded_refusal.py, table-driven over the native-spelled-dropped-kind and legacy-mapped-default-renamed shapes, asserting what refuses (lint, a new ref of the kind) and what runs (read, check's per-item warn with no workflow-config-invalid line, repair, ref rm, an ordinary mutation, graph's null semantic), plus a full revert/repair/mutate/re-rename recovery test and two repair-convergence tests. Also driven live on a scratch squad via the real CLI.
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion
@@ -332,4 +348,12 @@ Name the files by behaviour, not by ticket.
 - [2026-08-26T11:53:06Z] Olivia Lead:
   - Standalone: FEAT-790 is Done with every child Done, so parenting a Ready task under it would reopen a closed feature to carry sequencing. The ADR-775 implements ref and the BUG-827 fixes ref carry the context; medium priority sequences it with the rest of the 0.14 ref-kind work rather than ahead of it.
   - Scoping note for whoever picks it up: the write gate, the check finding and the null-semantic read already exist and were verified in place. The delivered change is mostly subtractive at the load boundary, plus repair writing the file back and three message corrections.
+- [2026-08-26T12:48:36Z] Elias Python:
+  - Implemented per A5. Dropped _collect_ref_kind_alignment_errors from validate_against_index (_workflow/_loader.py) — it stays wired into lint_workflow_spec unchanged, so the write/lint boundary is untouched. Confirmed (not rebuilt) the write gate in _add_ref_model/create/_resolve_refs, the sq check finding in _ref_kind_valid, and the null-semantic read in _edge_semantic — all pre-existing, all agree.
+  - Introducing vs persisting: an undeclared kind refuses only when ADDING a new ref of that kind (_add_ref_model/create/importer). retype's ref remap (_retype.py resync_edges) and retirement's unlink don't call that gate at all — they rewrite existing refs wholesale unconditionally — so persisting a stale edge through any of those paths, or an ordinary metadata update, is unaffected.
+  - sq repair now canonicalises the file: _rebuild_index_from_disk writes back every file whose raw refs/extra.ref_kinds encoding differs from the folded canonical form, markdown before the index as always — deferred until after the corpus-alignment refusal check so an aborted rebuild never leaves an orphaned write. RepairResult gained canonicalized: list[str]. A second repair is byte-identical; a clean corpus is untouched.
+  - Corrected three messages: spec_refusal's false 'lint is the one command that still runs' (shared by every unloadable-override family — the load-boundary radius for type/status/prefix/badge families is unchanged, only this claim moved); the ref-kind refusal and lint's fix hint both dropped 'no command rewrites a corpus's ref kinds' and now name sq repair (legacy-map case) and sq <type> <n> ref rm as real, performable remedies. docs/workflow.md and docs/overrides.md repeated the same retired claims and are corrected; the rendering cheatsheet doesn't mention ref-kind refusals.
+  - Coverage: tests/service/test_undeclared_ref_kind_bounded_refusal.py, table-driven over a native-spelled-dropped-kind and a legacy-mapped-default-renamed shape (7 tests) — what refuses (lint, a new ref) vs what runs (read, check's per-item warn with no 'workflow config invalid' line, repair, ref rm, an ordinary mutation, graph's null semantic), a full revert/repair/mutate/re-rename recovery test over both a legacy-folded and a native edge, and two repair-convergence tests. Also drove the whole recovery live on a scratch squad via the real CLI — every message read along the way (the check warn, the lint table, the final 'workflow spec OK') checked true.
+  - Gates: tests/meta (258) + targeted repair/ref-kind suite (819) + new file (7), all green. pyright/ruff/ruff-format clean on every touched file. sq check clean. Did not touch _cli/, the rendering templates, or _services/_validators.py / _refs.py (confirmed, not modified — only read to verify the write gate/finding/read already existed).
+  - @reviewer ready for review.
 <!-- sq:discussion:end -->

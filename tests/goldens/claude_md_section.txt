@@ -111,5 +111,7 @@ The operator may also speak directly to a specialist for live debugging; the spe
   -m "…"` (sub-entities); `--file` for long markdown. Read with `sq <type> <n> show --full --comments`
   (full dossier including discussion).
 - Hand off and ask questions via `sq <type> <n> comment --as <slug> -m "…"` (repeat `-m` for
-  separate bullets); mention `@role` to notify.
+  separate bullets, or `--file` for one comment with a backtick or a fenced code block — an
+  unescaped one in a quoted `-m` is substituted by the shell before `sq` ever runs); mention
+  `@role` to notify.
 - Link related items by ID so context travels with the work.

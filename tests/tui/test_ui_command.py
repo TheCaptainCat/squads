@@ -12,6 +12,7 @@ import pytest
 
 pytest.importorskip("textual")
 
+from squads import _paths
 from squads._cli import app
 from squads._services._service import Service
 from squads._tui import _app as tui_app
@@ -21,6 +22,12 @@ pytestmark = pytest.mark.anyio
 
 async def test_ui_reports_a_clean_error_outside_a_squad(tmp_path, monkeypatch, runner):
     monkeypatch.chdir(tmp_path)
+    # `.squads.toml` resolution walks all the way up to the filesystem root, so relying on
+    # ``tmp_path`` alone only proves "outside a squad" if nothing above it happens to carry a
+    # config — true on a clean machine, but not guaranteed (a stray config anywhere above the
+    # pytest temp root would make this resolve to a real squad instead). Cut the walk-up off
+    # at the source so the test pins the command's own behaviour, not the ambient filesystem.
+    monkeypatch.setattr(_paths, "find_config", lambda start=None: None)
 
     result = runner.invoke(app, ["ui"])
 

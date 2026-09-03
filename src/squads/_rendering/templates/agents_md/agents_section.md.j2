@@ -43,7 +43,7 @@ sq {{ anchor or "<type>" }} 3 show --full --comments     # full dossier: body + 
 sq {{ anchor or "<type>" }} 3 status {{ anchor_active or anchor_settled or "<status>" }}          # transition (validated per type)
 sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(roles) }}{% if priority_field %} --{{ priority_field.code }} {{ priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif +%}
 sq {{ anchor or "<type>" }} 3 body -m "## Description" -m "…"
-sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"   # hand off / @mentions
+sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"   # hand off / @mentions (or --file)
 sq list --type {{ anchor or "<type>" }} --status {{ anchor_active or anchor_settled or "<status>" }}      # closed items hidden; --all to include
 sq tree {{ anchor_parent_prefix or anchor_prefix }}-<n> --json           # a parent's whole subtree (status/blocked)
 sq search "lockout"                  # match titles, summaries, bodies

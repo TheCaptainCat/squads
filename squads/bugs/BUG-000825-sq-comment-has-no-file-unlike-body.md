@@ -3,10 +3,10 @@ id: BUG-825
 sequence_id: 825
 type: bug
 title: sq comment has no --file, unlike body
-status: Open
+status: Fixed
 author: qa
 created_at: '2026-08-26T10:53:19Z'
-updated_at: '2026-08-26T11:25:43Z'
+updated_at: '2026-08-26T13:05:44Z'
 ---
 <!-- sq:body -->
 ## Description
@@ -70,4 +70,6 @@ them is a design call for whoever picks this up — not decided here.
 <!-- sq:discussion -->
 - [2026-08-26T11:25:43Z] Olivia Lead:
   - Fix task authored: TASK-826 (Ready), linked by a fixes ref. It settles the open question in this report: -m and --file mutually exclusive, mirroring body; --file - reads stdin; a file is one comment (one bullet, fences preserved), not split into bullets.
+- [2026-08-26T13:05:44Z] Catherine Manager:
+  - Fixed by TASK-826: comment takes --file at both levels, an empty file is refused rather than storing a blank bullet, and the generated agent guidance now points at --file with the shell-substitution reason. Driven: a fenced block round-trips byte-for-byte through --file while the same text through -m still substitutes.
 <!-- sq:discussion:end -->

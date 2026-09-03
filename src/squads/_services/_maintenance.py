@@ -5,7 +5,7 @@ from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from squads import __version__, _aio
 from squads import _actor as actor
@@ -178,6 +178,49 @@ def _carry_forward_indexed_timestamps(
     for key in INVENTED_WHEN_ABSENT:
         if data.get(key) is None:
             setattr(item, key, getattr(previous, key))
+
+
+def _ref_encoding_is_stale(data: dict[str, Any], item: Item) -> bool:
+    """Whether *data* — the raw, unfolded frontmatter :meth:`_rebuild_index_from_disk` just
+    parsed for *item* — holds a ref encoding other than the canonical one *item* (already
+    folded through :meth:`Item.from_frontmatter`) now carries.
+
+    Two shapes, both :func:`~squads._models._item.fold_legacy_kinds`'s doing: a leftover
+    ``extra.ref_kinds`` legacy map (folded into ``refs`` and then dropped from ``extra``), and
+    a spelled ref that folds to a different literal than what is written on disk — an edge
+    spelled with the live default kind (never emitted, always folded back to bare), or a
+    legacy-mapped edge whose recorded kind no longer equals that default after a rename. These
+    are the only two shapes the fold ever changes; every other frontmatter field round-trips
+    unchanged when *item* was built from *data* directly, so comparing ``refs``/``ref_kinds``
+    alone is exact, not an approximation of a fuller diff.
+
+    ``data["refs"]`` is safe to compare as a plain list here without re-validating its shape:
+    *item* already exists, which means ``Item.from_frontmatter`` already accepted this same
+    *data* — so ``refs`` was already either absent/empty or a list of ``str``.
+    """
+    raw_refs = cast("list[str]", data.get("refs") or [])
+    if list(item.refs) != raw_refs:
+        return True
+    extra = data.get("extra")
+    return isinstance(extra, dict) and "ref_kinds" in extra
+
+
+def _record_pending_canonicalization(
+    pending: list[tuple[Path, str, str]],
+    md: Path,
+    text: str,
+    data: dict[str, Any],
+    item: Item,
+) -> None:
+    """Append *item*'s write-back entry — ``(path, new_text, item_id)`` — to *pending* when its
+    on-disk ref encoding is stale (:func:`_ref_encoding_is_stale`); a no-op otherwise. Split out
+    of :meth:`MaintenanceMixin._rebuild_index_from_disk`'s per-file loop purely to keep that
+    already-long method under the complexity ceiling — the write itself is deferred to the
+    caller, after the corpus-alignment refusal check (see there)."""
+    if not _ref_encoding_is_stale(data, item):
+        return
+    canonical_text = sections.replace_frontmatter(text, item.to_frontmatter_dict(), source=str(md))
+    pending.append((md, canonical_text, item.id))
 
 
 def _marker_issues(text: str) -> list[str]:
@@ -1335,13 +1378,38 @@ class MaintenanceMixin(ServiceCore):
             max_filename_width,
         )
 
+    def _raise_unless_vocab_valid(self, item: Item, md: Path) -> None:
+        """Load-boundary vocab validation for :meth:`_rebuild_index_from_disk`: reject an item
+        with an unknown type, status, or sub-entity status before it enters the rebuilt index.
+        Uses ``self.spec`` — the Service-owned spec (possibly an override) — so repair respects
+        the active workflow spec. Split out of the rebuild loop purely to keep that
+        already-long method under the complexity ceiling."""
+        if item.type not in self.spec.items:
+            raise SquadsError(
+                f"item {item.id} has unknown type {item.type!r} in {md.name}; "
+                f"fix the frontmatter before running `sq repair`"
+            )
+        if item.status not in self.spec.statuses:
+            raise SquadsError(
+                f"item {item.id} has unknown status {item.status!r} in {md.name}; "
+                f"fix the frontmatter before running `sq repair`"
+            )
+        # Sub-entity statuses share the same vocabulary.
+        for sub in item.subentities:
+            if sub.status not in self.spec.statuses:
+                raise SquadsError(
+                    f"item {item.id} sub-entity {sub.local_id} has unknown status "
+                    f"{sub.status!r} in {md.name}; fix the frontmatter before "
+                    f"running `sq repair`"
+                )
+
     async def _rebuild_index_from_disk(
         self,
         *,
         previous_counter: int,
         previous_padding: int,
         known_corpus: SquadsDB | None = None,
-    ) -> tuple[SquadsDB, list[str]]:
+    ) -> tuple[SquadsDB, list[str], list[str]]:
         """Scan every item file fresh and commit a rebuilt index — the core of :meth:`repair`,
         factored out so :meth:`renumber` can reuse it *without* repair's previous-snapshot /
         missing-file / reflog bookkeeping, which is specific to the ``sq repair`` verb (a
@@ -1365,10 +1433,10 @@ class MaintenanceMixin(ServiceCore):
         only when something a previous index actually knew about truly stopped resolving —
         never on a merely-reconstructed metadata quirk that doesn't affect where the file is.
 
-        Returns ``(db, unreadable)`` — ``unreadable`` names every file whose content could not
-        be read or parsed, **or** that parsed but cannot become an item (no ``id``, or a
-        type-invalid field — :meth:`Item.from_frontmatter` is the load boundary for the
-        latter, raising :class:`SquadsError` for both). Each is reported, never silently
+        Returns ``(db, unreadable, canonicalized)`` — ``unreadable`` names every file whose
+        content could not be read or parsed, **or** that parsed but cannot become an item (no
+        ``id``, or a type-invalid field — :meth:`Item.from_frontmatter` is the load boundary
+        for the latter, raising :class:`SquadsError` for both). Each is reported, never silently
         dropped: caught here per file so one bad file never aborts the rebuild for the rest of
         the corpus. Its *previous* index entry — recovered from ``known_corpus`` via the
         sequence number parsed from the filename stem alone, since the frontmatter ``id`` is
@@ -1400,11 +1468,29 @@ class MaintenanceMixin(ServiceCore):
         with nothing reported here — it is not this rebuild's file to report, and the
         missing-direction reconciliation this same call's caller (:meth:`repair`) already
         computes from ``known_corpus`` is the honest place for a real deletion to surface.
+
+        **The file, not only the index, is made canonical.** For every item whose raw on-disk
+        ``refs``/``extra.ref_kinds`` encoding differs from what the fold just produced
+        (:func:`_ref_encoding_is_stale`) — a leftover legacy map, or a spelled ref that folds to
+        a different literal (a spelled-default edge, or a legacy-mapped edge whose recorded kind
+        no longer equals the live default after a rename) — the file's frontmatter is rewritten
+        to the canonical encoding, markdown before the index commit below as always. Nothing new
+        is stored: the fold already produced *item*'s canonical ``refs``; this only writes what
+        the rebuild already holds the data to write. ``canonicalized`` names every item so
+        rewritten; a corpus that needs no correction has this list empty and writes no file at
+        all, and a second rebuild over an already-canonical corpus is byte-identical to the
+        first — the on-disk encoding a comparison like :func:`_ref_encoding_is_stale` reads is
+        exactly what the previous rebuild just wrote.
         """
         db = SquadsDB(squads_version=__version__, counter=0)
         max_n = 0
         max_filename_width = 0
         unreadable: list[str] = []
+        # (path, new_text, item_id) for every file whose ref encoding needs canonicalising —
+        # collected here and written only after the corpus-alignment refusal check below
+        # passes, so a refusal that aborts the whole rebuild (nothing committed) never leaves
+        # a canonicalised file behind with no matching index commit.
+        pending_canonicalization: list[tuple[Path, str, str]] = []
         # Resolved once for the whole rebuild, before the per-file loop and its own
         # per-file SquadsError handling below — a spec declaring the wrong number of
         # default ref kinds must fail as one clean refusal naming the spec, never be
@@ -1438,28 +1524,8 @@ class MaintenanceMixin(ServiceCore):
                 )
                 continue
             _carry_forward_indexed_timestamps(item, data, known_corpus)
-            # Load-boundary vocab validation: reject items with an unknown type, status, or
-            # sub-entity status before they enter the rebuilt index.  Use self.spec — the
-            # Service-owned spec (possibly an override) — so repair respects the active
-            # workflow spec.
-            if item.type not in self.spec.items:
-                raise SquadsError(
-                    f"item {item.id} has unknown type {item.type!r} in {md.name}; "
-                    f"fix the frontmatter before running `sq repair`"
-                )
-            if item.status not in self.spec.statuses:
-                raise SquadsError(
-                    f"item {item.id} has unknown status {item.status!r} in {md.name}; "
-                    f"fix the frontmatter before running `sq repair`"
-                )
-            # Sub-entity statuses share the same vocabulary.
-            for sub in item.subentities:
-                if sub.status not in self.spec.statuses:
-                    raise SquadsError(
-                        f"item {item.id} sub-entity {sub.local_id} has unknown status "
-                        f"{sub.status!r} in {md.name}; fix the frontmatter before "
-                        f"running `sq repair`"
-                    )
+            self._raise_unless_vocab_valid(item, md)
+            _record_pending_canonicalization(pending_canonicalization, md, text, data, item)
             db.add(item)
             max_n = max(max_n, number_for_id(item.id))
             # Derive the filename digit-run width (PREFIX-<digits>-<slug>.md).
@@ -1492,8 +1558,15 @@ class MaintenanceMixin(ServiceCore):
                 f"them:\n{bullet_list}"
             )
 
+        # Markdown before the index, as everywhere else: every canonicalised file is written
+        # here, now that the rebuild is known to proceed, strictly before the index commit
+        # below.
+        for md, canonical_text, _item_id in pending_canonicalization:
+            await write_text(md, canonical_text)
+        canonicalized = [item_id for _md, _text, item_id in pending_canonicalization]
+
         await self.store.overwrite(db)
-        return db, unreadable
+        return db, unreadable, canonicalized
 
     async def repair(self, *, renumber: bool = False) -> RepairResult:
         # Snapshot the previous index (if any) before rebuilding, so we can:
@@ -1528,7 +1601,7 @@ class MaintenanceMixin(ServiceCore):
         if renumber:
             await self._renumber()
 
-        db, unreadable = await self._rebuild_index_from_disk(
+        db, unreadable, canonicalized = await self._rebuild_index_from_disk(
             previous_counter=previous_counter,
             previous_padding=previous_padding,
             known_corpus=known_corpus,
@@ -1548,12 +1621,19 @@ class MaintenanceMixin(ServiceCore):
             actor=actor.current_actor(),
             op="repair",
             target="",
-            delta={"items": len(db.items), "missing": missing_ids, "unreadable": unreadable},
+            delta={
+                "items": len(db.items),
+                "missing": missing_ids,
+                "unreadable": unreadable,
+                "canonicalized": canonicalized,
+            },
             session_id=sid,
             parent_session_id=psid,
         )
 
-        return RepairResult(db=db, missing_ids=missing_ids, unreadable=unreadable)
+        return RepairResult(
+            db=db, missing_ids=missing_ids, unreadable=unreadable, canonicalized=canonicalized
+        )
 
     # ------------------------------------------------------------------ repad
     async def repad(self, new_padding: int) -> int:
@@ -1882,7 +1962,7 @@ class MaintenanceMixin(ServiceCore):
             # _scan_records() above already read every file's frontmatter unguarded, so an
             # unreadable file would have aborted this verb before any rename ever ran —
             # nothing unreadable survives to reach the rebuild below.
-            db, _unreadable = await self._rebuild_index_from_disk(
+            db, _unreadable, _canonicalized = await self._rebuild_index_from_disk(
                 previous_counter=counter, previous_padding=padding
             )
             # Reflog: appended after the index commit above (never in-place rewriting a

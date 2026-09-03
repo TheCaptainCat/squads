@@ -118,9 +118,12 @@ def spec_refusal(override_path: Path | str, cause: object) -> str:
     not answering at all, so the message has to carry everything needed to act: **which file**
     (an adopter may not know an override exists at all — it can be inherited with the repo),
     **what is actually wrong** (the loader's own key-level cause, not a generic "invalid
-    spec"), and **what to do**, including the one command that still runs while the rest
-    refuse. A hard stop that does not say what to fix is a worse defect than the quiet wrong
-    answer it replaces.
+    spec"), and **what to do**. A hard stop that does not say what to fix is a worse defect
+    than the quiet wrong answer it replaces.
+
+    Does *not* claim to be the one command that still runs while this stands — driven, it
+    isn't: ``sq repair`` (through its documented bypass) and ``sq check`` (through its
+    documented bundled-spec fallback) both run too, disprovable in one line by running either.
     """
     return (
         f"this squad's workflow override could not be loaded, so no command can answer with "
@@ -128,7 +131,7 @@ def spec_refusal(override_path: Path | str, cause: object) -> str:
         f"  file:  {override_path}\n"
         f"  cause: {cause}\n"
         f"  Fix the file, then re-run. `sq workflow lint` reports every problem at once with "
-        f"a fix hint — it is the one command that still runs while this stands."
+        f"a fix hint."
     )
 
 
@@ -706,7 +709,14 @@ def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]
     """The ref-kind counterpart to :func:`_collect_corpus_alignment_errors`: a ref kind is
     durable on-disk data no scan re-derives, on exactly the terms the type/prefix/folder
     alignment check above already uses. For every kind the merged spec drops or
-    renames, list the items whose ``refs`` still spell it literally and refuse.
+    renames, list the items whose ``refs`` still spell it literally.
+
+    Unlike the type/prefix/folder/badge families, this collector is **not** part of
+    :func:`validate_against_index` and so never gates the load boundary — an undeclared ref
+    kind on a live edge is bounded (every item still loads, every edge is still readable, `sq
+    graph` reports it with a null semantic). It is called directly by ``sq workflow lint``
+    (which does refuse) and is what the write-boundary gates (``_services/_refs.py``,
+    ``_services/_base.py::create``, the bulk importer) check a *new* ref's kind against.
 
     Stores nothing new — the expected set is recovered from the corpus itself, since every
     edge carries its own kind inline. An empty corpus (no live ref spells the kind) is
@@ -716,7 +726,11 @@ def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]
     A **bare** (unspelled) ref carries no literal kind at all — it decodes through the merged
     spec's own declared ``default`` (:meth:`WorkflowSpec.default_ref_kind`), so renaming which
     kind carries that role relabels those edges rather than stranding them; only a kind
-    actually spelled out on disk can ever appear here.
+    actually spelled here can ever appear in the result. That is ordinarily also "spelled by
+    hand", but a legacy ``extra.ref_kinds``-mapped edge whose recorded kind no longer equals
+    the live default folds to a spelled form too, at the fold's input — nothing was typed by
+    an adopter. `sq repair` canonicalises such an edge back to bare, on the index and (see its
+    own docstring) the file, closing the gap on its next run.
 
     ``spec`` is accessed duck-typed for ``ref_kinds`` (``getattr`` with an empty default),
     matching :func:`_collect_badge_alignment_errors`'s own contract of accepting a minimal
@@ -743,8 +757,10 @@ def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]
         errors.append(
             f"ref kind {kind!r} is no longer declared in the workflow spec, but "
             f"{len(ids)} live item(s) still carry a ref of that kind: {sorted(ids)} — "
-            "restore the entry in the override, or remove those refs first (no command "
-            "rewrites a corpus's ref kinds)"
+            "restore the entry in the override, or remove those refs with "
+            "`sq <type> <n> ref rm <target>` (run `sq repair` first if the edge is a "
+            "legacy-mapped encoding you'd rather canonicalise onto the current default "
+            "than remove)"
         )
     return errors
 
@@ -981,29 +997,34 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
     - Any item's/sub-entity's stored badge-field value (``priority``, ``severity``, …) still
       names a code in its bound collection, when the active spec's collection actually
       differs from bundled → error listing the item IDs.
-    - Any ref kind still spelled out on a live item's ``refs`` is still declared in
-      ``spec.ref_kinds`` → error listing the item IDs.
 
-    Removing a status/type from the override that is still referenced by live items — or
+    A dropped/renamed ref kind still spelled on a live edge is deliberately **not** one of
+    these checks, unlike the other durable-on-disk axes above: an undeclared ref kind is a
+    ``sq check`` finding, never a load failure — nothing vanishes from the on-disk scan the way
+    a re-prefixed type does, and `sq graph`/`refs` already traverse such an edge and report a
+    null semantic rather than dropping it. ``_collect_ref_kind_alignment_errors`` still exists
+    and still gates ``sq workflow lint`` and every *write* of a ref of that kind — it is simply
+    not one of the families that locks the whole squad at load. See its own docstring.
+
+    Removing a status/type from the override that is still referenced by live items, or
     re-prefixing/re-foldering a type, or shrinking/replacing a badge collection a live item's
-    field value still names, or dropping/renaming a ref kind a live item's refs still spell —
-    against a non-empty corpus fails closed, listing the offending item IDs.
+    field value still names, against a non-empty corpus fails closed, listing the offending
+    item IDs.
 
     ``db`` is a ``SquadsDB`` instance; typed ``Any`` here to avoid an import cycle
     (``_workflow`` must not import ``_models._index`` at module level).
 
     This is the combined contract every call site outside this module uses (the fail-closed
-    raise, and every pre-existing test) — one flat list, cause-blind about which of the four
+    raise, and every pre-existing test) — one flat list, cause-blind about which of the three
     families below produced which entry. ``lint_workflow_spec`` needs to tell them apart (each
-    family's fix is different), so it calls the four collectors
-    (:func:`_collect_type_status_errors`, :func:`_collect_corpus_alignment_errors`,
-    :func:`_collect_badge_alignment_errors`, :func:`_collect_ref_kind_alignment_errors`)
-    directly instead of this function.
+    family's fix is different, and it additionally runs the ref-kind axis this function does
+    not), so it calls the collectors (:func:`_collect_type_status_errors`,
+    :func:`_collect_corpus_alignment_errors`, :func:`_collect_badge_alignment_errors`,
+    :func:`_collect_ref_kind_alignment_errors`) directly instead of this function.
     """
     return [
         *_collect_type_status_errors(spec, db),
         *_collect_corpus_alignment_errors(spec, db),
-        *_collect_ref_kind_alignment_errors(spec, db),
         *_collect_badge_alignment_errors(spec, db),
     ]
 
@@ -1206,8 +1227,9 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         )
         ref_kind_fix = (
             "Add the ref kind back to [ref_kinds] in .overrides/workflow.toml, or remove the "
-            "affected item(s)' refs of that kind first — no command rewrites a corpus's ref "
-            "kinds."
+            "affected item(s)' refs of that kind with `sq <type> <n> ref rm <target>` — run "
+            "`sq repair` first if the edge is a legacy-mapped encoding you'd rather "
+            "canonicalise onto the current default than remove."
         )
         findings.extend(
             ("error", "index cross-check", msg, type_status_fix)
@@ -1327,8 +1349,11 @@ def _load_index_sync(squad_dir: Path) -> Any:
 
 def validate_against_index_fail_closed(spec: WorkflowSpec, squad_dir: Path) -> None:
     """Raise ``SquadsError`` if the merged spec drops types/statuses still
-    referenced by live index items, re-prefixes/re-folders a type against
-    a non-empty corpus, or drops/renames a ref kind live refs still spell out.
+    referenced by live index items, re-prefixes/re-folders a type against a non-empty corpus,
+    or shrinks/replaces a badge collection a live value still names — see
+    :func:`validate_against_index` for the full list. A dropped/renamed ref kind live refs
+    still spell is deliberately **not** one of these: it refuses at ``sq workflow lint`` and
+    at the write boundary, never here.
 
     Called by ``open_service`` after ``load_workflow_spec`` succeeds, before the spec
     is passed to ``Service``.  Reads the index synchronously so no async context

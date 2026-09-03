@@ -3,7 +3,7 @@ id: TASK-826
 sequence_id: 826
 type: task
 title: Add --file to comment at item and sub-entity level
-status: Ready
+status: Done
 author: tech-lead
 priority: high
 refs:
@@ -13,15 +13,15 @@ description: comment accepts only -m, unlike body; the one input path silently r
 subentities:
 - local_id: ST1
   title: Wire --file into both comment commands
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Cover the comment input-source contract in tests
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Teach the agent-facing guidance to use --file for comments
-  status: Todo
+  status: Done
 created_at: '2026-08-26T11:24:45Z'
-updated_at: '2026-08-26T11:25:42Z'
+updated_at: '2026-08-26T13:05:29Z'
 ---
 <!-- sq:body -->
 ## Description
@@ -128,9 +128,9 @@ _Add with `sq task 826 add-subtask "<title>"`; track with `sq task 826 subtask <
 <!-- sq:summary -->
 | Subtask | Status | Assignee | Title | Story |
 | --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Wire --file into both comment commands |  |
-| ST2 | Todo |  | Cover the comment input-source contract in tests |  |
-| ST3 | Todo |  | Teach the agent-facing guidance to use --file for comments |  |
+| ST1 | Done |  | Wire --file into both comment commands |  |
+| ST2 | Done |  | Cover the comment input-source contract in tests |  |
+| ST3 | Done |  | Teach the agent-facing guidance to use --file for comments |  |
 <!-- sq:summary:end -->
 
 <!-- sq:subtasks -->
@@ -139,7 +139,7 @@ _Add with `sq task 826 add-subtask "<title>"`; track with `sq task 826 subtask <
 ### ST1 — Wire --file into both comment commands
 
 <!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
@@ -174,7 +174,7 @@ untouched.
 ### ST2 — Cover the comment input-source contract in tests
 
 <!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
@@ -208,7 +208,7 @@ Name the files by behaviour, not by ticket.
 ### ST3 — Teach the agent-facing guidance to use --file for comments
 
 <!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
@@ -245,4 +245,16 @@ tracker.
 - [2026-08-26T11:25:42Z] Olivia Lead:
   - Standalone by design: no open feature covers CLI input surfaces (checked every non-terminal feature), so this is purely-technical work linked to the defect by a fixes ref rather than parented.
   - Scope settled before authoring: the two comment commands are the only prose-body inputs in the CLI without --file; --desc/--title/--when-to-use are single-line metadata and stay out.
+- [2026-08-26T12:34:10Z] Elias Python:
+  - Implemented all three subtasks.
+    
+    - `--file` added to both `comment` commands, resolved via new `resolve_comment_messages` in `_cli/_common.py` (shares `_read_source_file` with `resolve_body*`); `-m` now optional so "neither given" reaches the shared SquadsError, not a Typer exit-2 panel. `-m`+`--file` -> "not both" (exit 1). File is one bullet (list of 1), never joined/split, so fenced blocks with blank lines survive.
+    - Empty/whitespace-only file: refused with "--file must not be empty" (exit 1), discussion untouched — deliberate, since a comment has no meaningful empty form (unlike body).
+    - Marker guard: file content flows through the same `messages` list as `-m`, so `reject_markers` catches it identically — no separate wiring needed.
+    - Drove the original hazard in a scratch squad: `--file` round-tripped a fenced code block containing literal `sq check` verbatim; the same text via unescaped-backtick `-m` got shell-substituted into "run the ✓ no issues command..." — confirmed the fix addresses the actual defect, not just the flag gap.
+    - ST3: updated workflow.md.j2, squads_skill.md.j2, claude_section.md.j2, agents_section.md.j2 to show `--file` alongside `-m` for comments, with the backtick/shell-substitution rationale. Regenerated the 4 affected goldens (workflow_cheatsheet[_raw], claude_md_section, agents_md_section) — only those 4 changed. docs/ comment examples are all short prose (no backticks/code) so none needed the file-form callout.
+    - Manifest: ran gen_template_manifest.py (only the 0.14.0 entry moved, 4 new blobs), then `git fetch --tags && seed_content_store.py --rebuild` (dropped 3 pre-existing orphans, none of mine), then `--release-gate` — passes clean.
+    - Tests: new `tests/cli/test_comment_content_source_and_mutual_exclusion_cli.py` (16 cases, item+sub-entity level: file/stdin/both/neither/empty/marker/bullet-count/fenced round-trip). `tests/meta` 258 passed. `tests/cli/ tests/service/ tests/unit/` + the squads-skill integration test: 3218 passed, 2 failed — both in `test_unreadable_files_degrade_per_file_cli.py::test_repair_recovers...`/`test_a_clean_board_exits_0...`, tracing into `_services/_maintenance.py::repair` (`ValueError: too many values to unpack`), which is TASK-828's in-flight repair-path work, not touched by me. pyright/ruff/ruff-format clean on everything I touched. `sq check` clean.
+    
+    Nothing left undone on this task's scope. @reviewer
 <!-- sq:discussion:end -->

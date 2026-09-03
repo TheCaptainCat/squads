@@ -43,6 +43,7 @@ from squads._cli._common import (
     require_as,
     resolve_body,
     resolve_body_optional,
+    resolve_comment_messages,
     resolve_item_id_any,
     resolve_item_id_typed,
     resolve_local_id,
@@ -438,7 +439,8 @@ def _cmd_comment(item: typer.Typer) -> None:
     @common.command
     async def comment(
         ctx: typer.Context,
-        message: list[str] = typer.Option(..., "-m", "--message", help="A talking point."),
+        message: list[str] = typer.Option(None, "-m", "--message", help="A talking point."),
+        file: str | None = typer.Option(None, "--file", help="Comment from a file ('-' = stdin)."),
         as_: str | None = typer.Option(
             None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
         ),
@@ -447,7 +449,7 @@ def _cmd_comment(item: typer.Typer) -> None:
         svc = get_service()
         slug = await resolve_slug_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
-        await svc.comment(_id(ctx), message, as_slug=slug)
+        await svc.comment(_id(ctx), resolve_comment_messages(message or None, file), as_slug=slug)
         console.print(f"commented on {_id(ctx)} as {slug}")
 
 
@@ -983,7 +985,8 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
     @common.command
     async def s_comment(
         ctx: typer.Context,
-        message: list[str] = typer.Option(..., "-m", "--message"),
+        message: list[str] = typer.Option(None, "-m", "--message"),
+        file: str | None = typer.Option(None, "--file", help="Comment from a file ('-' = stdin)."),
         as_: str | None = typer.Option(
             None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
         ),
@@ -993,7 +996,9 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         svc = get_service()
         slug = await resolve_slug_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
-        await svc.comment(pid, message, as_slug=slug, sub=(kind, lid))
+        await svc.comment(
+            pid, resolve_comment_messages(message or None, file), as_slug=slug, sub=(kind, lid)
+        )
         console.print(f"commented on {pid} {lid} as {slug}")
 
     @sub.command("remove")

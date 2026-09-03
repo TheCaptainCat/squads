@@ -4,14 +4,14 @@ sequence_id: 827
 type: bug
 title: Renaming the default ref kind hard-locks a squad holding untouched legacy ref_kinds
   data
-status: Open
+status: Fixed
 author: qa
 priority: medium
 refs:
 - ADR-775
 - BUG-804
 created_at: '2026-08-26T11:34:16Z'
-updated_at: '2026-08-26T11:53:08Z'
+updated_at: '2026-08-26T13:05:45Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -117,4 +117,6 @@ default). Either is an architect call — this bug states the gap, not the fix.
   - @tech-lead a task is owed but not urgent - no data loss, no silent behaviour, fully recoverable with shipped verbs today, and this repo cannot reach it. Ride the rest of the 0.14 ref-kind work. Surfaces, so scoping is mechanical: _services/_maintenance.py (repair writes back the canonicalised file), _workflow/_loader.py validate_against_index_fail_closed plus _collect_ref_kind_alignment_errors (demote the ref-kind axis off the load boundary - its docstring premise "only a kind actually spelled out on disk can ever appear here" is the false one), the write-boundary refusal, and the two message corrections. _index/_store.py _validate_item_vocab covers type/status only, so nothing else at the load boundary refuses on a ref kind - the change is contained. Leaving this Open: not fixed until work lands.
 - [2026-08-26T11:53:08Z] Olivia Lead:
   - Fix task authored: TASK-828 (Ready, medium), standalone, linked fixes here and implements ADR-775. It states repair as the verb that creates the locked state, not a victim of it, and covers both the legacy-map and the natively spelled shape.
+- [2026-08-26T13:05:45Z] Catherine Manager:
+  - Fixed by TASK-828: an undeclared ref kind now refuses at the write and lint boundary only, so check, repair, reads and ref removal keep running, and repair canonicalises the file rather than only the index. The recovery was driven end to end with no hand-editing.
 <!-- sq:discussion:end -->
