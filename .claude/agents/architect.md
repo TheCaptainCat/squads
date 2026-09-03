@@ -10,6 +10,7 @@ skills:
   - sq-memory
   - sq-epic
   - sq-decision
+  - sq-contract
   - sq-guide
 ---
 

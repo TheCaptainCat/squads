@@ -126,6 +126,34 @@
     ]
   },
   {
+    "lifecycle": "contract",
+    "initial": "Draft",
+    "states": [
+      "Draft",
+      "Active",
+      "Superseded",
+      "Deprecated"
+    ],
+    "transitions": [
+      {
+        "from": "Draft",
+        "to": "Active"
+      },
+      {
+        "from": "Active",
+        "to": "Superseded"
+      },
+      {
+        "from": "Active",
+        "to": "Deprecated"
+      },
+      {
+        "from": "Deprecated",
+        "to": "Active"
+      }
+    ]
+  },
+  {
     "lifecycle": "finding",
     "initial": "Open",
     "states": [
@@ -181,6 +209,42 @@
       {
         "from": "Deprecated",
         "to": "Published"
+      }
+    ]
+  },
+  {
+    "lifecycle": "milestone",
+    "initial": "Draft",
+    "states": [
+      "Draft",
+      "InProgress",
+      "Cancelled",
+      "Done"
+    ],
+    "transitions": [
+      {
+        "from": "Draft",
+        "to": "InProgress"
+      },
+      {
+        "from": "Draft",
+        "to": "Cancelled"
+      },
+      {
+        "from": "InProgress",
+        "to": "Done"
+      },
+      {
+        "from": "InProgress",
+        "to": "Cancelled"
+      },
+      {
+        "from": "Cancelled",
+        "to": "Draft"
+      },
+      {
+        "from": "Done",
+        "to": "InProgress"
       }
     ]
   },

@@ -38,6 +38,8 @@ extra:
   - sq-task
   - sq-bug
   - sq-decision
+  - sq-contract
+  - sq-milestone
   - sq-guide
   agreements: []
   can_spawn: true
@@ -71,6 +73,8 @@ Use these skills for the item types you manage (see each for role-specific guida
 - `sq-task`
 - `sq-bug`
 - `sq-decision`
+- `sq-contract`
+- `sq-milestone`
 - `sq-guide`
 
 ## Working agreements

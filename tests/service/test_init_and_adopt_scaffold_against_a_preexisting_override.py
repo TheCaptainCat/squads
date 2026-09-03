@@ -124,11 +124,14 @@ async def test_init_does_not_strand_a_squad_when_the_override_renames_the_roster
     status can leave a status on the item that the merged spec never declares at all, so the
     very next command (``open_service``, which every ``sq`` invocation goes through) fails
     closed and the squad can never load. Reproduced with a roster type rebound to a wholly
-    new lifecycle and the old statuses fully retired via ``[selected]``."""
+    new lifecycle and its old statuses retired via ``[selected]`` — ``Archived`` fully (nothing
+    else uses it), ``Active`` kept declared (the ``contract`` lifecycle also carries it now) but
+    unreachable from the roster's own rebound lifecycle, which is what this test actually
+    proves stays safe to strand."""
     squad_dir = tmp_path / "squads"
     squad_dir.mkdir(parents=True)
     kept_statuses = [
-        *sorted(set(bundled_spec().statuses) - {"Active", "Archived"}),
+        *sorted(set(bundled_spec().statuses) - {"Archived"}),
         "Enabled",
         "Disabled",
     ]

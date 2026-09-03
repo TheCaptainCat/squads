@@ -30,6 +30,7 @@ extra:
   - sq-memory
   - sq-epic
   - sq-decision
+  - sq-contract
   - sq-guide
   agreements: []
   can_spawn: false
@@ -58,6 +59,7 @@ Use these skills for the item types you manage (see each for role-specific guida
 - `sq-memory`
 - `sq-epic`
 - `sq-decision`
+- `sq-contract`
 - `sq-guide`
 
 ## Working agreements

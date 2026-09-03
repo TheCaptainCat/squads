@@ -33,6 +33,7 @@ extra:
   - sq-memory
   - sq-task
   - sq-bug
+  - sq-contract
   - sq-review
 ---
 <!-- sq:body -->
@@ -58,6 +59,7 @@ Use these skills for the item types you manage (see each for role-specific guida
 - `sq-memory`
 - `sq-task`
 - `sq-bug`
+- `sq-contract`
 - `sq-review`
 
 ## Working agreements

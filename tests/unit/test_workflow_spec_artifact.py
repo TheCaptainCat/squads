@@ -83,6 +83,7 @@ def test_workflows_dict_is_a_stable_immutable_bundled_snapshot() -> None:
             "subentity_kinds": dict(bundled.subentity_kinds),
             "roles": dict(bundled.roles),
             "ref_kinds": dict(bundled.ref_kinds),
+            "views": dict(bundled.views),
         }
     )
 

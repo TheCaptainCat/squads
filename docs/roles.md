@@ -11,12 +11,12 @@ or later with `sq role activate <slug>`, which is also where you get to name the
 | Name | Slug | Title | Model | Color | Item skills it manages |
 |------|------|-------|-------|-------|------------------------|
 | Catherine Manager | `manager` | manager *(default)* | opus | cyan | — (triages & routes; `squads` skill only) |
-| Robert Architect | `architect` | architect | opus | blue | `sq-epic`, `sq-decision`, `sq-guide` |
-| Olivia Lead | `tech-lead` | tech lead | opus | purple | `sq-epic`, `sq-feature`, `sq-task`, `sq-bug`, `sq-decision`, `sq-guide` |
+| Robert Architect | `architect` | architect | opus | blue | `sq-epic`, `sq-decision`, `sq-contract`, `sq-guide` |
+| Olivia Lead | `tech-lead` | tech lead | opus | purple | `sq-epic`, `sq-feature`, `sq-task`, `sq-bug`, `sq-decision`, `sq-contract`, `sq-milestone`, `sq-guide` |
 | Paul Reviewer | `reviewer` | code reviewer | opus | red | `sq-task`, `sq-bug`, `sq-review` |
 | Mara Tester | `qa` | QA engineer | sonnet | green | `sq-feature`, `sq-task`, `sq-bug` |
 | Hugo Ops | `devops` | DevOps engineer | sonnet | orange | — (`squads` skill only) |
-| Nina Product | `product-owner` | product owner | sonnet | yellow | `sq-epic`, `sq-feature` |
+| Nina Product | `product-owner` | product owner | sonnet | yellow | `sq-epic`, `sq-feature`, `sq-contract`, `sq-milestone` |
 | Theo Writer | `tech-writer` | technical writer | haiku | pink | `sq-guide` |
 
 Every role also gets the general **`squads`** skill (how to use the CLI). A role that doesn't manage

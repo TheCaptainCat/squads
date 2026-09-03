@@ -69,6 +69,8 @@ async def test_json_emits_a_bare_array_of_every_declared_type_in_ascending_order
         "task",
         "bug",
         "decision",
+        "contract",
+        "milestone",
         "review",
         "guide",
         "role",

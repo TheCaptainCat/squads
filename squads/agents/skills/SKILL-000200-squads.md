@@ -39,6 +39,10 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
   kind-declared fields — e.g. a subtask's `--story`, a finding's `--severity`). Read either back with `sq <type> <n> show` /
   `sq <type> <n> <kind> <k> show`. For a full dossier (body + sub-entities + discussion), use
   `sq <type> <n> show --full --comments` — decisions and refinements often live in comments.
+- Comment with `sq <type> <n> comment --as <slug> -m "…"` (repeat `-m` for separate bullets) or
+  `--file PATH` for one longer or code-bearing comment; sub-entities take the same pair. Reach for
+  `--file` whenever the text has a backtick or a fenced code block — an unescaped one in a quoted
+  `-m` is substituted by the shell before `sq` ever runs.
 - Reference related items by ID so others read the right context.
 - **Before acting on an item, open its `sq-<type>` skill and follow your role's _For …_ section** —
   it lists exactly what you check first, what you do, and when/how to hand off.
@@ -55,8 +59,8 @@ The operator sometimes talks to you directly — for live work or debugging. The
 - **Keep status honest.** Move it to its lifecycle's first working state (`sq <type> <n>
   status <status>`) when you start; don't leave it stale.
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
-  -m "…"` summarising what changed — that's how the coordinating agent's loop (and the next
-  agent) picks up where you left off.
+  -m "…"` (or `--file` for anything with a backtick or a code block) summarising what changed —
+  that's how the coordinating agent's loop (and the next agent) picks up where you left off.
 - **Scope your comment to the right discussion.** Sub-entities (stories, subtasks, findings)
   each have their own discussion region alongside the parent item's main discussion. Use
   `sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
@@ -103,10 +107,12 @@ already tracked — not as a routine boot step.
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
   create with `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
 - **Product owner** → `sq create epic "…" --author product-owner`.
-- **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`.
+- **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`; link with `ref add <id> --kind implements`.
 - **Tech lead** → `sq create task "…" --author tech-lead` `--parent FEAT-…`, then `add-subtask "…"` `--story USn`; link with `ref add <id> --kind fixes|addresses`.
 - **QA engineer** → `sq create bug "…" --author qa`.
 - **Architect** → `sq create decision "…" --author architect`; link with `ref add <id> --kind supersedes`.
+- **Product owner** → `sq create contract "…" --author product-owner`; link with `ref add <id> --kind supersedes`.
+- **Product owner** → `sq create milestone "…" --author product-owner`.
 - **Code reviewer** → `sq create review "…" --author reviewer`, then `add-finding "…"`.
 - **Sub-entities are tracked too:** `feature` → `story` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `task` → `subtask` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `review` → `finding` (`Open → Fixed → Verified (+ WontFix)`).
   `update` is the one metadata entry point for a sub-entity (`--title`/`--status`/`--assignee`,
@@ -118,8 +124,11 @@ already tracked — not as a routine boot step.
 - The `.md` files are sq-managed — never hand-edit them, and read them through
   `sq <type> <n> show`, never by opening the file. Set an item's body with
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
-  "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
-  (repeat `-m` for separate bullets; use `@role`).
+  "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq
+  <type> <n> comment --as <slug> -m "…"` (repeat `-m` for separate bullets; use `@role`) or `--file
+  PATH` for one longer or code-bearing comment — an unescaped backtick or `$(...)` in a quoted `-m`
+  is substituted by the shell before `sq` ever runs, so a message with backticks or a fenced code
+  block belongs in a file.
 
 ## Type-command aliases
 
@@ -135,6 +144,8 @@ type name. Run `sq workflow` to see this table in the terminal.
 | `task` | `t` | `sq t <n> show` |
 | `bug` | `b` | `sq b <n> show` |
 | `decision` | `dec`, `d` | `sq d <n> show` |
+| `contract` | `prd`, `c` | `sq c <n> show` |
+| `milestone` | `mile`, `m` | `sq m <n> show` |
 | `review` | `rev`, `r` | `sq r <n> show` |
 | `guide` | `g` | `sq g <n> show` |
 
@@ -154,6 +165,8 @@ statuses and transitions.
 | `TASK` | `task` | `Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)` |
 | `BUG` | `bug` | `Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)` |
 | `ADR` | `decision` | `Proposed → Accepted → Superseded (+ Rejected, Deprecated)` |
+| `PRD` | `contract` | `Draft → Active → Superseded (+ Deprecated)` |
+| `MILE` | `milestone` | `Draft → InProgress → Done (+ Cancelled)` |
 | `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
 | `GUIDE` | `guide` | `Draft → Published → Deprecated` |
 
@@ -167,7 +180,7 @@ mentions are rewritten to the new ID atomically.
 sq <type> <n> retype <new-type>   # e.g. sq epic 7 retype feature
 ```
 
-Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
+Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `contract`, `milestone`, `review`, `guide`.
 
 **Status behaviour:** when the old and new types share the same workflow (e.g. epic↔feature↔task) the status is carried as-is; otherwise
 the status resets to the new type's initial value and the command says so.
@@ -215,7 +228,7 @@ Ref kinds are declared vocabulary. The bundled set is the default; a project may
 | `related` | Generic cross-reference (default) | Navigation |
 | `blocks` | A is blocking B; B cannot proceed while A is open | `sq blocked` |
 | `depends-on` | A depends on B; A cannot proceed while B is open | `sq blocked` |
-| `implements` | A implements the requirement or spec described by B | Navigation |
+| `implements` | A implements the requirement or spec described by B | `sq check` ref-rule warnings |
 | `fixes` | A (the resolving work) fixes the problem tracked by B | `sq check` ref-rule warnings |
 | `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `sq check` ref-rule warnings |
 | `supersedes` | A (a newer decision) supersedes B (an older one) | `sq check` supersession rule |
@@ -227,13 +240,13 @@ Every edge is stored on the item you add it to — `A <kind> B` lives on A. `blo
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: bug|decision|epic|feature|guide|review
+sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: bug|contract|decision|epic|feature|guide|milestone|review
 #   --author is required and must be a registered agent (your own role slug)
 sq task 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress                                     # transition (validated per type)
 sq task 3 update --assignee python-dev --priority urgent --parent FEAT-<n>  # metadata (parent validated)
 sq task 3 body -m "## Description" -m "…"                        # set the body (or --file)
-sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
+sq task 3 comment --as <your-slug> -m "…"                        # discussion / @mentions (or --file)
 sq list --type task --status InProgress                         # closed items hidden; --all to include
 sq tree FEAT-<n> --json                                      # a parent's whole subtree (status/blocked) for coordinating
 sq search "lockout"                                             # match titles, summaries, bodies

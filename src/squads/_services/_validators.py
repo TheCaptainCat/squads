@@ -92,7 +92,14 @@ class ValidatorContext:
     """Everything one per-item validator reads: the item under test, the active spec, a
     read-only handle on the live index (parent/ref lookups — an O(1) ``.get()``, not a
     rescan), and precomputed squad-global aggregates (registered-slug set, incoming-
-    ``supersedes`` sequence numbers) plus the item's own on-disk markdown text.
+    ``supersedes`` sequence numbers, the set of item types with at least one corpus member)
+    plus the item's own on-disk markdown text.
+
+    ``type_present`` backs ``ref_rule_target_present``'s inertness precondition: computed once
+    per ``report()`` run, alongside ``supersedes_incoming``, from a full index scan — never
+    rescanned per item. ``gate()`` leaves it at its empty default rather than paying that scan
+    on every single create/update, so the check evaluates nothing on that path — failing open,
+    correct for a warn-level finding that never gates a mutation.
 
     ``raw_text`` replaces Phase A's placeholder ``on_disk_bodies: dict[str, str]`` shape now
     that a real validator reads it: a validator is already scoped to *one* item, so the single
@@ -106,6 +113,7 @@ class ValidatorContext:
     index: SquadsDB | None = None
     registered_slugs: frozenset[str] = frozenset()
     supersedes_incoming: frozenset[int] = frozenset()
+    type_present: frozenset[str] = frozenset()
     raw_text: str | None = None
 
 
@@ -453,6 +461,58 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
     return []
 
 
+def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """A settled item (status resolving to the ``done`` role — never ``InReview``, which
+    shares the ``active`` role with every in-flight status, and never the broader ``settled``
+    property, which would also warn on a delivered-nothing Cancelled item) with no outgoing
+    ref matching one of its own type's ``target``-typed ``ref_rules``, whose resolved edge
+    actually points at an item of that target type.
+
+    The selected target type(s) come from the declaring type's own ``validators`` entries —
+    read here, not from the stripped ``:<param>`` the dispatch engine already discarded before
+    this catalog lookup — a ``ref_rule_target_present:<T>`` entry **selects** ``<T>`` as an
+    obligation; the matching ``ref_rules`` entry (``target == <T>``) **types** the edge. Two
+    rules targeting the same ``<T>`` simply widen the accepted kinds.
+
+    Inert while the corpus holds no item of the selected target type at all — ``ctx.
+    type_present``, empty by construction on the single-item gate path (see
+    :class:`ValidatorContext`)."""
+    item = ctx.item
+    if ctx.spec.status_role(item.status) != "done":
+        return []
+    item_spec = ctx.spec.items.get(item.type)
+    if item_spec is None:
+        return []
+    targets = {
+        param
+        for entry in item_spec.validators
+        for bare, sep, param in (entry.partition(":"),)
+        if bare == "ref_rule_target_present" and sep
+    }
+    active = targets & ctx.type_present
+    if not active:
+        return []
+    accepted = {
+        (rr.kind, rr.target) for rr in ctx.spec.item_ref_rules(item.type) if rr.target in active
+    }
+    if not accepted or ctx.index is None:
+        return []
+    for r in item.refs:
+        rid, kind = split_ref(r)
+        target_item = ctx.index.get(rid)
+        if target_item is not None and (kind, target_item.type) in accepted:
+            return []
+    kinds = sorted({k for k, _ in accepted})
+    return [
+        CheckIssue(
+            "warn",
+            item.id,
+            f"settled with no {'/'.join(kinds)} ref to a {'/'.join(sorted(active))} — its "
+            "functional contract slice may be stale",
+        )
+    ]
+
+
 #: The closed per-item validator catalog — a CODE/definition constant, immutable and shared
 #: across every request (fine under the ``_context.py`` CODE-vs-REQUEST split: it varies by
 #: neither request nor squad). Every ``VALIDATOR_NAMES`` member resolves here (asserted below).
@@ -471,6 +531,7 @@ CATALOG: dict[str, Validator] = {
     "subentity_title_max": _subentity_title_max,
     "no_status_banner": _no_status_banner,
     "supersedes_incoming": _supersedes_incoming,
+    "ref_rule_target_present": _ref_rule_target_present,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
@@ -863,6 +924,14 @@ def supersedes_incoming_seqs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[i
     return frozenset(seqs)
 
 
+def types_present(index: SquadsDB) -> frozenset[str]:
+    """Every item type with at least one corpus member — what ``ref_rule_target_present``
+    checks its selected target type(s) against for its inertness precondition: before the
+    target type's first item exists, the finding's remedy does not exist either, so the check
+    is inert rather than warning on the whole pre-existing corpus at once."""
+    return frozenset(it.type for it in index.items.values())
+
+
 # --------------------------------------------------------------------------- composition + engine
 
 
@@ -902,6 +971,7 @@ class ValidatorEngine:
         *,
         registered: frozenset[str],
         supersedes: frozenset[int],
+        type_present: frozenset[str],
         raw_text: str | None,
     ) -> list[CheckIssue]:
         item_spec = self.spec.items.get(item.type)
@@ -914,6 +984,7 @@ class ValidatorEngine:
             index=index,
             registered_slugs=registered,
             supersedes_incoming=supersedes,
+            type_present=type_present,
             raw_text=raw_text,
         )
         issues: list[CheckIssue] = []
@@ -934,6 +1005,7 @@ class ValidatorEngine:
         """
         registered = registered_slugs(index, self.spec)
         supersedes = supersedes_incoming_seqs(index, self.spec)
+        present = types_present(index)
         bodies = bodies or {}
         issues: list[CheckIssue] = []
         for item in index.items.values():
@@ -942,6 +1014,7 @@ class ValidatorEngine:
                 index,
                 registered=registered,
                 supersedes=supersedes,
+                type_present=present,
                 raw_text=bodies.get(item.sequence_id),
             )
         if self.squad_global:
@@ -964,14 +1037,22 @@ class ValidatorEngine:
         """Abort on *item*'s first **error-level** violation of its own effective per-item
         set (warn-level issues are report-only, never a gate — see the class docstring).
         ``raw_text`` is never threaded in here: every catalog validator that reads it is
-        warn-level, so its absence cannot change a gate decision.
+        warn-level, so its absence cannot change a gate decision. ``type_present`` is left at
+        its empty default for the same reason — ``ref_rule_target_present`` is warn-level too,
+        so paying for the full-index scan on every single create/update buys this path
+        nothing.
         """
         registered = registered_slugs(index, self.spec)
         supersedes = supersedes_incoming_seqs(index, self.spec)
         issues = [
             i
             for i in self._run_per_item(
-                item, index, registered=registered, supersedes=supersedes, raw_text=None
+                item,
+                index,
+                registered=registered,
+                supersedes=supersedes,
+                type_present=frozenset(),
+                raw_text=None,
             )
             if i.level == "error"
         ]

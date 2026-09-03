@@ -9,6 +9,7 @@ priority: medium
 refs:
 - BUG-827:fixes
 - ADR-775:implements
+- MILE-836:targets
 description: An undeclared ref kind refuses at the write and lint boundary only, and
   repair normalises the encoding it rests on
 subentities:
@@ -25,7 +26,7 @@ subentities:
   title: Drive the recovery sequence end to end in tests
   status: Done
 created_at: '2026-08-26T11:51:47Z'
-updated_at: '2026-08-26T13:05:30Z'
+updated_at: '2026-08-26T16:01:11Z'
 ---
 <!-- sq:body -->
 ## What is wrong

@@ -367,7 +367,18 @@ async def test_a_guide_on_a_type_the_spec_has_dropped_is_not_reported_per_role(p
     role = await svc.activate_role("qa")
     await svc.set_roster_status(role.id, "Archived")
 
-    kept = ["epic", "feature", "task", "decision", "review", "guide", "role", "skill", "operator"]
+    kept = [
+        "epic",
+        "feature",
+        "task",
+        "decision",
+        "contract",
+        "review",
+        "guide",
+        "role",
+        "skill",
+        "operator",
+    ]
     (project.squad_dir / ".overrides").mkdir(parents=True, exist_ok=True)
     (project.squad_dir / ".overrides" / "workflow.toml").write_text(
         f"# squads:override-base:{__version__}\n[selected]\nitems = {kept!r}\n", encoding="utf-8"

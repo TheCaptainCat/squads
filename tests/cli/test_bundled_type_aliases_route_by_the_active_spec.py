@@ -43,6 +43,12 @@ aliases = ["bg"]
 [items.decision]
 aliases = ["adr"]
 
+[items.contract]
+aliases = ["pd"]
+
+[items.milestone]
+aliases = ["ml"]
+
 [items.review]
 aliases = ["rv"]
 

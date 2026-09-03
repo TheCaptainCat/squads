@@ -14,7 +14,10 @@ pytestmark = pytest.mark.anyio
 _DROP_GUIDE = """\
 # squads:override-base:0.12.3
 [selected]
-items = ["epic", "feature", "task", "bug", "decision", "review", "role", "skill", "operator"]
+items = [
+    "epic", "feature", "task", "bug", "decision", "contract", "review",
+    "role", "skill", "operator",
+]
 """
 
 

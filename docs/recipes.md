@@ -55,6 +55,46 @@ sq decision 14 body --file adr-body.md   # Context / Decision / Consequences (or
 sq decision 14 status Accepted
 ```
 
+## Keep a contract current (product owner)
+
+A contract is the living record of what the product does for a user, right now — one per capability
+area, rewritten in place as the product changes. Features are the history; the contract is the
+current answer.
+
+```bash
+sq create contract "Authentication" --author product-owner       # → PRD-16
+sq contract 16 body --file contract-auth.md   # what the product does today, from the user's side
+sq contract 16 status Active
+# link the feature that shapes it, from the feature:
+sq feature 2 ref add PRD-16 --kind implements
+sq contract 16 refs --in                      # every feature that has shaped this contract
+```
+
+Delivering a feature that links no contract leaves a `sq check` warning — advisory, never blocking,
+and silent until your squad has at least one contract to link. Clear it by updating the slice the
+feature changed and adding the ref, or leave it if the feature genuinely touched no user-facing
+behaviour.
+
+## Aim work at a milestone (product owner / tech lead)
+
+```bash
+sq create milestone "1.0" --author product-owner                 # → MILE-17
+sq milestone 17 update --set target_date=2026-12-01
+sq milestone 17 status InProgress
+# work joins from its own side — the milestone file is never rewritten:
+sq feature 2 ref add MILE-17 --kind targets
+sq task 3 ref add MILE-17 --kind targets
+sq bug 10 ref add MILE-17 --kind targets
+# read what's left:
+sq milestone 17 show                          # delivered / outstanding, counted, computed fresh
+sq workflow view milestone_rollup MILE-17 --json   # the same members as records
+sq milestone 17 refs --in                     # the raw membership edges
+```
+
+There is no verb that adds work to a milestone from the milestone's side, because membership is
+never stored there. Re-aiming an item at a different milestone is `sq <type> <n> ref rm MILE-17`
+followed by a `ref add` for the new one — again, both on the work item.
+
 ## Write a guide (architect / tech writer)
 
 ```bash

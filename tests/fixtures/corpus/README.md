@@ -20,6 +20,9 @@ corpus/
   v0_11/   — schema 0.11: schema-stamp-only gate for the `scopes` ref kind (custom-skill role
              scoping); byte-identical to v0_10 except the schema stamp, since no frontmatter
              shape changed
+  v0_14/   — schema 0.14: two new bundled item types (contract/PRD, milestone/MILE) — carries
+             v0_11's content plus each type's managed skill, stamped as a SKILL item, body and
+             `.claude` pointer; no existing frontmatter shape changed
 ```
 
 Each directory contains:

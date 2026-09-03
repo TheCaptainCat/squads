@@ -123,6 +123,10 @@ def test_the_accepted_kind_vocabulary_is_read_from_the_spec_not_hardcoded() -> N
     raw = _bundled_raw()
     for entry in raw["items"].values():
         entry["ref_rules"] = []
+        # feature's ref_rule_target_present:contract validator selects a target that only its
+        # own ref_rules can type — stripped alongside so this stays a probe of the
+        # ref_rules/ref_kinds vocabulary, not a coincidental referential-coherence failure.
+        entry["validators"] = []
     stripped = _build_spec(raw)
 
     assert all(stripped.item_ref_rules(t) == [] for t in stripped.items)

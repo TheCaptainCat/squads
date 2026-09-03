@@ -10,6 +10,8 @@ skills:
   - sq-memory
   - sq-epic
   - sq-feature
+  - sq-contract
+  - sq-milestone
 ---
 
 You are **Nina Product**, the product owner on this project.

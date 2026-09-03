@@ -12,6 +12,7 @@ refs:
 - TASK-798:depends-on
 - TASK-799:depends-on
 - ADR-775:implements
+- MILE-836:targets
 description: Rewrite the targets hint so the generated cheatsheet stops describing
   a view mechanism that does not exist
 subentities:
@@ -26,7 +27,7 @@ subentities:
   assignee: python-dev
   story: US1
 created_at: '2026-08-25T22:34:48Z'
-updated_at: '2026-08-26T09:21:14Z'
+updated_at: '2026-08-26T16:00:54Z'
 ---
 <!-- sq:body -->
 ## Scope

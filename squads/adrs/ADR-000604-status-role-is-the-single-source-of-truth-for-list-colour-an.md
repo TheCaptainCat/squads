@@ -11,8 +11,9 @@ refs:
 - ADR-474
 - ADR-323
 - ADR-696
+- ADR-320
 created_at: '2026-07-22T14:03:28Z'
-updated_at: '2026-08-03T08:46:23Z'
+updated_at: '2026-08-26T13:50:59Z'
 ---
 <!-- sq:body -->
 ## Context

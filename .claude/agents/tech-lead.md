@@ -12,6 +12,8 @@ skills:
   - sq-task
   - sq-bug
   - sq-decision
+  - sq-contract
+  - sq-milestone
   - sq-guide
 ---
 

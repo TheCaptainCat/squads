@@ -108,12 +108,16 @@ RESERVED_CLI_VERBS: frozenset[str] = frozenset(
 #: alias declarations and the live registered command table, in both directions.
 RESERVED_CLI_ALIASES: tuple[tuple[str, str], ...] = (
     ("b", "bug"),
+    ("c", "contract"),
     ("d", "decision"),
     ("dec", "decision"),
     ("e", "epic"),
     ("f", "feature"),
     ("feat", "feature"),
     ("g", "guide"),
+    ("m", "milestone"),
+    ("mile", "milestone"),
+    ("prd", "contract"),
     ("r", "review"),
     ("rev", "review"),
     ("t", "task"),
@@ -152,6 +156,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "subentity_title_max",
         "no_status_banner",
         "supersedes_incoming",
+        "ref_rule_target_present",
     }
 )
 
@@ -180,12 +185,16 @@ COLOR_INTENTS: frozenset[str] = frozenset(
     {"positive", "danger", "warning", "muted", "neutral", "info"}
 )
 
-#: Validator names that legitimately carry a ``:<param>`` suffix in documentary/seed-catalog
-#: shorthand — the one case where the threshold isn't already a structured spec field
-#: (``subentity_title_max``'s threshold is the ``TITLE_ADVISORY_MAX`` module constant). Every
-#: other catalog name is bare; a spec's ``validators`` list itself only ever names bare
-#: entries (the ``:<n>`` suffix is not spec-declared — see the architect's pin on parent_in).
-PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset({"subentity_title_max"})
+#: Validator names that legitimately carry a ``:<param>`` suffix. ``subentity_title_max``'s is
+#: documentary/seed-catalog shorthand only — the threshold isn't a structured spec field
+#: (``TITLE_ADVISORY_MAX`` is a module constant) and the suffix is never read back at
+#: runtime. ``ref_rule_target_present``'s is a genuine parameter: the item type it selects an
+#: obligation for, read from the type's own ``validators`` entries by the validator itself
+#: (``_services/_validators.py::_ref_rule_target_present``) — the dispatch engine still strips
+#: it before the catalog lookup (``ValidatorEngine._run_per_item``), same as every other name.
+PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {"subentity_title_max", "ref_rule_target_present"}
+)
 
 #: Per-item validators every type runs regardless of category — cross-cutting item hygiene.
 #: Lives here rather than in ``_services`` for the same reason :data:`VALIDATOR_NAMES` does:
@@ -345,7 +354,17 @@ class RefRule(BaseModel):
     What *is* enforced about a declaration is that it can actually apply: the loader refuses a
     rule whose ``kind`` isn't a declared entry of ``[ref_kinds]``, because every ref surface
     would reject that kind and the rule could never fire.
-    """
+
+    ``target`` (optional) **types** the rule: an edge of this kind, declared by this type, is
+    expected to point at an item of the named type — e.g. ``feature``'s ``implements`` rule
+    targets ``contract``, disambiguating a kind reused for more than one relationship. It is
+    **not** an allowlist and restricts nothing on its own (a ``feature`` carrying
+    ``implements`` to a ``decision`` is unaffected); requiredness stays with whatever
+    validator selects it (``ref_rule_target_present``). Referential validation (Plane-1,
+    ``_check_ref_rule_targets``) checks ``target`` names a declared item type —
+    ``_parse_ref_rules`` cannot: item types are known only after every ``[items.*]`` block has
+    parsed, while it sees the declared ref *kinds* alone. Carried on the same declared-
+    vocabulary, nothing-published terms as ``kind``/``hint``."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -354,6 +373,9 @@ class RefRule(BaseModel):
     declared entry of ``WorkflowSpec.ref_kinds`` — validated at load."""
     hint: str = ""
     """Human-readable hint injected into ``parent_hint`` / error messages (optional)."""
+    target: str | None = None
+    """The declared item type this kind is expected to point at when declared by this type
+    (optional) — see the class docstring for what it means and does not mean."""
 
 
 class RefKindSpec(BaseModel):
@@ -588,6 +610,25 @@ class ItemSpec(BaseModel):
     ``_services._validators.effective_validator_names(category, extra=validators)``; every
     entry must name a member of ``VALIDATOR_NAMES`` (Plane-1, enforced below)."""
 
+    views: list[str] = []
+    """Declared ``[views]`` entries rendered as part of this type's own ``show``/``--json``
+    surface — the reverse binding a view needs to reach a reader, since a ``ViewSpec`` never
+    names the type(s) it is shown on (:class:`ViewSource` names a ref kind, a sub-entity kind
+    or a subtree type, never "the item this is attached to"). Not referentially checked at
+    spec-build time on purpose: that floor sits on ``WorkflowSpec._validate``, which fires on
+    *every* ``WorkflowSpec.model_validate(...)`` call including the many hand-built partial
+    specs across the test suite that spread ``bundled.items`` without also carrying
+    ``bundled.views`` — a name that doesn't resolve is instead refused where it's actually
+    used, by :meth:`squads._services._views.ViewsMixin.resolve_view`'s own declared-view check.
+
+    A bundled type's own attachment travels with the type through ``[selected]``: dropping
+    ``items.<type>`` from ``selected.items`` removes this list along with everything else the
+    type declared, and the loader (``_prune_orphaned_type_owned_views`` in ``_loader.py``)
+    prunes a bundled view left with no surviving owner from ``[views]`` too — so deselecting a
+    type takes its bundled view with it rather than stranding a declaration over vocabulary
+    nothing shows any more. A view still attached by another type, or never attached by any
+    type at all (a freestanding view reached only via ``sq workflow view``), is untouched."""
+
 
 #: The fixed, closed three-member category catalog — read off ``ItemSpec.category``'s own
 #: ``Literal`` annotation (single-sourced) rather than a hand-duplicated tuple, so a caller
@@ -595,6 +636,78 @@ class ItemSpec(BaseModel):
 #: drifts from the type actually declared above. Not spec vocabulary: an adopter cannot add,
 #: rename, or remove a category — the catalog is closed, only its per-type assignment is open.
 CATEGORIES: tuple[str, ...] = get_args(ItemSpec.model_fields["category"].annotation)
+
+
+class ViewSource(BaseModel):
+    """The relation a derived view projects — exactly one of three shapes, named by *kind*:
+
+    - ``"ref"`` — refs of the declared kind named by ``name`` pointing at the item the view is
+      resolved against, recovered by inverting stored forward edges. ``name`` must be a
+      declared entry of ``[ref_kinds]``.
+    - ``"subentity"`` — the projecting item's own sub-entity collection of the kind named by
+      ``name``. ``name`` must be a declared entry of ``[subentity_kinds]``, and the item the
+      view resolves against must itself host that kind.
+    - ``"subtree"`` — the projecting item's descendants whose type is the one named by
+      ``name``. ``name`` must be a declared entry of ``[items]``.
+
+    ``name`` is checked against the merged spec by the same referential pass every other
+    workflow-spec cross-reference goes through (see ``_check_views``); it is never a Python
+    literal at the resolving end (``squads._views``), which reads it off the declared source
+    instead.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: Literal["ref", "subentity", "subtree"]
+    name: str
+
+
+class ViewField(BaseModel):
+    """One projected column of a derived view: ``code`` names either a base record attribute
+    (``VIEW_BASE_FIELDS``, resolved generically — id/type/status/status_role/assignee/title/
+    story) or a badge field the source's own type/kind declares; ``label`` is its display
+    header. ``code`` is list-item identity (mirrors ``Field.code``/``Badge.code``), not a dict
+    key, since a view's fields are ordered."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    code: str
+    label: str
+
+
+class ViewSpec(BaseModel):
+    """One declared entry of ``[views]`` — a computed projection with no fourth part.
+
+    Identity is the dict key on ``WorkflowSpec.views``, never restated on the value (the
+    convention ``ItemSpec``/``StatusSpec``/``Lifecycle``/``Collection``/``RefKindSpec`` already
+    follow); a view's presentation template resolves from that same key
+    (``templates/views/<name>.md.j2``), so no ``presentation`` field is declared either — the
+    template path *is* the declared identity, the same way the dict key already is.
+
+    ``group_by``/``order_by`` name a declared ``fields`` entry's ``code`` — never a raw status
+    or ref-kind literal — so grouping and ordering stay spec-driven the way every other
+    engine binding in this project is applied to the projection axis.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    source: ViewSource
+    fields: list[ViewField] = []
+    group_by: str | None = None
+    order_by: list[str] = []
+
+
+#: Base record attributes a view's ``fields`` may project without naming a declared badge
+#: field — resolved generically by ``squads._views`` off the record itself (id/status/
+#: assignee/title) or the active spec (``status_role``), never off a stored/spec value. Split
+#: per source ``kind`` because ``"story"`` only exists on a sub-entity record (a subtask's
+#: mapped parent story) and ``"type"`` only exists on an item record (a ref/subtree source);
+#: projecting either from the wrong source kind is refused at load, not resolved as blank.
+VIEW_BASE_FIELDS_BY_SOURCE: dict[str, frozenset[str]] = {
+    "ref": frozenset({"id", "type", "status", "status_role", "assignee", "title"}),
+    "subentity": frozenset({"id", "status", "status_role", "assignee", "title", "story"}),
+    "subtree": frozenset({"id", "type", "status", "status_role", "assignee", "title"}),
+}
 
 
 class RoleSpec(BaseModel):
@@ -1019,8 +1132,11 @@ def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) 
     """Plane-1 catalog-membership check for each type's ``validators`` list: an unknown name
     fails closed. Param-aware — split on ``:``, the bare name must be a declared catalog
     member, and a ``:<param>`` suffix is only well-formed on a name in
-    ``PARAMETERIZED_VALIDATOR_NAMES`` (today, only ``subentity_title_max``; the assignment
-    surface otherwise lists bare names — see the architect's pin on ``parent_in``).
+    ``PARAMETERIZED_VALIDATOR_NAMES`` (``subentity_title_max``, ``ref_rule_target_present``;
+    the assignment surface otherwise lists bare names — see the architect's pin on
+    ``parent_in``). A ``ref_rule_target_present:<T>`` entry's own coherence — ``<T>`` naming a
+    declared item type, and this type declaring a rule targeting it — is a further check, run
+    once every ``[items.*]`` block is known: see :func:`_check_ref_rule_targets`.
     """
     for t, ts in items.items():
         for entry in ts.validators:
@@ -1029,6 +1145,48 @@ def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) 
                 errors.append(f"item {t!r}: validators entry {entry!r} names an unknown validator")
             elif sep and bare not in PARAMETERIZED_VALIDATOR_NAMES:
                 errors.append(f"item {t!r}: validator {bare!r} takes no param (got {entry!r})")
+
+
+def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> None:
+    """Plane-1 referential validation for :attr:`RefRule.target` — run here, never inside
+    ``_parse_ref_rules``, because item types are known only once every ``[items.*]`` block has
+    parsed, while the ref-rule parser sees the declared ref *kinds* alone.
+
+    Two independent checks:
+
+    1. Every declared ``target`` must name an item type the merged spec declares — otherwise
+       the rule types an edge against a type that does not exist.
+    2. A type selecting ``ref_rule_target_present:<T>`` must itself declare at least one
+       ``ref_rules`` entry whose ``target`` is ``<T>``. Without this, ``<T>`` could be an
+       item type nothing points the check at (an accepted set empty by construction — every
+       settled item warns and no edge can ever clear it) or not a declared item type at all;
+       both are refused here rather than warning forever at runtime.
+    """
+    for t, ts in items.items():
+        errors.extend(
+            f"item {t!r}: ref_rules target {rr.target!r} does not name a declared item type"
+            for rr in ts.ref_rules
+            if rr.target is not None and rr.target not in items
+        )
+
+    for t, ts in items.items():
+        for entry in ts.validators:
+            bare, sep, param = entry.partition(":")
+            if bare != "ref_rule_target_present" or not sep:
+                continue
+            if param not in items:
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} names target type {param!r}, "
+                    "which is not a declared item type"
+                )
+            elif not any(rr.target == param for rr in ts.ref_rules):
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} selects target {param!r}, but "
+                    f"{t!r} declares no ref_rules entry with that target — the validator "
+                    "would refuse every settled item unconditionally. Add "
+                    f"{{ kind = ..., target = {param!r} }} to its ref_rules, or drop the "
+                    "validator"
+                )
 
 
 def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
@@ -1230,7 +1388,16 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   cannot be silently lost to a category, which is what a reachability clause exists to catch;
 #:   its failure mode is again the opposite one, contradiction with ``no_parent``, and again
 #:   :func:`_clause_parent_reachable` owns it.
-UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset({"no_parent", "parent_present"})
+#: - ``ref_rule_target_present`` is the same shape as ``parent_present``: it sits in no
+#:   category bundle, so it is only ever effective when a type names it (with its param) in its
+#:   own ``validators`` — nothing a category reassignment can silently take away. Its own
+#:   coherence — the param must name a declared item type, and the declaring type's own
+#:   ``ref_rules`` must carry a rule targeting it — is a *referential*, not reachability, check
+#:   (:func:`_check_ref_rule_targets`), because it is about what the declaration *means*, not
+#:   about which category turns it on.
+UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {"no_parent", "parent_present", "ref_rule_target_present"}
+)
 
 _CLAUSE_GUARDED: frozenset[str] = frozenset(
     name for names, _ in CONSISTENCY_CLAUSES for name in names
@@ -1386,6 +1553,103 @@ def _check_field_collections(
                         f"{owner!r} field {f.code!r}: required with no resolvable default "
                         f"badge in collection {f.collection!r}"
                     )
+
+
+def _resolve_view_source(
+    tag: str,
+    src: ViewSource,
+    items: dict[str, ItemSpec],
+    subentity_kinds: dict[str, SubentityKindSpec],
+    ref_kinds: dict[str, RefKindSpec],
+    errors: list[str],
+) -> frozenset[str]:
+    """Refuse *src* when its ``name`` doesn't resolve against the vocabulary its ``kind``
+    points at, and return the badge-field codes declared for it (empty for an unresolved or
+    ``"ref"`` source — a ref source has no single type its records all share, so only base
+    attributes are ever valid fields for it; see :func:`_check_views`)."""
+    if src.kind == "ref":
+        if src.name not in ref_kinds:
+            errors.append(f"{tag}: source names ref kind {src.name!r}, not declared in [ref_kinds]")
+        return frozenset()
+    if src.kind == "subentity":
+        ks = subentity_kinds.get(src.name)
+        if ks is None:
+            errors.append(
+                f"{tag}: source names sub-entity kind {src.name!r}, not declared in "
+                "[subentity_kinds]"
+            )
+            return frozenset()
+        return frozenset(f.code for f in ks.fields)
+    # "subtree"
+    ts = items.get(src.name)
+    if ts is None:
+        errors.append(f"{tag}: source names item type {src.name!r}, not declared in [items]")
+        return frozenset()
+    return frozenset(f.code for f in ts.fields)
+
+
+def _check_view_fields(
+    tag: str,
+    v: ViewSpec,
+    base_allowed: frozenset[str],
+    declared_fields: frozenset[str],
+    errors: list[str],
+) -> frozenset[str]:
+    """Field-code uniqueness + resolvability, returning the view's own declared code set for
+    :func:`_check_views` to validate ``group_by``/``order_by`` against."""
+    if not v.fields:
+        errors.append(f"{tag}: must declare at least one field")
+
+    seen_codes: set[str] = set()
+    for f in v.fields:
+        if f.code in seen_codes:
+            errors.append(f"{tag}: duplicate field code {f.code!r}")
+        seen_codes.add(f.code)
+        if f.code not in base_allowed and f.code not in declared_fields:
+            errors.append(
+                f"{tag}: field {f.code!r} is neither a base attribute for a "
+                f"{v.source.kind!r} source ({sorted(base_allowed)}) nor a field "
+                f"{v.source.name!r} declares"
+            )
+    return frozenset(seen_codes)
+
+
+def _check_views(
+    views: dict[str, ViewSpec],
+    items: dict[str, ItemSpec],
+    subentity_kinds: dict[str, SubentityKindSpec],
+    ref_kinds: dict[str, RefKindSpec],
+    errors: list[str],
+) -> None:
+    """Referential + structural floor over ``[views]``, run on the **merged** mapping so it
+    lands on the exact same collect-all pass every other cross-reference here does (``sq
+    workflow lint`` reports a broken view alongside every other violation in one run, never
+    only the first).
+
+    A view's ``source.name`` must name a declared entry of the vocabulary its ``source.kind``
+    points at (``[ref_kinds]``/``[subentity_kinds]``/``[items]``) — the same shape
+    ``_parse_ref_rules`` already refuses a rule naming an undeclared kind for, applied to the
+    view axis: a source that can never resolve is refused here rather than carried as an inert
+    declaration. Every declared field's ``code`` must be a base attribute
+    :data:`VIEW_BASE_FIELDS_BY_SOURCE` allows for that source kind, or a badge field the
+    resolved type/kind actually declares. ``group_by``/``order_by`` must each name one of the
+    view's own declared field codes.
+    """
+    for name, v in sorted(views.items()):
+        tag = f"view {name!r}"
+        base_allowed = VIEW_BASE_FIELDS_BY_SOURCE[v.source.kind]
+        declared_fields = _resolve_view_source(
+            tag, v.source, items, subentity_kinds, ref_kinds, errors
+        )
+        seen_codes = _check_view_fields(tag, v, base_allowed, declared_fields, errors)
+
+        if v.group_by is not None and v.group_by not in seen_codes:
+            errors.append(f"{tag}: group_by {v.group_by!r} must name one of its own fields")
+        errors.extend(
+            f"{tag}: order_by {ob!r} must name one of its own fields"
+            for ob in v.order_by
+            if ob not in seen_codes
+        )
 
 
 #: A TOML bare key (``[A-Za-z0-9_-]+``) — what every ``[ref_kinds]`` entry's own key must
@@ -1644,6 +1908,10 @@ class WorkflowSpec(BaseModel):
     #: replacing the former ``VALID_REF_KINDS`` frozenset. A kind's ``role`` binds engine
     #: behaviour to a semantic instead of a spelling; see :class:`RefKindSpec`.
     ref_kinds: dict[str, RefKindSpec] = {}
+    #: Declared derived views, keyed by view name — source + projection, no fourth part (no
+    #: presentation field either: the key IS the presentation template's identity, resolved by
+    #: ``squads._views`` at ``templates/views/<name>.md.j2``). See :class:`ViewSpec`.
+    views: dict[str, ViewSpec] = {}
 
     # ------------------------------------------------------------------ convenience accessors
 
@@ -2129,6 +2397,10 @@ class WorkflowSpec(BaseModel):
         # Validator-catalog-membership check for each type's `validators` assignment list.
         _check_validators_assignment(self.items, errors)
 
+        # RefRule.target referential validation: names a declared item type, and a type
+        # selecting ref_rule_target_present:<T> declares a rule targeting <T>.
+        _check_ref_rule_targets(self.items, errors)
+
         # Every capability a type declares must be reachable under the validators its own
         # category turns on — a category reassignment that contradicts itself fails here.
         _check_category_consistency(self.items, self.subentity_kinds, self.ref_kinds, errors)
@@ -2151,6 +2423,10 @@ class WorkflowSpec(BaseModel):
         # The per-capability floor over [ref_kinds]: bare-key shape, exactly one default,
         # exactly one preload, at most one kind per dependency direction.
         _check_ref_kinds_floor(self.ref_kinds, errors)
+
+        # [views] referential + structural floor: source vocabulary declared, field codes
+        # resolvable, group_by/order_by name a declared field.
+        _check_views(self.views, self.items, self.subentity_kinds, self.ref_kinds, errors)
 
         # Reserved-vocab floor — the spec must declare the three roster types, each with
         # category = "roster". This is the ONLY type-axis floor: every other type

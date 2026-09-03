@@ -10,6 +10,7 @@ skills:
   - sq-memory
   - sq-task
   - sq-bug
+  - sq-contract
   - sq-review
 ---
 

@@ -278,6 +278,87 @@ do = ["co-author/review it; ensure the implementation follows it once Accepted"]
 handoff = ["supersede it (new ADR) when reality changes"]
 
 # ---------------------------------------------------------------------------
+# contract
+# ---------------------------------------------------------------------------
+
+[types.contract]
+overview = "The living functional contract: what the product does for a user, right now — the functional twin of the ADR set."
+lifecycle = "Draft → Active → Superseded (+ Deprecated)"
+commands = [
+  'sq create contract "…" --author product-owner',
+  "sq contract <n> status Active",
+  "sq feature <n> ref add PRD-… --kind implements   # link the contract slice a feature delivers",
+  "sq contract <n> refs --in   # every feature that has shaped this contract",
+]
+
+[[types.contract.roles]]
+slug = "product-owner"
+authors = true
+enter = ["identify the capability / user-facing area this contract covers"]
+do = [
+  'author it (`sq create contract "…" --author product-owner`)',
+  "write the current functional behaviour, from the user's point of view, in the body",
+  "keep it current: once a feature lands, rewrite the slice it touches in place",
+]
+handoff = ["`sq contract <n> status Active` once it reflects the live behaviour"]
+watch = [
+  "a contract describes behaviour, never architecture (that's the ADR set) or its own workflow state",
+]
+
+[[types.contract.roles]]
+slug = "tech-lead"
+enter = ["read the contract slice(s) the feature being broken down implements"]
+do = [
+  "update the touched slice as the feature lands (`sq feature <n> ref add PRD-… --kind implements`)",
+]
+
+[[types.contract.roles]]
+slug = "*dev"
+enter = ["read the contract slice(s) the feature you're implementing shapes"]
+do = ["update the touched slice as the feature lands"]
+
+[[types.contract.roles]]
+slug = "architect"
+enter = ["read the contract set for the area under change"]
+do = ["watch cross-contract consistency; flag drift between contracts"]
+
+# ---------------------------------------------------------------------------
+# milestone
+# ---------------------------------------------------------------------------
+
+[types.milestone]
+overview = "A named target for a set of work — a release, a cycle, anything work can be aimed at. Membership rides a `targets` ref on the work item; the milestone file never lists its own members."
+lifecycle = "Draft → InProgress → Done (+ Cancelled)"
+commands = [
+  'sq create milestone "…" --author product-owner',
+  "sq milestone <n> update --set target_date=2026-12-01",
+  "sq <type> <n> ref add MILE-… --kind targets   # from the work item joining it",
+  "sq milestone <n> show   # the delivered/outstanding roll-up, computed fresh",
+]
+
+[[types.milestone.roles]]
+slug = "product-owner"
+authors = true
+enter = ["identify the target worth naming — a release, a cycle, a cutoff"]
+do = [
+  'author it (`sq create milestone "…" --author product-owner`)',
+  "set the target date (`sq milestone <n> update --set target_date=YYYY-MM-DD`)",
+  "`sq milestone <n> status InProgress` once work is being aimed at it",
+]
+handoff = ["`@tech-lead` once the milestone exists, so incoming work can join it"]
+watch = [
+  "membership is never edited here — `sq milestone <n> show` reads the live roll-up, it isn't set",
+]
+
+[[types.milestone.roles]]
+slug = "tech-lead"
+enter = ["read the roll-up (`sq milestone <n> show`) for what's still outstanding"]
+do = [
+  "join a task to it as it's scoped (`sq task <n> ref add MILE-… --kind targets`)",
+]
+handoff = ["`@product-owner` if the roll-up shows the target slipping"]
+
+# ---------------------------------------------------------------------------
 # review
 # ---------------------------------------------------------------------------
 

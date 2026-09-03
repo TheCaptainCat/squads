@@ -29,6 +29,7 @@ from squads._services._results import AdoptResult, InitResult
 from squads._services._retype import RetypeMixin
 from squads._services._roster import RosterMixin
 from squads._services._subentities import SubentitiesMixin
+from squads._services._views import ViewsMixin
 from squads._workflow import ROSTER_ROLE, bundled_spec
 from squads._workflow._models import WorkflowSpec
 
@@ -45,6 +46,7 @@ class Service(
     RenameMixin,
     MemoryMixin,
     BoardMixin,
+    ViewsMixin,
 ):
     """Orchestration façade: the logic behind each CLI command.
 

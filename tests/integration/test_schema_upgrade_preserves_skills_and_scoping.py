@@ -62,7 +62,7 @@ async def test_running_pending_migrations_on_a_squad_already_at_0_10_only_stamps
 
     applied = await svc.run_pending_migrations()
 
-    assert [(m.from_schema, m.to_schema) for m in applied] == [("0.10", "0.11")]
+    assert [(m.from_schema, m.to_schema) for m in applied] == [("0.10", "0.11"), ("0.11", "0.14")]
     with cfg_path.open("rb") as fh:
         stamped = tomllib.load(fh)
     assert stamped["schema_version"] == SCHEMA_VERSION
@@ -127,7 +127,7 @@ async def test_upgrade_preserves_an_authored_custom_skill_body_and_its_role_scop
     svc_010 = Service(paths_010)
 
     applied = await svc_010.run_pending_migrations()
-    assert [m.to_schema for m in applied] == ["0.11"]
+    assert [m.to_schema for m in applied] == ["0.11", "0.14"]
 
     with cfg_path.open("rb") as fh:
         stamped = tomllib.load(fh)

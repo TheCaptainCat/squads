@@ -714,6 +714,106 @@ def workflow_ref_kinds(
     console.print(table)
 
 
+# ─── views ──────────────────────────────────────────────────────────────────
+
+#: Frozen field set for the ``sq workflow views --json`` catalog.
+VIEW_CATALOG_FIELDS: tuple[str, str, str, str, str, str] = (
+    "view",
+    "source_kind",
+    "source_name",
+    "fields",
+    "group_by",
+    "order_by",
+)
+
+
+def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
+    """The frozen view-catalog rows, ascending view name.
+
+    ``view`` is the identity key, named as the spec names it — also the presentation
+    template's own identity (``templates/views/<view>.md.j2``; there is no separate
+    ``presentation`` key to carry). ``source_kind``/``source_name`` name the projected
+    relation (``"ref"``/``"subentity"``/``"subtree"`` + the declared kind/type it names —
+    join ``source_name`` into ``sq workflow ref-kinds``/``subentity-kinds``/``types --json``
+    depending on ``source_kind``). ``fields`` is the view's declared projection columns
+    (``[{code, label}]``); ``group_by``/``order_by`` name declared field codes, ``null``/
+    ``[]`` when the view declares neither — present on every row either way.
+    """
+    return [
+        {
+            "view": name,
+            "source_kind": v.source.kind,
+            "source_name": v.source.name,
+            "fields": [{"code": f.code, "label": f.label} for f in v.fields],
+            "group_by": v.group_by,
+            "order_by": list(v.order_by),
+        }
+        for name, v in sorted(spec.views.items())
+    ]
+
+
+@workflow_app.command("views")
+@handle_errors
+def workflow_views(
+    json_out: bool = typer.Option(False, "--json", help="Emit the machine view catalog."),
+) -> None:
+    """List every declared derived view in the active workflow spec.
+
+    Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
+    declared view, ascending view name: ``{view, source_kind, source_name, fields,
+    group_by, order_by}``. Resolve one view against an item with
+    ``sq workflow view <name> <item-id>``.
+    """
+    from squads._cli._common import get_active_spec, print_json_clean
+
+    spec = get_active_spec()
+    rows = _view_catalog(spec)
+
+    if json_out:
+        print_json_clean(json.dumps(rows))
+        return
+
+    table = Table(box=None, pad_edge=False)
+    for col in ("View", "Source kind", "Source name", "Fields", "Group by"):
+        table.add_column(col)
+    for row in rows:
+        row_fields = cast("list[dict[str, str]]", row["fields"])
+        field_codes = ", ".join(f["code"] for f in row_fields)
+        table.add_row(
+            e(str(row["view"])),
+            e(str(row["source_kind"])),
+            e(str(row["source_name"])),
+            e(field_codes),
+            e(str(row["group_by"])) if row["group_by"] else "",
+        )
+    console.print(table)
+
+
+@workflow_app.command("view")
+@common.command
+async def workflow_view(
+    name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
+    item_id: str = typer.Argument(..., metavar="ID", help="Item to resolve the view against."),
+    json_out: bool = typer.Option(False, "--json", help="Emit the projection, no presentation."),
+) -> None:
+    """Resolve one declared view against one item.
+
+    Default: rendered through the view's declared presentation template
+    (``templates/views/<name>.md.j2``, adopter-overridable). ``--json`` emits the
+    projection instead — field metadata, grouping, and records — and skips presentation
+    entirely: the CLI rendering is one presentation over the records, never their source.
+    """
+    from squads._cli._common import get_service, print_json_clean
+    from squads._views import projection_json
+
+    svc = get_service()
+    if json_out:
+        projection = await svc.resolve_view(name, item_id)
+        print_json_clean(json.dumps(projection_json(projection)))
+        return
+    console.print(await svc.render_view(name, item_id))
+
+
 # ─── lint ─────────────────────────────────────────────────────────────────────
 
 

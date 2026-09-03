@@ -97,6 +97,30 @@ defines compatibility:
 
 ---
 
+## When a release adds an item type
+
+A new bundled item type is a vocabulary change, not a data change: the declaration ships in the
+package, and what an existing squad is missing is only the two things a declaration never produces
+on disk — the type's own folder, and the generated agent-facing surface a squad created *after* the
+declaration would already have (the type's managed `sq-<type>` skill, its pointer, and the compiled
+`CLAUDE.md` / `AGENTS.md` regions that name it).
+
+`sq migrate up` creates both. **No existing item is rewritten** — every write is either a path that
+did not exist or a generated region the migration is the first author of, so it is safe to re-run
+and a second pass changes nothing. A type your own workflow override has dropped is skipped: the
+migration scaffolds against your active spec, not the bundled one, so it never creates a folder for
+a type your squad does not declare.
+
+Run `sq sync` afterwards if your squad customises which skills a role loads — the migration
+deliberately regenerates only the new type's surface, and leaves each role's own resolved
+preload list to `sync`, which is where it belongs. On a squad that hasn't customised it, `sync`
+converges to the same result and changes nothing.
+
+Read the release's own entry with `sq migrate chlog vFROM..vTO` before running it; a type-adding
+migration needs no manual step, and its entry says so rather than leaving you to guess.
+
+---
+
 ## Migration history (early schema evolution)
 
 `sq migrate up` runs every pending step in order and restamps the config. The two earliest

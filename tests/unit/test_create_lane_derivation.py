@@ -24,7 +24,7 @@ from squads._interactions import (
 
 #: The authoritative product table: role slug → the types it is in-lane to author.
 _PRODUCT_TABLE: dict[str, set[str]] = {
-    "product-owner": {"feature", "epic"},
+    "product-owner": {"feature", "epic", "contract", "milestone"},
     "tech-lead": {"task"},
     "architect": {"decision", "guide"},
     "reviewer": {"review"},

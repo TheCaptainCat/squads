@@ -16,8 +16,9 @@ refs:
 - ADR-777
 - ADR-781
 - BUG-827
+- ADR-320
 created_at: '2026-08-22T09:28:22Z'
-updated_at: '2026-08-26T11:46:17Z'
+updated_at: '2026-08-26T13:50:58Z'
 ---
 <!-- sq:body -->
 ## Context

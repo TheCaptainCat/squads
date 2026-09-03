@@ -95,10 +95,12 @@ The operator may also speak directly to a specialist for live debugging; the spe
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
   create with `sq create <type>`. Sub-entities nest: `sq <type> <n> <kind> <k> update --status <status>`.
 - The **product owner** authors **epics** (`sq create epic`).
-- The **product owner** authors **features** (`sq create feature`), breaking work into `add-story`.
+- The **product owner** authors **features** (`sq create feature`), breaking work into `add-story`, and links fixes/follow-ups via `ref add <id> --kind implements`.
 - The **tech lead** authors **tasks** (`sq create task`); its parent is the feature it implements (`--parent FEAT-…`), breaking work into `add-subtask` (`--story USn` maps one to a parent story), and links fixes/follow-ups via `ref add <id> --kind fixes|addresses`.
 - The **QA engineer** authors **bugs** (`sq create bug`).
 - The **architect** authors **decisions** (`sq create decision`), and links fixes/follow-ups via `ref add <id> --kind supersedes`.
+- The **product owner** authors **contracts** (`sq create contract`), and links fixes/follow-ups via `ref add <id> --kind supersedes`.
+- The **product owner** authors **milestones** (`sq create milestone`).
 - The **code reviewer** authors **reviews** (`sq create review`), breaking work into `add-finding`.
 - `sq check` enforces each declared parent/sub-entity rule (task).
 

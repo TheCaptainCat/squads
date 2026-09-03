@@ -13,7 +13,7 @@ backend.
 | Doc | Read it for |
 |-----|-------------|
 | **[tutorial.md](tutorial.md)** | A 15-minute, end-to-end first squad. |
-| **[workflow.md](workflow.md)** | The team workflow (who creates & links what) and the per-type status lifecycles. |
+| **[workflow.md](workflow.md)** | The team workflow (who creates & links what), the per-type status lifecycles, milestones, contracts and derived views. |
 | **[agents.md](agents.md)** | Operating *as* an agent inside a squad — the create→write→hand-off loop, and the optional init-time interview. |
 | **[roles.md](roles.md)** | The bundled roster, bundles, and stack developers. |
 | **[recipes.md](recipes.md)** | Copy-paste sequences for common moves. |

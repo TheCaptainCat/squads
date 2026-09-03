@@ -36,6 +36,10 @@ version of the first; this is the full reference. The rules are enforced — at 
 - The hierarchy spine is **epic → feature → task**, with **subtasks → user stories**.
 - Other roles read these to do their work: **QA** derives tests from user stories; the **reviewer**
   drives review items; the **architect** records **ADRs** and authors **guides**.
+- The **product owner** also names **milestones** (`sq create milestone`) — the releases and cycles
+  work is aimed at — and authors **contracts** (`sq create contract`), the living record of what the
+  product does for a user. Neither sits in the epic → feature → task spine: work reaches a milestone
+  or a contract by a ref, never by parentage.
 
 ### Enforced rules
 
@@ -81,6 +85,8 @@ Short and single-letter aliases for the item-type commands provide input sugar f
 | `task` | `t` | `sq t <n> show` |
 | `bug` | `b` | `sq b <n> show` |
 | `decision` | `dec`, `d` | `sq d <n> show` |
+| `contract` | `prd`, `c` | `sq c <n> show` |
+| `milestone` | `mile`, `m` | `sq m <n> show` |
 | `review` | `rev`, `r` | `sq r <n> show` |
 | `guide` | `g` | `sq g <n> show` |
 
@@ -103,11 +109,13 @@ sq workflow statuses           # every declared status, with the role each resol
 sq workflow roles              # every declared status role: settled / hidden / colour / live
 sq workflow lifecycles         # every declared lifecycle: initial state, states, transitions
 sq workflow ref-kinds          # every declared ref kind: its label, hint and semantic role
+sq workflow views              # every declared derived view: its source, fields, grouping, ordering
+sq workflow view <name> <id>   # resolve one declared view against one item
 sq workflow lint               # validate the workflow override — collects all errors; exit 0 if OK
 ```
 
 The **catalog** subcommands (`types`, `subentity-kinds`, `collections`, `statuses`, `roles`,
-`lifecycles`, `ref-kinds`) each take `--json` and emit a bare JSON array — that is the surface to read instead
+`lifecycles`, `ref-kinds`, `views`) each take `--json` and emit a bare JSON array — that is the surface to read instead
 of hardcoding a type or status name, and the shapes are covered by the [stability
 contract](stability.md). Every row carries every key, `null` for absent rather than omitted, so a
 client can index a key without testing for its presence.
@@ -125,6 +133,12 @@ catalog uses as its identity. Follow the name to the other catalog:
 | `statuses` row | `role` | `roles` | `role` |
 | `types` row | `lifecycle` | `lifecycles` | `lifecycle` |
 | `subentity-kinds` row | `lifecycle` | `lifecycles` | `lifecycle` |
+| `views` row | `source_name` | `ref-kinds` / `subentity-kinds` / `types` | per `source_kind` |
+
+A `views` row's `source_name` keys into whichever catalog its own `source_kind` names: `"ref"`
+keys into `sq workflow ref-kinds`, `"subentity"` into `sq workflow subentity-kinds`, and
+`"subtree"` into `sq workflow types`. It is the one join above whose destination is decided by a
+sibling field rather than fixed.
 
 **Resolving a sub-entity's field label.** A sub-entity in `sq <type> <n> show --json` carries no
 kind of its own — you are holding the parent item's `type`, so the kind comes from the type
@@ -184,6 +198,8 @@ bug              Open ──▶ InProgress ──▶ Fixed ──▶ Verified �
                  (InProgress ⇄ Blocked ; Open / InProgress / Blocked ─▶ WontFix, Cancelled)
 
 ADR (decision)   Proposed ──▶ Accepted ──▶ Superseded     (Proposed ─▶ Rejected ; Accepted ─▶ Deprecated)
+contract (PRD)   Draft ─────▶ Active ────▶ Superseded     (Active ─▶ Deprecated ─▶ Active)
+milestone        Draft ─────▶ InProgress ─▶ Done          (Draft / InProgress ─▶ Cancelled ; Done ─▶ InProgress)
 review           Requested ─▶ InReview ─▶ Approved        (InReview ⇄ ChangesRequested ; any ─▶ Rejected)
 guide            Draft ──▶ Published ──▶ Deprecated        (⇄ both directions)
 
@@ -202,6 +218,8 @@ out-of-vocabulary, not as a bad transition.
 | epic / feature / task | `Draft` | Draft→{Ready, InProgress, Cancelled}; Ready→{InProgress, Blocked, Cancelled}; InProgress→{InReview, Blocked, Done, Cancelled}; InReview→{InProgress, Done, Blocked, Cancelled}; Blocked→{Ready, InProgress, Cancelled}; Done→{InProgress}; Cancelled→{Draft} |
 | bug | `Open` | Open→{InProgress, WontFix, Cancelled}; InProgress→{Fixed, Blocked, WontFix, Cancelled}; Fixed→{Verified, InProgress}; Verified→{InProgress}; Blocked→{InProgress, WontFix, Cancelled}; WontFix→{Open}; Cancelled→{Open} |
 | decision (ADR) | `Proposed` | Proposed→{Accepted, Rejected}; Accepted→{Superseded, Deprecated}; Rejected→{Proposed} |
+| contract (PRD) | `Draft` | Draft→{Active}; Active→{Superseded, Deprecated}; Deprecated→{Active} |
+| milestone | `Draft` | Draft→{InProgress, Cancelled}; InProgress→{Done, Cancelled}; Done→{InProgress}; Cancelled→{Draft} |
 | review | `Requested` | Requested→{InReview, Rejected}; InReview→{ChangesRequested, Approved, Rejected}; ChangesRequested→{InReview, Rejected} |
 | guide | `Draft` | Draft→{Published}; Published→{Deprecated, Draft}; Deprecated→{Published} |
 | role / skill / operator | `Active` | Active→{Archived}; Archived→{Active} |
@@ -265,6 +283,155 @@ a finding's `--severity`. Findings carry a **severity** value from the bundled `
 with `update --severity`. The severity collection is fully customizable via `.overrides/workflow.toml`;
 you can relabel badges, change emoji, add/remove values, or define a custom collection for your
 findings. Transitions are validated by the sub-entity machines; `--force` overrides.
+---
+
+## Derived views
+
+A **derived view** is a declared, read-only projection over relationships an item already has: take
+every item pointing here with a given ref kind, or this item's own sub-entities, or its descendants
+of some type, keep a chosen set of fields, group and order them, and render the result. A view has
+three parts and no fourth:
+
+- **source** — the relation to project. One of three shapes: `ref` (every item carrying a forward
+  ref of the named kind to this item, recovered by inverting stored edges), `subentity` (this item's
+  own sub-entities of the named kind), or `subtree` (this item's descendants of the named type).
+- **projection** — the `fields` to carry, an optional `group_by`, an optional `order_by`. It
+  produces records and makes no presentation decision.
+- **presentation** — a template over those records, resolved by the view's own name.
+
+```bash
+sq workflow views                       # every declared view: source, fields, grouping, ordering
+sq workflow view <name> <id>            # resolve one view against one item, rendered
+sq workflow view <name> <id> --json     # the projection instead: field metadata, grouping, records
+```
+
+**Every view is computed, every time.** Nothing is ever written into an item's file. There is no
+sink to declare, no region to regenerate, no output to commit, and nothing to reconcile when two
+branches touch the same item — the underlying frontmatter merges as ordinary data, and the next
+read renders the merged result. A stored rendering would be a second answer to a question the
+frontmatter already answers, and the two go out of step silently.
+
+**`--json` gives the data, not the display.** It emits the projected records with the field metadata
+and grouping key that travel alongside them, and skips presentation entirely. The shape is the same
+for every view and every source, so a client can lay out a view it has never seen without
+special-casing it. That is the supported way to build on a view; the CLI's own rendering is one
+presentation over the records, never their source.
+
+The bundled spec declares one view, `milestone_rollup` — see below. Declaring your own is a section
+of the workflow override: [§ "Derived views"](#derived-views-declared-projections) has the field
+reference.
+
+---
+
+## Milestones
+
+A **milestone** is a named target a set of work is aimed at — a release, a cycle, a cutoff. It is a
+records-type item: no parent, no children, no sub-entities, and its own small lifecycle
+(`Draft → InProgress → Done`, plus `Cancelled`) that tracks whether the target is still being
+pursued — never how much of its work is finished.
+
+```bash
+sq create milestone "1.0" --author product-owner
+sq milestone <n> update --set target_date=2026-12-01
+sq milestone <n> status InProgress
+```
+
+**Membership lives on the work item, not on the milestone.** A feature, task or bug joins a
+milestone by carrying a forward `targets` ref to it:
+
+```bash
+sq task <n> ref add MILE-<n> --kind targets
+```
+
+The milestone file is not touched by that, and it holds no list of its members. There is no verb
+that adds work to a milestone from the milestone's side, because there is nothing there to add it
+to. Two things follow, and both are the point:
+
+- **A milestone is cheap to change.** Re-aiming twenty items at a different release rewrites twenty
+  work items and leaves the milestone byte-for-byte as it was, so it never becomes the file every
+  branch touches.
+- **The membership list is recovered, not stored.** It is the inversion of those forward edges, so
+  it cannot disagree with them. `sq milestone <n> refs --in` lists the raw edges.
+
+**The roll-up answers what is left.** `sq milestone <n> show` renders the bundled
+`milestone_rollup` view under the milestone's body: its members split into delivered and
+outstanding, each side counted. That split is read from each member's own **status role**, not from
+a status name, so a milestone can hold items of several types whose lifecycles spell "finished"
+differently and still group them correctly. Like every derived view it is computed on each request —
+`--json` included — so it is current by construction and there is nothing to refresh.
+
+```bash
+sq milestone <n> show                            # the roll-up, rendered
+sq workflow view milestone_rollup MILE-<n> --json  # the same members as records
+```
+
+squads has no estimation vocabulary, so a milestone reports items, not effort: counts of what is
+delivered and what is outstanding. There is no burndown, no velocity and no sprint length here.
+
+---
+
+## Contracts
+
+A **contract** is the living record of what the product does for a user, right now. It is the
+functional twin of the ADR set: **a decision record is the technical contract, a contract is the
+functional contract with the user.**
+
+The distinction that makes it worth having a separate type:
+
+- **A contract is living.** It is the accumulated current behaviour, rewritten in place as the
+  product changes, written from the user's point of view. It has no "done".
+- **Features and epics are historic.** Each is a point-in-time record — the change plus the
+  reasoning behind it — that later work supersedes. To answer "what does this product do today" from
+  features alone you have to replay all of them in order and apply every later override in your
+  head. The contract is the result of that replay, kept written down.
+
+Its lifecycle is `Draft → Active → Superseded` (plus `Deprecated`, which can be revived to
+`Active`). There is no burn-down state, because a contract is not work.
+
+**It is a collection, not a monolith.** Write one contract per capability or user-facing area, so a
+change updates one slice and two teams working on different areas do not meet in the same file.
+Where those boundaries fall is your editorial judgement, and **nothing enforces it**: too coarse and
+contracts drift back into one document nobody owns, too fine and a single feature fans its links
+across a dozen tiny items. Neither failure can be stated as a rule that would not also refuse
+shapes that are perfectly reasonable, so squads does not try.
+
+**A feature links the contract it shapes** with an `implements` ref — the same kind used elsewhere,
+disambiguated by the target being a contract:
+
+```bash
+sq create contract "Search" --author product-owner
+sq contract <n> status Active
+sq feature <n> ref add PRD-<n> --kind implements   # from the feature
+sq contract <n> refs --in                          # every feature that has shaped this contract
+```
+
+### The currency check
+
+A living record that is not kept current lies, so `sq check` watches for the case it can see: a
+feature that reaches a **delivered** status — one whose role is `done` — without linking any
+contract. It reports a **warning**:
+
+```
+warn FEAT-<n>: settled with no implements ref to a contract — its functional contract slice may be stale
+```
+
+It is the delivered role specifically, not the broader "settled" property: a `Cancelled` feature
+delivered nothing and is never asked about, and an `InReview` one has not landed yet.
+
+**It warns and never blocks.** The transition goes through, and `sq check` still exits `0`
+for a squad whose only findings are warnings. That is deliberate, not an oversight: plenty of
+features touch no user-facing behaviour at all, and a hard gate would fire on every one of them. The
+only way a team clears a gate like that is by adding a link that isn't true — which corrupts exactly
+the edge the check reads. So the warning surfaces the question and leaves the answer with the person
+who knows whether this feature really touches no contract.
+
+**The check is inert until you author your first contract**, and this is worth understanding before
+you conclude it is broken. While a squad holds no contract at all, the check evaluates nothing and
+reports nothing, however many settled features it has — because the remedy it would name does not
+exist yet, and a warning whose fix is unavailable is noise. The moment the first contract is
+authored, the check becomes active for the whole corpus at once, features that settled long before
+that contract existed included. Expect a batch of warnings on the day you start, name the slices
+each of those features shaped, and the batch clears.
 
 ---
 
@@ -375,15 +542,15 @@ This creates `.overrides/workflow.toml` in your squad directory (next to `.squad
 
 ### Override format
 
-The override file is standard TOML. Its top level accepts seven sections — `[items.*]`,
-`[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]`, `[roles.*]` and
-`[ref_kinds.*]` — plus the single `[selected]` table that drops built-ins. Anything else at the top
-level is refused by name when the spec loads; `sq workflow lint` prints the accepted set for the
-version you are running, which is the list to trust rather than this one.
+The override file is standard TOML. Its top level accepts eight sections — `[items.*]`,
+`[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]`, `[roles.*]`,
+`[ref_kinds.*]` and `[views.*]` — plus the single `[selected]` table that drops built-ins. Anything
+else at the top level is refused by name when the spec loads; `sq workflow lint` prints the accepted
+set for the version you are running, which is the list to trust rather than this one.
 
-The subsections below cover lifecycles, statuses, status roles, item types and collections, and
-ref kinds. Sub-entity kinds (`[subentity_kinds.*]`) are declarable but have no field reference
-here; read one back with `sq workflow subentity-kinds --json` for its field shape.
+The subsections below cover lifecycles, statuses, status roles, item types, collections, ref kinds
+and derived views. Sub-entity kinds (`[subentity_kinds.*]`) are declarable but have no field
+reference here; read one back with `sq workflow subentity-kinds --json` for its field shape.
 
 #### Lifecycles
 
@@ -514,9 +681,9 @@ Squads recognizes two item categories:
 - **`"records"`** — durable reference documents: decisions/ADRs, guides, contracts, standards,
   postmortems. Records have no parents, no hierarchy, and exist for reference, not active tracking.
 
-The bundled `decision` and `guide` types are both records. When you define a custom records type,
-squads treats it like a decision: it takes no parent, lives in its own folder, and never appears
-in `sq inbox` (it's always available for reference, not active work).
+The bundled records types are `decision` (ADR), `contract` (PRD), `milestone` and `guide`. When you
+define a custom records type, squads treats it like a decision: it takes no parent, lives in its own
+folder, and never appears in `sq inbox` (it's always available for reference, not active work).
 
 **When to use records category:**
 
@@ -629,11 +796,121 @@ reachable from it. This is a working convention, not an engine binding: `duplica
 declared semantics, because doing so would hardcode a status name your own spec is free to rename or
 drop.
 
+#### Derived views: declared projections
+
+`[views]` declares the derived views described in [§ "Derived views"](#derived-views) above. A view
+is a section of this document like any other: it merges, it shadows field by field, and it drops
+through `[selected]`.
+
+```toml
+[views.open_incidents]
+source = { kind = "ref", name = "escalates" }
+group_by = "status"
+order_by = ["id"]
+fields = [
+  { code = "id",     label = "Incident" },
+  { code = "status", label = "Status" },
+  { code = "title",  label = "Title" },
+]
+```
+
+Fields:
+
+- `source` — required; an inline table of `kind` and `name`.
+  - `kind = "ref"` — every item carrying a forward ref of kind `name` to the item the view is
+    resolved against. `name` must be a declared entry of `[ref_kinds]`.
+  - `kind = "subentity"` — the resolved item's own sub-entities of kind `name`. `name` must be a
+    declared entry of `[subentity_kinds]`, and the item must be of a type that hosts that kind.
+  - `kind = "subtree"` — the resolved item's descendants whose type is `name`. `name` must be a
+    declared entry of `[items]`.
+- `fields` — the projected columns, in order. Each is `{ code, label }`. `code` is either a base
+  record attribute (below) or a badge field the source's own type or kind declares; `label` is the
+  header a presentation may print.
+- `group_by` — optional; the `code` of one declared `fields` entry. Records are grouped by that
+  field's value. Omit it and the projection carries a single unkeyed group, so the shape a client
+  reads is the same either way.
+- `order_by` — optional; a list of `fields` codes to sort records within each group.
+
+The table key is the view's name, and it is also where its presentation lives — there is no
+`presentation` field, because the template path *is* the identity (below).
+
+**Base record attributes.** These resolve for any source without the type declaring a field for
+them, and which ones are available depends on the source kind — projecting one from a source that
+cannot produce it is refused when the spec loads, not silently rendered blank:
+
+| `code` | `ref` | `subentity` | `subtree` | What it is |
+|---|---|---|---|---|
+| `id` | ✓ | ✓ | ✓ | The record's id — a full item id, or a sub-entity's local id |
+| `status` | ✓ | ✓ | ✓ | Its status, as declared |
+| `status_role` | ✓ | ✓ | ✓ | The role that status resolves to — the axis to group on |
+| `assignee` | ✓ | ✓ | ✓ | Its assignee slug, or `null` |
+| `title` | ✓ | ✓ | ✓ | Its title |
+| `type` | ✓ | — | ✓ | The item's own type; a sub-entity has none |
+| `story` | — | ✓ | — | The parent story a sub-entity maps onto, where its kind maps one |
+| `any declared badge field` | — | ✓ | ✓ | e.g. `priority`, `severity`, or one you declared |
+
+**A `ref` source projects base attributes only.** Its records can be items of any type — that is
+what makes it a membership edge — so there is no single type whose declared fields would apply to
+all of them, and naming a badge field there is refused at load rather than rendered blank. A
+`subentity` source resolves badge fields against the named kind's own `fields`, and a `subtree`
+source against the named type's.
+
+**Group on `status_role`, not on a status name.** A view's members can span several types whose
+lifecycles spell "finished" differently — `Done`, `Verified`, `Accepted` — so grouping on the
+literal status silently splits work that is equally finished. `status_role` is the declared axis
+that answers the question, and it is what the bundled milestone roll-up groups on.
+
+**Presentation: `templates/views/<name>.md.j2`.** A view's rendering is an ordinary bundled
+template, resolved by the view's own name, and it is overridden the way every other template is —
+drop a file at `.overrides/templates/views/<name>.md.j2` and it wins, per file, ahead of the bundled
+tree. `sq override scaffold`, `sq override diff` and `sq override update` cover it with no
+view-specific machinery:
+
+```bash
+sq override scaffold views/milestone_rollup.md.j2   # start from the bundled rendering
+sq override diff views/milestone_rollup.md.j2       # your edits, and what an upgrade changed
+sq override update views/milestone_rollup.md.j2     # re-stamp once you have reconciled
+```
+
+The template receives `fields`, `group_by` and `groups`; a group has `key`, `count` and `records`,
+and a record's cells are addressed by field code — `record.values["id"].text` for the rendered text,
+`record.values["id"].json_value` for the structured value. **A view you declare needs a template of
+its own at that path** before it can be rendered; until you write one, resolve it with `--json`,
+which does not render at all.
+
+**Dropping a view.** `[selected].views` names the views that survive, like every other section. A
+view attached to an item type is also attached from that type's side — the type's own `views` list —
+so drop both together:
+
+```toml
+[items.milestone]
+views = []          # detach it from the type that shows it
+
+[selected]
+views = []          # and drop the declaration itself
+```
+
+Dropping the **type** through `[selected].items` needs neither line: a bundled view that only that
+type attached is taken with it automatically, so there is no second, unrelated-looking key to
+remember.
+
+**Referential checks.** A view naming a ref kind, sub-entity kind or item type the merged spec does
+not declare is refused at load with the rest of the spec's cross-references, and so is a `group_by`
+or `order_by` naming a code the view's own `fields` do not carry. `sq workflow lint` reports it with
+everything else.
+
+**Reading back what you declared:**
+
+```bash
+sq workflow views          # name, source kind, source name, fields, grouping
+sq workflow views --json   # machine-readable
+```
+
 ### What the override may and may not change
 
-The override may add a new item type, status, lifecycle, collection, status role or ref kind;
-shadow a built-in one, field by field; and drop a built-in by listing the survivors in a top-level
-`[selected]` table. The full grammar — deep merge, arrays as leaves, splat-refs and `[selected]` —
+The override may add a new item type, status, lifecycle, collection, status role, ref kind or
+derived view; shadow a built-in one, field by field; and drop a built-in by listing the survivors in
+a top-level `[selected]` table. The full grammar — deep merge, arrays as leaves, splat-refs and `[selected]` —
 is in [overrides.md § "The override grammar"](overrides.md#the-override-grammar-shadow-append-and-drop).
 
 The refusals you are most likely to meet — the grammar-level ones (a malformed splat-ref, a

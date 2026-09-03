@@ -65,7 +65,10 @@ folder = "incidents"
 lifecycle = "triage"
 
 [selected]
-lifecycles = ["work", "adr", "review", "agent", "subentity", "finding", "bug", "triage"]
+lifecycles = [
+  "work", "adr", "contract", "milestone", "review", "agent",
+  "subentity", "finding", "bug", "triage",
+]
 """
 
 
@@ -91,7 +94,17 @@ async def test_default_output_is_a_human_table_with_every_declared_lifecycle(
     assert result.exit_code == 0, result.output
     for col in ("Lifecycle", "Initial", "States", "Transitions"):
         assert col in result.output
-    for lifecycle in ("work", "bug", "adr", "review", "guide", "agent", "subentity", "finding"):
+    for lifecycle in (
+        "work",
+        "bug",
+        "adr",
+        "contract",
+        "review",
+        "guide",
+        "agent",
+        "subentity",
+        "finding",
+    ):
         assert lifecycle in result.output
 
 
@@ -106,6 +119,8 @@ async def test_json_emits_a_bare_array_ascending_lifecycle_name(project, invoke)
         "work",
         "bug",
         "adr",
+        "contract",
+        "milestone",
         "review",
         "guide",
         "agent",
