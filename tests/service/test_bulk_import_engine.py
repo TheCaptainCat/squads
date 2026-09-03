@@ -333,7 +333,9 @@ async def test_a_shrinking_pre_existing_scoped_edge_violation_replays_cleanly(sv
         assert item is not None
         base = item.model_copy(deep=True)
         item.status = "Archived"  # pre-existing: scoped to qa AND manager, reached outside sq
-        await _itemfile.update_frontmatter(item_file(svc.paths, item), item, base)
+        await _itemfile.update_frontmatter(
+            item_file(svc.paths, item), item, base, default_kind=svc.spec.default_ref_kind()
+        )
 
     text = _lines({"op": "status", "target": live_role.id, "status": "Archived"})
     result = await svc.import_events(text, default_as="manager")

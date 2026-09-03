@@ -9,6 +9,7 @@ import {
   decodeMermaidNodeId,
   mermaidNodeId,
 } from '../src/domain/graphDiagrams';
+import { isSqGraphNode } from '../src/sqAdapter';
 import type { SqGraphNode, SqTreeNode } from '../src/types';
 
 function fixture(name: string): unknown {
@@ -34,6 +35,7 @@ function graphNode(overrides: Partial<SqGraphNode> & { id: string }): SqGraphNod
     priority: null,
     assignee: null,
     edge_kind: null,
+    edge_semantic: null,
     direction: null,
     seen: false,
     children: [],
@@ -133,7 +135,10 @@ describe('buildSubtreeMermaid', () => {
 });
 
 describe('buildRefGraphMermaid', () => {
-  it("gives 'depends-on' a direction-sensitive label and any other kind its name verbatim", () => {
+  it('gives a dependency-semantic edge a direction-sensitive label under a renamed kind, and any other kind its name verbatim', () => {
+    // The kind is deliberately NOT the bundled 'depends-on' spelling — a project that renames
+    // its dependency kind must still get "depends on" / "required by", because the label is
+    // driven by `edge_semantic`, never by comparing `edge_kind` against a literal.
     const root = graphNode({
       id: 'TASK-10',
       type: 'task',
@@ -143,7 +148,8 @@ describe('buildRefGraphMermaid', () => {
           id: 'TASK-11',
           type: 'task',
           status: 'Done',
-          edge_kind: 'depends-on',
+          edge_kind: 'requires',
+          edge_semantic: 'dependency',
           direction: 'out',
         }),
         graphNode({
@@ -151,7 +157,8 @@ describe('buildRefGraphMermaid', () => {
           type: 'bug',
           status: 'Open',
           priority: 'high',
-          edge_kind: 'depends-on',
+          edge_kind: 'requires',
+          edge_semantic: 'dependency',
           direction: 'in',
           children: [
             graphNode({
@@ -178,6 +185,81 @@ describe('buildRefGraphMermaid', () => {
         '  TASK_002d12 -->|related| TASK_002d11',
       ].join('\n'),
     );
+  });
+
+  it('renders a navigational edge (no declared semantic) as its own kind spelling', () => {
+    const root = graphNode({
+      id: 'TASK-1',
+      children: [
+        graphNode({ id: 'TASK-2', edge_kind: 'related', edge_semantic: null, direction: 'out' }),
+      ],
+    });
+
+    expect(buildRefGraphMermaid(root)).toContain('-->|related|');
+  });
+
+  it('renders an edge whose declared semantic is not "dependency" as its own kind spelling, rather than throwing or blanking', () => {
+    // 'preload' and 'supersession' are real declared roles (ADR-775 §2); 'default' is the
+    // bundled default kind's own declared role (`related` in the bundled spec) — none of them
+    // is 'dependency', so all three fall through to the kind's spelling exactly like an
+    // unrecognised/future role would.
+    const root = graphNode({
+      id: 'TASK-1',
+      children: [
+        graphNode({
+          id: 'TASK-2',
+          edge_kind: 'scopes',
+          edge_semantic: 'preload',
+          direction: 'out',
+        }),
+        graphNode({
+          id: 'TASK-3',
+          edge_kind: 'supersedes',
+          edge_semantic: 'supersession',
+          direction: 'out',
+        }),
+        graphNode({
+          id: 'TASK-4',
+          edge_kind: 'related',
+          edge_semantic: 'default',
+          direction: 'out',
+        }),
+      ],
+    });
+
+    const source = buildRefGraphMermaid(root);
+    expect(source).toContain('-->|scopes|');
+    expect(source).toContain('-->|supersedes|');
+    expect(source).toContain('-->|related|');
+  });
+
+  it('accepts a graph node whose edge_semantic field is entirely absent (an older sq predates it) instead of rejecting the graph', () => {
+    // Deliberately not built through the `graphNode()` helper, which always sets the key — this
+    // mirrors the literal shape `JSON.parse` produces from an `sq` build that predates A2.
+    const legacyChild = {
+      id: 'TASK-2',
+      type: 'task',
+      status: 'Ready',
+      priority: null,
+      assignee: null,
+      edge_kind: 'depends-on',
+      direction: 'out',
+      seen: false,
+      children: [],
+    };
+    const legacyRoot = {
+      id: 'TASK-1',
+      type: 'task',
+      status: 'Ready',
+      priority: null,
+      assignee: null,
+      edge_kind: null,
+      direction: null,
+      seen: false,
+      children: [legacyChild],
+    };
+
+    expect(isSqGraphNode(legacyRoot)).toBe(true);
   });
 
   it('deduplicates an identical (from, to, label) edge reached by two different paths', () => {

@@ -16,7 +16,7 @@ refs:
 - ADR-777
 - ADR-781
 created_at: '2026-08-22T09:28:22Z'
-updated_at: '2026-08-24T18:10:34Z'
+updated_at: '2026-08-25T18:20:43Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -219,6 +219,296 @@ declares one kind gets a stale-override warning for the rest of the project's li
 - **What is genuinely lost.** A `"ID:kind"` edge stops being self-describing outside its home squad
   for a project-declared kind. That is the one ADR-49 argument this decision pays rather than
   refutes, and the price is now identical to the one already paid for a renamed type or status.
+
+## Amendment note
+
+**2026-08-25 — the bare-ref wire format is a declared semantic (§3), and `sq graph --json`'s
+`edge_kind` is bound by the same rule as the engine (§2).** §3's floor enumerates what the
+declared set must supply and does not reach the one kind the on-disk format encodes by omission;
+§2 converts every engine binding and does not say what the agent-facing graph contract emits once
+a project renames its dependency kind. Both are settled here rather than in code, because one is
+durable on-disk data and the other is a read surface agents branch on.
+
+### A1. The bare-ref shorthand is a declared `default` role, and the kind carrying it is renameable
+
+`make_ref`/`split_ref` omit the kind when it equals `DEFAULT_KIND = "related"`, so a bare `"ID"`
+on disk decodes as `related` (read: `_models/_item.py:22`, `:104-112`). That constant is wire
+format, not a display default: 598 of this squad's 1068 stored edges carry no kind at all
+(driven). Renaming that kind would silently re-point every one of them, and §5 cannot see it — a
+bare ref stores no kind, so the corpus carries no evidence of which entry it was written under.
+That is exactly the property ADR-696 §5a relies on for `prefix` and `folder`, and it does not hold
+here. §5 is therefore not extended; the gap is closed at the vocabulary end instead.
+
+**`default` becomes a fourth value of the `role` field §2 declares** — not a second field. Exactly
+one declared kind carries it, and the bundled spec declares it on `related`.
+
+- **Exactly one, and mandatory** — unlike `dependency` and `supersession`, where §3 makes zero
+  legal. The wire form must be total: a bare ref written by any earlier squads has to keep
+  decoding, and a spec declaring no default kind would turn existing on-disk data into a load
+  failure rather than the bounded `sq check` finding this decision's Context relies on to keep the
+  cost of a wrong vocabulary small.
+- **Renaming the kind that carries `default` is permitted and safe**, with no reserved name and no
+  exemption. The bare form binds to the declared semantic and never to a spelling — §2's rule
+  applied to the encoding — so a rename relabels the same edges instead of re-pointing them. A
+  reserved `related`, exempt from rename, was the alternative and is rejected: it reinstates the
+  frozen literal §2 exists to remove, and the `tests/meta` scan would have to carve it out by
+  name.
+- **The dangerous reassignment is made unrepresentable rather than detectable.** Because `default`
+  is a value of the one `role` field, the kind carrying it can never also carry `dependency`,
+  `preload` or `supersession` — so the bare form can never come to denote a blocking, preload or
+  supersession edge. What remains possible is moving `default` between two navigational kinds,
+  whose whole effect is relabelling edges that drive no engine behaviour. That residue is stated
+  rather than guarded, and it is the reason no corpus check is owed.
+- **`default` names an encoding, not an engine binding.** Nothing in the graph, the roster
+  resolver or the validators branches on it. §2's "a kind that declares no semantic is
+  navigational" stands with this one companion: a kind carrying `default` is navigational too.
+- **One on-disk encoding per edge.** An edge whose kind is the declared default is always written
+  bare, and the spelled form of the default kind is never emitted, so the corpus stays canonical
+  and a spelled default arriving by hand or through import normalises on the next write.
+
+`DEFAULT_KIND` retires as a vocabulary literal rather than moving somewhere else. `_models/`
+resolves no vocabulary — the acyclic invariant is why `effective_prefix` exists — so the ref
+primitives become structural: a bare ref decodes to an **unspelled** kind, and resolution to the
+declared default happens where the active spec is already in hand. Two consequences worth naming,
+because both make the surrounding code smaller rather than larger: the sites that only want the
+target ID (`_models/_index.py`, `_services/_items.py`, `_services/_retype.py`) stop touching the
+vocabulary at all, and the display sites (`_cli/_common.py:527`, `:706`; `_cli/_items.py:630`;
+`_cli/_skill.py:213`) test whether a kind was spelled instead of comparing it against a name.
+
+### A2. `sq graph --json` emits a declared kind key, and gains a semantic field beside it
+
+`edge_kind` normalises both dependency spellings to the literal `"depends-on"` (read:
+`_services/_refs.py:36`, `:79-80`, `:111-116`), documented as the output contract at
+`_cli/_main.py:995-998` and on `GraphNode` itself. §2 converts the engine binding and leaves the
+emitted value unstated. It is a read surface agents branch on, so it is ruled here.
+
+- **The normalisation stays.** Collapsing the pair is what lets an item authored with both
+  `A blocks B` and `B depends-on A` dedupe to a single edge; emitting the raw spelling would
+  un-collapse it into two.
+- **`edge_kind` emits a declared kind key — never a semantic, never a fixed sentinel.** Every
+  value of the field stays the same kind of thing, and a project's own spelling is what its agents
+  read. For a dependency edge it is the key of the kind carrying `dependency` in the **dependent**
+  direction, which is `depends-on` under the bundled spec. §3 permits a project to declare only
+  the blocker direction; in that case the blocker key is the canonical, and `direction` keeps the
+  meaning it has today either way — `"out"` means the expanded item depends on the child.
+- **The node gains `edge_semantic`**: the edge kind's declared semantic role, or `null` for a
+  navigational kind. This is the field a consumer branches on. Emitting only the spelling would
+  leave every agent testing `edge_kind == "depends-on"` — the same declared-but-found-by-literal
+  defect §2 removes from the engine, since an agent reading this JSON is one of its consumers.
+  Emitting only the semantic would lose the spelling the display needs and would collide with a
+  project free to name a kind `dependency`.
+- The field lands complete on first ship rather than growing across releases, and the `--json`
+  docstring states both fields and which one to branch on.
+
+### A3. The declared default kind is never spelled on disk, and the fold owes that
+
+A1 states the encoding invariant in passing — an edge whose kind is the declared default is always
+written bare, and the spelled form of the default kind is never emitted — and leaves it to fall out
+of the write path. It does not. `Item.from_frontmatter` folds a pre-0.2 `extra.ref_kinds` map
+through `fold_legacy_kinds`, and `make_ref`, structural per A1 and correctly so, spells out whatever
+kind it is handed. A legacy-map edge naming the default kind therefore loads spelled, and the next
+ordinary mutation of that item commits the spelled form to disk. Driven under the bundled spec with
+no rename anywhere, and the sequence is worse than one bad write. A status update on such an item is
+**refused** — `on-disk frontmatter has diverged from the index (refs)` — because the disk side of the
+skew guard folds the map to `ID:related` while the index still holds the bare form. The refusal's own
+advertised remedy then completes the damage: `sq repair` re-derives the index from disk and stores
+`refs: [ID:related]`, after which the next mutation commits the spelled form to the file, strips the
+map that recorded where it came from, and `sq check` reports clean.
+
+A1's safety claim is **restored, not narrowed**. It is a claim about the design, and the design
+holds: a bare ref carries no spelling, so a rename relabels it rather than re-pointing it. What
+failed is an implementation emitting an encoding A1 itself forbids. Narrowing the claim to
+natively-written edges would record an implementation defect as a design limit, and would leave a
+corpus holding two encodings of one edge — the worse standing state, and the one that makes a
+renamed default diverge across surfaces.
+
+**Where the duty sits — the seam, named.** "The service load boundary" is not one seam, and the
+seam that phrase most reads like is the wrong one. Three paths build or hold an item whose `refs`
+must be canonical, and only two of them ever run the fold:
+
+- `_index/_store.py::_read_from_disk` — behind `IndexStore.load` and `transaction`, and where
+  `_validate_item_vocab` runs — builds its items with `SquadsDB.model_validate_json`. It **never
+  calls `Item.from_frontmatter`**: `_read_refs` is reached only from `_frontmatter_payload`, which
+  has exactly one caller. No fold runs here, and the refs this side holds are already canonical.
+  **Normalisation must not go here.** Placing it beside `_validate_item_vocab` normalises the index
+  side of the skew guard while the disk side still spells, which is what manufactures a false skew
+  on every legacy-map item.
+- `_itemfile.py::frontmatter_skew:222` builds the **disk side** of that guard through
+  `Item.from_frontmatter`. This is the side that spells.
+- `_services/_maintenance.py::_rebuild_index_from_disk:1324` — `sq repair` — is the third, and the
+  only one that **stores** the folded item, which is how a spelled default reaches the index and
+  then the corpus.
+
+A fourth call site, `_scan_for_check:2209`, parses and discards; it carries nothing anywhere and
+needs nothing.
+
+Reconciling the two sides after the fold does not work, and the guard's own docstring is what
+misleads here: it claims both sides go through the identical round trip, and they do not. Driven,
+putting the base side through `Item.from_frontmatter(base.to_frontmatter_dict())` too still reports
+`refs` skew, because the legacy map is real data the index does not hold. The fold is
+information-adding on the disk side, so the encoding must be canonical **when the fold produces
+it**.
+
+**So: one site, at the fold's input — which reverses this note's own exclusion below.**
+`Item.from_frontmatter` takes the resolved default kind as a **required** keyword argument and hands
+it to `_read_refs`/`fold_legacy_kinds`, which emit a bare ref when the legacy map names that kind.
+All three call sites inherit it, `sq repair` included, and no wrongly-encoded item ever exists to be
+corrected afterwards.
+
+The objection this note first recorded — many call sites, and a defaulted parameter regressing
+silently at any one that omits it — does not survive being driven. `Item.from_frontmatter` has
+**three** call sites in `src/squads/`, all named above, and a **required** keyword makes an omission
+a type error rather than a silent regression: ADR-777's B2 applies exactly that rule to
+`top_level_keys`, for exactly this reason.
+
+`frontmatter_skew`/`ensure_no_skew` take the same required argument. Their nine call sites are all
+`Service` mixin methods with `self.spec` already in hand — `_base.py:1009`, `_items.py:360`,
+`_subentities.py:686` and `:746`, `_retype.py:161`, `_rename.py:124`, `_import.py:301`,
+`_maintenance.py:254` and `:2033` — so nothing new is threaded through the CLI. Each caller resolves
+`WorkflowSpec.default_ref_kind()` **once per pass** rather than per item, so a spec declaring the
+wrong number of default kinds fails as one clean refusal naming the spec instead of raising partway
+through a rebuild.
+
+**What keeps the sites from drifting is structural, not convention.** The fold has one
+implementation and one entry point, and a `tests/meta` guard enumerates `Item.from_frontmatter`'s
+three call sites so that adding a fourth fails the suite — the shape
+`tests/unit/test_agent_backend_abc_stays_at_seven_documented_methods.py` already uses. Drift is
+reachable only by adding a site, and adding a site is the thing that fails.
+
+**The agreement test asserts convergence, not the absence of a warning.** Table-driven over the
+encodings of one edge, each written as an on-disk file against an index holding the canonical form:
+bare `refs: [ID]`; spelled `refs: [ID:related]`, the form a repair at an unfixed version could
+already have committed; bare plus `extra.ref_kinds: {ID: related}`; and the non-default controls
+`refs: [ID:blocks]` and bare plus `{ID: blocks}`. For each row: `frontmatter_skew` returns empty,
+`sq repair` stores the canonical encoding, the next ordinary mutation writes it, and `sq check` is
+clean throughout. The three default-kind rows must converge on **bare**, the two controls on
+`ID:blocks`. The load-bearing assertion is that the legacy-map row and the bare row produce
+byte-identical `to_frontmatter_dict()` output — the property that the two sides re-derive to the
+same thing, asserted rather than relied on as a coincidence. One corpus-level row runs the whole set
+through `sq check`, `sq repair`, `sq check`, a mutation of every item, and `sq check` again, with the
+index's `refs` byte-identical across the repair; that row catches an asymmetry introduced at any of
+the three sites rather than only at the one under test.
+
+**`_models/` still resolves nothing.** It cannot know which kind is the default without an import
+cycle or a re-frozen literal — the literal A1 retired, and nothing here reopens it. Receiving a
+resolved kind as an argument is not resolving one, which is exactly the split A1 already draws for
+`make_ref`/`split_ref`, and it is what lets the fold be canonical at its input while `_models/`
+gains no vocabulary.
+
+**No corrective sweep, and the remedy is a command that already exists.** That conclusion holds; the
+premise recorded for it does not, and is withdrawn. Disk is not already canonical everywhere. A
+pre-0.14 squad can hold a spelled default kind on disk **and** in its index at once, byte-identical
+on both sides, written by the create door that stayed open until the fold landed and read back
+verbatim because `Item.from_frontmatter` folded only when an `extra.ref_kinds` map was present. At
+that version the state is legal, `sq check`-clean and freely mutable; at this one the item is refused
+on its next mutation. So the reach is wider than "an index repaired at an interim build", and the
+reason no sweep is owed has to be a mechanism rather than an assumption about the corpus's shape.
+
+**The mechanism is already in the upgrade path, and is what discharges this.**
+`run_pending_migrations` ends every non-empty batch with `repair()` before it stamps the new schema,
+and the root callback refuses every command on a squad whose schema is behind — so a pre-0.14 squad
+cannot reach a mutating command without first running `sq migrate up`, and that run re-derives the
+index from the folded disk. The 0.14 migration this release already owes for the new item types
+therefore **is** the sweep, and owes no ref-canonicalisation step beyond bumping the schema (driven:
+a squad holding a spelled default consistently on both sides, stepped through `sq migrate up`, comes
+out with a bare index, a mutation that succeeds, and `sq check` clean). Stated here because it is now
+load-bearing rather than incidental: a release that ships no runner ships no repair, and this
+coverage would leave with it unnoticed.
+
+**A step of its own is refused on its own terms, not only as redundant.** A frozen runner cannot know
+which kind carries `default` without reading the live spec — the coupling the clause below forbids —
+and the state is not keyed to a schema version at all: it arrives by hand edit, merge resolution,
+import, or a third-party writer, at any version, including after the migration has run. A one-shot
+step cannot cover an arrival path that stays open; `sq repair` covers every one of them, which is
+what makes it the standing remedy rather than a fallback. So no new verb is owed, which is what the
+standing rule against asserting an unperformable remedy requires.
+
+**What the repair does not do is rewrite the file.** Disk keeps the spelled form until that item's
+next ordinary mutation, which writes it bare. That is tolerated rather than corrected, and A1's
+encoding invariant is read accordingly: it binds what squads **emits**, and never claimed that no
+file predating the fold can hold a spelled default. Such a file is check-clean, mutable and
+self-correcting on its next write, and nothing downstream distinguishes the two encodings, because
+the fold resolves them to one kind before any consumer sees either.
+
+**A migration runner may not borrow a live model primitive.** The 0.1-to-0.2 runner calls
+`fold_legacy_kinds` from `_models`, so making `make_ref` structural changed that runner's on-disk
+output retroactively: the same input yields a bare ref under one release and a spelled one under the
+next. §2 grants `_migrations/` its frozen literals on the ground that a migration reads the
+vocabulary of the schema version it transforms; the same ground forbids it reading a live
+*primitive* into which that vocabulary is folded. Each runner carries its own frozen fold, beside
+the frozen type table it already carries.
+
+**The graph's silent skip is a distinct defect, settled by none of the above.**
+`_out_neighbours`/`_in_neighbours` drop every edge whose kind the merged spec does not declare, with
+no signal, while `refs --in`/`--all` list that same edge under its stale name and `sq check` warns
+on it: three surfaces, three answers to one question. It needs no legacy fold to reach — any
+undeclared-kind edge does, arriving from an import, a merge, or an edge authored after a `[selected]`
+deselect. The rule: `sq graph` answers what is connected to an item, so it may not omit an edge it
+can see. An undeclared-kind edge traverses, and its node reports no declared semantic in the
+`edge_semantic` key A2 adds. Absence of a declaration is a value to emit, never grounds to delete
+the node.
+
+**2026-08-25 — the skew guard's report is ruled where A3 ruled the fold.** A3 settles where the
+normalisation sits and what it owes the corpus; it does not say what the guard tells an adopter when
+the fold, and not a divergence, is the whole of the difference. That message is the only surface a
+squad reaching this state after its migration ever meets, so it is settled here rather than in code.
+
+### A4. A stale index encoding is reported as one, and never as a divergence
+
+Driven: a squad holding `refs: [TASK-20:related]` in the file and `["TASK-20:related"]` in the index
+— the same bytes on both sides — is refused on its next mutation with `on-disk frontmatter has
+diverged from the index (refs)`, and `sq check` reports `refs drift between frontmatter and index`.
+Nothing diverged. `frontmatter_skew` compares the disk side **after** the fold against the index side
+as stored, and its own docstring records that asymmetry as deliberate and load-bearing; what the
+guard sees is the fold it applied to one side, not a change to the file.
+
+- **The refusal stands.** It is not a false positive: the index genuinely holds a non-canonical
+  encoding, and rewriting the file from an index-derived item would commit the spelled form —
+  exactly the write the guard exists to stop. What is wrong is the diagnosis, not the decision, and
+  only the diagnosis changes.
+- **A refusal may not assert a cause the reader can disprove.** The standing rule that a refusal may
+  never name a remedy no command performs gains its companion. An adopter sent to `sq repair` for a
+  divergence they can open the file and see is not there learns to distrust the guard, which is the
+  one thing a guard on the integrity core cannot afford.
+- **The two cases are separable at the site, from data already in hand — but raw equality alone is
+  not the test.** `frontmatter_skew` holds both the raw parsed frontmatter and its round-tripped
+  form, and that is the right place and the right data. The discriminator this note first recorded
+  was that a diverging key whose **raw** on-disk value equals the index's is a normalisation
+  difference by construction, since the round trip only adds corrections. It is short by one row,
+  driven in-process over three states:
+
+  | State | Diverging | Raw == index | Correct verdict |
+  | --- | --- | --- | --- |
+  | index `["BUG-20:related"]`, file `refs: [BUG-20:related]` | `refs` | yes | stale encoding |
+  | file `refs: [BUG-20]` + `extra.ref_kinds: {BUG-20: blocks}`, index `["BUG-20"]` | `refs` | yes | needs repair |
+  | file's `title` hand-edited | `title` | no | needs repair |
+
+  The middle row is the miss, and the reasoning that missed it is withdrawn: this note said the
+  legacy map "differs raw", and the `extra` key does — but `_read_extra` pops `ref_kinds` out of
+  `extra` before the comparison, so `extra` never reaches the diverging list at all. Only `refs`
+  does, and its raw value equals the index's, because the kind lived in a *different* key.
+
+  **The rule, corrected.** A diverging key is a normalisation difference only when its raw on-disk
+  value equals the index's **and** the round trip produced its value from that raw key alone. When
+  the fold drew on a second raw key, the difference is information-adding and needs repair — and
+  raw equality on the folded key is precisely what makes that case look innocent, since the round
+  trip consumes the key carrying the information and discards it. `_invented_timestamps`
+  (`_itemfile.py:240-248`) already reads the raw frontmatter for the same reason, in its own words:
+  once the round trip has spoken, the two cases are indistinguishable from its output. The
+  correction is that the raw side must be consulted for every input the round trip drew on, not
+  only for the key that ends up diverging.
+
+  Nothing new is stored, `_models/` gains no vocabulary, and the discrimination stays at the one
+  site that already computes both sides.
+- **What each says.** A real divergence keeps today's wording. A stale encoding says what it is: the
+  index holds a non-canonical encoding of this item's refs, `sq repair` re-derives it, and the next
+  ordinary write canonicalises the file. `sq check`'s finding for the same state carries the same
+  distinction in the same words — one state, one explanation, on both surfaces.
+
+**Nothing further is owed to the adopter, and that is a finding rather than an omission.** A
+migration `manual` clause would instruct them to run the repair `sq migrate up` had just run on their
+behalf, and a release note would describe a state the upgrade path does not let them reach. The
+message is the notification, which is precisely why it has to be true.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -234,4 +524,23 @@ declares one kind gets a stale-override warning for the rest of the project's li
 - [2026-08-22T09:47:39Z] Robert Architect:
   - Folded the ruling on ADR-49 policy retirement into section 6: both carriers go, and the tech-writer reissues the contract prose rather than a developer landing it beside the engine change. Recorded your reasoning — the docs follow the engine, because a stability document promising a closed list the engine no longer enforces is the worse state.
   - Noted the trap that inherits: workflow_static.md.j2 is a bundled template, so retiring that text forces a manifest regen and queues behind the version bump. Stated once in ADR-781 section 6 and cited here; docs/stability.md is not package data and carries no such constraint.
+- [2026-08-25T15:02:56Z] Robert Architect:
+  - Amended in place at its own end (A1-A2). A1: the bare-ref shorthand becomes a declared "default" role - a fourth value of the same role field, exactly one kind carries it, mandatory, bundled on "related". Renaming the kind carrying it is permitted and safe because the bare form binds to the semantic and never to a spelling; a reserved "related" is rejected as reinstating the frozen literal section 2 removes. Section 5 is deliberately NOT extended: a bare ref stores no kind, so the corpus carries no evidence of the entry it was written under - the ADR-696 5a property does not hold here, and the gap is closed at the vocabulary end instead.
+  - Because "default" is a value of the one role field, the kind carrying it can never also carry dependency/preload/supersession - the dangerous reassignment is unrepresentable rather than detectable. What remains is moving "default" between two navigational kinds, a relabel of edges that drive no engine behaviour; recorded as residue, not guarded. DEFAULT_KIND retires as a literal rather than moving: _models/ resolves no vocabulary, so the ref primitives become structural (a bare ref decodes to an unspelled kind) and resolution happens where the active spec is in hand.
+  - A2: sq graph --json keeps the dependency normalisation (it is what dedupes a doubly-authored pair) and emits a declared kind key - the dependent-direction kind, or the blocker key where a project declares only that direction. GraphNode gains edge_semantic, which is what a consumer branches on; emitting only the spelling would leave every agent testing edge_kind == "depends-on", the same declared-but-found-by-literal defect section 2 removes from the engine. Ruled on TASK-796 and TASK-797. @tech-lead
+- [2026-08-25T15:53:41Z] Robert Architect:
+  - Amended in place at its own end (A3). A1s safety claim is RESTORED, not narrowed: the design holds and an implementation emitted an encoding A1 itself forbids. fold_legacy_kinds spells the default kind out because make_ref became structural, so a legacy extra.ref_kinds edge naming the default loads spelled and the next ordinary mutation commits it -- driven at the BUNDLED spec with no rename, and a regression against the retired make_ref, which collapsed the default to bare.
+  - A3 rules three things. The normalisation duty sits at the service load boundary, where the active spec is already in hand, and must sit on the load path both sides of the frontmatter skew guard traverse; _models/ stays vocabulary-free and A1s split is unchanged. No corrective corpus sweep: every corpus migrated to 0.2 before the structural change already holds the canonical bare form, so the damage is prospective. And a migration runner may not borrow a live model primitive -- the 0.1-to-0.2 runner imports fold_legacy_kinds and so changed its on-disk output retroactively; each runner carries its own frozen fold.
+  - A3 also states the shape for the graph silent-skip, which is a distinct defect reachable with no legacy fold: sq graph may not omit an edge it can see, so an undeclared-kind edge traverses and its node reports no declared semantic in A2s edge_semantic key. Ruled on BUG-804; the fix is its own task, not TASK-797. @tech-lead
+- [2026-08-25T16:10:13Z] Robert Architect:
+  - A3 corrected in place after driving all three load paths. The service load boundary is not one seam, and the seam that phrase reads like - _index/_store.py::_validate_item_vocab - is the wrong side: that path builds items with SquadsDB.model_validate_json and never calls Item.from_frontmatter, so no fold runs there and normalising there manufactures the false skew. A3 now names the three paths, rules the normalisation at the fold INPUT (Item.from_frontmatter takes the resolved default kind as a required keyword), and reverses its own rejection of that threading - the "many call sites" premise is false, there are three.
+  - Three factual corrections to A3, each driven rather than reasoned. The damage is NOT prospective: at HEAD a legacy-map item is already refused on its next mutation with a false refs skew, and the refusal advertised remedy (sq repair) then stores the spelled default in the index and commits it to disk with sq check clean - so sq repair was an unnamed third owed path. The two sides do NOT re-derive through an identical fold; the index side never folds at all. And symmetrising frontmatter_skew does not fix it - drove that, refs still skews, because the legacy map is data the index does not hold.
+  - One-site-one-test survives, under the threading shape only. Anti-drift is a tests/meta guard enumerating Item.from_frontmatter three call sites, and the agreement test asserts convergence across five encodings of one edge rather than the absence of a warning. No corrective sweep still holds with a corrected reason: disk is canonical, an already-repaired squad index is not, and re-running sq repair after the fix re-derives it. Ruled on TASK-806. @tech-lead
+- [2026-08-25T18:00:49Z] Robert Architect:
+  - Amended in place at its own end (A4), and corrected A3 no-sweep clause. REV-808 F3 falsified its premise: disk is not already canonical everywhere, because the create door wrote a spelled default until the fold landed and from_frontmatter folded only when a legacy ref_kinds map was present. The conclusion survives on a mechanism instead - run_pending_migrations ends every non-empty batch with repair() before stamping, and the root callback refuses every command on a squad whose schema is behind, so the 0.14 migration this release already owes IS the sweep and owes no step of its own. Driven end to end.
+  - A step of its own is refused on its own terms as well as being redundant: a frozen runner cannot resolve which kind carries default without reading the live spec, and the state is not schema-keyed at all - a hand edit, merge, import or third-party writer reach it at any version, including after migrating. Also recorded what the repair does NOT do: disk keeps the spelled form until the next ordinary mutation, and A1 encoding invariant is read as binding what squads emits rather than claiming no pre-fold file can hold a spelled default.
+  - A4 rules the guard report. The refusal stands - the index genuinely holds a non-canonical encoding - but the diagnosis does not, since frontmatter_skew compares disk-after-fold against index-as-stored and the difference is the fold, not a divergence. New standing rule beside the unperformable-remedy one: a refusal may not assert a cause the reader can disprove. Separable at the site from data already in hand, with sq check carrying the same distinction. Ruled on REV-808 F3. @tech-lead
+- [2026-08-25T18:20:43Z] Robert Architect:
+  - A4 corrected in place: its separability test was short by one row and the reasoning behind that row is withdrawn. The tech lead drove three states against the skew site and the legacy extra.ref_kinds row falsifies the raw-equality test - I reproduced it in-process. A4 had reasoned that the map differs raw; the extra key does, but _read_extra pops ref_kinds before the comparison, so extra never reaches the diverging list and only refs does, with its raw value equal to the index because the kind lived in a different key.
+  - Corrected rule now in A4: a diverging key is a normalisation difference only when its raw on-disk value equals the index AND the round trip produced that value from that raw key alone. A fold that drew on a second raw key is information-adding and needs repair, and raw equality on the folded key is exactly what makes that case look innocent. _invented_timestamps is the precedent, sharpened - the raw side must be consulted for every input the round trip drew on, not only for the key that ends up diverging. The three-row table is recorded in the decision so the withdrawn reasoning is visibly replaced. Ruled on TASK-811 ST1. @tech-lead
 <!-- sq:discussion:end -->

@@ -1,8 +1,9 @@
 """``sq role catalog`` / ``sq role activate --help`` discoverability text for custom, non-bundled
 roles: the non-JSON catalog output and the activate command's help both point at
-``sq override scaffold --new <slug>``, while ``--json`` keeps its pinned bundled-only shape
-(machine contract, tested at tests/cli/test_json_output_shape.py — this file only re-asserts it
-stays unaffected by the new hint text).
+``sq override scaffold --new <slug>``, while ``--json`` keeps its pinned shape (machine
+contract, tested at tests/cli/test_json_output_shape.py — this file only re-asserts it stays
+unaffected by the new hint text) for a squad with no ``.overrides/roles.toml``, where every
+row's ``origin`` is ``"bundled"``.
 """
 
 import json
@@ -30,7 +31,8 @@ async def test_catalog_json_output_is_unaffected_bundled_roles_only(project, inv
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
     assert data  # bundled roles present
-    assert all(set(row) == {"slug", "full_name", "title", "is_default"} for row in data)
+    assert all(set(row) == {"slug", "full_name", "title", "is_default", "origin"} for row in data)
+    assert all(row["origin"] == "bundled" for row in data)
     assert "scaffold" not in r.output
 
 

@@ -85,22 +85,31 @@ normal; the reflog records a reconstructable removal line that explains each gap
 
 ## Ref kinds
 
-The vocabulary is closed — exactly nine kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+{# The kinds table is generated from the merged spec's `[ref_kinds]`, never a hand-written list,
+   so a project that declares its own kind sees it here and in the skill text its agents read.
+   Meaning is the entry's declared `hint` (falling back to its `label`, which every entry has);
+   Consumer is derived from the declared semantic `role` — plus the per-type `ref_rules` that
+   name the kind — so no row restates a binding the spec already carries. Every name below the
+   table is resolved from the spec for the same reason: a project may rename any of them. #}
+{% set _default_kind = spec.ref_kinds_with_role("default") | list | first | default(none) %}
+{% set _blocker_kind = spec.dependency_ref_kind("blocker") %}
+{% set _dependent_kind = spec.dependency_ref_kind("dependent") %}
+{% set _supersession_kind = spec.ref_kinds_with_role("supersession") | list | first | default(none) %}
+{% set _superseded_status = spec.statuses_with_role("superseded") | first | default(none) %}
+{% set _rule_kinds = [] %}
+{% for _item_type in spec.items %}
+{% for _rr in spec.item_ref_rules(_item_type) %}
+{% if _rr.kind not in _rule_kinds %}
+{% set _ = _rule_kinds.append(_rr.kind) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+Ref kinds are declared vocabulary. The bundled set is the default; a project may declare its own, and may rename or drop a built-in it does not use — refused while live refs still carry it. A kind the merged spec does not declare is rejected. Engine behaviour binds to a kind's declared semantic role, never to its name: a renamed dependency kind keeps driving `sq blocked`, and a kind with no semantic is navigational. Use `sq <type> <n> ref add <id> --kind <kind>`; the table below is what this squad declares.
 
-| Kind | Meaning | Direction convention | Consumer |
-|---|---|---|---|
-| `related` | Generic cross-reference (default) | `A related B` lives on A | Navigation |
-| `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
-| `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
-| `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
-| `fixes` | A (the resolving work) fixes the problem tracked by B | `A fixes B` lives on A | `sq check` ref-rule warnings |
-| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `A addresses B` lives on A | `sq check` ref-rule warnings |
-{# Same rule as the Cancel section: the status the engine actually looks for is the one whose
-   declared role is `superseded` (what `sq check`'s supersedes rule reads), not the bundled
-   status name. #}
-{% set _superseded = spec.statuses_with_role("superseded") | first %}
-| `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be {{ _superseded or "the superseded state" }} | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
-| `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as {{ dropped or "dropped" }} | `A duplicates B` lives on **A** (the later filing) | Navigation |
-| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | `A scopes B` lives on **A** (the skill) | Preload resolver, retirement gate |
+| Kind | Meaning | Consumer |
+|---|---|---|
+{% for _code, _rk in spec.ref_kinds.items() %}
+| `{{ _code }}` | {{ _rk.hint or _rk.label }} | {% if _rk.role == "dependency" %}`sq blocked`{% elif _rk.role == "preload" %}Preload resolver, retirement gate{% elif _rk.role == "supersession" %}`sq check` supersession rule{% elif _code in _rule_kinds %}`sq check` ref-rule warnings{% else %}Navigation{% endif %} |
+{% endfor %}
 
-`blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.
+Every edge is stored on the item you add it to — `A <kind> B` lives on A.{% if _blocker_kind and _dependent_kind %} `{{ _blocker_kind }}` and `{{ _dependent_kind }}` are two spellings of the same dependency: use whichever fits your authoring context, and both feed `sq blocked`.{% endif %}{% if _supersession_kind and _superseded_status %} `sq check` reads `{{ _supersession_kind }}` on the newer record and expects the older one at {{ _superseded_status }}.{% endif %}{% if _default_kind %} Bare `ref add <id>` (no `--kind`) resolves to whichever kind declares the default semantic — `{{ _default_kind }}` here — and that edge is stored without its kind, so renaming the default relabels those edges instead of re-pointing them.{% endif %}

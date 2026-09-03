@@ -47,6 +47,7 @@ def test_a_cycle_in_the_type_parent_graph_raises(parent_map: dict[str, list[str]
                 "collections": dict(bundled.collections),
                 "subentity_kinds": dict(bundled.subentity_kinds),
                 "roles": dict(bundled.roles),
+                "ref_kinds": dict(bundled.ref_kinds),
             }
         )
 
@@ -81,6 +82,7 @@ def test_workflows_dict_is_a_stable_immutable_bundled_snapshot() -> None:
             "collections": dict(bundled.collections),
             "subentity_kinds": dict(bundled.subentity_kinds),
             "roles": dict(bundled.roles),
+            "ref_kinds": dict(bundled.ref_kinds),
         }
     )
 

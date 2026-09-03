@@ -10,6 +10,7 @@ happened to carry, so a ``RoleDef`` field added after the item was created still
 
 from dataclasses import replace
 from datetime import UTC, datetime
+from pathlib import Path
 
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
@@ -74,6 +75,43 @@ def test_a_bundled_role_with_no_stored_full_name_falls_back_to_the_catalog_defau
 def test_a_bundled_role_whose_stored_name_already_matches_returns_the_catalog_entry_as_is() -> None:
     item = _item("architect", {X.SLUG: "architect", X.FULL_NAME: _BUNDLED_ARCHITECT.full_name})
     assert role_base_from_item(item) == _BUNDLED_ARCHITECT
+
+
+# ------------------------------------------------- squad_dir: the catalog-document layer
+
+
+def test_with_no_squad_dir_the_bundled_catalog_alone_is_unchanged() -> None:
+    """The default (``squad_dir=None``) is byte-identical to today's behaviour — an existing
+    caller that has not been updated to pass a squad_dir keeps its current answer."""
+    item = _item("architect", {X.SLUG: "architect"})
+    assert role_base_from_item(item) == _BUNDLED_ARCHITECT
+    assert role_base_from_item(item, None) == _BUNDLED_ARCHITECT
+
+
+def test_a_project_catalog_document_reaches_an_already_activated_bundled_role(
+    tmp_path: Path,
+) -> None:
+    """The gap this task closes: a catalog-document field override previously reached
+    ``resolve_role`` (the not-yet-activated path) but not ``role_base_from_item`` (the
+    activated-item path), because the base built here read the bundled tuple directly."""
+    override_dir = tmp_path / ".overrides"
+    override_dir.mkdir()
+    (override_dir / "roles.toml").write_text(
+        '[[roles]]\nslug = "architect"\ntitle = "Chief Architect"\n', encoding="utf-8"
+    )
+    item = _item("architect", {X.SLUG: "architect", X.FULL_NAME: "Ada Lovelace"})
+
+    base = role_base_from_item(item, tmp_path)
+
+    assert base is not None
+    assert base.title == "Chief Architect"  # the document's value, not the bundled one
+    assert base.full_name == "Ada Lovelace"  # the item's own operator-settable field, untouched
+    assert base.mission == _BUNDLED_ARCHITECT.mission  # untouched field still falls through
+
+
+def test_a_squad_with_no_catalog_document_resolves_exactly_as_before(tmp_path: Path) -> None:
+    item = _item("architect", {X.SLUG: "architect"})
+    assert role_base_from_item(item, tmp_path) == _BUNDLED_ARCHITECT
 
 
 # --------------------------------------------------------------------- developer role

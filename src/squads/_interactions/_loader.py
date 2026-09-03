@@ -60,6 +60,7 @@ from squads._interactions._models import (
     PlaybookSpec,
     RoleGuideSpec,
 )
+from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
 from squads._roles._models import RoleCatalogSpec
 from squads._roles._resolver import project_role_slugs
 from squads._specmerge import RawMapping, merge_override
@@ -480,10 +481,19 @@ def playbook_override_guide_pairs(squad_dir: Path) -> frozenset[tuple[str, str]]
 
 
 def playbook_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str] | None:
-    """The stamp obligation for the playbook override — mirrors
-    ``_workflow._loader.workflow_stamp_finding`` exactly (same three-state contract), so
-    ``sq check`` and ``sq override list`` agree on this kind the same way they already agree
-    on ``workflow``. Returns ``(level, message)``, or ``None`` when nothing is owed."""
+    """The stamp obligation for the playbook override. Returns ``(level, message)``, or
+    ``None`` when nothing is owed:
+
+    - shadowing **and** unstamped -> ``("error", ...)`` — a shadowing override has stopped
+      tracking the bundled spec and so carries the provenance obligation every other
+      shadowing override kind carries.
+    - stamped, older than running, **and the bundled playbook.toml actually changed** since
+      that stamp -> ``("warn", ...)``. Drift is content-gated: an old stamp alone is never a
+      warning, so an add-only override with no bundled change behind it reports clean, not
+      "may be stale".
+    - stamped at the running version, content unchanged since the stamp, or add-only and
+      unstamped -> ``None``.
+    """
 
     from squads import __version__
 
@@ -495,10 +505,10 @@ def playbook_stamp_finding(squad_dir: Path, stamp: str | None) -> tuple[str, str
                 "`sq override update playbook` to re-stamp",
             )
         return None
-    if stamp != __version__:
+    if stamp != __version__ and artifact_changed_since(PLAYBOOK_KEY, stamp):
         return (
             "warn",
-            f"playbook override may be stale: stamp v{stamp} predates running v{__version__}; "
+            f"playbook override may be stale: bundled playbook.toml changed since v{stamp}; "
             "run `sq override diff playbook` to review, then `sq override update playbook` "
             "to re-stamp",
         )

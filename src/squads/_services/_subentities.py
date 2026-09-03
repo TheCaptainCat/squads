@@ -683,7 +683,7 @@ class SubentitiesMixin(ServiceCore):
             item.updated_at = clock.now()
             path = item_file(self.paths, item)
             text = await self._read_item_file(item, path)
-            ensure_no_skew(text, base)
+            ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
             text = sections.remove_section(text, f"{kind}:{local_id}")
             text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
             text = discussion.ensure_summary(text, kind, container, item.subentities, self.spec)
@@ -743,7 +743,7 @@ class SubentitiesMixin(ServiceCore):
         kind = self.subentity_kind[item.type]
         container = self._container_for(kind)
         text = await self._read_item_file(item, path) if text is None else text
-        ensure_no_skew(text, base)
+        ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
         text = discussion.set_heading(text, kind, head_for.local_id, head_for.title)
         text = await self._refresh_head(text, db, item, kind, head_for)

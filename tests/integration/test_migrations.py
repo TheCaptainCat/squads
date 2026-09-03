@@ -45,6 +45,55 @@ async def test_v0_1_to_v0_2_folds_ref_kinds_inline_and_is_idempotent(svc):
     assert _v0_1_to_v0_2.migrate(svc.paths) == 0  # idempotent
 
 
+def test_v0_1_to_v0_2_frozen_fold_collapses_the_declared_default_kind_to_bare():
+    """The runner's own, frozen ``_fold_legacy_kinds`` -- never imported from
+    ``_models``, which now takes the *active* spec's declared default as a required argument
+    and would make this frozen transform's output track a live project's spec instead of the
+    schema 0.1/0.2 vocabulary it is defined against. Asserted on bytes, matching exactly what
+    the runner produced before ``make_ref`` became structural: a legacy map naming the
+    (frozen) default kind ``"related"`` folds to bare, and one naming anything else stays
+    spelled -- the same behaviour the retired ``_models._item.DEFAULT_KIND`` literal collapse
+    used to give this runner for free."""
+    fold = _v0_1_to_v0_2._fold_legacy_kinds
+
+    assert fold(["ID-1"], {"ID-1": "related"}) == ["ID-1"]  # legacy map naming the default
+    assert fold(["ID-1:related"], {}) == ["ID-1"]  # already spelled default, no legacy map
+    assert fold(["ID-1"], {}) == ["ID-1"]  # bare, nothing to fold
+    assert fold(["ID-1"], {"ID-1": "blocks"}) == ["ID-1:blocks"]  # non-default stays spelled
+    assert fold(["ID-1:blocks"], {}) == ["ID-1:blocks"]  # already spelled non-default, untouched
+
+
+async def test_v0_1_to_v0_2_migrate_writes_a_legacy_default_kind_map_bare_on_disk(svc):
+    """End-to-end byte assertion (not just the fold function in isolation): a pre-0.2 file
+    whose legacy map names the declared default kind migrates to a bare ref on disk, exactly
+    the byte shape a native ``add_ref`` with no ``--kind`` would have written."""
+    task = (await create_item(svc, "task", "t")).item
+    other = (await create_item(svc, "task", "o")).item
+    path = svc.paths.abspath(task.path)
+    text = path.read_text(encoding="utf-8")
+    fm, _ = sections.split_frontmatter(text)
+    fm["refs"] = [other.id]
+    fm["extra"] = {"ref_kinds": {other.id: "related"}}
+    path.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8")
+
+    changed = _v0_1_to_v0_2.migrate(svc.paths)
+    assert changed == 1
+
+    fm_after = read_frontmatter(path)
+    assert fm_after["refs"] == [other.id]  # bare -- never "ID:related"
+    assert "extra" not in fm_after
+
+
+def test_v0_1_to_v0_2_never_imports_the_live_vocabulary_aware_fold():
+    """Structural proof alongside the ``tests/meta`` import-hygiene guard: the module holds no
+    reference to ``squads._models._item.fold_legacy_kinds`` at all -- its own frozen
+    ``_fold_legacy_kinds`` is a distinct function object, not a re-export."""
+    from squads._models._item import fold_legacy_kinds as live_fold
+
+    assert _v0_1_to_v0_2._fold_legacy_kinds is not live_fold
+    assert not hasattr(_v0_1_to_v0_2, "fold_legacy_kinds")
+
+
 async def test_v0_1_to_v0_2_is_a_noop_on_an_already_current_squad(svc):
     await create_item(svc, "task", "fresh")  # already written in the new format
     assert _v0_1_to_v0_2.migrate(svc.paths) == 0

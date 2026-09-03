@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from _helpers import SPECMERGE_WORKFLOW_SECTIONS as WORKFLOW_SECTIONS
+from squads import __version__
 from squads._errors import SquadsError
 from squads._specmerge import merge_override
 
@@ -36,7 +37,9 @@ def test_the_three_mechanisms_run_in_order_splat_then_merge_then_selected() -> N
         "selected": {"items": ["epic"]},
     }
 
-    result = merge_override(base, override, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+    result = merge_override(
+        base, override, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"items", "widgets"})
+    )
 
     assert result.violations == ()
     assert result.merged is not None
@@ -55,7 +58,9 @@ def test_an_empty_override_is_a_no_op() -> None:
         "z": 9,
     }
 
-    result = merge_override(base, {}, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+    result = merge_override(
+        base, {}, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"items", "z"})
+    )
 
     assert result.violations == ()
     assert result.merged == base
@@ -80,7 +85,13 @@ def test_the_merged_result_shares_no_structure_with_either_input_through_the_ent
         "shared_list_copy": ["$(*shared_list)", "r"],
     }
 
-    result = merge_override(base, override, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+    result = merge_override(
+        base,
+        override,
+        WORKFLOW_SECTIONS,
+        "o",
+        top_level_keys=frozenset({"items", "shared_table", "shared_list", "shared_list_copy"}),
+    )
 
     assert result.violations == ()
     assert result.merged is not None
@@ -112,8 +123,12 @@ def test_two_overrides_of_unrelated_keys_produce_equal_merged_mappings_in_either
         "items": {"epic": {"prefix": "EP"}},
     }
 
-    result_ab = merge_override(base, override_ab, WORKFLOW_SECTIONS, "o", top_level_keys=None)
-    result_ba = merge_override(base, override_ba, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+    result_ab = merge_override(
+        base, override_ab, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"items", "widgets"})
+    )
+    result_ba = merge_override(
+        base, override_ba, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"items", "widgets"})
+    )
 
     assert result_ab.violations == result_ba.violations == ()
     assert result_ab.merged == result_ba.merged
@@ -124,7 +139,9 @@ def test_fail_fast_mode_raises_a_squads_error_on_the_first_violation() -> None:
     override = {"widgets": {"colors": ["$(*no.such.path)"]}}
 
     with pytest.raises(SquadsError):
-        merge_override(base, override, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+        merge_override(
+            base, override, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"widgets"})
+        )
 
 
 def test_fail_fast_raises_the_first_violation_not_merely_any_violation() -> None:
@@ -143,7 +160,7 @@ def test_fail_fast_raises_the_first_violation_not_merely_any_violation() -> None
             WORKFLOW_SECTIONS,
             "override.toml",
             collect_all=False,
-            top_level_keys=None,
+            top_level_keys=frozenset({"widgets"}),
         )
 
     message = str(excinfo.value)
@@ -169,7 +186,7 @@ def test_fail_fast_raises_the_first_cross_mechanism_violation() -> None:
             WORKFLOW_SECTIONS,
             "override.toml",
             collect_all=False,
-            top_level_keys=None,
+            top_level_keys=frozenset({"widgets"}),
         )
 
     message = str(excinfo.value)
@@ -196,9 +213,11 @@ def test_fail_fast_first_violation_is_deterministic_across_override_key_order() 
     }
 
     with pytest.raises(SquadsError) as forward_excinfo:
-        merge_override(base, forward, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+        merge_override(base, forward, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"widgets"}))
     with pytest.raises(SquadsError) as reversed_excinfo:
-        merge_override(base, reversed_override, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+        merge_override(
+            base, reversed_override, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"widgets"})
+        )
 
     assert str(forward_excinfo.value) == str(reversed_excinfo.value)
 
@@ -208,7 +227,9 @@ def test_fail_fast_is_the_default_calling_mode() -> None:
     override = {"selected": {"widgets": ["x"]}}
 
     with pytest.raises(SquadsError):
-        merge_override(base, override, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+        merge_override(
+            base, override, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"widgets"})
+        )
 
 
 def test_collect_all_mode_reports_every_independent_violation_together() -> None:
@@ -220,7 +241,12 @@ def test_collect_all_mode_reports_every_independent_violation_together() -> None
     }
 
     result = merge_override(
-        base, override, WORKFLOW_SECTIONS, "o", collect_all=True, top_level_keys=None
+        base,
+        override,
+        WORKFLOW_SECTIONS,
+        "o",
+        collect_all=True,
+        top_level_keys=frozenset({"widgets"}),
     )
 
     assert result.merged is None
@@ -232,7 +258,12 @@ def test_collect_all_mode_does_not_stop_at_the_first_violation() -> None:
     override = {"selected": {"bogus-one": ["x"], "bogus-two": ["y"]}}
 
     result = merge_override(
-        base, override, WORKFLOW_SECTIONS, "o", collect_all=True, top_level_keys=None
+        base,
+        override,
+        WORKFLOW_SECTIONS,
+        "o",
+        collect_all=True,
+        top_level_keys=frozenset({"widgets"}),
     )
 
     reported = {v.path for v in result.violations}
@@ -257,7 +288,12 @@ def test_a_pathologically_deep_base_collects_through_the_full_entry_point() -> N
     override: dict[str, Any] = {"deep": deep_override, "shallow": {"prefix": "NEW"}}
 
     result = merge_override(
-        base, override, WORKFLOW_SECTIONS, "o", collect_all=True, top_level_keys=None
+        base,
+        override,
+        WORKFLOW_SECTIONS,
+        "o",
+        collect_all=True,
+        top_level_keys=frozenset({"deep", "shallow"}),
     )
 
     assert result.merged is None
@@ -269,7 +305,12 @@ def test_a_pathologically_deep_base_collects_through_the_full_entry_point() -> N
 
     with pytest.raises(SquadsError):
         merge_override(
-            base, override, WORKFLOW_SECTIONS, "o", collect_all=False, top_level_keys=None
+            base,
+            override,
+            WORKFLOW_SECTIONS,
+            "o",
+            collect_all=False,
+            top_level_keys=frozenset({"deep", "shallow"}),
         )
 
 
@@ -277,9 +318,16 @@ def test_a_clean_override_never_raises_in_either_mode() -> None:
     base = {"widgets": {"colors": ["red"]}}
     override = {"widgets": {"colors": ["$(*self)", "blue"]}}
 
-    fail_fast = merge_override(base, override, WORKFLOW_SECTIONS, "o", top_level_keys=None)
+    fail_fast = merge_override(
+        base, override, WORKFLOW_SECTIONS, "o", top_level_keys=frozenset({"widgets"})
+    )
     collect_all = merge_override(
-        base, override, WORKFLOW_SECTIONS, "o", collect_all=True, top_level_keys=None
+        base,
+        override,
+        WORKFLOW_SECTIONS,
+        "o",
+        collect_all=True,
+        top_level_keys=frozenset({"widgets"}),
     )
 
     assert fail_fast.merged == collect_all.merged
@@ -295,7 +343,12 @@ def test_a_dangling_splat_path_is_never_reordered_past_a_selected_violation() ->
     override = {"widgets": {"colors": ["$(*missing)"]}}
 
     result = merge_override(
-        base, override, WORKFLOW_SECTIONS, "o", collect_all=True, top_level_keys=None
+        base,
+        override,
+        WORKFLOW_SECTIONS,
+        "o",
+        collect_all=True,
+        top_level_keys=frozenset({"widgets"}),
     )
 
     assert len(result.violations) == 1
@@ -311,7 +364,11 @@ def test_array_of_tables_splat_append_end_to_end_against_the_real_bundled_playbo
     override = tomllib.loads(override_source)
 
     result = merge_override(
-        base, override, frozenset({"types"}), "playbook-override.toml", top_level_keys=None
+        base,
+        override,
+        frozenset({"types"}),
+        "playbook-override.toml",
+        top_level_keys=frozenset({"types"}),
     )
 
     assert result.violations == ()
@@ -357,6 +414,28 @@ def test_a_mistyped_top_level_section_name_fails_closed_naming_the_key_and_accep
         assert name in result.violations[0].hint
 
 
+def test_an_unknown_top_level_key_hint_names_the_running_squads_version() -> None:
+    """The accepted-set menu alone cannot tell an adopter whether a refused key is a typo, a
+    key from a newer squads than the one that refused it, or one an older squads has since
+    dropped — naming the running version is what makes the refusal a forward-compatibility
+    answer rather than a bare rejection. Asserted against `__version__` itself, not a pinned
+    literal, so this does not have to be rewritten at every release."""
+    base = {"items": {"task": {"prefix": "TASK"}}}
+    override = {"item": {"task": {"prefix": "TSK"}}}
+
+    result = merge_override(
+        base,
+        override,
+        WORKFLOW_SECTIONS,
+        "override.toml",
+        collect_all=True,
+        top_level_keys=WORKFLOW_SECTIONS,
+    )
+
+    assert result.merged is None
+    assert __version__ in result.violations[0].hint
+
+
 def test_a_mistyped_top_level_section_name_does_not_merge_clean() -> None:
     """Driven the way the real defect was found: an override naming only a mistyped section
     must not produce a merged mapping equal to the unmodified base — today it does, because
@@ -386,18 +465,20 @@ def test_a_retired_override_base_key_at_the_top_level_fails_closed() -> None:
     assert "override_base" in result.violations[0].reason
 
 
-def test_called_with_no_accepted_top_level_set_every_top_level_key_passes_through() -> None:
-    """The roles loader is this caller: a role override's top-level keys are the fields of a
-    role, a set that grows release to release, so leniency there is forward compatibility,
-    not a gap. Omitting `top_level_keys` gets no check at all."""
+def test_top_level_keys_has_no_default_and_no_open_escape() -> None:
+    """`top_level_keys` has no default and no `None` escape left to opt out of the check with:
+    every overridable bundled document now has a closed top level, so "forgot to pass it" is a
+    type error rather than a silent fail-open, and there is no longer
+    a way to ask this engine for an unchecked top level at all — not even by passing `None`
+    explicitly, which is refused the same as any other unrecognised top-level key would be if
+    it somehow reached the check (it doesn't: the parameter's own type no longer accepts it,
+    so this failure is a `TypeError` from Python's own keyword-only-argument enforcement, not a
+    `SquadsError` from the engine)."""
     base = {"items": {"task": {"prefix": "TASK"}}}
-    override = {"totally_bogus_key": {"whatever": True}}
+    override = {"items": {"task": {"prefix": "TSK"}}}
 
-    result = merge_override(base, override, WORKFLOW_SECTIONS, "o", top_level_keys=None)
-
-    assert result.violations == ()
-    assert result.merged is not None
-    assert result.merged["totally_bogus_key"] == {"whatever": True}
+    with pytest.raises(TypeError):
+        merge_override(base, override, WORKFLOW_SECTIONS, "o")  # type: ignore[call-arg]
 
 
 def test_the_top_level_check_runs_before_splat_resolution() -> None:

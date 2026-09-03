@@ -83,6 +83,7 @@ Then read your queue on **both** surfaces — they differ in granularity and nei
 other: `sq mine tech-lead` for the items assigned to you, and
 `sq inbox tech-lead` for the comment lines that `@mention` you.
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
+The `.md` files are sq-managed — read them through `sq <type> <n> show`, never by opening the file.
 For your part on each item type, follow your `sq-<type>` skill's **For Olivia Lead**
 section — it tells you what to check, do, and hand off.
 When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> comment` for sub-entity-scoped

@@ -61,6 +61,7 @@ def _spec_with_incident() -> WorkflowSpec:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
 

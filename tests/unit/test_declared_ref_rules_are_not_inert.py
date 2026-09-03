@@ -4,48 +4,48 @@ does nothing.
 The seam looked inert. Its own docstring said "not yet consumed by the engine", and a rule for
 a kind that does not exist loaded clean and contributed a hint string for a kind every ref
 surface rejects: the adopter wrote a rule, nothing refused it, and nothing could ever apply it.
-Both halves are pinned here — the kind is validated against the closed vocabulary at load, and
-each declaration is shown driving the two consumers that read it.
+Both halves are pinned here — the kind is validated against the declared ``[ref_kinds]`` set at
+load, and each declaration is shown driving the two consumers that read it.
 
 **Not in scope, and deliberately so: which kinds a type may carry.** A declared rule is a rule
 *about* a kind, not a permission for one, and reading it as an allowlist would change what the
 field means rather than enforce it. Two independent reasons, both checked rather than assumed
-(see the two tests at the end of this file). The accepted ``--kind`` vocabulary is closed and
-lives in one place in code, with no project-config lookup on the validation path — scoping
-``ref add`` per declaring type would introduce exactly that. And the bundled document does not
-describe an allowlist: it declares rules on two types, while the navigational kinds are carried
-by every type and declared by none. Whether an adopter may declare a kind of their own is a
-separate open question with its own decision commissioned; nothing here touches it.
+(see the two tests at the end of this file). The accepted ``--kind`` vocabulary is declared spec
+vocabulary (``WorkflowSpec.ref_kinds``) — a project may declare, rename, or drop a
+kind — and the bundled document does not describe an allowlist either: it declares rules on two
+types, while the navigational kinds are carried by every type and declared by none.
 """
 
 import pytest
 
 from squads._errors import SquadsError
-from squads._models._item import VALID_REF_KINDS
 from squads._workflow import bundled_spec
 from squads._workflow._loader import _parse_ref_rules
 
 
 def test_a_rule_naming_a_kind_outside_the_vocabulary_is_refused() -> None:
+    declared = frozenset(bundled_spec().ref_kinds)
     with pytest.raises(SquadsError) as excinfo:
-        _parse_ref_rules([{"kind": "supersedez"}], "items.decision")
+        _parse_ref_rules([{"kind": "supersedez"}], "items.decision", declared)
     message = str(excinfo.value)
     assert "supersedez" in message
     assert "supersedes" in message  # the accepted set is named, so the typo is fixable in place
 
 
-@pytest.mark.parametrize("kind", sorted(VALID_REF_KINDS))
+@pytest.mark.parametrize("kind", sorted(bundled_spec().ref_kinds))
 def test_every_kind_in_the_vocabulary_is_declarable(kind: str) -> None:
     """The check must be a membership test against the real vocabulary, not a shorter list
     someone typed out beside it."""
-    (rule,) = _parse_ref_rules([{"kind": kind, "hint": "h"}], "items.task")
+    declared = frozenset(bundled_spec().ref_kinds)
+    (rule,) = _parse_ref_rules([{"kind": kind, "hint": "h"}], "items.task", declared)
     assert rule.kind == kind
 
 
 def test_an_unknown_field_in_a_rule_is_still_refused() -> None:
     """The kind check is additional to the model's own strictness, not a replacement for it."""
+    declared = frozenset(bundled_spec().ref_kinds)
     with pytest.raises(SquadsError) as excinfo:
-        _parse_ref_rules([{"kind": "fixes", "hnit": "typo"}], "items.task")
+        _parse_ref_rules([{"kind": "fixes", "hnit": "typo"}], "items.task", declared)
     assert "hnit" in str(excinfo.value)
 
 
@@ -107,16 +107,17 @@ def test_the_bundled_document_does_not_describe_an_allowlist() -> None:
     edge on every type — a change of meaning, not an enforcement of the existing one."""
     spec = bundled_spec()
     declared_anywhere = {r.kind for t in spec.items for r in spec.item_ref_rules(t)}
+    all_kinds = frozenset(spec.ref_kinds)
 
-    assert declared_anywhere < VALID_REF_KINDS
-    undeclared = VALID_REF_KINDS - declared_anywhere
+    assert declared_anywhere < all_kinds
+    undeclared = all_kinds - declared_anywhere
     assert {"related", "depends-on", "blocks"} <= undeclared
 
 
-def test_the_accepted_kind_vocabulary_is_read_from_code_not_from_the_spec() -> None:
-    """The other reason: the vocabulary is closed and lives in one place in code, with no
-    project-config lookup on the validation path. Pinned as a property of the refusal itself —
-    a spec that declares no rules at all still accepts every kind."""
+def test_the_accepted_kind_vocabulary_is_read_from_the_spec_not_hardcoded() -> None:
+    """The vocabulary is declared workflow-spec data (``[ref_kinds]``), not a fixed set in
+    code: a spec that drops a kind refuses a rule naming it, and a spec that declares no rules
+    at all still accepts every kind the merged document itself declares."""
     from squads._workflow._loader import _build_spec, _bundled_raw
 
     raw = _bundled_raw()
@@ -126,4 +127,10 @@ def test_the_accepted_kind_vocabulary_is_read_from_code_not_from_the_spec() -> N
 
     assert all(stripped.item_ref_rules(t) == [] for t in stripped.items)
     # The ref surfaces are unaffected: the vocabulary they validate against did not move.
-    assert "supersedes" in VALID_REF_KINDS
+    assert "supersedes" in stripped.ref_kinds
+
+    # Dropping a kind from [ref_kinds] makes a rule naming it refuse to load.
+    raw = _bundled_raw()
+    del raw["ref_kinds"]["supersedes"]
+    with pytest.raises(SquadsError, match="supersedes"):
+        _build_spec(raw)

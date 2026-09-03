@@ -157,16 +157,32 @@ async def test_a_post_repad_id_width_mismatch_does_not_false_refuse(svc):
     assert reloaded.status == "InProgress"
 
 
-async def test_legacy_ref_kinds_map_does_not_false_refuse(svc):
+@pytest.mark.parametrize(
+    ("kind", "legacy_kind"),
+    [
+        pytest.param("", "related", id="default-kind"),
+        pytest.param("blocks", "blocks", id="non-default-kind"),
+    ],
+)
+async def test_legacy_ref_kinds_map_does_not_false_refuse(svc, kind, legacy_kind):
     """The index carries the ref in the current inline ``ID:kind`` form (as any real ref-add
     writes it); the FILE alone is rewritten back to the pre-0.2 shape -- the bare id kept in
     ``refs`` with its kind pulled out into a separate ``extra.ref_kinds`` map -- the one
     artifact `from_frontmatter`'s parse-time folding has to reconstruct from, since a plain
     JSON index round trip has nothing to fold (whatever shape ``refs`` last held is what a
-    bare pydantic load returns verbatim)."""
+    bare pydantic load returns verbatim).
+
+    Table-driven over both legs, restoring what this test was once narrowed to a single
+    non-default leg to sidestep a regression: the declared **default** kind (``kind=""``,
+    legacy map naming ``"related"``) is the leg that regression actually lived in -- the
+    encoding invariant forbids ever spelling the default kind out, so the reloaded item's ref
+    must come back **bare**, not merely present. The **non-default** leg (``"blocks"``) is
+    kept alongside it so the legacy-map reconstruction itself stays pinned, not only the
+    default-kind bare-normalisation riding along with it.
+    """
     a = (await create_item(svc, "task", "Ref source")).item
     b = (await create_item(svc, "task", "Ref target")).item
-    await svc.add_ref(a.id, b.id, kind="related")
+    await svc.add_ref(a.id, b.id, kind=kind)
 
     path = svc.paths.abspath(a.path)
     text = path.read_text(encoding="utf-8")
@@ -174,13 +190,14 @@ async def test_legacy_ref_kinds_map_does_not_false_refuse(svc):
 
     fm, rest = split_frontmatter(text)
     fm["refs"] = [b.id]  # bare id, kind stripped out -- the pre-0.2 shape
-    fm.setdefault("extra", {})["ref_kinds"] = {b.id: "related"}
+    fm.setdefault("extra", {})["ref_kinds"] = {b.id: legacy_kind}
     path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
 
     await svc.set_status(a.id, "InProgress", force=True)
     reloaded = await svc.get(a.id)
     assert reloaded.status == "InProgress"
-    assert any(r.startswith(b.id) for r in reloaded.refs)
+    expected_ref = b.id if kind == "" else f"{b.id}:{kind}"
+    assert reloaded.refs == [expected_ref]
 
 
 async def test_absent_optional_fields_do_not_false_refuse(svc):

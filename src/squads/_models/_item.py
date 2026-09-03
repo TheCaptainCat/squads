@@ -19,7 +19,6 @@ from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
 
 REF_SEP = ":"
-DEFAULT_KIND = "related"
 
 #: The default (and minimum) number of zero-padded digits in a *filename* (e.g.
 #: ``PREFIX-000007-slug.md``). Changing this requires a ``sq migrate repad`` run.
@@ -81,35 +80,28 @@ def prefix_from_id(item_id: str) -> str:
     return prefix if sep else ""
 
 
-#: The closed vocabulary of ref kinds — exhaustive, no custom-kind escape hatch (extensible only
-#: by a reviewed addition, e.g. ``scopes``, never an ad-hoc/typo kind).
-#: Consumers: blocks/depends-on → sq blocked; fixes/addresses → sq check
-#: task rules; supersedes → decision checks; scopes → role skill-preload resolution
-#: (a skill's forward edge to a role, inverted by the resolver); the rest → navigation.
-VALID_REF_KINDS: frozenset[str] = frozenset(
-    {
-        "related",
-        "blocks",
-        "depends-on",
-        "implements",
-        "fixes",
-        "addresses",
-        "supersedes",
-        "duplicates",
-        "scopes",
-    }
-)
-
-
 def split_ref(ref: str) -> tuple[str, str]:
-    """``"ID"`` → ``(ID, "related")``; ``"ID:kind"`` → ``(ID, kind)``. IDs never contain ``:``."""
+    """``"ID"`` → ``(ID, "")``; ``"ID:kind"`` → ``(ID, kind)``. IDs never contain ``:``.
+
+    Structural, not vocabulary: ``_models/`` resolves no ref-kind vocabulary (the acyclic
+    import invariant — see ``_workflow``'s own module docstring), so a bare ref decodes to an
+    **unspelled** kind (``""``) rather than a resolved name. Which declared kind an unspelled
+    ref actually means is the ``role = "default"`` entry of the active spec's ``ref_kinds``
+    (``WorkflowSpec.default_ref_kind``) — resolved by a caller where that spec is already in
+    hand, never here.
+    """
     rid, _, kind = ref.partition(REF_SEP)
-    return rid, (kind or DEFAULT_KIND)
+    return rid, kind
 
 
-def make_ref(item_id: str, kind: str = DEFAULT_KIND) -> str:
-    """A bare ID for the default kind, else ``"ID:kind"`` (kind carried with the edge)."""
-    return item_id if not kind or kind == DEFAULT_KIND else f"{item_id}{REF_SEP}{kind}"
+def make_ref(item_id: str, kind: str = "") -> str:
+    """A bare ID when *kind* is unspelled (``""``), else ``"ID:kind"``.
+
+    Purely mechanical — it does not know which kind is the declared default, so it cannot
+    decide *whether* a given kind should be written bare. That decision (comparing a resolved
+    kind against ``WorkflowSpec.default_ref_kind`` and passing ``""`` here when they match) is
+    the caller's, made where the active spec is in hand."""
+    return item_id if not kind else f"{item_id}{REF_SEP}{kind}"
 
 
 def ref_id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
@@ -129,9 +121,20 @@ def ref_id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
     return head.upper() == prefix.upper() and int(digits) == seq
 
 
-def fold_legacy_kinds(refs: list[str], legacy: dict[str, str]) -> list[str]:
-    """Merge a pre-2 ``extra.ref_kinds`` ``{ID: kind}`` map into inline ``ID:kind`` ref strings."""
-    return [make_ref(rid, legacy.get(rid, kind)) for rid, kind in (split_ref(r) for r in refs)]
+def fold_legacy_kinds(refs: list[str], legacy: dict[str, str], *, default_kind: str) -> list[str]:
+    """Merge a pre-0.2 ``extra.ref_kinds`` ``{ID: kind}`` map into inline ``ID:kind`` ref
+    strings, and normalise every resulting edge against *default_kind* so an edge whose
+    resolved kind IS the declared default is always written bare — never spelled out, whether
+    it arrived via the legacy map or was already spelled inline (e.g. by a repair run before
+    this normalisation existed). *default_kind* is resolved by the caller
+    (``WorkflowSpec.default_ref_kind``), where the active spec is in hand; this stays a pure
+    mechanical merge over its input, never resolving vocabulary itself.
+    """
+    result: list[str] = []
+    for rid, kind in (split_ref(r) for r in refs):
+        resolved = legacy.get(rid, kind)
+        result.append(make_ref(rid, "" if resolved == default_kind else resolved))
+    return result
 
 
 class Item(BaseModel):
@@ -304,11 +307,21 @@ class Item(BaseModel):
         }
 
     @classmethod
-    def from_frontmatter(cls, data: dict[str, Any], *, path: str) -> Item:
+    def from_frontmatter(cls, data: dict[str, Any], *, path: str, default_kind: str) -> Item:
         """Reconstruct an Item from parsed frontmatter — used by ``sq repair``.
 
         ``type`` and ``status`` are stored as plain strings; the vocabulary
         validation (against WorkflowSpec) runs at the service load boundary, not here.
+
+        *default_kind* is the active spec's declared ``role = "default"`` ref kind
+        (``WorkflowSpec.default_ref_kind()``) — a **required** keyword, not a default
+        parameter, so omitting it is a type error rather than a silent regression. It is
+        handed straight to :func:`_read_refs`/:func:`fold_legacy_kinds`, which is the one
+        point every ``refs`` value passes through on its way into an ``Item``: an edge whose
+        kind is the declared default is always folded to the bare wire form here, never left
+        (or produced) spelled out. ``_models/`` still resolves no vocabulary itself — this
+        parameter is data handed in by a caller that already has the active spec, exactly the
+        split :func:`make_ref`/:func:`split_ref` already draw.
 
         ``prefix`` is derived from the frontmatter's own ``id:`` line (rsplit on the last
         ``-``, e.g. ``"INC-49"`` -> ``"INC"``) by :meth:`Item._derive_prefix_from_id` — the
@@ -347,7 +360,7 @@ class Item(BaseModel):
             keys = ", ".join(repr(key) for key in missing)
             raise SquadsError(f"invalid item data in {path}: missing required frontmatter {keys}")
         try:
-            return cls.model_validate(_frontmatter_payload(data, path))
+            return cls.model_validate(_frontmatter_payload(data, path, default_kind=default_kind))
         except ValidationError as exc:
             raise SquadsError(f"invalid item data in {path}: {_validation_message(exc)}") from exc
 
@@ -408,7 +421,7 @@ def _validation_message(exc: ValidationError) -> str:
 REQUIRED_FRONTMATTER_KEYS: tuple[str, ...] = ("type", "sequence_id", "status")
 
 
-def _frontmatter_payload(data: dict[str, Any], path: str) -> dict[str, Any]:
+def _frontmatter_payload(data: dict[str, Any], path: str, *, default_kind: str) -> dict[str, Any]:
     """The ``model_validate`` payload for :meth:`Item.from_frontmatter` — **never raises**.
 
     Every value is either passed straight through or folded by a helper that returns an
@@ -438,7 +451,7 @@ def _frontmatter_payload(data: dict[str, Any], path: str) -> dict[str, Any]:
         "priority": data.get("priority") or None,
         "severity": _read_severity(data),
         "labels": _empty_list_if_unset(data.get("labels")),
-        "refs": _read_refs(data),
+        "refs": _read_refs(data, default_kind=default_kind),
         # Otherwise handed over raw: SubEntity's own validators fold the loose spellings, and
         # pydantic reports anything that is not a list of mappings.
         "subentities": _empty_list_if_unset(data.get("subentities")),
@@ -498,8 +511,12 @@ def _is_str_list(value: object) -> bool:
     return isinstance(value, list) and all(isinstance(v, str) for v in cast("list[Any]", value))
 
 
-def _read_refs(data: dict[str, Any]) -> Any:
-    """Refs as inline ``ID[:kind]`` strings, folding a pre-0.2 ``extra.ref_kinds`` map if present.
+def _read_refs(data: dict[str, Any], *, default_kind: str) -> Any:
+    """Refs as inline ``ID[:kind]`` strings, folding a pre-0.2 ``extra.ref_kinds`` map if
+    present, and normalising every ref against *default_kind* either way (see
+    :func:`fold_legacy_kinds`) — the one point on this load path where an edge already
+    spelled with the declared default (no legacy map involved at all, e.g. a repair run
+    before this normalisation existed) is folded back to bare too.
 
     Returns the raw value untouched when it is not a list of strings (``refs: 5``,
     ``refs: [5]``) — the fold has nothing to do with such a value, and ``model_validate``
@@ -507,12 +524,11 @@ def _read_refs(data: dict[str, Any]) -> Any:
     fold onto, so the legacy lookup would be wasted work on the overwhelmingly common case.
     """
     refs: Any = _empty_list_if_unset(data.get("refs"))
-    if not refs:
+    if not refs or not _is_str_list(refs):
         return refs
     legacy: Any = _extra_mapping(data).get("ref_kinds")
-    if not isinstance(legacy, dict) or not _is_str_list(refs):
-        return refs
-    return fold_legacy_kinds(cast("list[str]", refs), cast("dict[str, str]", legacy))
+    legacy_map = cast("dict[str, str]", legacy) if isinstance(legacy, dict) else {}
+    return fold_legacy_kinds(cast("list[str]", refs), legacy_map, default_kind=default_kind)
 
 
 def _read_severity(data: dict[str, Any]) -> Any:

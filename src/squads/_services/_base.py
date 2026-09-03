@@ -42,7 +42,7 @@ from squads._itemfile import (
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import VALID_REF_KINDS, Item, effective_prefix, ref_id_matches, split_ref
+from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, set_active_squad_dir
@@ -590,11 +590,24 @@ class ServiceCore:
             )
         slug = slug or slugify(title)
         if refs:
+            # Validate every declared kind, then rewrite the set to the canonical wire form —
+            # the same normalisation `add_ref`/the bulk importer's `_resolve_refs` already
+            # apply: an edge whose kind is the declared default is always written bare, never
+            # spelled out (the encoding invariant), so a caller-supplied "ID:<default-kind>"
+            # never reaches the file or the index spelled. Both halves happen here, at the one
+            # PURE seam every create path (CLI, direct `Service.create()`, and the bulk
+            # importer's simulate/apply pair) shares — never re-derived per caller.
+            default_kind = self.spec.default_ref_kind()
+            normalised_refs: list[str] = []
             for ref_str in refs:
-                _, kind = split_ref(ref_str)
-                if kind not in VALID_REF_KINDS:
-                    valid = ", ".join(sorted(VALID_REF_KINDS))
+                rid, kind = split_ref(ref_str)
+                # A bare/unspelled kind ("") is always valid — it names whichever declared
+                # entry carries role="default", which is guaranteed to exist and be accepted.
+                if kind and kind not in self.spec.ref_kinds:
+                    valid = ", ".join(sorted(self.spec.ref_kinds))
                     raise SquadsError(f"unknown ref kind {kind!r}. Valid kinds: {valid}")
+                normalised_refs.append(make_ref(rid, "" if kind == default_kind else kind))
+            refs = normalised_refs
         if body is not None:
             reject_markers(body)
         effective_now = now if now is not None else clock.now()
@@ -1004,7 +1017,7 @@ class ServiceCore:
         base = it.model_copy(deep=True)
         path = item_file(self.paths, it)
         text = await self._read_item_file(it, path)
-        ensure_no_skew(text, base)
+        ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
         new_text = mutate(text, it)
         it.updated_at = clock.now()
         it.modified_session, _ = actor.current_session()
@@ -1158,10 +1171,11 @@ class ServiceCore:
 
         Starts from ``interactions.skills_for_role(slug)`` (index-blind, always-on skills +
         the role's item-type skills), then unions in every custom skill carrying a forward
-        ``ROLE-n:scopes`` edge to this role — found by inverting refs (``SquadsDB.backrefs``,
-        kind-agnostic, so filtered here to the ``scopes`` kind) and mapping to slugs. Deduped,
-        system-first then scoped skills in lexical order, so the result is stable and — with
-        no scope edges anywhere — byte-identical to the pure function's own output.
+        edge to this role in the declared ``preload`` semantic (:meth:`WorkflowSpec
+        .preload_ref_kind`) — found by inverting refs (``SquadsDB.backrefs``, kind-agnostic,
+        so filtered here to that one declared kind) and mapping to slugs. Deduped, system-first
+        then scoped skills in lexical order, so the result is stable and — with no preload
+        edges anywhere — byte-identical to the pure function's own output.
         """
         system = skills_for_role(slug, self.spec, self.playbook)
         if role is None:
@@ -1169,13 +1183,14 @@ class ServiceCore:
         role_prefix = effective_prefix(role.prefix)
         seen = set(system)
         scoped: set[str] = set()
+        preload_kind = self.spec.preload_ref_kind()
         for candidate_id in db.backrefs(role.id):
             skill = db.get(candidate_id)
             if skill is None or skill.type != ROSTER_SKILL:
                 continue
             for r in skill.refs:
                 rid, kind = split_ref(r)
-                if kind == "scopes" and ref_id_matches(rid, role_prefix, role.sequence_id):
+                if kind == preload_kind and ref_id_matches(rid, role_prefix, role.sequence_id):
                     scoped.add(skill.extra.get(X.SLUG, skill.slug))
                     break
         return [*system, *sorted(s for s in scoped if s not in seen)]
@@ -1277,7 +1292,7 @@ class ServiceCore:
         ]
 
     async def _refresh_role_skills_extra(
-        self, item: Item, role_skills: dict[str, list[str]]
+        self, item: Item, role_skills: dict[str, list[str]], *, default_kind: str
     ) -> str | None:
         """Persist the resolver's output into the role item's ``extra.skills`` cache.
 
@@ -1318,7 +1333,9 @@ class ServiceCore:
         previous = item.extra.get(X.SKILLS)
         item.extra[X.SKILLS] = resolved
         try:
-            await update_frontmatter(item_file(self.paths, item), item, base)
+            await update_frontmatter(
+                item_file(self.paths, item), item, base, default_kind=default_kind
+            )
         except SquadsError as exc:
             if previous is None:
                 item.extra.pop(X.SKILLS, None)
@@ -1372,7 +1389,9 @@ class ServiceCore:
         if role is None:
             return  # nothing to resync — caller already validated the role exists
         resolved = await self.resolved_skills_for_role(slug)
-        await self._refresh_role_skills_extra(role, {slug: resolved})
+        await self._refresh_role_skills_extra(
+            role, {slug: resolved}, default_kind=self.spec.default_ref_kind()
+        )
         if role.status in self.spec.live_statuses(ROSTER_ROLE):
             role_ctx = BackendContext(
                 paths=self.paths,

@@ -108,7 +108,9 @@ async def _snapshot_files(paths: SquadPaths, db: SquadsDB) -> dict[int, tuple[Pa
     return snap
 
 
-def _check_batch_skew(items: Iterable[Item], snapshot: dict[int, tuple[Path, str]]) -> None:
+def _check_batch_skew(
+    items: Iterable[Item], snapshot: dict[int, tuple[Path, str]], *, default_kind: str
+) -> None:
     """Refuse before any write if any of *items* has diverged from its own on-disk
     frontmatter — the batch shape of the guard every single mutation write seam enforces
     (see :func:`~squads._itemfile.ensure_no_skew`), run once for the whole affected set,
@@ -116,12 +118,14 @@ def _check_batch_skew(items: Iterable[Item], snapshot: dict[int, tuple[Path, str
     unrepaired item. *items* are still their as-loaded (pre-delta) selves at the point every
     caller here runs this — no extra read: *snapshot* already holds each item's disk text,
     taken for the existing rollback safety net.
+
+    *default_kind* is resolved once by the caller for the whole batch, not per item.
     """
     problems = [
         skew_message(item, diverging)
         for item in items
         if (entry := snapshot.get(item.sequence_id)) is not None
-        and (diverging := frontmatter_skew(entry[1], item))
+        and (diverging := frontmatter_skew(entry[1], item, default_kind=default_kind))
     ]
     if problems:
         raise SquadsError(" | ".join(problems))
@@ -177,11 +181,15 @@ class RenameMixin(ServiceCore):
             # Everything above is read-only; the snapshot below is taken only once validation
             # has passed, right before the first byte on disk changes.
             snapshot = await _snapshot_files(self.paths, db)
+            # Resolved once for the whole batch, before the pre-flight check below — not per
+            # item — so a spec declaring the wrong number of default ref kinds fails as one
+            # clean refusal naming the spec rather than partway through the rename.
+            default_kind = self.spec.default_ref_kind()
             # Pre-flight the whole affected set before the first write: a mid-flight refusal
             # here would leave every item already processed renamed/rewritten and the rest
             # untouched — a partially applied bulk rename, worse than the overwrite this guard
             # exists to prevent. Reuses the snapshot just taken; no extra read.
-            _check_batch_skew(old_items, snapshot)
+            _check_batch_skew(old_items, snapshot, default_kind=default_kind)
             try:
                 # Per-item self-rewrite (id/prefix/file/frontmatter; status carried
                 # unconditionally).
@@ -191,7 +199,14 @@ class RenameMixin(ServiceCore):
                     old_id = item.id
                     base = item.model_copy(deep=True)
                     await apply_type_change(
-                        self.paths, self.spec, db, item, new_type, carry_status=True, base=base
+                        self.paths,
+                        self.spec,
+                        db,
+                        item,
+                        new_type,
+                        carry_status=True,
+                        base=base,
+                        default_kind=default_kind,
                     )
                     remap[old_id] = item.id
                     pairs.append((old_id, item))
@@ -270,9 +285,11 @@ class RenameMixin(ServiceCore):
             # Everything above is read-only; the snapshot below is taken only once validation
             # has passed, right before the first byte on disk changes.
             snapshot = await _snapshot_files(self.paths, db)
+            # Resolved once for the whole batch — see rename_type's matching comment.
+            default_kind = self.spec.default_ref_kind()
             # Pre-flight the whole affected set before the first write — see rename_type's
             # matching comment; reuses the snapshot just taken, no extra read.
-            _check_batch_skew(matching, snapshot)
+            _check_batch_skew(matching, snapshot, default_kind=default_kind)
             try:
                 ids: list[tuple[str, str]] = []
                 rewritten: list[Path] = []
@@ -281,7 +298,7 @@ class RenameMixin(ServiceCore):
                     item.status = new_status
                     item.updated_at = clock.now()
                     path = item_file(self.paths, item)
-                    await update_frontmatter(path, item, base)
+                    await update_frontmatter(path, item, base, default_kind=default_kind)
                     db.add(item)
                     await _append_rename_status_comment(path, old_status, new_status)
                     self.store.log(

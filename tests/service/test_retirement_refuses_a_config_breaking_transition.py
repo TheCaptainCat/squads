@@ -36,7 +36,9 @@ async def _hand_plant_status(svc, item_id: str, status: str) -> None:
         assert item is not None
         base = item.model_copy(deep=True)
         item.status = status
-        await update_frontmatter(item_file(svc.paths, item), item, base)
+        await update_frontmatter(
+            item_file(svc.paths, item), item, base, default_kind=svc.spec.default_ref_kind()
+        )
 
 
 async def _hand_plant_refs(svc, item_id: str, refs: list[str]) -> None:
@@ -46,7 +48,9 @@ async def _hand_plant_refs(svc, item_id: str, refs: list[str]) -> None:
         assert item is not None
         base = item.model_copy(deep=True)
         item.refs = refs
-        await update_frontmatter(item_file(svc.paths, item), item, base)
+        await update_frontmatter(
+            item_file(svc.paths, item), item, base, default_kind=svc.spec.default_ref_kind()
+        )
 
 
 # --------------------------------------------------------------------------- no_live_role
@@ -368,6 +372,7 @@ async def test_unlink_on_a_non_live_to_non_live_move_is_refused_as_meaningless(s
             "collections": dict(base.collections),
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
+            "ref_kinds": dict(base.ref_kinds),
         }
     )
     assert custom_spec.live_statuses(ROSTER_ROLE) == frozenset({"Active"})

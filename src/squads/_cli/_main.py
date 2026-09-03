@@ -889,7 +889,7 @@ async def search(
 @app.command()
 @common.command
 async def blocked(json_out: bool = typer.Option(False, "--json")):
-    """Show open items blocked by other open items (via the `blocks` ref kind)."""
+    """Show open items blocked by other open items (via the declared `dependency` ref kind)."""
     svc = get_service()
     rows = await svc.blocked()
     if json_out:
@@ -917,18 +917,19 @@ async def blocked(json_out: bool = typer.Option(False, "--json")):
             console.print(f"    [red]blocked by[/red] {b.id} {e(b.title)} [dim]({b.status})[/dim]")
 
 
-def _graph_edge_label(edge_kind: str, direction: str) -> str:
+def _graph_edge_label(edge_kind: str, edge_semantic: str | None, direction: str) -> str:
     """Return the human-readable branch label for a graph edge.
 
-    Dependency edges (``edge_kind="depends-on"``) are surfaced as a two-way binding:
+    Branches on ``edge_semantic``, never ``edge_kind`` — the declared kind's spelling is
+    display-only. A ``"dependency"``-semantic edge is surfaced as a two-way binding:
 
     - ``direction="out"`` → the expanded node depends on the child → ``"depends on"``
     - ``direction="in"``  → the child depends on the expanded node → ``"required by"``
 
-    All other kinds show the kind name verbatim (e.g. ``"related"``, ``"fixes"``).
-    The raw strings ``"depends-on"`` and ``"blocks"`` are never shown as labels.
+    Every other (navigational) kind shows its own declared key verbatim (e.g. ``"related"``,
+    ``"fixes"``).
     """
-    if edge_kind == "depends-on":
+    if edge_semantic == "dependency":
         return "depends on" if direction == "out" else "required by"
     return edge_kind
 
@@ -938,7 +939,7 @@ def _attach_graph_node(parent_tree: Tree, node: GraphNode) -> None:
     for child in node.children:
         # Build the branch label
         if child.edge_kind is not None and child.direction is not None:
-            label_text = _graph_edge_label(child.edge_kind, child.direction)
+            label_text = _graph_edge_label(child.edge_kind, child.edge_semantic, child.direction)
             edge_part = f" [dim]({e(label_text)})[/dim]"
         else:
             edge_part = ""
@@ -979,23 +980,33 @@ async def graph(
     """Show the ref graph around an item (ego-centric BFS traversal).
 
     ``--json`` emits a nested root object (``id/type/status/priority/assignee/edge_kind/
-    direction/seen/children``) — the read surface for agents and orchestrators. Shape::
+    edge_semantic/direction/seen/children``) — the read surface for agents and orchestrators.
+    Shape::
 
         {
           "id": "BUG-<n>", "type": "bug", "status": "Open", "priority": "high",
-          "assignee": null, "edge_kind": null, "direction": null, "seen": false,
+          "assignee": null, "edge_kind": null, "edge_semantic": null, "direction": null,
+          "seen": false,
           "children": [
-            { "id": "FEAT-<n>", ..., "edge_kind": "depends-on", "direction": "out",
-              "seen": false, "children": [...] },
-            { "id": "TASK-<n>", ..., "edge_kind": "related", "direction": "in",
-              "seen": true, "children": [] }
+            { "id": "FEAT-<n>", ..., "edge_kind": "depends-on", "edge_semantic": "dependency",
+              "direction": "out", "seen": false, "children": [...] },
+            { "id": "TASK-<n>", ..., "edge_kind": "related", "edge_semantic": null,
+              "direction": "in", "seen": true, "children": [] }
           ]
         }
 
-    ``edge_kind`` for dependency edges is always ``"depends-on"`` (never ``"blocks"``);
+    ``edge_kind`` is the stored kind's own spelling — a project's own vocabulary, never a
+    fixed sentinel; both raw spellings of a dependency edge collapse onto one declared key
+    (the dependent-direction kind, or the blocker-direction kind where a project declares
+    only that half). ``edge_semantic`` is that kind's declared role (``"dependency"``,
+    ``"preload"``, ``"supersession"``) or ``null`` — **branch on this field**, never on
+    ``edge_kind``'s spelling, which a project is free to rename. A ``null`` semantic covers
+    two different cases that only ``edge_kind`` distinguishes: a navigational kind the spec
+    declares with no role, and a kind the merged spec does not declare at all (an edge ``sq
+    graph`` still traverses and reports rather than drops — it never omits an edge it can see).
     ``direction="out"`` means the root depends on the child, ``direction="in"`` means the
-    child depends on the root.  In the Rich tree these render as human-readable labels:
-    ``"depends on"`` and ``"required by"`` respectively.
+    child depends on the root.  In the Rich tree a ``"dependency"``-semantic edge renders as
+    a human-readable label: ``"depends on"`` and ``"required by"`` respectively.
 
     ``--format dot|mermaid`` emits a serialized graph instead of the Rich tree; suitable
     for piping to ``dot``, ``mmdc``, or pasting into Mermaid Live. ``--format mermaid-md``

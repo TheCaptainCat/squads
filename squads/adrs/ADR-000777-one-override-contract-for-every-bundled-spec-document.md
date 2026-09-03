@@ -16,7 +16,7 @@ refs:
 - ADR-776
 - ADR-781
 created_at: '2026-08-22T09:28:30Z'
-updated_at: '2026-08-24T20:31:54Z'
+updated_at: '2026-08-25T23:00:56Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -394,7 +394,9 @@ stamp newer than the running version.
   regeneration destroys the shipped release's recorded entry, and a store sharing the index's
   replace semantics would let the same mis-ordering destroy retained history, which no tag can
   restore for a revision whose only surviving copy was the store. Splitting the modes confines the
-  known hazard to one version's index, which *is* recoverable from the tag.
+  known hazard to one version's index, which *is* recoverable from the tag. C1 narrows "never
+  deletes" to what that reason supports — no revision an index entry names — and gives the generator
+  the one deletion the reason does not cover.
 - **The store is keyed on the same normalisation the index hashes.** The index digests
   CRLF-normalised bytes so a Windows checkout hashes identically (read: `_overrides/_manifest.py:60-65`);
   a store keyed on raw bytes would miss every lookup on such a checkout. One rule, one normalisation.
@@ -421,6 +423,270 @@ stamp newer than the running version.
   revision is now a second, plausible-looking answer to "what did this type used to declare". It is
   not one: the store is provenance for diffing, and never an input to validation, to the merge, or
   to the cross-check. The corpus remains the authority on what its items were written under.
+
+**2026-08-25 — the manifest's artifact key namespace is decided here, §4's open question on
+`top_level_keys` is closed, and two bundled templates nothing renders are removed.** §2 widens
+the manifest to three spec documents without saying what an entry is keyed on; §4 names the
+`top_level_keys` escape a live question and leaves it; and the widening puts two orphaned
+templates under retention. All three are decision-level facts with more than one owner, so none
+is left to an implementer.
+
+### B1. The manifest key is the artifact's path relative to the `squads` package root
+
+Every key today is a path relative to `_rendering/templates/`, and every lookup resolves against
+`squads._rendering.templates` (read: `_overrides/_manifest.py:53-56`, `:69-72`). That key space is
+flat, implicit and has no room for a second kind of artifact: `workflow.md.j2` and
+`workflow_static.md.j2` already sit at its top level (driven over the shipped manifest), and a
+bare `workflow.toml` beside them would be distinguishable only by extension.
+
+**An entry is keyed on the artifact's path relative to the `squads` package root** —
+`_rendering/templates/agents/role.md.j2`, `_specs/workflow.toml`. Every overridable bundled
+artifact is package data inside that one package, so a key is unique by construction rather than
+by convention, it is derivable rather than registered, and a fifth kind inherits the namespace
+without a decision of its own. `_manifest.py`'s single resolver moves from
+`squads._rendering.templates` to `squads`, which is what §2's "no second mechanism beside them"
+asks for: there is no per-kind dispatch table to keep in step.
+
+**This is not an implementer's call.** The key namespace is the manifest's own on-disk shape,
+shared by the generator, the freshness guard, the one-time seeding step and every consumer, and
+changing it later rewrites shipped releases' entries — the one hazard Consequences and A6 both
+single out. A6 already settles the store's key normalisation as a decision-level fact; the index's
+key space is the same class of fact, and its absence from §2 was an omission rather than a
+delegation.
+
+**The rekey rides A1's one-time seeding, not the generator's steady state.** Prefixing
+`_rendering/templates/` onto the historic keys rewrites every version entry, so it is performed by
+the same data step that seeds the store back to 0.4.0, in one pass, carrying the recorded hashes
+over unchanged. The generator's steady-state contract is untouched: hash the current tree, replace
+this version's index entry, insert what is absent from the store.
+
+### B2. `top_level_keys` loses its explicit-`None` escape
+
+No production caller passes `None`. The roles resolver already passes `_ROLE_TOP_LEVEL_KEYS`
+(read: `_roles/_resolver.py:178`), and the workflow and playbook loaders pass their own sets; only
+unit tests pass `None` (driven). §3's catalog document adds a fourth closed set, so every
+overridable bundled document then has a closed top level — §1's second promise in full. A
+parameter whose only remaining meaning is "opt out of promise 2" contradicts the uniformity §1
+asserts, and a vestigial fail-open escape is precisely the affordance a later loader author
+reaches for without a decision, which is how the roles divergence arose in the first place.
+
+The annotation becomes `frozenset[str]`: required, keyword-only, no default. The no-default shape
+is kept for the reason the docstring already gives — "forgot to pass it" stays a type error. What
+changes is that "deliberately open" stops being expressible without amending a decision. The
+engine's docstring at `_specmerge.py:791-797` still names the roles loader as the deliberate
+`None` caller and has been wrong since that resolver closed its set; it is rewritten rather than
+merely trimmed.
+
+### B3. The two orphaned `agents_md` entry templates are deleted, not edited
+
+Driven at `8408390`: `_rendering/templates/agents_md/role_entry.md.j2` and `skill_entry.md.j2` are
+rendered by nothing. `agents_md/agents_section.md.j2` includes only `workflow.md.j2`, no Python
+call site names either file, and the AGENTS.md backend's `generate_role_entry`/
+`generate_skill_entry` write nothing and only unlink a pre-upgrade staging file. Both remain
+bundled package data carrying a hash in all fifteen of the manifest's release entries, and
+`sq override scaffold agents_md/role_entry.md.j2` succeeds (driven), writing an override into a
+squad that will never render it.
+
+That is an override surface with no consumer, which §1's first promise forbids: an adopter is owed
+a whole-document surface **or a stated reason there is none**, and silence is neither. Both
+templates are deleted. Retention is undisturbed under A1 — past index entries keep naming their
+revisions and the store keeps the blobs, so an adopter who overrode one still diffs against a real
+base.
+
+Deletion replaces the edit ADR-781's pointer rule would otherwise require of them: spending a
+manifest revision and a retained blob on a file that renders nothing is the cost the widening
+makes visible. Both are bundled-template changes settled by one regeneration, so the removal
+belongs to whichever pass regenerates the manifest this release rather than to a follow-up.
+Whether the backend ABC keeps `generate_role_entry`/`generate_skill_entry` at all is a separate
+question this does not reach.
+
+**2026-08-25 — the store's two coverage assertions are reconciled: an unreferenced blob is not
+retained history (A1, A6).** A1 promises the store's coverage *equals* the index's, and A6 asserts
+that equality in both directions. The generator was given a move for only one of them, and the other
+direction is reachable without a bug and without a hand-edit — so it needs a rule rather than a
+guard that can only report.
+
+### C1. Orphaned blobs are swept by the run that orphans them, and never-prune keeps its exact meaning
+
+Driven in a copied tree against the shipped documents (84 blobs, 84 referenced, no orphans): edit one
+bundled template and regenerate, and the store holds one blob no index entry references; edit and
+regenerate again, two; restoring the template to its shipped content clears neither. No deletion is
+involved anywhere. The index entry for `[project].version` is a wholesale replacement while the store
+is insert-if-absent, so **every intermediate revision of an artifact within one release is orphaned
+by the next regeneration** — the ordinary development loop, not a fault. Changing and then deleting
+an artifact in one release, the shape this surfaced as, is one instance of the general case.
+
+- **The orphan assertion does not yield.** A6 wrote it to catch "the orphan a bug or a hand-edit
+  would otherwise accumulate silently"; that premise does not reach a routine regeneration. A guard
+  with no discharging action available for a sanctioned operation does not report a problem, it
+  becomes one. It stays, and is promoted from an assertion about something having gone wrong to an
+  invariant the generator maintains.
+- **The generator's steady-state contract gains one clause: drop a blob no index entry references.**
+  A1's promise is untouched by construction — every revision the promise covers is named by an index
+  entry, so a reachability sweep cannot remove one. Driven: sweeping the orphans above leaves all
+  84 index-named hashes resolving and `--check` clean.
+- **A6's "never deletes" is narrowed to what its own reason supports rather than overruled.** The
+  hazard it names is a mis-ordered regeneration destroying retained history under the index's
+  *replace* semantics. A run rewrites exactly one entry — the current version's — so the only blobs
+  it can orphan are revisions that entry alone named; historic entries are never rewritten, so no
+  revision they name can become unreferenced, and the sweep provably cannot reach one. Never-prune,
+  stated precisely: **no revision an index entry names is ever removed.** That is the sentence to
+  carry forward.
+- **The rejected alternative is the sequencing constraint** — requiring a deletion to ride a release
+  in which the artifact is otherwise unchanged. It is unenforceable, silent when violated, answers
+  only the deletion instance while leaving the double-edit case to accumulate, and makes a sanctioned
+  operation conditional on an unrelated axis that whoever performs it has to remember. B3 sanctions
+  deleting bundled artifacts outright, so that rule would be a trap laid for a decision already made.
+- **A4's ceiling is unaffected and slightly better served.** A swept blob is bytes nothing can diff
+  against, so the growth rate A3 measured stands and the ceiling keeps measuring retention rather
+  than churn.
+
+B3's two deletions are unaffected either way: each template's current content is referenced by nine
+and sixteen index entries respectively, so removing this release's entry leaves both still
+referenced, and both keep a real base to diff against.
+
+**2026-08-26 — C1's sweep is withdrawn: the content store is a derived artifact, rebuilt from
+ground truth, and the generator's steady state never deletes.** C1 promoted the orphan assertion
+from a report into an invariant the generator maintains, and licensed the deletion with an
+argument that is false in a state this repository enters the day a release is tagged. The promise
+C1 stated is kept. The mechanism it licensed is not.
+
+### D1. The premise is an assumption about human sequencing, and the obvious repairs do not repair it
+
+C1's licence, restated verbatim in the generator that performs the sweep: a run rewrites exactly
+one entry, the current version's, so the only blobs it can strand are revisions that entry alone
+named; historic entries are never rewritten, so the sweep provably cannot reach one.
+
+**"The current version's entry is not a historic entry" is an assumption about release ordering,
+not a fact about the run.** `[project].version` keeps naming a release from the moment it is cut
+until someone bumps — the steady state between releases, not an edge case. A regeneration in that
+window rewrites a shipped entry wholesale and sweeps the shipped revisions that entry alone named.
+
+Driven, in a copy of this tree with `[project].version` set to a shipped release: `0 new blob(s)
+inserted, 3 orphaned blob(s) swept`, destroying that release's own revisions of
+`_rendering/templates/agents/memory_skill.md.j2`, `_rendering/templates/agents/squads_skill.md.j2`
+and `_rendering/templates/workflow.md.j2`, alongside 11 of the entry's 29 recorded hashes being
+overwritten with the current tree's.
+
+Two repairs suggest themselves and neither holds:
+
+- **Scoping the sweep to blobs the run itself orphaned removes nothing**, because those are
+  precisely the blobs at risk: in the released-version case the revisions the run orphaned *are*
+  the shipped ones. It makes the sweep provably equal to its stated premise while leaving the
+  premise false.
+- **Refusing to rewrite an existing entry whose hashes differ from the tree** refuses the ordinary
+  development loop — the second and every later regeneration of the working version, which is the
+  case C1 exists to serve.
+
+From inside the working tree the two cases are indistinguishable. "An entry for V names hashes this
+run no longer names" describes the discarded scratch revision of an unreleased V and the shipped
+revision of a released V equally well. **The only fact that separates them is whether V was
+published, and that fact is not in the tree.** The sweep's premise therefore cannot be made true
+where the sweep runs.
+
+### D2. Published is the right discriminator and the generator is the wrong actor
+
+Publication is knowable only from the release tags, and A1 and A6 put git outside the generator on
+purpose. A safety rule whose answer depends on the local tag list is not a rule: the same tree
+answers differently in a fresh clone, a shallow clone, and before a tag fetch — and a rule that
+silently permits a deletion when it cannot see the tag fails in the unsafe direction. Recording
+publication locally so the generator could read it without git would put a second copy of the tag
+beside the tag, drifting on its own schedule.
+
+So the discriminator moves to the actor that already holds it: the one-time data step against the
+release tags (`scripts/seed_content_store.py`), which A1 already sanctions as the only git-reading
+participant in this system.
+
+### D3. The store is derived, so removal is a rebuild rather than a prune
+
+Driven, on a clone of this repository: after a regeneration at a shipped version destroyed three
+blobs and rewrote that version's entry, running the seeding step alone — no manual repair, no index
+restore — reproduced both documents byte-identically against the branch head, printing every
+corrected hash. Every index-named revision is reachable from its release tag or, for the running
+version, from the working tree.
+
+That settles the store's status. Its authoritative definition is not "what the generator has
+accumulated" but **every hash the index names, resolved to its content** — a total function of the
+index, the release tags and the working tree. A derived artifact is not pruned incrementally; it is
+rebuilt.
+
+- **The generator's steady-state contract loses the sweep clause**, returning to: hash the current
+  tree, replace this version's index entry, insert what is absent from the store. A6's
+  never-deletes stands for the generator exactly as written, and the recoverable-from-its-tag bound
+  it was written to hold is restored.
+- **Removing a blob is a capability of the rebuild alone**: recompute the store as the closure of
+  every index-named hash, sourced from each version's tag and — for the running version — from the
+  working tree, and drop whatever is not in that closure. No premise about sequencing is involved,
+  because the closure is computed from ground truth rather than inferred from what changed.
+- **The rebuild is all-or-nothing.** A version whose ground truth it cannot reach — no local tag —
+  is a refusal that names the version and deletes nothing. It is never a skip: skipping is what
+  turns an incomplete tag list into silent data loss, which is the same failure mode in a new place.
+- **The rebuild catches what the generator cannot.** An index entry that disagrees with its own tag
+  is the mis-ordered regeneration, visible only to something holding both. Correcting it back to
+  the tag is the repair, and the seeding step already performs and prints exactly that.
+
+### D4. Where the orphan assertion belongs
+
+C1's diagnosis was right and its remedy was not. A guard with no discharging action available for a
+sanctioned operation does become a problem — but the fix is to move the assertion to where it is
+true, not to give the generator a deletion so the assertion can stay where it is.
+
+**An orphan-free store is a property of the release artifact, not of the working tree.** Between
+releases, discarded revisions of the working version accumulate as ordinary development residue and
+assert nothing about retention; the rebuild at the cut clears them. The assertion is a release gate.
+A4's ceiling is measured on the rebuilt store, so it keeps measuring retention rather than churn —
+the property C1 claimed for the sweep, now resting on a premise that holds.
+
+### D5. What the freshness check owes
+
+The check currently claims more than it verifies: it prints "store coverage ok" after verifying
+coverage for the running version's entry alone, and its orphan scan detects an extra blob where the
+failure of interest is a missing one. A store missing a shipped revision therefore reports clean,
+and write mode re-inserts only from the current tree, so nothing re-heals it either.
+
+- **Coverage is verified across the whole index** — every version, every key. A1 states the
+  retention promise over every release the index covers, so the gate that discharges it must be
+  stated over the same set. It fails when any index-named hash does not resolve, naming the version
+  and the artifact rather than a count.
+- **The success line states what was checked**, over which versions. A message asserting more than
+  its check performed is the defect, not a wording preference.
+- **An orphan is reported and does not fail an ordinary check**; it fails the release gate, which
+  is where the rebuild that discharges it runs.
+- **The check writes nothing, ever.** Unchanged.
+
+### D6. What the coverage owes, stated so it cannot be satisfied at the running version
+
+Every retention and sweep test drives the fixture's version through the generator's own
+`[project].version` reader over a verbatim copy of this repository's `pyproject.toml`. No fixture
+has ever set the running version to one the copied index already carries — including the leg
+written to prove never-prune, which therefore exercises only the half of C1's argument that was
+true. A leg that cannot fail is not coverage.
+
+- **The fixture takes its version as a parameter and asserts it differs from the repository's**, so
+  a fallback to the running version fails loudly instead of passing quietly. This is the clause
+  that makes the rest non-vacuous.
+- **One case runs at a version the copied index already carries with hashes differing from the
+  copied tree**, and asserts that every hash that entry named still resolves afterwards. This leg
+  is owed whatever mechanism ships.
+- **One case proves the recovery**: damage the corpus, apply the documented recovery, and assert
+  the whole index resolves. Its absence is what let a broken corpus report clean.
+- **One case fails the freshness check for a hash missing from a historic entry**, not the running
+  version's.
+
+### D7. What survives of C1
+
+**No revision an index entry names is ever removed** survives exactly as written. It was never the
+false part, and it remains the invariant — now maintained by the rebuild's closure rather than by a
+sweep's argument. What is withdrawn is the clause that gave the generator's steady state a deletion,
+and the safety argument offered for it. C1's rejected alternative stays rejected on its own reasons,
+and its reading of A4's ceiling stands.
+
+One correction to A6, recorded so a later reader does not relax the rule on discovering it: A6
+justified the store's never-deletes on retained history "no tag can restore", and that is
+overstated — every index-named revision is restorable, as D3 drove. The reason to protect the store
+is not irrecoverability but **silence**. The loss is reported by nothing, the recovery is documented
+nowhere, and the corpus reads clean while broken. A rule whose stated reason is stronger than the
+truth invites exactly the narrowing that produced C1.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -450,4 +716,12 @@ stamp newer than the running version.
   - Two tensions found. First, section 2 cites ~88KB as the measured cost - that is one full snapshot and stays correct as that, but it is not the store size under full retention; A3 says so explicitly so neither statement is left standing for the other. Second, the store must not become an input to ADR-696 section 5a: 5a recovers a type prefix/folder from the live items and records "it stores nothing new" as one of the three properties making it minimal, and a retained workflow.toml revision is now a plausible-looking second answer to the same question. A7 rules it out - provenance for diffing only, never validation, merge, or cross-check.
   - Also asked of the generator beyond section 2: two write modes (index entry stays wholesale-replace keyed on project.version per ADR-781 section 6; the store is insert-if-absent and never deletes, so the known mis-ordered-regeneration hazard cannot destroy retained history), the store keyed on the same CRLF normalisation the index hashes, and two guard assertions making never-prune checkable. A 256KB in-wheel ceiling on the store replaces a window as the bound - roughly eighty releases away at the measured rate.
   - @product-owner FEAT-791 US1 needs the retention clause reflected: the one-time seeding back to 0.4.0, the insert-if-absent store write mode distinct from the index write, and the store-coverage-equals-index-coverage guard. A new acceptance line is owed for the uncarried-base path (partial Delta-upgrade from the earliest carried revision, exit 0, not an sq check finding) - it is not covered by any current story. Yours to edit, not mine.
+- [2026-08-25T15:02:58Z] Robert Architect:
+  - Amended in place at its own end (B1-B3). B1: a manifest entry is keyed on the artifact path relative to the squads package root (_rendering/templates/..., _specs/workflow.toml) - unique by construction, derivable rather than registered, and one resolver instead of a per-kind dispatch table. Taken from the implementer: the key namespace is the manifest on-disk shape shared by the generator, the guard, the seeding step and every consumer, and changing it later rewrites shipped releases entries. The rekey rides A1 one-time seeding, hashes carried over unchanged; the generator steady state is untouched.
+  - B2: top_level_keys loses its explicit-None escape - frozenset[str], required, keyword-only, no default. Driven: no production caller passes None today, and section 3 catalog document makes every overridable bundled document closed-top-level, which is section 1 promise 2 in full. The _specmerge.py:791-797 docstring naming the roles loader as the deliberate None caller has been wrong since that resolver closed its set and is rewritten.
+  - B3: the two orphaned agents_md entry templates are deleted rather than edited. Drove it - sq override scaffold agents_md/role_entry.md.j2 succeeds and writes an override that will never render, which is an override surface with no consumer and section 1 promise 1 forbids it. Retention undisturbed under A1. Rulings recorded on TASK-799, TASK-800 and TASK-802. @tech-lead
+- [2026-08-25T18:00:50Z] Robert Architect:
+  - Amended in place at its own end (C1), with a forward pointer added to A6. REV-808 F7 filed a deadlock between never-prune and the no-orphans guard for an artifact changed and deleted in one release; driving it showed the case is broader and needs no deletion at all - every intermediate revision of an artifact within one release is orphaned by the next regeneration, because the index entry is a wholesale replacement while the store is insert-if-absent. Measured against the shipped documents: one edit plus regen gives one orphan, two gives two, and restoring the shipped content clears neither.
+  - Ruling: the orphan assertion does not yield, it is promoted from an assertion about something having gone wrong into an invariant the generator maintains - its steady-state contract gains one clause, drop a blob no index entry references. A1 promise is untouched by construction, since every revision it covers is named by an entry. Drove the sweep: all index-named hashes still resolve and --check is clean.
+  - A6 never-deletes is narrowed to what its own stated reason supports rather than overruled: a run rewrites exactly one entry, so the only blobs it can orphan are revisions that entry alone named, and historic entries are never rewritten. Never-prune restated as the sentence to carry forward - no revision an index entry names is ever removed. Rejected the sequencing alternative of making a deletion ride an otherwise-unchanged release, which is unenforceable and answers only one instance while B3 sanctions deletion outright. Ruled on REV-808 F7. @tech-lead
 <!-- sq:discussion:end -->

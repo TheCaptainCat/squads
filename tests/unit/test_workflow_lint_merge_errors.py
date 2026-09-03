@@ -6,6 +6,8 @@ merge-time vocabulary-conflict family.
 
 from pathlib import Path
 
+import pytest
+
 from squads import __version__
 from squads._workflow._loader import lint_workflow_spec
 
@@ -67,15 +69,29 @@ def test_lint_reports_an_error_for_a_shadowing_override_with_no_stamp(tmp_path: 
     assert "override-base" in errors[0][2]
 
 
-def test_lint_reports_a_warning_for_a_shadowing_override_with_a_stale_stamp(
+def test_lint_reports_a_warning_for_a_shadowing_override_with_a_stamp_the_bundle_changed_since(
     tmp_path: Path,
 ) -> None:
-    _write_override(tmp_path, '# squads:override-base:0.0.1\n[items.guide]\nfolder = "handbooks"\n')
+    """Content-gated: the warning fires only when the bundled workflow.toml actually changed
+    since the stamped version (v0.13.1 -> running is real recorded history with a change)."""
+    _write_override(
+        tmp_path, '# squads:override-base:0.13.1\n[items.guide]\nfolder = "handbooks"\n'
+    )
     findings = lint_workflow_spec(tmp_path)
     warnings = [f for f in findings if f[0] == "warn"]
     assert len(warnings) == 1
     assert "stale" in warnings[0][2]
     assert not [f for f in findings if f[0] == "error"]
+
+
+def test_lint_reports_nothing_for_a_shadowing_override_with_a_stamp_squads_carries_no_history_for(
+    tmp_path: Path,
+) -> None:
+    """Unknown history is treated as unchanged, never a warning: v0.0.1 predates workflow.toml's
+    own coverage floor, so a stale-looking stamp reports clean rather than "may be stale"."""
+    _write_override(tmp_path, '# squads:override-base:0.0.1\n[items.guide]\nfolder = "handbooks"\n')
+    findings = lint_workflow_spec(tmp_path)
+    assert not [f for f in findings if f[0] in ("warn", "error")]
 
 
 def test_lint_reports_nothing_for_an_add_only_override_with_no_stamp(tmp_path: Path) -> None:
@@ -86,18 +102,40 @@ def test_lint_reports_nothing_for_an_add_only_override_with_no_stamp(tmp_path: P
     assert lint_workflow_spec(tmp_path) == []
 
 
-def test_lint_and_check_agree_on_the_same_unstamped_shadowing_override(tmp_path: Path) -> None:
-    """The two surfaces reading `workflow_stamp_finding` — `sq workflow lint`
-    (`lint_workflow_spec`) and `sq check` (`check_override_issues`) — must report the exact
-    same level for the exact same file, never diverge."""
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param(
+            '[items.incident]\nprefix = "INC"\nfolder = "incidents"\nlifecycle = "work"\n',
+            id="add-only-unstamped",
+        ),
+        pytest.param('[items.guide]\nfolder = "handbooks"\n', id="shadowing-unstamped"),
+        pytest.param(
+            '# squads:override-base:0.13.1\n[items.guide]\nfolder = "handbooks"\n',
+            id="stamped-with-a-bundled-change",
+        ),
+        pytest.param(
+            f'# squads:override-base:{__version__}\n[items.guide]\nfolder = "handbooks"\n',
+            id="stamped-without-a-bundled-change",
+        ),
+        pytest.param(
+            '# squads:override-base:0.0.1\n[items.guide]\nfolder = "handbooks"\n',
+            id="unrecorded-base-version",
+        ),
+    ],
+)
+def test_lint_and_check_agree_on_the_workflow_stamp_finding(tmp_path: Path, content: str) -> None:
+    """`sq workflow lint` (`lint_workflow_spec`) and `sq check` (`check_override_issues`) both
+    read `workflow_stamp_finding` — one function, so they must report the exact same
+    (level, message) for the exact same file across every case that distinguishes the three
+    outcomes. A future fork of this obligation fails this test, not a docstring comparison."""
     from squads._overrides._service import check_override_issues
 
-    _write_override(tmp_path, '[items.guide]\nfolder = "handbooks"\n')
-    lint_level = next(f[0] for f in lint_workflow_spec(tmp_path) if "override-base" in f[2])
-    check_level = next(
-        level for level, _loc, msg in check_override_issues(tmp_path) if "override-base" in msg
-    )
-    assert lint_level == check_level == "error"
+    _write_override(tmp_path, content)
+
+    lint_findings = {(level, msg) for level, _loc, msg, _hint in lint_workflow_spec(tmp_path)}
+    check_findings = {(level, msg) for level, _loc, msg in check_override_issues(tmp_path)}
+    assert lint_findings == check_findings
 
 
 def test_lint_reports_a_finding_shaped_tuple_for_a_structural_error(tmp_path: Path) -> None:

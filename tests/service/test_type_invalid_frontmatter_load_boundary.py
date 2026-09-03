@@ -52,7 +52,9 @@ def _reload(svc, item) -> Item:
     itself, with no command around it."""
     path = svc.paths.abspath(item.path)
     return Item.from_frontmatter(
-        split_frontmatter(path.read_text(encoding="utf-8"))[0], path=item.path
+        split_frontmatter(path.read_text(encoding="utf-8"))[0],
+        path=item.path,
+        default_kind=svc.spec.default_ref_kind(),
     )
 
 
@@ -522,4 +524,4 @@ async def test_an_internal_key_error_is_not_relabelled_as_invalid_file_data(monk
     monkeypatch.setattr(item_module, "_read_extra", _boom)
 
     with pytest.raises(KeyError):
-        Item.from_frontmatter(data, path=item.path)
+        Item.from_frontmatter(data, path=item.path, default_kind=svc.spec.default_ref_kind())

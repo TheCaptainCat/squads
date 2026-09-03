@@ -188,6 +188,9 @@ class RosterMixin(ServiceCore):
                     f"{item.id} ({slug}) is not live — only a live role can be designated default"
                 )
 
+            # Resolved once for the whole pass (may clear several other roles below) rather
+            # than once per role touched.
+            default_kind = self.spec.default_ref_kind()
             cleared: list[str] = []
             for other in db.items.values():
                 if (
@@ -199,7 +202,9 @@ class RosterMixin(ServiceCore):
                     other.extra[X.IS_DEFAULT] = False
                     other.updated_at = clock.now()
                     other.modified_session, _ = actor.current_session()
-                    await update_frontmatter(item_file(self.paths, other), other, other_base)
+                    await update_frontmatter(
+                        item_file(self.paths, other), other, other_base, default_kind=default_kind
+                    )
                     cleared.append(other.id)
 
             was_default = item.extra.get(X.IS_DEFAULT, False)
@@ -209,7 +214,9 @@ class RosterMixin(ServiceCore):
                 item.extra[X.IS_DEFAULT] = True
                 item.updated_at = clock.now()
                 item.modified_session, _ = actor.current_session()
-                await update_frontmatter(item_file(self.paths, item), item, base)
+                await update_frontmatter(
+                    item_file(self.paths, item), item, base, default_kind=default_kind
+                )
             if changed:
                 self.store.log("default_role", item.id, {"cleared": cleared})
         if changed:

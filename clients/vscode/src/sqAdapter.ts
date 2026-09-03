@@ -154,6 +154,10 @@ function hasNullableGraphNodeFields(node: Record<string, unknown>): boolean {
     (typeof node.priority === 'string' || node.priority === null) &&
     (typeof node.assignee === 'string' || node.assignee === null) &&
     (typeof node.edge_kind === 'string' || node.edge_kind === null) &&
+    // Optional: an older `sq` predates the field and simply omits it — tolerated, not rejected.
+    (node.edge_semantic === undefined ||
+      typeof node.edge_semantic === 'string' ||
+      node.edge_semantic === null) &&
     (node.direction === 'in' || node.direction === 'out' || node.direction === null)
   );
 }

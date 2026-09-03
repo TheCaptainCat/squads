@@ -12,6 +12,7 @@ def _node(
     id: str = "X",
     type: str = "task",
     edge_kind: str | None = None,
+    edge_semantic: str | None = None,
     direction: str | None = None,
     seen: bool = False,
     children: list[GraphNode] | None = None,
@@ -23,6 +24,7 @@ def _node(
         priority=None,
         assignee=None,
         edge_kind=edge_kind,
+        edge_semantic=edge_semantic,
         direction=direction,
         seen=seen,
         badges={},
@@ -34,7 +36,14 @@ def test_graph_to_dot_produces_a_valid_digraph_with_a_depends_on_label() -> None
     root = _node(
         id="FEAT-000002",
         type="feature",
-        children=[_node(id="TASK-000003", edge_kind="depends-on", direction="out")],
+        children=[
+            _node(
+                id="TASK-000003",
+                edge_kind="depends-on",
+                edge_semantic="dependency",
+                direction="out",
+            )
+        ],
     )
     dot = graph_to_dot(root)
     assert dot.startswith("digraph {") and dot.endswith("}")
@@ -45,7 +54,15 @@ def test_graph_to_dot_produces_a_valid_digraph_with_a_depends_on_label() -> None
 def test_graph_to_dot_uses_required_by_for_an_inbound_dependency_edge() -> None:
     root = _node(
         id="TASK-000003",
-        children=[_node(id="FEAT-000002", type="feature", edge_kind="depends-on", direction="in")],
+        children=[
+            _node(
+                id="FEAT-000002",
+                type="feature",
+                edge_kind="depends-on",
+                edge_semantic="dependency",
+                direction="in",
+            )
+        ],
     )
     dot = graph_to_dot(root)
     assert '[label="required by"]' in dot

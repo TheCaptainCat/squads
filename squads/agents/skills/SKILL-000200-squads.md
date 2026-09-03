@@ -28,7 +28,10 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
   --status Done`); sub-entities nest:
   `sq <type> <n> <kind> <k> update --status <status>`. Create with `sq create <type>`.
 - The `.md` files are sq-managed: never hand-edit frontmatter or the `<!-- sq:* -->` markers, and
-  don't type prose directly into a file. Every region is written through a command.
+  don't type prose directly into a file. Every region is written through a command. They are not a
+  read surface either — read them through `sq <type> <n> show`, never by opening the file: the
+  command resolves state the file does not carry, so a direct read returns strictly less than the
+  command.
 - Set an **item's** body with `sq <type> <n> body -m "…"` (repeat `-m`, or `--file body.md` /
   `--file -`); `--desc` (on `create`/`update`) is just the short summary shown in lists.
 - Set a **sub-entity's** body with `sq <type> <n> <kind> <k> body -m "…"` (or `--file`); edit its
@@ -112,7 +115,8 @@ already tracked — not as a routine boot step.
 - Each role has skills for the item types it manages (e.g. `sq-epic`, `sq-feature`, `sq-task`, …) —
   open those for role-specific guidance. The default role triages and routes when no other agent
   claims the work.
-- The `.md` files are sq-managed — never hand-edit them. Set an item's body with
+- The `.md` files are sq-managed — never hand-edit them, and read them through
+  `sq <type> <n> show`, never by opening the file. Set an item's body with
   `sq <type> <n> body -m "…"` (or `--file`); a sub-entity's with `sq <type> <n> <kind> <k> body -m
   "…"`; read back with `sq <type> <n> show --full --comments` (full dossier). Hand off with `sq <type> <n> comment --as <slug> -m "…"`
   (repeat `-m` for separate bullets; use `@role`).
@@ -204,22 +208,22 @@ normal; the reflog records a reconstructable removal line that explains each gap
 
 ## Ref kinds
 
-The vocabulary is closed — exactly nine kinds, no custom extensions in 1.0. Use `sq <type> <n> ref add <id> --kind <kind>`.
+Ref kinds are declared vocabulary. The bundled set is the default; a project may declare its own, and may rename or drop a built-in it does not use — refused while live refs still carry it. A kind the merged spec does not declare is rejected. Engine behaviour binds to a kind's declared semantic role, never to its name: a renamed dependency kind keeps driving `sq blocked`, and a kind with no semantic is navigational. Use `sq <type> <n> ref add <id> --kind <kind>`; the table below is what this squad declares.
 
-| Kind | Meaning | Direction convention | Consumer |
-|---|---|---|---|
-| `related` | Generic cross-reference (default) | `A related B` lives on A | Navigation |
-| `blocks` | A is blocking B; B cannot proceed while A is open | `A blocks B` lives on **A** (the blocker) | `sq blocked` |
-| `depends-on` | A depends on B; A cannot proceed while B is open. Equivalent to `B blocks A` — `A depends-on B` ≡ `B blocks A` | `A depends-on B` lives on **A** (the dependent) | `sq blocked` |
-| `implements` | A implements the requirement or spec described by B | `A implements B` lives on A | Navigation |
-| `fixes` | A (the resolving work) fixes the problem tracked by B | `A fixes B` lives on A | `sq check` ref-rule warnings |
-| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `A addresses B` lives on A | `sq check` ref-rule warnings |
-| `supersedes` | A (a newer decision) supersedes B (an older one); B's status should be Superseded | `A supersedes B` lives on **A** (the newer decision) | `sq check` decision warnings |
-| `duplicates` | A (a later filing) duplicates B (the original); A is usually closed as Cancelled | `A duplicates B` lives on **A** (the later filing) | Navigation |
-| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | `A scopes B` lives on **A** (the skill) | Preload resolver, retirement gate |
+| Kind | Meaning | Consumer |
+|---|---|---|
+| `related` | Generic cross-reference (default) | Navigation |
+| `blocks` | A is blocking B; B cannot proceed while A is open | `sq blocked` |
+| `depends-on` | A depends on B; A cannot proceed while B is open | `sq blocked` |
+| `implements` | A implements the requirement or spec described by B | Navigation |
+| `fixes` | A (the resolving work) fixes the problem tracked by B | `sq check` ref-rule warnings |
+| `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `sq check` ref-rule warnings |
+| `supersedes` | A (a newer decision) supersedes B (an older one) | `sq check` supersession rule |
+| `duplicates` | A (a later filing) duplicates B (the original) | Navigation |
+| `scopes` | A (a skill) is scoped to role B; B's generated pointer preloads A | Preload resolver, retirement gate |
+| `targets` | A targets B — a navigational membership edge with no engine binding; its meaning is whatever reads it | Navigation |
 
-`blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context. Bare `ref add <id>` (no `--kind`) defaults to `related`.
-
+Every edge is stored on the item you add it to — `A <kind> B` lives on A. `blocks` and `depends-on` are two spellings of the same dependency: use whichever fits your authoring context, and both feed `sq blocked`. `sq check` reads `supersedes` on the newer record and expects the older one at Superseded. Bare `ref add <id>` (no `--kind`) resolves to whichever kind declares the default semantic — `related` here — and that edge is stored without its kind, so renaming the default relabels those edges instead of re-pointing them.
 ## Common commands
 
 ```bash

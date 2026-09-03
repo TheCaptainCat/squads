@@ -22,13 +22,16 @@ trying to be.
 
 import pytest
 
+from squads import __version__
+
 pytestmark = pytest.mark.anyio
 
 
-def _place_role_toml(project, slug: str, content: str) -> None:
+def _place_role_toml(project, slug: str, content: str, *, stamped: bool = False) -> None:
     target = project.squad_dir / ".overrides" / "roles" / f"{slug}.toml"
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
+    stamp = f"# squads:override-base:{__version__}\n" if stamped else ""
+    target.write_text(f"{stamp}{content}", encoding="utf-8")
 
 
 async def test_an_activated_non_dev_dev_suffixed_role_still_enforces_required_fields(
@@ -67,8 +70,11 @@ async def test_a_dev_shaped_slug_with_no_roster_entry_still_previews_leniently_b
     there is no stored fact to gate on, and the naming convention's lenient preview (documented
     in docs/overrides.md) is exactly what both `sq check` and `sq role <slug> show`
     are supposed to do here -- accept a partial file rather than demand every ``RoleDef``
-    field a wholly-unrelated new role would need."""
-    _place_role_toml(project, "rust-dev", 'title = "Senior Rust developer"\n')
+    field a wholly-unrelated new role would need. Stamped: this fixture is not about the
+    provenance obligation (a `<tech>-dev` override shadows the generated dev base, so an
+    unstamped one is now an error under the uniform severity contract), only about field
+    leniency."""
+    _place_role_toml(project, "rust-dev", 'title = "Senior Rust developer"\n', stamped=True)
 
     checked = await invoke(["check"])
     shown = await invoke(["role", "rust-dev", "show"])

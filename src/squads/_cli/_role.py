@@ -16,6 +16,7 @@ Address resolution order (exact match, no fuzzy):
 # pyright: reportUnusedFunction=false
 
 import json
+from pathlib import Path
 from typing import ClassVar
 
 import typer
@@ -35,14 +36,21 @@ from squads._cli._common import (
     render_body_text,
     resolve_agent_addr,
 )
+from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._interactions import allowed_create_types, is_dev_slug
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
+from squads._paths import resolve as resolve_squad_paths
 from squads._roles._catalog import PREDEFINED, RoleDef
+from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
 from squads._services._service import Service
 from squads._workflow import ROSTER_ROLE
+
+#: The bundled catalog's own slugs — used by ``sq role catalog`` to tell a project-declared or
+#: project-overridden entry apart from an as-shipped bundled one (see :func:`role_catalog`).
+_BUNDLED_SLUGS: frozenset[str] = frozenset(r.slug for r in PREDEFINED)
 
 
 class _RoleDispatchGroup(AddressDispatchGroup):
@@ -65,10 +73,37 @@ role_app = typer.Typer(
 # --------------------------------------------------------------------------- catalog
 
 
+def _catalog_squad_dir() -> Path | None:
+    """The active squad directory for ``sq role catalog``, or ``None`` outside a squad.
+
+    This command has never required an initialized squad — the bundled catalog alone was
+    always a valid answer to "what could I activate". Outside a squad there is no
+    ``.overrides/roles.toml`` to read, so the bundled catalog stays the honest answer; inside
+    one, resolving it lets the listing merge in a project's own catalog-document declarations.
+    Mirrors ``_cli._common.version_notice``'s own not-a-squad handling (resolve, treat
+    ``SquadsError`` as "no squad" rather than a failure).
+    """
+    ctx = get_context()
+    try:
+        return resolve_squad_paths(ctx.active_dir, client_cwd=ctx.client_cwd).squad_dir
+    except SquadsError:
+        return None
+
+
 @role_app.command("catalog")
 @handle_errors
 def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
-    """Show the bundled role catalog (slug, name, title, default indicator)."""
+    """Show the role catalog (slug, name, title, default indicator) for the active squad.
+
+    This is the bundled catalog merged with a project's own ``.overrides/roles.toml``
+    declarations (if any): a role the document declares that isn't in the bundled catalog
+    appears here, and a bundled role the document overrides shows the project's values. The
+    ``Origin``/``origin`` column tells a project-declared or project-overridden entry apart
+    from an as-shipped bundled one. Outside a squad, or with no such document, this is exactly
+    the bundled catalog.
+    """
+    squad_dir = _catalog_squad_dir()
+    roles = load_role_catalog(squad_dir).roles
     if json_out:
         print_json_clean(
             json.dumps(
@@ -78,17 +113,24 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
                         "full_name": r.full_name,
                         "title": r.title,
                         "is_default": r.is_default,
+                        "origin": "bundled" if r.slug in _BUNDLED_SLUGS else "project",
                     }
-                    for r in PREDEFINED
+                    for r in roles
                 ]
             )
         )
         return
     table = Table(box=None, pad_edge=False)
-    for col in ("Slug", "Name", "Title", "Default"):
+    for col in ("Slug", "Name", "Title", "Default", "Origin"):
         table.add_column(col)
-    for r in PREDEFINED:
-        table.add_row(r.slug, r.full_name, r.title, "✓" if r.is_default else "")
+    for r in roles:
+        table.add_row(
+            e(r.slug),
+            e(r.full_name),
+            e(r.title),
+            "✓" if r.is_default else "",
+            "bundled" if r.slug in _BUNDLED_SLUGS else "project",
+        )
     console.print(table)
     console.print(
         "\n[dim]Need a wholly custom non-dev role (not in this catalog)? "
@@ -209,15 +251,18 @@ def _require_id(ctx: typer.Context) -> str:
     return item_id
 
 
-def _role_base_for_show(slug: str, it: Item | None) -> RoleDef | None:
+def _role_base_for_show(
+    slug: str, it: Item | None, squad_dir: Path | None = None
+) -> RoleDef | None:
     """The merge base for ``show``: an item in hand's own operator-settable fields
     (:func:`role_base_from_item` — a bundled role's ``full_name``, a developer role's
-    tech/name/model) first, the ``-dev`` naming convention's generated preview only when there
+    tech/name/model, plus this squad's own catalog-document override merged into a bundled
+    role's base) first, the ``-dev`` naming convention's generated preview only when there
     is no item to ask.
     """
     if it is not None:
-        return role_base_from_item(it)
-    return dev_base_for_slug(slug) if is_dev_slug(slug) else None
+        return role_base_from_item(it, squad_dir)
+    return dev_base_for_slug(slug, squad_dir) if is_dev_slug(slug) else None
 
 
 def _dev_preview_full_name(r: RoleDef, base_role: RoleDef | None, it: Item | None) -> str | None:
@@ -315,7 +360,7 @@ async def show_role(
     # (`role_base_from_item`); an unactivated developer slug falls back to the generated pool
     # name. Every other unactivated slug keeps `resolve_role`'s ordinary bundled/new-slug base
     # (``None`` here).
-    base_role = _role_base_for_show(slug, it)
+    base_role = _role_base_for_show(slug, it, svc.paths.squad_dir)
 
     if json_out:
         data = _role_json_payload(svc, slug, item_id, it, base_role, addr)

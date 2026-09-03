@@ -20,7 +20,6 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from squads import _clock as clock
-from squads._models._item import DEFAULT_KIND
 from squads._services._results import ImportIssue
 
 
@@ -86,7 +85,9 @@ class RefEvent(_EventBase):
     op: Literal["ref"] = "ref"
     target: str
     to: str
-    kind: str = DEFAULT_KIND
+    #: ``""`` (unspelled) resolves to the active spec's declared default kind — the same
+    #: sentinel ``RefsMixin.add_ref``/``_add_ref_model`` resolve.
+    kind: str = ""
 
 
 class AddSubEvent(_EventBase):

@@ -153,14 +153,15 @@ async def test_check_reports_precisely_when_ensure_no_skew_would_raise(svc):
         _with(title="a different title"),
         _with(status="InProgress", priority="high"),
     ]
+    default_kind = svc.spec.default_ref_kind()
     for case_text in cases:
         try:
-            itemfile.ensure_no_skew(case_text, task)
+            itemfile.ensure_no_skew(case_text, task, default_kind=default_kind)
             raised = False
         except SquadsError:
             raised = True
         fdata = read_frontmatter(text=case_text)
-        issue = maintenance._value_skew_issue(task, case_text, fdata)
+        issue = maintenance._value_skew_issue(task, case_text, fdata, default_kind=default_kind)
         assert (issue is not None) == raised, (case_text, issue, raised)
 
 

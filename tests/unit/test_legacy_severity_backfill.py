@@ -22,7 +22,7 @@ def test_from_frontmatter_backfills_legacy_extra_severity_onto_the_top_level_fie
         "created_at": _NOW,
         "updated_at": _NOW,
     }
-    it = Item.from_frontmatter(data, path="bugs/b.md")
+    it = Item.from_frontmatter(data, path="bugs/b.md", default_kind="related")
     assert it.severity == "critical"
     assert "severity" not in it.extra
 
@@ -39,5 +39,5 @@ def test_a_top_level_severity_wins_over_the_legacy_extra_copy():
         "created_at": _NOW,
         "updated_at": _NOW,
     }
-    it = Item.from_frontmatter(data, path="bugs/b.md")
+    it = Item.from_frontmatter(data, path="bugs/b.md", default_kind="related")
     assert it.severity == "low"

@@ -277,7 +277,7 @@ code. `CONTRIBUTING.md` has the rest, with the reasoning.
 **Setup**
 - `sq init [--squad-dir squads] [--backend claude_code] [--roles all|core|minimal|<slugs>] [--name slug=Full Name] [--default-names] [--no-claude] [--force]` — `--backend` is repeatable
 - `sq adopt [--squad-dir squads] [--backend] [--roles] [--no-claude]` — bring an *existing* project under sq management (non-destructive; imports existing items). See [docs/adoption.md](docs/adoption.md).
-- `sq workflow [show|types|collections|statuses|lint]` — print the team-workflow cheatsheet (`show`), list types / badge collections / statuses in the spec, or validate workflow overrides
+- `sq workflow [show|types|subentity-kinds|lifecycles|collections|statuses|roles|ref-kinds|lint]` — print the team-workflow cheatsheet (`show`), list one declared vocabulary section of the active spec, or validate workflow overrides
 - `sq sync` — regenerate tool-owned managed files to the current version
 - `sq override scaffold|list|diff|update` — author project-level template/role/workflow overrides and reconcile them across upgrades. See [docs/overrides.md](docs/overrides.md).
 - `sq migrate up|help|chlog|rename-type|rename-status|repad` — bring a squad to the current schema, read the migration changelog, bulk-rename a type or status, or widen the ID padding. See [docs/migration.md](docs/migration.md).
@@ -301,7 +301,7 @@ works exactly like the canonical spelling.
 
 **Find & focus**
 - `sq search TEXT [--type] [--status] [--json]` — match item titles, summaries, and bodies/discussion
-- `sq blocked [--json]` — open items blocked by other open items (via the `blocks` / `depends-on` ref kinds)
+- `sq blocked [--json]` — open items blocked by other open items (via the dependency ref kinds — `blocks` / `depends-on` by default)
 - `sq mine <role> [--all] [--json]` — a role's open work: items assigned to it, **plus** items where one of its sub-entities (a story, subtask or finding) is assigned to it. The matched sub-entities are named in a `Matched` column and a `matched_subentities` key. Open/closed is judged per match, so a closed item still appears while your own sub-entity on it is open
 - `sq workload [--json]` — open/closed/total counts per assignee, with each assignee's sub-entity assignment counts as their own columns beside the item counts (never folded in)
 - `sq inbox <role> [--json]` — open items mentioning `@role`, naming the region each mention was found in (e.g. `story:US1:discussion#1`) so a mention inside a sub-entity's discussion is reachable
@@ -317,7 +317,7 @@ works exactly like the canonical spelling.
 discussion — all written through commands.
 
 **Cross-linking**
-- `sq <type> <n> ref add TARGET [--kind related|blocks|depends-on|implements|fixes|addresses|supersedes|duplicates|scopes]` · `sq <type> <n> ref rm TARGET` — nine kinds. `blocks` and `depends-on` are the two spellings of one dependency edge (which end holds it differs; both feed `sq blocked`), and `supersedes` is what `sq check` looks for on a superseded record
+- `sq <type> <n> ref add TARGET [--kind KIND]` · `sq <type> <n> ref rm TARGET` — `--kind` takes any kind the active workflow spec declares (`sq workflow ref-kinds` lists them; omit it for the declared default). The two dependency kinds are the two spellings of one edge (which end holds it differs; both feed `sq blocked`), and the supersession kind is what `sq check` looks for on a superseded record
 - `sq <type> <n> refs [--out|--in|--all] [--json]` (forward edges stored; backrefs computed)
 - `sq graph <ID> [--depth N] [--kind K] [--direction out|in|both] [--all] [--format dot|mermaid] [--json]` — the ref neighbourhood around one item
 

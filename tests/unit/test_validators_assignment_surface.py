@@ -29,6 +29,7 @@ def _spec_dict(base: WorkflowSpec, items: dict[str, ItemSpec]) -> dict[str, obje
         "collections": dict(base.collections),
         "subentity_kinds": dict(base.subentity_kinds),
         "roles": dict(base.roles),
+        "ref_kinds": dict(base.ref_kinds),
     }
 
 

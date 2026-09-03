@@ -81,6 +81,7 @@ def test_live_initial_falls_back_to_the_sole_live_status_when_initial_is_nonlive
             "collections": dict(base.collections),
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
+            "ref_kinds": dict(base.ref_kinds),
         }
     )
     assert spec.initial_status("role") == "Provisioning"
@@ -127,6 +128,7 @@ def test_live_initial_prefers_the_lifecycle_initial_over_a_second_live_status() 
             "collections": dict(base.collections),
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
+            "ref_kinds": dict(base.ref_kinds),
         }
     )
     assert spec.live_statuses("role") == {"Online", "AlsoOnline"}

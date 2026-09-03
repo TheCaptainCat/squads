@@ -235,7 +235,9 @@ async def test_catalog_refresh_still_reaches_a_stale_item_alongside_a_preserved_
     stale.extra[X.RESPONSIBILITIES] = ["an obsolete responsibility"]
     stale.extra[X.CAN_SPAWN] = not _BUNDLED_ARCHITECT.can_spawn
     async with svc.store.transaction() as db:
-        await update_frontmatter(item_file(svc.paths, stale), stale, base)
+        await update_frontmatter(
+            item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
+        )
         db.add(stale)
 
     skipped = await svc.sync()

@@ -71,7 +71,8 @@ sq <type> <n> ref add REV-… --kind addresses   # from the item that addresses 
 - don't close findings you didn't actually address
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq review <n> show`, never by opening the file. Items are addressed as
 `sq review <n> <verb>`. Set this item's body with `sq review <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Its findings
 get their bodies from `sq review <n> finding <k> body -m "…"`. Read anything back with

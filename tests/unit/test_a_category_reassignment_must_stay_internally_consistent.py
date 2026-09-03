@@ -99,12 +99,12 @@ _INCONSISTENT: list[tuple[str, dict[str, dict[str, object]], str]] = [
     (
         "decision_to_work_keeps_its_supersedes_rule",
         {"decision": {"category": "work"}},
-        "'supersedes' ref rule",
+        "'supersession'-role ref rule",
     ),
     (
         "records_type_given_a_supersedes_rule_under_work",
         {"bug": {"ref_rules": [{"kind": "supersedes", "hint": ""}]}},
-        "'supersedes' ref rule",
+        "'supersession'-role ref rule",
     ),
     # `subtask_story_mapping` is gated on the hosted KIND's maps_parent_story, so satisfying
     # the sub-entity clause by naming one check back does not cover it.

@@ -109,7 +109,10 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         }
     ),
     "src/squads/_overrides/_manifest.py": frozenset(
-        {"_manifest_cache"}  # lazily-loaded, immutable-once-populated package-data manifest
+        {
+            "_manifest_cache",  # lazily-loaded, immutable-once-populated package-data index
+            "_store_cache",  # lazily-loaded, immutable-once-populated package-data content store
+        }
     ),
     "src/squads/_models/_metadata.py": frozenset(
         {
@@ -134,9 +137,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "CATALOG",  # closed per-item validator catalog — definition-time, empty in Phase A
             "SQUAD_GLOBAL_CATALOG",  # closed squad-global validator registry, same status
         }
-    ),
-    "src/squads/_services/_retirement.py": frozenset(
-        {"CLAUSE_REF_KINDS"}  # fixed clause -> severable-ref-kind declaration, read by --unlink
     ),
     "src/squads/_tui/_tree.py": frozenset(
         {

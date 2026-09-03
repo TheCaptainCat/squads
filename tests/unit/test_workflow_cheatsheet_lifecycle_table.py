@@ -61,6 +61,7 @@ def _renamed_task_spec() -> WorkflowSpec:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
 
@@ -92,6 +93,7 @@ def test_a_custom_lifecycle_is_linearized_with_its_own_states() -> None:
             "collections": base.collections,
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
+            "ref_kinds": base.ref_kinds,
         }
     )
     section = _lifecycles_section(render("workflow.md.j2", spec=spec))

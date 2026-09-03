@@ -3,7 +3,7 @@ id: FEAT-792
 sequence_id: 792
 type: feature
 title: Pointers name commands, never a local path
-status: Draft
+status: Ready
 author: product-owner
 refs:
 - ADR-781:implements
@@ -25,7 +25,7 @@ subentities:
   title: Reword invariant 5 to state the containment rule
   status: Todo
 created_at: '2026-08-24T18:28:02Z'
-updated_at: '2026-08-24T18:29:12Z'
+updated_at: '2026-08-25T14:44:54Z'
 ---
 <!-- sq:body -->
 ## The problem

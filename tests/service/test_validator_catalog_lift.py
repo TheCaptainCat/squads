@@ -276,7 +276,9 @@ async def test_supersedes_incoming_is_silent_once_superseded(svc):
     await svc.add_ref(new_adr.id, old_adr.id, kind="supersedes")
     db = await svc.store.load()
     ctx = ValidatorContext(
-        item=db.get(old_adr.id), spec=svc.spec, supersedes_incoming=supersedes_incoming_seqs(db)
+        item=db.get(old_adr.id),
+        spec=svc.spec,
+        supersedes_incoming=supersedes_incoming_seqs(db, svc.spec),
     )
     assert CATALOG["supersedes_incoming"](ctx) == []
 
@@ -330,6 +332,6 @@ async def test_supersedes_incoming_seqs_reads_incoming_supersedes_edges(svc):
     new_adr = (await create_item(svc, "decision", "new decision")).item
     await svc.add_ref(new_adr.id, old_adr.id, kind="supersedes")
     db = await svc.store.load()
-    seqs = supersedes_incoming_seqs(db)
+    seqs = supersedes_incoming_seqs(db, svc.spec)
     assert old_adr.sequence_id in seqs
     assert new_adr.sequence_id not in seqs

@@ -71,7 +71,8 @@ sq guide <n> status Published
 - keep it project-agnostic; deprecate guides that go stale
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq guide <n> show`, never by opening the file. Items are addressed as
 `sq guide <n> <verb>`. Set this item's body with `sq guide <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Read anything back with `sq guide <n> show --full --comments` (full dossier, including discussion).
 

@@ -1,0 +1,165 @@
+"""The roles catalog document (``.overrides/roles.toml``) reaching a role that already has a
+live roster item — the gap between this document and a per-slug ``.overrides/roles/<slug>.toml``
+file: the per-slug layer always applied on the activated path, the catalog document did not,
+because ``role_base_from_item`` built its base from the bundled catalog alone.
+
+Driven through ``sq sync``'s catalog refresh (``_refresh_catalog_extra``) and ``sq check``'s
+role-override resolve (``_check_role_override_resolves``, via ``check_override_issues``/
+``svc.check()``) — the two production callers in this file's own territory. ``sq role <slug>
+show`` is exercised at the CLI layer (see
+``tests/unit/test_role_base_from_item_dispatches_by_role_kind.py`` for the pure-function proof).
+
+The ``sq check`` proof below needs a value the *document* can set that slips past
+``load_role_catalog``'s own catalog-wide validation (which would otherwise refuse it at
+document-load time, before activation is even relevant) but that the per-slug merge's
+post-merge blank-string refusal still catches — a blank ``color`` is exactly that gap, and
+the same technique the pre-existing
+``tests/integration/test_blank_role_override_field_breaks_no_generated_surface.py`` already
+uses for the per-slug-only case.
+"""
+
+from pathlib import Path
+
+import pytest
+
+from squads import __version__
+from squads._models._extras import ExtraKey as X
+from squads._roles._catalog import PREDEFINED
+
+pytestmark = pytest.mark.anyio
+
+_BUNDLED_ARCHITECT = next(r for r in PREDEFINED if r.slug == "architect")
+
+
+def _write_catalog_document(squad_dir: Path, content: str) -> None:
+    """Stamped, so ``sq check``'s shadowing-unstamped-is-an-error rule doesn't fire — the
+    stamp obligation is a different task's concern; this file is about the merge reaching an
+    activated role."""
+    (squad_dir / ".overrides").mkdir(parents=True, exist_ok=True)
+    (squad_dir / ".overrides" / "roles.toml").write_text(
+        f"# squads:override-base:{__version__}\n{content}", encoding="utf-8"
+    )
+
+
+def _write_slug_override(squad_dir: Path, slug: str, content: str) -> None:
+    target = squad_dir / ".overrides" / "roles" / f"{slug}.toml"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+
+
+async def test_a_catalog_document_field_reaches_an_already_activated_role_via_sync(project, svc):
+    """Before this task: the same override applied to a not-yet-activated slug and silently
+    stopped applying the moment the slug was activated — exactly the shape that reads as a
+    bug. Proven here on the *activated* side."""
+    role = await svc.activate_role("architect")
+    _write_catalog_document(
+        project.squad_dir, '[[roles]]\nslug = "architect"\ntitle = "Chief Architect"\n'
+    )
+
+    skipped = await svc.sync()
+    assert not skipped
+
+    reloaded = await svc.get(role.id)
+    assert reloaded.extra[X.TITLE] == "Chief Architect"
+    assert reloaded.extra[X.MISSION] == _BUNDLED_ARCHITECT.mission  # untouched field, unaffected
+
+
+async def test_a_squad_with_no_catalog_document_syncs_exactly_as_before(project, svc):
+    role = await svc.activate_role("architect")
+    skipped = await svc.sync()
+    assert not skipped
+    reloaded = await svc.get(role.id)
+    assert reloaded.extra[X.TITLE] == _BUNDLED_ARCHITECT.title
+
+
+async def test_precedence_bundled_then_catalog_document_then_per_slug_file(project, svc):
+    """All three layers naming the same role: the catalog document's title reaches the
+    activated item, and the per-slug file's model still wins over it, per the stated
+    precedence order — bundled -> catalog document -> per-slug file."""
+    role = await svc.activate_role("architect")
+    _write_catalog_document(
+        project.squad_dir, '[[roles]]\nslug = "architect"\ntitle = "Chief Architect"\n'
+    )
+    _write_slug_override(project.squad_dir, "architect", 'model = "haiku"\n')
+
+    await svc.sync()
+
+    reloaded = await svc.get(role.id)
+    assert reloaded.extra[X.TITLE] == "Chief Architect"  # catalog document, over bundled
+    assert reloaded.extra[X.MODEL] == "haiku"  # per-slug file, over the catalog document
+
+
+async def test_sq_check_stays_clean_with_the_catalog_document_reaching_an_activated_role(
+    project, svc
+):
+    await svc.activate_role("architect")
+    _write_catalog_document(
+        project.squad_dir, '[[roles]]\nslug = "architect"\ntitle = "Chief Architect"\n'
+    )
+
+    await svc.sync()
+
+    assert not await svc.check()
+
+
+async def test_sq_check_role_override_resolve_now_reads_the_catalog_document(project, svc):
+    """The gap this closes: ``_check_role_override_resolves`` built its base from
+    ``role_base_from_item(item)`` with no ``squad_dir``, so a per-slug override's merge base
+    was always bundled-only even with a catalog document present. A blank ``color`` in the
+    document passes ``load_role_catalog``'s own validation (it isn't a required field there)
+    but fails the per-slug merge's post-merge blank-string refusal — so this only surfaces
+    once the check's base actually incorporates the document."""
+    await svc.activate_role("architect")
+    _write_catalog_document(project.squad_dir, '[[roles]]\nslug = "architect"\ncolor = ""\n')
+    _write_slug_override(
+        project.squad_dir,
+        "architect",
+        f'# squads:override-base:{__version__}\ntitle = "Chief Architect (per-slug)"\n',
+    )
+
+    issues = await svc.check()
+
+    matching = [i for i in issues if "architect.toml" in i.item]
+    assert len(matching) == 1, issues
+    assert matching[0].level == "error"
+    assert "color" in matching[0].message
+    assert "blank or whitespace-only" in matching[0].message
+
+
+async def test_sq_check_stays_clean_for_the_same_per_slug_file_with_no_document(project, svc):
+    """Isolates the cause: remove the document (keep the same per-slug file) and the error
+    disappears — proving the document's blank ``color`` is what produced it, not the per-slug
+    file alone."""
+    await svc.activate_role("architect")
+    _write_slug_override(
+        project.squad_dir,
+        "architect",
+        f'# squads:override-base:{__version__}\ntitle = "Chief Architect (per-slug)"\n',
+    )
+
+    assert not await svc.check()
+
+
+async def test_sq_check_stays_clean_for_a_valid_document_field_reaching_the_same_role(project, svc):
+    """The positive case: a *valid* document field change plus a per-slug file overriding a
+    different field resolves cleanly through the same check call site (no false positive from
+    threading squad_dir in), and the sync path (already proven above) confirms both values
+    actually land on the activated item."""
+    role = await svc.activate_role("architect")
+    _write_catalog_document(
+        project.squad_dir,
+        '[[roles]]\nslug = "architect"\nmission = "Own the whole system\'s shape and its '
+        'security posture."\n',
+    )
+    _write_slug_override(
+        project.squad_dir,
+        "architect",
+        f'# squads:override-base:{__version__}\ntitle = "Chief Architect (per-slug)"\n',
+    )
+
+    assert not await svc.check()
+
+    await svc.sync()
+    reloaded = await svc.get(role.id)
+    assert reloaded.extra[X.MISSION] == "Own the whole system's shape and its security posture."
+    assert reloaded.extra[X.TITLE] == "Chief Architect (per-slug)"

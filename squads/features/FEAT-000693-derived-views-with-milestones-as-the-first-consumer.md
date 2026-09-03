@@ -21,7 +21,7 @@ subentities:
   title: Milestone roll-up as the first declared view
   status: Todo
 created_at: '2026-07-29T13:52:43Z'
-updated_at: '2026-08-24T20:15:56Z'
+updated_at: '2026-08-26T08:22:18Z'
 ---
 <!-- sq:body -->
 ## The problem
@@ -281,4 +281,6 @@ ever materializes the roll-up — it is rendered fresh from the current corpus o
   - Scoped into 0.14, and coupled to FEAT-321: the MILE and PRD types share one schema bump and one migration runner, so the two features land in the same release.
 - [2026-08-24T20:15:56Z] Pierre Chat:
   - Adopter-authored presentation templates stay IN scope, as reauthored: the override surface already ships, so the marginal cost is near zero and shipping views bundled-only would shortchange adopters.
+- [2026-08-26T08:22:18Z] Pierre Chat:
+  - 0.14 keeps the type work: milestones, contracts and the region retirement all stay in this release rather than moving to 0.15, so the shared migration runner and the single schema bump stand as ruled.
 <!-- sq:discussion:end -->

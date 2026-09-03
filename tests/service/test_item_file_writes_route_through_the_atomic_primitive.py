@@ -53,7 +53,7 @@ async def test_update_frontmatter_uses_the_atomic_primitive(svc, monkeypatch):
     base = item.model_copy(deep=True)
     calls = _install_spy(monkeypatch)
 
-    await itemfile.update_frontmatter(path, item, base)
+    await itemfile.update_frontmatter(path, item, base, default_kind=svc.spec.default_ref_kind())
 
     assert len(calls) == 1
     assert calls[0][0] == path

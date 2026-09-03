@@ -1,9 +1,10 @@
 """Schema 0.5 → 0.7 runner: unpad every human-facing ID.
 
-Display padding is fixed at 0 (:data:`squads._models._item.DISPLAY_ID_PADDING`) — every
-human-facing surface (frontmatter ``id:``, ``refs:``, ``parent:``, and ID mentions in body
-prose) should read ``PREFIX-nnn`` rather than ``PREFIX-000nnn``. Filenames are unaffected:
-they stay padded at the squad's stored (filename) width and are never renamed by this runner.
+Display padding is fixed at 0 (:data:`_DISPLAY_ID_PADDING`, this runner's own frozen copy —
+see its definition below) — every human-facing surface (frontmatter ``id:``, ``refs:``,
+``parent:``, and ID mentions in body prose) should read ``PREFIX-nnn`` rather than
+``PREFIX-000nnn``. Filenames are unaffected: they stay padded at the squad's stored (filename)
+width and are never renamed by this runner.
 
 Two passes over the corpus:
 
@@ -45,14 +46,43 @@ import re
 from pathlib import Path
 from typing import Any, cast
 
-from squads._models._item import (
-    DISPLAY_ID_PADDING,
-    format_item_id,
-    make_ref,
-    split_ref,
-)
 from squads._paths import SquadPaths
 from squads._sections import join_frontmatter, split_frontmatter
+
+#: Frozen: the declared-default ref kind at schema 0.5/0.7, the same literal the 0.1-to-0.2
+#: runner freezes as ``_DEFAULT_KIND``. NEVER re-derive this from
+#: ``WorkflowSpec.default_ref_kind()`` — a migration is a point-in-time snapshot of the schema
+#: version it transforms, and the active spec's declared default can be renamed or re-declared
+#: by a project this runner has no business knowing about.
+_DEFAULT_KIND = "related"
+
+#: Frozen: the display padding width at schema 0.5/0.7, matching
+#: ``squads._models._item.DISPLAY_ID_PADDING``'s value at the time this runner was written.
+#: NEVER import the live constant — see
+#: ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py`` for why a live
+#: value, not only a live function, can move a frozen runner's on-disk output.
+_DISPLAY_ID_PADDING = 0
+
+
+def _split_ref(ref: str) -> tuple[str, str]:
+    """Frozen, private copy of ``squads._models._item.split_ref``: ``"ID"`` -> ``(ID, "")``,
+    ``"ID:kind"`` -> ``(ID, kind)``. Never imported live — see the module docstring."""
+    rid, _, kind = ref.partition(":")
+    return rid, kind
+
+
+def _make_ref(item_id: str, kind: str) -> str:
+    """Frozen, private copy of the pre-0.14 ``squads._models._item.make_ref`` collapse
+    behaviour: an edge whose kind is unspelled or resolves to :data:`_DEFAULT_KIND` is written
+    bare; any other kind is spelled out. Never imported live — see the module docstring."""
+    return item_id if kind in ("", _DEFAULT_KIND) else f"{item_id}:{kind}"
+
+
+def _format_item_id(prefix: str, sequence_id: int) -> str:
+    """Frozen, private copy of ``squads._models._item.format_item_id`` at this runner's own
+    frozen :data:`_DISPLAY_ID_PADDING`. Never imported live — see the module docstring."""
+    return f"{prefix}-{sequence_id:0{_DISPLAY_ID_PADDING}d}"
+
 
 #: Fenced code blocks (```…```, DOTALL so they can span lines) or inline code spans (`…`,
 #: single line). Tried in this order so a fenced block is not mistaken for two inline spans.
@@ -119,13 +149,14 @@ def _unpad_ref(ref: str) -> str:
 
     Refs are width-tolerant identity strings (mirrors ``ref_id_matches``): the trailing digit
     run already carries the sequence number, so no cross-file lookup is needed — just reparse
-    and reformat at :data:`DISPLAY_ID_PADDING`.
+    and reformat at :data:`_DISPLAY_ID_PADDING`. A spelled :data:`_DEFAULT_KIND` collapses back
+    to bare, matching the encoding this schema version's corpus already holds.
     """
-    rid, kind = split_ref(ref)
+    rid, kind = _split_ref(ref)
     prefix, _, digits = rid.rpartition("-")
     if not (prefix and digits.isdigit()):
         return ref  # malformed — leave untouched rather than guess
-    return make_ref(format_item_id(prefix, int(digits), DISPLAY_ID_PADDING), kind)
+    return _make_ref(_format_item_id(prefix, int(digits)), kind)
 
 
 #: A padded id immediately followed by a filename tail (``-slug.md``) is the stem of an
@@ -187,7 +218,7 @@ def migrate(paths: SquadPaths) -> int:
         seq = fm.get("sequence_id")
         if not old_id or seq is None:
             continue
-        new_id = format_item_id(prefix, int(seq), DISPLAY_ID_PADDING)
+        new_id = _format_item_id(prefix, int(seq))
         if new_id != old_id:
             id_map[str(old_id)] = new_id
 
@@ -199,7 +230,7 @@ def migrate(paths: SquadPaths) -> int:
         if "id" not in fm or "sequence_id" not in fm:
             continue  # unstamped file — nothing to unpad
 
-        fm["id"] = format_item_id(prefix, int(fm["sequence_id"]), DISPLAY_ID_PADDING)
+        fm["id"] = _format_item_id(prefix, int(fm["sequence_id"]))
         if fm.get("parent"):
             fm["parent"] = _unpad_ref(str(fm["parent"]))
         if fm.get("refs"):

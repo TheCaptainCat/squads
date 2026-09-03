@@ -56,8 +56,20 @@ _FULL_TEXT_ROOTS: tuple[str, ...] = ("src", "docs")
 
 #: Designated illustrative walkthroughs under docs/ — self-consistent fictional examples that
 #: legitimately cite item-shaped ids by design (mirrors the pre-rebuild scan's own allowlist).
+#:
+#: The override provenance content store is here for a different reason: it is a byte-for-byte
+#: archive of every past bundled template/spec-document revision the manifest retains — data,
+#: not authored prose, the same way `.git`'s own blob history is never scanned by this gate. An
+#: old, already-shipped template revision's illustrative walkthrough text legitimately predates
+#: this hygiene rule; scrubbing it would corrupt the very byte-for-byte content the store's hash
+#: promises to resolve to.
 _ALLOWED_DOC_FILES: frozenset[str] = frozenset(
-    {"docs/tutorial.md", "docs/recipes.md", "docs/adoption.md"}
+    {
+        "docs/tutorial.md",
+        "docs/recipes.md",
+        "docs/adoption.md",
+        "src/squads/_rendering/content_store.json",
+    }
 )
 
 #: Identifier/docstring-only scan — the whole tree is a test *data* generator (rendered ids,

@@ -47,13 +47,20 @@ scope
 _TIMESTAMP_FIELDS = ["created_at", "updated_at"]
 
 
+_DEFAULT_KIND = "related"
+
+
 def _base() -> tuple[Item, dict[str, Any], str]:
     data, body = split_frontmatter(_FILE)
-    return Item.from_frontmatter(data, path=_PATH), data, body
+    return Item.from_frontmatter(data, path=_PATH, default_kind=_DEFAULT_KIND), data, body
 
 
-def _skew(data: dict[str, Any], body: str, base: Item) -> list[str]:
-    return itemfile.frontmatter_skew(join_frontmatter(data, body), base)
+def _skew(data: dict[str, Any], body: str, base: Item) -> list[itemfile.SkewKey]:
+    return itemfile.frontmatter_skew(join_frontmatter(data, body), base, default_kind=_DEFAULT_KIND)
+
+
+def _skew_names(data: dict[str, Any], body: str, base: Item) -> list[str]:
+    return [k.name for k in _skew(data, body, base)]
 
 
 # --------------------------------------------------------------------------- absent / null
@@ -89,10 +96,10 @@ def test_the_verdict_is_stable_across_repeated_reads_of_the_same_file(field: str
     base, data, body = _base()
     data.pop(field)
     text = join_frontmatter(data, body)
-    verdicts: list[list[str]] = []
+    verdicts: list[list[itemfile.SkewKey]] = []
     for minute in (0, 5, 60):
         clock.set_now(datetime(2026, 6, 7, 10, minute % 60, 0, tzinfo=UTC))
-        verdicts.append(itemfile.frontmatter_skew(text, base))
+        verdicts.append(itemfile.frontmatter_skew(text, base, default_kind=_DEFAULT_KIND))
     assert verdicts == [[], [], []]
 
 
@@ -105,7 +112,7 @@ def test_a_timestamp_the_file_does_carry_is_still_compared(field: str) -> None:
     refused, which is the whole point of the skew guard."""
     base, data, body = _base()
     data[field] = "2030-05-05T05:05:05Z"
-    assert _skew(data, body, base) == [field]
+    assert _skew_names(data, body, base) == [field]
 
 
 @pytest.mark.parametrize("field", _TIMESTAMP_FIELDS)
@@ -136,7 +143,7 @@ def test_an_absent_timestamp_never_masks_a_real_skew_on_another_field() -> None:
     data.pop("created_at")
     data.pop("updated_at")
     data["title"] = "changed on disk"
-    assert _skew(data, body, base) == ["title"]
+    assert _skew_names(data, body, base) == ["title"]
 
 
 # --------------------------------------------------------------------------- injectable clock
@@ -150,5 +157,5 @@ def test_the_invented_placeholder_comes_from_the_injectable_clock(field: str) ->
     clock.set_now(forged)
     _base_item, data, _body = _base()
     data.pop(field)
-    loaded = Item.from_frontmatter(data, path=_PATH)
+    loaded = Item.from_frontmatter(data, path=_PATH, default_kind=_DEFAULT_KIND)
     assert getattr(loaded, field) == forged

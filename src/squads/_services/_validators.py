@@ -47,7 +47,7 @@ from squads._interactions._models import PlaybookSpec
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import VALID_REF_KINDS, Item, split_ref
+from squads._models._item import Item, split_ref
 from squads._paths import SquadPaths, number_for_id
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
@@ -238,11 +238,15 @@ def _dangling_ref(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_items``'s ref loop, unknown-kind half."""
+    """← ``_check_items``'s ref loop, unknown-kind half.
+
+    A bare/unspelled kind (``""``) is always valid by construction — it names whichever
+    declared entry carries ``role = "default"`` — so only a *spelled* kind is checked against
+    the merged spec's declared set."""
     issues: list[CheckIssue] = []
     for r in ctx.item.refs:
         rid, kind = split_ref(r)
-        if kind not in VALID_REF_KINDS:
+        if kind and kind not in ctx.spec.ref_kinds:
             issues.append(
                 CheckIssue("warn", ctx.item.id, f"unknown ref kind {kind!r} on edge → {rid}")
             )
@@ -428,10 +432,13 @@ def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_decisions``: a Superseded record with no incoming ``supersedes`` edge.
-    Only types that declare a ``supersedes`` ref rule are checked."""
+    """← ``_check_decisions``: a Superseded record with no incoming ``supersession``-semantic
+    edge. Only types that declare a ref rule naming a declared ``supersession`` kind are
+    checked — resolved through :meth:`WorkflowSpec.supersession_ref_kinds`, never a fixed
+    ``"supersedes"`` spelling."""
     item = ctx.item
-    if not any(rr.kind == "supersedes" for rr in ctx.spec.item_ref_rules(item.type)):
+    supersession_kinds = ctx.spec.supersession_ref_kinds()
+    if not any(rr.kind in supersession_kinds for rr in ctx.spec.item_ref_rules(item.type)):
         return []
     if (
         ctx.spec.status_role(item.status) == "superseded"
@@ -761,14 +768,17 @@ def registered_slugs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[str]:
     )
 
 
-def supersedes_incoming_seqs(index: SquadsDB) -> frozenset[int]:
-    """Sequence numbers of every item with an incoming ``supersedes`` edge — what
-    ``supersedes_incoming`` checks a Superseded record's own sequence number against."""
+def supersedes_incoming_seqs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[int]:
+    """Sequence numbers of every item with an incoming edge of a declared ``supersession``
+    kind — what ``supersedes_incoming`` checks a Superseded record's own sequence number
+    against. Resolved through :meth:`WorkflowSpec.supersession_ref_kinds` (zero or more
+    declared kinds), never a fixed ``"supersedes"`` spelling."""
+    kinds = spec.supersession_ref_kinds()
     seqs: set[int] = set()
     for it in index.items.values():
         for r in it.refs:
             rid, kind = split_ref(r)
-            if kind == "supersedes":
+            if kind in kinds:
                 seqs.add(number_for_id(rid))
     return frozenset(seqs)
 
@@ -843,7 +853,7 @@ class ValidatorEngine:
         for that item and stay silent, same as when the file could not be resolved.
         """
         registered = registered_slugs(index, self.spec)
-        supersedes = supersedes_incoming_seqs(index)
+        supersedes = supersedes_incoming_seqs(index, self.spec)
         bodies = bodies or {}
         issues: list[CheckIssue] = []
         for item in index.items.values():
@@ -877,7 +887,7 @@ class ValidatorEngine:
         warn-level, so its absence cannot change a gate decision.
         """
         registered = registered_slugs(index, self.spec)
-        supersedes = supersedes_incoming_seqs(index)
+        supersedes = supersedes_incoming_seqs(index, self.spec)
         issues = [
             i
             for i in self._run_per_item(

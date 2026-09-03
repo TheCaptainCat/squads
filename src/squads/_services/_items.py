@@ -66,11 +66,12 @@ class ItemsMixin(ServiceCore):
             )
         if self.spec.item_is_roster(item.type):
             await self._project_roster_transition(item)
-        # Post-commit partial resync for each severed scopes edge — mirrors unlink_role's own
+        # Post-commit partial resync for each severed preload edge — mirrors unlink_role's own
         # existing behaviour: the retiring item's own status/refs are already committed above,
         # this only refreshes the previously-scoped role's re-derivable cache + generated entry.
+        preload_kind = self.spec.preload_ref_kind()
         for sev in severed:
-            if sev.kind == "scopes":
+            if sev.kind == preload_kind:
                 role = await self.get(sev.target)
                 await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
         return RosterStatusResult(item=item, severed=severed, warnings=warnings)
@@ -152,7 +153,9 @@ class ItemsMixin(ServiceCore):
         item, old_status, base, severed, warnings = self._set_status_model(
             db, item_id, status, force=force, unlink=unlink
         )
-        await update_frontmatter(item_file(self.paths, item), item, base)
+        await update_frontmatter(
+            item_file(self.paths, item), item, base, default_kind=self.spec.default_ref_kind()
+        )
         for sev in severed:
             self.store.log("ref", item.id, {"remove": sev.target, "kind": sev.kind})
         self.store.log(
@@ -347,6 +350,7 @@ class ItemsMixin(ServiceCore):
             set_extra=set_extra,
             unset_extra=unset_extra,
         )
+        default_kind = self.spec.default_ref_kind()
         if rename_paths is not None:
             old_path, new_path = rename_paths
             if old_path != new_path and await _aio.path_exists(old_path):
@@ -357,9 +361,9 @@ class ItemsMixin(ServiceCore):
                 # own read below (at the possibly-new path) re-checks against the same `base`,
                 # which is safe/redundant rather than a second real read of divergent content.
                 old_text = await _aio.read_text(old_path)
-                ensure_no_skew(old_text, base)
+                ensure_no_skew(old_text, base, default_kind=default_kind)
                 await _aio.path_rename(old_path, new_path)
-        await update_frontmatter(item_file(self.paths, item), item, base)
+        await update_frontmatter(item_file(self.paths, item), item, base, default_kind=default_kind)
         self.store.log("update", item.id, delta)
         return item
 
@@ -440,7 +444,9 @@ class ItemsMixin(ServiceCore):
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
-            await update_frontmatter(item_file(self.paths, child), child, base)
+            await update_frontmatter(
+                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
+            )
             self.store.log(
                 "link",
                 child.id,
@@ -456,7 +462,9 @@ class ItemsMixin(ServiceCore):
             child.parent = None
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
-            await update_frontmatter(item_file(self.paths, child), child, base)
+            await update_frontmatter(
+                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
+            )
             self.store.log(
                 "link",
                 child.id,
@@ -635,6 +643,8 @@ class ItemsMixin(ServiceCore):
             if force and referrer_ids:
                 target_prefix = effective_prefix(item.prefix)
                 target_seq = item.sequence_id
+                # Resolved once for the whole severance loop, not per referrer.
+                default_kind = self.spec.default_ref_kind()
                 for ref_id in referrer_ids:
                     referrer = db.get(ref_id)
                     if referrer is None:
@@ -646,7 +656,9 @@ class ItemsMixin(ServiceCore):
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
-                    await update_frontmatter(item_file(self.paths, referrer), referrer, base)
+                    await update_frontmatter(
+                        item_file(self.paths, referrer), referrer, base, default_kind=default_kind
+                    )
                     severed.append(ref_id)
 
             # ------------------------------------------------------------------

@@ -8,8 +8,8 @@ tests/cli/test_override_commands_cli.py; manifest/stamp mechanics live in
 tests/meta/test_override_manifest_and_stamp_freshness.py.
 
 The third override kind, `workflow` (`.overrides/workflow.toml` — may shadow a built-in, not
-only add to it; drift is still version-stamp-only since the manifest carries no per-release
-content hash for this one TOML), gets its own `TestWorkflowOverride` class below: `open_service`
+only add to it; drift is content-gated against the manifest's per-release hash for this TOML,
+same as every other kind), gets its own `TestWorkflowOverride` class below: `open_service`
 actually consuming a hand-written workflow.toml is proven separately at
 tests/integration/test_workflow_override_service_integration.py — this file covers the
 scaffold/scan/diff/update/check lifecycle commands themselves, exactly as it does for
@@ -216,8 +216,8 @@ class TestScaffoldNewRole:
 
 class TestWorkflowOverride:
     """The `workflow` override kind's scaffold/scan/diff/update/check lifecycle — may shadow a
-    built-in, not only add to it; drift is still detected by version stamp alone (no
-    per-release content hash for this TOML in the manifest)."""
+    built-in, not only add to it; drift is content-gated against the manifest's per-release
+    hash for this TOML, same as every other kind."""
 
     async def test_scaffold_creates_a_stamped_file_containing_the_worked_example(
         self, project
@@ -245,10 +245,16 @@ class TestWorkflowOverride:
         assert entries[0].base_version == __version__
         assert entries[0].state == STATE_CURRENT
 
-    async def test_scan_flags_an_old_or_missing_stamp_as_drifted(self, project) -> None:
+    async def test_scan_reports_an_uncarried_old_stamp_current_when_content_is_unchanged(
+        self, project
+    ) -> None:
+        """Content-gated drift: a stamp squads carries no provenance for at
+        all (v0.1.0 predates workflow.toml's own coverage, which starts at v0.13.0) is treated
+        as unchanged, never as a warning — this is exactly the false-positive class
+        the widening removes. An unstamped file is unrelated and stays drifted."""
         path = scaffold_workflow(project.squad_dir)
         stamp_toml_file(path, "0.1.0")
-        assert scan_overrides(project.squad_dir)[0].state == STATE_DRIFTED
+        assert scan_overrides(project.squad_dir)[0].state == STATE_CURRENT
 
         path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
         assert scan_overrides(project.squad_dir)[0].state == STATE_DRIFTED
@@ -269,16 +275,35 @@ class TestWorkflowOverride:
         assert "bundled/workflow.toml" in current.delta_mine
         assert '-prefix = "TASK"' in current.delta_mine
         assert current.base_available is True
-        assert "no upgrade delta" in current.delta_upgrade
+        assert current.delta_upgrade == ""  # stamp == running version: real diff, no delta
 
+        # A stamp squads carries no provenance for at all (below workflow.toml's own coverage
+        # floor) renders the partial-Δ pane, never the retired "read the changelog"
+        # apology — and is never an sq check finding (proven by the state test above).
         stamp_toml_file(path, "0.1.0")
         stale = diff_override(project.squad_dir, "workflow", "workflow")
-        assert "review the squads changelog" in stale.delta_upgrade
+        assert "review the squads changelog" not in stale.delta_upgrade
+        assert "base snapshot is not available" not in stale.delta_upgrade
+        assert stale.base_available is False
+        assert "v0.1.0" in stale.delta_upgrade
+        assert "predates squads' own provenance" in stale.delta_upgrade
+        assert "earliest carried revision" in stale.delta_upgrade
 
         path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
         unstamped = diff_override(project.squad_dir, "workflow", "workflow")
         assert unstamped.base_available is False
         assert "no stamp" in unstamped.delta_upgrade
+
+    async def test_diff_refuses_a_stamp_newer_than_the_running_version(self, project) -> None:
+        """The downgrade shape: a stamp naming a version newer than the one
+        running has no anchor in the right direction, so Δ-upgrade refuses by name rather than
+        rendering a partial delta."""
+        path = scaffold_workflow(project.squad_dir)
+        stamp_toml_file(path, "999.0.0")
+        result = diff_override(project.squad_dir, "workflow", "workflow")
+        assert result.base_available is False
+        assert "999.0.0" in result.delta_upgrade
+        assert "newer than the running" in result.delta_upgrade
 
     async def test_update_stamp_restamps_and_raises_when_absent(self, project) -> None:
         with pytest.raises(SquadsError, match="no workflow override found"):
@@ -296,11 +321,21 @@ class TestWorkflowOverride:
         stamped = update_stamp(project.squad_dir, None, None)
         assert "workflow" in stamped
 
-    async def test_check_warns_on_a_stale_stamp(self, project, svc) -> None:
+    async def test_check_warns_on_a_stale_stamp_only_when_content_actually_changed(
+        self, project, svc
+    ) -> None:
+        """Content-gated: a stamp older than running warns only when the
+        bundled workflow.toml actually changed since that stamp — driven over real history
+        (v0.13.1 -> running: a real bundled change). A stamp squads carries no provenance for
+        (v0.1.0, below the artifact's own floor) reports clean, never "may be stale" on stamp
+        age alone."""
         path = scaffold_workflow(project.squad_dir)
         assert check_override_issues(project.squad_dir) == []  # freshly scaffolded: clean
 
         stamp_toml_file(path, "0.1.0")
+        assert check_override_issues(project.squad_dir) == []  # uncarried base: silent
+
+        stamp_toml_file(path, "0.13.1")
         issues = check_override_issues(project.squad_dir)
         assert len(issues) == 1
         level, display, message = issues[0]
@@ -377,10 +412,13 @@ class TestPlaybookOverride:
         assert entries[0].base_version == __version__
         assert entries[0].state == STATE_CURRENT
 
-    async def test_scan_flags_an_old_or_missing_stamp_as_drifted(self, project) -> None:
+    async def test_scan_reports_an_uncarried_old_stamp_current_when_content_is_unchanged(
+        self, project
+    ) -> None:
+        """Mirrors the workflow kind's equivalent test — content-gated drift."""
         path = scaffold_playbook(project.squad_dir)
         stamp_toml_file(path, "0.1.0")
-        assert scan_overrides(project.squad_dir)[0].state == STATE_DRIFTED
+        assert scan_overrides(project.squad_dir)[0].state == STATE_CURRENT
 
         path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
         assert scan_overrides(project.squad_dir)[0].state == STATE_DRIFTED
@@ -399,11 +437,15 @@ class TestPlaybookOverride:
         assert "bundled/playbook.toml" in current.delta_mine
         assert "-[types.task]" in current.delta_mine
         assert current.base_available is True
-        assert "no upgrade delta" in current.delta_upgrade
+        assert current.delta_upgrade == ""  # stamp == running version: real diff, no delta
 
         stamp_toml_file(path, "0.1.0")
         stale = diff_override(project.squad_dir, "playbook", "playbook")
-        assert "review the squads changelog" in stale.delta_upgrade
+        assert "review the squads changelog" not in stale.delta_upgrade
+        assert "base snapshot is not available" not in stale.delta_upgrade
+        assert stale.base_available is False
+        assert "v0.1.0" in stale.delta_upgrade
+        assert "predates squads' own provenance" in stale.delta_upgrade
 
         path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
         unstamped = diff_override(project.squad_dir, "playbook", "playbook")
@@ -426,11 +468,32 @@ class TestPlaybookOverride:
         stamped = update_stamp(project.squad_dir, None, None)
         assert "playbook" in stamped
 
-    async def test_check_warns_on_a_stale_stamp(self, project, svc) -> None:
+    async def test_check_reports_clean_for_a_stamp_squads_carries_no_provenance_for(
+        self, project
+    ) -> None:
+        """Content-gated: a stamp squads carries no provenance for at all
+        (below playbook.toml's own coverage floor) reports clean, never "may be stale" on
+        stamp age alone (the false positive drift-warning class this closes)."""
         path = scaffold_playbook(project.squad_dir)
         assert check_override_issues(project.squad_dir) == []  # freshly scaffolded: clean
 
         stamp_toml_file(path, "0.1.0")
+        assert check_override_issues(project.squad_dir) == []  # uncarried base: silent
+
+    async def test_check_warns_when_the_bundled_playbook_actually_changed(
+        self, project, svc, monkeypatch
+    ) -> None:
+        """Content-gated drift's warn branch, driven for the one kind whose real bundled
+        history has not changed since it was introduced (unlike workflow.toml, proven from
+        real history in the workflow kind's equivalent test) — so the "changed" half is proven
+        by making :func:`artifact_changed_since` say so, exercising the same wiring
+        (:func:`_check_playbook_override_issues` -> ``playbook_stamp_finding``)."""
+        from squads._interactions import _loader as playbook_loader
+
+        path = scaffold_playbook(project.squad_dir)
+        stamp_toml_file(path, "0.13.1")
+        monkeypatch.setattr(playbook_loader, "artifact_changed_since", lambda key, v: True)
+
         issues = check_override_issues(project.squad_dir)
         assert len(issues) == 1
         level, display, message = issues[0]
@@ -541,6 +604,65 @@ class TestDiffOverride:
         )
         assert "Ada" in diff_override(squad_dir, "architect", "role").delta_mine
 
+    async def test_role_delta_mine_diffs_against_the_shadowed_bundled_role_not_empty(
+        self, project
+    ) -> None:
+        """A role override merges field-wise over the bundled role, so it
+        SHADOWS — Δ-mine must show the bundled field it replaced as removed, not describe only
+        what the team added against an empty baseline."""
+        squad_dir = project.squad_dir
+        _place_role(
+            squad_dir, "architect", f'# squads:override-base:{__version__}\nfull_name = "Ada"\n'
+        )
+        delta_mine = diff_override(squad_dir, "architect", "role").delta_mine
+        assert "bundled/roles.toml#architect" in delta_mine
+        assert '+full_name = "Ada"' in delta_mine
+        # The bundled architect's own full_name is shown as removed — proof this is a real
+        # shadow diff, not an empty-reference one.
+        assert any(
+            line.startswith("-full_name = ") and "Ada" not in line
+            for line in delta_mine.splitlines()
+        )
+
+    async def test_new_role_delta_mine_keeps_the_empty_baseline(self, project) -> None:
+        """A brand-new, non-bundled role slug genuinely starts from scratch — no bundled
+        counterpart exists to shadow, so Δ-mine stays an empty-reference diff."""
+        squad_dir = project.squad_dir
+        scaffold_new_role(squad_dir, slug="security-analyst")
+        delta_mine = diff_override(squad_dir, "security-analyst", "role").delta_mine
+        assert "(empty — role overrides start from scratch)" in delta_mine
+
+    async def test_role_override_stamped_at_a_version_with_only_a_template_edit_stays_current(
+        self, project
+    ) -> None:
+        """Driven over real history: `roles.toml` has not changed between
+        v0.13.0 and the running version, but `agents/role.md.j2` (the role body template) has.
+        A role override stamped at v0.13.0 must stay current — proof drift is measured against
+        `roles.toml`, not the body template, which would have flagged this stamp as stale."""
+        squad_dir = project.squad_dir
+        _place_role(squad_dir, "architect", '# squads:override-base:0.13.0\nfull_name = "Ada"\n')
+        assert scan_overrides(squad_dir)[0].state == STATE_CURRENT
+
+    async def test_role_drift_is_routed_through_roles_toml_not_the_body_template(
+        self, project, monkeypatch
+    ) -> None:
+        """Directly proves the routing: the role state classifier asks
+        `artifact_changed_since` about `roles.toml`'s key, never the role body template's."""
+        from squads._overrides import _service as override_service
+
+        seen_keys: list[str] = []
+
+        def _fake_changed(key: str, base_version: str) -> bool:
+            seen_keys.append(key)
+            return key == override_service.ROLES_KEY
+
+        monkeypatch.setattr(override_service, "artifact_changed_since", _fake_changed)
+
+        squad_dir = project.squad_dir
+        _place_role(squad_dir, "architect", '# squads:override-base:0.1.0\nfull_name = "Ada"\n')
+        assert scan_overrides(squad_dir)[0].state == STATE_DRIFTED
+        assert seen_keys == [override_service.ROLES_KEY]
+
 
 class TestUpdateStamp:
     async def test_update_stamp_re_stamps_a_template_without_touching_its_body(
@@ -597,14 +719,51 @@ class TestCheckDrift:
         assert not [i for i in issues if ".overrides" in i.item]
         assert check_override_issues(squad_dir) == []
 
-    async def test_check_warns_on_an_unstamped_override_but_still_renders(
+    async def test_check_errors_on_an_unstamped_shadowing_override_but_still_renders(
         self, project, svc
     ) -> None:
+        """`items/task.md.j2` shadows a real bundled template — the uniform severity contract
+        makes an unstamped shadowing override an error, not a warning, for every kind."""
         squad_dir = project.squad_dir
         _place_template(squad_dir, "items/task.md.j2", _valid_task_override())
         issues = await svc.check()
         override_issues = [i for i in issues if ".overrides" in i.item]
-        assert override_issues and all(i.level == "warn" for i in override_issues)
+        assert override_issues and all(i.level == "error" for i in override_issues)
+
+    async def test_check_reports_nothing_for_an_unstamped_add_only_template_override(
+        self, project, svc
+    ) -> None:
+        """A template override with no bundled counterpart shadows nothing, so an unstamped
+        one still reports clean — unchanged by the severity tightening above."""
+        squad_dir = project.squad_dir
+        _place_template(squad_dir, "custom/not_a_bundled_template.md.j2", "hand-written content")
+        issues = await svc.check()
+        assert not [i for i in issues if ".overrides" in i.item]
+
+    async def test_check_errors_on_an_unstamped_shadowing_role_override(self, project) -> None:
+        """A per-slug role override naming a bundled slug shadows — the uniform severity
+        contract makes this an error, not a warning, mirroring the template kind's equivalent
+        test above."""
+        squad_dir = project.squad_dir
+        _place_role(squad_dir, "architect", 'full_name = "Ada"\n')
+        issues = check_override_issues(squad_dir)
+        assert len(issues) == 1
+        level, display, message = issues[0]
+        assert level == "error"
+        assert display == ".overrides/roles/architect.toml"
+        assert "no squads:override-base stamp" in message
+
+    async def test_check_reports_nothing_for_an_unstamped_add_only_role_override(
+        self, project
+    ) -> None:
+        """A brand-new, non-bundled role slug has no bundled counterpart to shadow, so an
+        unstamped override still reports clean."""
+        squad_dir = project.squad_dir
+        scaffold_new_role(squad_dir, slug="security-analyst")
+        role_dir = _role_dir(squad_dir)
+        path = role_dir / "security-analyst.toml"
+        path.write_text(path.read_text(encoding="utf-8").split("\n", 1)[1], encoding="utf-8")
+        assert check_override_issues(squad_dir) == []
 
     async def test_check_errors_on_a_structurally_broken_override(self, project, svc) -> None:
         squad_dir = project.squad_dir
@@ -621,7 +780,7 @@ class TestFullStalenessLoop:
         _place_template(squad_dir, "items/task.md.j2", _valid_task_override())
 
         issues_before = await svc.check()
-        assert [i for i in issues_before if ".overrides" in i.item and i.level == "warn"]
+        assert [i for i in issues_before if ".overrides" in i.item and i.level == "error"]
 
         diff_result = await invoke(["override", "diff", "items/task.md.j2"])
         assert diff_result.exit_code == 0, diff_result.output

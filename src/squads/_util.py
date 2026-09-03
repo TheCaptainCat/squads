@@ -24,3 +24,14 @@ def operator_slug(name: str) -> str:
     """Operator (human) slug: ``op-`` + the slugified first name ("Alice Tester" → ``op-alice``)."""
     first = name.strip().split()[0] if name.strip() else name
     return f"op-{slugify(first)}"
+
+
+def version_tuple(version: str) -> tuple[int, ...]:
+    """Loosely parse a dotted version string into a comparable tuple of ints — non-digit
+    suffixes (pre-release/build tags) are stripped per segment, a segment with no digits at
+    all becomes 0. Not full SemVer precedence, just enough to order squads' own X.Y.Z releases."""
+    parts: list[int] = []
+    for p in version.split("."):
+        num = "".join(c for c in p if c.isdigit())
+        parts.append(int(num) if num else 0)
+    return tuple(parts)

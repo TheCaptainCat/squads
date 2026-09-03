@@ -49,7 +49,7 @@ from squads._cli._common import (
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
-from squads._models._item import DEFAULT_KIND, split_ref
+from squads._models._item import split_ref
 from squads._models._subentity import SubEntity
 from squads._services._service import Service
 from squads._workflow._models import Field, WorkflowSpec
@@ -613,12 +613,12 @@ def _cmd_refs(item: typer.Typer) -> None:
         ctx: typer.Context,
         target: str = typer.Argument(..., help="Target item ID."),
         kind: str = typer.Option(
-            "related",
+            "",
             "--kind",
             help=(
-                "Edge kind: related|blocks|depends-on|implements|fixes|addresses|"
-                "supersedes|duplicates. Run `sq workflow` for the canonical kinds table "
-                "(meaning, direction, and which commands consume each kind)."
+                "Edge kind (run `sq workflow ref-kinds` for the project's declared kinds — "
+                "meaning, direction, and which commands consume each). Defaults to the "
+                "project's declared default kind."
             ),
         ),
     ):
@@ -627,7 +627,7 @@ def _cmd_refs(item: typer.Typer) -> None:
         # target may be a bare number, full ID, or ID:kind — resolve the ID part only
         raw_id, embedded_kind = split_ref(target)
         resolved_id = await resolve_item_id_any(raw_id, svc)
-        effective_kind = embedded_kind if embedded_kind != DEFAULT_KIND else kind
+        effective_kind = embedded_kind or kind or svc.spec.default_ref_kind()
         await svc.add_ref(_id(ctx), resolved_id, kind=effective_kind)
         console.print(f"{_id(ctx)} → {resolved_id} ([dim]{effective_kind}[/dim])")
 

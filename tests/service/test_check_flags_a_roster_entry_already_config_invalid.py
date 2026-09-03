@@ -135,6 +135,7 @@ async def test_check_does_not_false_positive_c1_when_a_role_sits_on_a_second_liv
             "collections": dict(base.collections),
             "subentity_kinds": dict(base.subentity_kinds),
             "roles": dict(base.roles),
+            "ref_kinds": dict(base.ref_kinds),
         }
     )
     assert custom_spec.live_statuses(ROSTER_ROLE) == frozenset({"Active", "OnCall"})
