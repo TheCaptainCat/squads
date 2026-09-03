@@ -143,6 +143,30 @@ def _reset_context():  # pyright: ignore[reportUnusedFunction]  # autouse: pytes
     _CustomCreateGroup._custom_cmd_cache.clear()
 
 
+#: The closed set of ambient values a real ``sq`` process establishes fresh (both start unset/
+#: empty) that a fixture building a ``Service`` in-process (``project``/``svc``, via
+#: ``service.init`` → ``ServiceCore.__init__`` → ``set_active_squad_dir``) can pre-seed as a
+#: side effect of its own setup, letting a CLI test pass whether or not the code under test
+#: established that state itself. Reset at the ``invoke`` boundary below, unconditionally, and
+#: also used as the post-test backstop (``_reset_engine_state``) so neither value ever leaks
+#: between tests either.
+#:
+#: Exhaustiveness — not just that these two reset correctly — is enforced by
+#: ``tests/meta/test_ambient_render_state_reset_is_exhaustive.py``, which statically re-derives
+#: this same set from ``src/squads`` and fails if a third ambient value is added there without
+#: being listed (and reset) here.
+_AMBIENT_RESET_TARGETS: dict[str, frozenset[str]] = {
+    "src/squads/_rendering/_engine.py": frozenset({"_active_squad_dir", "_env_cache"}),
+}
+
+
+def _reset_ambient_render_state() -> None:
+    """Reset every value named in ``_AMBIENT_RESET_TARGETS`` to what a fresh process starts
+    with: ``_active_squad_dir`` unset, ``_env_cache`` empty."""
+    set_active_squad_dir(None)
+    _env_cache.clear()
+
+
 @pytest.fixture(autouse=True)
 def _reset_engine_state():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
     """Reset rendering engine module-state between tests.
@@ -150,11 +174,11 @@ def _reset_engine_state():  # pyright: ignore[reportUnusedFunction]  # autouse: 
     ServiceCore.__init__ calls set_active_squad_dir() and never restores it, so a test that
     constructs a service leaves that squad dir active for later tests that call bare render()
     without setting it.  Clearing the ContextVar and evicting the cache after each test prevents
-    order-dependent coupling.
+    order-dependent coupling.  The intra-test counterpart — resetting before each ``invoke()``
+    call rather than only after the test — lives on the ``invoke`` fixture below.
     """
     yield
-    set_active_squad_dir(None)
-    _env_cache.clear()
+    _reset_ambient_render_state()
 
 
 @pytest.fixture(autouse=True)
@@ -245,10 +269,20 @@ def invoke(runner: CliRunner):
         async def test_something(invoke):
             r = await invoke(["some", "cmd"])
             assert r.exit_code == 0
+
+    Resets ``_AMBIENT_RESET_TARGETS`` immediately before every call (not once, at fixture
+    setup): ``_aio.to_thread`` copies the *calling* ``contextvars.Context`` into its worker, so
+    whatever the ``project``/``svc`` fixtures left ambient — via their own in-process
+    ``service.init(...)`` — would otherwise leak into ``invoke()`` and silently substitute for
+    whatever the CLI code path under test was supposed to establish itself. A real ``sq``
+    process starts each invocation with neither value set, so this makes ``invoke()`` do the
+    same — for the first call in a test and for every later one, since some tests scaffold or
+    edit an override *between* two ``invoke()`` calls and only a per-call reset covers that.
     """
     import functools
 
     def _invoke(args: list[str], **kw: Any) -> Any:
+        _reset_ambient_render_state()
         return _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
 
     return _invoke

@@ -3,10 +3,10 @@ id: MILE-836
 sequence_id: 836
 type: milestone
 title: squads 0.14
-status: Draft
+status: InProgress
 author: manager
 created_at: '2026-08-26T16:00:04Z'
-updated_at: '2026-08-26T16:00:42Z'
+updated_at: '2026-09-01T08:04:23Z'
 extra:
   target_date: '2026-09-15'
 ---

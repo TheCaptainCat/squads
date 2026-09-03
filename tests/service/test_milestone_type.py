@@ -151,6 +151,31 @@ async def test_the_rollup_groups_delivered_and_outstanding_by_status_role_across
     assert delivered_task.id not in outstanding_section
 
 
+async def test_the_rollup_files_a_settled_but_not_delivered_member_separately(project, svc) -> None:
+    """A cancelled/superseded member delivered nothing and is not outstanding either — it is
+    gone. Filing it under Outstanding is the defect this guards: a milestone holding only a
+    delivered and a settled-but-not-delivered member must still report zero outstanding."""
+    m = await _milestone(svc)
+    delivered_decision = (await create_item(svc, "decision", "Accepted decision")).item
+    await svc.add_ref(delivered_decision.id, m.id, kind="targets")
+    await svc.set_status(delivered_decision.id, "Accepted")
+
+    cancelled_bug = (await create_item(svc, "bug", "Dropped bug")).item
+    await svc.add_ref(cancelled_bug.id, m.id, kind="targets")
+    await svc.set_status(cancelled_bug.id, "Cancelled")
+
+    rendered = await svc.render_view("milestone_rollup", m.id)
+    assert "## Delivered (1)" in rendered
+    assert "## Outstanding (0)" in rendered
+    assert "## Settled without delivering (1)" in rendered
+    delivered_section, rest = rendered.split("## Outstanding")
+    outstanding_section, settled_section = rest.split("## Settled without delivering")
+    assert delivered_decision.id in delivered_section
+    assert cancelled_bug.id not in delivered_section
+    assert cancelled_bug.id not in outstanding_section
+    assert cancelled_bug.id in settled_section
+
+
 async def test_the_rollup_is_never_written_to_the_milestone_file_and_is_computed_fresh(
     project, svc
 ) -> None:

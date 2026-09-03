@@ -17,12 +17,16 @@ import pytest
 
 pytestmark = pytest.mark.anyio
 
-# Drops `guide` and `bug` from the merged spec while keeping every roster type (role/skill/
-# operator are locked by key identity and must always be named in `selected.items` too).
+# Drops `guide` and `bug` from the merged spec while keeping every other declared type
+# (`milestone` included, and role/skill/operator, which are locked by key identity and must
+# always be named in `selected.items` too).
 _DROP_GUIDE_AND_BUG = """\
 # squads:override-base:0.12.3
 [selected]
-items = ["epic", "feature", "task", "decision", "contract", "review", "role", "skill", "operator"]
+items = [
+    "epic", "feature", "task", "decision", "contract", "milestone",
+    "review", "role", "skill", "operator",
+]
 """
 
 

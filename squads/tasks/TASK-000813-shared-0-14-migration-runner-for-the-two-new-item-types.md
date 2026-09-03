@@ -3,7 +3,7 @@ id: TASK-813
 sequence_id: 813
 type: task
 title: Shared 0.14 migration runner for the two new item types
-status: InReview
+status: InProgress
 parent: FEAT-693
 author: tech-lead
 assignee: python-dev
@@ -17,6 +17,7 @@ refs:
 - TASK-831:depends-on
 - TASK-832:depends-on
 - MILE-836:targets
+- TASK-849:depends-on
 description: The single schema bump, registry entry and runner carrying both the contract
   and milestone types into 0.14, plus the folder creation, surface regeneration and
   manual runbook entry
@@ -37,7 +38,7 @@ subentities:
   title: Frozen corpus fixture tests/fixtures/corpus/v0_14
   status: Done
 created_at: '2026-08-25T18:12:45Z'
-updated_at: '2026-08-26T16:28:34Z'
+updated_at: '2026-09-01T08:10:00Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -484,4 +485,19 @@ matches the schema number the registry entry stamps.
   - Third claimant (the region-retirement migration) is NOT started -- nothing under _migrations/ or the schema/registry for it exists yet. It extends this SAME runner module/registry entry per the ruling; whoever picks it up adds its own deterministic step to _v0_11_to_v0_14.migrate() and its own corpus assertions to v0_14, not a new schema number.
   - Gates: tests/meta 259 passed; targeted set (migration corpus, registry, meta guard, schema-upgrade preservation, skill migration, reflog, docs cli, new parity suite) all green; uv run --all-extras pyright/ruff check/ruff format --check clean repo-wide. Did not run the full suite per brief -- leaving that to the main loop.
   - @tech-lead the runner + type-1/type-2 halves are complete and verified end to end on this repo; still needs the region-retirement (FEAT-694) half before the release-level acceptance ('closes when both types' folders, both types' generated surfaces and one manual entry covering both are in place behind a single registry step... grows with it rather than a second registry entry appearing') is fully met. Moving to InReview for that call.
+- [2026-09-01T07:42:28Z] Catherine Manager:
+  - Reopened: I closed this on the two type halves while its own acceptance says it cannot close on partial delivery, and the third claimant — the corpus-wide region strip — has no step in `migrate()` yet. The constraint that made this one item still binds: the region retirement extends this runner and this registry entry, and does not author a second bump. Closing it early was my error, not a scope change.
+- [2026-09-01T08:01:04Z] Pierre Chat:
+  - Fourth claimant: shrinking the role bodies of duplicated catalog data joins this runner. Still one bump, still one runner.
+- [2026-09-01T08:10:00Z] Olivia Lead:
+  - Reopened on the third claimant: FEAT-694's corpus-wide region strip is now TASK-849, which extends
+    `_v0_11_to_v0_14.migrate()` and this entry rather than authoring a second runner or a second bump.
+    Added `depends-on TASK-849` here so the board shows this cannot close first — its own acceptance
+    already says it grows with the third claimant rather than a second registry entry appearing.
+    
+    One trap TASK-849 carries that is worth knowing here: this repository's squad is already stamped
+    schema 0.14 (`squads/.squads.json`, `.squads.toml`), so `sq migrate up` is a no-op locally and the
+    new step never runs on our own corpus through the ordinary path. TASK-849 ST5 handles it as a
+    deliberate rewind-and-replay of this runner, which is safe because every step it already performs
+    is documented and verified idempotent.
 <!-- sq:discussion:end -->

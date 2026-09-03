@@ -3,10 +3,12 @@ id: BUG-825
 sequence_id: 825
 type: bug
 title: sq comment has no --file, unlike body
-status: Fixed
+status: Verified
 author: qa
+refs:
+- MILE-836:targets
 created_at: '2026-08-26T10:53:19Z'
-updated_at: '2026-08-26T13:05:44Z'
+updated_at: '2026-09-01T08:05:20Z'
 ---
 <!-- sq:body -->
 ## Description
@@ -72,4 +74,7 @@ them is a design call for whoever picks this up — not decided here.
   - Fix task authored: TASK-826 (Ready), linked by a fixes ref. It settles the open question in this report: -m and --file mutually exclusive, mirroring body; --file - reads stdin; a file is one comment (one bullet, fences preserved), not split into bullets.
 - [2026-08-26T13:05:44Z] Catherine Manager:
   - Fixed by TASK-826: comment takes --file at both levels, an empty file is refused rather than storing a blank bullet, and the generated agent guidance now points at --file with the shell-substitution reason. Driven: a fenced block round-trips byte-for-byte through --file while the same text through -m still substitutes.
+- [2026-09-01T07:27:46Z] Mara Tester:
+  - Verified in a scratch squad (nested under scratchpad, not this repo). Driven: --file works at item level (exit 0) and sub-entity level (exit 0); -m+--file together refused cleanly with 'error: provide the comment via -m or --file, not both' (exit 1, both levels — no raw Typer panel); neither given refused cleanly with 'error: provide the comment via -m ... or --file ...' (exit 1, both levels); an empty and a whitespace-only file both refused with 'error: --file must not be empty' (exit 1) and stored no blank bullet (confirmed via --json discussion listing).
+  - Drove the actual hazard: a fenced code block containing literal backticked `sq check` text, through --file, read back via --json and diffed byte-for-byte against the source file (Python diff after stripping the bullet/indent wrapping) — exact match. Contrast check: the same text through -m still gets shell-substituted (backticks executed, text silently altered) — confirms --file is the real fix for the defect, not just a flag addition.
 <!-- sq:discussion:end -->

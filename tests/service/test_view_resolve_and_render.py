@@ -1,11 +1,11 @@
 """``Service.resolve_view``/``render_view`` — the one seam that loads the index and hands it to
-``squads._views``. No view ships bundled (see ``squads._views``' own module docstring for why),
-so every scenario here declares its own via a workflow override, then reconstructs the
-``Service`` against the freshly loaded spec (``self.spec`` is fixed at construction).
-
-The two views named ``finding_summary``/``finding_summary_line`` deliberately match the two
-bundled presentation templates' own filenames, so resolving them exercises the real bundled
-``_rendering/templates/views/*.md.j2`` files, not template-file stand-ins authored in the test.
+``squads._views``. Only ``milestone_rollup`` ships bundled; every other view here — including
+the two named ``finding_summary``/``finding_summary_line``, chosen to read like real
+presentation names rather than to match a shipped file — is declared via a workflow override and
+rendered against a test-authored stand-in template placed at
+``.overrides/templates/views/<name>.md.j2`` (:func:`_declare_finding_view`), then resolved
+through a freshly reconstructed ``Service`` (``self.spec`` is fixed at construction, so a view
+declared after ``svc`` was built needs a new instance).
 """
 
 from pathlib import Path
@@ -41,14 +41,39 @@ _FINDING_FIELDS = (
 )
 
 
+def _place_view_template_override(squad_dir: Path, name: str, content: str) -> None:
+    target = squad_dir / ".overrides" / "templates" / "views" / f"{name}.md.j2"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+    invalidate_squad_dir(squad_dir)
+
+
+#: Table / non-tabular stand-ins for the two scenarios below — neither ``finding_summary`` nor
+#: ``finding_summary_line`` ships bundled (only ``milestone_rollup`` does).
+_TABLE_TEMPLATE = (
+    "{% for group in groups %}{% for record in group.records %}"
+    "{{ record.values['id'].text }} — {{ record.values['title'].text }}\n"
+    "{% endfor %}{% endfor %}"
+)
+_LINE_TEMPLATE = (
+    "{% for group in groups %}{% for record in group.records %}"
+    "* {{ record.values['id'].text }}\n"
+    "{% endfor %}{% endfor %}"
+)
+_STAND_IN_TEMPLATES = {"finding_summary": _TABLE_TEMPLATE, "finding_summary_line": _LINE_TEMPLATE}
+
+
 def _declare_finding_view(squad_dir: Path, name: str) -> None:
-    """A subentity-source view over ``finding``, named to match one of the two bundled
-    presentation templates so resolving it exercises the real bundled ``.md.j2`` file."""
+    """A subentity-source view over ``finding``, named to match one of the two test-authored
+    stand-in templates (:data:`_STAND_IN_TEMPLATES`), placed as a project override — no view
+    ships bundled under either name, so resolving one always needs a template of its own."""
     _write_workflow_override(
         squad_dir,
         f'[views.{name}]\nsource = {{ kind = "subentity", name = "finding" }}\n\n'
         + _FINDING_FIELDS.format(name=name),
     )
+    if name in _STAND_IN_TEMPLATES:
+        _place_view_template_override(squad_dir, name, _STAND_IN_TEMPLATES[name])
 
 
 async def _review_with_findings(svc):
@@ -75,12 +100,11 @@ async def test_resolve_view_returns_the_declared_projection(project, svc) -> Non
     assert [r["id"] for r in records] == ["F1", "F2"]
 
 
-async def test_render_view_renders_the_bundled_table_template(project, svc) -> None:
+async def test_render_view_renders_the_declared_presentation_template(project, svc) -> None:
     review = await _review_with_findings(svc)
     _declare_finding_view(project.squad_dir, "finding_summary")
 
     out = await _reopen(project).render_view("finding_summary", review.id)
-    assert "| Finding | Status | Assignee | Title |" in out
     assert "F1" in out
     assert "First finding" in out
 
@@ -94,13 +118,15 @@ async def test_two_presentations_of_the_same_projection_render_differently(proje
         + '\n[views.finding_summary_line]\nsource = { kind = "subentity", name = "finding" }\n\n'
         + _FINDING_FIELDS.format(name="finding_summary_line"),
     )
+    _place_view_template_override(project.squad_dir, "finding_summary", _TABLE_TEMPLATE)
+    _place_view_template_override(project.squad_dir, "finding_summary_line", _LINE_TEMPLATE)
     reopened = _reopen(project)
 
     table = await reopened.render_view("finding_summary", review.id)
     line = await reopened.render_view("finding_summary_line", review.id)
     assert table != line
-    assert "|" in table  # tabular
-    assert "|" not in line  # non-tabular
+    assert "—" in table  # the table stand-in
+    assert "—" not in line  # the line stand-in
 
 
 async def test_an_undeclared_view_name_is_refused(svc) -> None:
@@ -116,36 +142,68 @@ async def test_a_view_over_the_wrong_source_item_type_is_refused(project, svc) -
         await _reopen(project).resolve_view("finding_summary", task.id)
 
 
+# --------------------------------------------------------------------------- a `ref` source
+# projecting a field only some declared item types carry
+
+
+async def test_a_ref_source_field_renders_identically_null_absent_or_unset(project, svc) -> None:
+    """The payload ruling this amendment turns on: a record of a type that cannot carry the
+    field, and a record of a type that carries it but has it unset, must be indistinguishable
+    — one absence, not two. Declares ``impact`` on ``task`` alone (``bug`` never declares it),
+    points one of each at a hub item via ``related``, and projects ``impact`` through a
+    ``ref``-source view over that hub."""
+    _write_workflow_override(
+        project.squad_dir,
+        '[collections.impact]\nlabel = "Impact"\nordered = true\n'
+        'badges = [ { code = "low", label = "Low" }, { code = "high", label = "High" } ]\n\n'
+        '[[items.task.fields]]\ncode = "impact"\nlabel = "Impact"\ncollection = "impact"\n\n'
+        '[views.by_related]\nsource = { kind = "ref", name = "related" }\n\n'
+        '[[views.by_related.fields]]\ncode = "id"\nlabel = "Id"\n\n'
+        '[[views.by_related.fields]]\ncode = "type"\nlabel = "Type"\n\n'
+        '[[views.by_related.fields]]\ncode = "impact"\nlabel = "Impact"\n',
+    )
+    reopened = _reopen(project)
+    hub = (await create_item(reopened, "guide", "Hub")).item
+    task = (await create_item(reopened, "task", "Has the field, unset")).item
+    bug = (await create_item(reopened, "bug", "Has no such field")).item
+    await reopened.add_ref(task.id, hub.id, kind="related")
+    await reopened.add_ref(bug.id, hub.id, kind="related")
+
+    projection = await reopened.resolve_view("by_related", hub.id)
+    payload = projection_json(projection)
+    (group,) = cast("list[dict[str, object]]", payload["groups"])
+    records = {cast(str, r["id"]): r for r in cast("list[dict[str, object]]", group["records"])}
+
+    assert records[task.id]["impact"] is None
+    assert records[bug.id]["impact"] is None
+
+
 # --------------------------------------------------------------------------- override wins
-
-
-def _place_view_template_override(squad_dir: Path, name: str, content: str) -> None:
-    target = squad_dir / ".overrides" / "templates" / "views" / f"{name}.md.j2"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
-    invalidate_squad_dir(squad_dir)
 
 
 async def test_a_project_override_template_wins_over_the_bundled_one_and_renders(
     project, svc
 ) -> None:
-    review = await _review_with_findings(svc)
-    _declare_finding_view(project.squad_dir, "finding_summary")
+    """``milestone_rollup`` is the one view that actually ships bundled — neither
+    ``finding_summary`` nor ``finding_summary_line`` does, see :func:`_declare_finding_view` —
+    so it is the one an override template can genuinely be shown winning over."""
+    milestone = (await create_item(svc, "milestone", "A milestone")).item
+    task = (await create_item(svc, "task", "Targets the milestone")).item
+    await svc.add_ref(task.id, milestone.id, kind="targets")
     _place_view_template_override(
         project.squad_dir,
-        "finding_summary",
+        "milestone_rollup",
         "PROJECT OVERRIDE\n"
         "{% for group in groups %}{% for record in group.records %}"
         "{{ record.values['id'].text }}!\n"
         "{% endfor %}{% endfor %}",
     )
 
-    out = await _reopen(project).render_view("finding_summary", review.id)
+    out = await svc.render_view("milestone_rollup", milestone.id)
 
     assert "PROJECT OVERRIDE" in out
-    assert "F1!" in out
-    assert "F2!" in out
-    assert "|" not in out  # the bundled table markup is gone, proving the override rendered
+    assert f"{task.id}!" in out
+    assert "## Delivered" not in out  # the bundled roll-up markup is gone
 
 
 # --------------------------------------------------------------------------- one index load

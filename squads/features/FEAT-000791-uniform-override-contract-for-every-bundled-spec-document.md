@@ -7,6 +7,7 @@ status: Done
 author: product-owner
 refs:
 - ADR-777:implements
+- MILE-836:targets
 subentities:
 - local_id: US1
   title: Widen the manifest to every overridable bundled artifact
@@ -24,7 +25,7 @@ subentities:
   title: Uniform unstamped-shadowing severity plus the uniformity guard
   status: Done
 created_at: '2026-08-24T18:26:05Z'
-updated_at: '2026-08-26T09:23:04Z'
+updated_at: '2026-09-01T08:04:05Z'
 ---
 <!-- sq:body -->
 ## The problem

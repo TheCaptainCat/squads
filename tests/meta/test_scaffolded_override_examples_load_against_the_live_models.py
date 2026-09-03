@@ -89,6 +89,27 @@ def test_the_workflow_scaffolds_worked_example_declares_a_valid_view(tmp_path) -
     assert {f.code for f in view.fields} >= {"id", "status", "title"}
 
 
+def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_template(
+    tmp_path,
+) -> None:
+    """Structural validity (the sibling test above) is not the same as usable end to end: the
+    scaffold's view example ships no presentation template, so rendering it is the one failure
+    ``load_workflow_spec`` can never see. The comment this scaffold now carries about needing
+    one exists because, before it did, an adopter who uncommented and rendered the example hit
+    a raw ``jinja2.TemplateNotFound`` traceback rather than a clean, actionable error — the
+    exact shape this asserts stays fixed."""
+    from squads import _views as views
+    from squads._errors import SquadsError
+
+    activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
+    _write_override(tmp_path, "workflow.toml", activated)
+    load_workflow_spec(squad_dir=tmp_path)  # the example must still load on its own
+
+    empty_projection = views.Projection(fields=[], group_by=None, groups=[])
+    with pytest.raises(SquadsError, match=r"templates/views/related_incidents.md.j2"):
+        views.render_view("related_incidents", empty_projection)
+
+
 def test_the_workflow_scaffolds_example_demonstrates_the_field_that_drives_status_behaviour(
     tmp_path,
 ) -> None:

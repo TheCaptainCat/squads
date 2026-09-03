@@ -1,7 +1,7 @@
 {
   "schema_version": "0.14",
   "squads_version": "0.14.0",
-  "counter": 836,
+  "counter": 849,
   "padding": 6,
   "items": {
     "12": {
@@ -3339,7 +3339,7 @@
       "type": "feature",
       "title": "The contract (PRD) item type — a living functional source of truth",
       "slug": "the-contract-prd-item-type-a-living-functional-source-of-tru",
-      "status": "Ready",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -3348,13 +3348,14 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-320:implements"
+        "ADR-320:implements",
+        "MILE-836:targets"
       ],
       "subentities": [
         {
           "local_id": "US1",
           "title": "As a team, I can create and manage contract items (PRD prefix) like any other item type",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -3363,7 +3364,7 @@
         {
           "local_id": "US2",
           "title": "As a reader, a contract describes what the product does for a user right now, from the user's POV",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -3372,7 +3373,7 @@
         {
           "local_id": "US3",
           "title": "As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -3381,7 +3382,7 @@
         {
           "local_id": "US4",
           "title": "As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -3390,7 +3391,7 @@
         {
           "local_id": "US5",
           "title": "sq migrate up adds the contracts folder in the shared 0.14 bump",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -3399,7 +3400,7 @@
       ],
       "path": "features/FEAT-000321-the-contract-prd-item-type-a-living-functional-source-of-tru.md",
       "created_at": "2026-07-07T08:33:54Z",
-      "updated_at": "2026-08-26T13:40:35Z",
+      "updated_at": "2026-09-01T08:04:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5148,7 +5149,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-642"
+        "FEAT-642",
+        "MILE-836:targets"
       ],
       "subentities": [
         {
@@ -5172,7 +5174,7 @@
       ],
       "path": "features/FEAT-000644-recommend-a-manager-run-init-interview-for-a-bespoke-dev-loo.md",
       "created_at": "2026-07-24T07:41:51Z",
-      "updated_at": "2026-08-25T14:04:54Z",
+      "updated_at": "2026-09-01T08:04:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5342,7 +5344,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "EPIC-316"
+        "EPIC-316",
+        "MILE-836:targets"
       ],
       "subentities": [
         {
@@ -5366,7 +5369,7 @@
       ],
       "path": "features/FEAT-000690-see-memory-and-board-in-the-extension-and-sq-ui.md",
       "created_at": "2026-07-29T10:03:25Z",
-      "updated_at": "2026-07-29T10:03:48Z",
+      "updated_at": "2026-09-01T08:05:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5457,7 +5460,7 @@
       "type": "feature",
       "title": "Derived views, with milestones as the first consumer",
       "slug": "derived-views-with-milestones-as-the-first-consumer",
-      "status": "Ready",
+      "status": "Done",
       "description": "A declared, read-only projection over an item's relationships, rendered as data with per-client renderers; milestones are its first consumer",
       "parent": null,
       "author": "product-owner",
@@ -5465,12 +5468,14 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "MILE-836:targets"
+      ],
       "subentities": [
         {
           "local_id": "US1",
           "title": "View declaration and the projection data model",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5479,7 +5484,7 @@
         {
           "local_id": "US2",
           "title": "The JSON contract and the presentation layer over it",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5488,7 +5493,7 @@
         {
           "local_id": "US3",
           "title": "The MILE- item type, its lifecycle and target date",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5497,7 +5502,7 @@
         {
           "local_id": "US4",
           "title": "Milestone roll-up as the first declared view",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5506,7 +5511,7 @@
       ],
       "path": "features/FEAT-000693-derived-views-with-milestones-as-the-first-consumer.md",
       "created_at": "2026-07-29T13:52:43Z",
-      "updated_at": "2026-08-26T13:40:36Z",
+      "updated_at": "2026-09-01T08:04:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5517,7 +5522,7 @@
       "type": "feature",
       "title": "Retire the sub-entity summary and head as computed views",
       "slug": "retire-the-sub-entity-summary-and-head-as-computed-views",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Retire the materialized sub-entity summary and head regions (and the role Skills section) and reissue all three as computed derived views",
       "parent": null,
       "author": "product-owner",
@@ -5526,7 +5531,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-693:depends-on"
+        "FEAT-693:depends-on",
+        "MILE-836:targets"
       ],
       "subentities": [
         {
@@ -5568,7 +5574,7 @@
       ],
       "path": "features/FEAT-000694-retire-the-sub-entity-summary-and-head-as-computed-views.md",
       "created_at": "2026-07-29T13:52:49Z",
-      "updated_at": "2026-08-24T20:15:55Z",
+      "updated_at": "2026-09-01T08:09:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5799,7 +5805,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-775:implements"
+        "ADR-775:implements",
+        "MILE-836:targets"
       ],
       "subentities": [
         {
@@ -5850,7 +5857,7 @@
       ],
       "path": "features/FEAT-000790-ref-kinds-as-declared-workflow-spec-vocabulary.md",
       "created_at": "2026-08-24T18:24:12Z",
-      "updated_at": "2026-08-26T09:22:59Z",
+      "updated_at": "2026-09-01T08:04:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5870,7 +5877,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-777:implements"
+        "ADR-777:implements",
+        "MILE-836:targets"
       ],
       "subentities": [
         {
@@ -5921,7 +5929,7 @@
       ],
       "path": "features/FEAT-000791-uniform-override-contract-for-every-bundled-spec-document.md",
       "created_at": "2026-08-24T18:26:05Z",
-      "updated_at": "2026-08-26T09:23:04Z",
+      "updated_at": "2026-09-01T08:04:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5942,7 +5950,8 @@
       "labels": [],
       "refs": [
         "ADR-781:implements",
-        "BUG-784"
+        "BUG-784",
+        "MILE-836:targets"
       ],
       "subentities": [
         {
@@ -5993,7 +6002,7 @@
       ],
       "path": "features/FEAT-000792-pointers-name-commands-never-a-local-path.md",
       "created_at": "2026-08-24T18:28:02Z",
-      "updated_at": "2026-08-26T12:05:02Z",
+      "updated_at": "2026-09-01T08:04:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20020,7 +20029,7 @@
       "type": "task",
       "title": "Shared 0.14 migration runner for the two new item types",
       "slug": "shared-0-14-migration-runner-for-the-two-new-item-types",
-      "status": "InReview",
+      "status": "InProgress",
       "description": "The single schema bump, registry entry and runner carrying both the contract and milestone types into 0.14, plus the folder creation, surface regeneration and manual runbook entry",
       "parent": "FEAT-693",
       "author": "tech-lead",
@@ -20036,7 +20045,8 @@
         "REV-808",
         "TASK-831:depends-on",
         "TASK-832:depends-on",
-        "MILE-836:targets"
+        "MILE-836:targets",
+        "TASK-849:depends-on"
       ],
       "subentities": [
         {
@@ -20087,7 +20097,7 @@
       ],
       "path": "tasks/TASK-000813-shared-0-14-migration-runner-for-the-two-new-item-types.md",
       "created_at": "2026-08-25T18:12:45Z",
-      "updated_at": "2026-08-26T16:28:34Z",
+      "updated_at": "2026-09-01T08:10:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20962,7 +20972,7 @@
       "type": "task",
       "title": "Adopter docs for views, milestones and contracts",
       "slug": "adopter-docs-for-views-milestones-and-contracts",
-      "status": "InReview",
+      "status": "Done",
       "description": "The 0.14 adopter documentation: the views spec section, both new item types, the upgrade step and the changelog",
       "parent": "FEAT-693",
       "author": "tech-lead",
@@ -21017,7 +21027,7 @@
       ],
       "path": "tasks/TASK-000833-adopter-docs-for-views-milestones-and-contracts.md",
       "created_at": "2026-08-26T13:36:03Z",
-      "updated_at": "2026-08-26T16:27:47Z",
+      "updated_at": "2026-09-01T07:43:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22858,12 +22868,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-694:blocks"
+        "FEAT-694:blocks",
+        "MILE-836:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000789-no-guidance-tells-agents-to-read-item-md-files-via-sq-not-di.md",
       "created_at": "2026-08-24T17:46:07Z",
-      "updated_at": "2026-08-25T14:04:23Z",
+      "updated_at": "2026-09-01T08:05:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22884,12 +22895,13 @@
       "labels": [],
       "refs": [
         "TASK-796:addresses",
-        "ADR-775"
+        "ADR-775",
+        "MILE-836:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000804-legacy-folded-default-kind-refs-vanish-from-sq-graph-after-a.md",
       "created_at": "2026-08-25T15:44:33Z",
-      "updated_at": "2026-08-26T11:34:48Z",
+      "updated_at": "2026-09-01T08:05:17Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22900,7 +22912,7 @@
       "type": "bug",
       "title": "sq comment has no --file, unlike body",
       "slug": "sq-comment-has-no-file-unlike-body",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -22908,11 +22920,13 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "MILE-836:targets"
+      ],
       "subentities": [],
       "path": "bugs/BUG-000825-sq-comment-has-no-file-unlike-body.md",
       "created_at": "2026-08-26T10:53:19Z",
-      "updated_at": "2026-08-26T13:05:44Z",
+      "updated_at": "2026-09-01T08:05:20Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22923,7 +22937,7 @@
       "type": "bug",
       "title": "Renaming the default ref kind hard-locks a squad holding untouched legacy ref_kinds data",
       "slug": "renaming-the-default-ref-kind-hard-locks-a-squad-holding-unt",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -22933,12 +22947,13 @@
       "labels": [],
       "refs": [
         "ADR-775",
-        "BUG-804"
+        "BUG-804",
+        "MILE-836:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000827-renaming-the-default-ref-kind-hard-locks-a-squad-holding-unt.md",
       "created_at": "2026-08-26T11:34:16Z",
-      "updated_at": "2026-08-26T13:05:45Z",
+      "updated_at": "2026-09-01T08:05:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24662,7 +24677,7 @@
       "subentities": [],
       "path": "adrs/ADR-000776-derived-views-one-computed-projection-and-no-body-sink.md",
       "created_at": "2026-08-22T09:28:29Z",
-      "updated_at": "2026-08-24T18:10:35Z",
+      "updated_at": "2026-09-01T08:11:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24732,7 +24747,7 @@
       "subentities": [],
       "path": "adrs/ADR-000781-pointers-name-commands-never-a-local-path.md",
       "created_at": "2026-08-22T09:44:15Z",
-      "updated_at": "2026-08-26T11:12:29Z",
+      "updated_at": "2026-09-01T08:00:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24769,7 +24784,7 @@
       "type": "milestone",
       "title": "squads 0.14",
       "slug": "squads-0-14",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "manager",
@@ -24781,7 +24796,7 @@
       "subentities": [],
       "path": "milestones/MILE-000836-squads-0-14.md",
       "created_at": "2026-08-26T16:00:04Z",
-      "updated_at": "2026-08-26T16:00:42Z",
+      "updated_at": "2026-09-01T08:04:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {
@@ -34448,6 +34463,822 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-10"
+    },
+    "837": {
+      "sequence_id": 837,
+      "type": "bug",
+      "title": "Dropping a declared view from [selected] leaves a dangling type attachment",
+      "slug": "dropping-a-declared-view-from-selected-leaves-a-dangling-typ",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-833",
+        "MILE-836:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000837-dropping-a-declared-view-from-selected-leaves-a-dangling-typ.md",
+      "created_at": "2026-08-26T16:35:37Z",
+      "updated_at": "2026-09-01T08:05:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-837"
+    },
+    "838": {
+      "sequence_id": 838,
+      "type": "bug",
+      "title": "A view with no presentation template raises a traceback, not a SquadsError",
+      "slug": "a-view-with-no-presentation-template-raises-a-traceback-not",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-833",
+        "MILE-836:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000838-a-view-with-no-presentation-template-raises-a-traceback-not.md",
+      "created_at": "2026-08-26T16:35:41Z",
+      "updated_at": "2026-09-01T08:05:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-838"
+    },
+    "839": {
+      "sequence_id": 839,
+      "type": "bug",
+      "title": "recipes.md 'Fix a bug' recipe ends on an invalid bug status",
+      "slug": "recipes-md-fix-a-bug-recipe-ends-on-an-invalid-bug-status",
+      "status": "Fixed",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-833",
+        "MILE-836:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000839-recipes-md-fix-a-bug-recipe-ends-on-an-invalid-bug-status.md",
+      "created_at": "2026-08-26T16:35:42Z",
+      "updated_at": "2026-09-01T08:05:36Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-839"
+    },
+    "840": {
+      "sequence_id": 840,
+      "type": "review",
+      "title": "0.14 derived views, milestones and contracts",
+      "slug": "0-14-derived-views-milestones-and-contracts",
+      "status": "Approved",
+      "description": "Driven review of the derived-view mechanism, the milestone and contract types, their currency check and shared migration runner",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-693:addresses",
+        "FEAT-321:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Template overrides are ignored on the show path",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "order_by on a badge field ignores the declared badge order",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "order_by on id sorts lexicographically, mis-ordering the bundled roll-up",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Migrate leaves role pointers stale while the runbook says no action is required",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "The roll-up files settled-but-not-done members as outstanding forever",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "ItemSpec.views is unvalidated on four axes; each bricks a type's read path",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "A ref-source view can project no badge field, though the resolver handles it",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Documented group.count does not exist in the template context",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Six [selected] fixtures silently gained a milestone drop; comments now false",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Two view templates ship in the wheel that no bundled declaration can reach",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "The scaffolded view example has no template, so it tracebacks on render",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "A paramless ref_rule_target_present loads clean and is permanently inert",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Dropping the bundled contract type bricks the squad until feature is also edited",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "target_date is settable and validated but never shown on a human surface",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000840-0-14-derived-views-milestones-and-contracts.md",
+      "created_at": "2026-08-26T16:50:31Z",
+      "updated_at": "2026-09-01T07:19:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-840"
+    },
+    "841": {
+      "sequence_id": 841,
+      "type": "task",
+      "title": "Honour adopter template overrides on the leaf-verb render path",
+      "slug": "honour-adopter-template-overrides-on-the-leaf-verb-render-pa",
+      "status": "Done",
+      "description": "A view's presentation template is ignored on sq <type> <n> show because the active squad dir is a ContextVar lost between the two bridge crossings",
+      "parent": "FEAT-693",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-840:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Carry the active squad dir across both bridge crossings",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "CLI-level override proof for the milestone roll-up on show",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Guard every leaf-verb render site against the same seam",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000841-honour-adopter-template-overrides-on-the-leaf-verb-render-pa.md",
+      "created_at": "2026-08-26T17:02:39Z",
+      "updated_at": "2026-08-26T17:48:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-841"
+    },
+    "842": {
+      "sequence_id": 842,
+      "type": "task",
+      "title": "Refuse incoherent view and ref-rule declarations at spec load",
+      "slug": "refuse-incoherent-view-and-ref-rule-declarations-at-spec-loa",
+      "status": "Done",
+      "description": "ItemSpec.views is unvalidated on four axes, each bricking a type's read path while lint stays clean; plus two adjacent declaration-floor gaps in the same functions",
+      "parent": "FEAT-693",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-840:addresses",
+        "BUG-837:fixes",
+        "BUG-838:fixes",
+        "FEAT-321:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Validate ItemSpec.views on its three spec-resolvable axes",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Missing presentation template raises a SquadsError",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Repair the spec fixtures and the six [selected] enumerations",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Refuse a paramless ref_rule_target_present at load",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "A [selected] drop strips the declarations targeting that type",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Scaffolded view example says it needs its own template",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Let a ref source project a badge some declared type carries",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000842-refuse-incoherent-view-and-ref-rule-declarations-at-spec-loa.md",
+      "created_at": "2026-08-26T17:03:38Z",
+      "updated_at": "2026-08-26T17:48:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-842"
+    },
+    "843": {
+      "sequence_id": 843,
+      "type": "task",
+      "title": "View projection ordering, payload and the bundled roll-up",
+      "slug": "view-projection-ordering-payload-and-the-bundled-roll-up",
+      "status": "Done",
+      "description": "order_by destroys both resolvers' numeric ordering, the roll-up files settled members as outstanding forever, and the template context disagrees with its own docs",
+      "parent": "FEAT-693",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-840:addresses",
+        "TASK-841:depends-on",
+        "TASK-842:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "order_by on a badge field follows the declared badge order",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "order_by on id sorts by sequence number",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "A projected group exposes count in the template context",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Roll-up separates settled-not-delivered from outstanding",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Resolve the two unreachable bundled view templates",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Show a milestone's target date on its panel",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000843-view-projection-ordering-payload-and-the-bundled-roll-up.md",
+      "created_at": "2026-08-26T17:05:27Z",
+      "updated_at": "2026-08-26T18:24:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-843"
+    },
+    "844": {
+      "sequence_id": 844,
+      "type": "task",
+      "title": "Migrate leaves role pointers drifted against its own runbook",
+      "slug": "migrate-leaves-role-pointers-drifted-against-its-own-runbook",
+      "status": "Done",
+      "description": "sq migrate up leaves three role pointers drifted and sq check says so, while the runner's MANUAL tells the operator no action is required",
+      "parent": "FEAT-693",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-840:addresses",
+        "FEAT-321:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Decide and apply: runbook step or a role-pointer pass",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Close the parity test's .claude/agents blind spot",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000844-migrate-leaves-role-pointers-drifted-against-its-own-runbook.md",
+      "created_at": "2026-08-26T17:06:57Z",
+      "updated_at": "2026-08-26T17:48:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-844"
+    },
+    "845": {
+      "sequence_id": 845,
+      "type": "bug",
+      "title": "CLI test harness can't see a startup-state bug: fixtures pre-seed the render ContextVar",
+      "slug": "cli-test-harness-can-t-see-a-startup-state-bug-fixtures-pre",
+      "status": "Open",
+      "description": "project/svc build a Service in-process, leaking the correct active-squad-dir ContextVar into every invoke() call via asyncio.to_thread's context copy — a CLI test passes whether or not the code under test establishes that state itself",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-841",
+        "MILE-836:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000845-cli-test-harness-can-t-see-a-startup-state-bug-fixtures-pre.md",
+      "created_at": "2026-09-01T07:38:33Z",
+      "updated_at": "2026-09-01T08:05:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-845"
+    },
+    "846": {
+      "sequence_id": 846,
+      "type": "task",
+      "title": "Make the CLI test harness start from a real process's ambient state",
+      "slug": "make-the-cli-test-harness-start-from-a-real-process-s-ambien",
+      "status": "InReview",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-845:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Reset both leaking ambient values at the invoke boundary",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Permanent falsification: a broken render path must fail the suite",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Enumerate and guard the set of values the harness must reset",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Retire the workarounds the fix subsumes, keep the load-bearing ones",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000846-make-the-cli-test-harness-start-from-a-real-process-s-ambien.md",
+      "created_at": "2026-09-01T07:47:01Z",
+      "updated_at": "2026-09-01T08:10:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-846"
+    },
+    "847": {
+      "sequence_id": 847,
+      "type": "task",
+      "title": "Retire the sub-entity regions and declare the roll-up view",
+      "slug": "retire-the-sub-entity-regions-and-declare-the-roll-up-view",
+      "status": "Ready",
+      "description": "Stop writing the sub-entity summary and head regions, drop them from the bundled templates, and reissue the roll-up as three declared subentity-source views",
+      "parent": "FEAT-694",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-776:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare the three sub-entity roll-up views",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Presentation templates for the three roll-up views",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Drop the region writes from the live sub-entity path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Keep set_head and ensure_summary as migration-only machinery",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Remove the regions from the bundled item and block templates",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Freeze the five shipped renderings and pin the badge divergence",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Regenerate the template manifest and content store",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000847-retire-the-sub-entity-regions-and-declare-the-roll-up-view.md",
+      "created_at": "2026-09-01T08:02:31Z",
+      "updated_at": "2026-09-01T08:08:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-847"
+    },
+    "848": {
+      "sequence_id": 848,
+      "type": "task",
+      "title": "Retire the role Skills section and the extra.skills cache",
+      "slug": "retire-the-role-skills-section-and-the-extra-skills-cache",
+      "status": "Ready",
+      "description": "Move a role's skills list from the rendered body into the computed show card, delete the extra.skills cache and its writers, and narrow PERMITTED_EXTRA_SKEW",
+      "parent": "FEAT-694",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-776:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add the computed skills row to the role show card",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Remove the Skills block from role.md.j2 and regenerate",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Delete the extra.skills cache and its writers",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Narrow PERMITTED_EXTRA_SKEW and update its pinning test",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000848-retire-the-role-skills-section-and-the-extra-skills-cache.md",
+      "created_at": "2026-09-01T08:03:18Z",
+      "updated_at": "2026-09-01T08:08:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-848"
+    },
+    "849": {
+      "sequence_id": 849,
+      "type": "task",
+      "title": "Strip the retired regions corpus-wide in the shared 0.14 runner",
+      "slug": "strip-the-retired-regions-corpus-wide-in-the-shared-0-14-run",
+      "status": "Ready",
+      "description": "One more deterministic step inside the existing 0.11 to 0.14 runner: remove the summary and head marker regions and the role Skills block from every file already carrying them",
+      "parent": "FEAT-694",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-776:implements",
+        "TASK-847:depends-on",
+        "TASK-848:depends-on",
+        "TASK-813"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Strip the summary and head marker regions corpus-wide",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Strip the role Skills block and skills frontmatter key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Correct the runner docstring, registry summary and MANUAL",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Prove the step on the frozen corpus fixtures",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Strip this repository's own squad corpus",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000849-strip-the-retired-regions-corpus-wide-in-the-shared-0-14-run.md",
+      "created_at": "2026-09-01T08:04:14Z",
+      "updated_at": "2026-09-01T08:08:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-849"
     }
   }
 }

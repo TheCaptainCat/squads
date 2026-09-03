@@ -3,25 +3,27 @@ id: FEAT-693
 sequence_id: 693
 type: feature
 title: Derived views, with milestones as the first consumer
-status: Ready
+status: Done
 author: product-owner
+refs:
+- MILE-836:targets
 description: A declared, read-only projection over an item's relationships, rendered
   as data with per-client renderers; milestones are its first consumer
 subentities:
 - local_id: US1
   title: View declaration and the projection data model
-  status: Todo
+  status: Done
 - local_id: US2
   title: The JSON contract and the presentation layer over it
-  status: Todo
+  status: Done
 - local_id: US3
   title: The MILE- item type, its lifecycle and target date
-  status: Todo
+  status: Done
 - local_id: US4
   title: Milestone roll-up as the first declared view
-  status: Todo
+  status: Done
 created_at: '2026-07-29T13:52:43Z'
-updated_at: '2026-08-26T13:40:36Z'
+updated_at: '2026-09-01T08:04:09Z'
 ---
 <!-- sq:body -->
 ## The problem
@@ -162,10 +164,10 @@ _Add with `sq feature 693 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:summary -->
 | Story | Status | Assignee | Title |
 | --- | --- | --- | --- |
-| US1 | Todo |  | View declaration and the projection data model |
-| US2 | Todo |  | The JSON contract and the presentation layer over it |
-| US3 | Todo |  | The MILE- item type, its lifecycle and target date |
-| US4 | Todo |  | Milestone roll-up as the first declared view |
+| US1 | Done |  | View declaration and the projection data model |
+| US2 | Done |  | The JSON contract and the presentation layer over it |
+| US3 | Done |  | The MILE- item type, its lifecycle and target date |
+| US4 | Done |  | Milestone roll-up as the first declared view |
 <!-- sq:summary:end -->
 
 <!-- sq:stories -->
@@ -174,7 +176,7 @@ _Add with `sq feature 693 add-story "As a <role>, I want … so that …"`; trac
 ### US1 — View declaration and the projection data model
 
 <!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
@@ -202,7 +204,7 @@ declare fails the existing referential check.
 ### US2 — The JSON contract and the presentation layer over it
 
 <!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
@@ -226,7 +228,7 @@ under the bundled-template tree — so it is adopter-overridable through the exi
 ### US3 — The MILE- item type, its lifecycle and target date
 
 <!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
@@ -250,7 +252,7 @@ of its own.
 ### US4 — Milestone roll-up as the first declared view
 
 <!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
+**Status:** 🟢 Done
 <!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->

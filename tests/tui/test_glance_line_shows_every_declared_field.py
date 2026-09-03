@@ -42,6 +42,7 @@ def _spec_with(bug_fields: list[Field]) -> WorkflowSpec:
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
             "ref_kinds": base.ref_kinds,
+            "views": base.views,
         }
     )
 

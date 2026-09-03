@@ -7,6 +7,7 @@ status: Done
 author: product-owner
 refs:
 - FEAT-642
+- MILE-836:targets
 description: Init docs recommend the manager interview the operator and author a self-assigned
   squad-running skill
 subentities:
@@ -17,7 +18,7 @@ subentities:
   title: Ship the seven-area interview checklist as offered prompts
   status: Done
 created_at: '2026-07-24T07:41:51Z'
-updated_at: '2026-08-25T14:04:54Z'
+updated_at: '2026-09-01T08:04:01Z'
 ---
 <!-- sq:body -->
 **Capability.** `sq init`'s documentation recommends — but never scaffolds, generates, or enforces — that the manager agent open a squad by interviewing the operator about how they want the squad run, then author and self-assign a bespoke skill (e.g. a "run the dev loop" skill) that encodes the operator's answers.

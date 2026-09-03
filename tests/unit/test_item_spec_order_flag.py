@@ -38,6 +38,7 @@ def test_a_fractional_custom_order_lands_between_two_bundled_types_with_no_renum
             "subentity_kinds": base.subentity_kinds,
             "roles": base.roles,
             "ref_kinds": base.ref_kinds,
+            "views": base.views,
         }
     )
     ordered = sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t))

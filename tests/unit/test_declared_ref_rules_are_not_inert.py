@@ -123,9 +123,12 @@ def test_the_accepted_kind_vocabulary_is_read_from_the_spec_not_hardcoded() -> N
     raw = _bundled_raw()
     for entry in raw["items"].values():
         entry["ref_rules"] = []
-        # feature's ref_rule_target_present:contract validator selects a target that only its
-        # own ref_rules can type — stripped alongside so this stays a probe of the
-        # ref_rules/ref_kinds vocabulary, not a coincidental referential-coherence failure.
+        # Every type's validators are cleared, not only feature's: feature's own
+        # ref_rule_target_present:contract selects a target that only its now-emptied
+        # ref_rules can type, so it has to go alongside — and clearing every type's list
+        # (rather than feature's alone) also drops epic's no_parent, which is harmless here
+        # (this probe never touches parent/category checks) but is a real, not incidental,
+        # side effect of the blanket clear, so it is named here rather than left implicit.
         entry["validators"] = []
     stripped = _build_spec(raw)
 

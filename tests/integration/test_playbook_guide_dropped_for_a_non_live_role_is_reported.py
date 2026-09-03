@@ -373,6 +373,7 @@ async def test_a_guide_on_a_type_the_spec_has_dropped_is_not_reported_per_role(p
         "task",
         "decision",
         "contract",
+        "milestone",
         "review",
         "guide",
         "role",

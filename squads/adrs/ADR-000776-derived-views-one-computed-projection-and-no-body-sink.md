@@ -17,7 +17,7 @@ refs:
 - ADR-777
 - ADR-781
 created_at: '2026-08-22T09:28:29Z'
-updated_at: '2026-08-24T18:10:35Z'
+updated_at: '2026-09-01T08:11:59Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -280,6 +280,453 @@ no combination for the mechanism to refuse.
 - **ADR-422's local-versus-non-local asymmetry is narrowed, not overturned.** Its ruling stands and
   is reinforced: no persisted per-item derived region. What is corrected is its factual premise about
   `:head`, and the conclusion it drew for option C now applies to the region it used as its baseline.
+
+## Amendment note — 2026-08-26: what field codes a `ref` source may project
+
+§1 settled the three source kinds and §2 settled the one uniform record shape. Neither said
+which **field codes** a source may name. The loader answered it by construction — an empty
+declared-field set for a `ref` source, so base attributes only — and that answer is stricter
+than either section requires. Ruled here; §1 and §2 stand as written except where §4 below
+narrows the message that carries the remaining refusal.
+
+Driven on scratch squads at 0.14.0: a bundled squad with a milestone holding a feature, a task,
+a decision and two bugs on `targets` edges, and a second squad whose override declares an
+`impact` collection and field on `feature` alone.
+
+### 1. A `ref` source may name a field code at least one declared item type carries
+
+A code **no** declared item type carries stays refused. A code **some** declared item type
+carries is accepted, and renders `null` for a record whose type does not carry it.
+
+The governing clause is the one `_check_views` already states for the source axis: a source
+that can never resolve is refused rather than carried as an inert declaration. On the field
+axis that reads the same way. A code no type declares can never resolve for any record, on any
+corpus — inert by construction, refuse. A code some type declares resolves for every record of
+that type — not inert, permit. The current refusal is not that clause but a proxy for it, and
+the proxy mistakes *no single type the records all share* for *no type at all*.
+
+That the resolver tolerates the declaration is **not** the reason. Driven: a `ref`-source
+projection of `wibble`, a code no type declares anywhere, also produces a clean uniform payload
+with a `null` cell on every record. The resolver tolerates the typo exactly as gracefully as it
+tolerates the useful case, because `resolve_collection`'s same-name fallback is documented as
+rendering-only robustness. "The mechanism copes" therefore licenses nothing; it would license
+everything, the typo included. What decides the question is whether the declaration can ever
+mean anything, and that is a property of the spec.
+
+**Scope of the criterion, stated because each edge was checked rather than assumed.**
+
+- **Item types only, never sub-entity kinds.** A `ref` source's records are always items
+  (`_record_from_item`); only a `subentity` source yields sub-entities. A code declared solely
+  by a sub-entity kind can never resolve for a `ref` record and stays refused.
+- **Every declared item type, roster types included.** `field_badge_codes` answers a
+  neighbouring cross-type question over `non_roster_types()` only, and that precedent does not
+  transfer: it backs a filter door over work items, whereas a `ref` source's records may
+  legitimately be roster items — a skill carries a forward edge to the role that preloads it,
+  so a view over that kind projects `skill` records. Excluding roster types would refuse an
+  adopter's field on `role` while it resolves perfectly.
+- **The catalog, not the reachable set.** A ref kind types only its *target* end
+  (`RefRule.target`), and only for kinds that declare one, so which types can appear as records
+  of a given ref-kind source is not derivable at load. The narrowing therefore buys "this code
+  means something in this spec", not "this code means something for these records". The
+  stronger guarantee would require typing the source end of every ref kind — a vocabulary
+  change nothing here is asking for, and disproportionate to the failure it would catch.
+- **A property of the spec, never of the corpus.** The same declaration is accepted or refused
+  identically in an empty squad and a full one. A ref-kind source whose members happen to carry
+  none of the projected code renders an all-null column; nothing refuses that and nothing
+  should, because one member of a carrying type joining tomorrow makes it interesting.
+
+### 2. The payload contract does not change: there is one absence, not two
+
+A field that is `null` because the record's type cannot carry one and a field that is `null`
+because it is unset mean the **same thing to a consumer**, and the payload does not distinguish
+them.
+
+That identity is by construction and predates views. `Item.badge_value` reads the stored value
+with no spec in hand — the stored code is the authoritative value — while the write gate refuses
+a value for a field the type does not declare (driven: setting `severity` on a feature is
+refused, "not a settable field on a feature"). There is therefore no state in which "cannot
+carry one" and "carries none" differ as facts about a record. Driven, in a single projection
+over one milestone's members: a feature that cannot carry `severity` and a bug that declares
+`severity` and has none set are byte-identical `null`.
+
+The question that *is* different — could a record of this type ever carry one — is a question
+about the spec, not about the record, and it is already answerable from the payload: `type` is a
+base attribute of every `ref` source, so a view needing the distinction declares one more column
+and joins it against the spec. That costs the author a field and the contract nothing.
+
+Encoding it in the payload instead is refused. §2's shape is field metadata **once per
+projection** with records identically shaped; a per-record marker would make two records of one
+view differently shaped, which is the precise property that lets a client consume a view it has
+never seen. `ViewFieldMeta.type` stays `badge` for such a column and a null cell keeps rendering
+as empty text, so no presentation template changes and `--json` gains no key.
+
+### 3. `subtree` and `subentity` sources are unaffected — they are not heterogeneous
+
+The heterogeneity is a `ref`-source property alone. Driven: a subtree source filters descendants
+to `source.name`'s own type, so every record it yields is of exactly that one type; a subentity
+source yields one declared kind. Their declared-field sets are already exactly right, neither
+over- nor under-refusing, and a `subtree`-over-`task` view naming `severity` stays refused. This
+amendment touches neither, and a fix that generalises across all three source kinds has
+misidentified the defect.
+
+### 4. The refusal that remains must name a remedy the author can perform
+
+The current message names two things the code is not, and for a `ref` source the second is
+unperformable: "nor a field `<ref-kind>` declares" asks the author to make a ref kind declare a
+field, which no spec grammar expresses. Driven, the accompanying fix hint compounds it — an
+override declaring `impact` on `feature` alone is told to add the key back directly or through
+`selected`, a key it has just written.
+
+The remaining refusal must say what is actually wrong: name the view and the code, state that no
+declared item type declares it, and give the two remedies that exist — declare the field on a
+type, or name a base attribute, listing the ones this source kind allows. The
+"nor a field `<source-name>` declares" clause does not follow the code into the `ref` branch;
+`subtree` and `subentity` keep it, where it names a type or kind that can genuinely declare one.
+
+## Amendment note — 2026-09-01: the head badge line retires with no successor
+
+§5 ruled the head "computed" and §6 said both projections are reissued as computed views. Driven
+against the mechanism that has since shipped, one of those two reissues has no work in it. Ruled
+here; §5's verdict on the head stands, and §6 narrows to one view rather than two.
+
+Driven on a scratch squad at 0.14.0: a feature with a story, a task with two subtasks (one mapped
+to the story and assigned to `architect`), a review with a `critical` finding assigned the same
+way, and an override declaring a `subentity`-source view over each kind, attached through
+`items.<type>.views` and presented through an override template.
+
+### 1. The head's lines have three different answers, and only one is a gap
+
+The materialised region beside the closest a declared view can come — driven, one finding, both
+rendered from the same state:
+
+| head line | materialised region | shipped `[views]` projection |
+| --- | --- | --- |
+| `**Status:** 🔴 Open` | the status badge | `Open` — the bare status name |
+| `**Assignee:** Robert Architect` | the ROLE item's display name | `architect` — the stored slug |
+| `**Severity:** 🔴 Critical` | the declared field's badge | `🔴 Critical` — identical |
+
+The severity line already projects exactly, because it is a declared badge field and the mechanism
+was built for those. The status line fails for a reason that is neither of the two gaps FEAT-694
+names: `status` is a base attribute, its resolver returns the stored name, and `project` types every
+base code `text`, so **no view — bundled or adopter-declared — can render a status badge at all**,
+and one that declared a `status` field would still be answered by the base resolver. That is a
+property of §2's record shape rather than an oversight: `status_role` travels beside `status`
+precisely so a client styles the axis itself instead of consuming a pre-styled string. Only the
+assignee and story lines fail on the two foreign hops.
+
+Also driven: `sq workflow view <name> <ID>` resolves against an item id (`TASK-10:ST1` and `ST1`
+both answer "no item … in the index"), and a `subentity` source yields the whole collection — two
+subtasks, two renderings, no selector.
+
+### 2. What the region carried beyond the computed line is exactly its defect
+
+`_subentity_badge_line` is the head, computed, and it already ships. Driven: `sq review 11 show
+--full` prints the pane title `=== F1 — Something wrong  🔴 Open  🔴 Critical  architect ===` —
+the same status badge, the same declared-field badge, the same fields, in one line — and never
+prints the region's text. It reads the assignee as a slug and the mapped story as a local id, both
+off the sub-entity's own frontmatter.
+
+So the delta between that line and the region is precisely the two foreign resolutions, and those
+are not a capability being carried forward. They are the fact Context measured in order to condemn
+the region: the display name and the story title are read out of other files, they go stale on a
+rename, and no verb heals them. §5's finding for the head is "foreign-sourced in fact, stale in
+fact, and read by nothing" — three clauses, and a successor that resolved them fresh would satisfy
+the first two while contradicting the third. It would be a rendering built for no reader: the
+migration removes the one reader the region ever had (a person opening the raw file), and Context's
+enumeration of non-human readers leaves no other.
+
+### 3. Ruled
+
+**The head badge line has no successor.** Neither a widened `[views]` entry nor a bespoke computed
+renderer beside the general mechanism. The region retires, the write path that maintained it
+retires, and nothing is written in its place; the computed rendering of a sub-entity's badges is
+the one that already ships, frozen byte-identical by the same acceptance clause that freezes the
+other three.
+
+This is not the bespoke option under a new name. The bespoke option builds a renderer; this builds
+nothing. The shape §1 exists to remove is a second general mechanism standing beside the first, and
+after this ruling there is no second mechanism — one declared view for the roll-up, one deletion
+for the head.
+
+### 4. §6 narrows, and to what
+
+§6's "reissue both projections as computed views" over-counted. The roll-up is one projection and
+becomes one declared view, which buys what a hand-rolled renderer cannot: an adopter re-presents it
+through `templates/views/<name>.md.j2` and drops it through `[selected]`. The head was never a
+second projection needing reissue — it was a second *materialisation* of fields whose computed
+rendering already existed. §6's remaining clauses stand unchanged: the subject still inverts, the
+acceptance bar is still every computed rendering byte-identical rather than the regions' own bytes,
+and the migration is still owed.
+
+### 5. Why the widening is refused, stated so it is not re-proposed cheaply
+
+Single-record addressing alone would not breach §2 — one record is a one-record group, and a
+selector on the source axis leaves the payload shape untouched. The whole cost sits in the second
+half, cross-item field resolution, and it is not affordable for a consumer that does not exist:
+
+- **A field code stops being answerable from the declaration.** Today every code resolves off the
+  record or off the spec, so what a code means is a property of the merged spec, decidable at load.
+  A hop resolves off a *joined* item, so its meaning depends on the record's context — which item
+  hosts it, whether its parent resolves, whether the target exists.
+- **It reopens the absence contract the 2026-08-26 amendment closed.** That amendment ruled there
+  is one absence and not two, and refused a per-record marker distinguishing them, because
+  identically shaped records are what let a client consume an unfamiliar view. A hop introduces a
+  third absence — the join target missing or dangling — which under that ruling must also render
+  `null`, making a dangling role reference indistinguishable from an unassigned sub-entity. That is
+  the class of silent wrongness this decision exists to remove, reintroduced one layer down.
+- **It reopens the refusal criterion the same amendment settled.** That criterion refuses a code no
+  declared item type carries. A hop code names a traversal rather than a declared field, so there is
+  nothing in the catalog to check it against and the load-time pass that refuses an inert
+  declaration would have no clause to apply.
+- **The adopter test fails at the narrow end.** A fixed `assignee_name` code, meaningful only
+  because the bundled spec happens to declare a `role` type, is a bespoke renderer wearing a
+  declaration. Passing the test needs a declared join grammar — a source-side traversal an adopter
+  writes over their own types and ref kinds — a vocabulary addition on the scale of the source axis
+  itself. Worth designing when a view genuinely wants it; not worth designing for a rendering being
+  deleted.
+
+### 6. What this does not settle
+
+If resolved labels are later wanted by an actual reader — a full name in the pane title rather than
+a slug — that is a change to `_subentity_badge_line`, ruled on its own merits against that named
+consumer. It is out of FEAT-694's scope by that feature's own acceptance, which freezes those
+bytes. Nothing here forbids it and nothing here schedules it.
+
+### 7. Two corrections the driving turned up, owed to the breakdown
+
+- **The head renderer cannot simply be deleted; it is pinned by a frozen migration runner.**
+  `_migrations/_v0_2_to_v0_3.py` calls `discussion.set_head` to render the region it creates when
+  lifting legacy `:meta` blocks, so both that function and `templates/subentities/head.md.j2` stay
+  reachable while a squad can still replay from 0.2 (the later runner then strips what it wrote —
+  wasteful across a full replay, and correct). What retires from the live write path is the
+  refresh-on-mutation obligation; the historical renderer either stays as migration-only machinery
+  next to the rest of the legacy-body handling it serves, or is inlined into its one caller. Either
+  way "`set_head` is deleted" is not literally achievable as stated.
+- **The roll-up half is unaffected in substance, with one non-equivalence its story asserts away.**
+  The `subentity` source resolves the roll-up's data exactly, because that region was always local
+  (driven: `| ST1 | Todo | architect | Do the thing | US1 |`). But routing the shipped renderings
+  through the new view's projection is claimed to be no behaviour change in either direction, and
+  driven it is one: a declared badge field projects through `badge_parts` and renders emoji +
+  **label** (`🔴 Critical`), while the existing row derivation renders emoji + **code**
+  (`🔴 critical`). Sharing the projection therefore changes the summary table's bytes, which the
+  first acceptance clause forbids. Either the shipped renderings keep their own derivation, or the
+  projection's badge text is reconciled with the row derivation's in the same change.
+
+## Amendment note — 2026-09-01: no generated item body survives, and the reader test that draws the line
+
+§4 collapsed the sink by enumerating every non-human reader of item markdown. That enumeration
+asked what reads a *derived region of a work item*; it never asked what a **roster item's whole
+body** is. Operator direction (recorded in this decision's discussion, in his own words) settles the
+general rule: the markdown files are the storage, the only read surface is the CLI, and anything
+materialised into a file that the CLI can compute is duplication and comes out. Ruled here: what
+falls under it, what does not, why the views mechanism is not the vehicle, and what the file holds
+afterwards. §1–§7 stand; §4's enumeration gains a row and §5 gains two consumers.
+
+### 1. Driven: the role item's `extra` is a mirror, and staleness is the milder half of its defect
+
+Driven on a scratch squad at 0.14.0 — eight bundled roles, one custom role declared through
+`.overrides/roles/security-analyst.toml`, and a catalog-document override at `.overrides/roles.toml`.
+
+- **One command, two answers.** With `.overrides/roles.toml` declaring a new `mission` and
+  `responsibilities` for `architect`, `sq role architect show` printed the override in its computed
+  card and the pre-override text in the stored body immediately beneath it, in the same output.
+  `sq check` exited 0. A `sq sync` heals it; nothing reports it in the meantime, and nothing marks
+  which half is authoritative.
+- **The mirror overwrites operator-set state.** `sq role qa set-default` reported success and moved
+  `is_default` in both role files; the next `sq sync` moved it back to the bundled default, with
+  `sq check` at exit 0 on both sides. `is_default` is operator-settable through a shipped verb
+  (`_services/_roster.py:158-214`) *and* a member of `RoleDef._EXTRA_FIELD_KEYS`
+  (`_roles/_catalog.py:78`), so the reconciler restores the catalog's answer over the operator's.
+  That is the mirror's defect in its purest form: a stored copy of derivable data cannot tell a
+  value it should refresh from a value it must preserve, so it refreshes both.
+
+**And the asymmetry the mirror is usually defended by does not exist.** The expectation is that a
+role's mission is *stored role data* for a custom role and a *catalog mirror* for a predefined one —
+the same field with two provenances. Driven, it is not: editing `mission` in
+`.overrides/roles/security-analyst.toml` changed the card for that wholly custom, activated role on
+the very next command, with the stored body still reading the old text. A custom role's definition
+is a document too. There is no role whose definition the item stores; the item stores the
+operator-settable set and mirrors the rest.
+
+### 2. What is in class, exhaustively — and the discriminator for each already ships
+
+**(a) The role item body: the whole `sq:body` region, not selected sections.** `set_body` refuses a
+role body outright (read: `_services/_items.py:533-548`), there is no `sq role <n> body` or
+`comment` verb (driven: both are "No such command"), and `sq sync` re-renders the region wholesale
+for every roster role, live or retired (read: `_services/_maintenance.py:638`). No byte of it is
+authored. Every section is derived: the `# <full name>` heading and the `**Role:** / **Slug:**` line
+from the resolved definition, `## Mission` and `## Responsibilities` from the catalog, `## Skills`
+from the resolver (already ruled computed by §5), and `## Working agreements` — including the
+spawned-as-a-subagent and live-with-the-operator blocks — from the bundled template with `full_name`
+and `slug` substituted. Nothing is left over, so the ruling is the region, not a section list.
+
+**(b) Every system (template-owned) skill body.** Same shape one document over: a `sq-<type>` body
+renders the type's lifecycle from the workflow spec and its per-role Enter/Do/Hand-off/Watch-for
+block from the playbook's types table, with role display names joined from the roster. The
+discriminator is `is_system_skill(slug, spec)` (read: `_interactions/__init__.py:551-571`) — a pure
+function of the slug and the active spec, already used by `set_body` to refuse exactly these writes,
+and already surfaced as `kind: system (template-owned)` by `sq skill <slug> show`. Driven:
+corrupting a heading in a `sq-<type>` body and running `sq sync` restored it byte-for-byte.
+
+**(c) A custom (author-defined) skill body is storage and stays.** Driven: `sq skill my-custom body`
+was admitted, and the text survived `sq sync` untouched. This is the two-provenance asymmetry, and
+it is real for skills and false for roles. **It is also live in this repository's own corpus.** Of
+the 23 generated-looking roster files here — 10 role bodies (37.5 KB) and 13 skill bodies (63.3 KB) —
+exactly 22 are in class; `releasing-squads` (10.1 KB) is `kind: custom (authored)` and must not be
+touched. A migration keyed on the folder, the type, or the `sq-` prefix destroys it. Key on
+`is_system_skill`.
+
+**(d) The role item's `extra`, key by key.** Retained, because each is stored data no document
+answers: `slug` (the dispatch identity, frozen non-renamable by ADR-85 §4); `full_name`
+(operator-settable through `sq role activate --name` / `sq dev add --name`, and the value
+`role_base_from_item` swaps into the resolver's base — driven: a `full_name` declared in
+`.overrides/roles.toml` for an activated role is deliberately shadowed by the item's own);
+`is_default` (operator-settable through `sq role set-default`, and it must **leave**
+`RoleDef._EXTRA_FIELD_KEYS` or §1's revert survives the shrink); and `is_dev` / `tech` / a dev's
+`model` (the developer identity `dev_base_from_item` reads off the item).
+
+Removed, because each is a copy of a catalog answer: `title`, `mission`, `responsibilities`,
+`agreements`, `color`, `can_spawn`, `description`, and `skills` (already scoped by §5). For a
+bundled role, `model` joins them; the key stays in the schema because a dev role's `model` is
+operator-settable, so the reconciler stops *writing* it for a non-dev role rather than the key
+being dropped from the vocabulary.
+
+### 3. `title` and `description` stay: they are the uniform record, not the mirror
+
+`RoleDef._ITEM_FIELD_PROJECTION` writes the resolved `full_name` onto `item.title` and the resolved
+`mission` onto `item.description` (read: `_roles/_catalog.py:104-110`). Both are derivable, and both
+stay — for a reason the general rule does not supply on its own, so it is stated here.
+
+**The test is the reader, not the value.** `title` and `description` are read by surfaces that do
+not know the item is a role and therefore cannot resolve a role catalog: `sq list`, `sq tree`,
+`sq search`, every `--json` payload, the index, and the VS Code client all consume the uniform
+record. Driven: `sq list --type role --json` returns `title` and `description` in exactly the shape
+it returns them for a task. The body's sections have one reader, `sq role <slug> show`, which
+resolves the catalog on that same call and can therefore compute what it needs. That is ADR-781's
+clause 2 applied to a CLI reader instead of a host: materialise only where the reader cannot obtain
+the effect for itself. Dropping `description` here would also reopen the absence contract the
+2026-08-26 amendment closed, by inventing a third `null` meaning "resolvable elsewhere".
+
+One duplication inside that pair is real and resolves the other way: `item.title` and
+`extra.full_name` hold the same string twice in one file. Keep `item.title` — the generic field the
+type-agnostic surfaces read — and let `role_base_from_item` take the operator-settable name from it.
+That is the one place in this ruling where a wrong answer either leaves duplication behind or breaks
+`sq list`, and the answer is: keep the top-level field, drop the `extra` copy.
+
+### 4. The views fork: views stay for item relations; a definition renders through its resolver
+
+The direction says views are the way to present derived content, and §1's mechanism cannot express
+either body. Ruled: **the source axis does not widen, and these compute at show time.** Four reasons,
+each a property of the mechanism as built rather than of the calendar.
+
+- **Every source kind is a relation *of one item*.** `ref` inverts stored forward edges pointing at
+  it, `subentity` reads its own collection, `subtree` walks its descendants (read:
+  `_workflow/_models.py:644-666`), and a view resolves against an item id (driven in the 2026-09-01
+  amendment above). A skill body is a projection of the playbook keyed by **item type**; a role body
+  is a projection of the catalog keyed by **slug**. In neither is the item at the source end — it is
+  only the addressee. There is no relation to invert.
+- **The record shape would have to stop being a record.** `VIEW_BASE_FIELDS_BY_SOURCE` is
+  `id/type/status/status_role/settled/delivered/assignee/title/story` — every one a work item's
+  lifecycle position. A playbook guidance row is none of them. Widening to carry it means records
+  that are no longer identically shaped across sources, which is the exact property §2 says lets a
+  client consume a view it has never seen, and which the 2026-08-26 amendment refused to weaken for
+  a far cheaper gain than this one.
+- **The load-time referential check would have nothing to check against.** It works because
+  `source.name` names a declared entry of `[ref_kinds]`, `[subentity_kinds]` or `[items]` and every
+  field code resolves off the record or off the merged workflow spec's collections — decidable at
+  load. A spec-derived source's field codes would name rows of a *second document* with its own
+  loader, so the pass that refuses an inert declaration would have no clause to apply. That is the
+  2026-09-01 amendment §5 objection ("a field code stops being answerable from the declaration") one
+  level larger: a cross-document source rather than a cross-item join.
+- **It would be a second general mechanism wearing the first's name.** New record shape, new field
+  vocabulary, a second document's referential pass, and a new addressing model (resolved against a
+  type or a slug, not an item). §3 of the 2026-09-01 amendment already named that shape as the thing
+  §1 exists to remove.
+
+**So what the rule means, stated so the next reader is not told one thing by the direction and
+another by the code.** The rule is *nothing materialised that the CLI can compute*. The mechanism by
+which the CLI computes is per surface. **Views are the way to present a derived projection over an
+item relation** — a set of related records with a uniform shape and a template over them. A role's
+or a skill's definition is not a projection over relations; it is one document rendered for one
+addressee, and its computed home is the resolver that already renders it. Both surfaces already have
+that resolver, and this is why the deletion half is a call-site move rather than new machinery:
+`_regen_role_body` already renders `agents/role.md.j2` (`_services/_base.py:1347-1360`), and the
+Claude backend already renders `agents/item_skill.md.j2` and its siblings
+(`_backends/_claude_code/_backend.py:115-143`, `:324`, `:353`). The change is to call the same
+render at show time instead of at sync time and stop storing the result. One substitution rides
+with it and must not be missed: `_regen_role_body` renders from `item.extra` — the mirror — so at
+show time the context becomes the resolved `RoleDef` from
+`resolve_role_with_base(slug, squad_dir, base=role_base_from_item(item, squad_dir))`. Same template,
+same engine, an authoritative context instead of a stored copy of one.
+
+If a genuine consumer later wants an adopter-declarable spec-derived view, that is a source-axis
+design on the scale of the axis itself, ruled on its own merits against that named consumer. Nothing
+here forbids it and nothing here schedules it.
+
+### 5. What ADR-781 §4 does not repeal, stated because it is exactly what gets collapsed under time
+
+**The compiled managed regions (`CLAUDE.md` / `AGENTS.md`) and the backend pointers stay
+materialised, unchanged by this amendment.** Their reader is an agent host that discovers and
+configures an entry by reading a file, before any agent exists to run a command; a runtime fetch
+cannot substitute for a configuration that has already taken hold. That is the whole of the
+distinction, and it is the reader, not the directory: role and skill bodies sit next to the pointers
+and go the other way precisely because `sq` is in their delivery path — the pointer names
+`sq role <slug> show` / `sq skill <slug> show` rather than an `@` path. The containment rule in
+ADR-781 §2a and the invariant-5 wording in ADR-781 §4 govern pointer contents; this rule never did
+and does not now.
+
+### 6. What the files contain afterwards
+
+- **A role item file:** frontmatter (the retained `extra` of §2d plus `title`, `description`,
+  `status`, ids and timestamps), the static `## Discussion` heading, and an empty `sq:discussion`
+  region. The `sq:body` region is emptied by the migration and stops being written. It keeps its
+  markers rather than being deleted: `role_body()`'s absent-region branch is what `sq role show`
+  renders as "no active item for this slug", so a removed region would print a false and alarming
+  message, and the marker pair is the shape every item file shares if a body verb is ever added.
+- **A system skill item file:** frontmatter plus an emptied `sq:body` region. These carry no
+  discussion region today and gain none.
+- **A custom skill item file:** unchanged.
+- **`sq role <slug> show` and `sq skill <slug> show`** render the definition from the resolver on
+  every call, so the file's shrinking costs the agent nothing: the surface ADR-781 made an agent's
+  primary definition read gets the same text, resolved rather than recalled.
+
+The files still have a reason to exist: they carry the operator-settable state, the identity, the
+status and the id, and under invariant 1 they remain the source of truth for exactly that.
+
+### 7. Findings the breakdown needs before the build, not during it
+
+- **Marker safety holds, and the reason is stronger than "the machinery is careful".** Driven: the
+  only content outside a marker region in a role file is the frontmatter and the literal
+  `## Discussion` heading — static template chrome carrying no derived data. Every derived byte is
+  inside `sq:body`, one region, one `replace_section` call. And the region is already rewritten
+  wholesale on every sync, so emptying it cannot destroy authored content that the shipped write
+  path was not already destroying. The authored-content risk is not inside the region; it is
+  **choosing the wrong files**, which §2c answers with `is_system_skill`.
+- **`_without_permitted_extra_skew` identifies a role by `extra.mission`** — documented in place as
+  "the one key only a role's own `RoleDef.to_extra()` merge ever writes" (read:
+  `_itemfile.py:113-119`). §2d removes that key, so the discriminator disappears and every non-dev
+  role silently loses its skew exemption. The predicate must move to a key the shrink retains
+  (`extra.slug` on a role item, or the item's type) in the same change.
+- **`sq check`'s pointer-currency comparison renders its expectation from
+  `RoleDef.from_extra(item.extra)`** (read: `_services/_validators.py:761`). After the shrink that
+  expectation would be built from the mirror the shrink removes, so ADR-781 §2c's currency guarantee
+  is void unless the expectation is resolved through
+  `resolve_role_with_base(slug, squad_dir, base=role_base_from_item(item, squad_dir))`. The same
+  substitution is owed at the three other `from_extra` call sites
+  (`_services/_base.py:1403`, `:1454`, `_services/_items.py:481`); `RoleDef.from_extra` is the
+  mirror's reader and retires with it.
+- **`PERMITTED_EXTRA_SKEW` narrows to near-empty, and one test pins it as a literal**
+  (`tests/unit/test_role_def_extra_keys.py`), for the reason §5's consequences already state for the
+  `X.SKILLS` case alone: it exists to catch an unreviewed widening. Narrowing is the safe direction;
+  the test moves in the same change with its docstring stating why.
+- **`sq search` narrows further than §5's consequences anticipated.** Driven: a query for a role's
+  responsibility text matches that role item today, because search scans every body line; the
+  mission matches by the same path. After the shrink neither does. The remedy is `sq role list` / `sq role catalog` / `sq role <slug> show`, all of
+  which answer from the resolver rather than from a text match over a value that could be stale.
+- **The release ordering is ADR-781 §6's, unchanged.** This touches `agents/role.md.j2` and the
+  skill templates' rendering path, so it queues behind the same version bump before the template
+  manifest is regenerated, and moves with the managed-section golden and the generated-agent-text
+  guards.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -299,4 +746,8 @@ no combination for the mechanism to refuse.
   - The collapse is real, and I tested it rather than assuming. Section 4 now enumerates every non-human reader of item markdown: the index rebuild and per-item reads (frontmatter, never a derived region), show and the sub-entity panes (authored prose), sq search (the one survivor, _services/_collab.py:436-441), migration runners (the mechanism that removes a region), the body regenerators (writers), the VS Code client (reads .squads.toml only, everything else is sq --json — driven), and the agent host @ resolver. The @ resolver was the ONLY non-human reader that consumed a derived region as its content, and the direction deletes it. So there is one behaviour and no exception list.
   - One correction to how the collapse was framed: the reader is not deleted so much as moved behind sq. Once the pointer names sq role <slug> show, sq is in the delivery path, which is what makes computing possible for that reader at all. And the computed home already exists — the show card is already computed and already carries a creates: row (_cli/_role.py:324-345), so the skills list is one more row beside it and role.md.j2:18-25 is deleted.
   - Materialisation itself does not vanish, and section 4 says so rather than over-reading the rule: the backend pointers and the compiled managed regions are materialised projections read by a non-human with no sq in the loop, they must stay that way because a host reads files and cannot run commands, and they are write-only and never read back (tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py). They are governed by invariants 5/6/7 and the ABC, never by a view sink.
+- [2026-09-01T08:00:03Z] Pierre Chat:
+  - Direction, general rather than case by case: existing files should be shrunk of all duplicated data. The markdown files are the storage; the only read surface is the CLI; and views are the way to present derived content. Anything materialised into a file that the CLI can compute is duplication and comes out.
+- [2026-09-01T08:01:03Z] Pierre Chat:
+  - This lands in 0.14, not later: the shrink rides the same migration runner and the same schema bump as the region retirement.
 <!-- sq:discussion:end -->

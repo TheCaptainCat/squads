@@ -310,6 +310,96 @@ def test_order_by_sorts_within_group_and_is_stable_with_no_order_by() -> None:
     assert [r.values["id"].text for r in ordered_proj.records()] == ["F2", "F1"]  # Apple < Zebra
 
 
+def test_order_by_on_id_sorts_by_sequence_number_across_a_digit_boundary() -> None:
+    """Both source resolvers already sort numerically (``number_for_id``); ``order_by =
+    ["id"]`` must not re-sort lexicographically and throw that away."""
+    root = _item(0, "feature", "Root", "Draft", prefix="FEAT")
+    t9 = _item(9, "task", "Ninth", "Draft", prefix="TASK", parent="FEAT-0")
+    t15 = _item(15, "task", "Fifteenth", "Draft", prefix="TASK", parent="FEAT-0")
+    t100 = _item(100, "task", "Hundredth", "Draft", prefix="TASK", parent="FEAT-0")
+    view = ViewSpec(
+        source=ViewSource(kind="subtree", name="task"),
+        fields=[ViewField(code="id", label="Id")],
+        order_by=["id"],
+    )
+    db = _db(root, t9, t15, t100)
+    records = views.resolve_records(view, "probe", root, db, SPEC)
+    projection = views.project(view, records, SPEC)
+    assert [r.values["id"].text for r in projection.records()] == ["TASK-9", "TASK-15", "TASK-100"]
+
+
+def test_order_by_on_id_alone_interleaves_types_by_number_not_by_type() -> None:
+    """``order_by = ["id"]`` alone (no ``"type"`` first) orders purely on the number, so a
+    group spanning several types comes out interleaved by number rather than grouped by
+    type — the ``order_by = ["type", "id"]`` shape the bundled roll-up declares is what
+    avoids this, deliberately, when a caller wants types kept together instead."""
+    t5 = _item(5, "task", "Task five", "Draft", prefix="TASK")
+    b3 = _item(3, "bug", "Bug three", "Open", prefix="BUG")
+    t9 = _item(9, "task", "Task nine", "Draft", prefix="TASK")
+    view = ViewSpec(
+        source=ViewSource(kind="ref", name="related"),
+        fields=[ViewField(code="id", label="Id")],
+        order_by=["id"],
+    )
+    # `resolve_records` isn't used here — a `ref` source's own records are `Item`s of any
+    # declared type, but `project()` only ever needs the already-resolved records, so this
+    # builds them directly rather than routing three items' forward refs through a `SquadsDB`
+    # whose `items` dict is keyed by the very sequence number this test wants two records to
+    # share... except it can't: that dict is `dict[int, Item]`, so two items can never
+    # actually collide on one sequence number in a real index (the global counter's job) —
+    # this test is about interleaving different numbers, not a same-number tie.
+    records = [views._record_from_item(it) for it in (t5, b3, t9)]
+    projection = views.project(view, records, SPEC)
+    assert [r.values["id"].text for r in projection.records()] == ["BUG-3", "TASK-5", "TASK-9"]
+
+
+def test_sort_key_tie_breaks_a_shared_sequence_number_by_prefix() -> None:
+    """A defensive contract on ``_sort_key`` itself, not a scenario a real index can produce
+    (``SquadsDB.items`` is ``dict[int, Item]`` — two items can never share a sequence number):
+    if two records' ``id`` cells ever did carry the same number, the tie-break is the prefix,
+    so the function stays fully deterministic rather than depending on input order."""
+    bug_cell = views.Cell(text="BUG-1", json_value="BUG-1")
+    feat_cell = views.Cell(text="FEAT-1", json_value="FEAT-1")
+    bug_key = views._sort_key("bug", "id", bug_cell, SPEC)
+    feat_key = views._sort_key("feature", "id", feat_cell, SPEC)
+    assert bug_key < feat_key  # "BUG" < "FEAT"
+
+
+def test_order_by_on_a_badge_field_follows_the_declared_order_not_the_code() -> None:
+    """``severity``'s declared order is critical > high > medium > low > info — alphabetical by
+    code would read critical, high, low, medium. An absent value and a code the collection no
+    longer recognises (e.g. a badge dropped after the value was stored) both degrade gracefully
+    — the same non-crashing discipline ``ItemFilter._meets_min`` already uses — rather than
+    raising, one table-driven case rather than one test per branch."""
+    root = _item(0, "feature", "Root", "Draft", prefix="FEAT")
+    low = _item(1, "bug", "Low severity", "Open", prefix="BUG", parent="FEAT-0")
+    low.severity = "low"
+    critical = _item(2, "bug", "Critical severity", "Open", prefix="BUG", parent="FEAT-0")
+    critical.severity = "critical"
+    medium = _item(3, "bug", "Medium severity", "Open", prefix="BUG", parent="FEAT-0")
+    medium.severity = "medium"
+    unset = _item(4, "bug", "No severity set", "Open", prefix="BUG", parent="FEAT-0")
+    stale = _item(5, "bug", "Stale severity code", "Open", prefix="BUG", parent="FEAT-0")
+    stale.severity = "no-longer-a-badge"
+
+    view = ViewSpec(
+        source=ViewSource(kind="subtree", name="bug"),
+        fields=[ViewField(code="id", label="Id"), ViewField(code="severity", label="Severity")],
+        order_by=["severity"],
+    )
+    db = _db(root, low, critical, medium, unset, stale)
+    records = views.resolve_records(view, "probe", root, db, SPEC)
+    projection = views.project(view, records, SPEC)
+
+    assert [r.values["id"].text for r in projection.records()] == [
+        unset.id,  # absent value sorts first
+        critical.id,  # then declared order: critical, ...
+        medium.id,  # ... medium, ...
+        low.id,  # ... low
+        stale.id,  # an unrecognised code falls back after every ranked value
+    ]
+
+
 # --------------------------------------------------------------------------- --json contract
 
 
@@ -345,3 +435,29 @@ def test_projection_json_carries_field_metadata_grouping_and_records_only() -> N
     assert group["records"] == [
         {"id": "F1", "severity": {"code": "critical", "label": "Critical", "emoji": "🔴"}}
     ]
+
+
+def test_group_count_matches_the_records_it_was_computed_from() -> None:
+    """``ViewGroup.count`` is the one place ``len(records)`` is computed — both a template's
+    ``group.count`` and ``--json``'s ``"count"`` read the same property, so the two documented
+    consumers of a projection can never disagree about the shape of the same object again."""
+    review = _item(
+        1,
+        "review",
+        "R",
+        "Open",
+        prefix="REV",
+        subentities=[_finding("F1", "First"), _finding("F2", "Second")],
+    )
+    view = ViewSpec(
+        source=ViewSource(kind="subentity", name="finding"),
+        fields=[ViewField(code="id", label="Id")],
+    )
+    records = views.resolve_records(view, "probe", review, _db(review), SPEC)
+    projection = views.project(view, records, SPEC)
+    (group,) = projection.groups
+
+    assert group.count == 2 == len(group.records)
+    payload = views.projection_json(projection)
+    (json_group,) = cast("list[dict[str, object]]", payload["groups"])
+    assert json_group["count"] == group.count

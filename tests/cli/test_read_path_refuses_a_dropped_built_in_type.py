@@ -15,7 +15,7 @@ _DROP_GUIDE = """\
 # squads:override-base:0.12.3
 [selected]
 items = [
-    "epic", "feature", "task", "bug", "decision", "contract", "review",
+    "epic", "feature", "task", "bug", "decision", "contract", "milestone", "review",
     "role", "skill", "operator",
 ]
 """

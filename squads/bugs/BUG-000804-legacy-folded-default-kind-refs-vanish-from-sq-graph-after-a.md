@@ -9,10 +9,11 @@ priority: high
 refs:
 - TASK-796:addresses
 - ADR-775
+- MILE-836:targets
 description: Pre-0.2 extra.ref_kinds fold spells the default kind; renaming the default
   (ADR-775 A1) orphans it and sq graph silently drops the edge
 created_at: '2026-08-25T15:44:33Z'
-updated_at: '2026-08-26T11:34:48Z'
+updated_at: '2026-09-01T08:05:17Z'
 ---
 <!-- sq:body -->
 ## Summary
