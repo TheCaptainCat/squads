@@ -831,17 +831,23 @@ def print_subentity(detail: SubentityDetail, kind: str) -> None:
     console.print(e(detail.discussion) if detail.discussion else "[dim](none)[/dim]")
 
 
+def _read_source_file(file: str) -> str:
+    """Read --file content: '-' reads stdin, anything else a real path. Shared by every
+    content-source resolver (body, comment) so '-' and read errors behave identically."""
+    if file == "-":
+        return sys.stdin.read().strip("\n")
+    try:
+        return Path(file).read_text(encoding="utf-8").strip("\n")
+    except OSError as exc:
+        raise SquadsError(f"cannot read file {file!r}: {exc.strerror or exc}") from exc
+
+
 def resolve_body_optional(messages: list[str] | None, file: str | None) -> str | None:
     """Body from repeatable -m paragraphs or a --file path ('-' = stdin); at most one source."""
     if messages and file:
         raise SquadsError("provide the body via -m or --file, not both")
     if file is not None:
-        if file == "-":
-            return sys.stdin.read().strip("\n")
-        try:
-            return Path(file).read_text(encoding="utf-8").strip("\n")
-        except OSError as exc:
-            raise SquadsError(f"cannot read body file {file!r}: {exc.strerror or exc}") from exc
+        return _read_source_file(file)
     if messages:
         return "\n\n".join(messages)
     return None
@@ -852,6 +858,28 @@ def resolve_body(messages: list[str] | None, file: str | None) -> str:
     if body is None:
         raise SquadsError("provide the body via -m (repeatable) or --file PATH ('-' for stdin)")
     return body
+
+
+def resolve_comment_messages(messages: list[str] | None, file: str | None) -> list[str]:
+    """Comment content from repeatable -m messages or a --file path ('-' = stdin).
+
+    Mirrors resolve_body's mutual-exclusion and stdin/file handling via the same
+    :func:`_read_source_file`, but a file is exactly one comment — never joined or split — so
+    it comes back as a single-element list and ``format_comment`` renders it as one bullet
+    whose continuation lines carry the file verbatim (blank lines and fenced code blocks
+    included). An empty or whitespace-only file is refused outright rather than slipping
+    through as a blank bullet — unlike a body, a comment has no meaningful empty form.
+    """
+    if messages and file:
+        raise SquadsError("provide the comment via -m or --file, not both")
+    if file is not None:
+        content = _read_source_file(file)
+        if not content.strip():
+            raise SquadsError("--file must not be empty")
+        return [content]
+    if messages:
+        return messages
+    raise SquadsError("provide the comment via -m (repeatable) or --file PATH ('-' for stdin)")
 
 
 def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail) -> dict[str, Any]:

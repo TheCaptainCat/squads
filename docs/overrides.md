@@ -557,17 +557,20 @@ the workflow spec must declare exactly one ref kind with role = 'preload' (a ski
 ```
 
 **Dropping or renaming a kind.** A kind is dropped by leaving it out of `selected.ref_kinds`, and
-renamed by dropping the old key and declaring a new one. Both are refused while live items still
-carry the old spelling, with the offending IDs listed:
+renamed by dropping the old key and declaring a new one. Neither locks the squad: every command
+still loads and every edge is still readable. `sq workflow lint` refuses while live items still
+carry the old spelling, with the offending IDs listed, and so does adding a *new* ref of that kind —
+`sq check` reports the same items as a per-item warning instead, and `sq graph`/`refs` traverse the
+edge and report no declared semantic:
 
 ```
-ref kind 'escalates' is no longer declared in the workflow spec, but 1 live item(s) still carry a ref of that kind: ['INC-4'] — restore the entry in the override, or remove those refs first (no command rewrites a corpus's ref kinds)
+ref kind 'escalates' is no longer declared in the workflow spec, but 1 live item(s) still carry a ref of that kind: ['INC-4'] — restore the entry in the override, or remove those refs with `sq <type> <n> ref rm <target>` (run `sq repair` first if the edge is a legacy-mapped encoding you'd rather canonicalise onto the current default than remove)
 ```
 
-Those two are the only remedies, and the refusal offers no third: no command rewrites the kinds an
-existing corpus carries. A kind **no edge uses** may be dropped or renamed freely — which is the
-case you are actually in when you choose your vocabulary at adoption time, before anything has been
-linked.
+Restore the entry, or remove the affected refs — `sq <type> <n> ref rm` runs regardless of this
+finding, so the removal is performable immediately. A kind **no edge uses** may be dropped or
+renamed freely — which is the case you are actually in when you choose your vocabulary at adoption
+time, before anything has been linked.
 
 Two things that are *not* refusals but will surprise you:
 

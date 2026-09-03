@@ -648,9 +648,13 @@ token-shaped key, an exceeded nesting bound) are catalogued in
   revert the field, or make the change while the type has no items.
 - **A drop that strands live items** — a type or status the squad's own items still carry. `sq` hard-stops
   with the affected IDs listed. Restore the key, or move the items first.
-- **A ref kind dropped or renamed while live refs spell it** — the same hard stop, with the affected
-  IDs listed. Restore the entry, or remove those refs first; no command rewrites the ref kinds an
-  existing corpus carries. A kind no edge uses may be dropped or renamed freely.
+- **A ref kind dropped or renamed while live refs spell it** — bounded, not a hard stop: `sq workflow
+  lint` refuses, with the affected IDs listed, and so does adding a *new* ref of that kind. Every
+  other command keeps running — `sq check` reports the stale kind as a warning per item, `sq
+  graph`/`refs` traverse the edge and report no declared semantic, and `sq repair` and the ref-removal
+  verb both still run. Restore the entry, or remove those refs with `sq <type> <n> ref rm`; run `sq
+  repair` first if the edge is a legacy-mapped encoding you'd rather canonicalise onto the current
+  default than remove. A kind no edge uses may be dropped or renamed freely.
 
 Unrecognised top-level keys — a mistyped section name being the usual case — are rejected by name at
 load time, so the spec is fail-closed rather than silently doing nothing.

@@ -205,11 +205,18 @@ class RepairResult:
     forward unchanged rather than dropped, so its item stays resolvable and never appears in
     ``missing_ids`` — only in this list, naming the file so the operator knows the carried
     entry is stale until the file is fixed.
+
+    ``canonicalized`` holds the ID of every item whose file was rewritten because its on-disk
+    ref encoding (a legacy ``extra.ref_kinds`` map, or a spelled ref that folds to a different
+    literal) differed from the folded frontmatter now stored — the file, not only the index,
+    made canonical. Empty when the corpus needed no correction; a corpus already canonical
+    triggers no write at all.
     """
 
     db: SquadsDB
     missing_ids: list[str] = field(default_factory=list[str])
     unreadable: list[str] = field(default_factory=list[str])
+    canonicalized: list[str] = field(default_factory=list[str])
 
 
 @dataclass

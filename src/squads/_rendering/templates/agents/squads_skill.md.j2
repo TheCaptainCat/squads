@@ -53,6 +53,10 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
   kind-declared fields{% if _kind_hints %} — e.g. {{ _kind_hints | join(', ') }}{% endif %}). Read either back with `sq <type> <n> show` /
   `sq <type> <n> <kind> <k> show`. For a full dossier (body + sub-entities + discussion), use
   `sq <type> <n> show --full --comments` — decisions and refinements often live in comments.
+- Comment with `sq <type> <n> comment --as <slug> -m "…"` (repeat `-m` for separate bullets) or
+  `--file PATH` for one longer or code-bearing comment; sub-entities take the same pair. Reach for
+  `--file` whenever the text has a backtick or a fenced code block — an unescaped one in a quoted
+  `-m` is substituted by the shell before `sq` ever runs.
 - Reference related items by ID so others read the right context.
 - **Before acting on an item, open its `sq-<type>` skill and follow your role's _For …_ section** —
   it lists exactly what you check first, what you do, and when/how to hand off.
@@ -69,8 +73,8 @@ The operator sometimes talks to you directly — for live work or debugging. The
 - **Keep status honest.** Move it to its lifecycle's first working state (`sq <type> <n>
   status <status>`) when you start; don't leave it stale.
 - **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
-  -m "…"` summarising what changed — that's how the coordinating agent's loop (and the next
-  agent) picks up where you left off.
+  -m "…"` (or `--file` for anything with a backtick or a code block) summarising what changed —
+  that's how the coordinating agent's loop (and the next agent) picks up where you left off.
 {% set _hosted_plurals = [] %}
 {% for _kind in _kind_to_type %}
 {% set _ = _hosted_plurals.append(spec.subentity_plural(_kind)) %}
@@ -131,7 +135,7 @@ sq {{ anchor or "<type>" }} 3 show --full --comments                            
 sq {{ anchor or "<type>" }} 3 status {{ anchor_active or anchor_settled or "<status>" }}                                     # transition (validated per type)
 sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(roles) }}{% if _priority_field %} --{{ _priority_field.code }} {{ _priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif %}  # metadata (parent validated)
 sq {{ anchor or "<type>" }} 3 body -m "## Description" -m "…"                        # set the body (or --file)
-sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"                        # discussion / @mentions
+sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"                        # discussion / @mentions (or --file)
 sq list --type {{ anchor or "<type>" }} --status {{ anchor_active or anchor_settled or "<status>" }}                         # closed items hidden; --all to include
 sq tree {{ anchor_parent_prefix or anchor_prefix }}-<n> --json                                      # a parent's whole subtree (status/blocked) for coordinating
 sq search "lockout"                                             # match titles, summaries, bodies
