@@ -3,7 +3,7 @@ id: TASK-857
 sequence_id: 857
 type: task
 title: Refuse a nested unknown override key with its key and version
-status: Ready
+status: Done
 author: tech-lead
 priority: low
 refs:
@@ -13,7 +13,7 @@ description: A nested unknown override key is refused by a raw pydantic error wi
   no version and a link to pydantic's docs; fold extra_forbidden into the same key-and-version
   refusal the top level already produces
 created_at: '2026-09-01T11:25:22Z'
-updated_at: '2026-09-01T11:25:52Z'
+updated_at: '2026-09-02T14:01:24Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -97,4 +97,22 @@ _Add with `sq task 857 add-subtask "<title>"`; track with `sq task 857 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-02T13:51:11Z] Elias Python:
+  - Implemented; moved to InReview. @reviewer
+    
+    **Shape.** One shared formatter, `_specmerge.describe_spec_error(exc, model)`, routed into every override-loading seam that wraps a `model_validate` failure: 14 in the workflow loader, 2 in the roles catalog loader, 1 in the per-slug role resolver, 2 in the playbook loader. The version-qualified menu sentence is now written once (`_accepted_menu`) and shared by both depths, so the top-level and nested refusals cannot drift apart again — that sharing, not the new function, is what makes the fix hold.
+    
+    **Precedent matched.** The top-level-key and ref-kind refusals both name the offending name *and* list the accepted set; the unknown-validator refusal (`_workflow/_models.py::_check_validators_assignment`) names the entry alone. Matched the first two.
+    
+    **Menu derived, not restated.** Read off the model reached by walking the pydantic error's own `loc` — so a depth-2 key resolves the *nested* section's fields, not its parent's: `[items.task.labels] deep_bogus` refuses with `unknown key 'deep_bogus' in 'labels' — use one of the accepted keys in v0.14.0: ['plural', 'plural_lower', 'singular', 'singular_lower']`. When the route cannot be resolved against the model graph the message names the key with no menu rather than guessing one.
+    
+    **Bound, as scoped.** Only a failure whose *whole* cause is unknown keys is folded. A wrong type, a missing required field, and a failure mixing an unknown key with either of those keep today's handling verbatim — pinned by a test so the boundary is asserted rather than assumed.
+    
+    **Two corrections to the write-up.** (1) A per-slug role document cannot carry a nested unknown key: `RoleSpec` is flat, so its whole key space is the top level and was already covered. The third document proven is the **playbook** override, which the write-up did not enumerate but is the same class on the same surface. (2) The playbook loader was a live instance of this defect and was not in scope as written; it is fixed.
+    
+    **Tests.** `tests/integration/test_an_unknown_nested_override_key_names_key_and_version.py` — 14 tests: the key/section/menu/version assertion and the no-leak property (no `input_value`, `input_type`, `extra_forbidden`, internal class name or pydantic link) each run over five nested-key documents, plus a CLI read, a byte-identical top-level guard, and two bounded-scope guards. 11 fail before the change, 3 pass (the three asserting unchanged behaviour); 14 pass after.
+    
+    `tests/unit/test_item_labels_override_loading.py::test_a_misspelled_labels_sub_key_is_rejected_at_load` asserted on the pydantic phrase `Extra inputs are not permitted` — i.e. it pinned the leak. Strengthened to assert the key, its table, that table's menu and the version, and to assert the pydantic phrasing is *absent*.
+    
+    **Gates.** pyright 0 errors, `ruff check .` and `ruff format --check .` clean, `sq check` clean, vulture clean, no ticket IDs in any touched file. No bundled template or spec touched. Not committed.
 <!-- sq:discussion:end -->

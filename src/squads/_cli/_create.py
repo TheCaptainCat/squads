@@ -30,9 +30,36 @@ from squads._cli._common import (
     resolve_item_id_any,
     resolve_slug_or_raise,
 )
+from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
 from squads._models._item import make_ref, split_ref
+from squads._services._service import Service
 from squads._workflow import bundled_spec
+
+
+async def _resolve_parent_option(parent: str | None, svc: Service) -> str | None:
+    """Resolve a create command's ``--parent`` option to a full item ID, or ``None``.
+
+    The single parent door for every ``sq create`` command: the built-in types, the
+    lazily-built custom types, and ``guide``.  Three copies of the resolution used to sit
+    inline, so a fix had to be made three times and the next create-shaped command would
+    have copied whichever copy it sat nearest.
+
+    ``is not None``, not truthiness: ``--parent ""`` is a value the caller supplied, and
+    testing it for truth sent it down the no-parent branch — the command created an item
+    with no parent and reported plain success, so the only way to notice was to read the
+    item back.  Empty and whitespace-only are refused here rather than handed to
+    :func:`resolve_item_id_any`, which would answer about an empty token instead of about
+    the flag; ``sq <type> <n> update`` tests the same argument with the same ``is not None``
+    and leads with the same sentence.  The remedy differs and is deliberately not copied:
+    ``create`` has no ``--no-parent``, because omitting ``--parent`` is how a parentless item
+    is made.
+    """
+    if parent is None:
+        return None
+    if not parent.strip():
+        raise SquadsError("--parent needs an item ID; omit --parent to create without a parent")
+    return await resolve_item_id_any(parent, svc)
 
 
 def _priority_help(item_type: str) -> str:
@@ -124,7 +151,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
         validated_author = await resolve_slug_or_raise(author, svc)
         actor.set_actor(validated_author)
         validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-        resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+        resolved_parent = await _resolve_parent_option(parent, svc)
         resolved_refs: list[str] | None = None
         if ref:
             resolved_refs = []
@@ -378,7 +405,7 @@ def _make(item_type_str: str):
         validated_author = await resolve_slug_or_raise(author, svc)
         actor.set_actor(validated_author)
         validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-        resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+        resolved_parent = await _resolve_parent_option(parent, svc)
         resolved_refs: list[str] | None = None
         if ref:
             resolved_refs = []
@@ -464,7 +491,7 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
     validated_author = await resolve_slug_or_raise(author, svc)
     actor.set_actor(validated_author)
     validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
-    resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+    resolved_parent = await _resolve_parent_option(parent, svc)
     res = await svc.create(
         "guide",
         title,

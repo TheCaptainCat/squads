@@ -59,7 +59,9 @@ board the last one left behind, and you review it in a pull request like anythin
   comment under their own name, and have work assigned to them.
 
 Only the markdown is authoritative. `squads/.squads.json` is a rebuildable index — delete it and
-`sq repair` reconstructs it from the files.
+`sq repair` reconstructs it from the files. `sq repair` also **rewrites the files themselves** on
+that pass, removing what squads now computes on every read rather than stores, so run it on a
+clean working tree and review the diff.
 
 ## What using it looks like
 

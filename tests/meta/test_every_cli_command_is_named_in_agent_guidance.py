@@ -7,21 +7,24 @@ This one walks from the CLI to the prose — a verb may not exist uncited by the
 agents in this repository read at session start. Both halves are static and fully enumerable;
 neither says anything about whether an agent then chooses to run the command.
 
-**The corpus** is the union of the surfaces an agent here is handed: the twelve generated skill
-bodies (``squads``, ``greeting``, ``sq-memory`` and one ``sq-<type>`` per playbook-covered item
-type), rendered here from the same templates ``sq skill <slug> show`` renders at read time, plus
-this repository's own ``CLAUDE.md`` in full — both its managed section and the hand-written
-contributor half above it, because the whole file is what an agent working in this repository
-reads.
+**The corpus is squads' generated output, and only that**: the twelve generated skill bodies
+(``squads``, ``greeting``, ``sq-memory`` and one ``sq-<type>`` per playbook-covered item type),
+rendered here from the same templates ``sq skill <slug> show`` renders at read time, plus the
+managed section of this repository's ``CLAUDE.md`` — taken by its ``squads:start``/``squads:end``
+markers, because that section is rendered from a bundled template and every adopting squad
+receives it.
 
-That last inclusion is load-bearing and worth stating plainly, because it bounds what a passing
-run means. Measured against squads' *generated* output alone (the twelve skill bodies plus the
-``CLAUDE.md`` managed section), five commands — ``graph``, ``import``, ``init``, ``migrate``,
-``override`` — are named nowhere, and are credited here only by the hand-written contributor
-half of this repository's ``CLAUDE.md``. Whether an agent needs to be told about a bootstrap or
-upgrade verb is a judgement nobody has made yet, so this guard does not make it: it holds the
-line for *this* repository's agent surfaces, and a squad adopting squads elsewhere would find
-those five unnamed.
+The hand-written contributor half of that file, above the markers, is deliberately **not**
+measured. It is prose this repository wrote for its own contributors, and no adopting squad has
+it; a command credited only there is a command squads does not name anywhere it ships. Including
+it made a green run certify this repository's agent surfaces rather than the product's, which is
+a false assurance rather than a weak one. So the subject here is what an agent reads in *any*
+squad, not what an agent reads in this one.
+
+The extraction asserts the region it finds is non-empty. A marker rename that silently returned
+nothing would redden this gate for reasons that have nothing to do with guidance, and an
+extraction failure wearing the costume of a real finding is the worst outcome this guard can
+have.
 
 **The roster is pinned** (the eight bundled roles plus one developer, the same fixture the
 skill-body goldens use). The generated ``sq-<type>`` text is roster-dependent through a has-dev
@@ -38,10 +41,33 @@ corpus. That is deliberately generous: a command whose name is also an ordinary 
 (``list``, ``show``, ``check``, ``guide``) is credited by any prose use of that word, so this
 guard proves a name is *absent*, never that the guidance around a present name is any good. What
 it closes is the class where a command ships and no agent-facing surface mentions it at all.
+
+That generosity is live rather than hypothetical, and ``adopt`` is the measured case: it is
+credited by two uses of the ordinary English verb in the managed section's impersonation
+paragraph, while the string ``sq adopt`` appears in no generated surface. Tightening the match
+to an invocation form would withdraw credit from several more commands whose names double as
+prose, each of which is its own question about whether that entry point is guided at all — a
+change to what this guard *asserts*, not a correction of what it reads, and one that is
+deliberately not made here.
 ``test_the_matcher_is_validated_against_known_positives`` runs the matcher against terms that
 must hit and one that must not, because a zero is the one search result that never proves the
 search worked: an earlier byte-wise strip of the same corpus mangled multi-byte characters and
 returned zero for every term, including obvious positives.
+
+``reflog`` was the second measured case of that generosity, and unlike ``adopt`` it had no
+ruling behind it: it was credited by a single sentence using the word as an ordinary noun to
+explain what a sequence-number gap means, while no surface named the command. It is guided now —
+the cheatsheet carries a section on it, which the ``squads`` skill body and the AGENTS.md section
+both include — and ``test_the_mutation_audit_command_is_named_as_an_invocation`` holds it there
+at invocation strength, so deleting that guidance cannot fall back onto the word and stay green.
+That test is targeted rather than a general tightening, for the reason the paragraph above gives.
+
+**The corpus asserts its own size**, not only the matcher's behaviour. Validating the matcher
+against known positives is necessary and not sufficient: a corpus assembled from the on-disk
+skill stubs — whose bodies are empty, because a skill definition renders at read time — returns
+zero for most commands while still hitting the few that appear elsewhere, so the known-positive
+check passes and every zero is false anyway. ``_agent_facing_corpus`` therefore refuses a
+carrier that renders near-empty and refuses a corpus missing carriers outright.
 """
 
 import re
@@ -51,6 +77,7 @@ import pytest
 import typer.main
 
 from squads import _docfiles
+from squads._backends import _managed_region
 from squads._backends._base import RoleView
 from squads._cli import app
 from squads._interactions import (
@@ -72,6 +99,18 @@ from squads._workflow import bundled_spec, linearize_lifecycle
 _UNGUIDED_BY_DESIGN: dict[str, str] = {
     "ui": "an interactive full-screen TUI: an agent has no terminal to drive it and must not "
     "launch one",
+    "init": "bootstrap — the class, not the one verb: generated guidance ships *inside* a squad "
+    "and is only ever read by an agent for whom one already exists, so a verb whose job is to "
+    "bring a squad into being cannot reach the reader who needs it. Text naming it here would be "
+    "unactionable by construction, and the surfaces that can reach that reader (the root "
+    "`--help`, which anyone runs first on an unfamiliar CLI, and the offline docs) already name "
+    "it. The non-destructive sibling that adopts an existing folder is the same class and the "
+    "same ruling, and carries no entry of its own for a reason that is an artefact of the "
+    "matcher rather than an inconsistency: its name is also an ordinary English verb, used that "
+    "way in the impersonation paragraph of the managed section, so the name-matcher already "
+    "credits it as named. `sq adopt` appears in no generated surface at all — that was measured, "
+    "not assumed — but an entry for it here would fail the staleness assertion below instead of "
+    "recording the ruling.",
 }
 
 #: The eight bundled roles plus one developer — the same pinned roster the skill-body and
@@ -155,9 +194,52 @@ def _generated_skill_bodies() -> dict[str, str]:
     return bodies
 
 
+def _managed_claude_section() -> str:
+    """The generated half of this repository's ``CLAUDE.md``, located by its markers.
+
+    By markers rather than by a line offset, so the split cannot drift as the hand-written
+    contributor prose above it grows or shrinks; non-empty is asserted here rather than left
+    to be inferred from a passing run downstream.
+    """
+    text = (_repo_root() / "CLAUDE.md").read_text(encoding="utf-8")
+    start, end = text.find(_managed_region.START), text.find(_managed_region.END)
+    assert start != -1 and end > start, (
+        "no managed region found in CLAUDE.md between "
+        f"{_managed_region.START!r} and {_managed_region.END!r} — the corpus is broken, "
+        "not the guidance"
+    )
+    section = text[start + len(_managed_region.START) : end]
+    assert section.strip(), "the CLAUDE.md managed region extracted empty — the corpus is broken"
+    return section
+
+
+#: Below this many characters a carrier is a stub rather than a render — an order of magnitude
+#: under the smallest real one, so it fires on an empty or near-empty body and never on a short
+#: but genuine render.
+_MIN_CARRIER_CHARS = 200
+
+#: The three always-present skill bodies (``squads``, ``greeting``, ``sq-memory``) plus one
+#: ``sq-<type>`` per playbook-covered type, plus the managed section. Held as a floor rather than
+#: an equality so declaring a new item type does not redden this gate.
+_MIN_CARRIERS = 6
+
+
 def _agent_facing_corpus() -> str:
+    """Every generated surface, joined — with the corpus's own integrity asserted first.
+
+    A carrier that renders empty makes every absence below unfalsifiable, and an absence that is
+    really an extraction failure is the finding this guard most has to avoid manufacturing.
+    """
     surfaces = _generated_skill_bodies()
-    surfaces["CLAUDE.md"] = (_repo_root() / "CLAUDE.md").read_text(encoding="utf-8")
+    surfaces["CLAUDE.md:managed"] = _managed_claude_section()
+    assert len(surfaces) >= _MIN_CARRIERS, (
+        f"only {len(surfaces)} carrier(s) in the corpus — the corpus is broken, not the guidance"
+    )
+    stubs = sorted(k for k, v in surfaces.items() if len(v) < _MIN_CARRIER_CHARS)
+    assert not stubs, (
+        f"carrier(s) rendered under {_MIN_CARRIER_CHARS} characters: {stubs} — the corpus is "
+        "broken, not the guidance"
+    )
     return "\n".join(surfaces.values())
 
 
@@ -226,3 +308,24 @@ def test_the_matcher_is_validated_against_known_positives(corpus: str) -> None:
     for present in ("create", "comment", "tree", "check", "discussion"):
         assert _names(present, corpus), f"matcher found no {present!r} — the corpus is broken"
     assert not _names("zzz-not-a-squads-word", corpus)
+
+
+def test_the_mutation_audit_command_is_named_as_an_invocation(corpus: str) -> None:
+    """``sq reflog`` is named as something to run, not merely as a word.
+
+    The name-matcher above credits ``reflog`` from one sentence that uses it as an ordinary noun
+    while explaining sequence-number gaps, so it alone cannot tell guidance from a passing
+    mention. This is the command an agent reaches for to audit what another agent changed — the
+    one question the item files and ``sq check`` cannot answer, since they carry the state
+    reached rather than the moves that reached it — so its absence would not be caught by the
+    surface that exists to catch exactly that.
+
+    Controls run in the same assertion: a zero on the subject with zeros on the controls means a
+    broken corpus, not missing guidance.
+    """
+    controls = {c: corpus.count(f"sq {c}") for c in ("repair", "graph", "renumber")}
+    assert all(controls.values()), f"controls absent — the corpus is broken: {controls}"
+    assert corpus.count("sq reflog") > 0, (
+        "no generated surface names `sq reflog` as an invocation; the word alone appears in "
+        f"prose about sequence gaps and would keep this guard green (controls: {controls})"
+    )

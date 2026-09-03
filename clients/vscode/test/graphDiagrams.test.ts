@@ -9,6 +9,7 @@ import {
   decodeMermaidNodeId,
   mermaidNodeId,
 } from '../src/domain/graphDiagrams';
+import { CYCLE_ANCHOR_MARKER } from '../src/domain/treeAnchor';
 import { isSqGraphNode } from '../src/sqAdapter';
 import type { SqGraphNode, SqTreeNode } from '../src/types';
 
@@ -80,6 +81,34 @@ describe('buildSubtreeMermaid', () => {
         '  TASK_002d4["`TASK-4: Leaf (Draft)`"]',
       ].join('\n'),
     );
+  });
+
+  it('discloses a cycle anchor in the subtree label, and only on the flagged node', () => {
+    // The mermaid subtree is the second surface a reader meets an invented root through, so a
+    // fix that only reached the sidebar row would leave this half asserting a root nobody wrote.
+    const root = treeNode({
+      id: 'TASK-1',
+      title: 'A task on a parent cycle',
+      anchor: true,
+      children: [treeNode({ id: 'TASK-2', title: 'A genuine child' })],
+    });
+    const source = buildSubtreeMermaid([root]);
+
+    expect(source).toContain(
+      `TASK_002d1["\`TASK-1: A task on a parent cycle (Ready) ${CYCLE_ANCHOR_MARKER}\`"]`,
+    );
+    expect(source).toContain('TASK_002d2["`TASK-2: A genuine child (Ready)`"]');
+    expect(source.match(new RegExp('cycle anchor', 'g'))).toHaveLength(1);
+  });
+
+  it('leaves an ordinary node untouched, whether the anchor key is false or absent', () => {
+    const explicitlyFalse = treeNode({ id: 'TASK-1', title: 'An ordinary root', anchor: false });
+    const omitted = treeNode({ id: 'TASK-2', title: 'A root from an older sq' });
+
+    const source = buildSubtreeMermaid([explicitlyFalse, omitted]);
+    expect(source).not.toContain('cycle anchor');
+    expect(source).toContain('TASK_002d1["`TASK-1: An ordinary root (Ready)`"]');
+    expect(source).toContain('TASK_002d2["`TASK-2: A root from an older sq (Ready)`"]');
   });
 
   it('truncates a long title and HTML-escapes the label', () => {

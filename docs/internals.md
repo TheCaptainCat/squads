@@ -119,13 +119,27 @@ The frontmatter is durable; the index is derived. Two commands make that concret
   frontmatter, and sets `counter = max ID number`. `--renumber` additionally resolves duplicate
   numbers from a git merge (reassigns the colliding files to fresh numbers and rewrites every
   reference — parent/refs/inline — across all files).
+
+  **The rescan also writes.** On the same walk it strips from each file what is now computed on
+  every read rather than stored — the sub-entity roll-up table and badge lines, a **role's** body
+  (emptied, marker pair kept), and the retired `extra` keys a role item mirrored from its
+  definition — and canonicalises any legacy ref encoding. No skill body is touched, authored or
+  template-owned: whether a slug is template-owned is a function of today's vocabulary and a
+  stored body was written under an earlier one, so on disk the two are indistinguishable. Markdown
+  is written before the index commit, as everywhere else. So `repair` is not an index-only job: on
+  a corpus carrying that content it produces a content diff, and it should be run on a clean
+  working tree. `sq adopt` and `sq renumber` reach the same rescan and perform the same rewrite,
+  and `sq migrate up` ends with it; all four print the same one-line notice counting what they
+  rewrote, and each names those items in the reflog. The notice has one constructor, shared by
+  every result type a sweep-reaching command returns, so no route can drift out of it.
 - **`sq check`** lints the two against each other: unbalanced/duplicated markers, dangling
   parent/ref IDs, invalid status-for-type, on-disk-vs-index reconciliation, and frontmatter↔index
   drift. (Implemented as small per-rule helpers: `_scan_for_check`, `_check_reconciliation`,
   `_check_items`, `_check_subtask_stories`.)
 
 Practical upshot: a `.squads.json` merge conflict is a non-event — take either side and
-`sq repair`; for duplicate numbers, `sq repair --renumber`.
+`sq repair`; for duplicate numbers, `sq repair --renumber`. Commit the resolution first: the
+rebuild may rewrite item files as well as the index.
 
 ---
 

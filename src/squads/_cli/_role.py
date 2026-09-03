@@ -116,8 +116,15 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     Not every holder is expressible here: the catalog lists bundled and project-declared
     entries, so a developer role (``sq dev add``) that holds the designation appears in no row
     and the column is correctly blank throughout. The plain listing names that holder in its
-    footer; ``sq role list`` — the roster listing, which carries every live role — is the
-    surface that always can.
+    footer, and ``--json`` carries the same disclosure as ``default_role`` — the slug that
+    holds it, whether or not any row is that slug, and ``null`` when no live role holds it at
+    all. ``default_role_source`` says where that answer came from: ``"roster"`` for the active
+    squad's designation, ``"catalog"`` for the document's own declaration outside a squad,
+    where there is no roster to ask. Both repeat on every row, since this payload is a bare
+    array. Without them an all-false column is ambiguous between a holder this listing cannot
+    show and no holder at all, and a ``"catalog"`` answer is indistinguishable from a squad
+    that designates the same slug for real. ``sq role list`` — the roster listing, which
+    carries every live role — is still the surface that names a holder in its own rows.
     """
     squad_dir = _catalog_squad_dir()
     roles = load_role_catalog(squad_dir).roles
@@ -126,6 +133,11 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
 
     def _is_default(r: RoleSpec) -> bool:
         return r.slug == live_default if in_squad else r.is_default
+
+    # The holder as a slug, not as a mark on a row — the boolean column can only answer for
+    # the rows that exist, and the holder need not be one of them.
+    default_role = live_default if in_squad else next((r.slug for r in roles if r.is_default), None)
+    default_role_source = "roster" if in_squad else "catalog"
 
     if json_out:
         print_json_clean(
@@ -137,6 +149,8 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
                         "title": r.title,
                         "is_default": _is_default(r),
                         "origin": "bundled" if r.slug in _BUNDLED_SLUGS else "project",
+                        "default_role": default_role,
+                        "default_role_source": default_role_source,
                     }
                     for r in roles
                 ]

@@ -1,14 +1,23 @@
 """Result dataclasses returned by the service layer."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from squads._migrations._registry import Migration
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
 from squads._services._retirement import Severance
+
+#: What a tree surface prints beside a root it invented to reveal a parent cycle (see
+#: ``TreeNode.anchor``). One wording, shared by every terminal renderer, so the disclosure reads
+#: the same everywhere. It has to stop a reader concluding this is the top of a hierarchy
+#: somebody wrote, and point at where the full edge set lives — a tree drawing of a cycle must
+#: drop the edge closing back to the anchor, so the tree under-reports the relation it draws.
+TREE_ANCHOR_MARKER = "[cycle anchor — not a real root; see sq check]"
 
 
 @dataclass(frozen=True)
@@ -20,12 +29,25 @@ class TreeNode:
     edge; it is **not** serialised in ``--json`` output (path-only ancestors appear as
     ordinary nodes in JSON consumers).
 
+    ``anchor=True`` marks a root the bare tree chose for itself: the item is on a parent cycle,
+    so it has a parent and no forest of parentless items would ever have rooted at it.  Every
+    member of that cycle is an equally good root, which makes the choice a tiebreak rather than
+    a truth — a fabrication, acceptable only because it is disclosed.  Both surfaces must
+    therefore say so (a marker in the terminal rendering, a field in ``--json``); a consumer
+    that ignores the flag renders an invented root as one somebody wrote.  Never set on an
+    explicitly rooted tree, where the root is the caller's own choice.
+
+    The two flags are **independent and can both be true**: under a filter matching something
+    below the cycle, the members enter the keep set as ancestors, so the chosen anchor is a
+    path-only node as well.  Render them as combining states, not alternatives.
+
     ``children`` lists the surviving child nodes after filter + depth pruning.
     """
 
     item: Item
     path_only: bool  # True = ancestor kept only to anchor a descendant match
     children: list[TreeNode] = field(default_factory=lambda: list[TreeNode]())
+    anchor: bool = False  # True = a root invented to reveal a parent cycle
 
 
 @dataclass(frozen=True)
@@ -152,10 +174,24 @@ class InitResult:
 
 @dataclass
 class AdoptResult:
+    """Outcome of ``adopt()``.
+
+    ``repair`` is the :class:`RepairResult` of the import sweep adopt runs over the folder it
+    is adopting. It is carried out rather than reduced to a count because that sweep is also
+    the corpus sweep: adopt rewrites the content of the very files it is importing, and this
+    is the population with no other route — an existing folder of squads-native markdown
+    reaching sq for the first time never runs a migration.
+    """
+
     paths: SquadPaths
-    imported: int  # items found on disk and indexed
+    repair: RepairResult
     roles: list[Item]  # roles newly activated
     warnings: list[str] = field(default_factory=list[str])
+
+    @property
+    def imported(self) -> int:
+        """How many items the folder yielded — the sweep's own index, not a second count."""
+        return len(self.repair.db.items)
 
 
 @dataclass(frozen=True)
@@ -190,6 +226,31 @@ class RemoveResult:
 
     removed_id: str
     severed_refs: list[str]  # referrer IDs whose ref to removed_id was deleted
+
+
+def strip_notice(stripped: Sequence[str]) -> str | None:
+    """The one-line announcement of the content diff a corpus sweep produced — ``None`` when it
+    rewrote nothing.
+
+    Built here rather than at any call site because **four** commands reach the sweep and all
+    four owe the operator the same sentence: ``sq repair`` runs it directly, ``sq migrate up``
+    runs it as the tail of the migration, ``sq adopt`` runs it to import an existing folder,
+    and ``sq renumber`` reaches it through the shared index rebuild. The announcement is the
+    whole mitigation for verbs whose advertised job is the index rewriting content, so a route
+    that reached the sweep and said nothing would leave the diff to be discovered rather than
+    stated. One constructor is what keeps them from drifting into different wording, or into
+    one of them being forgotten again — the two that were.
+
+    Every result a sweep-reaching command returns therefore exposes it as ``strip_notice()``,
+    reading its own ``stripped`` list; a new such command wires its result to this function
+    rather than phrasing the sentence again.
+    """
+    if not stripped:
+        return None
+    n = len(stripped)
+    return (
+        f"stripped retired regions from {n} item {'file' if n == 1 else 'files'} — review the diff"
+    )
 
 
 @dataclass
@@ -227,6 +288,29 @@ class RepairResult:
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
 
+    def strip_notice(self) -> str | None:
+        """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""
+        return strip_notice(self.stripped)
+
+
+@dataclass(frozen=True)
+class MigrationRun:
+    """Outcome of ``Service.run_pending_migrations()`` — what ``sq migrate up`` reports.
+
+    ``applied`` holds the :class:`~squads._migrations._registry.Migration` records that ran, in
+    order, and is empty when the squad was already at the current stamp.
+
+    ``repair`` is the :class:`RepairResult` of the rebuild that follows the runners, and is
+    ``None`` exactly when ``applied`` is empty (no runner applies, so nothing rebuilds). It is
+    carried out of the service rather than discarded because the rebuild is also the corpus
+    sweep: on this route the operator gets a content diff from a command whose own output
+    otherwise says only "index rebuilt", and the migration is the only route a squad behind the
+    current schema takes.
+    """
+
+    applied: list[Migration]
+    repair: RepairResult | None = None
+
 
 @dataclass
 class RenumberResult:
@@ -237,11 +321,20 @@ class RenumberResult:
     index reflecting the shift, including the counter bumped to the new post-shift maximum.
     ``warning`` is set on the ``--by`` (no ``--onto``) path: sq cannot certify the shift
     clears the *other* branch's counter without it — that guarantee is the operator's.
+
+    ``stripped`` names every item whose file the shift's index rebuild also rewrote to remove a
+    retired region — the same corpus sweep ``repair`` reports, reached here through the shared
+    rebuild. Empty on the no-op path, where nothing shifts and no rebuild runs.
     """
 
     remap: dict[str, str]
     db: SquadsDB
     warning: str | None = None
+    stripped: list[str] = field(default_factory=list[str])
+
+    def strip_notice(self) -> str | None:
+        """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""
+        return strip_notice(self.stripped)
 
 
 @dataclass
@@ -385,9 +478,18 @@ class ImportPlan:
 class ImportApplyResult:
     """The real-apply outcome of a bulk import's single-transaction apply pass.
 
-    ``warnings`` surfaces board-debt the same catalog ``sq check`` reports (unwritten
-    sub-entity bodies, over-long titles, …) — apply does not bypass the gate, so these ride
-    back for the CLI/``--json`` task to render rather than being silently imported.
+    ``findings`` carries, **with its level intact**, every issue the same catalog ``sq check``
+    reports (unwritten sub-entity bodies, over-long titles, a stale sub-entity container, …)
+    that lands on an item this import touched. Apply does not bypass the catalog, so these ride
+    back for the CLI to render and to pick an exit code from. The level has to survive this far:
+    it is the only thing that separates "tidy this up when you get to it" from a violation any
+    gated door would have refused, and once it is dropped no output mode can recover it.
+
+    ``warnings`` is the human-readable **warn-level** stream: the apply pass's own advisories
+    (an over-long sub-entity title, an out-of-lane author) as they were raised, followed by the
+    warn-level half of ``findings`` rendered as ``"<item>: <message>"``. Error-level findings are
+    deliberately absent from it — they are reported through ``findings``, at their own level, and
+    they are what earns the command a non-zero exit.
     """
 
     op_counts: ImportOpCount
@@ -395,6 +497,12 @@ class ImportApplyResult:
     handle_to_sub: dict[str, tuple[str, str]]
     created_ids: list[str] = field(default_factory=list[str])
     warnings: list[str] = field(default_factory=list[str])
+    findings: list[CheckIssue] = field(default_factory=list[CheckIssue])
+
+    @property
+    def error_findings(self) -> list[CheckIssue]:
+        """The error-level half of ``findings``, in the order the catalog reported them."""
+        return [f for f in self.findings if f.level == "error"]
 
 
 @dataclass

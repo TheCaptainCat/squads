@@ -1,8 +1,8 @@
 /**
- * Maps `sq tree --json` (id/type/title/status/priority/assignee/blocked/badges/children) into
- * `DisplayNode`s. Open/closed/colour state  is derived by joining each node's `status`
- * through the statuses/roles catalogs (`domain/statusRole.ts`) — `sq tree` itself carries no
- * per-node open/closed field any more.
+ * Maps `sq tree --json` (id/type/title/status/priority/assignee/blocked/badges/anchor/
+ * children) into `DisplayNode`s. Open/closed/colour state is derived by joining each node's
+ * `status` through the statuses/roles catalogs (`domain/statusRole.ts`) — `sq tree` itself
+ * carries no per-node open/closed field any more.
  */
 import type { SqTreeNode } from '../types';
 import {
@@ -21,12 +21,22 @@ import {
   type RoleCatalogMap,
   type StatusRoleMap,
 } from './statusRole';
+import { CYCLE_ANCHOR_DESCRIPTION_TAG } from './treeAnchor';
 import { NO_CATEGORIES, type TypeCategoryMap } from './typeCategory';
 import { NO_TYPE_ORDER, sortTypesByOrder, type TypeOrderMap } from './typeOrder';
 
+/** The row's grey secondary line. `blocked` and the cycle-anchor tag are independent states
+ * that can both hold on one node, so each appends rather than replacing — a node that is both
+ * must not have either fact hidden by the other. */
 function describeNode(node: SqTreeNode): string {
-  const base = `${node.status} · ${node.assignee ?? 'unassigned'}`;
-  return node.blocked ? `${base} · blocked` : base;
+  const parts = [`${node.status} · ${node.assignee ?? 'unassigned'}`];
+  if (node.blocked) {
+    parts.push('blocked');
+  }
+  if (node.anchor === true) {
+    parts.push(CYCLE_ANCHOR_DESCRIPTION_TAG);
+  }
+  return parts.join(' · ');
 }
 
 function mapNode(
@@ -39,6 +49,8 @@ function mapNode(
   categoryMap: TypeCategoryMap,
 ): DisplayNode {
   const role = resolveRole(node.status, statusRoles, roleCatalog);
+  // An older `sq` omits the key; absent means the same as `false` (nobody invented this root).
+  const anchor = node.anchor ?? false;
   return {
     id: node.id,
     itemId: node.id,
@@ -51,12 +63,14 @@ function mapNode(
       assignee: node.assignee,
       badges: resolveItemBadges(node.type, node.badges, fieldBindings, badgeVocabulary),
       blocked: node.blocked,
+      anchor,
     }),
     iconId: iconForType(node.type, iconOverrides),
     blocked: node.blocked,
     closed: role?.settled ?? false,
     hidden: role?.hidden ?? false,
     colorIntent: role?.color ?? null,
+    anchor,
     children: node.children
       .filter((child) => !isReservedType(child.type, categoryMap))
       .map((child) =>

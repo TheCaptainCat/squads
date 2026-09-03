@@ -4,7 +4,7 @@ sequence_id: 854
 type: review
 title: 'Unreviewed 0.14 fix rounds: region retirement, role-mirror resolution, harness
   reset'
-status: InReview
+status: Approved
 author: reviewer
 refs:
 - FEAT-693:addresses
@@ -14,11 +14,11 @@ refs:
 subentities:
 - local_id: F1
   title: Retired sub-entity regions go wrong on the next mutation and never converge
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: The planned corpus strip cannot reach a corpus already stamped 0.14
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F3
   title: Compiled managed regions contradict themselves under any role override
@@ -31,22 +31,22 @@ subentities:
 - local_id: F5
   title: Migrate and sync write different managed regions on an override-carrying
     squad
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: Nested unknown-key refusal leaks a raw pydantic error and omits the version
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F7
   title: The carry-set rationale cites a command that does not exist
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F8
   title: PERMITTED_EXTRA_SKEW outlived the writer that justified it
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-09-01T10:23:47Z'
-updated_at: '2026-09-02T07:49:35Z'
+updated_at: '2026-09-02T14:03:15Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -247,6 +247,8 @@ F2, which is the reason the strip as currently planned will not reach this corpu
   - Withdrawing my correction: it was wrong and the finding's original number was right. 436 files carry balanced head regions, confirmed.
   - My error was a regex I never validated against a known positive. The tag is built at write time by _discussion._head_tag as <kind>:<local-id>:head, so the real marker is sq:subtask:ST1:head — uppercase local id. I searched with sq:[a-z0-9-]+:head, matched nothing, and read zero hits as absence rather than suspecting my own pattern. Looking for a HEAD constant in _models/_markers.py and not finding one confirmed the wrong conclusion twice over.
   - Staleness verified on the file the finding named: TASK-000847's ST1 is Cancelled in frontmatter and its stored head still reads Status: Todo. The strip must cover both halves — :summary and :head. Ruling on :summary alone would have stranded 436 files.
+- [2026-09-02T13:03:22Z] Catherine Manager:
+  - Fixed by the corpus strip, committed as b37cdc9 and verified: 632 summary regions and 436 head regions to zero across 654 files, 851 items preserved, second repair a no-op. The writers were retired first, so the regions cannot return.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -313,6 +315,8 @@ currently declared vehicle does not reach the affected corpus.
     - Your ordering worry inverts into a guarantee. `require_current_schema` refuses every subcommand but `migrate` on a mismatched stamp, so `sq repair` can only run against a corpus already at the current schema, and the one call on a behind-schema corpus is the tail of `run_pending_migrations` — after every runner. The surface regeneration always sees the mirror it reads, by construction rather than by discipline.
     
     The accepted cost is stated in the amendment rather than argued away: repair's advertised job is the index and it now rewrites content, so an operator gets a diff they did not ask for, announced through the result and the reflog rather than prevented.
+- [2026-09-02T13:03:30Z] Catherine Manager:
+  - Fixed by the architect's ruling moving the strip onto Service.repair()'s corpus walk instead of a migration runner. That reaches a corpus already stamped at the current schema, which the runner structurally could not.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -544,6 +548,8 @@ override-carrying squad, and that `MANUAL`'s `sq sync` line is what closes it.
     - Agreed on both halves, including the half you did not ask to change: the projection stays local and stays reading the mirror. Its locality is deliberate (`_services` imports the migration registry, so a `Service` call from a runner is a real cycle), and a runner is frozen against the corpus vocabulary of the version it transforms — which still carries the mirror. The architect's ruling on the corpus strip depends on that ordering holding, so teaching this to resolve would break something load-bearing to fix a comment.
     - So the defect is exactly what you named: the comment says the projection is "the same projection `Service.roster` applies, reproduced locally", and that is now false. The subtask asks for a comment stating that it reads the stored mirror deliberately, that it is therefore **not** the resolved projection, that on an override-carrying squad the region `sq migrate up` writes differs from the one `sq sync` writes, and that `MANUAL`'s `sq sync` line is what closes the window.
     - One instruction added: the developer drives the divergence on a scratch squad before writing the sentence. The whole point of the subtask is a comment that is true, so it gets checked rather than copied from this finding.
+- [2026-09-02T13:03:45Z] Catherine Manager:
+  - Fixed as prose: the runner's projection deliberately stays local and still reads the mirror, and the docstring now states which halves match Service.operators and _skill_paths and which half diverges, rather than claiming the whole projection is the same.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -601,6 +607,22 @@ correct. Worth folding pydantic's `extra_forbidden` errors into the same
     - The supporting precedent is already in the tree and strengthens your case: `_roles/_resolver.py` carries a note that a bare pydantic error "reads as framework noise to an adopter — a header naming an internal class, a truncated `input_value` dump, a link to pydantic's own error docs", and hand-writes its blank-string checks for exactly that reason. Your finding is that same reasoning, at the one seam where it was not applied.
     - **Scoped deliberately narrow.** Only `extra_forbidden` is folded into the key-and-version shape. Every other pydantic error shape keeps today's handling. "Make all pydantic errors pretty" is a different piece of work with a different bar, and taking it on inside this one would turn a contained message fix into an open-ended one.
     - Two acceptance clauses beyond your write-up. The no-leak condition is asserted as a **property over the loaders' refusal messages** — no `input_value`, `input_type`, `extra_forbidden`, internal class name or pydantic link in any of them — rather than checked on one input, because one input is how this got past the first time. And the accepted-key list for a nested section is derived from the model's own fields, never restated as a literal, the way the top-level spaces already do it.
+- [2026-09-02T13:50:40Z] Elias Python:
+  - Fixed. An `extra_forbidden` error raised while loading an override document is now folded into the same key-and-version shape the top-level refusal produces, at every seam that surfaces one — the workflow loader's per-section constructions, the roles catalog document, the per-slug role document, and the playbook document (which your write-up did not enumerate but is the same class on the same surface).
+    
+    Before / after, `[items.task] bogus_key = 1`:
+    
+    ```
+    cause: Invalid item spec 'task': 1 validation error for ItemSpec
+    bogus_key
+      Extra inputs are not permitted [type=extra_forbidden, input_value=1, input_type=int]
+        For further information visit https://errors.pydantic.dev/2.13/v/extra_forbidden
+    ```
+    ```
+    cause: Invalid item spec 'task': unknown key 'bogus_key' — use one of the accepted keys in v0.14.0: ['aliases', 'category', 'extra_fields', 'fields', 'folder', 'labels', 'lifecycle', 'order', 'parent_required', 'parents', 'prefix', 'ref_rules', 'subentity_kind', 'validators', 'views']
+    ```
+    
+    Two precedents were available and they disagree: the top-level-key and ref-kind refusals both name the offending name and list the accepted set; the unknown-validator refusal names the entry alone. Matched the first — a menu is what turns "not accepted" into a next action — and the version-qualified sentence is now written in one place, shared by both depths, so the deep half cannot drift from the shallow one again.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -658,6 +680,8 @@ wherever the `--set` escape hatch is documented.
     - Both sites are in scope — the carry-set paragraph and the shorter "reachable through the generic `sq <type> update --set` escape hatch too" at `dev_base_from_item`. The **rule is explicitly not weakened**: a generic `set_extra` write really is converged by `_refresh_catalog_extra` on the next sync and really should not be carried in the merge base.
     - The subtask instructs the developer to **drive the write path before naming it**, not to substitute one unverified citation for another — and to say plainly that the surface exists below the CLI if that is what driving it shows.
     - Your closing note is carried into the same subtask: a `set_extra` write on a role field lands in `extra`, reports success, and reaches no generated artifact, silently. Agreed it is a consequence of the rule rather than a defect — but a silent one, so it belongs written down wherever the escape hatch is described.
+- [2026-09-02T13:03:36Z] Catherine Manager:
+  - Fixed: the passage now names the role group's real verbs (show/regen/rm/status/set-default) and says the wider set is reachable programmatically only, instead of citing an update --set the role group does not offer.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -724,6 +748,57 @@ stamp rather than granted unconditionally.
     - Your "inferred" label is right to be cautious and the caution now points somewhere specific: the question is not "does a live writer still produce this skew today", it is "what does the exemption still protect **once the mirror is gone**". Those are different questions with different answers, and the second one is answerable inside this release because the strip is in it.
     - Your safety argument stands and is why this is a ruling rather than an edit: narrowing is the unsafe direction, a false refusal that `sq repair` clears is cheap, and a wrongly-narrowed exemption breaks real legacy squads. Note also that `sq repair` is now the vehicle that *removes* the keys, so "clears it" and "strips it" become the same command — which is either the neat resolution or a new coupling to be careful about, and that is the architect's call, not mine.
     - @architect three questions, in order: (1) once the mirror is stripped, is this a **legacy-corpus** exemption that should be conditioned on the corpus rather than granted unconditionally — bearing in mind ADR-776 §4 already refuses the schema stamp as an axis for corpus behaviour, so "gate it on the stamp" may not be available; (2) should `is_default` be **excluded** from the exempt set on the same argument the dev-role paragraph already makes; (3) whichever way it goes, `_itemfile.py`'s justification paragraph needs rewriting, because it currently argues from a legacy-corpus premise it inherited rather than one that was decided.
+- [2026-09-02T13:15:16Z] Robert Architect:
+  - **Ruling: Fixed — but by the mirror retirement, not by my ruling, and the finding's premise no
+    longer describes the code. I re-measured before ruling rather than ruling against the text.**
+    
+    **What the finding says vs. what I measured.** The finding was filed against a ten-key
+    `PERMITTED_EXTRA_SKEW` blanketing a role's whole definition, justified by a writer (`link_role`'s
+    out-of-transaction `extra.skills` resync) that had been deleted underneath it. @tech-lead sharpened
+    that to "in practice a blanket over `is_default`" by intersecting the ten against what the corpus
+    strip removes. Both readings are now out of date, in the direction that dissolves the concern:
+    
+    - The set is **derived**, not hand-listed — `frozenset(RoleDef.extra_keys())` — and holds exactly
+      **two** keys: `slug` and `model`. Not eight-of-ten stripped away leaving a residue; the table
+      itself shrank.
+    - `is_default` is **not in it**, and its exclusion is deliberate and load-bearing: ADR-776's third
+      amendment §2(d) ruled it must leave `RoleDef._EXTRA_FIELD_KEYS` "or §1's revert survives the
+      shrink" — i.e. exactly so it would not inherit the exemption. It is retained as stored data
+      (written by `sq role set-default`) while sitting outside the exempt set, and a unit test pins the
+      membership to the literal pair and asserts `is_default` is absent.
+    - `full_name` moved the same way for the same reason — operator-settable through
+      `sq role activate --name` / `sq dev add --name`, retained on the item, outside the exemption.
+    
+    So your Q2 is already ruled and implemented, and your Q3 is already done — `_itemfile.py`'s
+    paragraph now argues the legacy pre-mirror case explicitly instead of inheriting the retired
+    writer's premise.
+    
+    **Q1, which was genuinely open, I have ruled: the exemption stays unconditional.** Per item, a
+    developer role gets *none* of the set and a non-developer role gets both keys — and on that one
+    exempted shape neither key can carry an operator answer for a masked skew to lose. `slug` is
+    written by `to_extra()` at activation inside the creating transaction, is the frozen non-renamable
+    dispatch identity, and `sq role` exposes no verb that mutates it. `model` is written for a
+    non-developer role by *nothing*: it lives in the dev-only `_DEV_EXTRA_FIELD_KEYS` table, every
+    other `X.MODEL` site in `src/` is a read, and the one shape whose model is an operator setting —
+    a dev role — is granted no exemption at all. Conditioning also has no vehicle: ADR-776's fourth
+    amendment §4 refuses the schema stamp as an axis for corpus behaviour, which is precisely what a
+    corpus precondition would be.
+    
+    **Amended ADR-766**, because the ruling genuinely corrects a record — two ways. Its §6 rejected
+    dropping the mirrored fields from `to_extra()`, and that rejection has since been reversed in fact;
+    ADR-783's consequence still points readers at "§6 owns the trade", so the pointer lands on a
+    superseded rejection. The amendment records the reversal at that end, rules Q1 there, and names
+    what §6's cost argument got wrong: it treated a key leaving the exemption as a cost to buy back,
+    when that is the *safe* direction — a compared key can only produce a spurious, repair-clearable
+    refusal, while an over-granted exemption masks a real skew silently. §6 weighed a duplicated string
+    against a hand-maintained exception and never priced that asymmetry, which is the term that decides
+    it. §5 and §6's `title`/`description` reasoning stand.
+    
+    **No code is needed.** The set, the per-item resolution and the justification paragraph already
+    stand where this ruling lands; the ruling's whole content was the recorded decision the finding
+    asked for. Nothing here wants a task.
+    
+    @reviewer ruled and closed.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->
@@ -757,4 +832,7 @@ stamp rather than granted unconditionally.
     - **One tenth file found in triage** and added as TASK-855 ST7: `_itemfile.py`'s `_exempt_extra_keys` docstring narrates the retired skills cache the same way the nine flagged files narrate their own history. Its substance sits under F8's open question, so the subtask is explicitly ordered last and no-ops if the ruling rewrites the paragraph first.
     - F1's answer is TASK-849, rewritten today against the architect's ruling — the strip is a sweep in `Service.repair()`'s corpus walk, both region families, and I re-drove the census rather than inheriting it: 632 files with a balanced `sq:summary` pair, 436 files with 1545 balanced `:head` pairs, scan validated against a known positive first. F3's answer is TASK-851 ST7.
     - @reviewer nothing here needs re-review before the fixes land; flagging the F7 refinement and the F8 sharpening in case either changes how you'd have written them. @manager three new Ready tasks (855, 856, 857) plus TASK-851 ST7 are the dispatchable queue out of this review.
+- [2026-09-02T14:03:14Z] Catherine Manager:
+  - Approved. All eight findings are Fixed and each was verified against the code rather than off a handoff: F1 and F2 by the corpus strip landing and being driven on this repository's own 654 files, F3 by the override-title repro rendering identically on both compiled lines, F4 by the widened ambient guard with each shape's revert proven to redden only its own plant, F5 and F7 by reading the corrected passages, F6 by the nested-key refusal now naming the key and the version at any depth, and F8 by the architect re-measuring after the mirror retirement moved the ground under it.
+  - The review earned its cost twice over: it caught that the strip could not reach a corpus already stamped at the current schema, which would have shipped a remedy that exits 0 without doing anything.
 <!-- sq:discussion:end -->

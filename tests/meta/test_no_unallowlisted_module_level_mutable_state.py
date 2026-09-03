@@ -148,6 +148,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "CATALOG",  # closed per-item validator catalog — definition-time, empty in Phase A
             "SQUAD_GLOBAL_CATALOG",  # closed squad-global validator registry, same status
+            "VALIDATOR_CONTEXT",  # what each catalog member needs from the context — a
+            # definition-time property of the member's own code, same status as CATALOG
         }
     ),
     "src/squads/_tui/_tree.py": frozenset(

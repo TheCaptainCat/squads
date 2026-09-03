@@ -10,7 +10,7 @@ refs:
 description: The reconciler projects a resolved full_name/mission onto the item's
   own title/description; rendering stays generic
 created_at: '2026-08-21T19:44:27Z'
-updated_at: '2026-08-22T10:01:24Z'
+updated_at: '2026-09-02T13:14:46Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -191,6 +191,85 @@ process boundary — and even then leaves `sq search <superseded name>` matching
   title-rename path instead and that test must go red on a moved file.
 - `sq check` clean on a squad carrying a `full_name`-declaring override, both before and after the
   sync that applies it.
+
+## Amendment note — 2026-09-02: §6 is overtaken, and the exemption stays unconditional
+
+§6 ("The `extra` copies stay") rejected dropping the mirrored definition fields from
+`RoleDef.to_extra()`. That rejection has since been reversed by ADR-776's third 2026-09-01
+amendment §2(d), which retired the mirror key by key. This note records the reversal at this end —
+§6 is the clause a reader is sent to, including by ADR-783's consequence "the exemption is
+deliberate and ADR-766 §6 owns the trade" — and rules the question the reversal left open: whether
+`PERMITTED_EXTRA_SKEW` is now a legacy-corpus exemption that should be conditioned on the corpus
+rather than granted unconditionally.
+
+### 1. What §6's cost argument got wrong
+
+§6 blocked the removal on the ground that "a key that leaves the table leaves the exemption", so
+removing a member "means re-adding it by hand as a legacy name the model no longer writes —
+trading a duplicated string for a hand-maintained exception inside the guard".
+
+Nothing was hand-re-added, and nothing needed to be. §6 treated leaving the exemption as a cost to
+be bought back; it is the safe direction. A key that leaves is compared like any other field again,
+and the worst that produces is a spurious refusal on a corpus whose index lags — which `sq repair`
+clears by adopting the file's value, losing nothing. The unsafe direction is the other one: an
+exempted key nothing writes that way masks a genuine skew silently, index-wins. §6 weighed a
+duplicated string against a hand-maintained exception and never priced the asymmetry between those
+two failure modes, which is the term that decides it.
+
+### 2. Measured, before ruling — what the exemption still covers
+
+`PERMITTED_EXTRA_SKEW` is `frozenset(RoleDef.extra_keys())`, derived rather than hand-listed.
+Today that is **two keys: `slug` and `model`**, and per item (`_exempt_extra_keys`) it resolves to:
+
+- a **developer** role — nothing exempt at all;
+- any **other** role — both keys;
+- anything that is not a role item — nothing.
+
+On the one shape that is exempted, neither key carries an operator answer a masked skew could lose:
+
+- **`slug`** is written by `to_extra()` for every role, at activation, inside the transaction that
+  creates the item. It is the dispatch identity, frozen non-renamable (ADR-776's third amendment
+  §2(d), citing ADR-85 §4); `sq role` exposes show, regen, rm, status and set-default and no verb
+  that mutates it. Disk can only lead the index on it through a legacy corpus or a hand edit.
+- **`model`** is not written for a non-developer role by anything. It sits in
+  `RoleDef._DEV_EXTRA_FIELD_KEYS`, a separate table `to_extra()` adds only when `is_dev`; every
+  other `X.MODEL` site in `src/` is a read; and a developer role — the one shape whose `model` *is*
+  an operator setting — receives no exemption at all, so its `model` is compared like any ordinary
+  transaction-guarded field.
+
+The keys whose silent loss would matter are already outside the set, and outside it deliberately:
+`is_default` (operator-settable through `sq role set-default`, whose silent reversion by the next
+sync was a live defect) and `full_name` (operator-settable through `sq role activate --name` /
+`sq dev add --name`). Both are retained as stored data no document answers, and both were kept out
+of `_EXTRA_FIELD_KEYS` precisely so they would not inherit the exemption. Membership is pinned to
+the literal pair by test, against an unreviewed widening, which is the only direction that can
+introduce a masked skew.
+
+### 3. Ruled: no corpus precondition
+
+The exemption stays unconditional. Three reasons, in order of weight:
+
+1. **There is nothing left to gate.** Conditioning exists to stop an exemption masking a live
+   answer. On the exempted shape neither remaining key can hold one, so the grant costs no
+   detection that anything would otherwise get. The finding this rules on was filed against a
+   ten-key set that blanketed a role's whole definition; that set no longer exists.
+2. **No vehicle is available.** ADR-776's fourth amendment §4 refuses the schema stamp as an axis
+   for corpus behaviour, and a corpus precondition is exactly that axis. Gating would have to
+   invent a second one for a two-key residue.
+3. **The legacy case the exemption was narrowed *to* is still real.** A squad last synced by a
+   release predating `_refresh_catalog_extra`'s index mirror holds an index that lags on these
+   keys; comparing them would refuse the very sync that converges them. That is what is left, and
+   it is what `_itemfile.py`'s justification now argues from — no longer the retired `link_role`
+   writer it inherited the argument from.
+
+### 4. What this does not change
+
+No code changes on this ruling: the set, the per-item resolution and the justification paragraph
+already stand where it lands. `sq repair` remains both the vehicle that clears a spurious refusal
+and the one that strips the retired keys; that convergence is a consequence of repair rebuilding
+the index from markdown in both cases, not a new coupling. Everything §6 said about `title` and
+`description` — that they are top-level fields the exemption machinery structurally cannot reach —
+is unaffected and stands; §5 stands entire.
 <!-- sq:body:end -->
 
 ## Discussion

@@ -17,7 +17,7 @@ refs:
 - ADR-777
 - ADR-781
 created_at: '2026-08-22T09:28:29Z'
-updated_at: '2026-09-01T10:41:16Z'
+updated_at: '2026-09-02T13:13:25Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -1129,6 +1129,69 @@ Named rather than mitigated away, because both are real.
   removed from the `Item` before it is added to the rebuilt index — otherwise file and index
   disagree on exactly the key just deleted, and the skew guard is the only thing standing between
   that and a silent divergence.
+
+## Amendment note — 2026-09-02 (fifth): §6's authored-content bullet cites the wrong guard
+
+The fourth amendment's §6 second bullet reads:
+
+> **No authored content is reachable.** Marker regions are sq-managed, no verb writes an arbitrary
+> marker, and `find_markers` is strict, so prose naming a tag inside backticks is not matched.
+
+The final clause is false, and the bullet's conclusion does not rest on it. Both halves are
+corrected here rather than the conclusion being softened to fit the argument that was given.
+
+### 1. Driven: backticks are not the discriminator, the `*` is
+
+Tags below are written without their HTML-comment wrapper, because `reject_markers` refuses this
+body otherwise — which is itself the point. Four probes on strings built at runtime, including a
+control, so a null result cannot be mistaken for a working search:
+
+- control, a bare well-formed `sq:summary` tag: `find_markers` returns `['sq:summary']`;
+- the same tag wrapped in backticks: `['sq:summary']` — **identical**;
+- the `sq:*` form wrapped in backticks: `[]`;
+- the `sq:*` form with no backticks at all: `[]` — **also identical**.
+
+`MARKER_RE` is `<!--\s*(sq:\w[\w:-]*)\s*-->`. Backticks sit outside the match and change nothing
+in either direction. What saves the `sq:*` spelling is that `*` is not in `[\w:-]`. Prose is not a
+category the regex can see; a well-formed tag in prose is matched exactly like one in a region.
+
+### 2. The guard that actually holds the conclusion is `reject_markers`
+
+`reject_markers` (`_services/_base.py:393`) refuses **any** well-formed marker in a body, a comment
+message or a sub-entity title, and every prose input that lands inside a marker-delimited region
+passes through it before any file write — ten call sites across the item body writer, the shared
+section-edit core, both sub-entity body writers, the comment path and the importer's two seams. Its
+own docstring and its refusal message already state the correct mechanism ("an author who does that
+reaches for backticks first, which do not help").
+
+So the conclusion stands, and on a **stronger** guarantee than the one §6 claimed: not "the scan
+cannot see a quoted tag" — it can — but "no sq write path ever lets a well-formed tag into a body
+in the first place". The correct bullet is:
+
+> **No authored content is reachable.** Marker regions are sq-managed, no verb writes an arbitrary
+> marker, and `reject_markers` refuses any well-formed tag on every write path that puts prose in a
+> region, so an authored body cannot contain one to be matched. Quoting is not what saves such
+> prose — `find_markers` matches a well-formed tag inside backticks exactly as it matches a bare
+> one; the `sq:*` spelling escapes because `*` fails the tag's character class.
+
+The rest of §6 is unaffected: the adopter-shaped case still runs the other way and is still a
+feature, the discriminator is still `is_system_skill`, and the cross-version hazard still closes
+itself.
+
+### 3. Why the wrong reason mattered even with the right conclusion
+
+The recorded argument is what the next person reasons from when they widen the frozen list of
+region tags §3 governs. "A quoted tag is not matched" invites the belief that a corpus is safe
+because its authors quoted; it is safe because a guard refused the tag at the door. The two differ
+exactly where the guard does not run — the `adopt` population §1 names, and any hand-edited or
+merge-resolved file — which is the population §6 exists to reason about.
+
+### 4. The same conflation is repeated outside this record
+
+Named because they are the sources a reader checks next, not as scope for this decision:
+`_sections.find_markers`' docstring attributes the exclusion to references "written in prose"
+rather than to the character class, and the project's contributor conventions carry the same
+sentence. Both are narrowly true of their `sq:*` example and misleading about the reason.
 <!-- sq:body:end -->
 
 ## Discussion

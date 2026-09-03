@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildBadgeVocabulary, buildFieldBindings } from '../src/domain/badgeCatalog';
 import { buildRoleCatalogMap, buildStatusRoleMap } from '../src/domain/statusRole';
+import { CYCLE_ANCHOR_DESCRIPTION_TAG, CYCLE_ANCHOR_TOOLTIP_LINE } from '../src/domain/treeAnchor';
 import { distinctTypesInTree, treeNodesToDisplay } from '../src/domain/treeMapping';
 import { buildTypeOrderMap } from '../src/domain/typeOrder';
 import type {
@@ -182,6 +183,88 @@ describe('treeNodesToDisplay', () => {
     expect(node?.blocked).toBe(true);
     expect(node?.description).toBe('Ready · unassigned · blocked');
     expect(node?.tooltip).toContain('Blocked: yes');
+  });
+
+  it('carries the cycle-anchor disclosure into the flag, the description and the tooltip', () => {
+    // The bare `sq tree` roots a cyclic component at one of its members and flags that root as
+    // invented. A row that renders it like any other root asserts a hierarchy nobody wrote, so
+    // the flag has to survive the mapping and reach something a reader actually sees.
+    const anchored: SqTreeNode[] = [
+      {
+        id: 'TASK-1',
+        type: 'task',
+        title: 'A task on a parent cycle',
+        status: 'Ready',
+        priority: null,
+        assignee: null,
+        blocked: false,
+        anchor: true,
+        children: [],
+      },
+    ];
+    const [node] = treeNodesToDisplay(anchored);
+
+    expect(node?.anchor).toBe(true);
+    expect(node?.description).toBe(`Ready · unassigned · ${CYCLE_ANCHOR_DESCRIPTION_TAG}`);
+    expect(node?.tooltip).toContain(CYCLE_ANCHOR_TOOLTIP_LINE);
+  });
+
+  it('combines the anchor tag with blocked rather than replacing it', () => {
+    // The two states are independent on the core side and can both be true on one node; the
+    // description must not let either one hide the other.
+    const anchored: SqTreeNode[] = [
+      {
+        id: 'TASK-1',
+        type: 'task',
+        title: 'A blocked task on a parent cycle',
+        status: 'Ready',
+        priority: null,
+        assignee: null,
+        blocked: true,
+        anchor: true,
+        children: [],
+      },
+    ];
+    const [node] = treeNodesToDisplay(anchored);
+
+    expect(node?.description).toBe(
+      `Ready · unassigned · blocked · ${CYCLE_ANCHOR_DESCRIPTION_TAG}`,
+    );
+    expect(node?.tooltip).toContain('Blocked: yes');
+    expect(node?.tooltip).toContain(CYCLE_ANCHOR_TOOLTIP_LINE);
+  });
+
+  it('renders an ordinary root exactly as before, whether the key is false or absent', () => {
+    // An older `sq` omits the key entirely; a newer one emits `false` on every genuine root.
+    // Both mean "nobody invented this root", and neither may add a word to the row.
+    const explicitlyFalse: SqTreeNode = {
+      id: 'TASK-1',
+      type: 'task',
+      title: 'An ordinary root',
+      status: 'Ready',
+      priority: null,
+      assignee: null,
+      blocked: false,
+      anchor: false,
+      children: [],
+    };
+    const omitted: SqTreeNode = {
+      id: 'TASK-2',
+      type: 'task',
+      title: 'A root from an older sq',
+      status: 'Ready',
+      priority: null,
+      assignee: null,
+      blocked: false,
+      children: [],
+    };
+    const mapped = treeNodesToDisplay([explicitlyFalse, omitted]);
+
+    for (const node of mapped) {
+      expect(node.anchor).toBe(false);
+      expect(node.description).toBe('Ready · unassigned');
+      expect(node.tooltip).not.toContain(CYCLE_ANCHOR_DESCRIPTION_TAG);
+    }
   });
 
   it('includes a badge in the tooltip only when the item carries it (empty badges map -> no lines)', () => {

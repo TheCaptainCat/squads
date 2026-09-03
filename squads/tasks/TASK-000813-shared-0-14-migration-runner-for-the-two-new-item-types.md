@@ -3,7 +3,7 @@ id: TASK-813
 sequence_id: 813
 type: task
 title: Shared 0.14 migration runner for the two new item types
-status: InProgress
+status: Done
 parent: FEAT-693
 author: tech-lead
 assignee: python-dev
@@ -38,7 +38,7 @@ subentities:
   title: Frozen corpus fixture tests/fixtures/corpus/v0_14
   status: Done
 created_at: '2026-08-25T18:12:45Z'
-updated_at: '2026-09-01T08:10:00Z'
+updated_at: '2026-09-02T14:02:09Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -470,4 +470,7 @@ matches the schema number the registry entry stamps.
     new step never runs on our own corpus through the ordinary path. TASK-849 ST5 handles it as a
     deliberate rewind-and-replay of this runner, which is safe because every step it already performs
     is documented and verified idempotent.
+- [2026-09-02T14:02:05Z] Catherine Manager:
+  - Acceptance verified against the code rather than the handoffs: one Migration record at version 0.14.0 with from_schema 0.11 and to_schema 0.14, one runner module _v0_11_to_v0_14.py, SCHEMA_VERSION at 0.14, and the v0_14 corpus fixture present. The three places encoding the number agree.
+  - The strip that this task waited on landed on repair's corpus walk rather than inside the runner, so the shared-runner acceptance holds unchanged: the runner still owns exactly the two new types.
 <!-- sq:discussion:end -->

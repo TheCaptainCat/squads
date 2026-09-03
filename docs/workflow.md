@@ -459,7 +459,8 @@ none.
 Every mutating `sq` command appends one JSON line to `squads/.reflog.jsonl` — an append-only
 **operation log**. The reflog is **advisory**: the index
 (`.squads.json`) and the markdown files remain the source of truth. `sq repair`, `sq check`, and
-every other read path never consult it.
+every other read path never consult it — though a `repair` line is where you read back which item
+files that rebuild rewrote, since `sq repair` reconciles content as well as the index.
 
 ### Line shape
 
@@ -500,8 +501,8 @@ one this guide ships with; your reflog is not corrupt.
 | `retype` | `sq <type> <n> retype …` |
 | `default_role` | `sq role <addr> set-default` |
 | `remove` | `sq <type> <n> remove …` (the `delta` carries the gone-item snapshot) |
-| `repair` | `sq repair`, with or without `--renumber` |
-| `renumber` | `sq renumber` — the distinct verb that shifts a range of sequence numbers |
+| `repair` | `sq repair`, with or without `--renumber` — and the rebuild inside `sq adopt` and `sq migrate up`. `delta.stripped` names every item whose file the rebuild rewrote, `delta.canonicalized` every item whose refs it re-encoded |
+| `renumber` | `sq renumber` — the distinct verb that shifts a range of sequence numbers. `delta.stripped` names every item the shift's own rebuild rewrote, by its **post-shift** id |
 | `migrate` | `sq migrate up`, and `sq migrate repad` (which sets `delta.op` to `repad`) |
 | `rename-type` | `sq migrate rename-type` — **one line per item moved**, not one line for the run |
 | `rename-status` | `sq migrate rename-status` — likewise, one line per item moved |

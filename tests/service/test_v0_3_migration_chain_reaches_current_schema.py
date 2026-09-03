@@ -43,7 +43,7 @@ async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_
     paths_03 = SquadPaths(root=project.root, squad_dir=project.squad_dir, config=cfg)
     svc_03 = Service(paths_03)
 
-    applied = await svc_03.run_pending_migrations()
+    applied = (await svc_03.run_pending_migrations()).applied
     assert [a.from_schema for a in applied] == ["0.3", "0.4", "0.5", "0.7", "0.8", "0.10", "0.11"]
     assert [a.to_schema for a in applied] == ["0.4", "0.5", "0.7", "0.8", "0.10", "0.11", "0.14"]
 

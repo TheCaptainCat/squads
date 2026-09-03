@@ -53,6 +53,15 @@ def _result_json(result: ImportResult, *, dry_run: bool) -> dict[str, Any]:
     happened (the projected pre-pass values are simulated against a throwaway copy and are
     superseded); a dry run or a failed pre-pass reports the pre-pass's own (projected/partial)
     values instead, since nothing was applied.
+
+    ``issues`` is one list with two mutually exclusive fillings, because a run is either
+    refused or applied and never both: pre-pass refusals (``line``/``message``, nothing
+    written) or, once the events were applied, every validator finding on a touched item
+    carrying its own ``level``. ``warnings`` holds the warn-level lines in the human wording,
+    unchanged. ``ok`` is false when the pre-pass refused the file or an applied finding is
+    error-level — a warn-only run fills ``issues`` and stays ``ok``. ``applied`` says which of
+    the two a caller is looking at, and stays **true** alongside an error-level finding,
+    because the write did happen.
     """
     payload = _plan_json(result.plan)
     applied = result.applied
@@ -65,6 +74,10 @@ def _result_json(result: ImportResult, *, dry_run: bool) -> dict[str, Any]:
         payload["op_counts"] = dict(applied.op_counts.counts)
         payload["handle_to_id"] = dict(applied.handle_to_id)
         payload["handle_to_sub"] = {h: list(v) for h, v in applied.handle_to_sub.items()}
+        payload["issues"] = [
+            {"level": f.level, "item": f.item, "message": f.message} for f in applied.findings
+        ]
+        payload["ok"] = not applied.error_findings
     return payload
 
 
@@ -93,10 +106,33 @@ def _print_handle_plan(plan: ImportPlan) -> None:
 
 
 def _print_applied(applied: ImportApplyResult) -> None:
+    """The applied run's findings, error-level first and prefixed by their level the way the
+    integrity check prefixes its own, then the count. Both levels are printed here: a reader
+    has to be able to tell, from this output alone, which lines a gated door would have
+    refused."""
+    for finding in applied.error_findings:
+        common.console.print(
+            f"[red]error:[/red] {common.e(finding.item)}: {common.e(finding.message)}",
+            soft_wrap=True,
+        )
     for warning in applied.warnings:
         common.console.print(f"[yellow]warning:[/yellow] {common.e(warning)}", soft_wrap=True)
     total = sum(applied.op_counts.counts.values())
     common.console.print(f"[green]imported[/green] {total} event(s)")
+
+
+def _exit_on_error_findings(applied: ImportApplyResult | None) -> None:
+    """Exit 3 when an applied run's touched items carry an error-level finding — the code the
+    integrity check already uses for exactly these findings, so the two doors agree.
+
+    Deliberately *not* exit 1: 1 means squads could not do what was asked, which on this door
+    would say nothing was written. Here the transaction committed and the write stands, so the
+    only honest non-zero is the one that means "reported, not refused". ``applied`` is ``None``
+    for a dry run (nothing written, no touched corpus to report on) and after a pre-pass
+    refusal, and neither gains a non-zero path from here.
+    """
+    if applied is not None and applied.error_findings:
+        raise typer.Exit(3)
 
 
 @app.command(name="import")
@@ -132,6 +168,16 @@ async def import_events(
     Attribution has no equivalent silent fallback: an event without its own ``as``, with no
     prior event's to inherit, and no ``--as`` given fails validation naming the missing actor,
     rather than attributing to whatever role this squad happens to be configured to default to.
+
+    Exit codes: 0 when the events applied cleanly, 1 when the pre-pass refused the file and
+    nothing was written, 3 when the events were applied and the integrity catalog reported an
+    error-level issue on an item this import touched — the same 3 ``sq check`` uses for the same
+    findings. Warn-level findings alone still exit 0, and ``--dry-run`` writes nothing, so it
+    never exits 3.
+
+    Exit 3 from this command means applied-and-flagged. The events are on disk. A retry loop
+    keyed on "non-zero means nothing happened" will replay them; branch on ``--json``'s
+    ``applied`` instead, which is true at exit 3 and false at exit 1.
     """
     text = _read_import_text(file)
     svc = common.get_service()
@@ -142,6 +188,7 @@ async def import_events(
         common.print_json_clean(json.dumps(_result_json(result, dry_run=dry_run)))
         if not result.plan.ok:
             raise typer.Exit(1)
+        _exit_on_error_findings(result.applied)
         return
 
     if not result.plan.ok:
@@ -154,3 +201,4 @@ async def import_events(
         common.console.print("[dim]dry run — nothing written[/dim]")
         return
     _print_applied(result.applied)
+    _exit_on_error_findings(result.applied)

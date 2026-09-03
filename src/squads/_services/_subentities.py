@@ -446,26 +446,55 @@ class SubentitiesMixin(ServiceCore):
             },
         )
 
-    def _resolve_add_status(self, kind: str, status: str | None) -> str:
-        """The status a fresh *kind* sub-entity is seeded with: the kind's own initial state
-        when *status* is omitted (unchanged behaviour), else *status* itself — provided it
-        names one of that kind's OWN lifecycle states (creation seeds, it does not transition
-        from a prior state, so this is a membership check, not ``can_transition``). Scoped to
-        the kind's machine, not the spec's global status set, so a status that only exists on
-        a different kind's lifecycle is rejected."""
-        if status is None:
-            return self.spec.subentity_initial(kind)
+    def _require_declared_status(self, kind: str, status: str) -> str:
+        """*status* itself, provided it names one of *kind*'s OWN declared lifecycle states.
+
+        The vocabulary gate both sub-entity status doors share — the seed path (``add-<kind>``)
+        and the transition path (``<kind> <k> update --status``). Scoped to the kind's machine
+        rather than the spec's global status set, so a status that exists only on a different
+        kind's lifecycle is rejected; resolved from the active spec, never a literal list, so a
+        project that redeclares a lifecycle moves this gate with it.
+
+        Membership is not transition: this asks whether the kind declares the value at all,
+        which is why it is unconditional. ``--force`` overrides an illegal *edge* between two
+        declared states (see :meth:`_apply_subentity_status`); it never admits a value the kind
+        does not declare, because a stored non-member is what ``sq check`` reports as an error.
+        """
         valid = self.spec.subentity_workflow(kind).states
         if status not in valid:
             choices = ", ".join(sorted(valid))
             raise SquadsError(f"{status!r} is not a valid {kind} status (one of: {choices})")
         return status
 
+    def _resolve_add_status(self, kind: str, status: str | None) -> str:
+        """The status a fresh *kind* sub-entity is seeded with: the kind's own initial state
+        when *status* is omitted (unchanged behaviour), else *status* itself once
+        :meth:`_require_declared_status` has cleared it (creation seeds, it does not transition
+        from a prior state, so membership is the only question here)."""
+        if status is None:
+            return self.spec.subentity_initial(kind)
+        return self._require_declared_status(kind, status)
+
     def _apply_subentity_status(
         self, kind: str, sub: SubEntity, status: str, *, force: bool
     ) -> None:
+        """Move *sub* to *status*, in two separable gates.
+
+        **Vocabulary**, unconditional: the target must be one of the kind's own declared
+        states. **Transition**, waivable: the edge ``current → status`` must be one the
+        kind's machine permits, unless *force*. That split is what ``--force`` means one
+        layer up as well, where the item ``update`` path applies its delta and then runs the
+        validator engine, so a legal value on an illegal edge passes and an undeclared value
+        does not.
+
+        Ordering the vocabulary gate first is also what keeps a sub-entity already carrying a
+        non-member status recoverable. ``current`` is only read by the transition gate, and
+        ``force`` short-circuits it before the lookup, so forcing such a sub-entity back to a
+        declared state does not depend on its stored origin being a node on the machine.
+        """
         # Defensive str() — status is spec vocabulary (a plain string), no enum involved.
         status = str(status)
+        self._require_declared_status(kind, status)
         current = sub.status
         if (
             not force

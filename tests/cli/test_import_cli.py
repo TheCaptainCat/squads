@@ -94,8 +94,14 @@ async def test_json_shape_on_success(project, invoke, tmp_path):
     assert set(payload["handle_to_id"]) == {"f1"}
     assert payload["handle_to_sub"]["s1"][0] == payload["handle_to_id"]["f1"]
     assert payload["created_ids"] == [payload["handle_to_id"]["f1"]]
-    assert payload["issues"] == []
-    assert isinstance(payload["warnings"], list)
+    # The imported story's body is still the placeholder stub, so the post-commit integrity
+    # pass reports one warn-level finding on it. It rides back in `issues` carrying its level
+    # -- and warn level alone leaves `ok` true and the exit code 0.
+    assert [i["level"] for i in payload["issues"]] == ["warn"]
+    assert payload["issues"][0]["item"] == payload["handle_to_id"]["f1"]
+    assert payload["warnings"] == [
+        f"{payload['issues'][0]['item']}: {payload['issues'][0]['message']}"
+    ]
 
 
 async def test_json_shape_on_failure_no_ansi_and_exit_1(project, invoke, tmp_path):

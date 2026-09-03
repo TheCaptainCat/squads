@@ -131,8 +131,13 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   user/content strings with `_cli._common.e()` when printing to the console or a table.
 - **Time is injectable.** Use `clock.now()` / `clock.iso()` so tests can freeze it
   (`frozen_time` fixture); never call `datetime.now()` directly.
-- **Marker regex is strict.** `_sections.find_markers` only matches well-formed tags so prose like
-  `` `<!-- sq:* -->` `` in role files isn't linted as a real marker.
+- **Marker regex is strict, and position-blind.** `_sections.find_markers` matches every
+  well-formed tag *wherever it sits* — backticks and code fences are outside `MARKER_RE` and
+  neutralise nothing, so a quoted real tag is still matched. Prose like `` `<!-- sq:* -->` ``
+  is safe only because `*` is not in the tag's character class. What keeps authored content free
+  of live markers is `reject_markers` (`_services/_base.py`), which every prose input entering a
+  marker region passes through before a write; don't reason about safety from how a tag was
+  quoted.
 - **User-facing errors** subclass `SquadsError`; the CLI's `@handle_errors` turns them into a clean
   message + exit 1. Raise those, not bare exceptions.
 - **Templates are package data** — adding one means dropping a `.j2` under `_rendering/templates/`;
@@ -357,4 +362,9 @@ The operator may also speak directly to a specialist for live debugging; the spe
   unescaped one in a quoted `-m` is substituted by the shell before `sq` ever runs); mention
   `@role` to notify.
 - Link related items by ID so context travels with the work.
+- **A schema hard-stop is the operator's call.** If `sq` starts refusing every command because
+  this squad's schema does not match the installed package, do not clear it yourself: `sq migrate
+  up` can rewrite every item file in the squad, there is no reverse migration, and once it has run
+  everyone sharing this project needs the newer package. Report the wall and raise the upgrade with
+  the operator.
 <!-- squads:end -->

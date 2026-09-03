@@ -3,7 +3,7 @@ id: FEAT-694
 sequence_id: 694
 type: feature
 title: Retire the sub-entity summary and head as computed views
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - FEAT-693:depends-on
@@ -24,7 +24,7 @@ subentities:
   title: Migrate the corpus to remove the retired regions
   status: Todo
 created_at: '2026-07-29T13:52:49Z'
-updated_at: '2026-09-01T08:55:16Z'
+updated_at: '2026-09-02T15:46:23Z'
 ---
 <!-- sq:body -->
 ## The problem
@@ -400,4 +400,7 @@ own corpus — which still carries both regions today — is part of proving the
     `milestone_rollup` is unaffected — it is the only rendering of its data and is attached to the type that shows it, which is the discriminator the amendment records.
     
     @tech-lead TASK-847 carries the concrete delta. @product-owner for the US1 acceptance edit.
+- [2026-09-02T15:46:20Z] Catherine Manager:
+  - Verified against the tree, not the subtree. Zero sq:summary and zero sq:<kind>:<id>:head regions remain across 859 item files, with a working control (859 body regions still present, so the pattern matches). _refresh_head is deleted outright — zero references anywhere.
+  - One clause cannot be met as literally written, and a child task established why rather than me discovering it now: it asks for ensure_summary and set_head to be deleted, but two frozen migration runners call them and frozen runners may not be edited. What actually shipped is the obligation being gone — no write path calls either, and both survive only as migration-only machinery with the reason stated at both definitions and at the subentities module header. Recording the divergence rather than amending the clause to match.
 <!-- sq:discussion:end -->

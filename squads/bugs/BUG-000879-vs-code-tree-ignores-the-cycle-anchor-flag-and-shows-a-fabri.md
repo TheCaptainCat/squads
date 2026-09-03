@@ -3,7 +3,7 @@ id: BUG-879
 sequence_id: 879
 type: bug
 title: VS Code tree ignores the cycle-anchor flag and shows a fabricated root
-status: Open
+status: Verified
 author: qa
 priority: medium
 severity: medium
@@ -14,7 +14,7 @@ description: The client maps tree JSON through a closed field list, so the ancho
   mark never reaches the display model; the fabricated root renders as an ordinary
   one. Not reachable until the core change lands.
 created_at: '2026-09-02T10:23:06Z'
-updated_at: '2026-09-02T10:24:14Z'
+updated_at: '2026-09-03T07:09:15Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -217,4 +217,90 @@ is a root that is false.
     
     @tech-lead for triage and for routing it to the client's owner; the scope sketch in the body
     is deliberately not a choice of visual treatment.
+- [2026-09-02T13:07:59Z] Olivia Lead:
+  - Triaged. **TASK-885**, typescript-dev, `fixes` this bug and `depends-on` TASK-877.
+    
+    **It stays Draft until 877 lands**, and that is a deliberate call rather than an oversight. The
+    field's name and its JSON semantics are not knowable before the core work settles them, so a dev
+    dispatched now would be coding against an invented key. The canary half cannot be split off and
+    started early either, which is the part worth stating: tightening the key assertion from a
+    superset to an exact set would go red the moment the core emits its tenth key. Both halves land
+    together, after 877, and 885 goes Ready then.
+    
+    The canary is in the task, not behind it — your finding is the reason. A drift test that cannot
+    detect drift is worse than no drift test, because it is being relied on, and someone will
+    already be in that file.
+    
+    Your four-hop trace holds and I did not re-derive it; the scope sketch went into the task
+    roughly as you wrote it, minus the visual treatment, which stays the client owner's call. One
+    addition: the acceptance requires the mermaid path to disclose as well as the sidebar row, since
+    `subtreeNodeLabel` is the second place a reader meets a fabricated root and a fix that covers
+    only the tree view leaves half the surface asserting a root nobody wrote.
+    
+    @typescript-dev TASK-885 is yours; do not start until TASK-877 lands — I will move it to Ready.
+    @qa verification on this one needs the core change in place first.
+- [2026-09-02T15:42:51Z] Mara Tester:
+  - Verified **on the sidebar half**, which is the half the bug is about. Being explicit about what I could and could not drive, since this is TypeScript in another tree.
+    
+    **Could not drive:** the VS Code extension host. No display, and the e2e lane downloads Electron. So I have not seen a rendered sidebar row or a real tooltip in a real window. Everything below is the domain layer and the wire, driven against real output.
+    
+    **Could drive, and did:**
+    
+    **1. A real anchored tree.** Staged a genuine three-item parent cycle in a scratch squad (BUG-21 -> BUG-23 -> BUG-22 -> BUG-21 via frontmatter, then `sq repair` on that scratch squad only). Live `sq tree --json`:
+    
+    - bare form: 21 roots, 23 nodes, key union is the ten including `anchor`; `anchor: true` on **BUG-21 only**.
+    - `anchor` is present on every node, never absent — so the client reads a boolean, never "unknown".
+    
+    **2. The real payload through the client's actual mapping code.** Loaded `src/domain/treeMapping.ts`, `graphDiagrams.ts` and `treeAnchor.ts` through a Vite SSR loader from a script outside `clients/` (nothing in the client tree was created or edited) and fed them the live JSON:
+    
+    ```
+    BUG-21 anchor=true   description: "Open · unassigned · cycle anchor"
+                         tooltip: "BUG-21 (bug)  \nStatus: Open  \nAssignee: unassigned  \nCycle anchor: not a real root; see sq check"
+    BUG-22 anchor=false  description: "Open · unassigned"
+    BUG-23 anchor=false  description: "Open · unassigned"
+    ```
+    
+    The mark reaches both the row description and the tooltip, on the anchor and nowhere else. That is the disclosure the ruling required, on the surface a reader actually meets a fabricated root on.
+    
+    **3. The mermaid unreachability claim — checked, and it holds.** Both legs, independently:
+    
+    - *Wiring:* `buildSubtreeMermaid` has exactly one production call site (`itemPreviewManager.ts:479`), fed from `getTree(..., id)` at line 457 — always an explicit id. The bare form goes only to `treeDataProvider.ts:281` (`root` = `undefined`), which never reaches mermaid.
+    - *Core:* no targeted form sets `anchor` on any node. Drove `sq tree BUG-21/BUG-22/BUG-23 --json` — every cycle member, not just the anchor — plus `--all` on both forms. Anchored nodes: `[]` in every targeted case; `['BUG-21']` only in the bare form.
+    
+    Fed the mermaid builder both trees to show the code itself is right: given the bare tree it emits `BUG-21: Ring 0 (Open) [cycle anchor — not a real root; see sq check]`; given the targeted tree it emits no marker, because there is nothing to mark.
+    
+    So the implementer's disclosure is accurate: **the mermaid half is correct and presently unreachable — defensive, not visible.** The bug is verified on the sidebar half alone, and I am not claiming more than that.
+    
+    **4. The canary tightening — falsified in both directions.** Ran the exact-key helper's semantics against the superset it replaced, on identical inputs:
+    
+    ```
+                                                  OLD superset   NEW exact
+    node with an EXTRA unmodelled key (path_only)    green          RED
+    node MISSING anchor (a stale sq on PATH)         green          RED
+    node carrying anchor (current sq 0.14.0)         green          green
+    ```
+    
+    The old assertion was green on all three — blind in both directions, exactly as the bug body said. Repeated the stale-`sq` check too: `npm run test:canary` against `sq 0.12.1` on PATH turns the tree case red at `assertExactTreeNodeKeys` with `- "anchor"` in the diff; against `sq 0.14.0` it is 23/23 green. (The 0.12.1 run also reds four workflow-catalog cases — pre-existing 0.12/0.14 drift, unrelated to this change.) The four key-set self-tests run without `sq` at all and pass.
+    
+    **Gates:** `npm test` 624/624, `npm run typecheck` exit 0, `npm run test:canary` 23/23 against 0.14.0, `uv run sq check` exit 0. Nothing under `src/`, `tests/`, `docs/` or `clients/` was modified by me.
+    
+    One residual left open by the fix, in a follow-up comment. @manager for the 0.14 sweep.
+- [2026-09-02T15:43:07Z] Mara Tester:
+  - Residual: the fix closed the symptom on the tree node and left the same cause in place on two sibling surfaces of the same file. The implementer flagged this and scoped it out, which I think was right for the task; recording it as a driven finding so it does not evaporate.
+    
+    `test/canary/skewCanary.test.ts` still asserts key sets with `expect.arrayContaining(...)` — the superset shape this bug was filed against — for:
+    
+    - `sq graph --json` nodes (9 keys: id, type, status, priority, assignee, edge_kind, direction, seen, children)
+    - `sq list --json` rows (7 keys: id, labels, refs, path, created_at, updated_at, badges)
+    - `sq workflow types --json` entries, and the badge/collection assertions below them
+    
+    The blindness is the same one, and I drove it above rather than inferring it: a superset assertion is green on an added key **and** on a removed one. So if `sq` grows a field on `graph` or `list` that the client does not model, the test whose whole job is to notice sq/client drift stays green — which is the exact sentence this bug's body was written around, still true for two of the three tree-adjacent surfaces.
+    
+    The tree node was the right one to fix first: it is where the anchor lands, and it is the one with a demonstrated consequence. The other two have no known unmodelled field today, so this is latent rather than live. `assertExactTreeNodeKeys` is already generic over its key list, so closing them is close to a one-line change each plus a named key set.
+    
+    Not filing an item — @manager to decide whether this is worth one, or whether it rides with whoever next touches the canary.
+- [2026-09-03T07:09:15Z] Mara Tester:
+  - Filed as **BUG-896** (low), `related` to this bug and `targets` MILE-867 for 0.15, per op-pierre's ruling. My earlier comment said "not filing" — superseded.
+    
+    The filing carries the old-vs-new table driven through the client's own matcher, and states plainly that the tree half is proven in both directions against a real stale `sq 0.12.1` — so it reads as an unapplied one-line change on two sibling surfaces, not as an open question about the approach.
 <!-- sq:discussion:end -->

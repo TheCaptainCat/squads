@@ -117,3 +117,8 @@ The operator may also speak directly to a specialist for live debugging; the spe
   unescaped one in a quoted `-m` is substituted by the shell before `sq` ever runs); mention
   `@role` to notify.
 - Link related items by ID so context travels with the work.
+- **A schema hard-stop is the operator's call.** If `sq` starts refusing every command because
+  this squad's schema does not match the installed package, do not clear it yourself: `sq migrate
+  up` can rewrite every item file in the squad, there is no reverse migration, and once it has run
+  everyone sharing this project needs the newer package. Report the wall and raise the upgrade with
+  the operator.

@@ -71,7 +71,12 @@ from squads._errors import SquadsError
 # for the playbook's identical stamp obligation, so this follows established precedent rather
 # than opening a new one.
 from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
-from squads._specmerge import Deselection, RawMapping, merge_override
+from squads._specmerge import (
+    Deselection,
+    RawMapping,
+    describe_spec_error,
+    merge_override,
+)
 from squads._workflow._models import (
     ROSTER_TYPES,
     Badge,
@@ -325,7 +330,9 @@ def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
     try:
         return Lifecycle.model_validate(dict(data))
     except Exception as exc:
-        raise SquadsError(f"Invalid lifecycle {name!r}: {exc}") from exc
+        raise SquadsError(
+            f"Invalid lifecycle {name!r}: {describe_spec_error(exc, Lifecycle)}"
+        ) from exc
 
 
 def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -> list[RefRule]:
@@ -343,7 +350,7 @@ def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -
         try:
             rule = RefRule.model_validate(rule_data)
         except Exception as exc:
-            raise SquadsError(f"{ctx} ref_rule[{i}]: {exc}") from exc
+            raise SquadsError(f"{ctx} ref_rule[{i}]: {describe_spec_error(exc, RefRule)}") from exc
         if rule.kind not in declared_kinds:
             raise SquadsError(
                 f"{ctx} ref_rule[{i}]: kind {rule.kind!r} is not one of the declared ref "
@@ -361,7 +368,7 @@ def _parse_fields(raw_fields: Any, ctx: str) -> list[Field]:
         try:
             fields.append(Field.model_validate(field_data))
         except Exception as exc:
-            raise SquadsError(f"{ctx} field[{i}]: {exc}") from exc
+            raise SquadsError(f"{ctx} field[{i}]: {describe_spec_error(exc, Field)}") from exc
     return fields
 
 
@@ -372,7 +379,7 @@ def _parse_badges(raw_badges: Any, ctx: str) -> list[Badge]:
         try:
             badges.append(Badge.model_validate(badge_data))
         except Exception as exc:
-            raise SquadsError(f"{ctx} badge[{i}]: {exc}") from exc
+            raise SquadsError(f"{ctx} badge[{i}]: {describe_spec_error(exc, Badge)}") from exc
     return badges
 
 
@@ -383,7 +390,9 @@ def _parse_collection(code: str, data: dict[str, Any]) -> Collection:
     try:
         return Collection.model_validate(payload)
     except Exception as exc:
-        raise SquadsError(f"Invalid collection {code!r}: {exc}") from exc
+        raise SquadsError(
+            f"Invalid collection {code!r}: {describe_spec_error(exc, Collection)}"
+        ) from exc
 
 
 def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
@@ -391,7 +400,7 @@ def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
     try:
         return RoleSpec.model_validate(data)
     except Exception as exc:
-        raise SquadsError(f"Invalid role {code!r}: {exc}") from exc
+        raise SquadsError(f"Invalid role {code!r}: {describe_spec_error(exc, RoleSpec)}") from exc
 
 
 def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
@@ -400,7 +409,9 @@ def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
     try:
         return RefKindSpec.model_validate(data)
     except Exception as exc:
-        raise SquadsError(f"Invalid ref_kinds entry {code!r}: {exc}") from exc
+        raise SquadsError(
+            f"Invalid ref_kinds entry {code!r}: {describe_spec_error(exc, RefKindSpec)}"
+        ) from exc
 
 
 def _parse_view_fields(raw_fields: Any, ctx: str) -> list[ViewField]:
@@ -413,7 +424,7 @@ def _parse_view_fields(raw_fields: Any, ctx: str) -> list[ViewField]:
         try:
             fields.append(ViewField.model_validate(field_data))
         except Exception as exc:
-            raise SquadsError(f"{ctx} field[{i}]: {exc}") from exc
+            raise SquadsError(f"{ctx} field[{i}]: {describe_spec_error(exc, ViewField)}") from exc
     return fields
 
 
@@ -430,13 +441,13 @@ def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
     try:
         source = ViewSource.model_validate(raw_source)
     except Exception as exc:
-        raise SquadsError(f"Invalid {ctx}.source: {exc}") from exc
+        raise SquadsError(f"Invalid {ctx}.source: {describe_spec_error(exc, ViewSource)}") from exc
     fields = _parse_view_fields(data.get("fields", []), ctx)
     payload: dict[str, Any] = {**data, "source": source, "fields": fields}
     try:
         return ViewSpec.model_validate(payload)
     except Exception as exc:
-        raise SquadsError(f"Invalid view {name!r}: {exc}") from exc
+        raise SquadsError(f"Invalid view {name!r}: {describe_spec_error(exc, ViewSpec)}") from exc
 
 
 def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
@@ -446,7 +457,9 @@ def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
     try:
         return SubentityKindSpec.model_validate(payload)
     except Exception as exc:
-        raise SquadsError(f"Invalid subentity_kinds entry {kind!r}: {exc}") from exc
+        raise SquadsError(
+            f"Invalid subentity_kinds entry {kind!r}: {describe_spec_error(exc, SubentityKindSpec)}"
+        ) from exc
 
 
 def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
@@ -471,7 +484,9 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         try:
             statuses[name] = StatusSpec.model_validate(data)
         except Exception as exc:
-            raise SquadsError(f"Invalid status {name!r}: {exc}") from exc
+            raise SquadsError(
+                f"Invalid status {name!r}: {describe_spec_error(exc, StatusSpec)}"
+            ) from exc
 
     # --- ref_kinds (the declared ref-kind vocabulary) --- parsed before items:
     # ref_rules validation below refuses a rule naming an undeclared kind.
@@ -510,7 +525,9 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         try:
             ts = ItemSpec.model_validate(payload)
         except Exception as exc:
-            raise SquadsError(f"Invalid item spec {name!r}: {exc}") from exc
+            raise SquadsError(
+                f"Invalid item spec {name!r}: {describe_spec_error(exc, ItemSpec)}"
+            ) from exc
         items[name] = ts
         prefix_to_type[ts.prefix] = name
         for alias in ts.aliases:
@@ -558,7 +575,9 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     except SquadsError:
         raise
     except Exception as exc:
-        raise SquadsError(f"Invalid workflow spec: {exc}") from exc
+        raise SquadsError(
+            f"Invalid workflow spec: {describe_spec_error(exc, WorkflowSpec)}"
+        ) from exc
 
     return spec
 

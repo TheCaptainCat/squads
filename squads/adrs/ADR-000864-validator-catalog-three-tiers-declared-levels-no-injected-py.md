@@ -13,7 +13,7 @@ refs:
 description: What a complete validator catalog looks like, which members are floor
   vs opt-in, and why adopter-supplied Python should not be built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-09-01T15:26:54Z'
+updated_at: '2026-09-02T13:17:32Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -411,6 +411,93 @@ hold against the position above.
 The counter to the counter, stated so the next reader can weigh both: the templates are the
 precedent that cuts the other way. They are open, and they are also the one place an adopter's
 content already executes in-process without anyone having decided that on purpose.
+
+## Correction — 2026-09-02: the gate clause was labelled (read) and is not a reading
+
+Part 1's "the dimension the catalog does not have" opens:
+
+> Each validator hardcodes its own level. Error-level findings fail the gate and abort a create
+> or update; warn-level ones are advisory everywhere (read).
+
+The `(read)` label claims I checked this against the code. The second half is true. The first half
+is not, and this section replaces it and rules the question it left open.
+
+### 1. What is actually true
+
+`ValidatorEngine.gate()` aborts on the first error-level finding produced by **the subset of the
+catalog it can run** — and that subset is bounded by the context the gate holds, which is not the
+context `sq check` holds. Two fields are deliberately withheld on the gate path: `type_present` is
+empty, and `raw_text` is `None`.
+
+The withholding is documented on the premise that "every catalog validator that reads it is
+warn-level, so its absence cannot change a gate decision". For `type_present` that premise holds —
+`ref_rule_target_present` is warn-level, checked. For `raw_text` it does not: three catalog members
+read `ctx.raw_text`, and while `subentity_body_written` and `no_status_banner` are warn,
+`subentity_container_marker` returns an **error**. It therefore fails no gate on any door, and it
+does not fail it by decision — it fails it because a `None` sentinel makes the member return `[]`
+before it can look at anything.
+
+So the corrected clause is:
+
+> Each validator hardcodes one `level`, and that single field is doing two jobs: how loud `sq check`
+> is, and whether the finding can abort a write. The gate aborts on the first error-level finding
+> among the members it can run, which is not the whole catalog — a member needing context the gate
+> does not hold (the item's on-disk text; a full-index scan) does not participate there. An adopter
+> can select a validator but cannot say how much they mean it, and cannot see which plane it acts on.
+
+### 2. Ruled: the gate is not widened
+
+Refused: handing `gate()` the real raw text so the member runs on the gated doors. Three reasons,
+the first of which is structural and on its own decisive.
+
+**The create door has no text to hand it.** A create builds the `Item` in memory and gates it
+*before* the markdown is rendered and written (read: `_services/_base.py:812-821` — `db.add(item)`,
+then `gate`, with the file written after). There is no on-disk text for a file that does not exist,
+and a freshly rendered file carries the currently-declared plural by construction, so there is
+nothing for the member to find. A widened gate would therefore be an *update-door* gate: one
+catalog member acting on some gated doors and not others. That is a weaker and less inspectable
+invariant than the one it replaces, and it is exactly the shape this record's own acceptance
+forbids — a catalog-wide property with no mechanism behind it.
+
+**The condition is not a property of the mutation.** `subentity_container_marker` reports the
+corpus disagreeing with the spec after `subentity_kinds.<kind>.plural` was renamed over existing
+items. No create or update causes it and none can cure it; the remedy the message itself names is a
+spec action — revert the plural in the workflow override, or change it only while no items of that
+type exist. Gating on it refuses an operator on a path where the remedy does not lie, and refuses
+them on *every* item of the type at once, for a defect none of those items has.
+
+**It strands a corpus.** Items already on disk in that condition would begin failing ordinary
+updates — the same cliff this record names as the reason `requires_parent` stays unbundled ("turning
+it on would error on every parentless item already on disk"), and the same stranding shape the
+sub-entity force defect had to be fixed to avoid. An alignment report is the least urgent thing in
+the tool to block a title edit on.
+
+### 3. Ruled: the member keeps `error`, and the correction is not a demotion
+
+Refused equally: demoting `subentity_container_marker` to `warn` so the withheld-context premise
+becomes true. That is repairing a false statement by weakening a correct one. The condition it
+reports half-bricks a corpus — `add-<kind>` fails while sub-entity body writes keep succeeding, so
+both surfaces look fine — and `sq check` exiting 3 on it is the right volume. Its own docstring
+already establishes that `sq check` is the only plane that can see it at all: the field leaves no
+witness in the index, so neither the loader's cross-check nor `sq workflow lint` can reach it.
+
+What is wrong is not the level. It is that one field carries report severity *and* gate
+participation, so the only way to express "loud in the report, not a write-blocker" is to lie in one
+of the two places. This is the same missing dimension Part 1 already identifies, seen from its other
+side: that section asked for a level an adopter can dial, and this asks for the plane a member acts
+on to be declared rather than inferred from which context the caller happened to pass.
+
+### 4. What this obliges
+
+Non-participation must stop being an accident of a sentinel and become a declared, checked property:
+the catalog states the context each member requires, the gate builds its set from the context it
+actually holds, and an assertion over the catalog enforces the correspondence — so a future
+error-level member that reads the item's text cannot fall into this same blind spot silently, and no
+comment asserts a catalog-wide property that nothing verifies. The engine's own docstring loses the
+false premise in the same change.
+
+The `type_present` half needs nothing. It is sound today and its soundness becomes checked rather
+than asserted by the same mechanism.
 <!-- sq:body:end -->
 
 ## Discussion

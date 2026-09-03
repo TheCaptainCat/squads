@@ -5,7 +5,7 @@ from textual.widgets import Tree
 from textual.widgets.tree import TreeNode as UiTreeNode
 
 from squads._models._item import Item
-from squads._services._results import TreeNode
+from squads._services._results import TREE_ANCHOR_MARKER, TreeNode
 from squads._workflow import WorkflowSpec
 
 _WORK_GROUP = "Work"
@@ -40,7 +40,7 @@ def _status_style(status: str, spec: WorkflowSpec) -> str:
     return _ROLE_STYLES.get(intent, _ROLE_STYLES["neutral"])
 
 
-def _label(item: Item, *, path_only: bool, spec: WorkflowSpec) -> Text:
+def _label(item: Item, *, path_only: bool, anchor: bool, spec: WorkflowSpec) -> Text:
     # Built from styled spans, not a markup string — immune to bracket sequences in the
     # title/status regardless of which parser (Rich's or Textual's) ends up reading it.
     text = Text.assemble(
@@ -52,11 +52,15 @@ def _label(item: Item, *, path_only: bool, spec: WorkflowSpec) -> Text:
     )
     if path_only or spec.hidden_by_default(item.type, item.status):
         text.stylize("dim")
+    # This browser roots at the bare forest, so it receives the invented roots too — appended
+    # after the dim so the disclosure stays legible on a path-only or hidden-by-default node.
+    if anchor:
+        text.append(f"  {TREE_ANCHOR_MARKER}", style="yellow")
     return text
 
 
 def _attach(parent: UiTreeNode[str], node: TreeNode, spec: WorkflowSpec) -> None:
-    label = _label(node.item, path_only=node.path_only, spec=spec)
+    label = _label(node.item, path_only=node.path_only, anchor=node.anchor, spec=spec)
     if node.children:
         branch = parent.add(label, node.item.id, expand=True)
         for child in node.children:

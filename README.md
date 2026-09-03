@@ -335,7 +335,7 @@ discussion — all written through commands.
 
 **Maintenance**
 - `sq check` — lint markers, dangling parent/ref IDs, invalid status, index drift
-- `sq repair [--renumber]` — rebuild the index from frontmatter; `--renumber` resolves merged ID collisions
+- `sq repair [--renumber]` — rebuild the index from frontmatter, **and rewrite item files** on the same pass: it removes what squads now computes on every read and canonicalises legacy ref encodings, so run it on a clean working tree. `--renumber` also resolves merged ID collisions. `sq adopt`, `sq renumber` and the rebuild ending `sq migrate up` reach the same sweep — [what it writes](docs/faq.md#does-sq-repair-change-my-files)
 - `sq renumber --onto N | --by N` — shift this branch's IDs clear of another branch's range before a merge
 - `sq reflog [--item|--actor|--op|--since|--tail|--tree] [--json]` — the chronological log of every mutating `sq` command
 
@@ -418,3 +418,8 @@ Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/` (the po
 skill). `squads/.gitignore` already excludes the lock/temp files. On a merge conflict in
 `.squads.json`, take either side and run `sq repair` (the frontmatter is the truth);
 if two branches reused an ID number, run `sq repair --renumber`.
+
+**Commit the merge resolution first.** Both of those rewrite item files as well as the index, and
+neither can separate its changes from yours — so land the merge, then run `sq repair` on a clean
+tree and review its diff on its own. See
+[docs/faq.md](docs/faq.md#does-sq-repair-change-my-files) for what it writes.

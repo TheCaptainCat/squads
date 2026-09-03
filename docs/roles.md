@@ -81,6 +81,13 @@ role that isn't live, and designating the role that already holds it is a report
 is also the way back if a squad has lost its default-role line to a retirement — reactivating
 the previous holder is the only other recovery.
 
+Both listings report the designation, but only `sq role list` can *mark* every holder: a developer
+role has a roster entry and no catalog row, so `sq role catalog` leaves every row unmarked when one
+holds it. The plain catalog names that holder in a footer, and `sq role catalog --json` carries it
+as `default_role` — the holder's slug whether or not it is one of the rows, `null` when no live role
+holds it — alongside `default_role_source`, which is `roster` for the active squad's designation and
+`catalog` for the bundled document's own declaration, the answer you get outside a squad.
+
 ### Custom non-dev roles
 
 Beyond the bundled roster and stack-specific developers, you can define a wholly custom, non-dev

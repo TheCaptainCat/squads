@@ -86,6 +86,45 @@ function flattenTree(roots: readonly SqTreeNode[]): SqTreeNode[] {
   return out;
 }
 
+/**
+ * Every key one `sq tree --json` node carries, as an exact set rather than a floor.
+ *
+ * A superset assertion (`expect.arrayContaining`) cannot fail on an added key, which makes it
+ * useless for the one thing this suite exists to notice: `sq` growing a field the client does
+ * not model. A field the client cannot see is not inert — the cycle-anchor flag is the worked
+ * example, a root `sq` invented rather than found, which a client that drops it renders as a
+ * root somebody wrote. So the set is exact in both directions, and each direction means
+ * something specific when it goes red:
+ *
+ * - an EXTRA key: `sq` emits something the client does not read. Model it (or decide, in
+ *   writing, that ignoring it is correct) and add it here.
+ * - a MISSING key: `sq` stopped emitting something the client reads, OR — far more often — the
+ *   `sq` this suite found on PATH is older than the one being developed against. Check
+ *   `sq --version` before believing it, per this file's header.
+ *
+ * `badges` and `anchor` are optional in the client's own `SqTreeNode` (an older `sq` omits
+ * them, and the runtime guard tolerates that rather than rejecting the payload). They are
+ * required *here* on purpose: this layer's job is to describe what the current `sq` actually
+ * emits, not what the client can survive.
+ */
+const TREE_NODE_KEYS = [
+  'id',
+  'type',
+  'title',
+  'status',
+  'priority',
+  'assignee',
+  'blocked',
+  'badges',
+  'anchor',
+  'children',
+] as const;
+
+/** Sorted on both sides: key ORDER is not part of the JSON contract, only the key set is. */
+function assertExactTreeNodeKeys(node: object): void {
+  expect([...Object.keys(node)].sort()).toEqual([...TREE_NODE_KEYS].sort());
+}
+
 /** Same idea as `flattenTree`, for the single-root `sq graph --json` shape. */
 function flattenGraph(root: SqGraphNode): SqGraphNode[] {
   const out: SqGraphNode[] = [];
@@ -106,6 +145,59 @@ function assertCleanMarkdownDossier(text: string): void {
   expect(text).not.toMatch(/[─│┌┐└┘├┤┬┴┼╭╮╰╯═║]/);
   expect(text).not.toMatch(/^=== .+ ===$/m);
 }
+
+/**
+ * The drift detector's own test. It needs no `sq`, so it runs even where the suite above skips:
+ * an assertion nobody has watched fail is an assumption, and this one's whole value is that it
+ * bites on a key set that is merely *different*, not malformed — every node below satisfies the
+ * runtime shape guard, which is exactly why the guard cannot be what catches drift.
+ */
+describe('the tree-node key assertion', () => {
+  const modelled: Record<string, unknown> = {
+    id: 'TASK-1',
+    type: 'task',
+    title: 'A task',
+    status: 'Ready',
+    priority: null,
+    assignee: null,
+    blocked: false,
+    badges: {},
+    anchor: false,
+    children: [],
+  };
+
+  it('accepts exactly the key set the client models', () => {
+    expect(isSqTreeNode(modelled)).toBe(true);
+    expect(() => {
+      assertExactTreeNodeKeys(modelled);
+    }).not.toThrow();
+  });
+
+  it('fails on a key the client does not model — the drift it exists to catch', () => {
+    const withUnmodelledKey = { ...modelled, path_only: false };
+    // The shape guard is happy: unknown keys are ignored, not rejected. Nothing else in the
+    // client would notice this field either, which is the whole problem.
+    expect(isSqTreeNode(withUnmodelledKey)).toBe(true);
+    expect(() => {
+      assertExactTreeNodeKeys(withUnmodelledKey);
+    }).toThrow();
+  });
+
+  it('fails when a modelled key stops being emitted, including the anchor flag', () => {
+    const { anchor: _anchor, ...withoutAnchor } = modelled;
+    expect(isSqTreeNode(withoutAnchor)).toBe(true);
+    expect(() => {
+      assertExactTreeNodeKeys(withoutAnchor);
+    }).toThrow();
+  });
+
+  it('does not care about key order', () => {
+    const reordered = Object.fromEntries([...Object.entries(modelled)].reverse());
+    expect(() => {
+      assertExactTreeNodeKeys(reordered);
+    }).not.toThrow();
+  });
+});
 
 describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fixtures', () => {
   let scratchDir: string;
@@ -165,19 +257,7 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
 
       for (const node of nodes) {
         expect(isSqTreeNode(node)).toBe(true);
-        expect(Object.keys(node)).toEqual(
-          expect.arrayContaining([
-            'id',
-            'type',
-            'title',
-            'status',
-            'priority',
-            'assignee',
-            'blocked',
-            'badges',
-            'children',
-          ]),
-        );
+        assertExactTreeNodeKeys(node);
         // `is_open` no longer exists on any surface — a client re-derives it from the
         // referenced role's `settled`, joined through the statuses/roles catalogs.
         expect(node).not.toHaveProperty('is_open');

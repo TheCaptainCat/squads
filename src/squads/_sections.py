@@ -77,10 +77,31 @@ def has_section(text: str, tag: str) -> bool:
 def find_markers(text: str) -> list[str]:
     """All sq marker tags present (open and close), in file order, for lint/repair.
 
-    Matches only well-formed tags (:data:`MARKER_RE`), so documentation references like
-    ``<!-- sq:* -->`` written in prose are not mistaken for real markers — and *every*
-    well-formed tag, including the mixed-case sub-entity region tags
-    (``sq:finding:F<n>:body``) that make up the bulk of the markers in a real item file.
+    Matches *every* well-formed tag (:data:`MARKER_RE`) **wherever it appears**, including the
+    mixed-case sub-entity region tags (``sq:finding:F<n>:body``) that make up the bulk of the
+    markers in a real item file.
+
+    **Position is irrelevant, and an earlier version of this docstring said otherwise.** It
+    claimed a reference "written in prose" was not mistaken for a real marker. Driven with a
+    control: a bare well-formed tag matches, the identical tag wrapped in backticks matches, and
+    so does one inside a fenced code block — backticks and fences sit outside ``MARKER_RE`` in
+    both directions and neutralise nothing. What makes the documented ``sq:*`` form safe to write
+    in prose is the ``*`` alone, which is not in the tag's character class (word characters, ``:``
+    and ``-``); quoting a *real* tag leaves it fully matched.
+
+    **What keeps authored content free of live markers is a different mechanism**:
+    :func:`~squads._services._base.reject_markers`, which every prose input entering a marker
+    region passes through before any write (ten call sites — item and sub-entity bodies, titles,
+    comment messages, and the importer's equivalents). It refuses marker-shaped text at the door,
+    and its own message says backtick-wrapping does not help.
+
+    The distinction is load-bearing rather than pedantic, and it is why this paragraph is here at
+    all: someone widening the sweep's frozen region-tag list
+    (:func:`~squads._services._maintenance._retired_region_tags`) reasons from the recorded
+    argument. "A quoted tag is not matched" invites the belief that a corpus is safe because its
+    authors quoted; it is safe because a guard refused it at the door. Those two readings agree
+    everywhere the guard runs and diverge exactly where it does not — a corpus adopted from
+    outside squads, whose files never passed through any write path.
     """
     return MARKER_RE.findall(text)
 
