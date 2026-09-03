@@ -1,5 +1,6 @@
 """Whole-squad maintenance: sync managed files, repair/renumber the index, check, migrate."""
 
+import contextlib
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
@@ -10,7 +11,8 @@ from squads import __version__, _aio
 from squads import _actor as actor
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._backends._base import BackendContext
+from squads._backends._base import AgentBackend, BackendContext
+from squads._backends._registry import get_backend
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
@@ -59,7 +61,9 @@ from squads._services._validators import (
     SquadGlobalContext,
     ValidatorEngine,
     backend_entry_candidates,
+    backend_entry_drift,
     backend_entry_missing,
+    backend_entry_path,
     live_roster_slugs,
     not_on_disk,
     on_disk_not_indexed,
@@ -70,6 +74,14 @@ from squads._workflow._models import WorkflowSpec
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
 type _FileRec = tuple[str, Path, str, str, int]
+
+# (live role slugs, live skill slugs, role slug -> Item, skill slug -> Item, role slug ->
+# freshly-resolved preload-skill list) — one loaded index's roster-currency state, built by
+# ``MaintenanceMixin._roster_drift_state`` and shared by the scan and confirm halves of
+# per-entry pointer currency detection.
+type _RosterDriftState = tuple[
+    frozenset[str], frozenset[str], dict[str, Item], dict[str, Item], dict[str, list[str]]
+]
 
 _ROOT_TMP_IGNORE_PATTERN = f"{CONFIG_FILENAME}.*.tmp"
 
@@ -477,8 +489,11 @@ class MaintenanceMixin(ServiceCore):
         declared ``model`` the host's own agent frontmatter cannot express, which the generated
         pointer drops), one per per-entry backend pointer this run found absent and had to
         regenerate (naming the file and the backend — see the loop below; empty on a healthy
-        squad, byte-identical to before this reporting existed), and one per skill body left
-        on disk that no ``SKILL`` item indexes once this run's own seeding is done
+        squad, byte-identical to before this reporting existed), one per per-entry backend
+        pointer this run found present but whose content had drifted from a fresh render and
+        had to regenerate (the same shape, worded "had drifted" rather than "was missing" so an
+        operator can tell the two facts apart), and one per skill body
+        left on disk that no ``SKILL`` item indexes once this run's own seeding is done
         (:meth:`_unindexed_skill_bodies`) — empty for a clean roster, exactly today's
         silent behaviour. Never raises for any of them: this is bulk
         regeneration of derived state, and is itself what an operator reaches for when
@@ -559,6 +574,14 @@ class MaintenanceMixin(ServiceCore):
             for rel_path in backend.managed_entry_paths(entry_ctx)
             if not (self.paths.root / rel_path).exists()
         }
+        # The currency sibling of `missing_before` (the render-and-compare half of pointer
+        # detection): the content of every per-entry pointer that DOES already exist,
+        # captured before the roster loops below (re)write it — so the report after them can
+        # tell "had drifted"
+        # (content changed) apart from "was missing" (`missing_before`, above) rather than
+        # conflating the two under one message. A path in `missing_before` is never a member
+        # here, so the two reports stay mutually exclusive by construction.
+        content_before = await self._entry_content_snapshot(backends, entry_ctx, missing_before)
 
         # Resolved once for the whole sync sweep, not per role.
         default_kind = self.spec.default_ref_kind()
@@ -604,6 +627,13 @@ class MaintenanceMixin(ServiceCore):
         ops = await self.operators()
         for backend in backends:
             await backend.write_managed(ctx_with_skills, roster, ops)
+        # Currency's own report, the sibling of the "was missing" one above: a per-entry
+        # pointer whose content this run's own writes above just changed relative to
+        # `content_before`'s snapshot — distinguishable wording ("had drifted") because "was
+        # missing" and "had drifted" are different facts about a repository. Never doubles
+        # up with the presence report: a path in `missing_before` was
+        # never captured into `content_before` in the first place.
+        skipped += await self._entry_drift_report(backends, entry_ctx, content_before)
         # Reported after write_managed, not before: this is a statement about what the files
         # just written do NOT contain. `roster` is the live set write_managed itself gated on,
         # so the two can never disagree about which guides were dropped.
@@ -647,6 +677,59 @@ class MaintenanceMixin(ServiceCore):
         # Collapse exact duplicates only (order-preserving) — see the docstring above. A
         # second, textually different message about the same item is never touched by this.
         return list(dict.fromkeys(skipped))
+
+    async def _entry_content_snapshot(
+        self,
+        backends: list[AgentBackend],
+        entry_ctx: BackendContext,
+        missing_before: set[tuple[str, str]],
+    ) -> dict[tuple[str, str], str]:
+        """The pre-write half of ``sync``'s currency report, factored out to keep that
+        method's own branch/statement count readable: the content of every live per-entry
+        pointer that already exists (never one in *missing_before* — that path belongs to the
+        presence report instead), read once before this run's roster loops write anything.
+        """
+        snapshot: dict[tuple[str, str], str] = {}
+        for backend in backends:
+            for rel_path in backend.managed_entry_paths(entry_ctx):
+                key = (backend.name, rel_path)
+                if key in missing_before:
+                    continue
+                with contextlib.suppress(OSError):
+                    snapshot[key] = await _aio.read_text(self.paths.root / rel_path)
+        return snapshot
+
+    async def _entry_drift_report(
+        self,
+        backends: list[AgentBackend],
+        entry_ctx: BackendContext,
+        content_before: dict[tuple[str, str], str],
+    ) -> list[str]:
+        """The post-write half of ``sync``'s currency report — the sibling of the "was missing"
+        block, factored out for the same readability reason as
+        :meth:`_entry_content_snapshot`. Compares each snapshotted path's content right now
+        against *content_before*; a changed one means this run's own writes above just fixed a
+        drift, so it is reported "had drifted" rather than "was missing" — the two never
+        overlap, since a path in ``missing_before`` was never captured
+        into *content_before* to begin with.
+        """
+        if not content_before:
+            return []
+        report: list[str] = []
+        for backend in backends:
+            for rel_path in backend.managed_entry_paths(entry_ctx):
+                before = content_before.get((backend.name, rel_path))
+                if before is None:
+                    continue
+                after: str | None = None
+                with contextlib.suppress(OSError):
+                    after = await _aio.read_text(self.paths.root / rel_path)
+                if after is not None and after != before:
+                    report.append(
+                        f"{rel_path}: had drifted — regenerated by this sync "
+                        f"(backend: {backend.name})"
+                    )
+        return report
 
     def _unindexed_skill_bodies(self) -> list[str]:
         """One report line per slug-named skill body file left with no ``SKILL`` item after
@@ -1933,6 +2016,7 @@ class MaintenanceMixin(ServiceCore):
             unparseable_seqs=unparseable_seqs,
             suppress_missing=suppress_missing,
             backend_entry_candidates=backend_entry_candidates(g_ctx),
+            backend_entry_drift_candidates=self._scan_backend_entry_drift(index, on_disk),
         )
         return issues
 
@@ -2016,6 +2100,7 @@ class MaintenanceMixin(ServiceCore):
         unparseable_seqs: frozenset[int] = frozenset(),
         suppress_missing: bool = False,
         backend_entry_candidates: list[tuple[str, str]] | None = None,
+        backend_entry_drift_candidates: list[tuple[str, str, str]] | None = None,
     ) -> list[CheckIssue]:
         """The one confirm round for cross-source claims.
 
@@ -2055,6 +2140,16 @@ class MaintenanceMixin(ServiceCore):
         three, and each pair is re-observed by
         :func:`~squads._services._validators.backend_entry_missing` against the one fresh index
         reload below — never a second reload of its own.
+
+        ``backend_entry_drift_candidates`` is a fifth candidate set, currency's own: ``(backend
+        name, kind, slug)`` triples this round's caller (``check()``) has ALREADY confirmed
+        genuinely drift at scan time (:meth:`_scan_backend_entry_drift`, run against the very
+        *index* this method was handed — never a second load of its own). Unlike the other four
+        candidate sets, whose scan-time detection is cheap (an in-memory comparison or a
+        ``stat``), a drift claim's own detection cost — a render plus a file read per live
+        entry — is already paid before this method is ever called, so re-observing it here
+        again below is solely about the same race window the other four close: a mutation
+        between the scan and this confirm.
         """
         # Resolved once for the whole confirm round — before any scan or confirm — rather
         # than per candidate: a spec declaring the wrong number of default ref kinds must
@@ -2071,7 +2166,11 @@ class MaintenanceMixin(ServiceCore):
         if suppress_missing:
             missing_seqs = set()
         entry_candidates = backend_entry_candidates or []
-        if not (drift_seqs or orphan_seqs or missing_seqs or entry_candidates):
+        entry_drift_candidates = backend_entry_drift_candidates or []
+        anything_to_confirm = (
+            drift_seqs or orphan_seqs or missing_seqs or entry_candidates or entry_drift_candidates
+        )
+        if not anything_to_confirm:
             return []
 
         # fresh=True: this round's whole point is "re-read the index right now" — a
@@ -2104,7 +2203,141 @@ class MaintenanceMixin(ServiceCore):
                 issues.append(issue)
 
         issues += self._confirm_backend_entry_candidates(entry_candidates, fresh_index, on_disk)
+        issues += self._confirm_backend_entry_drift_candidates(
+            entry_drift_candidates, fresh_index, on_disk
+        )
 
+        return issues
+
+    def _roster_drift_state(
+        self, index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
+    ) -> _RosterDriftState:
+        """Everything a per-entry currency comparison needs from one loaded *index*: the live
+        role/skill slug sets, each slug's own ``Item``, and every live role's **freshly
+        resolved** preload-skill list (:meth:`ServiceCore._resolve_role_skills`, run against
+        this same *index* — never the pure system-membership fallback, which would misread a
+        role using a ``scopes``-preloaded skill as permanently drifted). Shared by
+        :meth:`_scan_backend_entry_drift` (against the scan-time index) and
+        :meth:`_confirm_backend_entry_drift_candidates` (against a freshly reloaded one) so the
+        two build this state the identical way, off whichever index each is handed.
+        """
+        g_ctx = SquadGlobalContext(
+            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+        )
+        live_role_slugs, live_skill_slugs = live_roster_slugs(g_ctx)
+        role_items = {
+            it.extra[X.SLUG]: it
+            for it in index.items.values()
+            if it.type == ROSTER_ROLE and X.SLUG in it.extra
+        }
+        skill_items = {
+            it.extra[X.SLUG]: it
+            for it in index.items.values()
+            if it.type == ROSTER_SKILL and X.SLUG in it.extra
+        }
+        role_skills = {
+            slug: self._resolve_role_skills(slug, role_items.get(slug), index)
+            for slug in live_role_slugs
+        }
+        return live_role_slugs, live_skill_slugs, role_items, skill_items, role_skills
+
+    def _scan_backend_entry_drift(
+        self, index: SquadsDB, on_disk: dict[int, tuple[str, Path, dict[str, Any]]]
+    ) -> list[tuple[str, str, str]]:
+        """The scan-time half of currency detection: a full render-and-compare
+        (:func:`~squads._services._validators.backend_entry_drift`) against *index* **exactly
+        as ``check()`` already loaded it — never a second ``store.load()``** — for every live
+        per-entry pointer every active backend declares. Only a genuine mismatch becomes a
+        ``(backend name, kind, slug)`` candidate for the confirm round, mirroring how
+        frontmatter value-skew's own ``drift_seqs`` is built in
+        :meth:`_confirm_cross_source`: a clean board — the overwhelmingly common case — costs
+        this one render-and-compare pass per live entry and nothing more, in particular no
+        second index load and no re-read of any file this pass already read once (see
+        ``tests/service/test_check_confirms_cross_source_claims.py``'s own pin on both).
+
+        A live slug with no rendered path (this backend declares none for it, or this backend
+        has no per-entry role/skill artifact at all — see
+        :meth:`~squads._backends._base.AgentBackend.managed_entry_paths`) is silently skipped:
+        there is nothing to compare. An absent file is skipped too — that is presence's finding
+        (:func:`~squads._services._validators.backend_entry_candidates`), not this one's.
+        """
+        live_role_slugs, live_skill_slugs, role_items, skill_items, role_skills = (
+            self._roster_drift_state(index, on_disk)
+        )
+        candidates: list[tuple[str, str, str]] = []
+        for backend in self._backends():
+            for kind, slugs, items in (
+                ("role", live_role_slugs, role_items),
+                ("skill", live_skill_slugs, skill_items),
+            ):
+                for slug in sorted(slugs):
+                    item = items.get(slug)
+                    if item is None:
+                        continue
+                    rel_path = backend_entry_path(backend, self.paths, kind, slug)
+                    if rel_path is None:
+                        continue
+                    issue = backend_entry_drift(
+                        backend,
+                        kind,
+                        item,
+                        paths=self.paths,
+                        spec=self.spec,
+                        playbook=self.playbook,
+                        role_skills=role_skills,
+                        rel_path=rel_path,
+                    )
+                    if issue is not None:
+                        candidates.append((backend.name, kind, slug))
+        return candidates
+
+    def _confirm_backend_entry_drift_candidates(
+        self,
+        candidates: list[tuple[str, str, str]],
+        fresh_index: SquadsDB,
+        on_disk: dict[int, tuple[str, Path, dict[str, Any]]],
+    ) -> list[CheckIssue]:
+        """The currency half of :meth:`_confirm_cross_source`'s confirm round, factored out for
+        the same readability reason as :meth:`_confirm_backend_entry_candidates`: re-resolves
+        each candidate's live status, item, and (for a role) freshly-resolved preload-skill list
+        against *fresh_index* — never the scan-time state — before handing it to
+        :func:`~squads._services._validators.backend_entry_drift` again.
+
+        A candidate whose slug was retired, or whose item was removed outright, since the scan
+        resolves silently (absent from the fresh live sets, or no item at that slug any more) —
+        the same race presence's own confirm resolves. Empty *candidates* costs nothing beyond
+        the one (potentially empty) roster-state build, mirroring the caller's own
+        empty-candidates short circuit.
+        """
+        if not candidates:
+            return []
+        fresh_role_slugs, fresh_skill_slugs, role_items, skill_items, role_skills = (
+            self._roster_drift_state(fresh_index, on_disk)
+        )
+        issues: list[CheckIssue] = []
+        for backend_name, kind, slug in candidates:
+            live = fresh_role_slugs if kind == "role" else fresh_skill_slugs
+            if slug not in live:
+                continue  # retired since the scan — the same resolution presence's confirm uses
+            item = (role_items if kind == "role" else skill_items).get(slug)
+            if item is None:
+                continue  # removed from the index entirely since the scan
+            backend = get_backend(backend_name)
+            rel_path = backend_entry_path(backend, self.paths, kind, slug)
+            if rel_path is None or not (self.paths.root / rel_path).exists():
+                continue  # gone since the scan — presence's finding, not this one's
+            issue = backend_entry_drift(
+                backend,
+                kind,
+                item,
+                paths=self.paths,
+                spec=self.spec,
+                playbook=self.playbook,
+                role_skills=role_skills,
+                rel_path=rel_path,
+            )
+            if issue is not None:
+                issues.append(issue)
         return issues
 
     def _confirm_backend_entry_candidates(

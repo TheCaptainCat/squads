@@ -55,17 +55,18 @@ async def test_product_owner_body_cites_the_real_add_story_command(svc):
     assert "sq feature <n> add-story" in body
 
 
-async def test_role_body_directs_pulling_memory_and_board_before_starting(svc):
-    """Every role's boot definition carries an always-seen directive to run `sq memory
-    <slug> list` and `sq board list` at the start of a run and apply anything relevant —
-    a live pull, not a rendered section. Exercised against a fresh squad (no memories, no
-    board notices yet) to prove the directive stands regardless of whether either pool
-    has content, since the command is always valid on an empty pool/board."""
+async def test_role_body_no_longer_carries_the_startup_command_set(svc):
+    """The slug-bound startup commands (`sq memory <slug> list`, `sq board list`, `sq mine
+    <slug>`, `sq inbox <slug>`) moved to the agent pointer, which is what an agent actually
+    reads first — the role body is not a second slug-bound copy of the same set. The generic,
+    non-slug-bound form of this protocol still ships once, in CLAUDE.md's managed section."""
     item = await svc.activate_role("qa")
     body = svc.paths.abspath(item.path).read_text(encoding="utf-8")
-    assert "sq memory qa list" in body
-    assert "sq board list" in body
-    assert "apply anything relevant" in body
+    assert "sq memory qa list" not in body
+    assert "sq board list" not in body
+    assert "sq mine qa" not in body
+    assert "sq inbox qa" not in body
+    assert "Operate as **Mara Tester**" in body  # the rest of the working-agreements line stays
 
 
 async def test_sync_regenerates_a_corrupted_role_body_in_place(svc):

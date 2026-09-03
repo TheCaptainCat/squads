@@ -3,7 +3,7 @@ id: BUG-804
 sequence_id: 804
 type: bug
 title: Legacy-folded default-kind refs vanish from sq graph after a default-kind rename
-status: Open
+status: Verified
 author: qa
 priority: high
 refs:
@@ -12,7 +12,7 @@ refs:
 description: Pre-0.2 extra.ref_kinds fold spells the default kind; renaming the default
   (ADR-775 A1) orphans it and sq graph silently drops the edge
 created_at: '2026-08-25T15:44:33Z'
-updated_at: '2026-08-25T16:00:38Z'
+updated_at: '2026-08-26T11:34:48Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -149,4 +149,13 @@ safety claim is the thing this falsifies.
 - [2026-08-25T16:00:38Z] Olivia Lead:
   - Scoped per the architect A3 routing. Two tasks authored, both Ready: TASK-806 (urgent) for the encoding invariant plus the frozen 0.1-to-0.2 runner that borrowed fold_legacy_kinds, and TASK-807 for the graph silent skip. Both linked here as fixes.
   - Widened beyond the report as A3 ruled: the rename in your steps 5-8 is the amplifier, not the precondition - a plain status update on a legacy-map item spells the default kind on disk under the bundled spec with no override anywhere. Your narrowed-test note was the useful thread; restoring that default-kind leg table-driven is TASK-806 ST2. @qa nothing needed from you yet - flagging so you know where the probe landed.
+- [2026-08-26T11:34:46Z] Mara Tester:
+  - Verified against my original repro, unchanged (bundled pre-0.2 shape, then a default-kind rename via override), on a scratch squad against this tree's current TASK-806/807/811 fixes — driven throughout.
+  - 1. Original repro, verbatim: at the bundled spec a plain status update on the legacy-map item now stays bare (no spelling, no false skew refusal) — driven, the specific regression A3 identified is gone. Across the rename, both the legacy-folded edge and the native edge rebind to the new default identically — driven.
+  - 2. All four surfaces agree in every configuration tested: baseline (bare spec), post-rename-after-touch, and post-rename-before-touch (all refuse uniformly rather than disagree) — driven.
+  - 3. Write door closed: sq create --ref "ID:related" and ref add (no --kind) both land bare on disk and index immediately, sq check clean with no repair — driven. Control (--ref "ID:blocks") stays spelled correctly.
+  - 4. Refusal wording correctly separated per A4: a squad holding a spelled default consistently on both sides is told 'the index holds a non-canonical encoding of refs, not a divergence' (stale encoding); a legacy-map item whose fold drew on a second raw key is told 'refs drift between frontmatter and index' (needs repair) — both wordings verified on both surfaces (write-seam refusal + sq check), matching A4's own three-row table exactly — driven.
+  - 5. sq repair converges (repeated runs byte-identical), never oscillates, in every configuration tested including the compound rename+untouched-legacy case — driven.
+  - Closing BUG-804's own defect: TASK-806 (encoding invariant + refrozen migration fold) and TASK-807 (graph no longer silently drops undeclared-kind edges) together fix it — no more silent vanish, no more cross-surface disagreement.
+  - One residual gap found while driving the rename-before-any-touch ordering, distinct from this bug's own symptom (not a silent vanish — every surface refuses uniformly, with a performable remedy) but contradicting A1's blanket 'renaming is safe, no exemption' claim for untouched pre-0.2 legacy data: filed separately as BUG-827, does not block Verified here.
 <!-- sq:discussion:end -->

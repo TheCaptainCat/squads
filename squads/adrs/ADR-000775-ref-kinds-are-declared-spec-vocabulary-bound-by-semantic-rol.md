@@ -15,8 +15,9 @@ refs:
 - ADR-776
 - ADR-777
 - ADR-781
+- BUG-827
 created_at: '2026-08-22T09:28:22Z'
-updated_at: '2026-08-25T18:20:43Z'
+updated_at: '2026-08-26T11:46:17Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -509,6 +510,98 @@ guard sees is the fold it applied to one side, not a change to the file.
 migration `manual` clause would instruct them to run the repair `sq migrate up` had just run on their
 behalf, and a release note would describe a state the upgrade path does not let them reach. The
 message is the notification, which is precisely why it has to be true.
+
+**2026-08-26 — the encoding invariant is enforced rather than tolerated, and §5's refusal is
+bounded to the blast radius this decision's own Context states.** A3 settles where the fold
+normalises and leaves an already-written file uncorrected; A1 states the rename is safe and does
+not say what enforces the encoding that safety rests on. The sequence where those two meet is
+ruled here.
+
+### A5. A non-canonical default-kind encoding is corrected by `sq repair`, and an undeclared kind is never a load failure
+
+Driven on a scratch squad at this tree: a pre-0.2 legacy-mapped item (`refs: [TASK-9]` plus
+`extra.ref_kinds: {TASK-9: related}`) beside a natively bare edge to the same target; `sq repair`,
+`sq check` clean, both edges reading `related` / `default` on every surface. The default kind is
+then renamed `related` to `primary` by override. `sq workflow lint` accepts the rename and — the
+part A1 claims, and it holds — **both** edges relabel to `primary`, with every surface agreeing.
+The claim is true of the corpus as encoded.
+
+What is not true is the corpus's encoding. The legacy map is a second, spelled encoding of the
+same edge, and A1's own invariant already forbids the corpus to hold it: one on-disk encoding per
+edge, the spelled form of the default kind never emitted, a spelled default arriving by hand or
+through import normalising on the next write. A3 then tolerated leaving that file uncorrected. The
+next `sq repair` folds the map against the *live* spec, the recorded `related` no longer equals the
+live default, and the fold emits a spelled, now-undeclared kind into the index — after which §5
+refuses at the load boundary and every ordinary command in the squad stops.
+
+**A1 is restored, not narrowed, on the same ground A3 gave.** The counterexample is not a bare ref.
+Nothing bound to the semantic re-pointed; a second spelling A1 forbids was allowed to persist and
+was then resolved under a spec that no longer declares it. Recording this as "safe only for a
+normalised corpus" would hand the adopter a precondition to remember with no command that checks
+it, and would bless the two-encodings state A3 already ruled the worse standing one. What A1 gains
+instead is the half it was missing: its safety rests on the encoding invariant, so the invariant is
+**enforced by a command the adopter already runs**, not asserted.
+
+**What performs the normalisation: `sq repair` canonicalises the file, not only the index.** A3
+made repair the one path that stores the folded item and declined to write the file back, on the
+ground that "nothing downstream distinguishes the two encodings, because the fold resolves them to
+one kind before any consumer sees either". That ground is withdrawn. After a default-kind rename
+the fold resolves the two encodings to two *different* kinds — the bare ref to the new default, the
+map to the old spelling — which is the whole of the sequence above. The toleration was sound only
+while the default was never renamed, and permitting that rename is what A1 exists for.
+
+So repair writes back every file whose folded frontmatter differs from its raw frontmatter,
+markdown before the index as always, and converges: a second repair is byte-identical. This
+survives the constraint A3 established against a migration step, and for A3's own reason — repair
+is not keyed to a schema version, resolves the default from the live spec by construction, and is
+reachable on every arrival path that stays open (hand edit, merge resolution, import, a third-party
+writer). It is the standing remedy A3 already named; it now finishes the job it was named for.
+
+**§5's refusal is bounded to the write and lint boundary, and is never a load failure.** Measured
+against this decision's own Context — an undeclared kind on an existing edge is a `sq check`
+finding, not a load failure, so the cost of getting the vocabulary wrong is bounded, unlike a
+re-prefixed type whose whole corpus drops out of the on-disk scan — the implemented refusal takes
+the wrong radius. §5 borrowed ADR-696 §5a's terms and took its radius along with them; §5a earns
+that radius because a re-prefixed type makes the corpus vanish from the scan. Nothing vanishes
+here: every item is still found, every edge still readable, and A3 has already ruled that
+`sq graph` traverses an undeclared-kind edge and reports `edge_semantic: null` rather than deleting
+it. The machinery to survive an undeclared kind on read is decided and built; the load-time lock is
+what stops it from ever being exercised.
+
+- **What refuses:** `sq workflow lint`, and any command that would *write* a ref of an undeclared
+  kind.
+- **What keeps running:** every read command; `sq check`, which reports the stale kind as the
+  bounded finding the Context promised; `sq repair`; and the ref-*removal* verb.
+- **Why that is the line.** §5 names two remedies — restore the entry, or remove those refs first —
+  and the instant the refusal fires the second is unperformable: driven, `sq <type> <n> ref remove`
+  is refused by the very refusal that names it. This is general rather than a legacy-map artefact;
+  a natively spelled kind that is dropped locks the squad identically. A refusal may not assert a
+  remedy no command performs, and the guard that already exempts `sq repair` from this cross-check
+  states the principle in its own words: a validation gate that locks out its own recovery path is
+  not a recovery path. Ref kinds are the axis where that gate reaches past its own justification.
+
+**Two corrections to what the adopter is told.**
+
+- The refusal closes by saying `sq workflow lint` is the one command that still runs while it
+  stands. Driven, `sq repair` and `sq check` both run — repair through its documented bypass, check
+  through its documented bundled-spec fallback. A4's rule applies to a refusal's incidental claims
+  as much as to its diagnosis: a reader who runs the two commands the sentence excludes disproves
+  it in one line, and the sentence goes.
+- "Remove those refs first" states an ordering it never completes. The recovery is performable end
+  to end with shipped verbs and no hand-edited file — driven: revert the override edit, `sq repair`,
+  mutate the affected item once so its file is rewritten canonical, re-apply the rename; lint and
+  check both clean, and both edges then read as the new default. Under the clause above no revert
+  is needed at all, because the removal verb is not locked. The message states the sequence instead
+  of gesturing at it, and names `sq repair` as what canonicalises a legacy-map edge — which it may
+  now name, because a command performs it.
+
+**Nothing new is stored, and `_models/` gains no vocabulary.** The correction is a write the
+rebuild already holds the data to make, and the fold keeps its single implementation and its
+resolved-default argument. Folding instead against a frozen historical `related` is rejected on
+A1's own ground: it reinstates in the live load path the literal A1 retired, would have to be
+carved out of §2's `tests/meta` scan by name, and is wrong on the merits — a legacy map is
+reachable at any version, so a project that renames the default while keeping `related` as a
+navigational kind would have such an edge silently re-pointed by it.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -543,4 +636,7 @@ message is the notification, which is precisely why it has to be true.
 - [2026-08-25T18:20:43Z] Robert Architect:
   - A4 corrected in place: its separability test was short by one row and the reasoning behind that row is withdrawn. The tech lead drove three states against the skew site and the legacy extra.ref_kinds row falsifies the raw-equality test - I reproduced it in-process. A4 had reasoned that the map differs raw; the extra key does, but _read_extra pops ref_kinds before the comparison, so extra never reaches the diverging list and only refs does, with its raw value equal to the index because the kind lived in a different key.
   - Corrected rule now in A4: a diverging key is a normalisation difference only when its raw on-disk value equals the index AND the round trip produced that value from that raw key alone. A fold that drew on a second raw key is information-adding and needs repair, and raw equality on the folded key is exactly what makes that case look innocent. _invented_timestamps is the precedent, sharpened - the raw side must be consulted for every input the round trip drew on, not only for the key that ends up diverging. The three-row table is recorded in the decision so the withdrawn reasoning is visibly replaced. Ruled on TASK-811 ST1. @tech-lead
+- [2026-08-26T11:46:17Z] Robert Architect:
+  - Amended in place at its own end (A5), ruling BUG-827. A1 restored rather than narrowed: driven, the rename relabels both a legacy-folded and a native edge to the new default with every surface agreeing - what fails is the corpus holding a second, spelled encoding that A1 itself forbids. A3s toleration of the un-rewritten file is withdrawn, on the disproof of its own stated ground: after a default-kind rename the fold resolves the two encodings to two different kinds. sq repair now canonicalises the file, not only the index - it is not schema-keyed, resolves the default from the live spec, and covers the arrival paths A3 named.
+  - Section 5s refusal is bounded to the write and lint boundary and is never a load failure, measured against this decisions own Context (an undeclared kind is a sq check finding, not a load failure - the bound that justified opening the vocabulary at all). Section 5 borrowed ADR-696 5a terms and its blast radius with them; 5a earns that radius because a re-prefixed corpus vanishes from the scan, and nothing vanishes here. Driven: the load-time lock makes section 5s own second remedy unperformable, generally, not just for legacy data.
 <!-- sq:discussion:end -->

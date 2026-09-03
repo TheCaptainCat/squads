@@ -100,7 +100,14 @@ def _convention_name(item_id: str, padding: int) -> str:
 
 
 async def _rewrite_pointer(paths: SquadPaths, new_body_rel: str) -> None:
-    """Rewrite the ``.claude/skills/sq-memory/SKILL.md`` pointer to reference *new_body_rel*."""
+    """Rewrite the ``.claude/skills/sq-memory/SKILL.md`` pointer to today's shape.
+
+    ``new_body_rel`` is kept as a parameter for call-site compatibility with the callers below,
+    which still track the renamed body's location for their own frontmatter/index work, but the
+    pointer itself no longer names a path — a migration runner is frozen against the corpus
+    vocabulary of the schema version it transforms, never against a regenerable artifact like
+    this pointer, so it renders today's template rather than pinning a historical copy.
+    """
     pointer = paths.root / _CLAUDE_DIR / _SKILLS / _SLUG / _SKILL_FILE
     if not pointer.parent.is_dir():
         return  # no .claude dir — nothing to rewrite
@@ -110,7 +117,6 @@ async def _rewrite_pointer(paths: SquadPaths, new_body_rel: str) -> None:
             "claude/pointer_skill.md.j2",
             slug=_SLUG,
             description=oneline(_DESCRIPTION),
-            squad_path=new_body_rel,
         ),
     )
 

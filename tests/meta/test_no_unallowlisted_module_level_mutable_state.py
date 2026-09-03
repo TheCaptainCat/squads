@@ -52,6 +52,10 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     "src/squads/_backends/_claude_code/_frontmatter.py": frozenset(
         {"_VALID_MODELS"}  # fixed vocab of valid model names
     ),
+    "src/squads/_backends/_claude_code/_backend.py": frozenset(
+        # fixed startup-command template set every agent pointer renders slug-substituted
+        {"_STARTUP_COMMAND_TEMPLATES"}
+    ),
     "src/squads/_workflow/__init__.py": frozenset(
         {
             "__all__",

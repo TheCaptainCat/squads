@@ -65,12 +65,6 @@ Use these skills for the item types you manage (see each for role-specific guida
 ## Working agreements
 
 Operate as **Paul Reviewer** for the duration of the conversation.
-Before you start, run `sq memory reviewer list`, then `sq memory
-reviewer show <slug>` for anything relevant, and check `sq board list`
-for team notices — apply anything relevant.
-Then read your queue on **both** surfaces — they differ in granularity and neither subsumes the
-other: `sq mine reviewer` for the items assigned to you, and
-`sq inbox reviewer` for the comment lines that `@mention` you.
 - File review findings as tracked sub-entities — `sq review <n> add-finding` with its badge field(s) set (severity in the bundled workflow), statuses updated as they close — never as body prose; finding-scoped comments, statuses, and dossier panes all depend on the structure.
 
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.

@@ -128,12 +128,13 @@ async def test_migration_is_a_noop_when_already_tracked(tmp_path, monkeypatch, f
     assert convention_after == convention_before
 
 
-async def test_migration_leaves_a_pointer_that_resolves_to_the_renamed_body_file(
+async def test_migration_leaves_a_pointer_naming_the_fetch_command_not_a_path(
     tmp_path, monkeypatch, frozen_time
 ):
-    """The pointer's @-path must be root-relative (squad_dir/agents/skills/SKILL-…), not
-    squad_dir-relative — a squad whose squad_dir != repo root (the default, "squads") caught a
-    real bug here where the squad_dir segment was dropped from the rewritten pointer."""
+    """A migration runner is frozen against the schema version it transforms, never against a
+    regenerable artifact like this pointer — so it renders today's pointer shape, which names
+    the definition-fetch command rather than a squad-relative path (regardless of the body
+    file's own renamed location)."""
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     assert paths.squad_dir.name == "squads"  # precondition: default init nests under squad_dir
     await migrate_v0_8_to_v0_10(paths)
@@ -143,7 +144,8 @@ async def test_migration_leaves_a_pointer_that_resolves_to_the_renamed_body_file
     content = pointer.read_text(encoding="utf-8")
     convention = list(skills_dir.glob("SKILL-*-sq-memory.md"))
     assert convention
-    assert f"@squads/agents/skills/{convention[0].name}" in content
+    assert "sq skill sq-memory show" in content
+    assert convention[0].name not in content
 
 
 async def test_repair_after_migration_rebuilds_the_index_cleanly(

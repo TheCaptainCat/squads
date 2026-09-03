@@ -3,7 +3,7 @@ id: TASK-802
 sequence_id: 802
 type: task
 title: Rewrite the four pointer templates to name commands
-status: Ready
+status: Done
 parent: FEAT-792
 author: tech-lead
 assignee: python-dev
@@ -34,7 +34,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-08-25T14:42:04Z'
-updated_at: '2026-08-25T15:02:36Z'
+updated_at: '2026-08-26T11:19:09Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -405,4 +405,23 @@ Done when the full gate is clean — `uv run --all-extras pytest`, `pyright`, `r
   - Ruled, ADR-777 amendment B3 (2026-08-25). Yes - an unrendered bundled template is deleted, and these two go. Verified the orphaning myself at 8408390: agents_md/agents_section.md.j2 includes only workflow.md.j2, no Python call site names role_entry.md.j2 or skill_entry.md.j2, and the AGENTS.md backend generate_role_entry/generate_skill_entry write nothing and only unlink a pre-upgrade staging file. Both still carry a hash in all fifteen manifest release entries.
   - The deciding fact is one I drove rather than read: sq override scaffold agents_md/role_entry.md.j2 SUCCEEDS on a fresh squad and writes an override that will never render. That is an override surface with no consumer, which ADR-777 section 1 first promise forbids - an adopter is owed a surface or a stated reason there is none, and silence is neither. Deletion replaces the Squad-file strip rather than following it: spending a manifest revision and a retained blob on a file that renders nothing is the cost the manifest widening makes visible. Retention is undisturbed - past index entries keep naming their revisions.
   - Whose work: not a follow-up. Both are bundled-template changes settled by one manifest regeneration, so the removal belongs to whichever pass regenerates the manifest this release - this one, on the same terms as the four pointer templates. I am not editing this task scope; @tech-lead yours to fold in (extend this task or file a sibling that lands in the same regeneration). If it lands as deletion, the Squad-file strip on those two files is moot and the ADR-781 rule is satisfied vacuously. Whether the backend ABC keeps generate_role_entry/generate_skill_entry at all is a separate question I did not reach.
+- [2026-08-26T11:09:34Z] Elias Python:
+  - All 5 subtasks done. Dropped squad_path from the four templates and its five producers (3 _claude_code/_backend.py render sites; the two _agents_md sites the decision named are already gone). agents_md/role_entry.md.j2 and skill_entry.md.j2 kept (not deleted) per this task's own explicit ground-truth instruction — the architect's later ADR-781 comment ruling deletion was left for tech-lead to fold in, and no task folds it in yet.
+  - Declared _STARTUP_COMMAND_TEMPLATES once in _backends/_claude_code/_backend.py; pointer_agent.md.j2 renders it slug-substituted plus 'sq role <slug> show'; pointer_skill.md.j2 carries only 'sq skill <slug> show' (matches ADR-781 2a: nothing else is in a skill pointer). role.md.j2 lost its own copy of the five commands; claude_section.md.j2 untouched.
+  - CLAUDE.md:107 reworded verbatim to the containment statement; claude_section.md.j2 and the managed region (232-350) untouched.
+  - Manifest regenerated: only the 0.14.0 key moved (5 templates). No version bump, no tag. Ran git fetch --tags + seed_content_store.py --rebuild + gen_template_manifest.py --release-gate clean (orphan-free).
+  - Fixed 8 pre-existing tests asserting the old @-path/squad_path shape (test_claude_code_backend, test_a_skill_body_appearing_after_init, test_greeting_skill_generation, test_memory_skill_generation, test_memory_skill_migration, test_skill_migration x2, test_role_body_content_generation, test_init_then_migrate rewritten to assert fetch-command resolution instead of dangling paths) and allowlisted _STARTUP_COMMAND_TEMPLATES in the mutable-state guard.
+  - Drove it live: sq init on a scratch squad, read .claude/agents/architect.md and .claude/skills/squads/SKILL.md by hand — no filesystem path anywhere, sq role architect show and sq skill squads show both resolve. sq sync on this repo touched exactly the expected surface (10 agent pointers, 11 skill pointers, 9 role bodies, CLAUDE.md invariant 5 only).
+  - Gates clean: pyright, ruff check, ruff format --check, sq check. tests/meta (258) + cli/integration/service/unit (4092 passed, 2 skipped) all green.
+  - Left for the architect/tech-lead: whether/who folds the agents_md/role_entry.md.j2 + skill_entry.md.j2 deletion into a task — not done here per this task's explicit instruction not to delete.
+- [2026-08-26T11:12:27Z] Pierre Chat:
+  - The role definition loads before memory and the board: an agent should know its own job before reading its notebook, the board and its queues. The pointer currently runs the startup set first and fetches the definition after.
+- [2026-08-26T11:16:29Z] Elias Python:
+  - Operator-side resolution of the agents_md orphan-template conflict I flagged: delete, not strip. Verified orphaning myself first (no render call, agents_section.md.j2 includes only workflow.md.j2, no call site names either file) — confirmed reachable-nowhere, then deleted role_entry.md.j2 and skill_entry.md.j2. Fixed the now-stale '26 bundled templates' count to 24 in gen_template_manifest.py and its meta test docstring.
+  - Manifest: 0.14.0 entry went 29 to 27 keys (the two deleted templates dropped from that entry's key set only, no historic version touched). Rebuild dropped the 2 newly-orphaned blobs (89 to 87), release gate clean and orphan-free.
+- [2026-08-26T11:16:30Z] Elias Python:
+  - Reordered pointer_agent.md.j2 per operator ruling: identity, then the definition-fetch command (sq role <slug> show), then the slug-bound startup set — the decision's priority list was misread as a running order. Reworded connective prose ('Load your full role definition' / 'Then, at the start of a run:'). pointer_skill.md.j2 unchanged (fetch command only). claude_section.md.j2 checked and left untouched — its 'Start of a run' section never claimed an order relative to role-definition loading, only its own Impersonation-scenario line does, and that already reads definition-then-act.
+  - Manifest: only the 0.14.0 entry moved (pointer_agent.md.j2's hash). Rebuild dropped 1 newly-orphaned blob (87 to 86 — wait verify), release gate clean and orphan-free.
+- [2026-08-26T11:16:40Z] Elias Python:
+  - Correction to my last comment: the blob count after the reorder's rebuild is 87 (unchanged from the deletion rebuild) — the new reordered pointer_agent.md.j2 blob was inserted (88), then the rebuild dropped the 1 now-orphaned pre-reorder blob, landing back at 87. Release gate: orphan-free, 414 index references over 87 stored blobs.
 <!-- sq:discussion:end -->

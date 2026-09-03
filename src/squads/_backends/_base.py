@@ -121,10 +121,6 @@ class BackendContext:
         """Root-relative forward-slash path (for Artifact paths and backend-owned references)."""
         return os.path.relpath(path, self.root).replace(os.sep, "/")
 
-    def root_relative(self, item: Item) -> str:
-        """Root-relative path to an item's markdown file (for backend-owned file references)."""
-        return self.rel(self.paths.abspath(item.path))
-
     def resolved_skills_for(self, slug: str) -> list[str]:
         """A role's resolved preload-skill list: ``role_skills[slug]`` when populated, else the
         pure system-membership fallback.
@@ -158,6 +154,46 @@ class AgentBackend(ABC):
 
     Generated files stay regenerable and are never migrated (deleting one loses nothing) — the
     warning only makes that fact visible in place; it doesn't change the promise.
+
+    **The five per-host questions.** A generated pointer materialises only what its host needs
+    before an agent can act, plus the commands that fetch the rest — never a local path, never
+    more state than the containment rule below allows. That rule is universal; a host's *answer*
+    to each question is not, so each is phrased for an author who
+    has read only their own host's documentation, with no reading of squads internals required.
+    Both bundled backends answer all five explicitly, at their own definitions — search each
+    backend's module for "Question" to find them:
+
+    1. **Can an agent running under this host execute a command at all?** Whether a runtime
+       fetch can ever substitute for anything this backend materialises. ``_claude_code``
+       answers "yes"; ``_agents_md`` answers "not knowably" — a third value, not a missing one:
+       a host's command-execution capability is declared by whoever builds a backend for it,
+       never assumed here.
+    2. **Which of the values squads projects does this host's configuration have a place for?**
+       The expressible set, generalising ``_VALID_MODELS``/``model_drop_warning``
+       (``_claude_code/_frontmatter.py``) from one field to all of them — a value this host
+       cannot express is reported once, at write time, and dropped, never silently, and never
+       re-validated a second time at storage time. This is backend-local by the same reasoning
+       ``_VALID_MODELS`` already documents: it describes what *this host tool* can express, so a
+       second backend is free to know a different vocabulary.
+    3. **Which of those must be present for this host to find and dispatch an entry at all?**
+       The irreducible set, from the host's own discovery contract — never lifted from Claude
+       Code's ``name``/``description``, the least representative example available.
+    4. **Which of those constrain what the session may do, rather than configure how it runs?**
+       The capability boundary, however the host spells it — :meth:`restriction_fragment`.
+    5. **What would you write for this entry, without writing it?** The pure render —
+       :meth:`render_role_entry`/:meth:`render_skill_entry` — that :meth:`sq check
+       <squads._services._validators.backend_entry_drift>`'s currency comparison consumes,
+       compared only against the path the backend itself declares (invariant 6) so the checker
+       never reaches into a host's directory on its own.
+
+    Questions 4 and 5 need a code seam and get one below, as **non-abstract methods with a
+    working default** (never growing the abstract seven — see :meth:`managed_entry_paths`'s own
+    docstring for the precedent and why). Questions 1-3 are answered in prose at each backend's
+    own definition: nothing downstream branches on them today, so giving them a runtime
+    representation would be a data model with no consumer — exactly what
+    ``tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py`` exists to keep out
+    of a *different* seam. A future backend answers all five when it is built, from its own
+    host's documentation, without re-litigating the rule itself.
     """
 
     name: str
@@ -259,3 +295,52 @@ class AgentBackend(ABC):
         pointer, exactly as if it had none to declare.
         """
         return []
+
+    def restriction_fragment(self, role: RoleDef) -> str | None:
+        """Question 4's per-role answer: the exact substring this backend's rendered role entry
+        carries **when and only when** *role*'s current capability boundary applies, or ``None``
+        when it does not apply right now (or this backend expresses no such boundary at all).
+
+        Pure and synchronous — a function of *role* alone, no ``ctx``, no I/O: the boundary is a
+        property of the role's own declared authority (``role.can_spawn`` today), never of
+        anything already on disk. This is the seam that keys ``sq check``'s currency severity to
+        the containment rule instead of a hard-coded field name
+        (:func:`~squads._services._validators.backend_entry_drift`): a live role whose current
+        fragment is absent from its on-disk pointer is a capability escalation — a stale pointer
+        still granting authority the squad revoked, unrepairable from inside the session it
+        governs — reported at **error**; any other content drift is a **warn**.
+
+        **Not an abstract method**, same rationale as :meth:`managed_entry_paths`: the default
+        (``None``, always) keeps the documented seven-method promise for a third-party backend,
+        and reads as the honest answer for one that expresses no capability boundary at all —
+        never warned at error severity, exactly as if it had none to check.
+        """
+        return None
+
+    def render_role_entry(self, ctx: BackendContext, item: Item, role: RoleDef) -> str | None:
+        """Question 5's role answer: the pure render of what :meth:`generate_role_entry` would
+        write for this role, without writing it — ``None`` when this backend has no per-entry
+        role artifact (see :class:`AgentsMdBackend
+        <squads._backends._agents_md._backend.AgentsMdBackend>`, whose ``generate_role_entry``
+        writes nothing but a legacy-file cleanup).
+
+        Synchronous and side-effect-free by contract: never write, never probe the filesystem —
+        the render is the expectation an :mod:`_services._validators` currency comparison holds
+        the file on disk against, never a value this method or its caller derives *from* that
+        file (the never-read-back guard's direction of authority — item to output, never output
+        to item — is unaffected: every declaration here still comes from *item*/*role*, exactly
+        as :meth:`generate_role_entry` computes them). Compared only against the path this same
+        backend declares (:meth:`managed_entry_paths`, scoped to one slug) — the checker never
+        reaches into a host's directory on its own (invariant 6).
+
+        **Not an abstract method**, same rationale as :meth:`managed_entry_paths`: the default
+        (``None``, always) keeps the documented seven-method promise, and reads as "nothing to
+        compare" for a backend with no per-entry role file — never reported as drifted, exactly
+        as if it declared no per-entry path for one.
+        """
+        return None
+
+    def render_skill_entry(self, ctx: BackendContext, item: Item) -> str | None:
+        """Question 5's skill sibling — see :meth:`render_role_entry` for the full contract.
+        ``None`` by default, same rationale."""
+        return None

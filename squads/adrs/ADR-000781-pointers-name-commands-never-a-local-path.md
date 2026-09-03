@@ -20,7 +20,7 @@ refs:
 - ADR-422
 - BUG-784
 created_at: '2026-08-22T09:44:15Z'
-updated_at: '2026-08-24T18:10:39Z'
+updated_at: '2026-08-26T11:12:29Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -555,4 +555,6 @@ kwarg dead rather than wrong.
   - Detection redesigned for a reader with no baseline, since sq check only helps someone who runs it. Three surfaces split by cost: the unprompted root-callback notice gains PRESENCE (a stat per live entry — it exists today at _cli/_common.py:1128-1140 but keys only on the recorded squads_version, so a clone missing pointers at the current version is told nothing); sq check carries presence AND currency; sq sync must report what it regenerated, because a silent fix tells the operator neither that there was a fault nor that a commit is owed. Presence and currency are two findings over ONE widening, presence first — comparing against an absent file has nothing to compare. BUG-784 is the presence half, linked.
   - Per-host: the ABC asks five questions phrased so an author who has read only their host docs can answer them, question 1 being whether an agent under that host can execute a command at all. That question is what fixes my AGENTS.md asymmetry — I had framed it as capability squads does not know, which under your framing is not a gap to work around but the normal condition for every adopter backend. Now the backend author declares it and the compiled document keeps its prose because its backend answers no, same rule different answer. Irreducible set is per-backend; name/description are Claude Code answers and the least representative example available.
   - One deferral left, narrower: whether a remote squad currency check runs off a cache, needs connectivity, or degrades to cannot-verify. Presence is answerable offline in every mode, so every mode keeps a floor. The bootstrap deferral is closed by the ruling. @op-pierre left Proposed.
+- [2026-08-26T11:12:29Z] Pierre Chat:
+  - Section 2 priority list is about what a pointer keeps when space is contested, not the order an agent runs the commands in. The definition fetch runs first; the startup set follows.
 <!-- sq:discussion:end -->

@@ -516,6 +516,22 @@ Two consequences a backend author should count on:
   `sq sync`; do not edit by hand" notice where a reader actually sees it. Shared helpers wrap a
   managed region so this is consistent rather than reimplemented.
 
+**Two more methods are non-abstract, with a working default**, so they don't count against the
+seven: `restriction_fragment` and `render_role_entry`/`render_skill_entry`. A bundled backend
+overrides them to answer, respectively, which projected value currently constrains the session
+(rather than merely configuring or supplying it) and what it would write for one entry without
+writing it — the seam `sq check`'s currency comparison consumes. A third-party backend written
+against the documented seven still instantiates and simply never participates in that comparison,
+exactly as one that declares no `managed_entry_paths` never participates in the presence check.
+
+**Every host answers the same five questions, in its own terms.** The containment rule above is
+universal; a host's answer to each question is not, so a new backend answers all five from its own
+host's documentation alone: whether an agent under this host can execute a command at all; which
+projected values this host's configuration has a place for; which of those it must have to find
+and dispatch an entry; which of those constrain the session rather than configure it; and what a
+pure render of one entry looks like. See `docs/backends.md` for the full five and both bundled
+backends' worked answers.
+
 squads ships two backends — `claude_code` and `agents_md` — and both satisfy the same conformance
 suite a third-party backend is held to. Backends self-register on import; see
 [backends.md](backends.md) for the registration hook and a worked example.
