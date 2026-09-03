@@ -116,14 +116,19 @@ async def test_a_never_synced_role_override_reports_nothing_before_and_after_syn
 
 
 async def test_a_permanently_exempt_extra_key_is_still_never_reported(svc):
-    """``link_role`` resyncs a role's ``extra.skills`` cache outside any transaction, so disk
-    is permanently ahead of the index on that one key by design (``PERMITTED_EXTRA_SKEW``) —
+    """A role's catalog-shaped ``extra`` field (``RoleDef.extra_keys()``) can sit ahead of the
+    index by design (``PERMITTED_EXTRA_SKEW``) on a squad a pre-mirror release last synced —
     functional proof the exemption still holds under the generalised rule, not a pinned
     literal copy of the set (which the widening must not touch, and does not: this behaviour
-    comes from ``frontmatter_skew`` unmodified)."""
+    comes from ``frontmatter_skew`` unmodified). Constructed directly on disk rather than via
+    a resync writer: the resolved-skills cache this test used to reproduce the shape through
+    (``link_role``) is gone along with the cache itself."""
     role = await svc.activate_role("qa")
-    skill = await svc.add_skill("Review Runbook")
-    await svc.link_role(skill.id, role.id)
+    path = svc.paths.abspath(role.path)
+    fm = read_frontmatter(path=path)
+    extra = dict(fm["extra"])
+    extra["color"] = "magenta"
+    _edit_frontmatter(path, extra=extra)
 
     issues = await svc.check()
     assert not any(i.item == role.id for i in issues), issues

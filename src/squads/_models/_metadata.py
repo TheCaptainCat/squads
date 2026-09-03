@@ -42,7 +42,6 @@ _ROLE_FIELDS: tuple[Field, ...] = (
     Field(X.RESPONSIBILITIES, "list"),
     Field(X.MODEL),
     Field(X.COLOR),
-    Field(X.SKILLS, "list"),
     Field(X.IS_DEFAULT, "bool"),
     Field(X.TECH),  # only meaningful for dev roles, harmless elsewhere
 )

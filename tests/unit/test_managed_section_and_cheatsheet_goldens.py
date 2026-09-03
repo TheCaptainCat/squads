@@ -28,18 +28,24 @@ _UPDATE = os.getenv("UPDATE_GOLDENS") == "1"
 
 #: Same fixed roster (all 8 bundled roles + one python-dev) the pre-existing skill-body and
 #: rendered-output goldens were pinned against — reused read-only.
+#:
+#: Each ``title`` is the role title the resolver actually produces for that slug (the catalog's
+#: own casing, e.g. ``"code reviewer"``), not a display-cased rewrite of it: a ``RoleView``'s
+#: ``title`` is the role title and ``full_name`` is the person's name, so a fixture that
+#: title-cases the former pins bytes no squad ever renders. The shipped ``CLAUDE.md`` in this
+#: repository is the check — its roster line reads ``— code reviewer (`reviewer`)``.
 _PINNED_ROSTER: list[RoleView] = [
-    RoleView(slug="manager", full_name="Catherine Manager", title="Manager", is_default=True),
-    RoleView(slug="architect", full_name="Robert Architect", title="Architect", is_default=False),
-    RoleView(slug="tech-lead", full_name="Olivia Lead", title="Tech lead", is_default=False),
-    RoleView(slug="reviewer", full_name="Paul Reviewer", title="Code reviewer", is_default=False),
+    RoleView(slug="manager", full_name="Catherine Manager", title="manager", is_default=True),
+    RoleView(slug="architect", full_name="Robert Architect", title="architect", is_default=False),
+    RoleView(slug="tech-lead", full_name="Olivia Lead", title="tech lead", is_default=False),
+    RoleView(slug="reviewer", full_name="Paul Reviewer", title="code reviewer", is_default=False),
     RoleView(slug="qa", full_name="Mara Tester", title="QA engineer", is_default=False),
     RoleView(slug="devops", full_name="Hugo Ops", title="DevOps engineer", is_default=False),
     RoleView(
-        slug="product-owner", full_name="Nina Product", title="Product owner", is_default=False
+        slug="product-owner", full_name="Nina Product", title="product owner", is_default=False
     ),
     RoleView(
-        slug="tech-writer", full_name="Theo Writer", title="Technical writer", is_default=False
+        slug="tech-writer", full_name="Theo Writer", title="technical writer", is_default=False
     ),
     RoleView(
         slug="python-dev", full_name="Elias Python", title="Python developer", is_default=False

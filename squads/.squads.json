@@ -1,7 +1,7 @@
 {
   "schema_version": "0.14",
   "squads_version": "0.14.0",
-  "counter": 849,
+  "counter": 857,
   "padding": 6,
   "items": {
     "12": {
@@ -5511,7 +5511,7 @@
       ],
       "path": "features/FEAT-000693-derived-views-with-milestones-as-the-first-consumer.md",
       "created_at": "2026-07-29T13:52:43Z",
-      "updated_at": "2026-09-01T08:04:09Z",
+      "updated_at": "2026-09-01T10:13:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5522,7 +5522,7 @@
       "type": "feature",
       "title": "Retire the sub-entity summary and head as computed views",
       "slug": "retire-the-sub-entity-summary-and-head-as-computed-views",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Retire the materialized sub-entity summary and head regions (and the role Skills section) and reissue all three as computed derived views",
       "parent": null,
       "author": "product-owner",
@@ -5574,7 +5574,7 @@
       ],
       "path": "features/FEAT-000694-retire-the-sub-entity-summary-and-head-as-computed-views.md",
       "created_at": "2026-07-29T13:52:49Z",
-      "updated_at": "2026-09-01T08:09:47Z",
+      "updated_at": "2026-09-01T08:55:16Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24677,7 +24677,7 @@
       "subentities": [],
       "path": "adrs/ADR-000776-derived-views-one-computed-projection-and-no-body-sink.md",
       "created_at": "2026-08-22T09:28:29Z",
-      "updated_at": "2026-09-01T08:11:59Z",
+      "updated_at": "2026-09-01T10:41:16Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24747,7 +24747,7 @@
       "subentities": [],
       "path": "adrs/ADR-000781-pointers-name-commands-never-a-local-path.md",
       "created_at": "2026-08-22T09:44:15Z",
-      "updated_at": "2026-09-01T08:00:04Z",
+      "updated_at": "2026-09-01T08:13:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -34972,7 +34972,7 @@
       "type": "bug",
       "title": "CLI test harness can't see a startup-state bug: fixtures pre-seed the render ContextVar",
       "slug": "cli-test-harness-can-t-see-a-startup-state-bug-fixtures-pre",
-      "status": "Open",
+      "status": "Fixed",
       "description": "project/svc build a Service in-process, leaking the correct active-squad-dir ContextVar into every invoke() call via asyncio.to_thread's context copy — a CLI test passes whether or not the code under test establishes that state itself",
       "parent": null,
       "author": "qa",
@@ -34987,7 +34987,7 @@
       "subentities": [],
       "path": "bugs/BUG-000845-cli-test-harness-can-t-see-a-startup-state-bug-fixtures-pre.md",
       "created_at": "2026-09-01T07:38:33Z",
-      "updated_at": "2026-09-01T08:05:41Z",
+      "updated_at": "2026-09-01T08:12:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -34998,7 +34998,7 @@
       "type": "task",
       "title": "Make the CLI test harness start from a real process's ambient state",
       "slug": "make-the-cli-test-harness-start-from-a-real-process-s-ambien",
-      "status": "InReview",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "tech-lead",
@@ -35049,7 +35049,7 @@
       ],
       "path": "tasks/TASK-000846-make-the-cli-test-harness-start-from-a-real-process-s-ambien.md",
       "created_at": "2026-09-01T07:47:01Z",
-      "updated_at": "2026-09-01T08:10:11Z",
+      "updated_at": "2026-09-01T08:12:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -35060,7 +35060,7 @@
       "type": "task",
       "title": "Retire the sub-entity regions and declare the roll-up view",
       "slug": "retire-the-sub-entity-regions-and-declare-the-roll-up-view",
-      "status": "Ready",
+      "status": "Done",
       "description": "Stop writing the sub-entity summary and head regions, drop them from the bundled templates, and reissue the roll-up as three declared subentity-source views",
       "parent": "FEAT-694",
       "author": "tech-lead",
@@ -35075,7 +35075,7 @@
         {
           "local_id": "ST1",
           "title": "Declare the three sub-entity roll-up views",
-          "status": "Todo",
+          "status": "Cancelled",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -35084,7 +35084,7 @@
         {
           "local_id": "ST2",
           "title": "Presentation templates for the three roll-up views",
-          "status": "Todo",
+          "status": "Cancelled",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -35093,7 +35093,7 @@
         {
           "local_id": "ST3",
           "title": "Drop the region writes from the live sub-entity path",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -35102,7 +35102,7 @@
         {
           "local_id": "ST4",
           "title": "Keep set_head and ensure_summary as migration-only machinery",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -35111,7 +35111,7 @@
         {
           "local_id": "ST5",
           "title": "Remove the regions from the bundled item and block templates",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -35120,7 +35120,7 @@
         {
           "local_id": "ST6",
           "title": "Freeze the five shipped renderings and pin the badge divergence",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -35129,7 +35129,7 @@
         {
           "local_id": "ST7",
           "title": "Regenerate the template manifest and content store",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -35138,7 +35138,7 @@
       ],
       "path": "tasks/TASK-000847-retire-the-sub-entity-regions-and-declare-the-roll-up-view.md",
       "created_at": "2026-09-01T08:02:31Z",
-      "updated_at": "2026-09-01T08:08:45Z",
+      "updated_at": "2026-09-01T09:54:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -35149,7 +35149,7 @@
       "type": "task",
       "title": "Retire the role Skills section and the extra.skills cache",
       "slug": "retire-the-role-skills-section-and-the-extra-skills-cache",
-      "status": "Ready",
+      "status": "Done",
       "description": "Move a role's skills list from the rendered body into the computed show card, delete the extra.skills cache and its writers, and narrow PERMITTED_EXTRA_SKEW",
       "parent": "FEAT-694",
       "author": "tech-lead",
@@ -35164,7 +35164,7 @@
         {
           "local_id": "ST1",
           "title": "Add the computed skills row to the role show card",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -35173,7 +35173,7 @@
         {
           "local_id": "ST2",
           "title": "Remove the Skills block from role.md.j2 and regenerate",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -35182,7 +35182,7 @@
         {
           "local_id": "ST3",
           "title": "Delete the extra.skills cache and its writers",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -35191,7 +35191,7 @@
         {
           "local_id": "ST4",
           "title": "Narrow PERMITTED_EXTRA_SKEW and update its pinning test",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -35200,7 +35200,7 @@
       ],
       "path": "tasks/TASK-000848-retire-the-role-skills-section-and-the-extra-skills-cache.md",
       "created_at": "2026-09-01T08:03:18Z",
-      "updated_at": "2026-09-01T08:08:47Z",
+      "updated_at": "2026-09-01T09:54:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -35209,10 +35209,10 @@
     "849": {
       "sequence_id": 849,
       "type": "task",
-      "title": "Strip the retired regions corpus-wide in the shared 0.14 runner",
-      "slug": "strip-the-retired-regions-corpus-wide-in-the-shared-0-14-run",
+      "title": "Strip the retired regions corpus-wide in the repair sweep",
+      "slug": "strip-the-retired-regions-corpus-wide-in-the-repair-sweep",
       "status": "Ready",
-      "description": "One more deterministic step inside the existing 0.11 to 0.14 runner: remove the summary and head marker regions and the role Skills block from every file already carrying them",
+      "description": "A sweep inside Service.repair()'s corpus walk removes both retired marker region families, every role and system-skill body, and the retired role extra keys — no migration record, no schema change, no version bump",
       "parent": "FEAT-694",
       "author": "tech-lead",
       "assignee": null,
@@ -35223,12 +35223,15 @@
         "ADR-776:implements",
         "TASK-847:depends-on",
         "TASK-848:depends-on",
-        "TASK-813"
+        "TASK-813",
+        "TASK-851:depends-on",
+        "TASK-852:depends-on",
+        "TASK-853:depends-on"
       ],
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Strip the summary and head marker regions corpus-wide",
+          "title": "Strip both retired marker region families in the repair sweep",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -35237,7 +35240,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Strip the role Skills block and skills frontmatter key",
+          "title": "Empty every role body and strip the role extra mirror",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -35246,7 +35249,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Correct the runner docstring, registry summary and MANUAL",
+          "title": "Write the MANUAL section and the changelog announcement",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -35255,7 +35258,7 @@
         },
         {
           "local_id": "ST4",
-          "title": "Prove the step on the frozen corpus fixtures",
+          "title": "Prove the sweep on the fixtures and through the bare verb",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -35270,15 +35273,529 @@
           "severity": null,
           "story": "US4",
           "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Empty every system skill body, keyed on is_system_skill",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Record the ordering prohibition the verb placement satisfies",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
         }
       ],
-      "path": "tasks/TASK-000849-strip-the-retired-regions-corpus-wide-in-the-shared-0-14-run.md",
+      "path": "tasks/TASK-000849-strip-the-retired-regions-corpus-wide-in-the-repair-sweep.md",
       "created_at": "2026-09-01T08:04:14Z",
-      "updated_at": "2026-09-01T08:08:50Z",
+      "updated_at": "2026-09-01T11:20:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-849"
+    },
+    "850": {
+      "sequence_id": 850,
+      "type": "bug",
+      "title": "sq sync silently reverts an operator's sq role set-default on the next run",
+      "slug": "sq-sync-silently-reverts-an-operator-s-sq-role-set-default-o",
+      "status": "Fixed",
+      "description": "set-default writes is_default on both role files; the next sq sync overwrites it back to the catalog default with sq check clean on both sides",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-776"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000850-sq-sync-silently-reverts-an-operator-s-sq-role-set-default-o.md",
+      "created_at": "2026-09-01T08:20:55Z",
+      "updated_at": "2026-09-01T09:54:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-850"
+    },
+    "851": {
+      "sequence_id": 851,
+      "type": "task",
+      "title": "Resolve every role-mirror consumer while the mirror still exists",
+      "slug": "resolve-every-role-mirror-consumer-while-the-mirror-still-ex",
+      "status": "Done",
+      "description": "Every consumer of the role extra mirror resolves through the role catalog while the mirror is still written: separately shippable, no corpus change, no migration",
+      "parent": "FEAT-694",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-776:implements",
+        "TASK-848:depends-on",
+        "BUG-850:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Resolve roster and roster_all through the role resolver",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Carry the operator-settable set in the resolver merge base",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Resolve the four from_extra consumers",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Move the skew discriminator off extra.mission",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Resolve the remaining role-mirror readers",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Prove the managed-file diff is zero, roster held constant",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Resolve the authoring-owner title through the live roster",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000851-resolve-every-role-mirror-consumer-while-the-mirror-still-ex.md",
+      "created_at": "2026-09-01T08:23:20Z",
+      "updated_at": "2026-09-01T12:13:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-851"
+    },
+    "852": {
+      "sequence_id": 852,
+      "type": "task",
+      "title": "Stop storing system skill bodies and render them on read",
+      "slug": "stop-storing-system-skill-bodies-and-render-them-on-read",
+      "status": "Ready",
+      "description": "A template-owned skill item stops storing its rendered body; sq skill show renders it from the same template on every call, keyed on is_system_skill",
+      "parent": "FEAT-694",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-776:implements",
+        "ADR-781:implements",
+        "TASK-853:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Move the skill body render onto ServiceCore",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Stop writing the body; keep the pointer and the empty region",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Render a system skill's body at show time",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Prove a custom skill body is untouched",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000852-stop-storing-system-skill-bodies-and-render-them-on-read.md",
+      "created_at": "2026-09-01T08:26:15Z",
+      "updated_at": "2026-09-01T08:45:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-852"
+    },
+    "853": {
+      "sequence_id": 853,
+      "type": "task",
+      "title": "Render the role definition at read time and stop storing it",
+      "slug": "render-the-role-definition-at-read-time-and-stop-storing-it",
+      "status": "InReview",
+      "description": "The role definition producer inverts to a read-time ServiceCore method and the role extra mirror stops being written",
+      "parent": "FEAT-694",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-776:implements",
+        "ADR-781:implements",
+        "TASK-851:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Invert _regen_role_body into a read-time ServiceCore producer",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Drop mission and responsibilities from the role show card",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Key the no-active-item branch on the item, not the region",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Stop writing the role extra mirror keys",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Narrow PERMITTED_EXTRA_SKEW, its pin, and the settable fields",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000853-render-the-role-definition-at-read-time-and-stop-storing-it.md",
+      "created_at": "2026-09-01T08:43:24Z",
+      "updated_at": "2026-09-01T10:36:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-853"
+    },
+    "854": {
+      "sequence_id": 854,
+      "type": "review",
+      "title": "Unreviewed 0.14 fix rounds: region retirement, role-mirror resolution, harness reset",
+      "slug": "unreviewed-0-14-fix-rounds-region-retirement-role-mirror-res",
+      "status": "InReview",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-693:addresses",
+        "FEAT-694:addresses",
+        "FEAT-790:addresses",
+        "FEAT-791:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Retired sub-entity regions go wrong on the next mutation and never converge",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "The planned corpus strip cannot reach a corpus already stamped 0.14",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Compiled managed regions contradict themselves under any role override",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Ambient-reset guard re-derives one syntax shape; five leak shapes evade it",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Migrate and sync write different managed regions on an override-carrying squad",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Nested unknown-key refusal leaks a raw pydantic error and omits the version",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "The carry-set rationale cites a command that does not exist",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "PERMITTED_EXTRA_SKEW outlived the writer that justified it",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000854-unreviewed-0-14-fix-rounds-region-retirement-role-mirror-res.md",
+      "created_at": "2026-09-01T10:23:47Z",
+      "updated_at": "2026-09-01T12:14:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-854"
+    },
+    "855": {
+      "sequence_id": 855,
+      "type": "task",
+      "title": "Correct false and build-narrating prose in shipped docstrings",
+      "slug": "correct-false-and-build-narrating-prose-in-shipped-docstring",
+      "status": "Ready",
+      "description": "Docstrings and comments that narrate how the code was built, or assert something falsifiable that is no longer true — rewritten in the present tense, prose only, no behaviour change",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-854:addresses",
+        "MILE-836:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rewrite the agents_md backend prose in the present tense",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restate the RoleView and validators reasoning as rules",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "State adopt's seeding invariant instead of a former gap",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Name what the five flagged test modules cover",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Correct the runner roster projection's false equivalence",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Replace the carry-set rationale's non-existent command",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Restate the dev-role skew exemption's reason in the present tense",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000855-correct-false-and-build-narrating-prose-in-shipped-docstring.md",
+      "created_at": "2026-09-01T11:22:08Z",
+      "updated_at": "2026-09-01T11:28:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-855"
+    },
+    "856": {
+      "sequence_id": 856,
+      "type": "task",
+      "title": "Widen the ambient-reset guard past its one recognised shape",
+      "slug": "widen-the-ambient-reset-guard-past-its-one-recognised-shape",
+      "status": "Ready",
+      "description": "The guard derives its reset set from one syntactic shape; an import alias, a nested declaration or a tuple target evades it — widen what can be widened and make the exhaustiveness claim honest about the rest",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-854:addresses",
+        "MILE-836:targets"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000856-widen-the-ambient-reset-guard-past-its-one-recognised-shape.md",
+      "created_at": "2026-09-01T11:25:20Z",
+      "updated_at": "2026-09-01T11:25:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-856"
+    },
+    "857": {
+      "sequence_id": 857,
+      "type": "task",
+      "title": "Refuse a nested unknown override key with its key and version",
+      "slug": "refuse-a-nested-unknown-override-key-with-its-key-and-versio",
+      "status": "Ready",
+      "description": "A nested unknown override key is refused by a raw pydantic error with no version and a link to pydantic's docs; fold extra_forbidden into the same key-and-version refusal the top level already produces",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-854:addresses",
+        "MILE-836:targets"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-000857-refuse-a-nested-unknown-override-key-with-its-key-and-versio.md",
+      "created_at": "2026-09-01T11:25:22Z",
+      "updated_at": "2026-09-01T11:25:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-857"
     }
   }
 }

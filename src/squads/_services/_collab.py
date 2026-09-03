@@ -118,8 +118,8 @@ def _scan_comment_headers(lines: list[str], bounds: tuple[int, int]) -> list[tup
 
 
 def _build_regions(text: str, item: Item, spec: WorkflowSpec) -> list[_Region]:
-    """The named regions of ``item``'s file: top-level body/discussion/summary, plus each
-    sub-entity's own block (heading+body) and discussion, keyed by ``<kind>:<local_id>``.
+    """The named regions of ``item``'s file: top-level body/discussion, plus each sub-entity's
+    own block (heading+body) and discussion, keyed by ``<kind>:<local_id>``.
 
     Regions can nest (a sub-entity's discussion sits inside its block); classification always
     picks the narrowest containing region, so nesting order here doesn't matter.
@@ -137,14 +137,13 @@ def _build_regions(text: str, item: Item, spec: WorkflowSpec) -> list[_Region]:
         regions.append(_Region(bounds[0], bounds[1], region_name, headers, is_subentity))
 
     _add(markers.BODY, "body")
-    _add(markers.SUMMARY, "summary")
     _add(markers.DISCUSSION, "discussion", with_comments=True)
 
     kind = spec.item_subentity_kind(item.type)
     if kind:
         for se in item.subentities:
             tag = f"{kind}:{se.local_id}"
-            _add(tag, tag, is_subentity=True)  # block-level fallback: heading + head badge line
+            _add(tag, tag, is_subentity=True)  # block-level fallback: the heading line
             _add(f"{tag}:body", tag, is_subentity=True)
             _add(
                 markers.discussion_tag(tag),
@@ -348,12 +347,10 @@ class CollabMixin(ServiceCore):
         to the single ``None``, because attributing sub-entity-vs-item is the only distinction
         this surface makes.
 
-        Two sq-managed sources are excluded from the *line scan*, because neither is ever
-        authored text and reporting them would misattribute or duplicate a real hit: the raw
-        frontmatter block (a sub-entity's own ``title`` lives there, and would otherwise surface
-        as an unattributed item-level mention) and the ``:summary`` roll-up table (a rendered
-        duplicate of each sub-entity's own title, already attributed via its heading region).
-        The item's own authored frontmatter fields are not sq-managed and *are* reported — see
+        The raw frontmatter block is excluded from the *line scan* — a sub-entity's own
+        ``title`` lives there, and would otherwise surface as an unattributed item-level
+        mention, never authored text a human wrote in place. The item's own authored
+        frontmatter fields are not sq-managed and *are* reported — see
         :func:`_authored_field_lines`, which surfaces them explicitly rather than by line.
 
         **An item is reported only if it contributes at least one line.** A hit with no lines is
@@ -389,8 +386,6 @@ class CollabMixin(ServiceCore):
                 if needle not in raw.lower():
                     continue
                 region_obj = _classify_line(regions, line_no)
-                if region_obj is not None and region_obj.region == "summary":
-                    continue  # sq-managed roll-up table; duplicates the sub-entity's own hit
                 hit = _hit_for_line(regions, lines, line_no, needle)
                 region = hit.region if region_obj is not None and region_obj.is_subentity else None
                 matched.append(InboxLine(text=raw.strip(), region=region))

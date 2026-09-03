@@ -20,7 +20,7 @@ refs:
 - ADR-422
 - BUG-784
 created_at: '2026-08-22T09:44:15Z'
-updated_at: '2026-09-01T08:00:04Z'
+updated_at: '2026-09-01T08:13:56Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -520,6 +520,65 @@ kwarg dead rather than wrong.
   against a cache, requires connectivity, or degrades to "cannot verify". Presence is answerable
   offline in every mode, so every mode keeps a floor. The bootstrap deferral is closed by §2b — a
   clone has its pointers because they are committed.
+
+## Amendment note — 2026-09-01: the double-print, settled by removal
+
+The Consequences left one thing open and named it this decision's to own: `sq role <slug> show`
+prints mission and responsibilities twice, once from the computed card and once from the stored body
+beneath it, and the two can disagree because the card resolves a project override while the body
+carries whatever the last `sq sync` wrote. Two options were named — drop the overlapping card rows,
+or render the body from the resolved definition on every show — and neither was chosen. Operator
+direction (recorded in this decision's discussion, in his own words) removes the thing both options
+were arbitrating: a file materialising what the CLI can compute is duplication and comes out. Ruled
+here. §1–§6 stand.
+
+### 1. Driven, on the surface this decision promoted
+
+On a scratch squad at 0.14.0 with `.overrides/roles.toml` declaring a new mission and
+responsibilities for `architect`, one `sq role architect show` printed the override in its card and
+the pre-override text in the body immediately beneath it — in the same output, with `sq check` at
+exit 0 and nothing marking which half was authoritative. Under §2 that command is an agent's primary
+definition read, and the stale half is the longer, more instruction-shaped one: the body carries the
+working agreements the agent then acts on. The rest of the evidence, including the case where the
+mirror does not merely go stale but reverts an operator's `sq role set-default`, is driven in
+ADR-776's 2026-09-01 amendment, which owns the mirror.
+
+### 2. Ruled: one derivation, two renderings — and the second is no longer stored
+
+The role body's catalog-derived content stops being materialised (ADR-776's 2026-09-01 amendment
+§2a). With no stored copy left, this decision's second option is what remains and it stops being an
+option: `sq role <slug> show` renders the definition from the resolved `RoleDef` on every call,
+through the same template `sq sync` renders today. Both halves of the output then come from one
+`resolve_role_with_base` on one call, so they cannot disagree — §3's own rule for a projection, one
+derivation and many renderings, applied to a command instead of a document.
+
+The overlap is then removed rather than tolerated, because printing one resolved value twice is
+still noise even when it cannot be wrong. **The card keeps the resolution facts the definition prose
+does not carry** — role title, model, spawn authority, the create lane, the resolved skills list —
+and **drops `mission` and `responsibilities`**, which the rendered definition prints once, in the
+form an agent is meant to read. That is this decision's first named option, now safe: it was unsafe
+before only because dropping the card's rows would have left the *stored* copy as the sole answer.
+
+This is a change of rendering, not of what an agent receives. The pointer still names
+`sq role <slug> show`, the command still returns identity, mission, responsibilities, skills and
+working agreements, and the first turn still costs one command. What changes is that the text is
+resolved rather than recalled.
+
+### 3. §4's boundary is untouched, and it is the distinction to hold onto under time pressure
+
+The generated files squads writes into another tool's configuration — the backend pointers and the
+compiled `CLAUDE.md` / `AGENTS.md` managed regions — **stay materialised**. Their reader is an agent
+host that discovers and configures an entry by reading a file before any agent exists to run a
+command, so no runtime fetch can substitute for the effect; that is §2a's containment rule and it is
+unchanged. The role and skill bodies go the other way for the opposite reason and no other: this
+decision put `sq` in their delivery path by making the pointer name a command instead of an `@`
+path, so their reader can compute.
+
+The two sit next to each other and the only thing separating them is **which reader can run a
+command**. That is exactly the distinction a hurried change collapses, so it is stated here rather
+than left to be inferred from §2a: the rule against materialising what the CLI can compute does not
+reach a file whose reader cannot call the CLI. Invariant 5's wording in §4 remains the test — a
+pointer carries what the host must read before an agent can run, and nothing else.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -559,4 +618,9 @@ kwarg dead rather than wrong.
   - Section 2 priority list is about what a pointer keeps when space is contested, not the order an agent runs the commands in. The definition fetch runs first; the startup set follows.
 - [2026-09-01T08:00:04Z] Pierre Chat:
   - Same direction applies to the role body: the markdown is storage, the CLI is the only read surface, and duplicated data comes out of the file rather than being kept in sync.
+- [2026-09-01T08:13:56Z] Robert Architect:
+  - Amended in place (2026-09-01 note): the double-print is settled by removal, so the open Consequence closes.
+    - Driven on this decision's own surface: one `sq role architect show` printed a catalog-override mission in the card and the pre-override text in the body beneath it, same output, `sq check` exit 0, nothing marking which half is authoritative — and the stale half is the longer, instruction-shaped one the agent then acts on.
+    - Ruled: the stored copy goes (ADR-776's amendment owns the mirror), `show` renders the definition from the resolved RoleDef on every call, and the card then DROPS mission and responsibilities and keeps only the resolution facts the prose does not carry (title, model, spawn authority, create lane, resolved skills). Both halves come from one `resolve_role_with_base` on one call, so they cannot disagree. Option one, now safe — it was unsafe before only because dropping the card rows would have left the stored copy as the sole answer.
+    - §4's boundary restated in the amendment rather than left to inference: the backend pointers and the compiled CLAUDE.md/AGENTS.md managed regions STAY materialised. Their reader configures an entry by reading a file before any agent exists to run a command. Role and skill bodies go the other way only because this decision put `sq` in their delivery path. The two sit next to each other and the only thing separating them is which reader can run a command — which is exactly what a hurried change collapses.
 <!-- sq:discussion:end -->

@@ -23,7 +23,7 @@ subentities:
   title: Milestone roll-up as the first declared view
   status: Done
 created_at: '2026-07-29T13:52:43Z'
-updated_at: '2026-09-01T08:04:09Z'
+updated_at: '2026-09-01T10:13:15Z'
 ---
 <!-- sq:body -->
 ## The problem
@@ -145,16 +145,15 @@ you what is left.
 - **Retiring the existing sub-entity summary and head rendering (and the role Skills section)
   onto computed views.** That is its own piece of work, tracked separately (FEAT-694).
 
-## In scope, reconsidered
+## Also in scope
 
-**Adopter-authored presentation templates are in scope, at no extra design cost.** This was
-previously scoped out on the premise that it "needs project-level template overrides, which this
-codebase has deliberately deferred." That premise no longer holds: `.overrides/templates/` ships,
-resolves per file ahead of the bundled tree, carries a provenance stamp, and is already covered by
-`sq override scaffold`/`diff`/`update`/`list`. A view's presentation template is just another
-bundled template at a declared path, so it is adopter-overridable the day this feature ships —
-nothing about the override surface itself needs building here. What this feature owns is putting
-the template at the right path and shape; the override mechanism it rides on already exists.
+**Adopter-authored presentation templates, at no extra design cost.** `.overrides/templates/`
+ships, resolves per file ahead of the bundled tree, carries a provenance stamp, and is already
+covered by `sq override scaffold`/`diff`/`update`/`list`. A view's presentation template is just
+another bundled template at a declared path, so it is adopter-overridable the day this feature
+ships — nothing about the override surface itself needs building here. What this feature owns is
+putting the template at the right path and shape; the override mechanism it rides on already
+exists.
 <!-- sq:body:end -->
 
 ## User Stories

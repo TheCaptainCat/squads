@@ -3,7 +3,7 @@ id: TASK-848
 sequence_id: 848
 type: task
 title: Retire the role Skills section and the extra.skills cache
-status: Ready
+status: Done
 parent: FEAT-694
 author: tech-lead
 priority: medium
@@ -14,22 +14,22 @@ description: Move a role's skills list from the rendered body into the computed 
 subentities:
 - local_id: ST1
   title: Add the computed skills row to the role show card
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: Remove the Skills block from role.md.j2 and regenerate
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST3
   title: Delete the extra.skills cache and its writers
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST4
   title: Narrow PERMITTED_EXTRA_SKEW and update its pinning test
-  status: Todo
+  status: Done
   story: US3
 created_at: '2026-09-01T08:03:18Z'
-updated_at: '2026-09-01T08:08:47Z'
+updated_at: '2026-09-01T09:54:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -361,4 +361,19 @@ the skew-guard tests still exercise the mechanism through a different key.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-01T08:40:17Z] Elias Python:
+  - Skills row added to `sq role <slug> show` (card + --json), resolved via `resolved_skills_for_role`; works for activated and bundled-only roles with no I/O beyond the loaded index.
+  - Removed the `## Skills` block from role.md.j2, `_refresh_role_skills_extra` and its two `_roster.py` writers, the `X.SKILLS` metadata field and enum member (nothing else read it — migrations carry frozen literals).
+  - Narrowed `PERMITTED_EXTRA_SKEW` to `RoleDef.extra_keys()`; `_exempt_extra_keys` now returns empty for a dev role; the pin test in test_role_def_extra_keys.py updated with a narrowing docstring.
+  - Re-pointed the three skew-guard tests off the retired `extra.skills` writer onto a manufactured RoleDef.extra_keys() skew (color) so the mechanism stays covered; fixed collateral fallout in test_role_projects_resolved_name_and_mission_onto_item_fields.py and the skill/role scoping test files that asserted body/frontmatter skills content.
+  - Regenerated only the goldens my change touched (list, role_manager_show, role_qa_show) — left the sub-entity-region task's unrelated golden/manifest deltas untouched in the shared tree.
+  - Verified on a scratch squad: role .md file byte-identical before/after `link-role`, pointer still carries the scoped skill, and a role file/index carrying a stale `skills:` key loads, shows and checks clean.
+  - tests/meta: 261 passed, 5 failed — all in test_override_manifest_and_stamp_freshness.py, downstream of the two orphan content-store blobs left by this branch's in-flight bundled-template edits (mine + TASK-847's); expected residue per the release notes, not cleared here. Targeted suite (293 tests across role/skill/roster/skew/golden coverage): all green. pyright/ruff/format clean; sq check clean.
+  - @reviewer ready for review.
+- [2026-09-01T09:51:55Z] Elias Python:
+  - Diagnosis: the sync path lost a real step, not incidental scaffolding. skew_message's own docstring names 'the skip-and-report line sq sync emits for a drifted roster item' as one of its three reusers — a documented sync contract, not a side effect of the cache writer.
+  - Mechanism: _refresh_role_skills_extra wrote extra.skills unconditionally on every role every sync, so it was the only thing that ever opened a healthy-looking role's file and ran ensure_no_skew when nothing catalog-related had changed. _refresh_catalog_extra only writes (and so only detects skew) when its own merge finds a real diff — a role whose catalog fields already agree with the index never gets its file read again, so an unrelated field's drift (e.g. an interrupted description edit) went unreported.
+  - Fix: added _detect_roster_item_skew (_services/_maintenance.py) — a pure, read-only check (frontmatter_skew + skew_message, no write) run unconditionally in sync's per-role loop alongside _refresh_catalog_extra, mirroring the old two-independent-writers shape so sync's existing exact-text dedup still collapses a duplicate report.
+  - tests/cli/test_sync_reports_a_drifted_roster_item.py and tests/service/test_sync_skips_a_drifted_roster_item.py now pass unmodified — no assertion relaxed. Targeted sweep (58 files, incl. every sync/roster/skew-guard test) all green; tests/meta 261 passed, 5 failed (the same pre-existing content-store orphan-residue failures, not mine to clear). pyright/ruff/format clean; sq check clean.
+  - @reviewer
 <!-- sq:discussion:end -->

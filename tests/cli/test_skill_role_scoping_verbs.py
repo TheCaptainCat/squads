@@ -1,6 +1,8 @@
 """``sq skill <n> link-role``/``unlink-role`` — the sanctioned CLI surface for scoping a
 custom skill to a role. Each verb writes the ``scopes`` edge and immediately resyncs the
-affected role's Claude pointer and body ``## Skills`` section (no separate ``sq sync`` needed).
+affected role's Claude pointer (no separate ``sq sync`` needed); the resolved skill list is a
+computed projection, so it never lands in the role's body or frontmatter — only the pointer
+carries it, because that is the one surface a non-human reader still needs it materialised in.
 """
 
 import pytest
@@ -32,8 +34,7 @@ async def test_link_role_makes_the_role_pointer_preload_the_skill_immediately(
     assert r.exit_code == 0, r.output
 
     assert "release-runbook" in _pointer_text(seeded_paths, "tech-writer")
-    body = await svc.role_body("tech-writer")
-    assert "release-runbook" in (body or "")
+    assert "release-runbook" in await svc.resolved_skills_for_role("tech-writer")
 
 
 async def test_link_role_accepts_a_role_addressed_by_full_id(seeded_paths, invoke) -> None:
@@ -59,8 +60,7 @@ async def test_unlink_role_drops_the_skill_from_the_role_pointer_immediately(
     assert r.exit_code == 0, r.output
 
     assert "release-runbook" not in _pointer_text(seeded_paths, "tech-writer")
-    body = await svc.role_body("tech-writer")
-    assert "release-runbook" not in (body or "")
+    assert "release-runbook" not in await svc.resolved_skills_for_role("tech-writer")
     assert role.extra.get("slug") == "tech-writer"  # sanity
 
 

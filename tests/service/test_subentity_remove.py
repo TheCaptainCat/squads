@@ -1,7 +1,9 @@
 """``Service.remove_block`` — hard-delete a story/subtask/finding sub-entity: drops it from the
-parent's frontmatter, excises its whole marker-scoped span (heading + head + body + discussion),
-re-renders the roll-up summary, and reflogs the removal. Mirrors `remove_work_item`'s hard-delete
-contract at the sub-entity scope.
+parent's frontmatter, excises its whole marker-scoped span (heading + body + discussion), and
+reflogs the removal. The roll-up a reader sees is `sq <type> <n> show`'s built-in sub-entity
+summary table, computed fresh from frontmatter on every call — nothing here re-renders it, so
+its reflecting the removal is a property of state, not of anything written here. Mirrors
+`remove_work_item`'s hard-delete contract at the sub-entity scope.
 """
 
 import pytest
@@ -93,17 +95,19 @@ async def test_removing_a_finding_drops_it_and_keeps_its_sibling(svc):
     assert "keep body" in text
 
 
-async def test_the_rolled_up_summary_table_reflects_the_removal(svc):
+async def test_the_computed_roll_up_table_reflects_the_removal(svc, invoke):
     feat = (await create_item(svc, "feature", "F")).item
     await svc.add_story(feat.id, "Keep me")
     await svc.add_story(feat.id, "Remove me")
 
     await svc.remove_block(feat.id, "story", "US2")
 
+    shown = await invoke(["show", feat.id])
+    assert "Keep me" in shown.output
+    assert "Remove me" not in shown.output
+
     text = await _read_text(svc, feat.id)
-    summary = text.split("<!-- sq:summary -->")[1].split("<!-- sq:summary:end -->")[0]
-    assert "Keep me" in summary
-    assert "Remove me" not in summary
+    assert "<!-- sq:summary -->" not in text  # nothing here materialises the roll-up any more
 
 
 async def test_the_parent_file_stays_valid_frontmatter_after_removal(svc):

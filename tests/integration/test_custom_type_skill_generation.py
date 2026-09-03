@@ -64,14 +64,9 @@ def _spec_with_incident() -> WorkflowSpec:
     )
 
 
-def _skill_file(paths) -> Path:
-    skills_folder = paths.squad_dir / "agents" / "skills"
-    convention = list(skills_folder.glob("SKILL-*-sq-incident.md"))
-    legacy = skills_folder / "sq-incident.md"
-    if convention:
-        return convention[0]
-    assert legacy.is_file(), "sq-incident skill body file not found"
-    return legacy
+async def _skill_text(svc) -> str:
+    """The thin skill's definition as this squad resolves it (rendered on read)."""
+    return await svc.skill_definition_text("sq-incident")
 
 
 async def test_sync_generates_a_thin_skill_with_lifecycle_and_standard_verbs(
@@ -85,7 +80,7 @@ async def test_sync_generates_a_thin_skill_with_lifecycle_and_standard_verbs(
 
     await svc.sync()
 
-    skill_text = _skill_file(paths).read_text(encoding="utf-8")
+    skill_text = await _skill_text(svc)
     expected_lifecycle = linearize_lifecycle(spec.machine_for("incident"))
     assert expected_lifecycle in skill_text
     for verb in ("create", "show", "list", "update", "status", "ref", "comment", "body"):
@@ -162,7 +157,7 @@ async def test_the_thin_skill_has_no_dead_subentity_footer_and_its_create_comman
     svc = service.Service(paths, spec=spec)
     await svc.sync()
 
-    skill_text = _skill_file(paths).read_text(encoding="utf-8")
+    skill_text = await _skill_text(svc)
     assert "<kind> <k> body" not in skill_text
     assert "<kind> <k> show" not in skill_text
     assert "show --full --comments" in skill_text

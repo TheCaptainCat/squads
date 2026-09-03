@@ -89,9 +89,10 @@ async def test_inbox_excludes_a_mention_once_the_item_reaches_its_terminal_statu
 
 async def test_inbox_a_mention_in_a_sub_entitys_title_reports_once_at_its_own_region(svc):
     """A mention that only exists because a sub-entity is *titled* that way must not surface
-    as an unattributed item-level hit (the frontmatter line it's stored on) or a second,
-    duplicate hit (the sq-managed `:summary` roll-up row) — both are machine-derived, never
-    authored. It should report exactly once, attributed to the sub-entity's own heading."""
+    as an unattributed item-level hit — the frontmatter line it's stored on is machine-derived,
+    never authored. It should report exactly once, attributed to the sub-entity's own heading
+    (the only place the title appears in the body — the roll-up that once repeated it is a
+    computed view now, never written into the file)."""
     feature = (await create_item(svc, "feature", "parent")).item
     await svc.add_story(feature.id, "@reviewer in the title")
 

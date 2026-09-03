@@ -311,7 +311,16 @@ def _field_value(sub: SubEntity, code: str) -> str | None:
 
 
 def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec | None = None) -> list[str]:
-    """One row aligned to :func:`summary_columns`: local id, field badges, base, then story."""
+    """One row aligned to :func:`summary_columns`: local id, field badges, base, then story.
+
+    A field cell renders through :func:`~squads._badges.badge_render`'s default
+    (``as_label=False``) — emoji + raw code (``"🔴 critical"``), the list/panel/summary
+    convention that badge function's own docstring names. This is deliberately **not** the
+    emoji + label form (``"🔴 Critical"``) a declared ``[views]`` entry's own projection
+    renders (``_views.py::_badge_cell``, always label form): a project that declares its own
+    roll-up view over this same sub-entity data gets different cell text for the identical
+    badge, on purpose — the two are separate, intentional conventions and neither should be
+    changed to match the other."""
     active_spec = _resolve_spec(spec)
     field_cells = [
         badges.badge_render(

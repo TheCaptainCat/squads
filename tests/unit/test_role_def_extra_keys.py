@@ -44,10 +44,16 @@ def test_permitted_extra_skew_membership_is_pinned_exactly() -> None:
     would be circular and pass even if the table silently grew a member. A dev who lands a
     reconciled-but-not-exempt field (like `description`, see above) by naively appending it to
     `_EXTRA_FIELD_KEYS` instead of `_RECONCILED_EXTRA_KEYS` widens this frozenset -- the unsafe
-    direction -- and this is the test built to catch exactly that."""
+    direction -- and this is the test built to catch exactly that.
+
+    `X.SKILLS` dropped out of this set with the resolved-skills cache it existed for: the
+    cache was never a member of `RoleDef.extra_keys()` (its exemption was the separate first
+    term of a union, not a catalog field), and it dies with the writer that persisted it. A
+    narrower pin is the safe direction for this particular test -- it can only start failing
+    by catching a *widening* nobody reviewed, never by silently accepting one -- so the
+    literal below is intentionally reduced rather than re-padded to match the old shape."""
     expected = frozenset(
         {
-            X.SKILLS,
             X.FULL_NAME,
             X.SLUG,
             X.TITLE,

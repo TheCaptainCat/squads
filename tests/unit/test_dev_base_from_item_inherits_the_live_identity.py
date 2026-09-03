@@ -71,3 +71,31 @@ def test_the_is_dev_and_tech_markers_are_not_part_of_the_returned_roledef() -> N
     extra = dev_base_from_item(item).to_extra()
     assert X.IS_DEV not in extra
     assert X.TECH not in extra
+
+
+def test_the_name_comes_from_item_title_not_extra_full_name() -> None:
+    """The mirror and the uniform record are made to disagree on purpose — proves the read
+    goes through ``item.title``, never ``extra.full_name``."""
+    item = _dev_item("python", "a stale mirrored name")
+    item.title = "Elias Python"
+    assert dev_base_from_item(item).full_name == "Elias Python"
+
+
+def test_a_developer_role_with_no_extra_full_name_at_all_resolves_from_item_title() -> None:
+    """The bare-subscript read this used to be would raise ``KeyError`` here; reading
+    ``item.title`` instead makes this a non-raising, self-healing read."""
+    item = _dev_item("python", "Elias Python")
+    del item.extra[X.FULL_NAME]
+    assert dev_base_from_item(item).full_name == "Elias Python"
+
+
+def test_the_is_default_designation_is_carried_from_the_item() -> None:
+    item = _dev_item("python", "Elias Python")
+    item.extra[X.IS_DEFAULT] = True
+    assert dev_base_from_item(item).is_default is True
+
+
+def test_with_no_stored_is_default_it_falls_back_to_false() -> None:
+    item = _dev_item("python", "Elias Python")
+    del item.extra[X.IS_DEFAULT]
+    assert dev_base_from_item(item).is_default is False

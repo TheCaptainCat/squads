@@ -1146,8 +1146,8 @@ def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) 
     fails closed. Param-aware — split on ``:``, the bare name must be a declared catalog
     member, and a ``:<param>`` suffix is only well-formed on a name in
     ``PARAMETERIZED_VALIDATOR_NAMES`` (``subentity_title_max``, ``ref_rule_target_present``;
-    the assignment surface otherwise lists bare names — see the architect's pin on
-    ``parent_in``). A ``ref_rule_target_present:<T>`` entry's own coherence — ``<T>`` naming a
+    every other name on the assignment surface, ``parent_in`` among them, is bare). A
+    ``ref_rule_target_present:<T>`` entry's own coherence — ``<T>`` naming a
     declared item type, and this type declaring a rule targeting it — is a further check, run
     once every ``[items.*]`` block is known: see :func:`_check_ref_rule_targets`.
     """
@@ -1714,15 +1714,15 @@ def _check_item_views(
     views: dict[str, ViewSpec],
     errors: list[str],
 ) -> None:
-    """Reciprocal check for :attr:`ItemSpec.views` — the one attached-by-name list on
-    ``ItemSpec`` that, unlike every sibling in this module (:func:`_check_item_refs` for
-    ``parents``/``lifecycle``, :func:`_check_validators_assignment` for ``validators``,
-    :func:`_check_ref_rule_targets` for ``RefRule.target``, :func:`_check_field_collections`
-    for a field's ``collection``, :func:`_check_subentity_kinds` for a kind's ``lifecycle``),
-    used to go unchecked in this direction. :func:`_check_views` above validates the
-    ``[views]`` mapping itself (a view's own ``source``/``fields``/``group_by``/``order_by``);
-    nothing validated the reverse binding — the name an ``items.<type>.views`` list attaches —
-    until now.
+    """Reciprocal check for :attr:`ItemSpec.views`, the attached-by-name list on ``ItemSpec``
+    — the same shape every sibling in this module guards from the attaching side
+    (:func:`_check_item_refs` for ``parents``/``lifecycle``, :func:`_check_validators_assignment`
+    for ``validators``, :func:`_check_ref_rule_targets` for ``RefRule.target``,
+    :func:`_check_field_collections` for a field's ``collection``,
+    :func:`_check_subentity_kinds` for a kind's ``lifecycle``). :func:`_check_views` above
+    validates the ``[views]`` mapping itself (a view's own
+    ``source``/``fields``/``group_by``/``order_by``); this one validates the reverse binding —
+    the name an ``items.<type>.views`` list attaches.
 
     Two axes, both fully determinable from the spec alone with no filesystem access (the one
     axis that needs the filesystem — a declared view with no presentation template on disk —

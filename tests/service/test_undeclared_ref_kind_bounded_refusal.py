@@ -67,9 +67,9 @@ def _remove_override(squad_dir: Path) -> None:
 def _plant_legacy_shape(svc: Service, item, target_id: str, *, kind: str) -> None:
     """Rewrite *item*'s file to the pre-0.2 shape (bare ``refs`` plus an ``extra.ref_kinds``
     map naming *kind*) directly — bypassing every normalising writer, so the index still
-    holds whatever canonical form ``add_ref`` last wrote (as if this item's index entry
-    predates this release's file-canonicalisation and was never touched since) while disk
-    carries the legacy map."""
+    holds whatever canonical form ``add_ref`` last wrote (as if the index entry were written
+    before the file was ever canonicalised, and never touched since) while disk carries the
+    legacy map."""
     path = svc.paths.abspath(item.path)
     fm, body = split_frontmatter(path.read_text(encoding="utf-8"))
     fm["refs"] = [target_id]
@@ -94,9 +94,8 @@ async def _seed_native_shape(svc: Service) -> tuple[str, str]:
 
 async def _seed_legacy_shape(svc: Service, squad_dir: Path) -> tuple[str, str]:
     """A legacy-mapped edge whose recorded kind ("related") stops equalling the live default
-    once the override renames it — manifested by the very ``sq repair`` that re-derives the
-    index (and, per this release, the file) from the still-legacy-shaped disk under the
-    renamed spec."""
+    once the override renames it — manifested by the very ``sq repair`` that re-derives both
+    the index and the file from the still-legacy-shaped disk under the renamed spec."""
     a = (await create_item(svc, "task", "referrer")).item
     b = (await create_item(svc, "task", "target")).item
     await svc.add_ref(a.id, b.id, kind="related")

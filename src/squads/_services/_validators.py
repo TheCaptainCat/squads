@@ -49,7 +49,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._paths import SquadPaths, number_for_id
-from squads._roles._catalog import RoleDef
+from squads._roles._resolver import resolve_role_for_item
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
@@ -751,6 +751,23 @@ def backend_entry_drift(
     ``scopes``-preloaded skill read as permanently drifted, since the pure system-membership
     fallback (:meth:`~squads._backends._base.BackendContext.resolved_skills_for`) does not know
     about it.
+
+    A role's expectation is resolved through the catalog (:func:`~squads._roles._resolver.
+    resolve_role_for_item`), not read off *item*'s stored ``extra`` — so a pointer that has
+    genuinely drifted from a project override reads as drifted even when the item's own mirror
+    has not caught up with that override yet (it stays fresh only from the next ``sq sync``
+    on). Reading the mirror here would make this currency check only ever as current as the
+    last sync, which is exactly the gap this resolves.
+
+    A role override the resolver itself refuses to load (an unknown key, a blank field, …)
+    also refuses here — resolution is the same seam, not a re-implemented check — and is
+    reported as ``None`` (no finding): there is no valid expectation to render, so this
+    currency comparison has nothing to say. The refusal itself is already a check finding in
+    its own right (:func:`~squads._overrides._service._check_role_override_resolves`, run
+    over every declared override regardless of drift), so surfacing it a second time here
+    would duplicate that report rather than add to it — and letting it propagate would abort
+    the whole scan for one broken role's sake, which is the opposite of what a reporter whose
+    job is finding every problem should do.
     """
     disk_path = paths.root / rel_path
     try:
@@ -758,7 +775,15 @@ def backend_entry_drift(
     except OSError:
         return None
     bctx = BackendContext(paths=paths, spec=spec, playbook=playbook, role_skills=role_skills)
-    role = RoleDef.from_extra(item.extra) if kind == "role" else None
+    if kind == "role":
+        from squads._errors import SquadsError
+
+        try:
+            role = resolve_role_for_item(item, paths.squad_dir)
+        except SquadsError:
+            return None
+    else:
+        role = None
     fresh = (
         backend.render_role_entry(bctx, item, role)
         if role is not None

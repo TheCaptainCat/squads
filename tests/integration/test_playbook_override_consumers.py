@@ -32,8 +32,9 @@ roles = [
 """
 
 
-def _skill_body_path(squad_dir: Path, item_type: str) -> Path:
-    return squad_dir / "agents" / "skills" / f"{interactions.item_skill_name(item_type)}.md"
+async def _skill_body(svc, item_type: str) -> str:
+    """The type's generated skill definition, as *svc* resolves it on read."""
+    return await svc.skill_definition_text(interactions.item_skill_name(item_type))
 
 
 async def test_generated_sq_task_skill_body_reflects_the_playbook_override(project) -> None:
@@ -42,7 +43,7 @@ async def test_generated_sq_task_skill_body_reflects_the_playbook_override(proje
     await svc.activate_role("architect")
     await svc.refresh_managed()
 
-    body = _skill_body_path(project.squad_dir, "task").read_text(encoding="utf-8")
+    body = await _skill_body(svc, "task")
     assert "confirm the design" in body
     assert "review the architecture" in body
     assert "Robert Architect" in body
@@ -53,7 +54,7 @@ async def test_with_no_override_the_generated_skill_body_is_unchanged(project, s
     activation, produces the SAME body as the bundled-only path (no "architect" section)."""
     await svc.activate_role("architect")
     await svc.refresh_managed()
-    body = _skill_body_path(project.squad_dir, "task").read_text(encoding="utf-8")
+    body = await _skill_body(svc, "task")
     assert "confirm the design" not in body
     assert "Robert Architect" not in body  # architect has no bundled task guide
 

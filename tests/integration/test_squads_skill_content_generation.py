@@ -10,8 +10,10 @@ import pytest
 pytestmark = pytest.mark.anyio
 
 
-def _squads_skill_body(project) -> str:
-    return (project.squad_dir / "agents" / "skills" / "squads.md").read_text(encoding="utf-8")
+async def _squads_skill_body(svc) -> str:
+    """The ``squads`` skill definition as this squad resolves it — rendered on read, so *svc*
+    must carry the spec under test."""
+    return await svc.skill_definition_text("squads")
 
 
 async def test_priority_guidance_derives_from_the_active_collection_not_a_hardcoded_list(
@@ -26,8 +28,7 @@ async def test_priority_guidance_derives_from_the_active_collection_not_a_hardco
     base = bundled_spec()
     custom = Collection(label="Priority", ordered=True, badges=[Badge(code="p0", label="P0")])
     spec = base.model_copy(update={"collections": {**base.collections, "priority": custom}})
-    await service.Service(project, spec=spec).refresh_managed()
-    body = _squads_skill_body(project)
+    body = await _squads_skill_body(service.Service(project, spec=spec))
     assert "p0" in body
     assert "urgent|high|medium|low" not in body
 
@@ -39,27 +40,26 @@ async def test_create_example_lists_only_active_work_types(project):
     base = bundled_spec()
     dropped = {k: v for k, v in base.items.items() if k != "guide"}
     spec = base.model_copy(update={"items": dropped})
-    await service.Service(project, spec=spec).refresh_managed()
-    body = _squads_skill_body(project)
+    body = await _squads_skill_body(service.Service(project, spec=spec))
     assert "guide" not in body.split("# also:")[1].splitlines()[0]
 
 
-async def test_direct_operator_rule_is_present(project):
-    body = _squads_skill_body(project)
+async def test_direct_operator_rule_is_present(svc):
+    body = await _squads_skill_body(svc)
     assert "Working directly with the operator" in body
     assert "never the chat" in body
 
 
-async def test_teaches_full_comments_briefing_as_the_standard_dossier_move(project):
-    body = _squads_skill_body(project)
+async def test_teaches_full_comments_briefing_as_the_standard_dossier_move(svc):
+    body = await _squads_skill_body(svc)
     assert "--full --comments" in body
     assert "show --full --comments" in body
 
 
 async def test_teaches_the_comment_scoping_convention_with_one_example_per_subentity_kind(
-    project,
+    svc,
 ):
-    body = _squads_skill_body(project)
+    body = await _squads_skill_body(svc)
     assert "Scope your comment to the right discussion" in body
     assert "story <k> comment" in body
     assert "subtask <k> comment" in body
@@ -67,10 +67,10 @@ async def test_teaches_the_comment_scoping_convention_with_one_example_per_suben
     assert "sq inbox" in body  # the no-gap-when-using-sub-entity-discussions rule
 
 
-async def test_skill_carries_the_lifecycle_table_and_no_diagram_markup(project):
+async def test_skill_carries_the_lifecycle_table_and_no_diagram_markup(svc):
     """Agents read the skill as raw text, where diagram markup never renders — the lifecycle
     table and the prose hierarchy bullet carry the same facts in a form they can read."""
-    body = _squads_skill_body(project)
+    body = await _squads_skill_body(svc)
     assert "```mermaid" not in body
     assert "stateDiagram" not in body
     assert "flowchart" not in body

@@ -88,9 +88,7 @@ async def test_generated_task_skill_carries_the_project_roles_guidance(project) 
     reopened = service.open_service(dir_override=str(project.squad_dir))
     await reopened.refresh_managed()
 
-    skill_name = interactions.item_skill_name("task")
-    skill_path = project.squad_dir / "agents" / "skills" / f"{skill_name}.md"
-    body = skill_path.read_text(encoding="utf-8")
+    body = await reopened.skill_definition_text(interactions.item_skill_name("task"))
     assert "Sam Reliability" in body
     assert "Read the incident timeline" in body
     assert "Coordinate the rollback" in body

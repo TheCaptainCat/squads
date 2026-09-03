@@ -1,6 +1,9 @@
 """Sub-entity state (status/assignee/severity/story) lives entirely in frontmatter — never in
-body markers — and every mutation re-renders the derived `:head` badge line plus the parent's
-roll-up summary table (CLAUDE.md invariant #1, sub-entity half).
+body markers (CLAUDE.md invariant #1, sub-entity half). Every mutation re-renders only the
+block's own ``### <local_id> — title`` heading; it materialises no presentation region for that
+state — no ``:head`` badge line, no parent ``:summary`` roll-up table. Those are computed on
+request instead (``_cli._common._subentity_badge_line`` and a declared ``subentity``-source
+view), proven byte-identical in ``tests/unit/test_computed_subentity_renderings_are_stable.py``.
 """
 
 import pytest
@@ -25,48 +28,43 @@ async def test_subentity_state_lives_in_frontmatter_not_body_markers(svc):
         {"local_id": "ST1", "title": "Validate", "status": "InProgress", "story": "US1"}
     ]
     assert ":meta" not in text
-    assert "<!-- sq:subtask:ST1:head -->" in text and "<!-- sq:subtask:ST1:body -->" in text
+    assert "<!-- sq:subtask:ST1:body -->" in text
+    assert "<!-- sq:subtask:ST1:head -->" not in text
+    assert "<!-- sq:summary -->" not in text
 
 
-async def _head(svc, item_id, tag):
-    from squads import _sections as sections
-
-    text = svc.paths.abspath((await svc.get(item_id)).path).read_text(encoding="utf-8")
-    return sections.get_section(text, tag) or ""
-
-
-async def test_assignee_render_reassign_and_clear_updates_the_head_badge_not_frontmatter_alone(svc):
+async def test_assignee_reassign_and_clear_updates_frontmatter_only_no_head_region(svc):
     await svc.add_dev("python", name="Grace Hopper")
     await svc.add_dev("rust", name="Alan Turing")
     task = (await create_item(svc, "task", "t")).item
 
     await svc.add_subtask(task.id, "Validate", assignee="python-dev")
-    assert "**Assignee:** Grace Hopper" in await _head(svc, task.id, "subtask:ST1:head")
     assert (await svc.list_subtasks(task.id))[0].assignee == "python-dev"  # slug in frontmatter
 
     await svc.set_subtask_assignee(task.id, "ST1", "rust-dev")
-    assert "**Assignee:** Alan Turing" in await _head(svc, task.id, "subtask:ST1:head")
+    assert (await svc.list_subtasks(task.id))[0].assignee == "rust-dev"
 
     await svc.set_subtask_assignee(task.id, "ST1", None)
-    head = await _head(svc, task.id, "subtask:ST1:head")
-    assert "**Assignee:**" not in head and "**Status:**" in head
+    assert (await svc.list_subtasks(task.id))[0].assignee is None
+
+    text = svc.paths.abspath((await svc.get(task.id)).path).read_text(encoding="utf-8")
+    assert "<!-- sq:subtask:ST1:head -->" not in text
 
 
-async def test_status_transition_and_story_link_rerender_the_head_badge(svc):
+async def test_status_transition_and_story_link_update_frontmatter_only(svc):
     feat = (await create_item(svc, "feature", "Login")).item
     await svc.add_story(feat.id, "As a user, I want to reset my password")
     task = (await create_item(svc, "task", "Auth", parent=feat.id)).item
 
     await svc.add_subtask(task.id, "Validate", story="US1")
-    head = await _head(svc, task.id, "subtask:ST1:head")
-    assert "**Status:** ⚪ Todo" in head
-    assert "**Implements:** US1 — As a user, I want to reset my password" in head
+    sub = (await svc.list_subtasks(task.id))[0]
+    assert (sub.status, sub.story) == ("Todo", "US1")
 
     await svc.set_subtask_status(task.id, "ST1", "InProgress")
-    assert "**Status:** 🟡 In Progress" in await _head(svc, task.id, "subtask:ST1:head")
+    assert (await svc.list_subtasks(task.id))[0].status == "InProgress"
 
 
-async def test_finding_severity_badge_renders_in_the_head_and_survives_an_update(svc):
+async def test_finding_severity_updates_frontmatter_and_never_touches_a_summary_table(svc):
     rev = (await create_item(svc, "review", "r")).item
     await svc.add_finding(rev.id, "Null deref", severity="medium")
     await svc.update_finding(rev.id, "F1", severity="high")
@@ -74,11 +72,11 @@ async def test_finding_severity_badge_renders_in_the_head_and_survives_an_update
     assert (await svc.list_findings(rev.id))[0].severity == "high"
     text = svc.paths.abspath((await svc.get(rev.id)).path).read_text(encoding="utf-8")
     assert "severity: high" in text  # frontmatter state
-    assert "**Severity:** 🟠 High" in await _head(svc, rev.id, "finding:F1:head")  # head badge
-    assert "🟠 high" in text  # summary table cell
+    assert "<!-- sq:summary -->" not in text
+    assert "| F1 | 🟠 high |" not in text  # no materialised summary-table row
 
 
-async def test_update_subtask_title_rerenders_heading_and_summary_preserving_body(svc):
+async def test_update_subtask_title_rerenders_heading_preserving_body_and_no_summary_row(svc):
     task = (await create_item(svc, "task", "t")).item
     await svc.add_subtask(task.id, "Old name", body="prose body")
     await svc.set_subtask_status(task.id, "ST1", "InProgress")
@@ -89,7 +87,7 @@ async def test_update_subtask_title_rerenders_heading_and_summary_preserving_bod
     assert (sub.title, sub.status) == ("New name", "InProgress")
     text = svc.paths.abspath((await svc.get(task.id)).path).read_text(encoding="utf-8")
     assert "### ST1 — New name" in text and "Old name" not in text
-    assert "| ST1 | InProgress |  | New name |" in text
+    assert "| ST1 | InProgress |" not in text  # no materialised summary-table row
     assert (await svc.get_subtask(task.id, "ST1")).body == "prose body"
 
 
@@ -102,14 +100,12 @@ async def test_update_subtask_story_remap_validates_and_clears(svc):
 
     await svc.update_subtask(task.id, "ST1", story="US2")
     assert (await svc.list_subtasks(task.id))[0].story == "US2"
-    assert "**Implements:** US2 — Lockout policy" in await _head(svc, task.id, "subtask:ST1:head")
 
     with pytest.raises(SquadsError, match="US9"):
         await svc.update_subtask(task.id, "ST1", story="US9")
 
     await svc.update_subtask(task.id, "ST1", clear_story=True)
     assert (await svc.list_subtasks(task.id))[0].story is None
-    assert "**Implements:**" not in await _head(svc, task.id, "subtask:ST1:head")
 
 
 async def test_update_applies_several_fields_at_once_and_still_validates_status_and_assignee(svc):

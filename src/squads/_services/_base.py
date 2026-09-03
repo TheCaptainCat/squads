@@ -22,20 +22,27 @@ from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
 from squads._interactions import (
+    DEV,
+    GREETING_SKILL,
+    MEMORY_SKILL,
+    SQUADS_SKILL,
     active_skill_slugs,
     allowed_create_types,
+    custom_item_skill_commands,
     get_playbook_spec,
     in_lane_owner,
+    is_dev_slug,
     is_lane_exempt,
     is_live_roster_entry,
+    is_system_skill,
+    item_skill_name,
     laned_types,
     skills_for_role,
 )
-from squads._interactions._models import PlaybookSpec
+from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
 from squads._itemfile import (
     ensure_no_skew,
     read_item_text,
-    update_frontmatter,
     write_new,
     write_text,
 )
@@ -43,11 +50,11 @@ from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
-from squads._models._vocab import prefix_for
+from squads._models._vocab import label_for, prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._catalog import RoleDef
-from squads._roles._resolver import resolve_role
+from squads._roles._resolver import resolve_role, resolve_role_for_item
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
@@ -57,6 +64,7 @@ from squads._workflow import (
     ROSTER_SKILL,
     bundled_spec,
     dropped_via_selected,
+    linearize_lifecycle,
 )
 from squads._workflow._models import Field, WorkflowSpec
 
@@ -348,6 +356,48 @@ def reject_body_overwrite(target: str, current: str) -> None:
         f"setting one would discard it:\n\n{head}\n\n"
         "Nothing was written. Add to it with `--append`, or pass `--force` to replace it."
     )
+
+
+def _item_skill_role_sections(
+    pb: ItemPlaybookSpec | None, roster: list[RoleView]
+) -> list[dict[str, Any]]:
+    """The ordered per-role section blocks ``agents/item_skill.md.j2`` renders for one item
+    type — empty for a type the active playbook does not cover (the thin skill's "no role
+    sections" degradation).
+
+    Two filters, both roster-dependent, which is why a before/after diff of generated skill
+    text only means anything with the roster held constant:
+
+    - the shared ``developers`` section (the ``*dev`` sentinel guide) renders only when the
+      roster carries at least one ``<tech>-dev`` role, so a squad with no developer yet does
+      not carry guidance for an actor that cannot act;
+    - a named role's guide renders only while that role is in the live roster.
+    """
+    if pb is None:
+        return []
+    by_slug = {r.slug: r for r in roster}
+    has_dev = any(is_dev_slug(r.slug) for r in roster)
+    out: list[dict[str, Any]] = []
+    for guide in pb.roles:
+        if guide.slug == DEV:
+            if not has_dev:
+                continue
+            title = "developers"
+        elif guide.slug in by_slug:
+            r = by_slug[guide.slug]
+            title = f"{r.full_name} (`{r.slug}`)"
+        else:
+            continue
+        out.append(
+            {
+                "title": title,
+                "enter": guide.enter,
+                "do": guide.do,
+                "handoff": guide.handoff,
+                "watch": guide.watch,
+            }
+        )
+    return out
 
 
 class ServiceCore:
@@ -730,12 +780,32 @@ class ServiceCore:
             fields=fields,
         )
         item_type = item.type
+        # ``agents/role.md.j2`` renders from a resolved ``RoleDef`` rather than ``item``/
+        # ``extra`` (see `role_definition_text`) and requires one on every call — Jinja's
+        # ``StrictUndefined`` means a missing or partial ``role`` fails loudly rather than
+        # degrading. ``activate_role``/``add_dev`` always pass a full ``role.to_extra()`` as
+        # ``extra``, but ``create()`` is a lower-level, roster-type-agnostic entry point with
+        # no such guarantee (there is no CLI verb for ``sq create role`` — the guard is
+        # CLI-only — but the service layer itself does not refuse it), so
+        # ``from_extra_or_item`` builds a complete ``RoleDef`` by falling back to the item's
+        # own ``title``/``slug``/``description`` field by field wherever ``extra`` is silent,
+        # rather than trusting ``extra`` to already be a resolved mirror. `None` for every
+        # other item type; an unreferenced context variable is harmless to a template that
+        # never reads it.
+        role_ctx = (
+            RoleDef.from_extra_or_item(
+                item.extra, title=item.title, slug=item.slug, description=item.description
+            )
+            if item_type == ROSTER_ROLE
+            else None
+        )
         rendered = render(
             self._template_for(item_type),
             item=item,
             description=item.description,
             extra=item.extra,
             spec=self.spec,
+            role=role_ctx,
         )
         # Belt-and-suspenders: guarantee a working sub-entity container regardless of which
         # template rendered — a custom/renamed type falls back to `_default.md.j2` (no
@@ -1042,20 +1112,111 @@ class ServiceCore:
                 return it
         return None
 
-    async def role_body(self, slug: str) -> str | None:
-        """Return the body-region content of the active role item for ``slug``, or None.
+    def role_definition_text(self, role: RoleDef) -> str:
+        """Render *role*'s full definition — identity, mission, responsibilities, working
+        agreements — at call time, resolved fresh from *role* rather than read from any stored
+        copy.
 
-        Returns ``None`` when no tracked item exists for this slug (bundled-only role).
-        The returned string is stripped of leading/trailing newlines.
+        Renders the same template a role's stored body used to be written from
+        (``agents/role.md.j2``), called here instead of at sync time. The caller supplies the
+        already-resolved definition (``resolve_role_with_base`` — the same resolution a role's
+        catalog card already computes) rather than this method resolving a second time on the
+        same call. No file is read or written.
         """
-        item = await self.roster_item(ROSTER_ROLE, slug)
-        if item is None:
-            return None
-        text = await self._read_item_file(item, item_file(self.paths, item))
-        body = sections.get_section(text, markers.BODY)
-        if body is None:
-            return None
-        return body.strip("\n")
+        rendered = render("agents/role.md.j2", role=role)
+        text = sections.get_section(rendered, markers.BODY)
+        assert text is not None, "agents/role.md.j2 must keep its sq:body markers"
+        return text.strip("\n")
+
+    async def skill_definition_text(self, slug: str) -> str:
+        """Render the definition of the **template-owned** skill named *slug* at call time,
+        from the same templates a system skill's stored body used to be written from.
+
+        Keyed on :func:`~squads._interactions.is_system_skill` and on nothing else. Neither the
+        folder, the item type, nor the ``sq-`` prefix separates a template-owned skill from an
+        authored one: they all sit in the skills folder, all carry the roster ``skill`` type,
+        and the ``sq-`` prefix is not reserved to squads. A **custom** skill's body is authored
+        storage and is read from the item instead (``read_body``); this method refuses that slug
+        rather than inventing a render for it.
+
+        Returns ``""`` for a system slug whose item type the active spec no longer declares —
+        a dropped or renamed type has no definition to render, and no sync regenerates one.
+        :func:`~squads._interactions.orphaned_skill_item_type` is what names that state for a
+        caller's message.
+
+        Lives on ``ServiceCore`` rather than in ``_interactions`` (the package that owns the
+        playbook document, and so the symmetric home) because ``_rendering/_engine`` imports
+        ``squads._interactions``: the rendering engine sits *above* that package and cannot be
+        imported back from it. ``_services`` sits below ``_rendering`` and already calls
+        ``render``. No backend takes part in either direction — a backend's skill pointer is
+        rendered from a slug and a description alone.
+        """
+        if not is_system_skill(slug, self.spec):
+            raise SquadsError(
+                f"{slug!r} is not a template-owned skill; its body is authored content, "
+                "read it from the item instead"
+            )
+        squad_dir = self.paths.config.squad_dir
+        if slug == GREETING_SKILL:
+            return render("agents/greeting_skill.md.j2", squad_dir=squad_dir).strip("\n")
+        if slug == MEMORY_SKILL:
+            return render("agents/memory_skill.md.j2", squad_dir=squad_dir).strip("\n")
+        roster = await self.roster()
+        if slug == SQUADS_SKILL:
+            return render(
+                "agents/squads_skill.md.j2",
+                squad_dir=squad_dir,
+                spec=self.spec,
+                # roles=... so the included workflow.md.j2 cheatsheet's authoring bullets
+                # (authoring_owner) filter by the LIVE roster, and so the example `--assignee`
+                # names a slug this squad actually carries.
+                roles=[
+                    {"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster
+                ],
+                # playbook=... so those same bullets resolve the create-lane through the ACTIVE
+                # (merged) playbook: an override-declared authoring role is named here instead
+                # of the type silently losing its authoring line.
+                playbook=self.playbook,
+            ).strip("\n")
+        return self._item_skill_definition_text(slug, roster)
+
+    def _item_skill_definition_text(self, slug: str, roster: list[RoleView]) -> str:
+        """The per-type half of :meth:`skill_definition_text`: one ``sq-<type>`` definition,
+        *rich* when the active merged playbook covers the type (full per-role
+        Enter/Do/Hand-off/Watch-for sections) and *thin* when it does not (auto-derived
+        lifecycle plus the standard command list, no role sections).
+
+        The active merged playbook decides that split — not the bundled singleton — so an
+        override's added or removed coverage is what moves a type between the two.
+
+        A type the active spec no longer declares resolves to no type at all here and renders
+        nothing, so a dropped or renamed type never produces a definition under its old name.
+        """
+        item_type = next(
+            (
+                t
+                for t, ts in self.spec.items.items()
+                if ts.category != "roster" and item_skill_name(t) == slug
+            ),
+            None,
+        )
+        if item_type is None:
+            return ""
+        pb = self.playbook.types.get(item_type)
+        # Lifecycle + sub-entity kind derive from the active spec (not the playbook's frozen
+        # prose), so an override on a covered built-in type stays correct.
+        subentity_kind = self.spec.item_subentity_kind(item_type)
+        return render(
+            "agents/item_skill.md.j2",
+            title=label_for(item_type, "singular", self.spec),
+            type=item_type,
+            overview=pb.overview if pb is not None else "",
+            lifecycle=linearize_lifecycle(self.spec.machine_for(item_type)),
+            commands=list(pb.commands) if pb is not None else custom_item_skill_commands(item_type),
+            sections=_item_skill_role_sections(pb, roster),
+            subentity_kind=subentity_kind,
+            subentity_plural=self.spec.subentity_plural(subentity_kind) if subentity_kind else None,
+        ).strip("\n")
 
     def _author_of(self, db: SquadsDB, slug: str) -> str:
         """Display (full) name for a participant slug, resolved against an already-loaded
@@ -1065,6 +1226,14 @@ class ServiceCore:
         inside the bulk importer's one open transaction: an earlier event in the same run may
         have just created the role/operator this slug names, and that item is only visible in
         the in-memory ``db``, not yet on disk.
+
+        A role participant's name comes from ``item.title`` — the uniform record's own copy of
+        the resolved full name — never from ``extra.full_name`` nor a catalog resolution: this
+        is a display name on a comment attribution, and resolving through the catalog here
+        would be both wrong (an operator can rename a role's *display*, via ``sq role activate
+        --name``, without that changing which catalog entry authored a past comment) and
+        needlessly expensive for a lookup this cheap. An operator participant is untouched —
+        it keeps reading ``extra.full_name``, its only home.
         """
         if slug == "operator":
             return "Operator"
@@ -1077,6 +1246,8 @@ class ServiceCore:
             None,
         )
         if participant is not None:
+            if participant.type == ROSTER_ROLE:
+                return participant.title
             return participant.extra.get(X.FULL_NAME, slug)
         try:
             return resolve_role(slug, self.paths.squad_dir).full_name
@@ -1087,6 +1258,20 @@ class ServiceCore:
         """Display (full) name for a participant slug; falls back to the slug if unknown."""
         return self._author_of(await self.store.load(), slug)
 
+    def _role_view(self, it: Item) -> RoleView:
+        """Resolve *it* (a ROLE item) to the ``RoleView`` a backend compiles into the managed
+        region — through the catalog (:func:`resolve_role_for_item`), never off ``extra``
+        directly."""
+        role = resolve_role_for_item(it, self.paths.squad_dir)
+        return RoleView(
+            slug=role.slug,
+            full_name=role.full_name,
+            title=role.title,
+            is_default=role.is_default,
+            mission=role.mission,
+            responsibilities=role.responsibilities,
+        )
+
     async def roster(self) -> list[RoleView]:
         """The roles this squad currently **offers** — ``item.status in
         spec.live_statuses("role")``. This is what ``write_managed`` compiles the host's
@@ -1096,14 +1281,7 @@ class ServiceCore:
         registration checks, the roster's own views)."""
         live = self.spec.live_statuses(ROSTER_ROLE)
         return [
-            RoleView(
-                slug=it.extra.get(X.SLUG, it.slug),
-                full_name=it.extra.get(X.FULL_NAME, it.title),
-                title=it.extra.get(X.TITLE, it.title),
-                is_default=it.extra.get(X.IS_DEFAULT, False),
-                mission=it.extra.get(X.MISSION, it.description),
-                responsibilities=tuple(it.extra.get(X.RESPONSIBILITIES, ())),
-            )
+            self._role_view(it)
             for it in await self.list_items(item_type=ROSTER_ROLE)
             if it.status in live
         ]
@@ -1111,17 +1289,7 @@ class ServiceCore:
     async def roster_all(self) -> list[RoleView]:
         """Every role entry regardless of status — the full-vocabulary counterpart to
         :meth:`roster`. See that method's docstring for which callers want which."""
-        return [
-            RoleView(
-                slug=it.extra.get(X.SLUG, it.slug),
-                full_name=it.extra.get(X.FULL_NAME, it.title),
-                title=it.extra.get(X.TITLE, it.title),
-                is_default=it.extra.get(X.IS_DEFAULT, False),
-                mission=it.extra.get(X.MISSION, it.description),
-                responsibilities=tuple(it.extra.get(X.RESPONSIBILITIES, ())),
-            )
-            for it in await self.list_items(item_type=ROSTER_ROLE)
-        ]
+        return [self._role_view(it) for it in await self.list_items(item_type=ROSTER_ROLE)]
 
     async def operators(self) -> list[OperatorView]:
         """The operators this squad currently **offers** — see :meth:`roster`'s docstring;
@@ -1153,8 +1321,9 @@ class ServiceCore:
 
         Backends receive this via BackendContext so they never need to load the
         index themselves (layering invariant: _backends must not import _index). Live-only
-        because this only ever resolves the always-on system skills' body path for
-        ``write_managed`` — a withdrawn skill has no generated entry to locate a body for.
+        because this only ever locates a managed skill's own file for ``write_managed`` (which
+        gives a missing one its frontmatter-safe empty ``sq:body`` region and leaves an existing
+        one alone) — a withdrawn skill has no generated entry to locate a file for.
         ``candidate_orphans`` needs the full skill-slug vocabulary instead and builds it
         directly rather than reusing this map (see that method).
         """
@@ -1291,107 +1460,29 @@ class ServiceCore:
             for p in orphans
         ]
 
-    async def _refresh_role_skills_extra(
-        self, item: Item, role_skills: dict[str, list[str]], *, default_kind: str
-    ) -> str | None:
-        """Persist the resolver's output into the role item's ``extra.skills`` cache.
-
-        A pure, re-derivable cache — recomputed from system membership plus ``scopes`` ref
-        edges, never hand-authored — so ``repair`` needs no new logic. The role body's
-        ``## Skills`` section renders straight from ``item.extra`` (see
-        :meth:`_regen_role_body`), so this write is what keeps the body in sync with the
-        resolved list; the pointer YAML gets the same list via ``BackendContext.role_skills``.
-        Shared by the full ``sync()`` sweep and the link/unlink partial-sync hook
-        (:meth:`_resync_role_skills`) — both recompute the same way, just over a different
-        set of roles.
-
-        Always writes when a resolved list is available for this slug — *not* gated on
-        comparing against ``item.extra``'s already-loaded value. That cached value came from
-        the rebuildable ``.squads.json`` index, which this call never updates (only the ``.md``
-        frontmatter is written, per invariant #1); comparing against it would go stale the
-        moment two resyncs of the same role happen without an index-refreshing event in
-        between (e.g. link then unlink), silently skipping the second write.
-
-        This is a roster-regen path, not a single mutation: an unrepaired skew is skipped and
-        reported rather than refused, so ``item.extra`` is rolled back to its pre-call value
-        on skip — leaving the in-memory item truthful to what is actually on disk for any
-        later read in the same pass (e.g. the body/pointer regen that follows). Returns the
-        skip-report message, or ``None`` when the write went through (or there was nothing to
-        resolve).
-
-        ``extra[X.SKILLS]`` is exempt from the skew guard everywhere, not just here — see
-        ``_itemfile.PERMITTED_EXTRA_SKEW`` — because this write never goes through
-        ``store.transaction()``, so the index-loaded ``base`` never carries the resolved
-        list's current generation even on a perfectly healthy role: disk being "ahead" on
-        this one key is the durability decision's named permitted skew, not evidence of loss.
-        """
-        slug = item.extra.get(X.SLUG, item.slug)
-        resolved = role_skills.get(slug)
-        if resolved is None:
-            return None
-        base = item.model_copy(deep=True)
-        previous = item.extra.get(X.SKILLS)
-        item.extra[X.SKILLS] = resolved
-        try:
-            await update_frontmatter(
-                item_file(self.paths, item), item, base, default_kind=default_kind
-            )
-        except SquadsError as exc:
-            if previous is None:
-                item.extra.pop(X.SKILLS, None)
-            else:
-                item.extra[X.SKILLS] = previous
-            return str(exc)
-        return None
-
-    async def _regen_role_body(self, item: Item) -> None:
-        """Re-render the role template's body section into the existing role item file.
-
-        Keeps the discussion region intact — only the ``<!-- sq:body -->`` region is touched.
-        The frontmatter is not modified; no index transaction is needed (no metadata change).
-        """
-        rendered = render(
-            "agents/role.md.j2", item=item, description=item.description, extra=item.extra
-        )
-        new_body_inner = sections.get_section(rendered, markers.BODY)
-        if new_body_inner is None:
-            return
-        path = self.paths.abspath(item.path)
-        existing = await self._read_item_file(item, path)
-        updated = sections.replace_section(existing, markers.BODY, new_body_inner)
-        await write_text(path, updated)
-
     async def _resync_role_skills(self, slug: str) -> None:
-        """Partial-sync hook: recompute and rewrite ONE role's pointer + body ``## Skills``.
+        """Partial-sync hook: recompute and rewrite ONE role's backend pointer.
 
         The supported incremental path for the ``sq skill link-role``/``unlink-role`` verbs —
-        mirrors the per-role steps a full :meth:`sync` runs (the ``extra.skills`` cache, the
-        backend pointer entry, the body's ``## Skills`` region) but scoped to a single role;
-        every other role's pointer/body is left byte-untouched. A full
-        ``sq sync`` remains the authoritative recomputation for the whole roster — this is an
-        optimization on top of it, never the only path.
+        mirrors the per-role pointer step a full :meth:`sync` runs, scoped to a single role;
+        every other role's pointer is left byte-untouched. A full ``sq sync`` remains the
+        authoritative recomputation for the whole roster — this is an optimization on top of
+        it, never the only path.
 
-        A skip-reported skew from :meth:`_refresh_role_skills_extra` is swallowed here rather
-        than surfaced: this hook runs after ``link-role``/``unlink-role``'s own edit has
-        already committed successfully, and the ``extra.skills`` cache it refreshes is the
-        ADR's named third exemption (re-derivable, never mirrored into the index) — a full
-        ``sq sync`` is the reporter of record for a drifted role, same as it is for the roster
-        sweep this hook is a partial-sync optimization over.
+        The resolved-skills list itself is never persisted anywhere: it is a computed
+        projection, recovered on demand from the index the caller already loaded
+        (:meth:`resolved_skills_for_role`), not a cache this hook refreshes. What this
+        recomputes and writes is the *backend pointer* — the one materialised artifact that
+        still carries the list, because a non-human agent host reads it as a file rather than
+        running a command.
 
         The backend pointer is only regenerated when the role is **live** — scoping a
-        skill to a retired role must not resurrect its withdrawn projection. The
-        ``extra.skills`` cache and the body's ``## Skills`` region still refresh
-        unconditionally: they are the item's own sq-managed state, not a backend artifact,
-        and retirement keeps an entry's own record current even while its projection is
-        withdrawn.
+        skill to a retired role must not resurrect its withdrawn projection.
         """
         role = await self.roster_item(ROSTER_ROLE, slug)
         if role is None:
             return  # nothing to resync — caller already validated the role exists
         resolved = await self.resolved_skills_for_role(slug)
-        await self._refresh_role_skills_extra(
-            role, {slug: resolved}, default_kind=self.spec.default_ref_kind()
-        )
         if role.status in self.spec.live_statuses(ROSTER_ROLE):
             role_ctx = BackendContext(
                 paths=self.paths,
@@ -1399,9 +1490,9 @@ class ServiceCore:
                 playbook=self.playbook,
                 role_skills={slug: resolved},
             )
+            role_def = resolve_role_for_item(role, self.paths.squad_dir)
             for backend in self._backends():
-                await backend.generate_role_entry(role_ctx, role, RoleDef.from_extra(role.extra))
-        await self._regen_role_body(role)
+                await backend.generate_role_entry(role_ctx, role, role_def)
 
     async def _project_roster_item(self, item: Item, ctx: BackendContext) -> list[str]:
         """Materialise or withdraw *item*'s own per-entry backend artifact: an entry is
@@ -1446,13 +1537,17 @@ class ServiceCore:
         if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
             return []
         live = is_live_roster_entry(item, self.spec)
+        role_def = (
+            resolve_role_for_item(item, self.paths.squad_dir)
+            if live and item.type == ROSTER_ROLE
+            else None
+        )
         warnings: list[str] = []
         for backend in self._backends():
             if live:
                 if item.type == ROSTER_ROLE:
-                    artifact = await backend.generate_role_entry(
-                        ctx, item, RoleDef.from_extra(item.extra)
-                    )
+                    assert role_def is not None  # resolved above, live ROSTER_ROLE guaranteed it
+                    artifact = await backend.generate_role_entry(ctx, item, role_def)
                 else:
                     artifact = await backend.generate_skill_entry(ctx, item)
                 if artifact.warning:

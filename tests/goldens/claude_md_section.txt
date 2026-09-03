@@ -7,14 +7,14 @@ truth. See the `squads` skill for the `sq` CLI.
 
 ## Agent roster
 
-- **Catherine Manager** — Manager (`manager`)
-- **Robert Architect** — Architect (`architect`)
-- **Olivia Lead** — Tech lead (`tech-lead`)
-- **Paul Reviewer** — Code reviewer (`reviewer`)
+- **Catherine Manager** — manager (`manager`)
+- **Robert Architect** — architect (`architect`)
+- **Olivia Lead** — tech lead (`tech-lead`)
+- **Paul Reviewer** — code reviewer (`reviewer`)
 - **Mara Tester** — QA engineer (`qa`)
 - **Hugo Ops** — DevOps engineer (`devops`)
-- **Nina Product** — Product owner (`product-owner`)
-- **Theo Writer** — Technical writer (`tech-writer`)
+- **Nina Product** — product owner (`product-owner`)
+- **Theo Writer** — technical writer (`tech-writer`)
 - **Elias Python** — Python developer (`python-dev`)
 
 ## Operators (people)

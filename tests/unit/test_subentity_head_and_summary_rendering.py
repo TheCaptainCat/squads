@@ -1,8 +1,12 @@
 """The sub-entity head/summary-render mechanism (`_discussion.py`'s pure functions), proven
-once against the spec-driven engine rather than per built-in kind: `build_block` scaffolds a
-block with no legacy `:meta` region but a `:head` placeholder, `set_head` renders badges into
-that region, and `render_summary` builds the roll-up table generically from declared fields —
-degrading gracefully (never crashing) when a collection is dropped or a stored code is unknown.
+once against the spec-driven engine rather than per built-in kind. Nothing in the live write
+path calls these any more — `set_head`, `ensure_summary` and `render_summary` are kept only
+because two frozen migration runners still call them when replaying an older squad — but the
+functions themselves are unchanged: `build_block` scaffolds a block with no legacy `:meta`
+region and no `:head` placeholder (that region is created lazily by `set_head`, the shape a
+migration replay needs), and `render_summary` builds the roll-up table generically from
+declared fields — degrading gracefully (never crashing) when a collection is dropped or a
+stored code is unknown.
 """
 
 from squads import _badges as badges
@@ -13,10 +17,10 @@ from squads._workflow import bundled_spec
 from squads._workflow._models import Field, SubentityKindSpec
 
 
-def test_build_block_scaffolds_body_and_head_with_no_legacy_meta_region() -> None:
+def test_build_block_scaffolds_body_with_no_legacy_meta_or_head_region() -> None:
     block = discussion.build_block("finding", "F1", "Null deref")
     assert ":meta" not in block
-    assert "<!-- sq:finding:F1:head -->" in block
+    assert ":head" not in block
     assert "<!-- sq:finding:F1:body -->" in block
     assert "### F1 — Null deref" in block
 
@@ -29,7 +33,7 @@ def test_build_block_uses_a_given_body_or_falls_back_to_the_kind_placeholder() -
     assert discussion.body_placeholder("subtask") in default
 
 
-def test_set_head_renders_status_assignee_and_story_badges_into_the_empty_region() -> None:
+def test_set_head_renders_status_assignee_and_story_badges_into_a_region_it_creates() -> None:
     block = discussion.build_block("subtask", "ST1", "Validate")
     out = discussion.set_head(
         block,

@@ -290,7 +290,8 @@ def _sort_key(
 
     - ``id`` orders by sequence number (:func:`~squads._paths.number_for_id`), not the
       formatted string — a ``ref``/``subtree`` source's own resolvers already produce that
-      order and this used to throw it away. A record whose id carries no parseable number
+      order, which sorting on the formatted string would discard. A record whose id carries
+      no parseable number
       (a sub-entity's local id — a letter prefix immediately followed by a digit, no
       separating dash) falls back to its text rather than raising. **Mixed-type
       tie-break:** two records of different declared types can carry the very same

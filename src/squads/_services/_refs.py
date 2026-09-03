@@ -36,12 +36,12 @@ class _TraversalCtx:
 
     ``requested_kinds`` is the caller's explicit ``--kind`` filter and nothing else — it must
     never double as "the declared set", which is a *different* question answered by consulting
-    ``spec.ref_kinds`` directly (see :func:`_edge_semantic`). Conflating the two used to make an
-    edge whose kind the merged spec does not declare indistinguishable, at the traversal site,
-    from an edge the caller simply didn't ask for — both silently vanished. ``None`` here means
+    ``spec.ref_kinds`` directly (see :func:`_edge_semantic`). Conflating the two makes an edge
+    whose kind the merged spec does not declare indistinguishable, at the traversal site, from
+    an edge the caller simply didn't ask for — both then vanish silently. ``None`` here means
     "no filter": every edge is seen, declared or not. A caller-supplied set means "seen only
-    these kinds", exactly as it always has (``graph()`` still refuses an undeclared kind in that
-    set up front, before a ``_TraversalCtx`` is even built).
+    these kinds" (``graph()`` refuses an undeclared kind in that set up front, before a
+    ``_TraversalCtx`` is even built).
     """
 
     db_items: dict[int, Item]  # sequence_id → Item; pre-loaded snapshot

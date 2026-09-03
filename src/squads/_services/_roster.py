@@ -4,7 +4,6 @@ from squads import _actor as actor
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
-from squads._interactions import skills_for_role
 from squads._itemfile import update_frontmatter
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
@@ -54,7 +53,6 @@ class RosterMixin(ServiceCore):
             extra={
                 **role.to_extra(),
                 X.DESCRIPTION: role.description,
-                X.SKILLS: skills_for_role(role.slug, self.spec, self.playbook),
             },
         )
         # Materialise iff live: a project whose roster lifecycle's own
@@ -87,7 +85,6 @@ class RosterMixin(ServiceCore):
                 X.DESCRIPTION: role.description,
                 X.IS_DEV: True,
                 X.TECH: tech,
-                X.SKILLS: skills_for_role(role.slug, self.spec, self.playbook),
             },
         )
         # Materialise iff live — see the matching comment in activate_role.

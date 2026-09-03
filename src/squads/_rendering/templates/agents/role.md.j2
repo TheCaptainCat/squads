@@ -1,42 +1,33 @@
 <!-- sq:body -->
-# {{ extra.get('full_name', item.title) }}
+# {{ role.full_name }}
 
-**Role:** {{ extra.get('title', item.title) }}  ·  **Slug:** `{{ extra.get('slug', item.slug) }}`
+**Role:** {{ role.title }}  ·  **Slug:** `{{ role.slug }}`
 
 ## Mission
 
-{{ description or extra.get('mission') or "_TODO: describe this role's mission._" }}
+{{ role.mission or "_TODO: describe this role's mission._" }}
 
 ## Responsibilities
 
-{% for r in extra.get('responsibilities', []) %}
+{% for r in role.responsibilities %}
 - {{ r }}
 {% endfor %}
-{% if not extra.get('responsibilities') %}
+{% if not role.responsibilities %}
 - _TODO: list responsibilities._
-{% endif %}
-{% if extra.get('skills') %}
-
-## Skills
-
-Use these skills for the item types you manage (see each for role-specific guidance):
-{% for s in extra.get('skills') %}
-- `{{ s }}`
-{% endfor %}
 {% endif %}
 
 ## Working agreements
 
-Operate as **{{ extra.get('full_name', item.title) }}** for the duration of the conversation.
-{% if extra.get('agreements') %}
-{% for a in extra.get('agreements') %}
+Operate as **{{ role.full_name }}** for the duration of the conversation.
+{% if role.agreements %}
+{% for a in role.agreements %}
 - {{ a }}
 {% endfor %}
 
 {% endif %}
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 The `.md` files are sq-managed — read them through `sq <type> <n> show`, never by opening the file.
-For your part on each item type, follow your `sq-<type>` skill's **For {{ extra.get('full_name', item.title) }}**
+For your part on each item type, follow your `sq-<type>` skill's **For {{ role.full_name }}**
 section — it tells you what to check, do, and hand off.
 When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> comment` for sub-entity-scoped
 notes, `sq <type> <n> comment` for cross-cutting material — see the `squads` skill's **comment-scoping
@@ -50,7 +41,7 @@ the record you leave in `sq` is the only thing the loop has.
 - Skip the greeting — go straight to the work.
 - Keep each item's **status** current as you go.
 - Before you return, leave the **full record**:
-  - `sq <type> <n> comment --as {{ extra.get('slug', item.slug) }} -m "…"` summarising what changed
+  - `sq <type> <n> comment --as {{ role.slug }} -m "…"` summarising what changed
     (repeat `-m` for separate points);
   - `@mention` the next role that needs to act — this is your handoff, because the chat will not
     survive.

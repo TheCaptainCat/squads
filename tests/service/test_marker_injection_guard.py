@@ -247,5 +247,5 @@ async def test_a_service_written_item_file_has_every_one_of_its_markers_recognis
         await add(parent.id)
         text = svc.paths.abspath((await svc.get(parent.id)).path).read_text(encoding="utf-8")
         present = _ANY_SQ_COMMENT.findall(text)
-        assert len(present) >= 20, f"{parent_type}: fixture must carry sub-entity markers"
+        assert len(present) >= 16, f"{parent_type}: fixture must carry sub-entity markers"
         assert len(sections.find_markers(text)) == len(present), parent_type

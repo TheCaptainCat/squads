@@ -18,7 +18,8 @@ from _helpers import BUILTIN_TYPES
 from squads import _discussion as discussion
 from squads._models._item import Item
 from squads._rendering._engine import render
-from squads._workflow import bundled_spec
+from squads._roles._catalog import RoleDef
+from squads._workflow import ROSTER_ROLE, bundled_spec
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -49,20 +50,25 @@ def test_every_builtin_type_template_renders_the_required_markers_and_heading(
         if spec.item_is_roster(item_type)
         else f"items/{item_type}.md.j2"
     )
-    out = render(template_path, item=it, description="", extra=it.extra, spec=spec)
+    # `agents/role.md.j2` renders from a resolved `RoleDef`, not `item`/`extra` — every
+    # other built-in template still renders from the generic `item`/`description`/`extra`/
+    # `spec` context passed below, so only the role case needs the extra kwarg.
+    role_kwargs = (
+        {"role": RoleDef.from_extra_or_item(it.extra, title=it.title, slug=it.slug, description="")}
+        if item_type == ROSTER_ROLE
+        else {}
+    )
+    out = render(template_path, item=it, description="", extra=it.extra, spec=spec, **role_kwargs)
     assert "<!-- sq:body -->" in out and "<!-- sq:body:end -->" in out
     assert "<!-- sq:discussion -->" in out and "<!-- sq:discussion:end -->" in out
     assert "## Discussion" in out
     assert out.index("## Discussion") < out.index("<!-- sq:discussion -->")
 
 
-def test_subentity_block_skeleton_has_no_meta_region_and_nests_discussion_one_level_deeper() -> (
-    None
-):
+def test_subentity_block_skeleton_has_no_meta_or_head_region_and_nests_discussion_deeper() -> None:
     block = discussion.build_block("subtask", "ST1", "Validate")
     assert block == (
         "\n<!-- sq:subtask:ST1 -->\n### ST1 — Validate\n\n"
-        "<!-- sq:subtask:ST1:head -->\n<!-- sq:subtask:ST1:head:end -->\n\n"
         "<!-- sq:subtask:ST1:body -->\n"
         "_Describe this subtask here — free-form paragraphs or bullet lists._\n"
         "<!-- sq:subtask:ST1:body:end -->\n\n"
@@ -71,6 +77,7 @@ def test_subentity_block_skeleton_has_no_meta_region_and_nests_discussion_one_le
         "<!-- sq:subtask:ST1:end -->\n"
     )
     assert ":meta" not in block
+    assert ":head" not in block
     assert "### ST1 —\n" in discussion.build_block("subtask", "ST1", "")  # blank title tolerated
 
 
@@ -86,7 +93,8 @@ def test_review_item_template_renders_a_findings_container_with_a_severity_legen
         updated_at=_NOW,
     )
     out = render("items/review.md.j2", item=it, description="", extra={}, spec=bundled_spec())
-    assert "<!-- sq:summary -->" in out and "<!-- sq:findings -->" in out
+    assert "<!-- sq:findings -->" in out
+    assert "<!-- sq:summary -->" not in out  # retired: the roll-up is a computed view now
     assert "## Findings" in out
     for circle in ("🔴", "🟠", "🟡", "🟢", "🔵"):
         assert circle in out
