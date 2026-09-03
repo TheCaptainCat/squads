@@ -7,6 +7,7 @@ status: Done
 author: product-owner
 refs:
 - REV-565
+- PRD-862:implements
 subentities:
 - local_id: US1
   title: Add sq role list (active roster, active/inactive marker)
@@ -27,7 +28,7 @@ subentities:
   title: Bundled designer/UX role (shape TBD — architect)
   status: Cancelled
 created_at: '2026-07-22T08:41:07Z'
-updated_at: '2026-07-23T13:22:28Z'
+updated_at: '2026-09-01T13:50:55Z'
 ---
 <!-- sq:body -->
 ## Capability

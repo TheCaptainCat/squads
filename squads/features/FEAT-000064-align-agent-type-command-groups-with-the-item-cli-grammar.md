@@ -11,6 +11,7 @@ refs:
 - FEAT-19
 - FEAT-26
 - FEAT-13
+- PRD-862:implements
 description: 'Bring role/skill/operator command groups in line with the item grammar:
   item-first addressing, styled body rendering, and a single list surface'
 subentities:
@@ -27,7 +28,7 @@ subentities:
   title: Grammar decisions recorded as deferral obligation on FEAT-000013
   status: Done
 created_at: '2026-06-12T11:56:22Z'
-updated_at: '2026-06-23T10:01:25Z'
+updated_at: '2026-09-01T13:48:11Z'
 ---
 <!-- sq:body -->
 ## Problem

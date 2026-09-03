@@ -6,6 +6,8 @@ title: Shared team knowledge — boot engagement nudge + memory slug ergonomics
 status: Done
 parent: EPIC-316
 author: product-owner
+refs:
+- PRD-860:implements
 subentities:
 - local_id: US1
   title: 'Boot directive: review memory + board before starting'
@@ -14,7 +16,7 @@ subentities:
   title: Short, human-friendly memory slugs
   status: Todo
 created_at: '2026-07-15T11:43:20Z'
-updated_at: '2026-07-15T13:14:47Z'
+updated_at: '2026-09-01T13:50:17Z'
 ---
 <!-- sq:body -->
 Two small refinements to the shared-team-knowledge surfaces shipped in FEAT-315

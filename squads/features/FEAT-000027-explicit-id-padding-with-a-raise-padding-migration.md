@@ -11,6 +11,7 @@ refs:
 - FEAT-13
 - FEAT-19:depends-on
 - ADR-104
+- PRD-858:implements
 description: 'padding: 6 stored in the index; create errors when the counter would
   overflow it; a one-way repad command renames all files to the new width; ID parsing
   tolerant of any width since file contents are never rewritten'
@@ -25,7 +26,7 @@ subentities:
   title: ID parsing tolerates any padding width for old refs
   status: Done
 created_at: '2026-06-10T15:04:04Z'
-updated_at: '2026-06-23T10:01:00Z'
+updated_at: '2026-09-01T13:47:46Z'
 ---
 <!-- sq:body -->
 ## Problem

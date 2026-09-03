@@ -10,6 +10,7 @@ refs:
 - EPIC-538
 - ADR-541
 - ADR-696
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a spec author, I want overrides to deep-merge onto the bundled base so
@@ -24,7 +25,7 @@ subentities:
     restating it
   status: Done
 created_at: '2026-07-31T13:00:32Z'
-updated_at: '2026-07-31T16:22:51Z'
+updated_at: '2026-09-01T13:51:27Z'
 ---
 <!-- sq:body -->
 ## Capability

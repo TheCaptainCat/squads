@@ -12,6 +12,7 @@ refs:
 - ADR-133
 - FEAT-137
 - FEAT-13
+- PRD-861:implements
 subentities:
 - local_id: US1
   title: Maintain multiple active backends at once
@@ -23,7 +24,7 @@ subentities:
   title: Legacy default_backend squads load unchanged
   status: Done
 created_at: '2026-06-16T09:38:58Z'
-updated_at: '2026-06-16T15:11:07Z'
+updated_at: '2026-09-01T13:48:23Z'
 ---
 <!-- sq:body -->
 ## Decision (op-pierre, 2026-06-16)

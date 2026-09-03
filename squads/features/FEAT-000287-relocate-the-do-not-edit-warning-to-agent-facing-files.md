@@ -9,6 +9,7 @@ author: product-owner
 priority: medium
 refs:
 - FEAT-13
+- PRD-861:implements
 description: Move the do-not-edit warning off redundant squad-skill bodies onto the
   agent-facing files sq sync actually regenerates (CLAUDE.md, AGENTS.md, .claude/
   pointers), as a cross-backend convention
@@ -26,7 +27,7 @@ subentities:
   title: Warning convention documented as cross-backend contract
   status: Todo
 created_at: '2026-07-02T15:10:39Z'
-updated_at: '2026-07-05T21:31:13Z'
+updated_at: '2026-09-01T13:49:02Z'
 ---
 <!-- sq:body -->
 ## Problem

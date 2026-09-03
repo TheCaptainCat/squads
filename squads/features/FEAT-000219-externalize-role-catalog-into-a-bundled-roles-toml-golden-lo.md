@@ -8,6 +8,7 @@ parent: EPIC-206
 author: product-owner
 refs:
 - FEAT-207:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a maintainer, I want role definitions loaded from roles.toml so adding
@@ -18,7 +19,7 @@ subentities:
     hardcoded roles so regressions are caught
   status: Todo
 created_at: '2026-06-26T07:17:14Z'
-updated_at: '2026-06-26T07:58:45Z'
+updated_at: '2026-09-01T13:48:50Z'
 ---
 <!-- sq:body -->
 ## What this delivers

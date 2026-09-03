@@ -474,8 +474,8 @@ async def test_lint_reports_but_does_not_crash_even_after_open_service_would_har
 # --------------------------------------------------------------------------- the crossed case:
 # an override present that does NOT touch the badge collection a live item's field disagrees
 # with, plus a stale index (the rebuildable cache, not the frontmatter, carrying the bad code).
-# This combination — never exercised by the poles above (an override that DOES shrink the
-# collection; a load-boundary test with no override at all) — is the whole finding: the badge
+# This combination is the case neither pole above reaches (one has an override that DOES shrink
+# the collection; the other is a load-boundary test with no override at all): the badge
 # cross-check must not attribute a plain stale-index problem to an override that never touched
 # the relevant collection, and must never block `sq repair`, the actual remedy.
 

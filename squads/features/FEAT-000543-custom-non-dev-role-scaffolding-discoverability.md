@@ -6,6 +6,8 @@ title: Custom non-dev role scaffolding & discoverability
 status: Done
 parent: EPIC-538
 author: product-owner
+refs:
+- PRD-860:implements
 subentities:
 - local_id: US1
   title: Scaffold a net-new custom role slug
@@ -17,7 +19,7 @@ subentities:
   title: Surface custom-role discoverability in catalog/help/docs
   status: Todo
 created_at: '2026-07-21T20:43:26Z'
-updated_at: '2026-07-22T08:50:26Z'
+updated_at: '2026-09-01T13:50:38Z'
 ---
 <!-- sq:body -->
 ## Capability

@@ -123,16 +123,20 @@ seven methods above and you inherit that behaviour — do **not** add a status b
 
 ## The recommended shape: pointers, not copies
 
-Follow the Claude Code pattern: keep the **real, durable content under the squad folder** and write
-**thin pointers** in the tool's config that name the command to fetch it — never a local path (see
-"The five per-host questions" below). ClaudeCodeBackend writes a role's real definition to
+Follow the Claude Code pattern: write **thin pointers** in the tool's config that name the command
+to fetch the content — never a local path (see "The five per-host questions" below), and never a
+copy of the content itself. ClaudeCodeBackend writes a role's real definition to
 `squads/agents/roles/ROLE-*.md` and a pointer to `.claude/agents/<slug>.md` that names `sq role
-<slug> show`; managed skill bodies live in `squads/agents/skills/<name>.md` with a pointer in
-`.claude/skills/<name>/SKILL.md` naming `sq skill <slug> show`. This keeps the "`.claude/` is
-pointers" invariant and means the content survives even if the backend config is regenerated. The
-`_interactions` playbook
-(`skills_for_role`, `PLAYBOOK`) tells you which skills a role gets and what each item skill should
-say — reuse it.
+<slug> show`. A managed skill gets a pointer in `.claude/skills/<name>/SKILL.md` naming `sq skill
+<slug> show`, and the definition behind it is rendered from templates when that command runs rather
+than stored — the backend's part is to make sure the skill's own file under the squad folder exists
+with a well-formed, empty body region. A skill an adopter authors is the other case: its body is
+real content, stored in that file and read back from it.
+
+Either way the pointer holds no content of its own, which is what keeps the "`.claude/` is
+pointers" invariant and means nothing is lost when the backend config is regenerated. The
+`_interactions` playbook (`skills_for_role`, `PLAYBOOK`) tells you which skills a role gets and what
+each item skill should say — reuse it.
 
 ## Registering one
 

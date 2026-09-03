@@ -1,7 +1,7 @@
 {
   "schema_version": "0.14",
   "squads_version": "0.14.0",
-  "counter": 857,
+  "counter": 865,
   "padding": 6,
   "items": {
     "12": {
@@ -454,7 +454,9 @@
       "priority": "high",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-859:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -495,7 +497,7 @@
       ],
       "path": "features/FEAT-000014-project-level-template-and-role-overrides.md",
       "created_at": "2026-06-10T12:41:06Z",
-      "updated_at": "2026-06-23T09:58:43Z",
+      "updated_at": "2026-09-01T13:47:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -514,7 +516,9 @@
       "priority": "high",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-862:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -546,7 +550,7 @@
       ],
       "path": "features/FEAT-000015-machine-readable-surface-audit.md",
       "created_at": "2026-06-10T12:41:11Z",
-      "updated_at": "2026-06-23T09:58:49Z",
+      "updated_at": "2026-09-01T13:47:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -565,7 +569,9 @@
       "priority": "medium",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-861:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -588,7 +594,7 @@
       ],
       "path": "features/FEAT-000016-second-backend-generic-agents-md.md",
       "created_at": "2026-06-10T12:41:16Z",
-      "updated_at": "2026-06-23T09:58:59Z",
+      "updated_at": "2026-09-01T13:47:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -681,7 +687,9 @@
       "priority": "high",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-862:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -713,7 +721,7 @@
       ],
       "path": "features/FEAT-000019-uniform-item-addressing-every-command-accepts-both-id-and-nu.md",
       "created_at": "2026-06-10T12:56:45Z",
-      "updated_at": "2026-06-23T09:59:20Z",
+      "updated_at": "2026-09-01T13:47:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -733,7 +741,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-19:depends-on"
+        "FEAT-19:depends-on",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -757,7 +766,7 @@
       ],
       "path": "features/FEAT-000020-retype-an-item-in-place.md",
       "created_at": "2026-06-10T13:24:54Z",
-      "updated_at": "2026-06-23T09:59:30Z",
+      "updated_at": "2026-09-01T13:47:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -777,7 +786,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "BUG-22:depends-on"
+        "BUG-22:depends-on",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -810,7 +820,7 @@
       ],
       "path": "features/FEAT-000023-sanctioned-item-removal.md",
       "created_at": "2026-06-10T13:52:25Z",
-      "updated_at": "2026-06-23T09:59:43Z",
+      "updated_at": "2026-09-01T13:47:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -832,7 +842,9 @@
       "refs": [
         "FEAT-23",
         "BUG-22",
-        "FEAT-15"
+        "FEAT-15",
+        "PRD-858:implements",
+        "PRD-862:implements"
       ],
       "subentities": [
         {
@@ -865,7 +877,7 @@
       ],
       "path": "features/FEAT-000024-operation-reflog.md",
       "created_at": "2026-06-10T13:59:11Z",
-      "updated_at": "2026-06-23T10:00:09Z",
+      "updated_at": "2026-09-01T13:47:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -886,7 +898,8 @@
       "labels": [],
       "refs": [
         "FEAT-19:depends-on",
-        "BUG-25:depends-on"
+        "BUG-25:depends-on",
+        "PRD-862:implements"
       ],
       "subentities": [
         {
@@ -946,7 +959,7 @@
       ],
       "path": "features/FEAT-000026-rendered-show-output.md",
       "created_at": "2026-06-10T14:57:23Z",
-      "updated_at": "2026-06-23T10:00:47Z",
+      "updated_at": "2026-09-01T13:47:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -968,7 +981,8 @@
       "refs": [
         "FEAT-13",
         "FEAT-19:depends-on",
-        "ADR-104"
+        "ADR-104",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -1001,7 +1015,7 @@
       ],
       "path": "features/FEAT-000027-explicit-id-padding-with-a-raise-padding-migration.md",
       "created_at": "2026-06-10T15:04:04Z",
-      "updated_at": "2026-06-23T10:01:00Z",
+      "updated_at": "2026-09-01T13:47:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1176,7 +1190,8 @@
       "labels": [],
       "refs": [
         "BUG-21",
-        "FEAT-13"
+        "FEAT-13",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -1218,7 +1233,7 @@
       ],
       "path": "features/FEAT-000035-typed-ref-vocabulary-validated-kinds-optional-by-design.md",
       "created_at": "2026-06-11T07:19:35Z",
-      "updated_at": "2026-06-23T09:58:49Z",
+      "updated_at": "2026-09-01T13:47:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1238,7 +1253,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-13"
+        "FEAT-13",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -1262,7 +1278,7 @@
       ],
       "path": "features/FEAT-000036-type-aliases-in-the-cli-grammar.md",
       "created_at": "2026-06-11T07:37:01Z",
-      "updated_at": "2026-06-23T09:59:04Z",
+      "updated_at": "2026-09-01T13:47:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1284,7 +1300,8 @@
       "refs": [
         "FEAT-35:depends-on",
         "FEAT-19:depends-on",
-        "FEAT-15"
+        "FEAT-15",
+        "PRD-862:implements"
       ],
       "subentities": [
         {
@@ -1317,7 +1334,7 @@
       ],
       "path": "features/FEAT-000037-ref-graph-view-sq-graph-item.md",
       "created_at": "2026-06-11T07:45:02Z",
-      "updated_at": "2026-06-24T12:26:00Z",
+      "updated_at": "2026-09-01T13:47:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1336,7 +1353,9 @@
       "priority": "low",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-862:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -1359,7 +1378,7 @@
       ],
       "path": "features/FEAT-000039-tree-filters.md",
       "created_at": "2026-06-11T07:58:43Z",
-      "updated_at": "2026-06-24T14:14:34Z",
+      "updated_at": "2026-09-01T13:47:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1379,7 +1398,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-14"
+        "FEAT-14",
+        "PRD-860:implements"
       ],
       "subentities": [
         {
@@ -1412,7 +1432,7 @@
       ],
       "path": "features/FEAT-000040-dual-regime-role-definitions-subagent-invocation-vs-live-con.md",
       "created_at": "2026-06-11T08:43:52Z",
-      "updated_at": "2026-06-23T10:00:03Z",
+      "updated_at": "2026-09-01T13:48:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1433,7 +1453,9 @@
       "labels": [],
       "refs": [
         "FEAT-40",
-        "FEAT-33"
+        "FEAT-33",
+        "PRD-862:implements",
+        "PRD-861:implements"
       ],
       "subentities": [
         {
@@ -1457,7 +1479,7 @@
       ],
       "path": "features/FEAT-000041-onboard-through-the-cli-roles-readable-via-sq-not-the-filesy.md",
       "created_at": "2026-06-11T09:02:40Z",
-      "updated_at": "2026-06-23T10:00:19Z",
+      "updated_at": "2026-09-01T13:48:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1477,7 +1499,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-26"
+        "FEAT-26",
+        "PRD-860:implements"
       ],
       "subentities": [
         {
@@ -1510,7 +1533,7 @@
       ],
       "path": "features/FEAT-000062-comment-scoping-convention-sub-entity-discussions-vs-main-di.md",
       "created_at": "2026-06-12T09:49:28Z",
-      "updated_at": "2026-06-23T10:00:43Z",
+      "updated_at": "2026-09-01T13:48:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1532,7 +1555,8 @@
       "refs": [
         "FEAT-19",
         "FEAT-26",
-        "FEAT-13"
+        "FEAT-13",
+        "PRD-862:implements"
       ],
       "subentities": [
         {
@@ -1574,7 +1598,7 @@
       ],
       "path": "features/FEAT-000064-align-agent-type-command-groups-with-the-item-cli-grammar.md",
       "created_at": "2026-06-12T11:56:22Z",
-      "updated_at": "2026-06-23T10:01:25Z",
+      "updated_at": "2026-09-01T13:48:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1593,7 +1617,9 @@
       "priority": "low",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-863:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -1625,7 +1651,7 @@
       ],
       "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
       "created_at": "2026-06-14T20:45:15Z",
-      "updated_at": "2026-07-17T09:09:37Z",
+      "updated_at": "2026-09-01T13:48:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1645,7 +1671,9 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-125"
+        "FEAT-125",
+        "PRD-860:implements",
+        "PRD-861:implements"
       ],
       "subentities": [
         {
@@ -1669,7 +1697,7 @@
       ],
       "path": "features/FEAT-000122-per-role-capability-attenuation.md",
       "created_at": "2026-06-15T11:56:09Z",
-      "updated_at": "2026-06-22T13:49:32Z",
+      "updated_at": "2026-09-01T13:48:20Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1883,7 +1911,8 @@
         "FEAT-16",
         "ADR-133",
         "FEAT-137",
-        "FEAT-13"
+        "FEAT-13",
+        "PRD-861:implements"
       ],
       "subentities": [
         {
@@ -1916,7 +1945,7 @@
       ],
       "path": "features/FEAT-000138-multi-active-agent-backends-active-backends.md",
       "created_at": "2026-06-16T09:38:58Z",
-      "updated_at": "2026-06-16T15:11:07Z",
+      "updated_at": "2026-09-01T13:48:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -1935,7 +1964,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-858:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -1967,7 +1998,7 @@
       ],
       "path": "features/FEAT-000166-advisory-warnings-for-over-long-sub-entity-titles.md",
       "created_at": "2026-06-23T07:48:38Z",
-      "updated_at": "2026-06-23T10:06:55Z",
+      "updated_at": "2026-09-01T13:48:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2078,7 +2109,8 @@
       "labels": [],
       "refs": [
         "FEAT-176",
-        "FEAT-177"
+        "FEAT-177",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -2120,7 +2152,7 @@
       ],
       "path": "features/FEAT-000178-skills-as-first-class-id-d-entities-skill-prefix-migration.md",
       "created_at": "2026-06-23T12:51:19Z",
-      "updated_at": "2026-06-25T09:59:02Z",
+      "updated_at": "2026-09-01T13:48:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2139,7 +2171,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-859:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -2162,7 +2196,7 @@
       ],
       "path": "features/FEAT-000207-externalize-hardcoded-workflow-into-a-bundled-spec-enums-int.md",
       "created_at": "2026-06-25T13:17:00Z",
-      "updated_at": "2026-06-25T15:17:09Z",
+      "updated_at": "2026-09-01T13:48:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2182,7 +2216,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-207:depends-on"
+        "FEAT-207:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -2206,7 +2241,7 @@
       ],
       "path": "features/FEAT-000208-de-type-item-model-from-enums-to-str-reify-typespec-capabili.md",
       "created_at": "2026-06-25T13:17:57Z",
-      "updated_at": "2026-06-26T15:17:30Z",
+      "updated_at": "2026-09-01T13:48:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2226,7 +2261,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-208:depends-on"
+        "FEAT-208:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -2259,7 +2295,7 @@
       ],
       "path": "features/FEAT-000209-project-override-of-workflow-spec-additive-only-sq-workflow.md",
       "created_at": "2026-06-25T13:18:46Z",
-      "updated_at": "2026-06-30T09:32:23Z",
+      "updated_at": "2026-09-01T13:48:36Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2281,7 +2317,8 @@
       "refs": [
         "FEAT-209:depends-on",
         "FEAT-220",
-        "FEAT-250:depends-on"
+        "FEAT-250:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -2314,7 +2351,7 @@
       ],
       "path": "features/FEAT-000210-custom-types-end-to-end-cli-folder-skill-spec-derived-workfl.md",
       "created_at": "2026-06-25T13:19:37Z",
-      "updated_at": "2026-07-01T21:41:02Z",
+      "updated_at": "2026-09-01T13:48:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2335,7 +2372,8 @@
       "labels": [],
       "refs": [
         "FEAT-208:depends-on",
-        "FEAT-210:depends-on"
+        "FEAT-210:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -2359,7 +2397,7 @@
       ],
       "path": "features/FEAT-000211-custom-statuses-and-badges-end-to-end-lifecycle-auto-lineari.md",
       "created_at": "2026-06-25T13:20:36Z",
-      "updated_at": "2026-07-02T12:57:27Z",
+      "updated_at": "2026-09-01T13:48:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2381,7 +2419,9 @@
       "refs": [
         "FEAT-210:depends-on",
         "FEAT-211:depends-on",
-        "FEAT-327:depends-on"
+        "FEAT-327:depends-on",
+        "PRD-859:implements",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -2405,7 +2445,7 @@
       ],
       "path": "features/FEAT-000212-custom-sub-entity-kinds-for-custom-types.md",
       "created_at": "2026-06-25T13:21:20Z",
-      "updated_at": "2026-07-10T00:26:05Z",
+      "updated_at": "2026-09-01T13:48:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2425,7 +2465,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-207:depends-on"
+        "FEAT-207:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -2449,7 +2490,7 @@
       ],
       "path": "features/FEAT-000219-externalize-role-catalog-into-a-bundled-roles-toml-golden-lo.md",
       "created_at": "2026-06-26T07:17:14Z",
-      "updated_at": "2026-06-26T07:58:45Z",
+      "updated_at": "2026-09-01T13:48:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2470,7 +2511,8 @@
       "labels": [],
       "refs": [
         "FEAT-219:depends-on",
-        "FEAT-207:depends-on"
+        "FEAT-207:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -2503,7 +2545,7 @@
       ],
       "path": "features/FEAT-000220-externalize-playbook-into-a-bundled-playbook-toml-drives-ski.md",
       "created_at": "2026-06-26T07:17:58Z",
-      "updated_at": "2026-06-26T09:27:33Z",
+      "updated_at": "2026-09-01T13:48:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2682,7 +2724,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-237"
+        "FEAT-237",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -2697,7 +2740,7 @@
       ],
       "path": "features/FEAT-000264-guard-against-stale-status-lifecycle-prose-in-item-bodies.md",
       "created_at": "2026-06-30T12:20:12Z",
-      "updated_at": "2026-07-06T12:50:04Z",
+      "updated_at": "2026-09-01T13:48:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2764,7 +2807,8 @@
       "refs": [
         "FEAT-210:depends-on",
         "FEAT-211:depends-on",
-        "FEAT-326:depends-on"
+        "FEAT-326:depends-on",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -2788,7 +2832,7 @@
       ],
       "path": "features/FEAT-000281-vocabulary-rename-migrations-sq-migrate-rename-type-status.md",
       "created_at": "2026-07-02T09:25:53Z",
-      "updated_at": "2026-07-10T01:56:00Z",
+      "updated_at": "2026-09-01T13:48:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2809,7 +2853,8 @@
       "labels": [],
       "refs": [
         "ADR-282:implements",
-        "FEAT-27"
+        "FEAT-27",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -2860,7 +2905,7 @@
       ],
       "path": "features/FEAT-000283-unpadded-display-ids-decoupled-from-filename-padding.md",
       "created_at": "2026-07-02T09:36:33Z",
-      "updated_at": "2026-07-04T23:23:53Z",
+      "updated_at": "2026-09-01T13:49:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2880,7 +2925,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-13"
+        "FEAT-13",
+        "PRD-861:implements"
       ],
       "subentities": [
         {
@@ -2922,7 +2968,7 @@
       ],
       "path": "features/FEAT-000287-relocate-the-do-not-edit-warning-to-agent-facing-files.md",
       "created_at": "2026-07-02T15:10:39Z",
-      "updated_at": "2026-07-05T21:31:13Z",
+      "updated_at": "2026-09-01T13:49:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -2944,7 +2990,8 @@
       "refs": [
         "FEAT-283:depends-on",
         "ADR-282",
-        "ADR-295:implements"
+        "ADR-295:implements",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -2995,7 +3042,7 @@
       ],
       "path": "features/FEAT-000288-pre-merge-id-block-shift-renumber-sq-renumber.md",
       "created_at": "2026-07-03T08:18:39Z",
-      "updated_at": "2026-07-06T10:18:42Z",
+      "updated_at": "2026-09-01T13:49:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3014,7 +3061,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-858:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -3046,7 +3095,7 @@
       ],
       "path": "features/FEAT-000289-sq-check-flags-unwritten-placeholder-sub-entity-bodies.md",
       "created_at": "2026-07-04T20:16:38Z",
-      "updated_at": "2026-07-06T12:10:03Z",
+      "updated_at": "2026-09-01T13:49:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3066,7 +3115,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-314:implements"
+        "ADR-314:implements",
+        "PRD-860:implements"
       ],
       "subentities": [
         {
@@ -3126,7 +3176,7 @@
       ],
       "path": "features/FEAT-000315-agent-memory-committed-per-role-notebook-surfaced-at-boot.md",
       "created_at": "2026-07-06T16:05:08Z",
-      "updated_at": "2026-07-15T13:14:44Z",
+      "updated_at": "2026-09-01T13:49:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3146,7 +3196,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-314:implements"
+        "ADR-314:implements",
+        "PRD-860:implements"
       ],
       "subentities": [
         {
@@ -3197,7 +3248,7 @@
       ],
       "path": "features/FEAT-000317-team-bulletin-board-broadcast-notices-with-expiry.md",
       "created_at": "2026-07-06T16:08:53Z",
-      "updated_at": "2026-07-15T13:14:46Z",
+      "updated_at": "2026-09-01T13:49:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3216,7 +3267,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-862:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -3266,7 +3319,7 @@
       ],
       "path": "features/FEAT-000318-enrich-sq-search-status-region-authority-richer-json.md",
       "created_at": "2026-07-07T07:15:49Z",
-      "updated_at": "2026-07-15T14:45:03Z",
+      "updated_at": "2026-09-01T13:49:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3349,7 +3402,8 @@
       "labels": [],
       "refs": [
         "ADR-320:implements",
-        "MILE-836:targets"
+        "MILE-836:targets",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -3400,7 +3454,7 @@
       ],
       "path": "features/FEAT-000321-the-contract-prd-item-type-a-living-functional-source-of-tru.md",
       "created_at": "2026-07-07T08:33:54Z",
-      "updated_at": "2026-09-01T08:04:11Z",
+      "updated_at": "2026-09-01T13:49:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3420,7 +3474,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-322:implements"
+        "ADR-322:implements",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -3462,7 +3517,7 @@
       ],
       "path": "features/FEAT-000326-remove-the-itemtype-status-enums-generic-item-engine.md",
       "created_at": "2026-07-07T14:37:36Z",
-      "updated_at": "2026-07-09T08:15:59Z",
+      "updated_at": "2026-09-01T13:49:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3483,7 +3538,8 @@
       "labels": [],
       "refs": [
         "ADR-323:implements",
-        "FEAT-326:depends-on"
+        "FEAT-326:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -3525,7 +3581,7 @@
       ],
       "path": "features/FEAT-000327-spec-badge-collections-for-priority-severity.md",
       "created_at": "2026-07-07T14:38:59Z",
-      "updated_at": "2026-07-09T14:12:22Z",
+      "updated_at": "2026-09-01T13:49:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3546,7 +3602,8 @@
       "labels": [],
       "refs": [
         "FEAT-326:depends-on",
-        "EPIC-325"
+        "EPIC-325",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -3579,7 +3636,7 @@
       ],
       "path": "features/FEAT-000334-make-the-workflow-cheatsheet-template-spec-driven.md",
       "created_at": "2026-07-08T15:06:36Z",
-      "updated_at": "2026-07-10T04:43:47Z",
+      "updated_at": "2026-09-01T13:50:13Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3652,7 +3709,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-862:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -3684,7 +3743,7 @@
       ],
       "path": "features/FEAT-000377-inline-mermaid-diagrams-across-sq-markdown-surfaces.md",
       "created_at": "2026-07-10T09:04:53Z",
-      "updated_at": "2026-07-15T14:45:04Z",
+      "updated_at": "2026-09-01T13:50:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3703,7 +3762,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-860:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -3726,7 +3787,7 @@
       ],
       "path": "features/FEAT-000416-shared-team-knowledge-boot-engagement-nudge-memory-slug-ergo.md",
       "created_at": "2026-07-15T11:43:20Z",
-      "updated_at": "2026-07-15T13:14:47Z",
+      "updated_at": "2026-09-01T13:50:17Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3747,7 +3808,8 @@
       "labels": [],
       "refs": [
         "REV-448:addresses",
-        "FEAT-100"
+        "FEAT-100",
+        "PRD-863:implements"
       ],
       "subentities": [
         {
@@ -3807,7 +3869,7 @@
       ],
       "path": "features/FEAT-000449-vs-code-extension-interactive-preview-display-refinements.md",
       "created_at": "2026-07-17T13:07:35Z",
-      "updated_at": "2026-07-17T16:35:27Z",
+      "updated_at": "2026-09-01T13:50:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3826,7 +3888,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-863:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -3921,7 +3985,7 @@
       ],
       "path": "features/FEAT-000471-vs-code-extension-alignment-batch-2-f15-f26.md",
       "created_at": "2026-07-18T19:51:27Z",
-      "updated_at": "2026-07-18T21:40:28Z",
+      "updated_at": "2026-09-01T13:50:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -3942,7 +4006,8 @@
       "labels": [],
       "refs": [
         "BUG-490:addresses",
-        "ADR-492:implements"
+        "ADR-492:implements",
+        "PRD-860:implements"
       ],
       "subentities": [
         {
@@ -3993,7 +4058,7 @@
       ],
       "path": "features/FEAT-000491-custom-skills-authored-bodies-role-scoping.md",
       "created_at": "2026-07-20T08:41:10Z",
-      "updated_at": "2026-07-20T12:33:20Z",
+      "updated_at": "2026-09-01T13:50:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4012,7 +4077,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-863:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -4035,7 +4102,7 @@
       ],
       "path": "features/FEAT-000506-preview-back-forward-navigation.md",
       "created_at": "2026-07-20T12:24:04Z",
-      "updated_at": "2026-07-20T14:12:01Z",
+      "updated_at": "2026-09-01T13:50:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4056,7 +4123,8 @@
       "labels": [],
       "refs": [
         "FEAT-15:depends-on",
-        "FEAT-19:depends-on"
+        "FEAT-19:depends-on",
+        "PRD-863:implements"
       ],
       "subentities": [
         {
@@ -4089,7 +4157,7 @@
       ],
       "path": "features/FEAT-000513-sq-ui-shell-tree-navigation.md",
       "created_at": "2026-07-21T09:11:23Z",
-      "updated_at": "2026-07-21T14:38:02Z",
+      "updated_at": "2026-09-01T13:50:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4110,7 +4178,8 @@
       "labels": [],
       "refs": [
         "FEAT-15:depends-on",
-        "FEAT-19:depends-on"
+        "FEAT-19:depends-on",
+        "PRD-863:implements"
       ],
       "subentities": [
         {
@@ -4152,7 +4221,7 @@
       ],
       "path": "features/FEAT-000514-item-reader-panel-body-sub-entities-discussion-tabs.md",
       "created_at": "2026-07-21T09:11:26Z",
-      "updated_at": "2026-07-21T14:38:05Z",
+      "updated_at": "2026-09-01T13:50:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4194,7 +4263,9 @@
       "priority": "medium",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-863:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -4235,7 +4306,7 @@
       ],
       "path": "features/FEAT-000525-filter-sort-popup-over-the-browse-tree.md",
       "created_at": "2026-07-21T12:14:41Z",
-      "updated_at": "2026-07-21T14:38:09Z",
+      "updated_at": "2026-09-01T13:50:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4254,7 +4325,9 @@
       "priority": "medium",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-863:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -4295,7 +4368,7 @@
       ],
       "path": "features/FEAT-000526-full-text-search-page.md",
       "created_at": "2026-07-21T12:14:45Z",
-      "updated_at": "2026-07-21T14:38:13Z",
+      "updated_at": "2026-09-01T13:50:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4387,7 +4460,9 @@
       "priority": "medium",
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-863:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -4428,7 +4503,7 @@
       ],
       "path": "features/FEAT-000537-vs-code-full-text-search-quickpick.md",
       "created_at": "2026-07-21T14:17:03Z",
-      "updated_at": "2026-07-22T09:10:15Z",
+      "updated_at": "2026-09-01T13:50:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4447,7 +4522,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-860:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -4479,7 +4556,7 @@
       ],
       "path": "features/FEAT-000543-custom-non-dev-role-scaffolding-discoverability.md",
       "created_at": "2026-07-21T20:43:26Z",
-      "updated_at": "2026-07-22T08:50:26Z",
+      "updated_at": "2026-09-01T13:50:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4523,7 +4600,8 @@
       "labels": [],
       "refs": [
         "EPIC-540",
-        "ADR-541"
+        "ADR-541",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -4547,7 +4625,7 @@
       ],
       "path": "features/FEAT-000567-category-axis-pluggable-validator-dispatch-engine.md",
       "created_at": "2026-07-22T08:37:44Z",
-      "updated_at": "2026-07-22T11:51:25Z",
+      "updated_at": "2026-09-01T13:50:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4568,7 +4646,8 @@
       "labels": [],
       "refs": [
         "FEAT-567",
-        "ADR-541"
+        "ADR-541",
+        "PRD-858:implements"
       ],
       "subentities": [
         {
@@ -4592,7 +4671,7 @@
       ],
       "path": "features/FEAT-000568-validator-catalog-seed-checks-category-type-assignment.md",
       "created_at": "2026-07-22T08:38:35Z",
-      "updated_at": "2026-07-22T11:51:26Z",
+      "updated_at": "2026-09-01T13:50:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4613,12 +4692,13 @@
       "labels": [],
       "refs": [
         "FEAT-567",
-        "FEAT-573"
+        "FEAT-573",
+        "PRD-859:implements"
       ],
       "subentities": [],
       "path": "features/FEAT-000569-custom-work-item-types-records-category-create-retype-list.md",
       "created_at": "2026-07-22T08:39:16Z",
-      "updated_at": "2026-07-22T18:40:07Z",
+      "updated_at": "2026-09-01T13:50:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4640,7 +4720,9 @@
       "refs": [
         "FEAT-567",
         "REV-565",
-        "FEAT-605:depends-on"
+        "FEAT-605:depends-on",
+        "PRD-862:implements",
+        "PRD-863:implements"
       ],
       "subentities": [
         {
@@ -4673,7 +4755,7 @@
       ],
       "path": "features/FEAT-000570-records-group-in-ui-cli-category-aware-visibility-filter.md",
       "created_at": "2026-07-22T08:39:37Z",
-      "updated_at": "2026-07-23T07:09:27Z",
+      "updated_at": "2026-09-01T13:50:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4694,12 +4776,13 @@
       "labels": [],
       "refs": [
         "FEAT-567",
-        "REV-565"
+        "REV-565",
+        "PRD-859:implements"
       ],
       "subentities": [],
       "path": "features/FEAT-000571-spec-driven-add-flags-generic-badge-field-cli-generation.md",
       "created_at": "2026-07-22T08:39:38Z",
-      "updated_at": "2026-07-22T18:40:12Z",
+      "updated_at": "2026-09-01T13:50:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4834,7 +4917,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-565"
+        "REV-565",
+        "PRD-862:implements"
       ],
       "subentities": [
         {
@@ -4894,7 +4978,7 @@
       ],
       "path": "features/FEAT-000575-cli-surface-completeness-roles-operators-sub-entities-commen.md",
       "created_at": "2026-07-22T08:41:07Z",
-      "updated_at": "2026-07-23T13:22:28Z",
+      "updated_at": "2026-09-01T13:50:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -4915,7 +4999,9 @@
       "labels": [],
       "refs": [
         "REV-565",
-        "ADR-622:implements"
+        "ADR-622:implements",
+        "PRD-858:implements",
+        "PRD-861:implements"
       ],
       "subentities": [
         {
@@ -4984,7 +5070,7 @@
       ],
       "path": "features/FEAT-000576-adoption-ergonomics-orphan-warnings-bulk-event-import.md",
       "created_at": "2026-07-22T08:41:51Z",
-      "updated_at": "2026-07-24T07:49:29Z",
+      "updated_at": "2026-09-01T13:51:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5004,7 +5090,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-604:implements"
+        "ADR-604:implements",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -5037,7 +5124,7 @@
       ],
       "path": "features/FEAT-000605-status-role-as-a-first-class-object-colour-visibility-axis.md",
       "created_at": "2026-07-22T15:29:57Z",
-      "updated_at": "2026-07-22T16:57:05Z",
+      "updated_at": "2026-09-01T13:51:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5056,11 +5143,13 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-863:implements"
+      ],
       "subentities": [],
       "path": "features/FEAT-000621-roster-view-filtering-parity-with-work-records-filter-surfac.md",
       "created_at": "2026-07-23T07:11:12Z",
-      "updated_at": "2026-07-29T12:46:16Z",
+      "updated_at": "2026-09-01T13:51:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5079,7 +5168,10 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-860:implements",
+        "PRD-862:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -5129,7 +5221,7 @@
       ],
       "path": "features/FEAT-000642-make-read-surfaces-sub-entity-aware-mine-workload-inbox-json.md",
       "created_at": "2026-07-24T07:28:33Z",
-      "updated_at": "2026-08-03T14:39:22Z",
+      "updated_at": "2026-09-01T13:51:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5194,7 +5286,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "ADR-646:addresses"
+        "ADR-646:addresses",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -5236,7 +5329,7 @@
       ],
       "path": "features/FEAT-000647-per-type-display-labels.md",
       "created_at": "2026-07-24T11:47:44Z",
-      "updated_at": "2026-07-27T08:32:01Z",
+      "updated_at": "2026-09-01T13:51:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5255,7 +5348,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "PRD-860:implements"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -5278,7 +5373,7 @@
       ],
       "path": "features/FEAT-000650-push-agents-to-load-memory-board-skills-on-start.md",
       "created_at": "2026-07-24T12:50:08Z",
-      "updated_at": "2026-07-24T13:49:42Z",
+      "updated_at": "2026-09-01T13:51:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5389,7 +5484,9 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "TASK-688:addresses"
+        "TASK-688:addresses",
+        "PRD-860:implements",
+        "PRD-861:implements"
       ],
       "subentities": [
         {
@@ -5449,7 +5546,7 @@
       ],
       "path": "features/FEAT-000691-cli-expose-the-roster-s-draft-active-archived-lifecycle.md",
       "created_at": "2026-07-29T13:13:44Z",
-      "updated_at": "2026-07-31T12:41:58Z",
+      "updated_at": "2026-09-01T13:51:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5469,7 +5566,9 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "MILE-836:targets"
+        "MILE-836:targets",
+        "PRD-859:implements",
+        "PRD-862:implements"
       ],
       "subentities": [
         {
@@ -5511,7 +5610,7 @@
       ],
       "path": "features/FEAT-000693-derived-views-with-milestones-as-the-first-consumer.md",
       "created_at": "2026-07-29T13:52:43Z",
-      "updated_at": "2026-09-01T10:13:15Z",
+      "updated_at": "2026-09-01T13:51:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5596,7 +5695,8 @@
       "refs": [
         "EPIC-538",
         "ADR-541",
-        "ADR-696"
+        "ADR-696",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -5629,7 +5729,7 @@
       ],
       "path": "features/FEAT-000712-shared-override-merge-engine-deep-merge-deselect-splat-refs.md",
       "created_at": "2026-07-31T13:00:32Z",
-      "updated_at": "2026-07-31T16:22:51Z",
+      "updated_at": "2026-09-01T13:51:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5652,7 +5752,8 @@
         "EPIC-538",
         "ADR-541",
         "ADR-696",
-        "FEAT-712:depends-on"
+        "FEAT-712:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -5685,7 +5786,7 @@
       ],
       "path": "features/FEAT-000713-workflow-built-ins-overridable-drop-rename-re-prefix-via-ove.md",
       "created_at": "2026-07-31T13:01:40Z",
-      "updated_at": "2026-08-03T07:46:15Z",
+      "updated_at": "2026-09-01T13:51:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5708,7 +5809,8 @@
         "EPIC-538",
         "ADR-696",
         "FEAT-533",
-        "FEAT-712:depends-on"
+        "FEAT-712:depends-on",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -5741,7 +5843,7 @@
       ],
       "path": "features/FEAT-000714-playbook-as-the-4th-override-kind-resolved-per-request.md",
       "created_at": "2026-07-31T13:02:58Z",
-      "updated_at": "2026-08-03T15:48:16Z",
+      "updated_at": "2026-09-01T13:51:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5806,7 +5908,9 @@
       "labels": [],
       "refs": [
         "ADR-775:implements",
-        "MILE-836:targets"
+        "MILE-836:targets",
+        "PRD-858:implements",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -5857,7 +5961,7 @@
       ],
       "path": "features/FEAT-000790-ref-kinds-as-declared-workflow-spec-vocabulary.md",
       "created_at": "2026-08-24T18:24:12Z",
-      "updated_at": "2026-09-01T08:04:02Z",
+      "updated_at": "2026-09-01T13:51:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5878,7 +5982,8 @@
       "labels": [],
       "refs": [
         "ADR-777:implements",
-        "MILE-836:targets"
+        "MILE-836:targets",
+        "PRD-859:implements"
       ],
       "subentities": [
         {
@@ -5929,7 +6034,7 @@
       ],
       "path": "features/FEAT-000791-uniform-override-contract-for-every-bundled-spec-document.md",
       "created_at": "2026-08-24T18:26:05Z",
-      "updated_at": "2026-09-01T08:04:05Z",
+      "updated_at": "2026-09-01T13:51:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5951,7 +6056,8 @@
       "refs": [
         "ADR-781:implements",
         "BUG-784",
-        "MILE-836:targets"
+        "MILE-836:targets",
+        "PRD-861:implements"
       ],
       "subentities": [
         {
@@ -6002,7 +6108,7 @@
       ],
       "path": "features/FEAT-000792-pointers-name-commands-never-a-local-path.md",
       "created_at": "2026-08-24T18:28:02Z",
-      "updated_at": "2026-09-01T08:04:07Z",
+      "updated_at": "2026-09-01T13:51:41Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -20961,7 +21067,7 @@
       ],
       "path": "tasks/TASK-000832-the-contract-prd-item-type-and-its-currency-check.md",
       "created_at": "2026-08-26T13:33:55Z",
-      "updated_at": "2026-08-26T16:00:17Z",
+      "updated_at": "2026-09-01T15:37:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -35422,7 +35528,7 @@
       "type": "task",
       "title": "Stop storing system skill bodies and render them on read",
       "slug": "stop-storing-system-skill-bodies-and-render-them-on-read",
-      "status": "Ready",
+      "status": "InReview",
       "description": "A template-owned skill item stops storing its rendered body; sq skill show renders it from the same template on every call, keyed on is_system_skill",
       "parent": "FEAT-694",
       "author": "tech-lead",
@@ -35439,7 +35545,7 @@
         {
           "local_id": "ST1",
           "title": "Move the skill body render onto ServiceCore",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35448,7 +35554,7 @@
         {
           "local_id": "ST2",
           "title": "Stop writing the body; keep the pointer and the empty region",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35457,7 +35563,7 @@
         {
           "local_id": "ST3",
           "title": "Render a system skill's body at show time",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35466,7 +35572,7 @@
         {
           "local_id": "ST4",
           "title": "Prove a custom skill body is untouched",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35475,7 +35581,7 @@
       ],
       "path": "tasks/TASK-000852-stop-storing-system-skill-bodies-and-render-them-on-read.md",
       "created_at": "2026-09-01T08:26:15Z",
-      "updated_at": "2026-09-01T08:45:38Z",
+      "updated_at": "2026-09-01T12:54:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -35660,7 +35766,7 @@
       "type": "task",
       "title": "Correct false and build-narrating prose in shipped docstrings",
       "slug": "correct-false-and-build-narrating-prose-in-shipped-docstring",
-      "status": "Ready",
+      "status": "InReview",
       "description": "Docstrings and comments that narrate how the code was built, or assert something falsifiable that is no longer true — rewritten in the present tense, prose only, no behaviour change",
       "parent": null,
       "author": "tech-lead",
@@ -35676,7 +35782,7 @@
         {
           "local_id": "ST1",
           "title": "Rewrite the agents_md backend prose in the present tense",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35685,7 +35791,7 @@
         {
           "local_id": "ST2",
           "title": "Restate the RoleView and validators reasoning as rules",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35694,7 +35800,7 @@
         {
           "local_id": "ST3",
           "title": "State adopt's seeding invariant instead of a former gap",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35703,7 +35809,7 @@
         {
           "local_id": "ST4",
           "title": "Name what the five flagged test modules cover",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35712,7 +35818,7 @@
         {
           "local_id": "ST5",
           "title": "Correct the runner roster projection's false equivalence",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35721,7 +35827,7 @@
         {
           "local_id": "ST6",
           "title": "Replace the carry-set rationale's non-existent command",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35730,7 +35836,7 @@
         {
           "local_id": "ST7",
           "title": "Restate the dev-role skew exemption's reason in the present tense",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -35739,7 +35845,7 @@
       ],
       "path": "tasks/TASK-000855-correct-false-and-build-narrating-prose-in-shipped-docstring.md",
       "created_at": "2026-09-01T11:22:08Z",
-      "updated_at": "2026-09-01T11:28:06Z",
+      "updated_at": "2026-09-01T13:21:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -35796,6 +35902,215 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-857"
+    },
+    "858": {
+      "sequence_id": 858,
+      "type": "contract",
+      "title": "The work record: identified markdown that stays its own truth",
+      "slug": "the-work-record-identified-markdown-that-stays-its-own-truth",
+      "status": "Draft",
+      "description": "How work is stored: identified markdown files, durable IDs, per-type lifecycles, one-way links, and a rebuildable index.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "PRD-862",
+        "PRD-859"
+      ],
+      "subentities": [],
+      "path": "contracts/PRD-000858-the-work-record-identified-markdown-that-stays-its-own-truth.md",
+      "created_at": "2026-09-01T13:02:15Z",
+      "updated_at": "2026-09-01T13:53:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "PRD-858"
+    },
+    "859": {
+      "sequence_id": 859,
+      "type": "contract",
+      "title": "The declared vocabulary: types, states, and rules a squad owns",
+      "slug": "the-declared-vocabulary-types-states-and-rules-a-squad-owns",
+      "status": "Draft",
+      "description": "How a project makes the vocabulary its own: declared types, states, links, badges and guidance, composed as a delta.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "PRD-862",
+        "PRD-858"
+      ],
+      "subentities": [],
+      "path": "contracts/PRD-000859-the-declared-vocabulary-types-states-and-rules-a-squad-owns.md",
+      "created_at": "2026-09-01T13:02:17Z",
+      "updated_at": "2026-09-01T13:09:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "PRD-859"
+    },
+    "860": {
+      "sequence_id": 860,
+      "type": "contract",
+      "title": "The team: roles, memory, and how work changes hands",
+      "slug": "the-team-roles-memory-and-how-work-changes-hands",
+      "status": "Draft",
+      "description": "The team as a product: roles, operators, compiled skills, per-role memory, the board, and the handoff protocol.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "PRD-862",
+        "PRD-859",
+        "PRD-861"
+      ],
+      "subentities": [],
+      "path": "contracts/PRD-000860-the-team-roles-memory-and-how-work-changes-hands.md",
+      "created_at": "2026-09-01T13:02:19Z",
+      "updated_at": "2026-09-01T13:09:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "PRD-860"
+    },
+    "861": {
+      "sequence_id": 861,
+      "type": "contract",
+      "title": "Host integration: what squads writes for an agent tool",
+      "slug": "host-integration-what-squads-writes-for-an-agent-tool",
+      "status": "Draft",
+      "description": "What squads writes for the agent tool that runs the agents: pluggable backends, pointers, and managed regions.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "PRD-862",
+        "PRD-860",
+        "PRD-863"
+      ],
+      "subentities": [],
+      "path": "contracts/PRD-000861-host-integration-what-squads-writes-for-an-agent-tool.md",
+      "created_at": "2026-09-01T13:02:20Z",
+      "updated_at": "2026-09-01T13:09:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "PRD-861"
+    },
+    "862": {
+      "sequence_id": 862,
+      "type": "contract",
+      "title": "The read surface: the CLI is the only way in",
+      "slug": "the-read-surface-the-cli-is-the-only-way-in",
+      "status": "Draft",
+      "description": "The files are storage; the CLI is the only read surface; anything derived is a view computed on demand.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "PRD-859",
+        "PRD-863"
+      ],
+      "subentities": [],
+      "path": "contracts/PRD-000862-the-read-surface-the-cli-is-the-only-way-in.md",
+      "created_at": "2026-09-01T13:02:22Z",
+      "updated_at": "2026-09-01T13:10:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "PRD-862"
+    },
+    "863": {
+      "sequence_id": 863,
+      "type": "contract",
+      "title": "The clients: reading a squad outside the terminal",
+      "slug": "the-clients-reading-a-squad-outside-the-terminal",
+      "status": "Draft",
+      "description": "Browsing a squad outside the terminal: the editor extension and the built-in terminal browser, both read-only.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "PRD-862",
+        "PRD-859"
+      ],
+      "subentities": [],
+      "path": "contracts/PRD-000863-the-clients-reading-a-squad-outside-the-terminal.md",
+      "created_at": "2026-09-01T13:02:24Z",
+      "updated_at": "2026-09-01T13:09:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "PRD-863"
+    },
+    "864": {
+      "sequence_id": 864,
+      "type": "decision",
+      "title": "Validator catalog: three tiers, declared levels, no injected Python",
+      "slug": "validator-catalog-three-tiers-declared-levels-no-injected-py",
+      "status": "Proposed",
+      "description": "What a complete validator catalog looks like, which members are floor vs opt-in, and why adopter-supplied Python should not be built.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-541",
+        "PRD-858",
+        "ADR-777",
+        "ADR-696"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000864-validator-catalog-three-tiers-declared-levels-no-injected-py.md",
+      "created_at": "2026-09-01T15:26:04Z",
+      "updated_at": "2026-09-01T15:26:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-864"
+    },
+    "865": {
+      "sequence_id": 865,
+      "type": "bug",
+      "title": "A parent cycle is accepted silently and hangs every sq tree call",
+      "slug": "a-parent-cycle-is-accepted-silently-and-hangs-every-sq-tree",
+      "status": "Open",
+      "description": "update --parent accepts a self- or mutual-parent edge with exit 0; every sq tree call in the squad then spins forever while every other read surface stays fine.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "high",
+      "severity": "high",
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-000865-a-parent-cycle-is-accepted-silently-and-hangs-every-sq-tree.md",
+      "created_at": "2026-09-01T15:41:07Z",
+      "updated_at": "2026-09-01T15:41:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-865"
     }
   }
 }

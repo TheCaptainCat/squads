@@ -152,7 +152,7 @@ squad, which is what you do most once agents are the ones writing:
   `sq <type> <n> body` (`--file` for long markdown), notes with `sq <type> <n> comment`, state with
   `sq <type> <n> status`.
 - **Agents** — named roles (real name + slug, e.g. *Robert Architect* / `architect`). The `.claude/`
-  files are pointers to the real definitions under `squads/agents/`.
+  files are pointers: each names the `sq` command that produces the full definition.
 
 ### On-disk layout
 
@@ -161,8 +161,8 @@ your-project/
 ├── .squads.toml                 # config (squad dir, active backends, version, default role)
 ├── CLAUDE.md                    # managed section: process + greeting impersonation
 ├── .claude/
-│   ├── agents/<slug>.md         # POINTER → squads/agents/roles/ROLE-*.md
-│   └── skills/<skill>/SKILL.md  # POINTER → squads/agents/skills/SKILL-*.md
+│   ├── agents/<slug>.md         # POINTER → `sq role <slug> show`
+│   └── skills/<skill>/SKILL.md  # POINTER → `sq skill <skill> show`
 └── squads/                      # self-contained & relocatable (override with --dir)
     ├── .squads.json             # the index: counter + all items + refs
     ├── epics/ features/ tasks/ bugs/ adrs/ reviews/ guides/ operators/

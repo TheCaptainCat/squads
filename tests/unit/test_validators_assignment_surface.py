@@ -1,8 +1,10 @@
 """``ItemSpec.validators`` — the per-type extend-only assignment surface over the category
 default bundle — and its Plane-1 (load-time) catalog-membership check: an unknown validator
 name fails closed, and a ``:<param>`` suffix is only well-formed on a name in
-``PARAMETERIZED_VALIDATOR_NAMES``. Engine wiring (a type's own additions actually extend its
-effective set) lives alongside the routing-task parity tests in ``tests/service/``.
+``PARAMETERIZED_VALIDATOR_NAMES``. Engine wiring lives elsewhere: each named validator's own
+behaviour in ``tests/service/test_validator_catalog_lift.py``, and a type's own additions
+extending its effective set in
+``tests/service/test_records_epic_no_parent_enforcement.py``.
 """
 
 from datetime import UTC, datetime
@@ -34,15 +36,21 @@ def _spec_dict(base: WorkflowSpec, items: dict[str, ItemSpec]) -> dict[str, obje
     }
 
 
-def test_bundled_spec_declares_epics_and_features_validators_addition_only() -> None:
-    """``epic`` and ``feature`` are the two built-in types with a ``validators`` addition:
-    epic's own ``no_parent`` (enforcing the work-root constraint — ``records``' ``no_parent``
-    comes from the category bundle instead, not a per-type addition), and feature's
-    ``ref_rule_target_present:contract`` (the functional-contract currency check)."""
+def test_bundled_spec_declares_epics_validators_addition_only() -> None:
+    """``epic`` is the only built-in type with a ``validators`` addition: its own ``no_parent``
+    (enforcing the work-root constraint — ``records``' ``no_parent`` comes from the category
+    bundle instead, not a per-type addition).
+
+    ``feature`` is the near miss, and the reason this is asserted over the whole item table
+    rather than for ``epic`` alone: it declares a ``ref_rules`` entry targeting ``contract``
+    and selects **no** validator over it. Typing that edge is bundled; requiring a delivered
+    feature to carry one is a per-project call made in an override, not a default every squad
+    inherits."""
     spec = bundled_spec()
     assert spec.items["epic"].validators == ["no_parent"]
-    assert spec.items["feature"].validators == ["ref_rule_target_present:contract"]
-    assert all(ts.validators == [] for t, ts in spec.items.items() if t not in ("epic", "feature"))
+    assert spec.items["feature"].validators == []
+    assert any(rr.target == "contract" for rr in spec.items["feature"].ref_rules)
+    assert all(ts.validators == [] for t, ts in spec.items.items() if t != "epic")
 
 
 def test_an_unknown_validator_name_fails_closed_at_load() -> None:
@@ -73,6 +81,22 @@ def test_a_param_on_subentity_title_max_is_well_formed() -> None:
     }
     spec = WorkflowSpec.model_validate(_spec_dict(base, items))
     assert spec.items["task"].validators == ["subentity_title_max:50"]
+
+
+def test_a_param_on_ref_rule_target_present_is_well_formed() -> None:
+    """The other parameterized name — nothing bundled selects it, so this surface is where its
+    accepted shape is pinned: the param names the target item type, and the type carrying the
+    addition already declares a ``ref_rules`` entry with that target (both conditions are
+    checked at load, see ``_check_ref_rule_targets``)."""
+    base = bundled_spec()
+    items = {
+        **base.items,
+        "feature": base.items["feature"].model_copy(
+            update={"validators": ["ref_rule_target_present:contract"]}
+        ),
+    }
+    spec = WorkflowSpec.model_validate(_spec_dict(base, items))
+    assert spec.items["feature"].validators == ["ref_rule_target_present:contract"]
 
 
 def test_a_bare_catalog_name_addition_is_accepted() -> None:

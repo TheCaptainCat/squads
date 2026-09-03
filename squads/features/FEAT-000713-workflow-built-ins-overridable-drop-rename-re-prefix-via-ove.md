@@ -11,6 +11,7 @@ refs:
 - ADR-541
 - ADR-696
 - FEAT-712:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a spec author, I want to shadow a built-in status/lifecycle/type via override
@@ -23,7 +24,7 @@ subentities:
   title: Every consumer absorbs a dropped/renamed/re-prefixed type cleanly
   status: Done
 created_at: '2026-07-31T13:01:40Z'
-updated_at: '2026-08-03T07:46:15Z'
+updated_at: '2026-09-01T13:51:30Z'
 ---
 <!-- sq:body -->
 ## Capability

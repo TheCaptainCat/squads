@@ -11,6 +11,8 @@ refs:
 - FEAT-23
 - BUG-22
 - FEAT-15
+- PRD-858:implements
+- PRD-862:implements
 description: An append-only JSONL log of every mutating sq operation (who, when, what,
   before/after), with a sq reflog command to read it
 subentities:
@@ -24,7 +26,7 @@ subentities:
   title: Reflog as stable documented JSONL for automation and dashboards
   status: Done
 created_at: '2026-06-10T13:59:11Z'
-updated_at: '2026-06-23T10:00:09Z'
+updated_at: '2026-09-01T13:47:41Z'
 ---
 <!-- sq:body -->
 ## Problem

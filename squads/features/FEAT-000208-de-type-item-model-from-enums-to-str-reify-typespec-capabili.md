@@ -8,6 +8,7 @@ parent: EPIC-206
 author: product-owner
 refs:
 - FEAT-207:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a maintainer, I want Item type/status to be str-typed so unknown values
@@ -18,7 +19,7 @@ subentities:
     custom types can declare their own semantics
   status: Todo
 created_at: '2026-06-25T13:17:57Z'
-updated_at: '2026-06-26T15:17:30Z'
+updated_at: '2026-09-01T13:48:33Z'
 ---
 <!-- sq:body -->
 ## What this delivers

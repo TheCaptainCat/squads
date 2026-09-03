@@ -7,6 +7,8 @@ status: Done
 parent: EPIC-12
 author: product-owner
 priority: medium
+refs:
+- PRD-861:implements
 description: Prove the AgentBackend ABC with a cross-tool AGENTS.md implementation
   before the ABC freezes
 subentities:
@@ -17,7 +19,7 @@ subentities:
   title: Backend conformance test suite for AgentBackend implementers
   status: Done
 created_at: '2026-06-10T12:41:16Z'
-updated_at: '2026-06-23T09:58:59Z'
+updated_at: '2026-09-01T13:47:30Z'
 ---
 <!-- sq:body -->
 ## Problem

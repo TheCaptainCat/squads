@@ -136,12 +136,27 @@ async def _ensure_type_folders(paths: SquadPaths, spec: WorkflowSpec) -> int:
 async def _live_roster(
     paths: SquadPaths, spec: WorkflowSpec
 ) -> tuple[list[RoleView], list[OperatorView], dict[str, Path]]:
-    """The live-roster views ``write_managed`` needs, read straight off the index — the same
-    projection :meth:`Service.roster`/:meth:`Service.operators`/:meth:`Service._skill_paths`
-    apply, reproduced locally because a migration runner has no ``Service`` to call (that would
-    be a genuine import cycle: ``_services`` already imports the migration registry to run this
-    module). Empty when the index does not exist yet (defensive; every real migrate target has
-    one)."""
+    """The live-roster views ``write_managed`` needs, read straight off the index.
+
+    The operator and skill-path halves are the projection :meth:`Service.operators` and
+    :meth:`Service._skill_paths` apply, field for field. **The role half is not**
+    :meth:`Service.roster`'s: that one resolves every role through the catalog
+    (:func:`~squads._roles._resolver.resolve_role_for_item`, which merges a project role
+    override), while this reads each role's stored ``extra`` mirror. That is deliberate — a
+    runner is frozen against the corpus vocabulary of the version it transforms, and that
+    corpus carries the mirror.
+
+    The consequence is visible, because this projection is handed to the same
+    ``write_managed`` ``sync`` calls with the resolved list: on a squad carrying a project role
+    override the mirror has not caught up with, the runner's projection yields the bundled
+    field value and ``sq sync``'s yields the override's, so the managed region ``sq migrate up``
+    writes differs from the one the very next ``sq sync`` writes. ``MANUAL``'s instruction to
+    run ``sq sync`` next is what closes that window.
+
+    Kept local rather than delegating: ``_services`` imports the migration registry to run this
+    module, so calling ``Service`` from a runner is a real import cycle.
+
+    Empty when the index does not exist yet (defensive; every real migrate target has one)."""
     if not paths.index_path.is_file():
         return [], [], {}
     db = await IndexStore(paths.index_path, paths.lock_path).load()

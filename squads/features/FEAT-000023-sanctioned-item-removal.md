@@ -9,6 +9,7 @@ author: product-owner
 priority: medium
 refs:
 - BUG-22:depends-on
+- PRD-858:implements
 description: 'sq <type> <n> remove: a safe, first-class way to delete or retire an
   item — today the only option is manual file surgery plus hand-editing the index'
 subentities:
@@ -22,7 +23,7 @@ subentities:
   title: Sequence number gaps explained as recorded removals
   status: Done
 created_at: '2026-06-10T13:52:25Z'
-updated_at: '2026-06-23T09:59:43Z'
+updated_at: '2026-09-01T13:47:37Z'
 ---
 <!-- sq:body -->
 ## Problem

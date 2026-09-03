@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - FEAT-219:depends-on
 - FEAT-207:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content
@@ -23,7 +24,7 @@ subentities:
     before and after this change
   status: Todo
 created_at: '2026-06-26T07:17:58Z'
-updated_at: '2026-06-26T09:27:33Z'
+updated_at: '2026-09-01T13:48:52Z'
 ---
 <!-- sq:body -->
 ## What this delivers

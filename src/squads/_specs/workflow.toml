@@ -397,11 +397,19 @@ aliases = ["feat", "f"]
 order = 20
 category = "work"
 subentity_kind = "story"
-# The implements ref_rule types the edge (target = contract); the validator entry below
-# selects it as an obligation once a contract exists in the corpus — no hint: contract
-# guidance in parent_hint's invalid-parent message would be noise.
+# The implements ref_rule types the edge (target = contract): a feature's implements edge is
+# expected to point at a contract, which is what makes `sq feature <n> refs` and the contract's
+# incoming refs read as one relationship. No hint: contract guidance in parent_hint's
+# invalid-parent message would be noise.
+#
+# Typing the edge is all this declares. Whether a delivered feature *must* name the contract
+# slice it changed is the maintainer's call, not something a bundled default decides for every
+# squad — plenty of features (internal refactors, test batteries, tooling) implement no adopter
+# promise at all, and a rule that cannot record that produces permanent warnings. So no
+# `validators` key here, the same way [items.task] leaves out "parent_present": a project that
+# wants the obligation adds `validators = ["ref_rule_target_present:contract"]` to this type in
+# its own .overrides/workflow.toml, and the rule above is already there to back it.
 ref_rules = [{ kind = "implements", target = "contract" }]
-validators = ["ref_rule_target_present:contract"]
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # parent_required absent → None (unconstrained — any parent or none is valid)
 

@@ -10,6 +10,7 @@ priority: medium
 refs:
 - FEAT-15:depends-on
 - FEAT-19:depends-on
+- PRD-863:implements
 subentities:
 - local_id: US1
   title: Selecting a node shows its detail
@@ -24,7 +25,7 @@ subentities:
   title: Status/priority/assignee at a glance
   status: Todo
 created_at: '2026-07-21T09:11:26Z'
-updated_at: '2026-07-21T14:38:05Z'
+updated_at: '2026-09-01T13:50:29Z'
 ---
 <!-- sq:body -->
 ## Capability

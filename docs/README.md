@@ -63,8 +63,8 @@ project/
 ├─ CLAUDE.md                   │  (managed section: roster, impersonation, workflow)
 ├─ .claude/                    │  tool-owned pointers + config
 │  ├─ settings.json            │  merged, never clobbered
-│  ├─ agents/architect.md ─────┼──@──▶ squads/agents/roles/ROLE-000002-architect.md   (real def)
-│  └─ skills/sq-task/SKILL.md ─┼──@──▶ squads/agents/skills/sq-task.md                 (real body)
+│  ├─ agents/architect.md ─────┼────▶ `sq role architect show`     (definition stored under squads/)
+│  └─ skills/sq-task/SKILL.md ─┼────▶ `sq skill sq-task show`      (definition rendered on read)
 └─ squads/                  ◀──┘  self-contained, relocatable (override with --dir)
    ├─ .squads.json               the index: counter + items + refs  (rebuildable)
    ├─ epics/  features/  tasks/  bugs/  adrs/  reviews/  guides/

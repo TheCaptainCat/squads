@@ -7,6 +7,8 @@ status: Done
 author: product-owner
 refs:
 - TASK-688:addresses
+- PRD-860:implements
+- PRD-861:implements
 description: Give role/skill/operator a status verb so the roster's Draft/Active/Archived
   lifecycle is actually reachable
 subentities:
@@ -31,7 +33,7 @@ subentities:
   title: As a team, sq check reports a roster entry already in a broken config state
   status: Done
 created_at: '2026-07-29T13:13:44Z'
-updated_at: '2026-07-31T12:41:58Z'
+updated_at: '2026-09-01T13:51:19Z'
 ---
 <!-- sq:body -->
 Role, skill, and operator each carry a real three-state lifecycle in the workflow spec —

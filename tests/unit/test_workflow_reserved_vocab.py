@@ -19,8 +19,10 @@ from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec, WorkflowSp
 def _spec_without_type(drop_type: str) -> dict[str, object]:
     """A raw payload for ``WorkflowSpec.model_validate`` missing *drop_type* — also strips it
     from every remaining type's ``parents``, and from any ``ref_rules``/``validators`` entry
-    that targets it (e.g. ``feature``'s ``ref_rule_target_present:contract``), so the floor
-    check is isolated from the separate parent-/ref-rule-target-reference integrity checks."""
+    that targets it (``feature``'s ``implements`` rule targets ``contract``; no bundled type
+    selects a ``ref_rule_target_present:<T>`` validator, but the strip covers that shape too so
+    this helper keeps working for a spec that does), so the floor check is isolated from the
+    separate parent-/ref-rule-target-reference integrity checks."""
     base = bundled_spec()
     items_without = {
         k: v.model_copy(

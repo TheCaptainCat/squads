@@ -38,7 +38,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-08-26T13:33:55Z'
-updated_at: '2026-08-26T16:00:17Z'
+updated_at: '2026-09-01T15:37:14Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -542,4 +542,30 @@ pointer presence and currency gate passes.
   - tests/meta: 254 passed, 5 failed (all five are test_override_manifest_and_stamp_freshness.py cases tripping on those same 2 orphan blobs — confirmed by isolating the rebuild in a throwaway copy, which dropped exactly 2). Targeted suite (validator, contract CLI/service, workflow/playbook spec artifacts, skills-for-role, create-lane, dropped/renamed-type and [selected]-override fixtures across cli/unit/service/integration): 417 passed, 0 failed. pyright/ruff check/ruff format --check all clean.
   - Left undone: US5 (folder creation + schema bump) is TASK-813's, not touched. ST5's init-vs-migrate comparison assertion can't be authored yet since the migration runner doesn't exist — deferred to TASK-813. Discovered while building: several pre-existing test fixtures hardcoded a [selected].items/statuses allowlist that predates contract's existence (or retired Active/Archived assuming only the roster lifecycle used them) — updated ~15 files to include contract/keep Active declared; flagging in case any other in-flight override fixture elsewhere hits the same shape.
   - @op-pierre @architect InReview.
+- [2026-09-01T15:23:58Z] Elias Python:
+  - Per op-pierre's ruling, the currency check is no longer a bundled default: [items.feature] drops validators = ["ref_rule_target_present:contract"] while keeping the ref_rules entry, so the implements edge stays typed and available and enforcement becomes opt-in via .overrides/workflow.toml. The validator itself stays in CATALOG/VALIDATOR_NAMES and its service tests now declare it in an override rather than leaning on the bundled selection. This repo's .overrides/workflow.toml suppression is deleted; sq check is clean without it.
+  - Stale as a result and NOT touched (writer's lane): docs/workflow.md's 'The currency check' section (~413-434), docs/recipes.md:79, and the CHANGELOG 0.14 entry all describe it as active by default. @tech-writer @manager
+- [2026-09-01T15:37:14Z] Theo Writer:
+  - Docs pass for the currency-check unbundling. Three adopter-facing places rewritten; no `src/` or `tests/` touched.
+    
+    - **`docs/workflow.md`** — `### The currency check` (was 413–439) retitled **"Keeping a contract current"** and rewritten. It now leads with the fact that squads ships no rule requiring a delivered feature to name a contract, states that the `implements` edge is bundled *and typed* while the obligation is the maintainer's, and gives the opt-in (`validators = ["ref_rule_target_present:contract"]` under `[items.feature]` in `.overrides/workflow.toml`). Everything downstream of that — the warn line, delivered-role-vs-settled, warns-never-blocks, the inert-until-first-contract behaviour — is kept but scoped to "once you turn it on". The false sentence ("the moment the first contract is authored, the check becomes active for the whole corpus") is now true as written, because it is stated about the opted-in check, which is what it describes.
+    - **`docs/recipes.md`** (was line 79) — the four-line paragraph replaced: nothing requires the link, and a pointer to the workflow.md section for the opt-in.
+    - **`CHANGELOG.md`** — the 0.14 `contract` sub-entry rewritten to describe what ships: the edge is typed but not required, requiring it is opt-in, with the validator entry named. No "previously enforced" narration. Its opening also no longer duplicates the parent bullet.
+    - **`docs/overrides.md`** — one added paragraph after the existing `supersedes_incoming` example, naming `ref_rule_target_present` as the check nothing bundled selects and linking to the workflow.md section.
+    
+    **Where the opt-in documentation lives, and why.** Substantively in `docs/workflow.md` under `## Contracts`; `docs/overrides.md` gets a cross-reference only. The question "does anything make me keep contracts current?" is asked while reading about contracts, and an adopter does not browse the overrides reference speculatively — moving it there would mean nobody finds it. The overrides page owns the *mechanism* (how a `validators` entry works), which this is one instance of, so a pointer is the right weight and keeps a single rot point instead of two copies to drift.
+    
+    **Claims driven, not read** — in a scratch squad, cleaned up afterwards:
+    - Bundled spec, settled feature + Active contract, no link → `sq check` reports `✓ no issues`, exit 0.
+    - Same squad with `validators = ["ref_rule_target_present:contract"]` on `[items.feature]` → `sq workflow lint` OK, and `sq check` emits verbatim `warn FEAT-21: settled with no implements ref to a contract — its functional contract slice may be stale`, exit **0** (warns, never blocks).
+    - Opt-in on, corpus holding **no** contract → silent. Authoring one contract left in **Draft** activates it — so inertness keys off corpus membership, not the contract's status.
+    - Adding the `implements` ref clears the warning; a `Cancelled` feature is never reported.
+    
+    **Claims read from source, not driven:** the warning text and the `status_role(item.status) != "done"` gate in `_services/_validators.py::_ref_rule_target_present`; `ref_rule_target_present` present in `CATALOG`; `[items.feature]` in the bundled `workflow.toml` carrying `ref_rules` and no `validators`; `implements` not being a supersession-role kind, so the category-consistency clause never demands a validator for it.
+    
+    **One thing I did not claim:** there is no `sq workflow validators` command, and the unknown-validator refusal does **not** list the accepted set (it is a bare `names an unknown validator`). So the docs do not promise a discovery surface for the catalog.
+    
+    Gates: full suite `4376 passed, 7 skipped in 73.46s` (0 FAILED, matches baseline — no doc-drift guard tripped); `ruff check`/`ruff format --check` clean; `pyright` 0 errors; `sq check` clean. Not committed.
+    
+    @tech-lead — docs are current for the unbundling; nothing further needed from me on ST4 unless the opt-in shape changes.
 <!-- sq:discussion:end -->

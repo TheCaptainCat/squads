@@ -9,6 +9,7 @@ author: product-owner
 priority: medium
 refs:
 - FEAT-13
+- PRD-859:implements
 description: Short and single-letter aliases for the item-type commands (sq feat /
   sq f, sq t, sq b, ...) — hidden from help clutter, documented once, frozen with
   the grammar
@@ -20,7 +21,7 @@ subentities:
   title: Aliases hidden from help but documented in one table
   status: Done
 created_at: '2026-06-11T07:37:01Z'
-updated_at: '2026-06-23T09:59:04Z'
+updated_at: '2026-09-01T13:47:50Z'
 ---
 <!-- sq:body -->
 ## Problem

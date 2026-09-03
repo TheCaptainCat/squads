@@ -10,6 +10,7 @@ priority: high
 refs:
 - BUG-21
 - FEAT-13
+- PRD-858:implements
 description: ref add validates --kind against the documented vocabulary (typos rejected,
   check flags unknowns); untyped refs stay first-class for plain cross-reference;
   one canonical kinds table in the docs
@@ -27,7 +28,7 @@ subentities:
   title: depends-on authorable from the dependent without touching the blocker
   status: Done
 created_at: '2026-06-11T07:19:35Z'
-updated_at: '2026-06-23T09:58:49Z'
+updated_at: '2026-09-01T13:47:49Z'
 ---
 <!-- sq:body -->
 ## Problem

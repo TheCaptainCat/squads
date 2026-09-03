@@ -10,6 +10,7 @@ refs:
 - FEAT-209:depends-on
 - FEAT-220
 - FEAT-250:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a project admin, I want sq <my-type> create/list/show/update to work for
@@ -24,7 +25,7 @@ subentities:
     sync
   status: Done
 created_at: '2026-06-25T13:19:37Z'
-updated_at: '2026-07-01T21:41:02Z'
+updated_at: '2026-09-01T13:48:39Z'
 ---
 <!-- sq:body -->
 ## What this delivers

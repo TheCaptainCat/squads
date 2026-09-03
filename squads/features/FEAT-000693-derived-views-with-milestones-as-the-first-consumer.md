@@ -7,6 +7,8 @@ status: Done
 author: product-owner
 refs:
 - MILE-836:targets
+- PRD-859:implements
+- PRD-862:implements
 description: A declared, read-only projection over an item's relationships, rendered
   as data with per-client renderers; milestones are its first consumer
 subentities:
@@ -23,7 +25,7 @@ subentities:
   title: Milestone roll-up as the first declared view
   status: Done
 created_at: '2026-07-29T13:52:43Z'
-updated_at: '2026-09-01T10:13:15Z'
+updated_at: '2026-09-01T13:51:25Z'
 ---
 <!-- sq:body -->
 ## The problem

@@ -7,12 +7,13 @@ status: Done
 author: tech-lead
 refs:
 - FEAT-237
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: The tracker's status is never contradicted by body prose
   status: Todo
 created_at: '2026-06-30T12:20:12Z'
-updated_at: '2026-07-06T12:50:04Z'
+updated_at: '2026-09-01T13:48:55Z'
 ---
 <!-- sq:body -->
 ## What this delivers

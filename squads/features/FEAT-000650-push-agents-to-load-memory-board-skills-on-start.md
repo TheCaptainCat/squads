@@ -5,6 +5,8 @@ type: feature
 title: Push agents to load memory/board/skills on start
 status: Done
 author: product-owner
+refs:
+- PRD-860:implements
 subentities:
 - local_id: US1
   title: 'All agents: memory+board load-on-start guidance'
@@ -13,7 +15,7 @@ subentities:
   title: 'Manager: load squads skill on start and after compaction'
   status: Done
 created_at: '2026-07-24T12:50:08Z'
-updated_at: '2026-07-24T13:49:42Z'
+updated_at: '2026-09-01T13:51:15Z'
 ---
 <!-- sq:body -->
 Right now good guidance (per-role memory, the team board, the squads/sq-memory skills) exists but nothing pushes an agent to load it by default. A spawned subagent boots with its role+skills preloaded, but a main-loop coordinator (e.g. the manager) must consciously invoke skills — and no instruction does that, so correct guidance can sit inside a skill that's never loaded.

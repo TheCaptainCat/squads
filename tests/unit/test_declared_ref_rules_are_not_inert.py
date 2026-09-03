@@ -1,11 +1,18 @@
-"""A declared ``ref_rules`` entry is validated and consumed — never a declaration that silently
-does nothing.
+"""A declared ``ref_rules`` entry is validated, and every consumer that reads one is driven by
+the declaration rather than by a bundled type name.
 
 The seam looked inert. Its own docstring said "not yet consumed by the engine", and a rule for
 a kind that does not exist loaded clean and contributed a hint string for a kind every ref
 surface rejects: the adopter wrote a rule, nothing refused it, and nothing could ever apply it.
 Both halves are pinned here — the kind is validated against the declared ``[ref_kinds]`` set at
 load, and each declaration is shown driving the two consumers that read it.
+
+**What a rule is not: an obligation.** A declaration types an edge; it does not require one. A
+rule may carry no ``hint`` and have no validator selecting it, and that advisory-only shape is
+legal by design — ``feature``'s ``implements`` → ``contract`` rule is exactly it. Enforcement is
+a separate, opt-in choice (a ``ref_rule_target_present:<T>`` entry in the type's ``validators``),
+which is why "validated" above is about the declaration being *well-formed and applicable*, not
+about it obliging anyone to write the edge.
 
 **Not in scope, and deliberately so: which kinds a type may carry.** A declared rule is a rule
 *about* a kind, not a permission for one, and reading it as an allowlist would change what the
@@ -98,6 +105,20 @@ def test_the_supersedes_validator_runs_only_for_a_type_that_declares_the_rule() 
     assert _issues("epic", superseded) == []  # declares none → not checked
 
 
+def test_a_rule_with_no_hint_and_no_validator_is_a_legal_advisory_only_declaration() -> None:
+    """The third shape, and the one the bundled document now uses for ``feature``: a rule that
+    types an edge (``target``) without obliging anyone to draw it. It loads clean, it adds no
+    hint, and it puts no validator into the type's effective set — the obligation is opt-in
+    (``validators = ["ref_rule_target_present:contract"]``), so removing it from the bundled
+    document leaves the rule itself doing its own job rather than making it dead weight."""
+    spec = bundled_spec()
+
+    (rule,) = spec.item_ref_rules("feature")
+    assert (rule.kind, rule.target, rule.hint) == ("implements", "contract", "")
+    assert spec.items["feature"].validators == []
+    assert "ref add" not in spec.parent_hint("feature")
+
+
 # --------------------------------------------------------------------- the boundary, checked
 
 
@@ -123,13 +144,6 @@ def test_the_accepted_kind_vocabulary_is_read_from_the_spec_not_hardcoded() -> N
     raw = _bundled_raw()
     for entry in raw["items"].values():
         entry["ref_rules"] = []
-        # Every type's validators are cleared, not only feature's: feature's own
-        # ref_rule_target_present:contract selects a target that only its now-emptied
-        # ref_rules can type, so it has to go alongside — and clearing every type's list
-        # (rather than feature's alone) also drops epic's no_parent, which is harmless here
-        # (this probe never touches parent/category checks) but is a real, not incidental,
-        # side effect of the blanket clear, so it is named here rather than left implicit.
-        entry["validators"] = []
     stripped = _build_spec(raw)
 
     assert all(stripped.item_ref_rules(t) == [] for t in stripped.items)

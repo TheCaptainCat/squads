@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - FEAT-208:depends-on
 - FEAT-210:depends-on
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: As a team member, I want sq list --status and sq blocked to work correctly
@@ -19,7 +20,7 @@ subentities:
     with a graceful default
   status: Done
 created_at: '2026-06-25T13:20:36Z'
-updated_at: '2026-07-02T12:57:27Z'
+updated_at: '2026-09-01T13:48:41Z'
 ---
 <!-- sq:body -->
 ## What this delivers

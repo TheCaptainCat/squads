@@ -10,6 +10,7 @@ priority: medium
 refs:
 - FEAT-567
 - ADR-541
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: lift seed catalog verbatim from today's _check_* methods
@@ -18,7 +19,7 @@ subentities:
   title: category bundles + per-type validators + the two new enforcements
   status: Todo
 created_at: '2026-07-22T08:38:35Z'
-updated_at: '2026-07-22T11:51:26Z'
+updated_at: '2026-09-01T13:50:44Z'
 ---
 <!-- sq:body -->
 ## Capability

@@ -8,6 +8,7 @@ author: product-owner
 refs:
 - BUG-490:addresses
 - ADR-492:implements
+- PRD-860:implements
 subentities:
 - local_id: US1
   title: As a squad author, I want to write and edit a custom skill's body so my team
@@ -28,7 +29,7 @@ subentities:
   title: As a squad author upgrading a squad, I want existing skills preserved unchanged
   status: Done
 created_at: '2026-07-20T08:41:10Z'
-updated_at: '2026-07-20T12:33:20Z'
+updated_at: '2026-09-01T13:50:23Z'
 ---
 <!-- sq:body -->
 ## Outcome

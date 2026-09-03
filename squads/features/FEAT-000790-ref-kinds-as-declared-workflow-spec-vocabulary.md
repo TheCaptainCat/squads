@@ -8,6 +8,8 @@ author: product-owner
 refs:
 - ADR-775:implements
 - MILE-836:targets
+- PRD-858:implements
+- PRD-859:implements
 subentities:
 - local_id: US1
   title: Declare [ref_kinds] as a workflow-spec section
@@ -26,7 +28,7 @@ subentities:
   status: Done
   assignee: tech-writer
 created_at: '2026-08-24T18:24:12Z'
-updated_at: '2026-09-01T08:04:02Z'
+updated_at: '2026-09-01T13:51:37Z'
 ---
 <!-- sq:body -->
 ## The problem

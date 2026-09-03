@@ -1,23 +1,22 @@
 """``resolve_role_with_base``'s "new slug, all required fields must be present" check is skipped
 whenever a caller supplies a base -- which the two roster-aware consumers (``sq role <slug>
 show``, ``sq check``) do for any ``-dev``-shaped slug, so it could look like the check is off
-for the whole ``-dev`` suffix space.
+for the whole ``-dev`` suffix space. It is not, and this file pins where the line actually
+falls.
 
-After the stored-fact-first fix (see tests/unit/test_dev_base_gating_reads_the_stored_fact_
-first.py and tests/integration/test_show_and_check_do_not_crash_on_a_dev_suffixed_non_dev_
-slug.py), that is no longer true for a slug with a roster entry: an activated non-dev role
-gets no base at all, so an incomplete override for one is refused exactly like any other
-unknown slug's would be -- the check is not skipped, it never applied a dev base to skip it
-from in the first place.
+A slug with a roster entry is decided by the stored fact, not by its suffix: an activated
+non-dev role gets no base at all, so an incomplete override for one is refused exactly like any
+other unknown slug's would be -- the check is not skipped, because no dev base was ever applied
+for it to be skipped from. (``tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py``
+and ``tests/integration/test_show_and_check_do_not_crash_on_a_dev_suffixed_non_dev_slug.py``
+pin that gating directly.)
 
-What remains, and is not itself a further bug to fix, is the one case a project decision
-and docs/overrides.md deliberately sanction: a ``<tech>-dev.toml`` with **no roster entry at all**
-previews leniently against the generated developer template, so you can write the override
-before running ``sq dev add --tech <tech>``. There is no roster item to consult in that case,
-so the naming convention is the only signal there ever was -- narrowing the original "skipped
-for the whole suffix space" finding down to this one documented, intentional shape. This file
-pins both halves: the case that is now protected, and the narrow, sanctioned case that is not
-trying to be.
+The one shape no stored fact can decide is a ``<tech>-dev.toml`` with **no roster entry at
+all**: a project decision and ``docs/overrides.md`` deliberately sanction previewing it
+leniently against the generated developer template, so an override can be written before
+``sq dev add --tech <tech>`` runs. There is no roster item to consult, so the naming convention
+is the only signal available. This file pins both halves: the shape the stored fact decides,
+and the narrow, sanctioned shape that stays lenient.
 """
 
 import pytest
@@ -37,10 +36,10 @@ def _place_role_toml(project, slug: str, content: str, *, stamped: bool = False)
 async def test_an_activated_non_dev_dev_suffixed_role_still_enforces_required_fields(
     project, svc, invoke
 ) -> None:
-    """The half of the finding that the stored-fact-first fix actually closes: once the slug
-    has a roster entry, an incomplete override for it is refused at the roster-aware consumers
-    too -- not silently accepted through a dev base it was never entitled to (it has no
-    ``extra.tech``, so it never gets one; see the crash-fix tests referenced above)."""
+    """The slug shape the stored fact decides: once the slug has a roster entry, an incomplete
+    override for it is refused at the roster-aware consumers too -- not silently accepted
+    through a dev base it was never entitled to (it has no ``extra.tech``, so it never gets
+    one; see the gating tests named in the module docstring)."""
     _place_role_toml(
         project,
         "data-dev",

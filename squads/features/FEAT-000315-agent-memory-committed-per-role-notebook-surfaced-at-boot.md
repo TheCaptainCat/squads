@@ -8,6 +8,7 @@ parent: EPIC-316
 author: product-owner
 refs:
 - ADR-314:implements
+- PRD-860:implements
 subentities:
 - local_id: US1
   title: As an agent, I can jot a small learned fact to my role's memory so it persists
@@ -34,7 +35,7 @@ subentities:
     discipline
   status: Todo
 created_at: '2026-07-06T16:05:08Z'
-updated_at: '2026-07-15T13:14:44Z'
+updated_at: '2026-09-01T13:49:11Z'
 ---
 <!-- sq:body -->
 # Agent memory

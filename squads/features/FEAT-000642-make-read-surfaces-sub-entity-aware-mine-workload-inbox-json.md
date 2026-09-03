@@ -5,6 +5,9 @@ type: feature
 title: 'Make read surfaces sub-entity-aware: mine, workload, inbox, JSON'
 status: Done
 author: product-owner
+refs:
+- PRD-860:implements
+- PRD-862:implements
 description: Route work by sub-entity assignee/mention; carry sub-entity discussion
   into JSON
 subentities:
@@ -24,7 +27,7 @@ subentities:
   title: standalone sub-entity show --json
   status: Done
 created_at: '2026-07-24T07:28:33Z'
-updated_at: '2026-08-03T14:39:22Z'
+updated_at: '2026-09-01T13:51:10Z'
 ---
 <!-- sq:body -->
 A sub-entity (story/subtask/finding) carries its own `assignee` and its own discussion, but the

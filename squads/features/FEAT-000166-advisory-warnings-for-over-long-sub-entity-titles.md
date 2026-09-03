@@ -5,6 +5,8 @@ type: feature
 title: Advisory warnings for over-long sub-entity titles
 status: Done
 author: product-owner
+refs:
+- PRD-858:implements
 subentities:
 - local_id: US1
   title: As an agent author, I want a warning when I give a sub-entity a long title
@@ -17,7 +19,7 @@ subentities:
     me titles are handles
   status: Todo
 created_at: '2026-06-23T07:48:38Z'
-updated_at: '2026-06-23T10:06:55Z'
+updated_at: '2026-09-01T13:48:26Z'
 ---
 <!-- sq:body -->
 ## Problem

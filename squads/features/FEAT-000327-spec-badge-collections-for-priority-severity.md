@@ -9,6 +9,7 @@ author: product-owner
 refs:
 - ADR-323:implements
 - FEAT-326:depends-on
+- PRD-859:implements
 description: Priority/Severity enums -> spec badge collections; Collection/Field/Badge
   model; CLI derives --<field> generically
 subentities:
@@ -25,7 +26,7 @@ subentities:
   title: Spec load fails closed on bad field decls
   status: Todo
 created_at: '2026-07-07T14:38:59Z'
-updated_at: '2026-07-09T14:12:22Z'
+updated_at: '2026-09-01T13:49:26Z'
 ---
 <!-- sq:body -->
 ## What this delivers

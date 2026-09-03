@@ -6,6 +6,8 @@ title: Preview back/forward navigation
 status: Done
 parent: EPIC-99
 author: product-owner
+refs:
+- PRD-863:implements
 subentities:
 - local_id: US1
   title: As a user browsing linked items in the preview, I want back/forward navigation
@@ -15,7 +17,7 @@ subentities:
   title: As a user navigating the preview, I want discoverable back/forward controls
   status: Done
 created_at: '2026-07-20T12:24:04Z'
-updated_at: '2026-07-20T14:12:01Z'
+updated_at: '2026-09-01T13:50:25Z'
 ---
 <!-- sq:body -->
 The item preview lets users click item references and `@<slug>` role mentions to jump to another item, but navigation is one-way: there's no way back to where you were. VS Code's own editor back/forward doesn't help — it tracks editor history, not the webview's internal item navigation.

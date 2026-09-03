@@ -6,6 +6,8 @@ title: 'Enrich sq search: --status, region/authority, richer --json'
 status: Done
 parent: EPIC-38
 author: product-owner
+refs:
+- PRD-862:implements
 subentities:
 - local_id: US1
   title: As a steering user, I can search item prose by free text so I can find buried
@@ -28,7 +30,7 @@ subentities:
     for steering not as a ritual
   status: Done
 created_at: '2026-07-07T07:15:49Z'
-updated_at: '2026-07-15T14:45:03Z'
+updated_at: '2026-09-01T13:49:18Z'
 ---
 <!-- sq:body -->
 # Search the board
