@@ -14,6 +14,7 @@ refs:
 - TASK-812
 - TASK-799
 - TASK-816
+- MILE-836:targets
 description: Withdraw the generator's reachability sweep, make removal a capability
   of an all-or-nothing rebuild against the release tags, and widen the freshness check
   to the whole index
@@ -44,7 +45,7 @@ subentities:
   assignee: python-dev
   story: US1
 created_at: '2026-08-25T23:08:49Z'
-updated_at: '2026-08-26T00:09:15Z'
+updated_at: '2026-08-26T16:01:06Z'
 ---
 <!-- sq:body -->
 ## Scope

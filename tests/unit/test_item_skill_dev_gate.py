@@ -19,8 +19,8 @@ from squads._workflow import linearize_lifecycle as _linearize
 
 GOLDENS_DIR = Path(__file__).parents[1] / "goldens"
 
-#: The three bundled types whose playbook declares a ``*dev`` role guide.
-_DEV_GUIDE_TYPES: frozenset[str] = frozenset({"task", "bug", "review"})
+#: The four bundled types whose playbook declares a ``*dev`` role guide.
+_DEV_GUIDE_TYPES: frozenset[str] = frozenset({"task", "bug", "review", "contract"})
 
 #: Same fixed roster the existing skill-body goldens were pinned against (all 8 bundled
 #: roles + one python-dev) — reused read-only so this test's byte-identity check targets

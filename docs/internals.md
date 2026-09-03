@@ -15,9 +15,9 @@ about the tool rather than just call it. Pairs with [adoption.md](adoption.md) (
 squads turns a folder of markdown into a **JIRA-like tracker for a team of AI agents**. Three ideas
 carry everything:
 
-1. **Markdown is the truth.** Each tracked thing (epic, feature, task, bug, ADR, review, guide,
-   role, skill) is one `.md` file. Its YAML frontmatter (`id`, `status`, `parent`, `refs`, …) is the
-   **durable source of truth**.
+1. **Markdown is the truth.** Each tracked thing — every item of every declared type, roster
+   entries included — is one `.md` file. Its YAML frontmatter (`id`, `status`, `parent`, `refs`, …)
+   is the **durable source of truth**. `sq workflow types` lists the types your spec declares.
 2. **`.squads.json` is a rebuildable index.** A single JSON file caches every item + a global ID
    counter for fast queries and atomic ID allocation. It can always be reconstructed from the `.md`
    files (`sq repair`).
@@ -63,8 +63,8 @@ index, the filesystem, the backend, and rendering together.
 - **The squad folder is self-contained** (`.squads.json` lives inside it), so it can be moved or a
   project can hold several and switch with `--dir`. Item `path`s are stored squad-folder-relative.
 - **Type-to-folder mapping is customizable** via `.overrides/workflow.toml` (see [overrides.md](overrides.md)
-  and [workflow.md](workflow.md)). The bundled default maps each of the seven work types to its own
-  folder. Custom item types declare their own folder in the override.
+  and [workflow.md](workflow.md)). The bundled default gives each declared type its own folder.
+  Custom item types declare their own folder in the override.
 
 ---
 

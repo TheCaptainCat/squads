@@ -83,7 +83,7 @@ class TestRoleShowSurfacesCreateLane:
     async def test_json_includes_the_create_lane_array(self, project, invoke) -> None:
         r = await invoke(["role", "product-owner", "show", "--json"])
         data = json.loads(r.output)
-        assert set(data["create_lane"]) == {"feature", "epic"}
+        assert set(data["create_lane"]) == {"feature", "epic", "contract", "milestone"}
 
     async def test_json_create_lane_is_empty_for_a_dev(self, project, svc, invoke) -> None:
         await svc.add_dev("python")

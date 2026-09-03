@@ -10,10 +10,12 @@ refs:
 - ADR-322
 - ADR-263
 - ADR-323
+- ADR-775
+- ADR-604
 description: 'Add a first-class contract/PRD type: the living functional twin of the
   ADR set'
 created_at: '2026-07-07T08:32:44Z'
-updated_at: '2026-08-25T18:20:44Z'
+updated_at: '2026-08-26T13:50:57Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -327,6 +329,150 @@ entry (`version="0.14.0"`, `from_schema="0.11"`, `to_schema="0.14"`), and the co
 schema bump. Beyond those, nothing changes: ordering goes through `schema_tuple`, so `(0, 14)` sorts
 after `(0, 11)` exactly as `(0, 12)` would; the existing registry guard already ties the highest
 registered `to_schema` to `SCHEMA_VERSION`; and no test, doc or runbook pins the retired number.
+
+## Amendment note — 2026-08-26: the currency check's trigger, and where the edge's target type is declared
+
+Three questions the FEAT-321 breakdown raised against §C, ruled here. §C stands as written except
+where these narrow it.
+
+### B1. The trigger narrows to the settled `done` status role; no new status role is introduced
+
+§C says the finding fires when a feature reaches `InReview` **or** `Done`. It cannot, and the reason
+is vocabulary rather than an implementation gap. Read from the bundled document rather than assumed:
+`InReview` names the `active` role — the same role `InProgress`, `ChangesRequested`, `Fixed` and
+`Active` name — while `Done` names `done`. Binding to `active` warns on every feature merely in
+flight, which is not what an advisory currency check is for.
+
+**The trigger is the `done` status role**, resolved through the spec and never compared against a
+status spelling, mirroring the shipped `supersedes_incoming`. This is the sanctioned form rather
+than a workaround: ADR-604 promoted `role` to the sole explicit status axis precisely because it was
+already "the semantic role marker for engine rules that key on a specific status". An engine rule
+keys on a role; it does not key on a status name.
+
+Not the broader `settled` property. `retired` and `superseded` are settled too, and a Cancelled
+feature delivered nothing — warning on it is exactly the false positive §C's advisory posture is
+built to avoid.
+
+**A role separating "under review" from "in progress" is refused.** Such a role would declare
+`settled = false`, `live = true`, `hidden = false` — identical to `active` under every derived
+predicate, with only the colour intent free to differ, which is presentation. It would be a status
+spelling wearing a role's costume, and it would buy the check nothing it does not already have.
+Its cost, since the question asked for it: `[roles]` is a bundled catalog every squad merges
+(ADR-604, ADR-474), so re-pointing `InReview` re-points it for every existing squad and every
+override that reasons about `active`; the role→behaviour join is consumed by the CLI, the TUI and
+the VS Code client through the closed colour-intent palette; the `live` flag projects into backend
+config for roster types (ADR-697); and `sq workflow statuses`/`roles` payloads change for anything
+joining them. That is a cross-cutting vocabulary change made for one advisory check that behaves
+identically without it.
+
+**Under an adopter's own vocabulary.** A squad that renames `Done` keeps the check as long as its
+delivered status names the `done` role, and a squad that wants no check drops one line from its
+`[items.feature]` `validators` list — the selection is per-type declared, so opting out needs no
+suppression mechanism. A squad that declares a *custom* settled role instead of reusing `done` loses
+the check silently. That residual is accepted and recorded rather than guarded: the alternative is a
+load-time rule about which role a lifecycle ought to use, which would be squads legislating an
+adopter's semantics.
+
+### B2. The edge's target type is declared on the ref rule, not inferred from the type's rule list
+
+The check has to know that a feature's `implements` edge points at a `contract`. `RefRule` carries
+`kind` and `hint` only, so the breakdown proposed reading the accepted kinds from the union of the
+declaring type's rules and taking the target type from the validator's parameter, leaving the model
+untouched. That is refused, for three reasons in order of weight.
+
+1. **It makes an enforcement surface out of a list whose declared meaning is otherwise hint text.**
+   `RefRule`'s own contract is that a rule is a rule *about* a kind, never a permission for one, and
+   the Plane-1 coherence check that reads it says the rest plainly: apart from a supersession-role
+   rule, a type's `ref_rules` drive hint text only. Under the union reading, any rule later added to
+   `[items.feature]` for its hint — bundled or adopter-declared — silently widens the set of edges
+   that satisfy the currency check. Binding behaviour to what a declaration *says*, rather than to
+   what happens to sit beside it, is the whole point of the axis ADR-775 established.
+2. **It splits one fact across two declarations with nothing tying them.** The kind would live in
+   `ref_rules`, the target in the `validators` parameter, and the spec would load happily with
+   either half missing: a type selecting `ref_rule_target_present:contract` while declaring no ref
+   rule has an accepted set that is empty by construction, so every settled item warns and no edge
+   can ever clear it. An adopter reaches that unsatisfiable state by deleting one line.
+3. **The target type is genuinely new information, and it is load-bearing.** Nothing in the merged
+   spec records what type an edge points at, and consequence 2 of this decision accepts that one
+   word names two relationships with the target's type as the only disambiguator. That fact is not
+   derivable from anything stored — this repository's own corpus already carries 13 feature
+   `implements` edges, every one of them pointing at a decision — so it gets a declared home rather
+   than an inference.
+
+**`RefRule` gains an optional `target`, naming a declared item type:**
+
+```toml
+[[items.feature.ref_rules]]
+kind = "implements"
+target = "contract"
+```
+
+What it means, and what it does not:
+
+- It **types** the rule: an edge of this kind, declared by this type, is expected to point at an
+  item of that type. It is not an allowlist and it restricts nothing — a feature carrying
+  `implements` to a decision is unaffected, exactly as `ref_rules` has never been a permission.
+- It is **not an obligation on its own**. Requiredness stays where selection already lives, the
+  type's `validators` list, so a targeted rule that no validator selects is inert — which is what
+  lets `contract`'s own `supersedes` rule be targeted without every contract being required to
+  supersede one.
+- The validator keeps its name, its parameter and its selection line:
+  `validators = ["ref_rule_target_present:contract"]`. The parameter **selects** the obligation;
+  the rule **types** the edge. The two coincide in spelling here only because `feature` declares one
+  targeted rule — a type declaring two enforces just the one named, so this is not one fact stored
+  twice.
+- **Referential validation gains a real check, which is the field earning its keep.** `target` must
+  name an item type the merged spec declares. That belongs in the same Plane-1 referential pass that
+  checks the validator's parameter — item types are known only after every `[items.*]` block has
+  parsed, whereas the ref-rule parser sees the declared *kinds* alone. The pass can then check the
+  pair for coherence: a type selecting `ref_rule_target_present:<T>` with no rule targeting `<T>` is
+  refused at load rather than warning forever at runtime. Neither check exists under the
+  parameter-only shape.
+- **It publishes nothing.** ADR-738 §7 keeps `ItemSpec.ref_rules` as declared vocabulary with no
+  catalog field, and publishing any of it is a decision under that family's grammar. `target` is
+  carried on the same terms; no `sq workflow` payload grows here.
+- **Declare no `hint` on this rule.** `parent_hint` appends every non-empty hint a type's rules carry
+  to the message explaining an invalid *parent*, where contract guidance would be noise.
+
+§C's remaining constraint is untouched: the kind and the target type are both read from the merged
+spec, and the validator may not find its edge by comparing against the literal `"implements"`.
+
+### B3. First-run scope: no suppression, and the check is inert while the target collection is empty
+
+Measured on this repository's corpus rather than estimated: 105 features, 90 of them `Done`; 13
+carry an `implements` edge and every one points at a decision; none points at a contract, and none
+can, because the type does not exist. `sq check` reports zero issues here today. §C as built turns
+that into 90 warnings on the day it lands, in a repository where a clean `sq check` is a must-pass
+gate rather than an advisory.
+
+**The prohibition stands.** No suppression, no grandfather clause, no "created after" date, no
+per-item exemption and nothing an item can be marked with. A check that ships pre-suppressed is one
+nobody ever acts on, and every one of those mechanisms is a place a team learns to put things.
+
+**The check is inert while the corpus holds no item of its parameterised target type.** This is a
+precondition on the finding's premise, not an exemption for a class of items: the remedy for "this
+feature records no contract slice" is an edge into a collection that does not exist, so before the
+first contract is authored the finding names work that cannot be done, and a finding whose remedy is
+unavailable is noise by construction. It is the shape `supersedes_incoming` already has — that check
+runs only for a type declaring a supersession rule — moved one step from declaration to corpus.
+
+Nothing is permanently excused. The day the first contract is authored the check evaluates every
+settled feature, the pre-existing ones included, so the debt arrives in full at the moment a team has
+decided to keep the collection — which is also the moment it is actionable, since seeding the
+collection is the work each finding points at. The count is reported to the operator with a real
+number in hand either way; the decision to seed this repository's contracts is his, and it is product
+work rather than part of the type's delivery.
+
+The cost, stated rather than hidden: check behaviour varies with corpus state, so authoring one item
+turns on a batch of findings at once, which is surprising the first time it happens. That is the
+honest shape of adopting a currency practice, and it is preferable to a permanent floor of warnings
+that trains the team to stop reading them.
+
+Two implementation notes that follow. The "corpus holds an item of type T" aggregate is computed once
+per run alongside the existing incoming-supersedes aggregate, never rescanned per item. And on the
+single-item create/update gate path, where no index handle is available, the precondition cannot be
+evaluated and the check yields nothing — failing open is correct for a warn-level finding that never
+gates anything.
 <!-- sq:body:end -->
 
 ## Discussion

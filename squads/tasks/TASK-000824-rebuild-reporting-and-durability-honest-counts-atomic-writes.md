@@ -11,6 +11,7 @@ priority: low
 refs:
 - REV-823:addresses
 - TASK-822
+- MILE-836:targets
 description: Report restorations and drops as two counts rather than a net delta,
   write both documents atomically, and let the release gate's success line say what
   only it verified
@@ -31,7 +32,7 @@ subentities:
   assignee: python-dev
   story: US1
 created_at: '2026-08-26T00:11:27Z'
-updated_at: '2026-08-26T09:10:20Z'
+updated_at: '2026-08-26T16:01:08Z'
 ---
 <!-- sq:body -->
 ## Scope

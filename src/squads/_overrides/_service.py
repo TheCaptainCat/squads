@@ -527,6 +527,16 @@ _WORKFLOW_SCAFFOLD_BODY = """\
 # prefix = "INC"
 # folder = "incidents"
 # lifecycle = "incident"
+#
+# [views.related_incidents]
+# # A derived view: source (a declared ref kind, a sub-entity kind, or a subtree), then the
+# # fields to project. Computed fresh on every request — nothing is ever written into a body.
+# source = { kind = "ref", name = "related" }
+# fields = [
+#   { code = "id", label = "Incident" },
+#   { code = "status", label = "Status" },
+#   { code = "title", label = "Title" },
+# ]
 # -----------------------------------------------------------------------------
 """
 

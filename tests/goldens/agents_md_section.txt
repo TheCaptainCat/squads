@@ -38,10 +38,12 @@ the individual comment lines that `@mention` you. An item can be in one and not 
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
   create with `sq create <type>`. Run `sq <type> --help` / `sq <type> <n> --help` to explore.
 - **Product owner** → `sq create epic "…" --author product-owner`.
-- **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`.
+- **Product owner** → `sq create feature "…" --author product-owner`, then `add-story "…"`; link with `ref add <id> --kind implements`.
 - **Tech lead** → `sq create task "…" --author tech-lead` `--parent FEAT-…`, then `add-subtask "…"` `--story USn`; link with `ref add <id> --kind fixes|addresses`.
 - **QA engineer** → `sq create bug "…" --author qa`.
 - **Architect** → `sq create decision "…" --author architect`; link with `ref add <id> --kind supersedes`.
+- **Product owner** → `sq create contract "…" --author product-owner`; link with `ref add <id> --kind supersedes`.
+- **Product owner** → `sq create milestone "…" --author product-owner`.
 - **Code reviewer** → `sq create review "…" --author reviewer`, then `add-finding "…"`.
 - **Sub-entities are tracked too:** `feature` → `story` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `task` → `subtask` (`Todo → InProgress → Done (+ Blocked, Cancelled)`); `review` → `finding` (`Open → Fixed → Verified (+ WontFix)`).
   `update` is the one metadata entry point for a sub-entity (`--title`/`--status`/`--assignee`,
@@ -73,6 +75,8 @@ type name. Run `sq workflow` to see this table in the terminal.
 | `task` | `t` | `sq t <n> show` |
 | `bug` | `b` | `sq b <n> show` |
 | `decision` | `dec`, `d` | `sq d <n> show` |
+| `contract` | `prd`, `c` | `sq c <n> show` |
+| `milestone` | `mile`, `m` | `sq m <n> show` |
 | `review` | `rev`, `r` | `sq r <n> show` |
 | `guide` | `g` | `sq g <n> show` |
 
@@ -92,6 +96,8 @@ statuses and transitions.
 | `TASK` | `task` | `Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)` |
 | `BUG` | `bug` | `Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)` |
 | `ADR` | `decision` | `Proposed → Accepted → Superseded (+ Rejected, Deprecated)` |
+| `PRD` | `contract` | `Draft → Active → Superseded (+ Deprecated)` |
+| `MILE` | `milestone` | `Draft → InProgress → Done (+ Cancelled)` |
 | `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
 | `GUIDE` | `guide` | `Draft → Published → Deprecated` |
 
@@ -105,7 +111,7 @@ mentions are rewritten to the new ID atomically.
 sq <type> <n> retype <new-type>   # e.g. sq epic 7 retype feature
 ```
 
-Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
+Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `contract`, `milestone`, `review`, `guide`.
 
 **Status behaviour:** when the old and new types share the same workflow (e.g. epic↔feature↔task) the status is carried as-is; otherwise
 the status resets to the new type's initial value and the command says so.
@@ -153,7 +159,7 @@ Ref kinds are declared vocabulary. The bundled set is the default; a project may
 | `related` | Generic cross-reference (default) | Navigation |
 | `blocks` | A is blocking B; B cannot proceed while A is open | `sq blocked` |
 | `depends-on` | A depends on B; A cannot proceed while B is open | `sq blocked` |
-| `implements` | A implements the requirement or spec described by B | Navigation |
+| `implements` | A implements the requirement or spec described by B | `sq check` ref-rule warnings |
 | `fixes` | A (the resolving work) fixes the problem tracked by B | `sq check` ref-rule warnings |
 | `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `sq check` ref-rule warnings |
 | `supersedes` | A (a newer decision) supersedes B (an older one) | `sq check` supersession rule |
@@ -165,7 +171,7 @@ Every edge is stored on the item you add it to — `A <kind> B` lives on A. `blo
 ## Common commands
 
 ```bash
-sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: epic|feature|bug|decision|review|guide
+sq create task "Title" --author <your-slug> [--parent FEAT-<n>] [-m "body…"]  # also: epic|feature|bug|decision|contract|milestone|review|guide
 sq task 3 show --full --comments     # full dossier: body + sub-entities + discussion
 sq task 3 status InProgress          # transition (validated per type)
 sq task 3 update --assignee python-dev --priority urgent --parent FEAT-<n>

@@ -20,12 +20,13 @@ instead advertises its generic keys via the spec (``ItemSpec.extra_fields`` /
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, Literal
 
 from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
 
-Kind = Literal["str", "list", "bool"]
+Kind = Literal["str", "list", "bool", "date"]
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,7 @@ _GENERIC_FIELDS: dict[str, Field] = {
     X.TAGS: Field(X.TAGS, "list"),
     X.TARGET_REF: Field(X.TARGET_REF),
     X.TECH: Field(X.TECH),
+    X.TARGET_DATE: Field(X.TARGET_DATE, "date"),
 }
 
 #: Global fields with their own `update` flags — named so `--set author=…` can hint to use the flag.
@@ -80,7 +82,19 @@ def coerce(field: Field, raw: str) -> Any:
         return [part.strip() for part in raw.split(",") if part.strip()]
     if field.kind == "bool":
         return raw.strip().lower() in ("1", "true", "yes", "on")
+    if field.kind == "date":
+        return _coerce_date(field.key, raw)
     return raw
+
+
+def _coerce_date(key: str, raw: str) -> str:
+    """Normalise a calendar-date ``extra`` value to ``YYYY-MM-DD``, refusing (rather than
+    storing) anything ``date.fromisoformat`` can't parse — the field name travels with the
+    refusal so a caller sees which key was rejected, not just that some value was."""
+    try:
+        return date.fromisoformat(raw.strip()).isoformat()
+    except ValueError as exc:
+        raise SquadsError(f"{key!r} expects an ISO date (YYYY-MM-DD); got {raw!r}") from exc
 
 
 def coerce_extra(item_type: str, key: str, raw: str, extra_keys: Iterable[str] = ()) -> Any:

@@ -8,6 +8,7 @@ author: tech-lead
 priority: high
 refs:
 - BUG-825:fixes
+- MILE-836:targets
 description: comment accepts only -m, unlike body; the one input path silently runs
   shell substitutions
 subentities:
@@ -21,7 +22,7 @@ subentities:
   title: Teach the agent-facing guidance to use --file for comments
   status: Done
 created_at: '2026-08-26T11:24:45Z'
-updated_at: '2026-08-26T13:05:29Z'
+updated_at: '2026-08-26T16:01:10Z'
 ---
 <!-- sq:body -->
 ## Description

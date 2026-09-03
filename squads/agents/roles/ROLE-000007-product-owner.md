@@ -29,6 +29,8 @@ extra:
   - sq-memory
   - sq-epic
   - sq-feature
+  - sq-contract
+  - sq-milestone
   agreements: []
   can_spawn: false
 ---
@@ -55,6 +57,8 @@ Use these skills for the item types you manage (see each for role-specific guida
 - `sq-memory`
 - `sq-epic`
 - `sq-feature`
+- `sq-contract`
+- `sq-milestone`
 
 ## Working agreements
 

@@ -11,6 +11,7 @@ priority: medium
 refs:
 - REV-817:addresses
 - TASK-801
+- MILE-836:targets
 description: Replace the guard's hand-written kind registry with one derived from
   scan_overrides, and add CLI reachability as its fifth element
 subentities:
@@ -30,7 +31,7 @@ subentities:
   assignee: python-dev
   story: US5
 created_at: '2026-08-25T22:57:39Z'
-updated_at: '2026-08-26T08:53:15Z'
+updated_at: '2026-08-26T16:00:56Z'
 ---
 <!-- sq:body -->
 ## Scope

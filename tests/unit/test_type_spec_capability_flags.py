@@ -56,11 +56,13 @@ def test_parent_required_is_set_only_on_task() -> None:
         assert spec.items[t].parent_required is None
 
 
-def test_ref_rules_populated_only_for_task_and_decision() -> None:
+def test_ref_rules_populated_only_for_task_decision_feature_and_contract() -> None:
     spec = _spec()
     assert {r.kind for r in spec.items["task"].ref_rules} >= {"fixes", "addresses"}
     assert {r.kind for r in spec.items["decision"].ref_rules} >= {"supersedes"}
-    for t in ("epic", "feature", "bug", "review", "guide", *_ROSTER_TYPES):
+    assert {r.kind for r in spec.items["feature"].ref_rules} >= {"implements"}
+    assert {r.kind for r in spec.items["contract"].ref_rules} >= {"supersedes"}
+    for t in ("epic", "bug", "review", "guide", *_ROSTER_TYPES):
         assert spec.items[t].ref_rules == []
 
 

@@ -126,6 +126,7 @@ def test_workflows_constant_is_never_mutated_by_constructing_a_custom_spec():
             "subentity_kinds": dict(bundled.subentity_kinds),
             "roles": dict(bundled.roles),
             "ref_kinds": dict(bundled.ref_kinds),
+            "views": dict(bundled.views),
         }
     )
 

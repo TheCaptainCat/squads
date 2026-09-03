@@ -649,7 +649,7 @@ async def test_repair_refuses_rather_than_discard_a_re_prefixed_types_corpus(
 # read went.
 
 _DROP_GUIDE_SELECTED = (
-    '[selected]\nitems = ["epic", "feature", "task", "bug", "decision", "review", '
+    '[selected]\nitems = ["epic", "feature", "task", "bug", "decision", "contract", "review", '
     '"role", "skill", "operator"]\n'
 )
 

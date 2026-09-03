@@ -57,6 +57,8 @@ BUILTIN_PREFIX: dict[str, str] = {
     "task": "TASK",
     "bug": "BUG",
     "decision": "ADR",
+    "contract": "PRD",
+    "milestone": "MILE",
     "review": "REV",
     "guide": "GUIDE",
     "role": "ROLE",
@@ -72,6 +74,8 @@ BUILTIN_FOLDER: dict[str, str] = {
     "task": "tasks",
     "bug": "bugs",
     "decision": "adrs",
+    "contract": "contracts",
+    "milestone": "milestones",
     "review": "reviews",
     "guide": "guides",
     "role": "agents/roles",
@@ -79,11 +83,21 @@ BUILTIN_FOLDER: dict[str, str] = {
     "operator": "operators",
 }
 
-#: All 10 built-in type names, in the same order as :data:`BUILTIN_PREFIX`.
+#: All 12 built-in type names, in the same order as :data:`BUILTIN_PREFIX`.
 BUILTIN_TYPES: tuple[str, ...] = tuple(BUILTIN_PREFIX)
 
-#: The 7 work-item types — excludes the 3 roster types (role/skill/operator).
-WORK_TYPES: tuple[str, ...] = ("epic", "feature", "task", "bug", "decision", "review", "guide")
+#: The 9 work-item types — excludes the 3 roster types (role/skill/operator).
+WORK_TYPES: tuple[str, ...] = (
+    "epic",
+    "feature",
+    "task",
+    "bug",
+    "decision",
+    "contract",
+    "milestone",
+    "review",
+    "guide",
+)
 
 #: The 3 roster types the engine binds by name.
 ROSTER_TYPES: tuple[str, ...] = ("role", "skill", "operator")

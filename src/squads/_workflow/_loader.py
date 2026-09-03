@@ -84,6 +84,9 @@ from squads._workflow._models import (
     RoleSpec,
     StatusSpec,
     SubentityKindSpec,
+    ViewField,
+    ViewSource,
+    ViewSpec,
     WorkflowSpec,
 )
 
@@ -97,7 +100,16 @@ WORKFLOW_OVERRIDE_FILENAME = ".overrides/workflow.toml"
 #: an override may declare is a section ``[selected]`` may also name. ``selected`` itself is
 #: accepted unconditionally by the engine and needs no entry here (``_specmerge`` docstring).
 WORKFLOW_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset(
-    {"items", "statuses", "lifecycles", "collections", "subentity_kinds", "roles", "ref_kinds"}
+    {
+        "items",
+        "statuses",
+        "lifecycles",
+        "collections",
+        "subentity_kinds",
+        "roles",
+        "ref_kinds",
+        "views",
+    }
 )
 
 #: Generic fix hint attached to every roster-lock finding in collect mode — the lock has exactly
@@ -180,6 +192,7 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
         raise SquadsError(f"workflow override merge failed with no violation reported — {origin}")
 
     _raise_on_floor_violation(merged, origin)
+    _prune_orphaned_type_owned_views(merged, result.deselections)
 
     try:
         return _build_spec(merged)
@@ -389,6 +402,42 @@ def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
         raise SquadsError(f"Invalid ref_kinds entry {code!r}: {exc}") from exc
 
 
+def _parse_view_fields(raw_fields: Any, ctx: str) -> list[ViewField]:
+    """Parse a view's ``fields`` array into ``ViewField`` objects (``extra="forbid"`` per
+    entry). Referential validation of each ``code`` against the source's own declared
+    vocabulary happens later, on the merged spec (``_check_views``) — this only builds the
+    typed list."""
+    fields: list[ViewField] = []
+    for i, field_data in enumerate(_as_entry_list(raw_fields, f"{ctx}.fields")):
+        try:
+            fields.append(ViewField.model_validate(field_data))
+        except Exception as exc:
+            raise SquadsError(f"{ctx} field[{i}]: {exc}") from exc
+    return fields
+
+
+def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
+    """Parse one ``[views.<name>]`` table into a ``ViewSpec``.
+
+    ``source`` is required and itself a table (``{kind, name}``); everything else about a
+    view is validated on the merged spec once every vocabulary section has been parsed
+    (``_check_views``, run from ``WorkflowSpec._validate``) — this function only builds the
+    typed value, it does not cross-reference.
+    """
+    ctx = f"views.{name}"
+    raw_source = _as_table(data.get("source", {}), f"{ctx}.source")
+    try:
+        source = ViewSource.model_validate(raw_source)
+    except Exception as exc:
+        raise SquadsError(f"Invalid {ctx}.source: {exc}") from exc
+    fields = _parse_view_fields(data.get("fields", []), ctx)
+    payload: dict[str, Any] = {**data, "source": source, "fields": fields}
+    try:
+        return ViewSpec.model_validate(payload)
+    except Exception as exc:
+        raise SquadsError(f"Invalid view {name!r}: {exc}") from exc
+
+
 def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
     """Parse one ``[subentity_kinds.<kind>]`` table (its ``fields`` list is pre-coerced)."""
     fields = _parse_fields(data.get("fields", []), f"subentity_kinds.{kind}")
@@ -482,6 +531,12 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         code: _parse_role(code, data) for code, data in _section(raw, "roles").items()
     }
 
+    # --- views (declared derived-view projections) --- parsed last: cross-referenced
+    # against items/subentity_kinds/ref_kinds by WorkflowSpec._validate, not here.
+    views: dict[str, ViewSpec] = {
+        name: _parse_view(name, data) for name, data in _section(raw, "views").items()
+    }
+
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
     # Route through model_validate so extra="forbid" fires at construction.
     try:
@@ -496,6 +551,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
                 "alias_to_type": alias_to_type,
                 "roles": roles,
                 "ref_kinds": ref_kinds,
+                "views": views,
             }
         )
     except SquadsError:
@@ -564,6 +620,49 @@ def _raise_on_floor_violation(merged: RawMapping, origin: str) -> None:
     violations = _collect_floor_violations(merged, origin)
     if violations:
         raise SquadsError(violations[0])
+
+
+def _prune_orphaned_type_owned_views(
+    merged: RawMapping, deselections: tuple[Deselection, ...]
+) -> None:
+    """Take a bundled view with its type, when ``[selected].items`` drops the type that owns it.
+
+    A ``ViewSpec`` never names the type(s) it's shown on (:class:`~squads._workflow._models.
+    ViewSource` names a ref kind/sub-entity kind/subtree type, never "the item this is attached
+    to") — the only place that binding exists is the *type's* own ``items.<type>.views`` list
+    (:class:`~squads._workflow._models.ItemSpec.views`). So dropping a type via ``[selected]``
+    does not, by itself, touch ``[views]`` at all: without this, a bundled view attached only by
+    a now-dropped type would survive the merge as an orphaned entry — still declared, still
+    listed by ``sq workflow views``, resolvable against any item, but over vocabulary (the type
+    it was written to describe) that no longer exists. An adopter who dropped one key would
+    have to remember to drop a second, unrelated-looking one to actually be rid of it.
+
+    Scoped precisely so a genuinely freestanding view is never touched: only a view named in a
+    *dropped* bundled type's own ``views`` list, and in no *surviving* type's ``views`` list
+    (bundled or override-added), is pruned. A view no type ever attached — the shape every
+    adopter-declared view in this project's own test suite takes — has nothing here to trigger
+    on. Mutates *merged* in place, before any model is built — the same raw-mapping layer
+    ``[selected]`` itself operates at.
+    """
+    dropped_types = {d.key for d in deselections if d.section == "items"}
+    if not dropped_types:
+        return
+    bundled_items = cast(dict[str, Any], _bundled_raw().get("items", {}))
+    owned_by_dropped: set[str] = set()
+    for t in dropped_types:
+        owned_by_dropped.update(cast(dict[str, Any], bundled_items.get(t, {})).get("views", []))
+    if not owned_by_dropped:
+        return
+    surviving_items = cast(dict[str, Any], merged.get("items", {}))
+    still_attached = {
+        v for it in surviving_items.values() for v in cast(dict[str, Any], it).get("views", [])
+    }
+    to_prune = owned_by_dropped - still_attached
+    if not to_prune:
+        return
+    views_table = cast(dict[str, Any], merged.get("views", {}))
+    for name in to_prune:
+        views_table.pop(name, None)
 
 
 # ---------------------------------------------------------------------------

@@ -23,6 +23,7 @@ from rich.text import Text
 from squads import __version__
 from squads import _badges as badges
 from squads import _discussion as discussion
+from squads import _views as views
 from squads._context import get_context, rebind
 from squads._errors import SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
@@ -645,10 +646,28 @@ def render_body_text(body_text: str, *, raw: bool = False, empty_hint: str | Non
     _render_body(body_text, styled=_is_styled() and not raw, empty_hint=empty_hint)
 
 
+def _attached_views(it_type: str, spec: WorkflowSpec) -> list[str]:
+    """The declared ``[views]`` entries *it_type* attaches to its own ``show``/``--json``
+    surface (``ItemSpec.views``) — empty for every type that declares none, which is every
+    type except a bundled/adopter type that names one."""
+    ts = spec.items.get(it_type)
+    return list(ts.views) if ts is not None else []
+
+
+async def _print_attached_views(svc: Service, it: Item, *, styled: bool) -> None:
+    """Render each view *it*'s own type attaches, through its declared presentation
+    template — computed fresh against the live corpus on every call, never read off the item
+    file (there is nothing stored to read: a view is never materialised)."""
+    for name in _attached_views(it.type, get_active_spec()):
+        rendered = await svc.render_view(name, it.id)
+        _render_body(rendered, styled=styled, empty_hint="(nothing to show)")
+
+
 async def _print_item_content(
     svc: Service, it: Item, *, styled: bool, comments: bool, full: bool = False
 ) -> None:
-    """Render the body, sub-entity summary, and optional comments for a non-role/skill item."""
+    """Render the body, sub-entity summary, optional attached views, and optional comments
+    for a non-role/skill item."""
     body = await svc.read_body(it.id)
     _render_body(body, styled=styled)
 
@@ -656,6 +675,10 @@ async def _print_item_content(
     # sub-entities, not a re-parse of the markdown table.
     if it.subentities:
         _print_subentity_summary(it)
+
+    # Attached derived views (e.g. a milestone's roll-up) — always shown, same as the
+    # sub-entity summary: computed fresh every call, never gated on --full.
+    await _print_attached_views(svc, it, styled=styled)
 
     # --full: one pane per sub-entity (body + optional per-sub comments)
     if full:
@@ -744,6 +767,8 @@ async def _print_item_raw(svc: Service, it: Item, *, comments: bool, full: bool)
         "",
         await svc.read_body(it.id),
     ]
+    for name in _attached_views(it.type, get_active_spec()):
+        lines += ["", await svc.render_view(name, it.id)]
     if full:
         lines.extend(await _raw_subentity_sections(svc, it))
     if comments:
@@ -929,6 +954,11 @@ async def build_item_json(svc: Service, it: Item) -> str:
             detail = await svc.get_block(it.id, kind, sub_data["local_id"])
             subentities.append(build_subentity_json(spec, kind, detail))
         payload["subentities"] = subentities
+    attached = _attached_views(it.type, spec)
+    if attached:
+        payload["views"] = {
+            name: views.projection_json(await svc.resolve_view(name, it.id)) for name in attached
+        }
     return json.dumps(payload)
 
 

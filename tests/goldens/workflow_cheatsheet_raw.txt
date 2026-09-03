@@ -32,6 +32,8 @@ type name. Run `sq workflow` to see this table in the terminal.
 | `task` | `t` | `sq t <n> show` |
 | `bug` | `b` | `sq b <n> show` |
 | `decision` | `dec`, `d` | `sq d <n> show` |
+| `contract` | `prd`, `c` | `sq c <n> show` |
+| `milestone` | `mile`, `m` | `sq m <n> show` |
 | `review` | `rev`, `r` | `sq r <n> show` |
 | `guide` | `g` | `sq g <n> show` |
 
@@ -51,6 +53,8 @@ statuses and transitions.
 | `TASK` | `task` | `Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)` |
 | `BUG` | `bug` | `Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)` |
 | `ADR` | `decision` | `Proposed → Accepted → Superseded (+ Rejected, Deprecated)` |
+| `PRD` | `contract` | `Draft → Active → Superseded (+ Deprecated)` |
+| `MILE` | `milestone` | `Draft → InProgress → Done (+ Cancelled)` |
 | `REV` | `review` | `Requested → InReview → ChangesRequested → Approved (+ Rejected)` |
 | `GUIDE` | `guide` | `Draft → Published → Deprecated` |
 
@@ -64,7 +68,7 @@ mentions are rewritten to the new ID atomically.
 sq <type> <n> retype <new-type>   # e.g. sq epic 7 retype feature
 ```
 
-Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `review`, `guide`.
+Valid targets: `epic`, `feature`, `task`, `bug`, `decision`, `contract`, `milestone`, `review`, `guide`.
 
 **Status behaviour:** when the old and new types share the same workflow (e.g. epic↔feature↔task) the status is carried as-is; otherwise
 the status resets to the new type's initial value and the command says so.
@@ -112,7 +116,7 @@ Ref kinds are declared vocabulary. The bundled set is the default; a project may
 | `related` | Generic cross-reference (default) | Navigation |
 | `blocks` | A is blocking B; B cannot proceed while A is open | `sq blocked` |
 | `depends-on` | A depends on B; A cannot proceed while B is open | `sq blocked` |
-| `implements` | A implements the requirement or spec described by B | Navigation |
+| `implements` | A implements the requirement or spec described by B | `sq check` ref-rule warnings |
 | `fixes` | A (the resolving work) fixes the problem tracked by B | `sq check` ref-rule warnings |
 | `addresses` | A (the resolving work) addresses or follows up on B (feedback, a review) | `sq check` ref-rule warnings |
 | `supersedes` | A (a newer decision) supersedes B (an older one) | `sq check` supersession rule |

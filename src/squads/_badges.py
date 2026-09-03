@@ -190,6 +190,23 @@ def collection_legend(collection_code: str, spec: WorkflowSpec | None = None) ->
     return " · ".join(f"{b.emoji or _DEFAULT_BADGE} {b.code}" for b in coll.badges)
 
 
+def badge_parts(
+    collection_code: str, code: str, spec: WorkflowSpec | None = None
+) -> tuple[str, str, str]:
+    """``(emoji, code, label)`` for one declared badge in *collection_code* — the decomposed
+    form behind :func:`badge_render`, for a caller that needs the parts separately (e.g. a
+    JSON payload carrying structured badge metadata) rather than one rendered string. A
+    missing collection/badge degrades to :data:`_DEFAULT_BADGE` + the raw/title-cased code,
+    same graceful fallback as :func:`badge_render`.
+    """
+    active_spec = spec if spec is not None else bundled_spec()
+    coll = active_spec.collections.get(collection_code)
+    badge = next((b for b in coll.badges if b.code == code), None) if coll else None
+    emoji = (badge.emoji if badge and badge.emoji else None) or _DEFAULT_BADGE
+    label = badge.label if badge else code.title()
+    return emoji, code, label
+
+
 def badge_render(
     collection_code: str, code: str, spec: WorkflowSpec | None = None, *, as_label: bool = False
 ) -> str:
@@ -197,13 +214,10 @@ def badge_render(
 
     ``as_label=False`` (the default) renders ``emoji + raw code`` — the list/panel/summary
     convention. ``as_label=True`` renders ``emoji + Title-case label`` — the head/pane-title
-    convention. Resolves from *collection_code* in the given (or bundled, or active) spec;
-    a missing collection/badge degrades to :data:`_DEFAULT_BADGE` + the raw/title-cased code
-    rather than crashing (graceful, mirrors :func:`status_badge`).
+    convention. Resolves from *collection_code* in the given (or bundled, or active) spec via
+    :func:`badge_parts`; a missing collection/badge degrades gracefully rather than crashing
+    (mirrors :func:`status_badge`).
     """
-    active_spec = spec if spec is not None else bundled_spec()
-    coll = active_spec.collections.get(collection_code)
-    badge = next((b for b in coll.badges if b.code == code), None) if coll else None
-    emoji = (badge.emoji if badge and badge.emoji else None) or _DEFAULT_BADGE
-    text = (badge.label if badge else code.title()) if as_label else code
+    emoji, raw_code, label = badge_parts(collection_code, code, spec)
+    text = label if as_label else raw_code
     return f"{emoji} {text}"

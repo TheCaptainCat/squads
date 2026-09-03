@@ -189,16 +189,17 @@ slug. See [roles.md](roles.md) for the activation flow.
 
 ---
 
-## Workflow overrides: item types, statuses, badge collections and ref kinds
+## Workflow overrides: item types, statuses, badge collections, ref kinds and views
 
-By default, squads uses a bundled set of **seven work-item types** (epic, feature, task, bug,
-decision/ADR, review, guide), **status lifecycles** (state machines for each type),
-**badge collections** (priority and severity, the reusable axes that label findings, tasks, etc.)
-and **ref kinds** (the labelled edges — `blocks`, `fixes`, `supersedes` and the rest — that link one
-item to another). **`.overrides/workflow.toml`** is where you change that vocabulary. You can do
+By default, squads uses a bundled set of **item types** (`sq workflow types` lists the set your
+build ships), **status lifecycles** (state machines for each type), **badge collections** (priority
+and severity, the reusable axes that label findings, tasks, etc.), **ref kinds** (the labelled
+edges — `blocks`, `fixes`, `supersedes` and the rest — that link one item to another) and
+**derived views** (declared read-only projections over those edges).
+**`.overrides/workflow.toml`** is where you change that vocabulary. You can do
 three things with it:
 
-- **Add** — new item types, statuses, lifecycles, badge collections, status roles, ref kinds.
+- **Add** — new item types, statuses, lifecycles, badge collections, status roles, ref kinds, views.
 - **Shadow** — redefine a bundled entry, field by field. The fields you write replace their bundled
   counterparts; the ones you leave out are inherited.
 - **Shrink** — drop a bundled entry you don't want, by listing the ones you keep.
@@ -222,13 +223,13 @@ Edit this file to add your custom types, statuses, lifecycles, and collections.
 
 The override file is standard TOML. Its top level is a **closed set of section names** —
 `[items.*]`, `[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]`,
-`[roles.*]` and `[ref_kinds.*]`, plus the single `[selected]` table — and anything else at the top
-level is refused by name at load time:
+`[roles.*]`, `[ref_kinds.*]` and `[views.*]`, plus the single `[selected]` table — and anything else
+at the top level is refused by name at load time:
 
 ```
-item: unknown top-level key 'item' — use one of the accepted top-level keys in v0.14.0:
+item: unknown top-level key 'item' — use one of the accepted top-level keys in v<version>:
 ['collections', 'items', 'lifecycles', 'ref_kinds', 'roles', 'selected', 'statuses',
-'subentity_kinds']
+'subentity_kinds', 'views']
 ```
 
 The refusal names the version it is speaking for, because the accepted set grows as squads gains
@@ -273,9 +274,10 @@ Squads distinguishes two item categories:
 - **Records** (`category = "records"`) — durable reference documents; authored once, maintained indefinitely
   (decisions/ADRs, guides, contracts, standards, postmortems, etc.). Records have no parents and no hierarchy.
 
-The bundled `decision` (ADR) and `guide` types are both records. When you define a custom records-category
-type, squads treats it like a decision or guide: it takes no parent, nests in its own folder, and never
-appears in `sq inbox` by default (it's for reference, not work tracking).
+The bundled records types are `decision` (ADR), `contract` (PRD), `milestone` and `guide`. When you
+define a custom records-category type, squads treats it like a decision or guide: it takes no parent,
+nests in its own folder, and never appears in `sq inbox` by default (it's for reference, not work
+tracking).
 
 **When to use records category:**
 
@@ -593,6 +595,105 @@ sq workflow ref-kinds --json    # machine-readable format
 ```
 
 See [workflow.md](workflow.md) § "Ref kinds" for the bundled set and what each one is for.
+
+---
+
+#### Derived views: declared projections
+
+A **derived view** is a read-only projection over relationships an item already has — every item
+pointing here with a given ref kind, this item's own sub-entities, or its descendants of some type —
+carried into a chosen set of fields, optionally grouped and ordered, and rendered by a template.
+Views are declared in `[views]`, and nothing about them is a special case: they merge, shadow and
+drop exactly like item types and statuses do.
+
+Every view is **computed on every request**. No view is ever written into an item's file, so
+declaring, changing or dropping one rewrites nothing on disk and leaves nothing behind.
+
+**Declaring one of your own:**
+
+```toml
+[views.open_incidents]
+source = { kind = "ref", name = "escalates" }
+group_by = "status"
+order_by = ["id"]
+fields = [
+  { code = "id",     label = "Incident" },
+  { code = "status", label = "Status" },
+  { code = "title",  label = "Title" },
+]
+```
+
+`source.kind` is `"ref"`, `"subentity"` or `"subtree"`, and `source.name` must be a declared ref
+kind, sub-entity kind or item type respectively — a name your merged spec does not declare is
+refused at load, with the rest of the spec's cross-references. The complete field reference is in
+[workflow.md § "Derived views"](workflow.md#derived-views-declared-projections).
+
+Read it back, and resolve it against an item:
+
+```bash
+sq workflow views                             # your view, listed beside the bundled ones
+sq workflow view open_incidents <id>          # resolved and rendered
+sq workflow view open_incidents <id> --json   # the projection: fields, grouping, records
+```
+
+**Shadowing a bundled view.** Write only the keys you want changed; everything you leave out is
+inherited and keeps tracking the bundled declaration. To reorder the bundled milestone roll-up
+without restating its six fields or its grouping:
+
+```toml
+[views.milestone_rollup]
+order_by = ["status", "id"]
+```
+
+Changing a bundled view's `group_by` is a bigger move than it looks: the bundled template renders
+the groups it was written against, so regrouping a view means re-templating it too (below).
+
+`fields` is a plain array and therefore a leaf — writing it replaces the bundled list wholesale
+rather than merging into it. A splat-ref extends it instead of restating it, the same way it does
+for a type's `parents` or `ref_rules`: `fields = ["$(*self)", { code = "…", label = "…" }]` keeps
+everything the bundled view projects and appends your own column.
+
+**Overriding a view's presentation.** A view's rendering is a bundled template at
+`templates/views/<name>.md.j2`, resolved by the view's own name — there is no `presentation` key,
+because the template path *is* the identity. That makes it an ordinary template override with no
+view-specific machinery:
+
+```bash
+sq override scaffold views/milestone_rollup.md.j2   # a stamped copy of the bundled rendering
+# edit squads/.overrides/templates/views/milestone_rollup.md.j2
+sq override diff views/milestone_rollup.md.j2       # Δ-mine and Δ-upgrade, like any template
+sq override list                                    # your override, with its base version and drift state
+```
+
+The template receives `fields`, `group_by` and `groups`; a group carries `key`, `count` and
+`records`, and a record's cells are addressed by field code:
+
+```jinja
+{% for group in groups %}
+{% for r in group.records %}
+- **{{ r.values["id"].text }}** {{ r.values["status"].text }} — {{ r.values["title"].text }}
+{% endfor %}
+{% endfor %}
+```
+
+**A view you declare needs a template of your own at that path.** There is no generic fallback
+rendering: until `.overrides/templates/views/<name>.md.j2` exists, resolve your view with `--json`,
+which skips presentation entirely.
+
+**Dropping a view.** `[selected].views` names the views that survive. A view a type attaches is
+named twice — once in `[views]`, once in that type's own `views` list — so drop both:
+
+```toml
+[items.milestone]
+views = []          # detach it from the type that shows it
+
+[selected]
+views = []          # and drop the declaration
+```
+
+Dropping the **type** through `[selected].items` needs neither line. A bundled view that only that
+type attached goes with it, so there is no second key to remember; a view no type ever attached is
+never touched by a type drop.
 
 ---
 

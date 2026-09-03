@@ -21,6 +21,8 @@ def test_a_specialist_gets_exactly_its_interacted_item_skills_after_the_always_o
         "sq-memory",
         "sq-epic",
         "sq-feature",
+        "sq-contract",
+        "sq-milestone",
     ]
     assert interactions.skills_for_role("tech-writer") == [
         "squads",
@@ -37,6 +39,7 @@ def test_the_dev_sentinel_expands_to_every_declared_dev_interaction() -> None:
         "sq-memory",
         "sq-task",
         "sq-bug",
+        "sq-contract",
         "sq-review",
     ]
 
@@ -60,6 +63,8 @@ def test_a_dropped_type_stops_being_implied_by_a_roles_preload_list() -> None:
         "sq-memory",
         "sq-epic",
         "sq-feature",
+        "sq-contract",
+        "sq-milestone",
     ]
 
 
@@ -74,6 +79,10 @@ def test_a_renamed_type_drops_the_old_name_and_gets_no_preload_under_the_new_one
     renamed["story"] = bundled.items["feature"]
     spec = bundled.model_copy(update={"items": renamed})
 
-    assert interactions.item_types_for_role("product-owner", spec) == ["epic"]
+    assert interactions.item_types_for_role("product-owner", spec) == [
+        "epic",
+        "contract",
+        "milestone",
+    ]
     assert "sq-feature" not in interactions.skills_for_role("product-owner", spec)
     assert "sq-story" not in interactions.skills_for_role("product-owner", spec)

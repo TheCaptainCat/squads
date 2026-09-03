@@ -68,7 +68,7 @@ class TestSpecIsAPinnedArtifact:
     def test_loads_without_error(self) -> None:
         spec = get_playbook_spec()
         assert isinstance(spec, PlaybookSpec)
-        assert len(spec.types) == 7
+        assert len(spec.types) == 9
 
     def test_golden_covers_every_declared_itemplaybookspec_field(self) -> None:
         golden = _golden()

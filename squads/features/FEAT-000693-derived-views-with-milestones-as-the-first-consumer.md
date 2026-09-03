@@ -3,7 +3,7 @@ id: FEAT-693
 sequence_id: 693
 type: feature
 title: Derived views, with milestones as the first consumer
-status: Draft
+status: Ready
 author: product-owner
 description: A declared, read-only projection over an item's relationships, rendered
   as data with per-client renderers; milestones are its first consumer
@@ -21,7 +21,7 @@ subentities:
   title: Milestone roll-up as the first declared view
   status: Todo
 created_at: '2026-07-29T13:52:43Z'
-updated_at: '2026-08-26T08:22:18Z'
+updated_at: '2026-08-26T13:40:36Z'
 ---
 <!-- sq:body -->
 ## The problem
@@ -95,7 +95,8 @@ who wants their own milestone roll-up wording writes a template at that path; th
 provenance stamp and `sq override scaffold`/`diff`/`update` machinery all already cover it.
 
 **Milestones** are the first consumer. A `MILE-` item type with a target date and its own status
-vocabulary. Work joins a milestone through a forward ref carrying the `targets` kind: the edge
+vocabulary. Work joins a milestone through a forward ref carrying the already-declared `targets`
+kind (bundled as navigational, no consumer, since the ref-kind vocabulary shipped): the edge
 lives on the work item, so adding work to a milestone never rewrites the milestone file and
 membership is recovered by inversion. The milestone's roll-up is a computed view over that
 inversion, grouping members delivered and outstanding with counts — a milestone's job is telling
@@ -124,19 +125,23 @@ you what is left.
 - The declaration is expressive enough to describe the existing sub-entity summary shape as it
   stands, without bending its design to fit (this feature does not convert the summary itself —
   that is separate work).
-- The new item type carries its folder, prefix map entry and regenerated backend pointer files.
-  On-disk backend output is diffed for both `init` and `migrate` — `sq check` validates neither
-  pointer filenames nor their targets.
-- A new item type and a new ref kind are both on-disk format: a migration accompanies them, and
-  the schema-version call is made deliberately rather than by default.
+- The new item type carries its folder, prefix map entry and regenerated backend pointer files
+  (its `sq-milestone` skill). `sq check` already verifies per-entry pointer presence and currency
+  for every live roster entry (shipped separately); this feature's own on-disk diff, for both
+  `init` and `migrate`, confirms the milestone type's generated artifacts pass that gate from day
+  one.
+- A new item type and a new ref kind are both on-disk format. The milestone type's migration is
+  not a bump of its own: it rides the single shared schema bump and migration runner that also
+  carries the `contract` type (FEAT-321) into the same release — one bump for both new types, not
+  two.
 
 ## Out of scope
 
 - **Sprints and any time-boxed cycle.** squads has no estimation vocabulary — no points, no
   sizing — so a time box could only ever report item counts, which is a weak burndown and the
   first thing an adopting team would notice missing. Worth revisiting if estimation lands.
-- **Converting the existing sub-entity summary and head rendering onto the mechanism.** That is
-  its own piece of work, tracked separately.
+- **Retiring the existing sub-entity summary and head rendering (and the role Skills section)
+  onto computed views.** That is its own piece of work, tracked separately (FEAT-694).
 
 ## In scope, reconsidered
 
@@ -225,7 +230,14 @@ under the bundled-template tree — so it is adopter-overridable through the exi
 <!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
-A milestone item type with prefix MILE-, its own folder, a target date and its own status vocabulary. Adds the `targets` ref kind so work declares which milestone it belongs to on the work item itself. Carries the new-type obligations: prefix map entry, regenerated backend pointer files with the on-disk output diffed for both init and migrate, and a migration for the on-disk format change.
+A milestone item type with prefix MILE-, its own folder, a target date and its own status
+vocabulary. Wires the already-declared `targets` ref kind (bundled navigational, no consumer yet)
+to milestone membership, so work declares which milestone it belongs to on the work item itself
+via `ref add MILE-n --kind targets`. Carries the new-type obligations: prefix map entry,
+regenerated backend pointer files (the `sq-milestone` skill), with the on-disk output diffed for
+both init and migrate against `sq check`'s existing presence/currency gate, and the migration —
+which rides the single schema bump shared with the `contract` type (FEAT-321) rather than a bump
+of its own.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -283,4 +295,28 @@ ever materializes the roll-up — it is rendered fresh from the current corpus o
   - Adopter-authored presentation templates stay IN scope, as reauthored: the override surface already ships, so the marginal cost is near zero and shipping views bundled-only would shortchange adopters.
 - [2026-08-26T08:22:18Z] Pierre Chat:
   - 0.14 keeps the type work: milestones, contracts and the region retirement all stay in this release rather than moving to 0.15, so the shared migration runner and the single schema bump stand as ruled.
+- [2026-08-26T13:20:40Z] Nina Product:
+  - Refreshed against ADR-320/775/776/777/781, all now Accepted, ahead of the breakdown.
+    
+    - The `targets` ref kind is already declared and shipped (FEAT-790, Done) — US3 no longer
+      claims to add it, only to wire it to milestone membership. `[ref_kinds]` and the widened,
+      content-carrying provenance manifest are likewise shipped (FEAT-790/791); nothing here
+      still describes them as pending.
+    - Corrected the pointer/`sq check` acceptance line: FEAT-792 (Done) shipped presence *and*
+      currency checking for per-entry backend pointers, so `sq check` no longer "validates
+      neither" — this feature's own on-disk diff for init/migrate now confirms the milestone
+      type's artifacts pass an existing gate rather than filling a gap.
+    - Schema bullet corrected to the single shared `0.11 → 0.14` bump with FEAT-321
+      (TASK-813 already tracks the shared runner, parented here) — not a bump of its own.
+    - "Out of scope" reworded from "converting" to "retiring" the sub-entity summary/head,
+      matching FEAT-694's own inversion (retire the regions, don't convert them onto a sink).
+    
+    No reauthor needed — the mechanism design (source/projection/presentation, no sink,
+    workflow-spec declaration, adopter-overridable templates, milestone as first consumer) was
+    already correct and matches the accepted decisions as written.
+- [2026-08-26T13:40:36Z] Olivia Lead:
+  - - Broke FEAT-693 into two tasks plus a docs task. TASK-830 is the mechanism (US1/US2): `[views]` as a keyed section of the workflow document, the projection engine and its uniform record shape, presentation as a bundled overridable template, and the `--json` contract with its `sq workflow views` catalog row. TASK-831 is the first consumer (US3/US4): the `MILE` type, its lifecycle, its target date, membership by `targets` refs and the roll-up view. TASK-833 is the adopter documentation, split out because the owner role genuinely differs and its file set is `docs/` plus `CHANGELOG.md` with nothing under `src/`.
+    - Two things TASK-830 must NOT do, both stated in its body because they are the easy mistakes. There is no sink field and none to derive, so the refusal FEAT-693 originally asked for has nothing to assert — no test for it. And the sub-entity summary is not converted here: US1 asks only that the declaration be expressive enough to describe the shipped shape, so `ensure_summary`, `set_head` and `_refresh_head` are untouched and FEAT-694 keeps that work.
+    - The milestone roll-up's grouping resolves from declared status **roles**, not status names. A milestone can hold members of several types on several lifecycles, so a literal `"Done"` would silently mis-group a bug, a decision or an adopter's custom type. Same discipline as the ref kind: `targets` is named in the view's source declaration and never as a Python literal, which the ref-kind meta scan enforces.
+    - TASK-831 depends-on TASK-830, and both depend on nothing else. The hard sequencer is `src/squads/_specs/workflow.toml`: TASK-830, TASK-831 and TASK-832 all edit it, so they cannot run concurrently — the wave grouping is in my handoff to @op-pierre.
 <!-- sq:discussion:end -->

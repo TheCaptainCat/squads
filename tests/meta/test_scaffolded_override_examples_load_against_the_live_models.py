@@ -73,6 +73,22 @@ def test_the_workflow_scaffolds_worked_example_builds_a_valid_spec(tmp_path) -> 
     assert spec.items["incident"].lifecycle == "incident"
 
 
+def test_the_workflow_scaffolds_worked_example_declares_a_valid_view(tmp_path) -> None:
+    """The scaffold's ``[views]`` example must resolve against declared vocabulary the same
+    way the merged spec requires of any project-declared view — an example that failed this
+    would teach the adopter a shape ``sq workflow lint`` rejects on the very next run."""
+    activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
+    assert "[views.related_incidents]" in activated, "the view example is missing"
+    _write_override(tmp_path, "workflow.toml", activated)
+
+    spec = load_workflow_spec(squad_dir=tmp_path)
+
+    view = spec.views["related_incidents"]
+    assert view.source.kind == "ref"
+    assert view.source.name in spec.ref_kinds
+    assert {f.code for f in view.fields} >= {"id", "status", "title"}
+
+
 def test_the_workflow_scaffolds_example_demonstrates_the_field_that_drives_status_behaviour(
     tmp_path,
 ) -> None:

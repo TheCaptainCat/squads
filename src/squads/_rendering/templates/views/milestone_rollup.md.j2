@@ -1,0 +1,33 @@
+{% set delivered = [] %}
+{% set outstanding = [] %}
+{% for group in groups %}
+{% for record in group.records %}
+{% if group.key == "done" %}
+{% set _ = delivered.append(record) %}
+{% else %}
+{% set _ = outstanding.append(record) %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+## Delivered ({{ delivered | length }})
+
+{% if delivered %}
+{% for r in delivered %}
+- **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
+
+{% endfor %}
+{% else %}
+_(none yet)_
+
+{% endif %}
+## Outstanding ({{ outstanding | length }})
+
+{% if outstanding %}
+{% for r in outstanding %}
+- **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
+
+{% endfor %}
+{% else %}
+_(nothing outstanding)_
+
+{% endif %}

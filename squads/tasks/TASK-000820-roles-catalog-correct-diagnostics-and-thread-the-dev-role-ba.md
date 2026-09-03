@@ -13,6 +13,7 @@ refs:
 - ADR-775:implements
 - TASK-800
 - TASK-814
+- MILE-836:targets
 description: Catalog refusals name the merged document rather than the bundled one,
   the stamp finding names its own object, and the dev-role preview base honours the
   project catalog
@@ -33,7 +34,7 @@ subentities:
   assignee: python-dev
   story: US3
 created_at: '2026-08-25T22:59:31Z'
-updated_at: '2026-08-26T08:38:06Z'
+updated_at: '2026-08-26T16:01:02Z'
 ---
 <!-- sq:body -->
 ## Scope

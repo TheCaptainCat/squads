@@ -18,14 +18,21 @@ from squads._workflow._models import ItemSpec, Lifecycle, StatusSpec, WorkflowSp
 
 def _spec_without_type(drop_type: str) -> dict[str, object]:
     """A raw payload for ``WorkflowSpec.model_validate`` missing *drop_type* — also strips it
-    from every remaining type's ``parents`` so the floor check is isolated from the separate
-    parent-reference integrity check."""
+    from every remaining type's ``parents``, and from any ``ref_rules``/``validators`` entry
+    that targets it (e.g. ``feature``'s ``ref_rule_target_present:contract``), so the floor
+    check is isolated from the separate parent-/ref-rule-target-reference integrity checks."""
     base = bundled_spec()
     items_without = {
-        k: (
-            v.model_copy(update={"parents": [p for p in v.parents if p != drop_type]})
-            if drop_type in v.parents
-            else v
+        k: v.model_copy(
+            update={
+                "parents": [p for p in v.parents if p != drop_type],
+                "ref_rules": [rr for rr in v.ref_rules if rr.target != drop_type],
+                "validators": [
+                    entry
+                    for entry in v.validators
+                    if entry.partition(":")[2] != drop_type or not entry.partition(":")[1]
+                ],
+            }
         )
         for k, v in base.items.items()
         if k != drop_type

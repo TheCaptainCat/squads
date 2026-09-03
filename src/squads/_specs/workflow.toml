@@ -17,7 +17,7 @@
 # Named lifecycle state machines — item lifecycles and sub-entity lifecycles
 # all live in one merged namespace (names don't collide).
 #
-# Item lifecycles:    work, adr, review, bug, guide, agent
+# Item lifecycles:    work, adr, contract, milestone, review, bug, guide, agent
 # Sub-entity kinds:   story + subtask share `subentity`; finding has its own `finding`
 #   (bound via subentity_kinds.<kind>.lifecycle, not by kind-name==lifecycle-name)
 # ---------------------------------------------------------------------------
@@ -45,6 +45,30 @@ Accepted = ["Superseded", "Deprecated"]
 Rejected = ["Proposed"]
 Superseded = []
 Deprecated = []
+
+[lifecycles.contract]
+# Contract: Draft → Active → Superseded (+ Deprecated, with a revive edge back to Active).
+# Not the work lifecycle — a contract is rewritten in place, never burned down — and not the
+# guide lifecycle either: "Published" carries no supersede semantics.
+initial = "Draft"
+
+[lifecycles.contract.transitions]
+Draft = ["Active"]
+Active = ["Superseded", "Deprecated"]
+Superseded = []
+Deprecated = ["Active"]
+
+[lifecycles.milestone]
+# Milestone: Draft → InProgress → Done (+ Cancelled), with revive edges back (Done →
+# InProgress, Cancelled → Draft) — a milestone's own state tracks whether it's still being
+# planned/pursued or settled, never the completeness of its members (that's the roll-up view).
+initial = "Draft"
+
+[lifecycles.milestone.transitions]
+Draft = ["InProgress", "Cancelled"]
+InProgress = ["Done", "Cancelled"]
+Done = ["InProgress"]
+Cancelled = ["Draft"]
 
 [lifecycles.review]
 # Code review: Requested → InReview → ChangesRequested → Approved (+ Rejected)
@@ -373,7 +397,11 @@ aliases = ["feat", "f"]
 order = 20
 category = "work"
 subentity_kind = "story"
-ref_rules = []
+# The implements ref_rule types the edge (target = contract); the validator entry below
+# selects it as an obligation once a contract exists in the corpus — no hint: contract
+# guidance in parent_hint's invalid-parent message would be noise.
+ref_rules = [{ kind = "implements", target = "contract" }]
+validators = ["ref_rule_target_present:contract"]
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # parent_required absent → None (unconstrained — any parent or none is valid)
 
@@ -428,6 +456,41 @@ ref_rules = [{ kind = "supersedes", hint = "" }]
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 # subentity_kind absent → None
 # parent_required absent → None
+
+[items.contract]
+# The living functional twin of the ADR set (`decision` above): what the product does for a
+# user, right now. One item per capability/user-facing area, no sub-entities — structurally
+# a `guide`, not a `feature`.
+prefix = "PRD"
+folder = "contracts"
+lifecycle = "contract"
+parents = []
+aliases = ["prd", "c"]
+order = 55
+category = "records"
+ref_rules = [{ kind = "supersedes", hint = "" }]
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+# subentity_kind absent → None (one item per capability area; sections stay ordinary headings)
+# parent_required absent → None (a record relates to work through refs, never hierarchy)
+
+[items.milestone]
+# A named target for a set of work — a release, a cycle, anything work can be aimed at.
+# Membership is never stored here: a work item joins by carrying a forward `targets` ref to
+# the milestone (`sq <type> <n> ref add MILE-… --kind targets`), recovered by inversion. Not a
+# build-lifecycle work item and hosts no sub-entities — `records`, like decision/contract/guide.
+prefix = "MILE"
+folder = "milestones"
+lifecycle = "milestone"
+parents = []
+aliases = ["mile", "m"]
+order = 57
+category = "records"
+ref_rules = []
+fields = [{ code = "priority", label = "Priority", collection = "priority" }]
+extra_fields = ["target_date"]
+views = ["milestone_rollup"]
+# subentity_kind absent → None (membership rides `targets` refs on the work item, not sub-entities)
+# parent_required absent → None (a milestone relates to work through refs, never hierarchy)
 
 [items.review]
 prefix = "REV"
@@ -526,3 +589,60 @@ placeholder = "_Describe the finding, its impact, and a recommendation — free-
 fields = [
   { code = "severity", label = "Severity", collection = "severity", required = true, default = "medium" },
 ]
+
+# ---------------------------------------------------------------------------
+# Views — declared derived-view projections. A view has three parts and no fourth: `source`
+# (the relation to project — a ref kind, a sub-entity collection, or a subtree), `fields`
+# (the projected columns — a base attribute or a badge field the source's own type/kind
+# declares), and its presentation, resolved by the view's own key at
+# `templates/views/<name>.md.j2` (no separate `presentation` key — the identity IS the
+# template path). Every view is computed fresh on every request; none is ever materialized
+# into a body region.
+#
+# `milestone_rollup` is the one bundled view, and the only reason it's here rather than left
+# for a project's own `.overrides/workflow.toml` is that something in this document actually
+# consumes it: `items.milestone.views` (above) attaches it to `sq milestone <n> show`. Naming
+# a bundled ref kind or item type as a source otherwise couples every project that later
+# drops or renames it to keeping the view too — the right trade only for a view something
+# reads, not for a demonstration nothing does. The attachment is what keeps this one honest
+# under `[selected]`: dropping `milestone` from `selected.items` drops `items.milestone.views`
+# with it, and the loader (`_prune_orphaned_type_owned_views`) then prunes `milestone_rollup`
+# itself from the merged spec — no view left declared over a type that no longer exists, and
+# no second `selected.views` line for an adopter to remember. A project's own view follows the
+# same shape under `.overrides/workflow.toml`; `sq override scaffold workflow` has a worked
+# example.
+# ---------------------------------------------------------------------------
+
+[views.milestone_rollup]
+# Source: every item carrying a forward `targets` ref to this milestone, recovered by
+# inverting stored forward edges — the milestone file itself is never touched. Delivered vs.
+# outstanding is resolved by the *presentation* template off each member's own status role
+# (`status_role`, not `status`) — never a literal status name, since members can span types
+# and lifecycles a literal like "Done" would silently mis-group.
+source = { kind = "ref", name = "targets" }
+group_by = "status_role"
+order_by = ["type", "id"]
+
+[[views.milestone_rollup.fields]]
+code = "id"
+label = "Id"
+
+[[views.milestone_rollup.fields]]
+code = "type"
+label = "Type"
+
+[[views.milestone_rollup.fields]]
+code = "status"
+label = "Status"
+
+[[views.milestone_rollup.fields]]
+code = "status_role"
+label = "Status role"
+
+[[views.milestone_rollup.fields]]
+code = "title"
+label = "Title"
+
+[[views.milestone_rollup.fields]]
+code = "assignee"
+label = "Assignee"

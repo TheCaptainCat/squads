@@ -23,6 +23,7 @@ from squads._migrations import (
     _v0_7_to_v0_8,
     _v0_8_to_v0_10,
     _v0_10_to_v0_11,
+    _v0_11_to_v0_14,
 )
 from squads._paths import SquadPaths
 
@@ -130,5 +131,17 @@ MIGRATIONS: list[Migration] = [
         ),
         run=_wrap_sync(_v0_10_to_v0_11.migrate),
         manual=_v0_10_to_v0_11.MANUAL,
+    ),
+    Migration(
+        version="0.14.0",
+        from_schema="0.11",
+        to_schema="0.14",
+        summary=(
+            "Two new bundled item types, contract (PRD) and milestone (MILE): create their "
+            "folders on an existing squad and regenerate the managed skills, pointers and "
+            "compiled CLAUDE.md/AGENTS.md regions so both appear."
+        ),
+        run=_v0_11_to_v0_14.migrate,
+        manual=_v0_11_to_v0_14.MANUAL,
     ),
 ]

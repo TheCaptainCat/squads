@@ -29,7 +29,7 @@ pytestmark = pytest.mark.anyio
 _TASK_RENAMED_TO_JOB = """
 [selected]
 items = [
-  "epic", "feature", "job", "bug", "decision",
+  "epic", "feature", "job", "bug", "decision", "contract",
   "review", "guide", "role", "skill", "operator",
 ]
 

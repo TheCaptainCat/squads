@@ -115,6 +115,50 @@
     }
   },
   {
+    "type": "contract",
+    "order": 55.0,
+    "prefix": "PRD",
+    "reserved": false,
+    "category": "records",
+    "subentity_kind": null,
+    "lifecycle": "contract",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "labels": {
+      "singular": "Contract",
+      "plural": "Contracts",
+      "singular_lower": "contract",
+      "plural_lower": "contracts"
+    }
+  },
+  {
+    "type": "milestone",
+    "order": 57.0,
+    "prefix": "MILE",
+    "reserved": false,
+    "category": "records",
+    "subentity_kind": null,
+    "lifecycle": "milestone",
+    "fields": [
+      {
+        "code": "priority",
+        "label": "Priority",
+        "collection": "priority"
+      }
+    ],
+    "labels": {
+      "singular": "Milestone",
+      "plural": "Milestones",
+      "singular_lower": "milestone",
+      "plural_lower": "milestones"
+    }
+  },
+  {
     "type": "review",
     "order": 60.0,
     "prefix": "REV",

@@ -11,6 +11,7 @@ priority: medium
 refs:
 - REV-817:addresses
 - ADR-777:implements
+- MILE-836:targets
 description: The shared merge engine's unknown-key message names the key and the accepted
   set but never the version, leaving FEAT-791's forward-compatibility clause unmet
   for every override kind
@@ -26,7 +27,7 @@ subentities:
   assignee: python-dev
   story: US4
 created_at: '2026-08-25T23:00:49Z'
-updated_at: '2026-08-26T08:38:05Z'
+updated_at: '2026-08-26T16:01:05Z'
 ---
 <!-- sq:body -->
 ## Scope

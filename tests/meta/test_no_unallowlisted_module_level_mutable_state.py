@@ -72,6 +72,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "_BUNDLED_CONTAINER_HEADINGS",  # fixed bundled sub-entity container heading table
             "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the Plane-1 pass
             # resolves the same effective set the validator engine runs, so it is defined here
+            "VIEW_BASE_FIELDS_BY_SOURCE",  # fixed per-source-kind base-attribute-name table a
+            # view's fields may project without naming a declared badge field
         }
     ),
     "src/squads/_rendering/_engine.py": frozenset(
@@ -135,6 +137,12 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     ),
     "src/squads/_migrations/_meta_compat.py": frozenset(
         {"_LOCAL_ID_PREFIX"}  # frozen pre-migration kind -> local-id-prefix snapshot
+    ),
+    "src/squads/_views.py": frozenset(
+        {
+            "_BASE_RESOLVERS",  # fixed base-attribute-name -> resolver-callable lookup table,
+            # the resolving-end counterpart of VIEW_BASE_FIELDS_BY_SOURCE
+        }
     ),
     "src/squads/_services/_validators.py": frozenset(
         {

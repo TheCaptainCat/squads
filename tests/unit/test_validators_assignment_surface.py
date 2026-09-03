@@ -33,13 +33,15 @@ def _spec_dict(base: WorkflowSpec, items: dict[str, ItemSpec]) -> dict[str, obje
     }
 
 
-def test_bundled_spec_declares_epics_no_parent_addition_only() -> None:
-    """``epic`` is the one built-in type with a ``validators`` addition — its own ``no_parent``,
-    enforcing the work-root constraint (``records``' ``no_parent`` comes from the category
-    bundle instead, not a per-type addition)."""
+def test_bundled_spec_declares_epics_and_features_validators_addition_only() -> None:
+    """``epic`` and ``feature`` are the two built-in types with a ``validators`` addition:
+    epic's own ``no_parent`` (enforcing the work-root constraint — ``records``' ``no_parent``
+    comes from the category bundle instead, not a per-type addition), and feature's
+    ``ref_rule_target_present:contract`` (the functional-contract currency check)."""
     spec = bundled_spec()
     assert spec.items["epic"].validators == ["no_parent"]
-    assert all(ts.validators == [] for t, ts in spec.items.items() if t != "epic")
+    assert spec.items["feature"].validators == ["ref_rule_target_present:contract"]
+    assert all(ts.validators == [] for t, ts in spec.items.items() if t not in ("epic", "feature"))
 
 
 def test_an_unknown_validator_name_fails_closed_at_load() -> None:

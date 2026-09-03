@@ -13,6 +13,7 @@ refs:
 - TASK-796:depends-on
 - TASK-797:depends-on
 - TASK-821:depends-on
+- MILE-836:targets
 description: Name ref_kinds in every override-section enumeration and give it a field
   reference in the override docs
 subentities:
@@ -42,7 +43,7 @@ subentities:
   assignee: tech-writer
   story: US1
 created_at: '2026-08-25T22:33:00Z'
-updated_at: '2026-08-26T09:21:15Z'
+updated_at: '2026-08-26T16:00:51Z'
 ---
 <!-- sq:body -->
 ## Scope

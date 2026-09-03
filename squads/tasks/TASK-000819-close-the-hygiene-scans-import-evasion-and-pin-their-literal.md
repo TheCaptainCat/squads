@@ -11,6 +11,7 @@ priority: medium
 refs:
 - REV-817:addresses
 - TASK-809
+- MILE-836:targets
 description: The migration import guard misses a module import plus attribute access,
   and both new AST scans carry hand-maintained vocabularies unpinned to their sources
 subentities:
@@ -30,7 +31,7 @@ subentities:
   assignee: python-dev
   story: US2
 created_at: '2026-08-25T22:58:35Z'
-updated_at: '2026-08-26T08:53:16Z'
+updated_at: '2026-08-26T16:00:59Z'
 ---
 <!-- sq:body -->
 ## Scope

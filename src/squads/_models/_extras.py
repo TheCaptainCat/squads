@@ -30,3 +30,5 @@ class ExtraKey:
     TARGET_REF = "target_ref"
     # bugs
     SEVERITY = "severity"
+    # milestones
+    TARGET_DATE = "target_date"

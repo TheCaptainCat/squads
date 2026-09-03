@@ -72,7 +72,7 @@ folder in the squad directory. The frozen surfaces are:
 - **Layout:** `<squad-dir>/.overrides/{templates,roles}/` and `.overrides/workflow.toml`. Templates
   mirror bundled template names 1:1; roles are TOML files keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
-  collections, status roles, ref kinds.
+  collections, status roles, ref kinds, derived views.
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
   override whole-file; roles merge field-wise by slug; the workflow override composes over the
   bundled vocabulary and **may shadow a built-in**, not only add to it.
@@ -264,6 +264,8 @@ The alias table (frozen at 1.0):
 | `task` | `t` |
 | `bug` | `b` |
 | `decision` | `dec`, `d` |
+| `contract` | `prd`, `c` |
+| `milestone` | `mile`, `m` |
 | `review` | `rev`, `r` |
 | `guide` | `g` |
 
@@ -425,6 +427,7 @@ renamed or retyped within a major version. The frozen surface includes:
   | `sq workflow statuses --json` | status | `status`, `role`, `badge` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
+  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `fields`, `group_by`, `order_by` |
 
   Each emits a bare JSON array, one row per declared entry in a documented order, with **every key
   present on every row** — `null` for absent, never omitted. They are designed to be **joined**, and
@@ -440,6 +443,19 @@ renamed or retyped within a major version. The frozen surface includes:
   `initial`, documented and deterministic — and `transitions` is every allowed move as
   `{from, to}` objects in that same order. See
   [workflow.md](workflow.md#joining-the-catalogs).
+
+  A `views` row's own `source_name` keys into whichever catalog its `source_kind` names —
+  `ref-kinds`, `subentity-kinds` or `types` — the one join whose destination is decided by a
+  sibling field rather than fixed.
+- **Derived views resolved against an item:** `sq workflow view <name> <id> --json` emits the
+  projection and skips presentation entirely — `{fields, group_by, groups}`, where each group is
+  `{key, count, records}` and a record maps each declared field code to its value (a scalar for a
+  text field, a `{code, label, emoji}` object for a badge field, `null` for an absent value). The
+  shape is identical for every view and every source kind, which is what lets a client lay out a
+  view it has never seen. An ungrouped view still emits one group, keyed `null`, so there is no
+  grouped/ungrouped variant to branch on. The same object appears under a `views` key in
+  `sq <type> <n> show --json`, keyed by view name, for a type that declares one; a type that
+  declares none omits the key.
 - **Override inspection:** `override list --json` (an array of `{name, kind, base_version, state}`)
   and `override diff --json` (`{name, kind, base_version, base_available, delta_mine,
   delta_upgrade}`)

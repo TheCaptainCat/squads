@@ -1,0 +1,38 @@
+[
+  {
+    "view": "milestone_rollup",
+    "source_kind": "ref",
+    "source_name": "targets",
+    "fields": [
+      {
+        "code": "id",
+        "label": "Id"
+      },
+      {
+        "code": "type",
+        "label": "Type"
+      },
+      {
+        "code": "status",
+        "label": "Status"
+      },
+      {
+        "code": "status_role",
+        "label": "Status role"
+      },
+      {
+        "code": "title",
+        "label": "Title"
+      },
+      {
+        "code": "assignee",
+        "label": "Assignee"
+      }
+    ],
+    "group_by": "status_role",
+    "order_by": [
+      "type",
+      "id"
+    ]
+  }
+]

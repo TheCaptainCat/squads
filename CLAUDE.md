@@ -81,14 +81,20 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
   (create/get/list + backend + role/skill lookups + roster) plus one concern **mixin** per file
   (`_import`, `_items`, `_collab`, `_subentities`, `_refs`, `_roster`, `_maintenance`, `_retype`,
-  `_rename`, `_memory`, `_board` — the 11 `Service` bases, in MRO order); `_service.py` composes
-  them into the flat `Service` façade and holds `init`/`adopt`/`open_service`; `_results.py` has the
-  result dataclasses. Non-mixin helpers live alongside: `_validators.py` (the `sq check` rules),
-  `_retirement.py`, `_config_integrity.py`, `_import_model.py`.
+  `_rename`, `_memory`, `_board`, `_views` — the 12 `Service` bases, in MRO order); `_service.py`
+  composes them into the flat `Service` façade and holds `init`/`adopt`/`open_service`;
+  `_results.py` has the result dataclasses. Non-mixin helpers live alongside: `_validators.py`
+  (the `sq check` rules), `_retirement.py`, `_config_integrity.py`, `_import_model.py`.
 - `_discussion.py` — top-level, not under `_services/`: comment formatting + `@mention` extraction,
   and the prose/presentation of a sub-entity block for **any** declared kind — `kind` is a parameter
   throughout and its prefix/placeholder/columns resolve from the spec, so don't reintroduce a
   literal `story`/`subtask` here.
+- `_views.py` — top-level, not under `_services/`: derived-view mechanics — resolve a `[views]`
+  entry's declared source (ref inversion / sub-entity collection / subtree) against one item into
+  the uniform record shape, then either serialize it (`--json`) or render it through
+  `templates/views/<name>.md.j2`. No presentation decision lives in the source/projection half;
+  no vocabulary literal (a ref-kind, item-type, or sub-entity-kind name) is ever hardcoded here —
+  it resolves off the declared `ViewSpec` instead.
 - `_cli/` — Typer app (`__init__` wires sub-typers + the `--dir` callback + version notice);
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
 
@@ -329,10 +335,12 @@ The operator may also speak directly to a specialist for live debugging; the spe
 - Items are addressed as `sq <type> <number> <verb>` (e.g. `sq task 35 show`);
   create with `sq create <type>`. Sub-entities nest: `sq <type> <n> <kind> <k> update --status <status>`.
 - The **product owner** authors **epics** (`sq create epic`).
-- The **product owner** authors **features** (`sq create feature`), breaking work into `add-story`.
+- The **product owner** authors **features** (`sq create feature`), breaking work into `add-story`, and links fixes/follow-ups via `ref add <id> --kind implements`.
 - The **tech lead** authors **tasks** (`sq create task`); its parent is the feature it implements (`--parent FEAT-…`), breaking work into `add-subtask` (`--story USn` maps one to a parent story), and links fixes/follow-ups via `ref add <id> --kind fixes|addresses`.
 - The **QA engineer** authors **bugs** (`sq create bug`).
 - The **architect** authors **decisions** (`sq create decision`), and links fixes/follow-ups via `ref add <id> --kind supersedes`.
+- The **product owner** authors **contracts** (`sq create contract`), and links fixes/follow-ups via `ref add <id> --kind supersedes`.
+- The **product owner** authors **milestones** (`sq create milestone`).
 - The **code reviewer** authors **reviews** (`sq create review`), breaking work into `add-finding`.
 - `sq check` enforces each declared parent/sub-entity rule (task).
 
@@ -345,6 +353,8 @@ The operator may also speak directly to a specialist for live debugging; the spe
   -m "…"` (sub-entities); `--file` for long markdown. Read with `sq <type> <n> show --full --comments`
   (full dossier including discussion).
 - Hand off and ask questions via `sq <type> <n> comment --as <slug> -m "…"` (repeat `-m` for
-  separate bullets); mention `@role` to notify.
+  separate bullets, or `--file` for one comment with a backtick or a fenced code block — an
+  unescaped one in a quoted `-m` is substituted by the shell before `sq` ever runs); mention
+  `@role` to notify.
 - Link related items by ID so context travels with the work.
 <!-- squads:end -->
