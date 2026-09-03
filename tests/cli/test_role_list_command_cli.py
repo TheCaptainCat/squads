@@ -1,6 +1,6 @@
 """``sq role list`` — the active roster, distinct from ``sq role catalog`` (the bundled catalog).
-Table output carries a live/not-live marker column; ``--json`` gives an additive machine
-shape.
+Table output carries a live/not-live marker column and the default-role designation;
+``--json`` gives an additive machine shape.
 """
 
 import json
@@ -21,15 +21,18 @@ async def test_plain_output_lists_the_active_roster_with_a_live_marker(project, 
 
 
 async def test_json_output_shape(project, invoke) -> None:
-    """No derived `active` field — `status` is the single source, kept un-restated."""
+    """No derived `active` field — `status` is the single source, kept un-restated.
+    `is_default` is not derived from `status`: it is the squad's own designation, and this
+    is the only listing that can carry it for every live role."""
     r = await invoke(["role", "list", "--json"])
     assert r.exit_code == 0, r.output
     data = json.loads(r.output)
     assert len(data) == 1
     row = data[0]
-    assert set(row) == {"id", "slug", "full_name", "title", "status"}
+    assert set(row) == {"id", "slug", "full_name", "title", "is_default", "status"}
     assert row["slug"] == "manager"
     assert row["status"] == "Active"
+    assert row["is_default"] is True
 
 
 async def test_a_newly_activated_role_shows_up_in_the_listing(project, invoke) -> None:

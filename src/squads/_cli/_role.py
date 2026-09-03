@@ -1,7 +1,7 @@
 """`sq role …` — manage agent roles (catalog/activate/show/regen/rm/status/set-default).
 
 Grammar:
-  sq role catalog                    — show the bundled role catalog
+  sq role catalog                    — show the role catalog for the active squad
   sq role activate <slug>            — activate a bundled role
   sq role <slug|id|n> show           — show a role's card + body
   sq role <slug|id|n> regen          — regenerate the Claude pointer
@@ -29,7 +29,6 @@ from squads._cli._common import (
     console,
     e,
     get_service,
-    handle_errors,
     is_full_id_shape,
     print_json_clean,
     register_status_verb,
@@ -44,6 +43,7 @@ from squads._models._item import Item
 from squads._paths import resolve as resolve_squad_paths
 from squads._roles._catalog import PREDEFINED, RoleDef
 from squads._roles._loader import load_role_catalog
+from squads._roles._models import RoleSpec
 from squads._roles._resolver import (
     dev_base_for_slug,
     resolve_role_for_item,
@@ -96,8 +96,8 @@ def _catalog_squad_dir() -> Path | None:
 
 
 @role_app.command("catalog")
-@handle_errors
-def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
+@common.command
+async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     """Show the role catalog (slug, name, title, default indicator) for the active squad.
 
     This is the bundled catalog merged with a project's own ``.overrides/roles.toml``
@@ -106,9 +106,27 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     ``Origin``/``origin`` column tells a project-declared or project-overridden entry apart
     from an as-shipped bundled one. Outside a squad, or with no such document, this is exactly
     the bundled catalog.
+
+    The ``Default``/``is_default`` column answers *for the active squad*, not for the catalog
+    document: inside a squad it marks the role that currently holds the designation
+    (``sq role <addr> set-default``), read through the same live projection the generated
+    default-role line is compiled from, so the two never disagree. Outside a squad — where
+    there is no roster to ask — it falls back to the catalog's own declared designation.
+
+    Not every holder is expressible here: the catalog lists bundled and project-declared
+    entries, so a developer role (``sq dev add``) that holds the designation appears in no row
+    and the column is correctly blank throughout. The plain listing names that holder in its
+    footer; ``sq role list`` — the roster listing, which carries every live role — is the
+    surface that always can.
     """
     squad_dir = _catalog_squad_dir()
     roles = load_role_catalog(squad_dir).roles
+    in_squad = squad_dir is not None
+    live_default = await get_service().default_role_slug() if in_squad else None
+
+    def _is_default(r: RoleSpec) -> bool:
+        return r.slug == live_default if in_squad else r.is_default
+
     if json_out:
         print_json_clean(
             json.dumps(
@@ -117,7 +135,7 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
                         "slug": r.slug,
                         "full_name": r.full_name,
                         "title": r.title,
-                        "is_default": r.is_default,
+                        "is_default": _is_default(r),
                         "origin": "bundled" if r.slug in _BUNDLED_SLUGS else "project",
                     }
                     for r in roles
@@ -133,10 +151,16 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
             e(r.slug),
             e(r.full_name),
             e(r.title),
-            "✓" if r.is_default else "",
+            "✓" if _is_default(r) else "",
             "bundled" if r.slug in _BUNDLED_SLUGS else "project",
         )
     console.print(table)
+    if live_default is not None and all(r.slug != live_default for r in roles):
+        console.print(
+            f"\n[dim]The default role is [cyan]{e(live_default)}[/cyan], which this catalog "
+            "does not list \u2014 run [cyan]sq role list[/cyan] to see it.[/dim]",
+            soft_wrap=True,
+        )
     console.print(
         "\n[dim]Need a wholly custom non-dev role (not in this catalog)? "
         "Run [cyan]sq override scaffold --new <slug>[/cyan], fill in the essentials, "
@@ -151,7 +175,13 @@ def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
 @role_app.command("list")
 @common.command
 async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
-    """List the active roster — activated roles, distinct from the bundled `role catalog`."""
+    """List the active roster — activated roles, distinct from the bundled `role catalog`.
+
+    Carries the default-role designation (``Default``/``is_default``), resolved per row the
+    same way the generated default-role line is: this is the only listing that can name every
+    possible holder, since a developer role or any other role added after init has a roster
+    entry but no catalog row.
+    """
     svc = get_service()
     roles = await svc.list_roles()
     # Resolved through the catalog (`sq role <slug> show`'s own seam) so the two never
@@ -167,6 +197,7 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
                         "slug": role.slug,
                         "full_name": role.full_name,
                         "title": role.title,
+                        "is_default": role.is_default,
                         "status": r.status,
                     }
                     for r, role in resolved
@@ -176,13 +207,14 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
         return
     live = svc.spec.live_statuses(ROSTER_ROLE)
     table = Table(box=None, pad_edge=False)
-    for col in ("Slug", "Name", "Title", "Live"):
+    for col in ("Slug", "Name", "Title", "Default", "Live"):
         table.add_column(col)
     for r, role in resolved:
         table.add_row(
             e(role.slug),
             e(role.full_name),
             e(role.title),
+            "✓" if role.is_default else "",
             "✓" if r.status in live else "",
         )
     console.print(table)

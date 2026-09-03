@@ -7,7 +7,7 @@ status: Draft
 author: product-owner
 refs:
 - EPIC-316
-- MILE-836:targets
+- MILE-867:targets
 description: Read-only oversight views for per-role memory (hygiene audit) and the
   team board in both browse clients
 subentities:
@@ -20,7 +20,7 @@ subentities:
     memory)
   status: Todo
 created_at: '2026-07-29T10:03:25Z'
-updated_at: '2026-09-01T08:05:48Z'
+updated_at: '2026-09-02T08:07:49Z'
 ---
 <!-- sq:body -->
 Surface the team's two CLI-only knowledge surfaces — per-role **memory** and the team **board** —

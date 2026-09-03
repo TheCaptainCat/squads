@@ -153,8 +153,10 @@ def _reset_context():  # pyright: ignore[reportUnusedFunction]  # autouse: pytes
 #:
 #: Exhaustiveness — not just that these two reset correctly — is enforced by
 #: ``tests/meta/test_ambient_render_state_reset_is_exhaustive.py``, which statically re-derives
-#: this same set from ``src/squads`` and fails if a third ambient value is added there without
-#: being listed (and reset) here.
+#: this same set from ``src/squads`` and fails if a new module-level ``ContextVar`` (or a cache
+#: sharing its file) is added there without being listed (and reset) here. That derivation is an
+#: AST match, so its reach is bounded and two shapes sit outside it; the guard's own module
+#: docstring states exactly what it covers and what it does not.
 _AMBIENT_RESET_TARGETS: dict[str, frozenset[str]] = {
     "src/squads/_rendering/_engine.py": frozenset({"_active_squad_dir", "_env_cache"}),
 }

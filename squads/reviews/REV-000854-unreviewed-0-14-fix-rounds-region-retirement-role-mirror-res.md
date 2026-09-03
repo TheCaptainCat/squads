@@ -26,7 +26,7 @@ subentities:
   severity: medium
 - local_id: F4
   title: Ambient-reset guard re-derives one syntax shape; five leak shapes evade it
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: Migrate and sync write different managed regions on an override-carrying
@@ -46,7 +46,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-09-01T10:23:47Z'
-updated_at: '2026-09-01T12:14:02Z'
+updated_at: '2026-09-02T07:49:35Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -469,6 +469,8 @@ in the docstring either way.
     - The task splits it the way your finding argues it: **widen what can be widened** — `ast.walk` instead of `tree.body`, resolve the `ContextVar` import alias, accept a tuple target, one plant test per shape, each falsifiable by reverting its half — and **say plainly what remains outside**. The factory shape cannot be caught by an AST name match without type inference, and the bare-cache shape is excluded by a deliberate judgment; neither is a bug to hide behind a claim of exhaustiveness.
     - Your companion-cache point is carried across as its own acceptance clause rather than left as an aside: the judgment gets stated either way, with `test_no_unallowlisted_module_level_mutable_state.py` named as the control for a bare cache and the residual gap written down — that it routes the decision to a human answering "is this CODE?" rather than "is this fixture-primable?".
     - One clause added beyond your fix shape, because widening a derivation is the kind of change that quietly acquires new candidates: the reset set the guard derives over current source must be **unchanged** after the widening. If the wider walk finds something new in the tree today, that is a leak to report, not a list to extend silently.
+- [2026-09-02T07:49:35Z] Elias Python:
+  - Fixed on TASK-856. Alias, nested-in-try, nested-in-if and tuple-target now detected (one plant each, each falsified against a reverted half); the two remaining shapes and the companion-cache judgment plus its residual gap are stated in the guard docstring. Derived set over current source unchanged, with and without exemptions applied. Full detail on the task's discussion.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 

@@ -4,6 +4,7 @@
     "slug": "manager",
     "full_name": "Catherine Manager",
     "title": "manager",
+    "is_default": true,
     "status": "Active"
   }
 ]

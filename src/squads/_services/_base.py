@@ -217,16 +217,28 @@ def _compute_keep_set(
 
     Walks parent links upward through the candidate set (width-tolerant via sequence
     numbers).  Items whose parent is not in the candidate set are treated as roots.
+
+    Each walk carries its own visited set of sequence numbers, so a parent relation holding a
+    cycle terminates instead of alternating between the same items forever.  Identity is the
+    sequence number rather than the id string for the same width-tolerance reason the
+    ``seq_to_id`` resolution above exists: a stored parent may carry a different zero-pad
+    width than the item's own id, and comparing id strings would walk straight past the
+    repeat.  The revisited ancestor is still added to the keep set before the walk stops, so a
+    cyclic pair renders as the hierarchy someone actually wrote rather than half of it.
     """
     keep_set: set[str] = set(match_set)
     for mid in match_set:
         item = id_map.get(mid)
+        seen: set[int] = set() if item is None else {item.sequence_id}
         while item is not None and item.parent is not None:
             p_seq = number_for_id(item.parent)
             canonical = seq_to_id.get(p_seq)
             if canonical is None or canonical not in id_map:
                 break
             keep_set.add(canonical)
+            if p_seq in seen:
+                break
+            seen.add(p_seq)
             item = id_map.get(canonical)
     return keep_set
 
@@ -239,14 +251,27 @@ def _walk_tree(
     match_set: set[str],
     children_map: dict[str | None, list[Item]],
     depth: int | None,
+    ancestors: frozenset[int] = frozenset(),
 ) -> TreeNode | None:
     """Recursive downward walk that prunes to *keep_set* and bounds to *depth*.
 
-    Returns ``None`` when the node should be dropped (not in keep set, or is a
-    path-only anchor with no surviving children).  ``depth`` is measured from the
-    root (root = level 0); ``None`` means unbounded.
+    Returns ``None`` when the node should be dropped (not in keep set, already on the path
+    from the root, or a path-only anchor with no surviving children).  ``depth`` is measured
+    from the root (root = level 0); ``None`` means unbounded.
+
+    *ancestors* is the set of sequence numbers already on the path from the root — the
+    cycle guard.  A parent relation holding a cycle would otherwise recurse until
+    ``RecursionError``: this is a second, independent cycle-unsafe walk from the upward one in
+    :func:`_compute_keep_set`, not the same fault seen twice, and it is reachable through the
+    public path whenever the tree is rooted inside the cycle.  Truncating (dropping the repeat)
+    rather than rendering it again is what keeps an item from appearing twice on one path,
+    which the renderer's indentation would present as a real, deeper node.
+
+    Identity is the **sequence number**, not the id string, for the same width-tolerance reason
+    :func:`_build_tree_children` resolves parents that way: a stored parent may carry a
+    different zero-pad width than the item's own id.
     """
-    if it.id not in keep_set:
+    if it.id not in keep_set or it.sequence_id in ancestors:
         return None
     path_only = it.id not in match_set
     child_nodes: list[TreeNode] = []
@@ -259,6 +284,7 @@ def _walk_tree(
                 match_set=match_set,
                 children_map=children_map,
                 depth=depth,
+                ancestors=ancestors | {it.sequence_id},
             )
             if child_node is not None:
                 child_nodes.append(child_node)
