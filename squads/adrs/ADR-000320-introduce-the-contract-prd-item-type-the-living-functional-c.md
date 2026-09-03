@@ -3,7 +3,7 @@ id: ADR-320
 sequence_id: 320
 type: decision
 title: Introduce the contract (PRD) item type — the living functional contract
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - ADR-541
@@ -13,272 +13,283 @@ refs:
 description: 'Add a first-class contract/PRD type: the living functional twin of the
   ADR set'
 created_at: '2026-07-07T08:32:44Z'
-updated_at: '2026-08-03T08:38:06Z'
+updated_at: '2026-08-24T20:16:00Z'
 ---
 <!-- sq:body -->
 ## Context
 
-squads has a living, authoritative source of truth for the **technical** point of view:
-the ADR set (the `decision` item type, `ADR` prefix). ADRs impose the rules; features are
-history. To learn a current technical constraint you read the ADR, not the feature that
-introduced it.
+squads has a living, authoritative source of truth for the **technical** point of view: the ADR
+set (the `decision` item type, `ADR` prefix). ADRs impose the rules; features are history. To
+learn a current technical constraint you read the ADR, not the feature that introduced it.
 
-There is no equivalent for the **functional / user** point of view. To answer "what does
-this product actually do for a user, right now?" you must replay the whole feature/epic
-history and mentally apply every later override. Features and epics are point-in-time
-records — they accumulate, they never get rewritten to reflect the current truth — so the
-current functional state is never written down in one place.
+There is no equivalent for the **functional / user** point of view. To answer "what does this
+product actually do for a user, right now?" you must replay the whole feature/epic history and
+mentally apply every later override. Features and epics are point-in-time records — they
+accumulate, they never get rewritten to reflect the current truth — so the current functional
+state is never written down in one place.
 
-This ADR settles the **architecture** for a new artifact that fills that gap: a living
+This decision settles the **architecture** for a new artifact that fills that gap: a living
 functional contract that is the twin of the ADR set. The linguistic symmetry is deliberate:
 
 > **`decision` (ADR) = the technical contract · `contract` (PRD) = the functional contract with the user.**
 
-## Decision drivers (product-level, already settled — recorded, not reopened)
+## Product drivers — settled inputs, not open questions
 
-These were decided by the product owner and the operator in a design session and are inputs
-to this ADR, not open questions:
+Decided by the product owner and the operator in a design session; recorded here because the
+mechanics below are derived from them.
 
-1. **First-class item type, not a docs convention.** A `squads/product/*.md` file convention
-   was considered and rejected in favour of the item-type path (stable IDs, refs, status,
-   the managed-skill/playbook surface).
-2. **Naming is fixed:** type word `contract`, ID prefix `PRD` (the same split the `decision`
-   type uses with its `ADR` prefix). "The search contract," `PRD-000042`.
-3. **Living vs historic is the core model.** The `contract` is the *living* current functional
-   state, rewritten in place as the product evolves, from the user's POV. Features/epics stay
-   *historic* — point-in-time records that later work can supersede. Feature = the diff +
-   rationale (the audit trail); contract = the accumulated current truth (the winner).
-4. **Maintenance discipline is load-bearing.** Landing a feature is not done until it has
-   updated the `contract` slice it touches. A living source of truth that is not kept current
+1. **A first-class item type, not a docs convention.** A `squads/product/*.md` file convention was
+   weighed and rejected in favour of the item-type path: stable IDs, refs, status, and the
+   managed-skill/playbook surface.
+2. **Naming is fixed:** type word `contract`, ID prefix `PRD` — the same split `decision` uses
+   with its `ADR` prefix. "The search contract," `PRD-000042`.
+3. **Living versus historic is the core model.** A contract is the *living* current functional
+   state, rewritten in place as the product evolves, from the user's point of view.
+   Features and epics stay *historic* — point-in-time records later work supersedes. A feature is
+   the diff plus its rationale (the audit trail); a contract is the accumulated current truth
+   (the winner).
+4. **Maintenance discipline is load-bearing.** Landing a feature is not finished until it has
+   updated the contract slice it touches. A living source of truth that is not kept current
    *lies* — that is the whole risk this design has to manage.
-5. **A collection, not a monolith.** Contracts are partitioned by capability / user-facing
-   area so a feature updates just its slice and ownership/merge stays sane.
+5. **A collection, not a monolith.** Contracts are partitioned by capability / user-facing area,
+   so a feature updates one slice and ownership and merge granularity stay sane.
 
-## Options weighed and the recommended mechanics
+## Mechanics
 
 ### A. How the type is introduced
 
-The type engine is already config-driven: `WorkflowSpec` (`default_workflow.toml`) declares
-every type's prefix, folder, lifecycle, parents, aliases and capability flags, and the CLI
-builds each type's `sq <type>` command group generically from that spec. Two paths exist:
+The type engine is config-driven. `WorkflowSpec` — bundled as package data at
+`src/squads/_specs/workflow.toml` — declares every type's prefix, folder, lifecycle, parents,
+aliases, category and capability flags, and the CLI builds each type's `sq <type>` command group
+from that declaration. Two pieces of plumbing that a new declared type once needed are shipped:
+ADR-263 registers a spec-declared type's CLI group ahead of Click's parse-time resolution, and
+`create()` falls back to `items/_default.md.j2` for a type with no dedicated template.
 
-- **A1 — override-only** (`.overrides/workflow.toml` in one squad). Rejected: the PRD is a
-  product capability that must ship to *every* squad out of the box, not a bespoke local type.
-  It also runs into the incomplete custom-type plumbing (`create()` has no template path for a
-  custom type yet, and `SquadsDB.format_id` derives the prefix from the reserved map, not the
-  spec), which A1 would have to finish first. *That blocker is closed: ADR-263 registers a
-  spec-declared type's CLI group ahead of Click's parse-time resolution, and there is a default
-  item template. The surviving reason to reject A1 is the first one — this type ships to every
-  squad, so it belongs in the bundled spec, not a per-squad override.*
-- **A2 — declared in the bundled spec (recommended).** Add one `[items.contract]` block (prefix
-  `PRD`, folder `contracts`, `category`, `lifecycle`, `aliases`) and one `[lifecycles.contract]`
-  block to the bundled `src/squads/_specs/workflow.toml`, exactly as every other declared type is
-  carried. The CLI group `sq contract` and the folder come from that declaration. It is the minimal
-  correct path *for a shipped type*: extend the declarative spec rather than invent a mechanism.
+So the open question is *which spec* carries the declaration, never which mechanism declares it.
 
-  *Rewritten 2026-08-03. As first written this option added `contract` to the `ItemType` enum and
-  the `RESERVED_PREFIX`/`RESERVED_FOLDER` maps, and argued for itself on a reserved fast-path that
-  needed no custom-type plumbing. Enum, both maps and the fast-path are all gone (ADR-322), so A1
-  and A2 are no longer two mechanisms — both mean "declare `[items.contract]` in a spec", differing
-  only in which spec. See the amendment note.*
+`contract` is declared in the **bundled** spec: one `[items.contract]` block — prefix `PRD`,
+folder `contracts`, `category = "records"`, `lifecycle = "contract"`, `aliases = ["prd", "c"]`
+(both free today) — plus one `[lifecycles.contract]` block. Nothing else. The CLI group and the
+folder follow from the declaration, and `sq init` already creates one folder per declared type.
 
-Treat `contract` as a `category = "records"` type with no `subentity_kind` and no severity field
-binding. Aliases: `prd`, and `c` (currently free).
-*Reworded 2026-08-03 from "a non-meta work-item type (`is_meta = false`, … `severity_field =
-false`)", which predated the work/records split. ADR-541 ruled on this decision by name and is the
-authority on the taxonomy; ADR-323 replaced `severity_field` with the generic `fields` binding.* It has no required
-parent; it is not parented under features (the historic→living edge runs the other way, as a
-ref — see C).
+A per-squad `.overrides/workflow.toml` declaration is rejected on one driver: the functional
+contract is a product capability that ships to every squad out of the box, not a bespoke local
+type.
 
-### B. Lifecycle states for a living artifact
+**Why that reduces to a driver where it used to be a mechanism choice.** The analysis here
+inverted, and the inversion is worth recording rather than quietly dropping. The bundled path was
+originally argued on a reserved fast-path: `contract` would join the `ItemType` enum and the
+`RESERVED_PREFIX` / `RESERVED_FOLDER` maps and so need no custom-type plumbing, while the override
+path was rejected partly *because* that plumbing was incomplete. Both premises are gone. ADR-322
+removed the enum, both maps and the reserved fast-path — every type now resolves through the spec
+(ADR-266) — and the plumbing the override path was waiting on shipped. The two options stopped
+being two mechanisms: both mean "declare `[items.contract]` in a spec", differing only in which
+one. The driver above decides that on its own, without the reserved-vocabulary argument the
+conclusion used to lean on.
 
-A contract is not a build-lifecycle artifact, so the work lifecycle (Draft→Ready→InProgress→
-InReview→Done) is wrong — most of it is meaningless for a document that is continuously
-rewritten in place. Two candidates:
+`contract` takes the `records` category. ADR-541 is the authority on the taxonomy and ruled on
+this type by name: durable, no parent — a record relates to work through refs, never through
+hierarchy — with its own non-burn-down lifecycle. It declares no `subentity_kind` (§D). Its
+`fields` binding carries priority only, as `decision` and `guide` do; there is no severity field
+(ADR-323 replaced the old per-type severity flag with that generic binding).
 
-- **B1 — reuse the guide lifecycle** (Draft → Published → Deprecated). Free, and a guide is
-  also a living doc. But "Published" frames it as a doc release, and it does not carry the
-  supersede semantics the historic-vs-living model wants.
-- **B2 — a dedicated `contract` lifecycle (recommended):** `Draft → Active → Superseded`
-  (+ `Deprecated`). All four statuses already exist in the shared status set, so no new
-  `Status` members are needed. `Active` is the steady state — the live functional truth for
-  that capability. `Superseded` is terminal and already carries `role = "superseded"`, which the
-  existing supersede consistency check keys on; a `contract` for a replaced capability is
-  superseded by the contract that replaces it. `Deprecated` is terminal for a capability that is
-  sunset without a direct replacement (with a revive edge back to `Active`). This mirrors the
-  ADR twin (`Accepted`/`Superseded`/`Deprecated`) and reads correctly for a living artifact.
+### B. Lifecycle
 
-The reachable-terminal invariant is satisfied (`Superseded` and `Deprecated` are terminal).
+A contract is not a build-lifecycle artifact, so the work lifecycle
+(Draft → Ready → InProgress → InReview → Done) is wrong for it — most of those states are
+meaningless for a document continuously rewritten in place.
 
-### C. The living↔historic edge and DoD enforcement
+`contract` runs **Draft → Active → Superseded (+ Deprecated)**. All four statuses already exist in
+the shared status set, so no new status names are introduced. `Active` is the steady state — the
+live functional truth for that capability. `Superseded` is terminal and carries
+`role = "superseded"`, which the shipped supersede check keys on: a contract for a replaced
+capability is superseded by the contract that replaces it. `Deprecated` is terminal for a
+capability sunset with no direct replacement, with a revive edge back to `Active`. Both terminals
+are reachable and settled, so ADR-696 §3's lifecycle floor holds. This mirrors the ADR twin
+(Accepted / Superseded / Deprecated) and reads correctly for a living artifact.
 
-The historic→living relationship is a **forward ref from the feature to the contract it
-updates** (forward edges only; the contract's incoming edges are computed by backref
-inversion — so a contract's `sq … show` surfaces every feature that shaped it, for free).
+Reusing the `guide` lifecycle (Draft → Published → Deprecated) was weighed: it is free, and a
+guide is also a living document. It is not taken, because "Published" frames the artifact as a
+document release and the lifecycle carries no supersede semantics — which is exactly what the
+living-versus-historic model needs.
 
-- **Ref kind.** The ref-kind vocabulary is a closed frozenset (`VALID_REF_KINDS` in
-  `_models/_item.py`, nine kinds — ADR-49 as narrowed by ADR-492) that already includes
-  `implements`. Recommend **reusing `implements`**: a feature *implements* the slice of the
-  functional contract it delivers. This needs no vocabulary expansion, and the advisory check
-  below can disambiguate it from a task→feature `implements` edge by inspecting the **target's
-  type** (`contract`). A dedicated new kind (`updates`) was considered — it would give the
-  check a more literal anchor — but it expands a deliberately-closed vocabulary for no behaviour
-  the target-type test doesn't already give us. Separately, `contract` should declare a
-  `supersedes` ref rule (like `decision`) so a replacement contract links the one it supersedes.
-- **Enforcement — advisory `sq check` rule (recommended), not a hard gate.** Three options:
-  convention only (too weak — staleness is the whole risk); a hard gate blocking a feature from
-  `Done` without a contract edge (too rigid — purely-technical/internal features have no
-  user-facing contract change, so a gate manufactures false positives and fake refs); or an
-  **advisory warn-level rule** in the spirit of the existing unwritten-body / status-banner /
-  supersede checks — warn when a feature reaches `InReview`/`Done` with no `implements` ref to a
-  `contract`. Non-blocking, it surfaces the debt and lets the human/agent judge whether this
-  feature legitimately touches no contract. The supersede check (`_check_decisions`) is the
-  structural template — it already keys off `spec.item_ref_rules(...)` and `status_role(...)`.
+### C. The living↔historic edge, and how maintenance is enforced
+
+The historic→living relationship is a **forward ref from the feature to the contract it updates**
+(forward edges only). A contract's incoming edges are computed by inversion, so
+`sq contract <n> refs --in` lists every feature that shaped it with nothing stored on the contract
+itself.
+
+**The ref kind is `implements`, disambiguated by the target's type.** A feature *implements* the
+slice of the functional contract it delivers, which reads correctly at the call site and in a raw
+edge; and reuse keeps the bundled kind set smaller. A dedicated `updates` kind would give a check
+a more literal anchor, and is not taken.
+
+The ground under that choice has moved, and the choice does not rest on it. Under ADR-775 ref
+kinds are a declared `[ref_kinds]` section of the workflow spec, merged and validated like every
+other vocabulary axis, rather than a closed frozenset in code — so a new kind no longer costs a
+vocabulary expansion. Reuse is chosen on legibility and on keeping the bundled set small, not on
+a vocabulary cost that no longer exists. `implements` declares no semantic role, so it stays
+navigational; the only consumer is the check below, which resolves the edge by the target's type.
+
+Separately, `contract` declares a `supersedes` ref rule, as `decision` does, so a replacement
+contract links the one it supersedes. That declaration is the whole wiring: the `records` category
+bundle already selects `supersedes_incoming`, so a `Superseded` contract with no incoming
+supersedes edge is reported with no new code.
+
+**Enforcement is advisory, and stays advisory.** A **warn**-level `sq check` finding when a
+feature reaches `InReview` or `Done` with no `implements` edge to a `contract`. Never a hard gate.
+A gate is refused for a specific reason rather than a general dislike of friction: purely
+technical and internal features have no user-facing contract change, so a gate manufactures false
+positives, and the way a team clears a false positive is a fake ref — which corrupts the very
+edge the design reads. Convention alone is too weak, since staleness is the whole risk here. The
+warning is the level that surfaces the debt and leaves the judgement with the human or agent
+deciding whether this feature legitimately touches no contract.
+
+This lands as one more entry in the shipped validator framework (ADR-541 axis B), not as a
+bespoke check: a named per-item validator in the closed catalog, selected by the `feature` type's
+own `validators` declaration. Two properties come free. The create/update gate aborts only on
+error-level issues, so a warn-level validator is report-only by construction — advisory is a
+severity here, not a second code path. And that severity is the only lever if the guarantee ever
+needs strengthening; the structure does not change with it.
+
+One constraint on the implementation, stated because it is easy to get wrong: the validator may
+not find its edge by comparing against the literal `"implements"`. ADR-775 §2 binds engine
+behaviour to a kind's declaration rather than its spelling, and keeps a `tests/meta` scan
+asserting that no bundled ref-kind name appears as a literal in `src/squads/` outside `_specs/`
+and `_migrations/`. The kind and the target type are read from the merged spec — a parameterised
+catalog entry declared on the `feature` type, the shape `subentity_title_max` already uses — so a
+squad that renames the kind, or the type, keeps the check.
 
 ### D. Collection structure
 
-- **D1 — section sub-entities within one contract.** Rejected. Sub-entity *prose* lives in the
-  parent item's body and sub-entity *state* in the parent's frontmatter, so every section would
-  share one file — reintroducing exactly the monolith/merge-contention that driver 5 rules out.
-  Sub-entities are also lifecycle-bearing mini-items (Todo/InProgress/Done), which does not
-  match "a section of a living document."
-- **D2 — one `contract` item per capability / user-facing area (recommended).** The collection
-  *is* the set of `PRD-*` items; each is one capability's living contract, edited in place, with
-  ordinary markdown headings for internal structure. Merge granularity is per file, ownership is
-  per area, and a feature's `implements` edges point at exactly the contract(s) it touched. This
-  is why `contract` needs **no** `subentity_kind` — it is structurally like `guide`, not
-  `feature`.
+**One `contract` item per capability / user-facing area.** The collection *is* the set of `PRD-*`
+items: each one capability's living contract, edited in place, with ordinary markdown headings for
+internal structure. Merge granularity is per file, ownership is per area, and a feature's
+`implements` edges point at exactly the contracts it touched. This is why `contract` declares no
+`subentity_kind` — structurally it is `guide`, not `feature`.
 
-### E. Generated `.claude` / AGENTS.md surface
+Sections as sub-entities within one contract is rejected. Sub-entity prose lives in the parent
+item's body, so every section would share one file — reintroducing exactly the monolith and merge
+contention driver 5 rules out. Sub-entities are also lifecycle-bearing mini-items
+(Todo / InProgress / Done), which does not describe a section of a living document.
 
-A new item type grows the managed agent-facing surface, all of which is regenerated by
-`sq sync` and must say so in place:
+**Partitioning carries no structural guard.** "One contract per capability area" is the product
+owner's judgement. Too coarse and contracts drift back toward monoliths with merge contention;
+too fine and a feature fans its `implements` edges across many tiny contracts. Neither failure is
+expressible as a spec rule that would not also refuse legitimate shapes, so nothing enforces it.
+The position is revisited if it goes wrong in practice, not before.
 
-- a managed `sq-contract` skill (real body under `squads/agents/skills/`, thin pointer in
-  `.claude/`), driven by new `[types.contract]` entries in the interactions playbook
-  (`playbook.toml`) — per-role enter/do/handoff/watch guidance (product-owner owns/authors and
-  keeps it current; tech-lead and `*dev` update the touched slice as features land; architect
-  watches cross-contract consistency);
-- the per-type CLI group `sq contract` (auto-generated, no per-type module);
-- an item template `templates/items/contract.md.j2` guiding the author toward functional
-  behaviour prose (a `_default.md.j2` fallback exists, but a dedicated template sets the
-  right shape and keeps status/lifecycle prose out of the body).
+### E. The generated agent-facing surface
 
-**On-disk `.claude`/AGENTS.md artifacts must be verified against roles/ops for BOTH fresh
-`init` AND `migrate`** — pointer filenames, targets, and descriptions are not validated by
-`sq check`, and a type-addition that only wired the `init` path (missing the `migrate`
-regeneration) has bitten this project before.
+A new item type grows the managed agent-facing surface, all of it regenerated by `sq sync` and
+stamped in place as such:
+
+- new `[types.contract]` entries in the interactions playbook (`playbook.toml`) drive a managed
+  `sq-contract` skill — per-role enter / do / handoff / watch guidance: the product owner authors
+  contracts and keeps them current, the tech lead and each `<tech>-dev` update the touched slice
+  as features land, the architect watches cross-contract consistency. The skill's real body is the
+  skill item's own body under `squads/agents/skills/`, and generated agent text renders from the
+  active spec, the active playbook and the live roster rather than from bundled literals — so a
+  squad that renames or drops the type gets text that matches its own vocabulary.
+- the `.claude` skill pointer carries only what the host must read before anything can run — its
+  `name` and its `description` — plus the command that renders the definition,
+  `sq skill sq-contract show`. Under ADR-781 a pointer names commands and never a local file path,
+  so it carries no `@` path into the squad directory and no copy of the skill body.
+- the per-type CLI group `sq contract`, generated from the declaration in §A with no per-type
+  module.
+- an item template `templates/items/contract.md.j2` steering the author toward functional-behaviour
+  prose. `_default.md.j2` would serve; a dedicated template sets the right shape.
+
+**Nothing in this surface materialises a derived projection.** Under ADR-776 a derived view is
+computed on request and never written into an item body. A contract's body is authored prose, and
+because the type declares no `subentity_kind` it carries no roll-up summary and no badge head
+region — so there is no materialised region here to retire later.
+
+**The on-disk artifacts are verified against the roster for BOTH a fresh `init` AND `migrate`.**
+Pointer filenames, targets and descriptions are not validated today, and a type addition that
+wired only the `init` path and left `migrate` unregenerated has bitten this project before.
+ADR-781 §2c makes that mechanical rather than manual as it ships: the per-entry artifacts become
+declared paths scoped to the live roster, `sq check` reports presence and then currency, and the
+unprompted root-callback notice reports a missing pointer without being asked. Until presence
+lands, the verification is by hand.
 
 ### F. Schema and migration
 
-Adding a type to the bundled spec bumps the schema — the root callback hard-stops a squad on a
-schema mismatch until `sq migrate up` runs. *The `0.7 → 0.8` originally written here is history;
-the bump is against whatever the current version is when this lands.* No existing item data is rewritten, so the deterministic `run` step is
-light (create the `contracts/` folder, regenerate the managed skills/pointers/CLAUDE.md and
-AGENTS.md regions so the `sq-contract` surface appears). The `manual` runbook entry should
-tell an adopting squad that the new functional-contract type now exists and (optionally) to
-seed initial `contract` items for their current capabilities — the migration cannot author
-functional truth on their behalf.
+`contract` is one of two item types entering the bundled spec for the 0.14 release; the milestone
+type (`MILE`, FEAT-693) is the other. **They share one schema bump and one migration runner**, and
+FEAT-321 and FEAT-693 land in the same release. The bump is `0.11 → 0.12` on
+`_models/_schema.py::SCHEMA_VERSION`; the root CLI callback hard-stops a squad on a schema
+mismatch until `sq migrate up` runs. The runner belongs to the release rather than to this
+decision — any other schema-level change shipping in 0.14 joins it rather than adding a second
+bump.
+
+No existing item data is rewritten on this half, so its deterministic work is light: create the
+`contracts/` folder, matching what `init` does per declared type, and regenerate the managed
+skills, the pointers and the `CLAUDE.md` / `AGENTS.md` regions so the `sq-contract` surface
+appears. The `manual` runbook entry tells an adopting squad that the functional-contract type now
+exists and, optionally, to seed initial `contract` items for their current capabilities — a
+migration cannot author functional truth on their behalf.
+
+Two release mechanics follow from touching bundled artifacts, inherited rather than restated here.
+Editing `workflow.toml` and `playbook.toml` and adding an item template forces a template-manifest
+regeneration, which queues behind the version bump (ADR-781 §6). And with ADR-777 §2's manifest
+widening, a squad carrying a `.overrides/workflow.toml` sees a genuine, content-gated drift
+warning when this lands — the correct signal, in place of the every-release false positive that
+spec-document overrides get today.
 
 ## Decision
 
-Introduce `contract` (prefix `PRD`) as a **built-in reserved work-item type** carried by the
-existing config-driven type engine:
+Introduce `contract` (prefix `PRD`) as a bundled item type carried by the existing config-driven
+type engine:
 
-- declared as one `[items.contract]` block (prefix `PRD`, folder `contracts`, `category =
-  "records"`) plus a `[lifecycles.contract]` block in the bundled `src/squads/_specs/workflow.toml`;
-  CLI group and folder come from that declaration;
-- on a dedicated `contract` lifecycle **Draft → Active → Superseded (+ Deprecated)**, reusing
-  existing statuses (`Active` is the live steady state; `Superseded` carries the supersede role);
-- structured as **one item per capability area** (a collection of `PRD-*` items, no
-  sub-entities), with internal markdown headings;
-- linked from the features that shape it by a forward **`implements`** ref (reused kind;
-  disambiguated by the target being a `contract`), with `contract` also declaring a
+- declared as one `[items.contract]` block — prefix `PRD`, folder `contracts`,
+  `category = "records"` — plus one `[lifecycles.contract]` block in the bundled
+  `src/squads/_specs/workflow.toml`; the CLI group and folder follow from that declaration;
+- on a dedicated lifecycle **Draft → Active → Superseded (+ Deprecated)**, reusing existing
+  statuses, with `Active` the live steady state and `Superseded` carrying the supersede role;
+- structured as **one item per capability area** — a collection of `PRD-*` items with no
+  sub-entities and ordinary markdown headings inside — with partitioning left to the product
+  owner's judgement and no structural guard;
+- linked from the features that shape it by a forward **`implements`** ref, reusing the kind and
+  disambiguating it by the target being a `contract`, with `contract` also declaring a
   `supersedes` rule for replacement;
-- with DoD maintenance enforced by an **advisory `sq check` rule** (warn a feature reaching
-  `InReview`/`Done` with no `implements` edge to a `contract`), never a hard gate;
-- with the managed `sq-contract` skill, pointer, playbook entries and item template generated
-  and stamped as `sq sync`-regenerated, verified on disk for both `init` and `migrate`;
-- shipped behind a schema bump whose migration creates the folder and regenerates
-  the agent-facing surface, with a manual runbook note.
+- with maintenance enforced by an **advisory, warn-level `sq check` rule** — a feature reaching
+  `InReview` or `Done` with no `implements` edge to a `contract` — expressed as a declared
+  per-item validator on the `feature` type, never a hard gate;
+- with the managed `sq-contract` skill, its command-naming pointer, the playbook entries and the
+  item template generated and stamped as `sq sync`-regenerated, and verified on disk for both
+  `init` and `migrate`;
+- shipped in the 0.14 release behind the **single schema bump and single migration runner** that
+  release also carries for the milestone type, with a manual runbook note.
 
-The `contract` body describes **product behaviour only** — never its own workflow state; the
-frontmatter `status:` field is the single source of truth, and dated discussion comments are the
-home for state-at-a-point-in-time notes.
+A contract's body describes **product behaviour only**. Dated discussion comments are the home for
+notes about a point in time.
 
 ## Consequences and trade-offs
 
-**Positive.** Riding the config-driven engine makes this an additive, low-blast-radius change:
-new rows in the tables the ten existing types already use, no new mechanism, the CLI group and
-folder generated automatically. The functional truth becomes queryable in one place, twinning
-the ADR set, and the historic→living edge is a plain forward ref that inverts into a free
-"which features shaped this contract" view.
+**Positive.** Riding the config-driven engine makes this additive and low-blast-radius: new rows
+in the tables the existing types already use, no new mechanism, the CLI group and folder generated
+from the declaration. The functional truth becomes queryable in one place, twinning the ADR set,
+and the historic→living edge is a plain forward ref that inverts into a free "which features
+shaped this contract" view.
 
-**Negative / risks to weigh on review.**
+**Costs accepted.**
 
-1. **The maintenance guarantee is only as strong as its enforcement, and the recommendation is
-   advisory.** An advisory warning can be ignored, and a living source of truth that drifts is
-   worse than none — it lies with authority. This is the sharpest call: advisory (chosen, for
-   the false-positive reasons above) vs a hard gate that guarantees currency at the cost of
-   friction and fake refs on purely-technical features. If review wants a stronger guarantee, the
-   lever is the check's severity, not the design.
-2. **Reusing `implements` overloads one ref kind for two relationships** (task→feature *and*
-   feature→contract). The disambiguation rests on the target's type. It keeps the closed vocab
-   closed, but a reader skimming raw refs sees the same word for two edges; a dedicated `updates`
-   kind trades vocabulary growth for legibility. Worth a deliberate yes/no.
-3. **Sectioning by "capability area" is a human judgement with no schema enforcement.** Too
-   coarse and contracts drift back toward monoliths with merge contention; too fine and features
-   fan their `implements` edges across many tiny contracts. The per-item model keeps merges sane
-   but pushes the partitioning discipline onto the product owner — there is no structural guard
-   that a contract stays single-capability.
-
-## Amendment note
-
-**2026-08-03 — the mechanism is re-derived against the current engine, and section A's option
-analysis has inverted.** Nothing here is implemented, which is consistent with where this decision
-sits; what needed correcting is that the recommended mechanism no longer describes anything, and the
-argument that chose it over the alternative rests on two premises that are now false.
-
-**What changed under it.** ADR-322 removed the `ItemType` enum, the `RESERVED_PREFIX`/`RESERVED_FOLDER`
-maps and the reserved fast-path in prefix resolution; the bundled spec moved to
-`src/squads/_specs/workflow.toml`; and ADR-541 replaced the `is_meta` boolean with a three-valued
-`category`, ADR-323 replaced `severity_field` with a generic per-type `fields` binding. So A2 as
-written — "add `contract` to the `ItemType` enum, `RESERVED_PREFIX`, `RESERVED_FOLDER`, and
-`default_workflow.toml`" — names four things, three of which do not exist.
-
-**Why the A1-versus-A2 argument inverted.** A2 was chosen because "prefix/folder/id-format/type-for-id
-resolution all have a reserved fast-path, so this needs no new custom-type plumbing", and A1 was
-rejected partly because custom-type plumbing was incomplete. Both premises are gone: there is no
-reserved fast-path (every type resolves through the spec, ADR-266/322), and the plumbing A1 was
-waiting on shipped — ADR-263 registers a spec-declared type's CLI group ahead of Click's parse-time
-resolution, and `create()` falls back to a default item template for a type with no dedicated one.
-
-**What the choice actually is now.** A1 and A2 are no longer two mechanisms. Both mean "declare
-`[items.contract]` in a spec"; they differ only in *which* spec — the bundled one or a project
-override. That reduces the decision to the driver this section already stated and which is unaffected:
-the functional-contract type is a product capability that must ship to every squad out of the box, so
-it is declared in the bundled spec. The mechanism is one `[items.contract]` block (prefix `PRD`, folder
-`contracts`, `category`, `lifecycle`, `aliases`) plus one `[lifecycles.contract]` block, and nothing
-else. That is a *stronger* version of the original conclusion, reached without the reserved-vocabulary
-argument it used to lean on.
-
-**The category label.** ADR-541 ruled on this decision by name: `contract` is `category = "records"`,
-not the "non-meta work-item type" written here before the work/records split existed. ADR-541 is the
-authority on the taxonomy and carries the `related` edge; the rest of the mechanics it names — prefix
-`PRD`, the `Draft → Active → Superseded (+ Deprecated)` lifecycle, no `subentity_kind`, a `supersedes`
-ref rule — it leaves standing unchanged. Note that this also moves `contract` off "work", which
-section A asserted.
-
-**Two smaller premises.** §C leans on the ref-kind vocabulary being "a closed frozenset" — it is
-`VALID_REF_KINDS` in `_models/_item.py`, and it is nine kinds rather than eight (ADR-49 as narrowed by
-ADR-492). Reusing `implements` still needs no vocabulary growth, so the recommendation is unaffected;
-the count is not what it was. And §F's `0.7 → 0.8` bump is history — a schema bump is still owed
-whenever this lands, against whatever the current version is then.
-
-Everything genuinely settled here is untouched: the living-versus-historic model and its five product
-drivers, the dedicated lifecycle (B2), one item per capability area rather than section sub-entities
-(D2), the forward `implements` edge with backref inversion, advisory enforcement over a hard gate, and
-the generated-surface obligations in §E including the verify-on-both-`init`-and-`migrate` rule.
+1. **The maintenance guarantee is only as strong as an advisory warning.** A warning can be
+   ignored, and a living source of truth that drifts is worse than none — it lies with authority.
+   That cost is taken deliberately, because the alternative buys currency with false positives on
+   purely technical features and with fake refs added to clear them. The lever if it ever needs
+   strengthening is the finding's severity, not the design.
+2. **Reusing `implements` gives one word to two relationships** — task→feature and
+   feature→contract. Disambiguation rests on the target's type, which every consumer already has.
+   A reader skimming raw refs sees the same word for two edges; a dedicated `updates` kind would
+   trade that legibility against a larger bundled set. This is a stated cost of the choice, not an
+   open question.
+3. **Partitioning discipline sits with the product owner and nothing checks it.** Contracts that
+   grow too coarse drift back toward monoliths; contracts too fine fan a feature's edges across
+   many tiny items. There is no structural guard, by decision, and the failure mode is visible in
+   practice rather than at validation time.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -290,4 +301,16 @@ the generated-surface obligations in §E including the verify-on-both-`init`-and
   - Re-derived on the driver that survives untouched: this type ships to every squad out of the box, so it goes in the bundled spec. The mechanism is now one `[items.contract]` block plus one `[lifecycles.contract]` block in `src/squads/_specs/workflow.toml` and nothing else — a stronger version of the original conclusion, reached without the reserved-vocabulary argument it used to lean on.
   - Smaller corrections: `is_meta = false`/`severity_field = false` to `category = "records"` with no severity field binding (ADR-541 on the taxonomy, ADR-323 on the field); section Cs closed frozenset is `VALID_REF_KINDS` in `_models/_item.py` at nine kinds, which leaves the reuse-`implements` recommendation intact; the `0.7 → 0.8` bump is history. Everything genuinely settled is untouched — the living-versus-historic model and its five drivers, B2s lifecycle, D2s one-item-per-capability, the forward `implements` edge, advisory over hard gate, and section Es verify-on-both-`init`-and-`migrate` rule.
   - Added `related` edges to ADR-541, ADR-322, ADR-263 and ADR-323 — this decision had none, so nothing pointed at the four decisions that moved the ground under it.
+- [2026-08-24T18:02:24Z] Pierre Chat:
+  - Enforcement stays advisory as written: warn-level, never a hard gate. A gate manufactures false positives and fake refs on purely technical features.
+  - Ref kind: reuse implements, disambiguated by the target type. ADR-775 removes the vocabulary-growth cost, but reuse still reads correctly and keeps the bundled set smaller.
+  - Partitioning: no structural guard. One contract per capability area stays the product owner judgement, revisited only if it goes wrong in practice.
+  - Schema: 0.14 carries ONE bump for both new item types (PRD and MILE) in a single migration, so FEAT-321 and FEAT-693 land in the same release.
+- [2026-08-24T18:16:43Z] Robert Architect:
+  - Rewrote the body to read as the current decision rather than a log of its own revisions: the three layers of inline "Rewritten/Reworded 2026-08-03" italics and the Amendment note are gone. The one piece of history worth keeping — the inverted A1/A2 option analysis — survives as a short paragraph inside section A, because a reader needs to know the reserved-fast-path argument is dead, not that a citation moved.
+  - Folded in the four rulings. C: enforcement is advisory as the decision own position, warn-level, gate refused on false-positives-and-fake-refs. C: implements reused, reasons restated as legibility plus a smaller bundled set — the "expands a deliberately-closed vocabulary" argument is deleted, and the section now says plainly that ADR-775 removed that cost so the choice does not rest on it. D: partitioning carries no structural guard, stated as a ruling, revisited only if it goes wrong in practice. F: one schema bump (0.11 to 0.12) and one migration runner shared with the milestone type in 0.14, FEAT-321 and FEAT-693 together; the runner is the release, not this decision.
+  - Stale points corrected beyond the ones flagged. The advisory rule no longer cites _check_decisions as its template — ADR-541 axis B shipped, so it is a named per-item validator in the closed CATALOG selected by the feature type validators list, and the records bundle already carries supersedes_incoming so the supersedes rule needs no new code. The claim that a contract show surfaces its incoming edges is wrong: backrefs print under refs --in/--all, never show. default_workflow.toml corrected to src/squads/_specs/workflow.toml. Section E reconciled with ADR-781 — the pointer names sq skill sq-contract show and carries no @ path — and with ADR-776: the type declares no subentity_kind, so it has no summary or head region to materialise, and the verify-on-both-init-and-migrate obligation now says ADR-781 2c makes it mechanical once presence lands.
+  - One real tension, not smoothed over. ADR-775 2 keeps a tests/meta scan asserting no bundled ref-kind name appears as a literal in src/squads outside _specs and _migrations, and implements declares no semantic role — so the advisory check cannot find its edge by comparing against "implements". The body now constrains the implementation: the kind and the target type are read from the merged spec as a parameterised catalog entry on the feature type (the subentity_title_max shape). Second, smaller: ADR-776 6 also owes a migration for the retired body regions. The ruling names PRD and MILE; F is written so any other schema-level change in 0.14 joins the same runner rather than adding a second bump, which keeps both true.
+- [2026-08-24T20:16:00Z] Catherine Manager:
+  - Accepted on the operator four rulings (advisory enforcement, implements reuse, no partitioning guard, one shared schema bump with the MILE type). Read the revised body before accepting: schema 0.11 to 0.12 verified against _models/_schema.py, no status prose, and the retired closed-vocabulary argument is deleted rather than softened.
 <!-- sq:discussion:end -->

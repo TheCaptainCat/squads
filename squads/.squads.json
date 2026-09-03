@@ -1,7 +1,7 @@
 {
   "schema_version": "0.11",
   "squads_version": "0.13.0",
-  "counter": 788,
+  "counter": 795,
   "padding": 6,
   "items": {
     "12": {
@@ -3399,7 +3399,7 @@
       ],
       "path": "features/FEAT-000321-the-contract-prd-item-type-a-living-functional-source-of-tru.md",
       "created_at": "2026-07-07T08:33:54Z",
-      "updated_at": "2026-08-03T07:49:32Z",
+      "updated_at": "2026-08-24T18:02:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5139,7 +5139,7 @@
       "type": "feature",
       "title": "Recommend a manager-run init interview for a bespoke dev-loop skill",
       "slug": "recommend-a-manager-run-init-interview-for-a-bespoke-dev-loo",
-      "status": "Draft",
+      "status": "Done",
       "description": "Init docs recommend the manager interview the operator and author a self-assigned squad-running skill",
       "parent": null,
       "author": "product-owner",
@@ -5154,7 +5154,7 @@
         {
           "local_id": "US1",
           "title": "Recommend an init-time interview in docs/agents.md",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5163,7 +5163,7 @@
         {
           "local_id": "US2",
           "title": "Ship the seven-area interview checklist as offered prompts",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5172,7 +5172,7 @@
       ],
       "path": "features/FEAT-000644-recommend-a-manager-run-init-interview-for-a-bespoke-dev-loo.md",
       "created_at": "2026-07-24T07:41:51Z",
-      "updated_at": "2026-08-03T11:22:16Z",
+      "updated_at": "2026-08-25T14:04:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5506,7 +5506,7 @@
       ],
       "path": "features/FEAT-000693-derived-views-with-milestones-as-the-first-consumer.md",
       "created_at": "2026-07-29T13:52:43Z",
-      "updated_at": "2026-07-30T07:57:47Z",
+      "updated_at": "2026-08-24T20:15:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -5515,10 +5515,10 @@
     "694": {
       "sequence_id": 694,
       "type": "feature",
-      "title": "Convert the sub-entity summary and head to derived views",
-      "slug": "convert-the-sub-entity-summary-and-head-to-derived-views",
+      "title": "Retire the sub-entity summary and head as computed views",
+      "slug": "retire-the-sub-entity-summary-and-head-as-computed-views",
       "status": "Draft",
-      "description": "Replace the two hand-rolled sub-entity projections with declared derived views on the body sink, output byte-identical",
+      "description": "Retire the materialized sub-entity summary and head regions (and the role Skills section) and reissue all three as computed derived views",
       "parent": null,
       "author": "product-owner",
       "assignee": null,
@@ -5528,10 +5528,47 @@
       "refs": [
         "FEAT-693:depends-on"
       ],
-      "subentities": [],
-      "path": "features/FEAT-000694-convert-the-sub-entity-summary-and-head-to-derived-views.md",
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Retire the sub-entity summary as a computed view",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Retire the head badge line as a computed view",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Retire the role Skills section and extra.skills cache",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Migrate the corpus to remove the retired regions",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000694-retire-the-sub-entity-summary-and-head-as-computed-views.md",
       "created_at": "2026-07-29T13:52:49Z",
-      "updated_at": "2026-07-29T14:22:17Z",
+      "updated_at": "2026-08-24T20:15:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -21528,7 +21565,7 @@
       "type": "decision",
       "title": "Introduce the contract (PRD) item type — the living functional contract",
       "slug": "introduce-the-contract-prd-item-type-the-living-functional-c",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "Add a first-class contract/PRD type: the living functional twin of the ADR set",
       "parent": null,
       "author": "architect",
@@ -21545,7 +21582,7 @@
       "subentities": [],
       "path": "adrs/ADR-000320-introduce-the-contract-prd-item-type-the-living-functional-c.md",
       "created_at": "2026-07-07T08:32:44Z",
-      "updated_at": "2026-08-03T08:38:06Z",
+      "updated_at": "2026-08-24T20:16:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22178,7 +22215,7 @@
       "type": "decision",
       "title": "Ref kinds are declared spec vocabulary bound by semantic role",
       "slug": "ref-kinds-are-declared-spec-vocabulary-bound-by-semantic-rol",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "",
       "parent": null,
       "author": "architect",
@@ -22200,7 +22237,7 @@
       "subentities": [],
       "path": "adrs/ADR-000775-ref-kinds-are-declared-spec-vocabulary-bound-by-semantic-rol.md",
       "created_at": "2026-08-22T09:28:22Z",
-      "updated_at": "2026-08-22T09:47:39Z",
+      "updated_at": "2026-08-24T18:10:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22211,7 +22248,7 @@
       "type": "decision",
       "title": "Derived views: one computed projection, and no body sink",
       "slug": "derived-views-one-computed-projection-and-no-body-sink",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "",
       "parent": null,
       "author": "architect",
@@ -22234,7 +22271,7 @@
       "subentities": [],
       "path": "adrs/ADR-000776-derived-views-one-computed-projection-and-no-body-sink.md",
       "created_at": "2026-08-22T09:28:29Z",
-      "updated_at": "2026-08-22T09:59:49Z",
+      "updated_at": "2026-08-24T18:10:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22245,7 +22282,7 @@
       "type": "decision",
       "title": "One override contract for every bundled spec document",
       "slug": "one-override-contract-for-every-bundled-spec-document",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "",
       "parent": null,
       "author": "architect",
@@ -22267,7 +22304,7 @@
       "subentities": [],
       "path": "adrs/ADR-000777-one-override-contract-for-every-bundled-spec-document.md",
       "created_at": "2026-08-22T09:28:30Z",
-      "updated_at": "2026-08-22T09:47:38Z",
+      "updated_at": "2026-08-24T20:31:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -22278,7 +22315,7 @@
       "type": "decision",
       "title": "Pointers name commands, never a local path",
       "slug": "pointers-name-commands-never-a-local-path",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "",
       "parent": null,
       "author": "architect",
@@ -22304,7 +22341,7 @@
       "subentities": [],
       "path": "adrs/ADR-000781-pointers-name-commands-never-a-local-path.md",
       "created_at": "2026-08-22T09:44:15Z",
-      "updated_at": "2026-08-22T10:13:02Z",
+      "updated_at": "2026-08-24T18:10:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31569,6 +31606,420 @@
         "full_name": "Pierre Chat"
       },
       "id": "OP-10"
+    },
+    "789": {
+      "sequence_id": 789,
+      "type": "bug",
+      "title": "No guidance tells agents to read item .md files via sq, not directly",
+      "slug": "no-guidance-tells-agents-to-read-item-md-files-via-sq-not-di",
+      "status": "Verified",
+      "description": "Guidance covers write-protection for item .md files but never states reads must go through sq",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-694:blocks"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000789-no-guidance-tells-agents-to-read-item-md-files-via-sq-not-di.md",
+      "created_at": "2026-08-24T17:46:07Z",
+      "updated_at": "2026-08-25T14:04:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-789"
+    },
+    "790": {
+      "sequence_id": 790,
+      "type": "feature",
+      "title": "Ref kinds as declared workflow-spec vocabulary",
+      "slug": "ref-kinds-as-declared-workflow-spec-vocabulary",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-775:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Declare [ref_kinds] as a workflow-spec section",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Bind engine behaviour to declared semantics, not literals",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Per-capability floor and the live-corpus refusal",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "sq workflow ref-kinds --json catalog command",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Reissue the ref-kind contract prose (tech-writer)",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000790-ref-kinds-as-declared-workflow-spec-vocabulary.md",
+      "created_at": "2026-08-24T18:24:12Z",
+      "updated_at": "2026-08-24T18:25:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-790"
+    },
+    "791": {
+      "sequence_id": 791,
+      "type": "feature",
+      "title": "Uniform override contract for every bundled spec document",
+      "slug": "uniform-override-contract-for-every-bundled-spec-document",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-777:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Widen the manifest to every overridable bundled artifact",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Content-gate workflow/playbook/role drift",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Whole-document override for the roles catalog",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Close the role override top-level key space (align ADR-696 §4b)",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Uniform unstamped-shadowing severity plus the uniformity guard",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000791-uniform-override-contract-for-every-bundled-spec-document.md",
+      "created_at": "2026-08-24T18:26:05Z",
+      "updated_at": "2026-08-25T13:38:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-791"
+    },
+    "792": {
+      "sequence_id": 792,
+      "type": "feature",
+      "title": "Pointers name commands, never a local path",
+      "slug": "pointers-name-commands-never-a-local-path",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-781:implements",
+        "BUG-784"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Drop squad_path from all four pointer/entry templates",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Slug-bound startup commands and the definition-fetch command",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Five per-host questions on the AgentBackend ABC",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Currency detection for per-entry pointers",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Reword invariant 5 to state the containment rule",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000792-pointers-name-commands-never-a-local-path.md",
+      "created_at": "2026-08-24T18:28:02Z",
+      "updated_at": "2026-08-24T18:29:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-792"
+    },
+    "793": {
+      "sequence_id": 793,
+      "type": "task",
+      "title": "State the read-side half of the sq-managed-files rule in guidance",
+      "slug": "state-the-read-side-half-of-the-sq-managed-files-rule-in-gui",
+      "status": "Done",
+      "description": "Add 'read item files through sq show, never open them directly' to every carrier of the sq-managed rule",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-789:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add the read-side half to the four named bundled templates",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Rule on the role body and the two generated pointers",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Carry the read-side half into the adopter-facing docs",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Regenerate the template manifest and the goldens it moves",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000793-state-the-read-side-half-of-the-sq-managed-files-rule-in-gui.md",
+      "created_at": "2026-08-24T20:29:47Z",
+      "updated_at": "2026-08-25T13:50:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-793"
+    },
+    "794": {
+      "sequence_id": 794,
+      "type": "task",
+      "title": "Document the manager-run init interview and its checklist",
+      "slug": "document-the-manager-run-init-interview-and-its-checklist",
+      "status": "Done",
+      "description": "Write the optional init-time interview recommendation and the seven-area checklist into docs/agents.md",
+      "parent": "FEAT-644",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Write the interview recommendation into docs/agents.md",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Ship the seven-area checklist as offered prompts",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Re-verify the grouping-style routing caveat before writing it",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000794-document-the-manager-run-init-interview-and-its-checklist.md",
+      "created_at": "2026-08-24T20:31:24Z",
+      "updated_at": "2026-08-25T14:04:21Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-794"
+    },
+    "795": {
+      "sequence_id": 795,
+      "type": "review",
+      "title": "The init-time interview section in the agent operating manual",
+      "slug": "the-init-time-interview-section-in-the-agent-operating-manua",
+      "status": "Approved",
+      "description": "Docs review of the new interview section in agents.md and its three pointers",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-644"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Skill scoped to one role does not load in every session",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Named hard floor contradicts the overrides documentation",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Pointers name an init-time interview the section never calls that",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Custom-skill command block duplicates the roles.md sequence",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000795-the-init-time-interview-section-in-the-agent-operating-manua.md",
+      "created_at": "2026-08-25T13:57:05Z",
+      "updated_at": "2026-08-25T14:04:21Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-795"
     }
   }
 }

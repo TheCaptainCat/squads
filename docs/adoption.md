@@ -37,6 +37,9 @@ sq adopt                        # non-destructive: see below
 Run it as often as you like; it never clobbers authored content. Use `--squad-dir`, `--roles`,
 `--no-claude` exactly like `init`.
 
+Once the squad exists, consider opening it with the optional interview — see
+[agents.md](agents.md#opening-a-new-squad-the-interview).
+
 If your existing files **already** follow the squads layout (type subfolders, `PREFIX-NNNNNN-*.md`
 filenames, sq frontmatter), `sq adopt` is all you need — it indexes them in place. If not, convert
 them (next section).

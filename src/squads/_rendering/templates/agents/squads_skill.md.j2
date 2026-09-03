@@ -42,7 +42,10 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
   --status {{ anchor_settled or anchor_active or "<status>" }}`); sub-entities nest:
   `sq <type> <n> <kind> <k> update --status <status>`. Create with `sq create <type>`.
 - The `.md` files are sq-managed: never hand-edit frontmatter or the `<!-- sq:* -->` markers, and
-  don't type prose directly into a file. Every region is written through a command.
+  don't type prose directly into a file. Every region is written through a command. They are not a
+  read surface either — read them through `sq <type> <n> show`, never by opening the file: the
+  command resolves state the file does not carry, so a direct read returns strictly less than the
+  command.
 - Set an **item's** body with `sq <type> <n> body -m "…"` (repeat `-m`, or `--file body.md` /
   `--file -`); `--desc` (on `create`/`update`) is just the short summary shown in lists.
 - Set a **sub-entity's** body with `sq <type> <n> <kind> <k> body -m "…"` (or `--file`); edit its

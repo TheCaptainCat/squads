@@ -3,7 +3,7 @@ id: ADR-775
 sequence_id: 775
 type: decision
 title: Ref kinds are declared spec vocabulary bound by semantic role
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - FEAT-693:addresses
@@ -16,7 +16,7 @@ refs:
 - ADR-777
 - ADR-781
 created_at: '2026-08-22T09:28:22Z'
-updated_at: '2026-08-22T09:47:39Z'
+updated_at: '2026-08-24T18:10:34Z'
 ---
 <!-- sq:body -->
 ## Context

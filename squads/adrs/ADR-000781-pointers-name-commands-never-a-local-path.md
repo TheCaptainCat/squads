@@ -3,7 +3,7 @@ id: ADR-781
 sequence_id: 781
 type: decision
 title: Pointers name commands, never a local path
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - FEAT-693
@@ -20,7 +20,7 @@ refs:
 - ADR-422
 - BUG-784
 created_at: '2026-08-22T09:44:15Z'
-updated_at: '2026-08-22T10:13:02Z'
+updated_at: '2026-08-24T18:10:39Z'
 ---
 <!-- sq:body -->
 ## Context

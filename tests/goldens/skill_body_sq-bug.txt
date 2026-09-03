@@ -75,6 +75,7 @@ sq bug <n> status InProgress
 - make sure the root cause is fixed, not just the symptom
 
 ---
-The `.md` files are sq-managed — never edit them by hand. Items are addressed as
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq bug <n> show`, never by opening the file. Items are addressed as
 `sq bug <n> <verb>`. Set this item's body with `sq bug <n> body
 -m "…"` (or `--file`); `--desc` sets only the short summary. Read anything back with `sq bug <n> show --full --comments` (full dossier, including discussion).

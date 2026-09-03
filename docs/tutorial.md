@@ -19,6 +19,9 @@ the `.claude/` scaffolding (role pointers, the `squads` skill, a managed `CLAUDE
 Claude Code here and you can greet an agent ("Hi Robert") to have it impersonate that role — but for
 this tutorial we'll drive `sq` directly.
 
+On a real project this is also the moment to consider the optional init-time interview — see
+[agents.md](agents.md#opening-a-new-squad-the-interview).
+
 ## 1. An epic (the umbrella)
 
 ```bash
@@ -31,7 +34,8 @@ sq create epic "Authentication platform"
 ### The pattern: `sq` scaffolds, **you set the body with a command**
 
 This is the heart of squads. `sq create` writes a *skeleton* with a placeholder body; you fill it
-through `sq <type> <n> body` — never by hand-editing the file. The fresh epic looks like:
+through `sq <type> <n> body` — never by hand-editing the file. Reading works the same way round:
+`sq <type> <n> show` is the read surface, not the file. The fresh epic looks like:
 
 ```markdown
 ---

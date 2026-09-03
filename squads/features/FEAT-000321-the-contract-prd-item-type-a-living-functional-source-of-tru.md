@@ -29,7 +29,7 @@ subentities:
     schema to 0.8
   status: Todo
 created_at: '2026-07-07T08:33:54Z'
-updated_at: '2026-08-03T07:49:32Z'
+updated_at: '2026-08-24T18:02:26Z'
 ---
 <!-- sq:body -->
 # The contract (PRD) item type
@@ -212,4 +212,6 @@ As an existing squad, I want `sq migrate up` to add the contracts folder and bum
   - Last in 0.13, after FEAT-691, FEAT-642 and FEAT-644 — it is the largest of the three and takes whatever runway remains.
 - [2026-08-03T07:49:32Z] Pierre Chat:
   - Out of 0.13. The release is already substantial — the spec-driven customization epic grew a thirty-finding consumer sweep on top of its four features. A new item type is additive scope with no dependency forcing it into this release, so it moves out rather than extending the cut.
+- [2026-08-24T18:02:26Z] Pierre Chat:
+  - Scoped into 0.14, and coupled to FEAT-693: both new item types share one schema bump and one migration runner, so the two features land in the same release.
 <!-- sq:discussion:end -->
