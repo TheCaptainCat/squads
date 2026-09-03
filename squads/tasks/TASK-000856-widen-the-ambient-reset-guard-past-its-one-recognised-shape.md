@@ -3,7 +3,7 @@ id: TASK-856
 sequence_id: 856
 type: task
 title: Widen the ambient-reset guard past its one recognised shape
-status: Ready
+status: InReview
 author: tech-lead
 priority: low
 refs:
@@ -13,7 +13,7 @@ description: The guard derives its reset set from one syntactic shape; an import
   a nested declaration or a tuple target evades it — widen what can be widened and
   make the exhaustiveness claim honest about the rest
 created_at: '2026-09-01T11:25:20Z'
-updated_at: '2026-09-01T11:25:47Z'
+updated_at: '2026-09-02T07:49:19Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -92,4 +92,31 @@ _Add with `sq task 856 add-subtask "<title>"`; track with `sq task 856 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-02T07:49:15Z] Elias Python:
+  - Widening landed in `tests/meta/test_ambient_render_state_reset_is_exhaustive.py` (plus a comment-only correction in `tests/conftest.py`). Four shapes now detected, each with its own plant test, each proven to fail against a reverted half:
+    
+    - **import alias** (`from contextvars import ContextVar as CV`) — new `_contextvar_aliases()` collects `as`-renamings of the `contextvars` import and keeps the plain spelling (which also covers the qualified `contextvars.ContextVar(...)` form). Revert (aliases pinned to `{"ContextVar"}`): 1 failed, 10 passed — only the alias plant.
+    - **nested in a module-level `try:`** and **nested in a module-level `if`** — new `_module_scope_statements()` recurses into `If`/`While`/`For`/`With`/`Try`/`TryStar`/`Match` bodies, `orelse`, handlers and `finalbody`. Revert (back to `tree.body` only): 2 failed, 9 passed — exactly the two nesting plants.
+    - **tuple target** (`_a, _b = ContextVar(...), ContextVar(...)`) — `_module_scope_target_and_value` replaced by `_module_scope_bindings`/`_target_bindings`, destructuring elementwise against a literal sequence and also handling chained `a = b = value`. Revert (single `ast.Name` only): 1 failed, 10 passed — only the tuple plant.
+    
+    Deliberately **not** a bare `ast.walk`, which the finding's fix shape suggested: `ast.walk` descends into function and class bodies, where a binding is a local or a class attribute, not module-level ambient state — and `_mutable_cache_names` shares this walk, so it would have pulled every function-local dict literal in a candidate file into the derived set. A fifth test pins that boundary; swapping the scoped walk for a bare `ast.walk` reddens it (1 failed, 10 passed).
+    
+    **Derived set unchanged — no leak.** Captured before and after, both with the real exemptions and with exemptions emptied (the more sensitive form, since an exempted file could otherwise hide a newly-found name):
+    
+        exempted       {"src/squads/_rendering/_engine.py": ["_active_squad_dir", "_env_cache"]}
+        no-exemptions  {"src/squads/_context.py": ["_context_var"],
+                        "src/squads/_index/_store.py": ["_active_transaction", "_read_scope"],
+                        "src/squads/_rendering/_engine.py": ["_active_squad_dir", "_env_cache"]}
+    
+    Byte-identical either side of the widening. Nothing was added to `RESET_TARGETS` or `CONTEXTVAR_EXEMPTIONS`.
+    
+    **Two shapes stay outside, said plainly in the module docstring.** Factory indirection (`_leak = _make_var("_leak")`) — the called name is the factory and deciding its return type needs type inference an AST match does not have; nothing here detects it. A bare module-level cache in a file with no `ContextVar` — excluded by the companion-cache rule of construct 2.
+    
+    **Companion-cache rule: judged to stay a companion heuristic**, stated as a judgment rather than left implicit. The control for a bare ambient-keyed cache is named: `tests/meta/test_no_unallowlisted_module_level_mutable_state.py` reddens on any new module-level mutable binding under `src/squads` regardless of what else is in the file, and forces an `ALLOWLIST` entry with a written reason. The residual gap is written down: that guard routes the decision to a human answering "is this CODE?" while the question here is "is this fixture-primable?" — `_env_cache` proves both can be true of one binding, so a new bare cache is never silent but can be allowlisted as CODE by someone who never considered the harness question. Widening construct 2 to every module-level cache would close it at the cost of making every sanctioned CODE cache a candidate needing an exemption here too; that trade was declined, with the revisit condition recorded.
+    
+    `tests/conftest.py`'s comment above `_AMBIENT_RESET_TARGETS` carried the same overstated claim the finding quotes ("fails if a third ambient value is added there") — corrected to the real reach and pointed at the guard's docstring. Comment-only; the parsed literal is untouched.
+    
+    Gates: `4381 passed, 7 skipped in 84.58s` (baseline 4376 + the 5 new tests, 0 failed, 0 errors); pyright 0 errors; `ruff check .` and `ruff format --check .` clean; `sq check` clean. Not committed.
+    
+    @reviewer @tech-lead — the guard's stated contract now matches what it checks.
 <!-- sq:discussion:end -->

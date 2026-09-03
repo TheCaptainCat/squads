@@ -220,6 +220,90 @@ def _parent_present(ctx: ValidatorContext) -> list[CheckIssue]:
     return [CheckIssue("error", item.id, f"{item.type} requires a parent{of_type}")]
 
 
+def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
+    """Refuses a parent chain that revisits an item — a self-parent, a mutual pair, or a
+    longer chain that closes on itself.
+
+    **In** :data:`~squads._workflow._models.COMMON_CORE`, so it is effective for every type
+    under every category. The parent relation is the squad's hierarchy and every consumer of it
+    walks upward or downward assuming the walk terminates; a cycle is not a house convention a
+    category could legitimately decline, so it is floor behaviour rather than a bundle member.
+    Common-core placement is also what makes one member cover all four parent-setting entry
+    points — item create, the shared update core the bulk importer routes through, the link verb
+    and the retype prospective all gate through :meth:`ValidatorEngine.gate` — instead of an
+    inline check repeated at each and forgotten at the fifth.
+
+    Identity in the visited set is the **sequence number**, never the raw id string: a stored
+    ``parent`` may carry a different zero-pad width than the item's own ``id`` (the state
+    ``sq migrate repad`` leaves behind), so the same item has two spellings and a set of id
+    strings would walk straight past the repeat. ``SquadsDB.get`` is keyed on the sequence
+    number for the same reason, which is what makes the lookup below width-tolerant.
+
+    A parent that resolves to nothing is not this validator's finding — it stops the walk and
+    leaves the report to ``parent_in``'s dangling-parent branch, so a single broken edge is
+    reported once rather than twice.
+
+    Because this is error-level and on the floor, an item already sitting in a cycle cannot be
+    updated at all — a status change on it is refused too. That is deliberate fail-closed
+    behaviour, and it is safe because ``clear_parent`` nulls ``item.parent`` before the gate
+    reads it, so ``update --no-parent`` still succeeds on an item inside a cycle. The message
+    therefore names the closing edge's owner: clearing *that* item's parent always breaks the
+    cycle, including when the item under test merely inherits a cyclic ancestor chain rather
+    than sitting in the cycle itself.
+    """
+    item = ctx.item
+    if not item.parent or ctx.index is None:
+        return []
+    chain: list[str] = [item.id]
+    seen: set[int] = {item.sequence_id}
+    parent_id: str | None = item.parent
+    while parent_id:
+        node = ctx.index.get(parent_id)
+        if node is None:
+            return []  # dangling parent — `parent_in` owns that report
+        chain.append(node.id)
+        if node.sequence_id in seen:
+            # The chain can close on the item under test while the index still spells that
+            # item differently — a reclassification gates the item as it *would* look, so its
+            # prospective id heads the chain and its stored id closes it. Both ends are the
+            # same item; left unsaid, one loop reads as two.
+            restyled = node.sequence_id == item.sequence_id and node.id != item.id
+            return [
+                CheckIssue("error", item.id, _parent_cycle_message(chain, ctx, restyled=restyled))
+            ]
+        seen.add(node.sequence_id)
+        parent_id = node.parent
+    return []
+
+
+def _parent_cycle_message(chain: list[str], ctx: ValidatorContext, *, restyled: bool) -> str:
+    """The refusal an operator reads at the moment they are confused: the whole chain, with the
+    revisited item at both ends, plus the one command that breaks it.
+
+    The remedy clears the parent of ``chain[-2]`` — the item whose own parent edge closes the
+    loop. That edge is what has to go: clearing the parent of the item under test only detaches
+    it, which is not the same thing when its chain reaches a cycle it is not part of. The lookup
+    is by sequence number, so a chain head carrying a prospective id still resolves to the item
+    the index holds.
+
+    ``restyled`` says the closing endpoint is the head item under an id it does not carry on
+    disk. The endpoint is then named as the head, with the stored spelling alongside, so the
+    two ends of the loop read as the one item they are.
+    """
+    closer = ctx.index.get(chain[-2]) if ctx.index is not None else None
+    remedy = (
+        f"`sq {closer.type} {closer.sequence_id} update --no-parent`"
+        if closer is not None
+        else "`update --no-parent` on the item whose parent closes the loop"
+    )
+    rendered = list(chain)
+    if restyled:
+        rendered[-1] = f"{chain[0]} (stored as {chain[-1]})"
+    return (
+        f"{chain[0]}'s parent chain forms a cycle: {' -> '.join(rendered)}; break it with {remedy}"
+    )
+
+
 def _item_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_items``'s "status invalid for type" branch (named here for the first time —
     it was an unnamed inline check in the hardcoded set)."""
@@ -515,6 +599,7 @@ CATALOG: dict[str, Validator] = {
     "parent_in": _parent_in,
     "no_parent": _no_parent,
     "parent_present": _parent_present,
+    "parent_acyclic": _parent_acyclic,
     "item_status_valid": _item_status_valid,
     "dangling_ref": _dangling_ref,
     "ref_kind_valid": _ref_kind_valid,
@@ -956,8 +1041,9 @@ def types_present(index: SquadsDB) -> frozenset[str]:
 # --------------------------------------------------------------------------- composition + engine
 
 
-#: Cross-cutting per-item hygiene shared by every category (the accepted decision's "common
-#: core"): item status validity, ref resolution/kind, no self-declared status prose, and
+# Cross-cutting per-item hygiene shared by every category (the accepted decision's "common
+# core") is declared as `_workflow/_models.py::COMMON_CORE`, not here — see that constant for
+# why the vocabulary half lives low and this module only supplies the behaviour.
 @dataclass(frozen=True)
 class ValidatorEngine:
     """Runs the catalog over live item + index state — one engine, two call sites, per the

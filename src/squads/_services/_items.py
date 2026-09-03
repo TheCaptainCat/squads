@@ -45,6 +45,9 @@ class ItemsMixin(ServiceCore):
         overrides only the lifecycle's own transition edge, never these. This entry point never
         passes ``--unlink``; the roster ``status`` verb calls :meth:`set_roster_status` instead,
         which also reports what that flag severed.
+
+        Both entry points are held to the per-item catalog gate in that same pure half, so this
+        shortcut refuses exactly what ``update --status`` refuses.
         """
         result = await self._set_roster_status_impl(item_id, status, force=force, unlink=False)
         return result.item
@@ -139,6 +142,13 @@ class ItemsMixin(ServiceCore):
                     warnings.append(warning)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
+        # Fail-closed on the transitioned item's first error-level catalog violation — the
+        # same gate `_update_model` runs, reached here for the same reason: the `status` verb
+        # is a shortcut for `update --status`, so the two must refuse the same corpus states.
+        # A parent cycle is the case that makes it load-bearing: the item is unwritable until
+        # the cycle is broken, and `--no-parent` (which never comes through here) is the way
+        # out. A warn-level catalog issue never aborts, exactly as on the update path.
+        ValidatorEngine(spec=self.spec).gate(item, db)
         return item, old_status, base, severed, warnings
 
     async def _set_status_core(

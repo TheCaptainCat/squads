@@ -3,7 +3,7 @@ id: TASK-853
 sequence_id: 853
 type: task
 title: Render the role definition at read time and stop storing it
-status: InReview
+status: InProgress
 parent: FEAT-694
 author: tech-lead
 priority: high
@@ -30,7 +30,7 @@ subentities:
   title: Narrow PERMITTED_EXTRA_SKEW, its pin, and the settable fields
   status: Todo
 created_at: '2026-09-01T08:43:24Z'
-updated_at: '2026-09-01T10:36:15Z'
+updated_at: '2026-09-02T10:03:22Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -405,4 +405,11 @@ should not.
     Tightened the docstring to state what the code now actually does, precisely: falls back on absent *or* blank (not only a missing key, which is a slightly broader trigger than the old template's bare `.get(key, default)` — the same missing-or-blank pair `from_extra` already treats alike for `full_name`), rather than claiming an "exact" match to the old per-field Jinja calls that wasn't quite true.
     
     `pyright`/`ruff check`/`ruff format --check` clean. Full suite (`uv run --all-extras pytest`, once, to a file): 4352 passed, 7 skipped, 0 failed. `sq check`: clean.
+- [2026-09-02T09:08:13Z] Catherine Manager:
+  - Accepted InReview->Done on my own verification rather than an independent review, and recording why: this task blocks the corpus strip, and the strip's dedicated review cannot both cover this and be gated by it.
+  - What I actually verified: read the full diff, ran the authoritative suite (green at each landing), confirmed the managed-file byte-identity evidence, and drove the degradation cases. The strip's review will still see this code as the ground it stands on.
+- [2026-09-02T10:03:22Z] Catherine Manager:
+  - Reopened Done->InProgress. I moved this to Done with ST4 and ST5 still at Todo, to unblock the corpus strip. That was the same error the capstone task was reopened for earlier in this release, and this time it was mine rather than an agent's.
+  - It also bought nothing: the strip's role half is now Blocked on exactly the stage I waved through. Driven by the strip's implementer — empty a role body, strip all ten mirror keys, sq repair, then sq sync, and _refresh_catalog_extra writes every key back. That is the decision record's named failure verbatim: strip on repair, restore on sync.
+  - Not amending the acceptance. ST4 and ST5 are the work; they get built.
 <!-- sq:discussion:end -->

@@ -4,7 +4,7 @@ sequence_id: 845
 type: bug
 title: 'CLI test harness can''t see a startup-state bug: fixtures pre-seed the render
   ContextVar'
-status: Fixed
+status: Verified
 author: qa
 priority: medium
 refs:
@@ -14,7 +14,7 @@ description: project/svc build a Service in-process, leaking the correct active-
   ContextVar into every invoke() call via asyncio.to_thread's context copy — a CLI
   test passes whether or not the code under test establishes that state itself
 created_at: '2026-09-01T07:38:33Z'
-updated_at: '2026-09-01T08:12:43Z'
+updated_at: '2026-09-02T08:23:36Z'
 ---
 <!-- sq:body -->
 ## Mechanism
@@ -128,4 +128,28 @@ suite depends on and deserves scoping, not a patch bolted onto this report.
 - [2026-09-01T07:39:01Z] Mara Tester:
   - Filed while verifying BUG-825/827/837/838 this release; confirmed by reading get_service()'s docstring + TASK-841's own comment trail, then reproduced independently (temp test file under tests/cli/, deleted after — not committed): same monkeypatched break, ContextVar-reset-vs-not is the only variable, 1 passed / 1 failed.
   - @tech-lead — scoping call per the operator's request to land before release; not prescribing fixtures-reset vs subprocess-harness vs a different render() lookup.
+- [2026-09-02T08:23:33Z] Mara Tester:
+  - Verified — the blindness case was constructible, and the harness now sees it. The claim under test is that a class of bug is *catchable*, so "the suite passes" was not accepted as evidence; the evidence is an A/B of the same probe across the fix.
+    
+    **The probe.** Written outside the repo tree entirely (a scratch directory whose top-level conftest does `pytest_plugins = ["tests.conftest"]`), so it runs against the real shipped harness — the actual `project`/`invoke` fixtures and autouse resets — without adding, editing or deleting anything under `tests/`. Two tests:
+    
+    - `test_obvious_way` — the obvious shape: `project` + `invoke`, no manual ContextVar reset anywhere. It scaffolds and edits the `milestone_rollup` view override, then asserts the marker renders through `sq milestone <n> show`. The seam is reintroduced without touching production source, by monkeypatching `squads._cli._common.set_active_squad_dir` to a no-op — disabling the leaf-verb (crossing-2) re-assertion while `ServiceCore.__init__`'s crossing-1 call, a separate import binding in `_services/_base.py`, stays live. That is the pre-TASK-841 seam.
+    - `test_control_no_break` — identical body, no monkeypatch. Sensitivity control.
+    
+    **A/B — same file, same break, only the harness differs.**
+    
+    ```
+    pre-fix  (aaf9aac, = fd40fe9^)   2 passed          <- test_obvious_way FALSE-PASSES
+    post-fix (e9dde77)               1 failed, 1 passed <- test_obvious_way FAILS
+    ```
+    
+    Post-fix the failure output is the pre-fix symptom rendered in full: the bundled `## Delivered` / `## Outstanding` / `## Settled without delivering` headings in place of the override marker. The control passes on both harnesses, so the post-fix failure is caused by the planted break and not by the probe.
+    
+    **The durable half — independently plant-tested.** The reset covers a closed set (`_active_squad_dir`, `_env_cache`) whose exhaustiveness rests on `tests/meta/test_ambient_render_state_reset_is_exhaustive.py`. Rather than trust its own planted-leak tests, called its derivation `_reset_target_candidates` directly: against the real tree it derives exactly the registered set (`real == RESET_TARGETS` → True), and against a synthetic tree carrying a newly planted module-level `contextvars.ContextVar` plus a companion cache it surfaces both as unregistered candidates — so a third ambient value added to `src/squads` reddens the guard.
+    
+    Bounded residual, not blocking. That guard's reach is ContextVar-shaped: a module-level `ContextVar`, plus mutable caches sharing a file with one. The report described the class more broadly ("any ambient/contextvar/module-global state a fixture's own setup path happens to prime"), and a future fixture-primeable module-global that is neither a ContextVar nor sits beside one is outside this guard. It is not unguarded — `tests/meta/test_no_unallowlisted_module_level_mutable_state.py` forces any new module-level mutable through an explicit allowlist decision — but that guard asks "is this CODE or DATA", not "must the harness reset it". The gap is a decision point, not a silent hole, which is why it is a note rather than a reopen.
+    
+    Corroboration only, not the basis for this verdict: `tests/meta/test_ambient_render_state_reset_is_exhaustive.py`, `tests/cli/test_leaf_verb_render_honours_overrides.py` and `tests/meta/test_documented_commands_resolve_against_cli.py` are green at e9dde77 (23 passed).
+    
+    Nothing was added to or removed from `tests/`; the probe lived and died in a scratch directory.
 <!-- sq:discussion:end -->

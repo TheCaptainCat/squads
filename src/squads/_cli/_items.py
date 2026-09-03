@@ -360,10 +360,16 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
         unset: list[str] = typer.Option(None, "--unset", help="Remove a type field."),
     ):
         """Set the item's metadata — global fields + per-type `--set key=value`."""
-        if parent and no_parent:
+        # `is not None`, not truthiness: an empty `--parent ""` is a value the user supplied,
+        # and testing it for truth let it fall through both this guard and the resolution
+        # below — the command then reported "updated <ID>" for a parent it never wrote. The
+        # same shape on the priority pair, guarded the same way.
+        if parent is not None and no_parent:
             raise SquadsError("use either --parent or --no-parent, not both")
-        if priority and no_priority:
+        if priority is not None and no_priority:
             raise SquadsError("use either --priority or --no-priority, not both")
+        if parent is not None and not parent.strip():
+            raise SquadsError("--parent needs an item ID; use --no-parent to clear the parent")
         set_extra: dict[str, str] = {}
         for pair in set_ or []:
             key, sep, value = pair.partition("=")
@@ -373,7 +379,7 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
         svc = get_service()
         validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         validated_author = await resolve_slug_or_raise(author, svc) if author else None
-        resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
+        resolved_parent = await resolve_item_id_any(parent, svc) if parent is not None else None
         it = await svc.update(
             _id(ctx),
             title=title,

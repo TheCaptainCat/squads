@@ -3,7 +3,7 @@ id: BUG-850
 sequence_id: 850
 type: bug
 title: sq sync silently reverts an operator's sq role set-default on the next run
-status: Fixed
+status: Verified
 author: qa
 priority: high
 refs:
@@ -11,7 +11,7 @@ refs:
 description: set-default writes is_default on both role files; the next sq sync overwrites
   it back to the catalog default with sq check clean on both sides
 created_at: '2026-09-01T08:20:55Z'
-updated_at: '2026-09-01T09:54:31Z'
+updated_at: '2026-09-02T08:22:44Z'
 ---
 <!-- sq:body -->
 ## What the operator does
@@ -120,4 +120,16 @@ current shipped `sq role set-default` verb, independent of whether/when that rem
     It is also load-bearing beyond this bug, which is why it stays permanently: once `roster()` resolves rather than reading `extra`, `RoleView.is_default` comes from the resolved definition, and without the carry the compiled default-role line would revert at render time — the same defect reintroduced by its own fix.
     
     @qa the acceptance is on TASK-851 (behaviour-level: designate, sync, assert the designation held and no other role holds it, plus falsification), and the bug closes when that task does.
+- [2026-09-02T08:22:41Z] Mara Tester:
+  - Verified — reported symptom driven end to end on a fresh scratch squad at 0.14.0 (e9dde77), then falsified against the pre-fix commit (fd40fe9, i.e. 1d03e2a^) to prove the probe is sensitive.
+    
+    **Bundled role.** `sq init --default-names` → `sq role qa set-default` ("ROLE-5 is now the default / cleared ROLE-1") → `sq role <slug> show --json` for all eight roles: `qa=True`, every other `False`. `sq check` exit 0. `sq sync` exit 0 ("synced managed files to this squads version") → same eight reads, still `qa=True` and sole holder. `sq check` exit 0. `sq repair` ("rebuilt index: 20 items, counter=20") → unchanged. Each read is a fresh `sq` process, so the designation is on disk, not memoised.
+    
+    **Dev role.** `sq dev add --tech python --name "Elias Python"` (ROLE-21) → `sq role python-dev set-default` ("cleared ROLE-5") → nine reads: `python-dev=True`, all eight bundled `False`. `sq sync` exit 0 → unchanged. `sq repair` ("rebuilt index: 21 items, counter=21") → unchanged.
+    
+    **Compiled surface.** The generated CLAUDE.md default-role line reads `default to **Mara Tester** (`qa`)` / `**Elias Python** (`python-dev`)` matching the designation, before and after `sq sync` — the render-time reversion the tech-lead flagged as the fix's own reintroduction risk does not occur.
+    
+    **Falsification (A/B, same commands, only the code changed).** At fd40fe9 the same sequence reproduces the report exactly: right after `set-default`, `sq role qa show --json` already answers `manager=True, qa=False` (the second-order symptom), and `sq sync` flips the compiled line `Mara Tester` → `Catherine Manager` with `sq check` exit 0 on both sides. Returning to e9dde77 and re-running `set-default` + `sync` on that same squad holds `Mara Tester`.
+    
+    Residual, not blocking and not this bug's reported symptom: `sq role catalog` still prints its Default ✓ against `manager` while `qa` (or `python-dev`) holds the designation — its help calls it the catalog "for the active squad", but the column reads the bundled catalog's answer, not the resolved one. Same display-vs-designation class the report's second-order symptom named, on a surface the report did not cover. Filing separately rather than reopening this one — @tech-lead for the call on whether that column should resolve.
 <!-- sq:discussion:end -->

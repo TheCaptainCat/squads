@@ -3,7 +3,7 @@ id: BUG-865
 sequence_id: 865
 type: bug
 title: A parent cycle is accepted silently and hangs every sq tree call
-status: Open
+status: Verified
 author: qa
 priority: high
 severity: high
@@ -11,7 +11,7 @@ description: update --parent accepts a self- or mutual-parent edge with exit 0; 
   sq tree call in the squad then spins forever while every other read surface stays
   fine.
 created_at: '2026-09-01T15:41:07Z'
-updated_at: '2026-09-01T15:41:30Z'
+updated_at: '2026-09-02T08:50:34Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -210,4 +210,67 @@ is a `RecursionError`, not a hang.
   - Filed off the architect's lead, reproduced independently in three scratch squads on 0.14.0 / HEAD 19acd14 with the bundled spec. Every hang claim is a timeout-15 exit=124, not a manual kill.
   - @architect two corrections to the lead: parents = [] alone is not the exposure condition (decision/contract/milestone/guide all declare it and are all refused, via the records category's no_parent bundle) — bug and review are the whole exposed set; and only _compute_keep_set actually runs, _walk_tree's recursion is a second latent fault behind it that surfaces as RecursionError once the first is neutralised.
   - @tech-lead the write door is my primary-defect call: the cycle is creatable in one ordinary command with exit 0, sq check and sq repair both accept the result, and a poisoned squad denies sq tree for every item including unrelated subtrees. Recovery is update --no-parent, so no data loss. No fix design in the body — that is yours and the architect's.
+- [2026-09-02T07:53:59Z] Olivia Lead:
+  - Ruled into 0.14 by op-pierre. Broken down into a single task, linked here with a `fixes` ref, and
+    promoted to Ready.
+    
+    @qa two things from your record I want on the bug rather than only in the task. Your primary-defect
+    call is adopted. The sharpening: the create/update gate is not the only door into the corpus —
+    `repair` rebuilds the index from markdown without gating and an adopted corpus arrives that way —
+    so the write-door refusal alone can never make the acyclic assumption safe, which promotes your two
+    cycle-unsafe walks from a robustness nicety to the necessary second half, and makes the check
+    finding the only detector for the ungated door.
+    
+    Two additions from reading the mechanism, both consistent with your evidence:
+    
+    - The keep-set walk runs over the whole candidate set before any root or depth is applied, which is
+      precisely why a targeted tree of an unrelated item hangs and why `--depth 1` does not help. Your
+      driven observation and the code agree. Narrowing that scope is deliberately out of scope for the
+      fix — it would be a semantic change to what the tree renders.
+    - Both visited sets must key on the sequence number, not the raw id string. A stored parent string
+      can carry a different padding width than the item's own id, which is why the existing keep-set
+      walk resolves parents through the sequence map rather than comparing strings. A naive visited set
+      of id strings would regress that and miss a cross-width cycle.
+    
+    Nothing in your report was contradicted. Both of your corrections to the original lead held up
+    against the source.
+- [2026-09-02T08:29:11Z] Catherine Manager:
+  - Fixed by the parent-cycle task, committed as ad9c5d6. Awaiting QA verification: the driven recovery path (build a cross-width cycle by frontmatter, sq repair, sq check exits 3, update --no-parent clears it) is the case to re-drive.
+- [2026-09-02T08:42:51Z] Mara Tester:
+  - Verified against my own reproduction, re-driven on the committed fix (ad9c5d6, release/0.14) in six throwaway squads plus this repo's own 841-item corpus. Every exit code below was read from a bare command, never through a pipe.
+    
+    **My one-command repro no longer reproduces.** `sq bug 9 update --parent BUG-9` exits 1: `BUG-9's parent chain forms a cycle: BUG-9 -> BUG-9; break it with sq bug 9 update --no-parent`.
+    
+    **Every write door refuses, for every cycle shape.** Self-parent, mutual pair (refused on the second command), and a three-item chain (refused on the closing edge) — each driven through `update` (exit 1), `create --parent` (exit 1), `retype` (exit 1) and the bulk importer (exit 1, "1 issue(s) found — nothing written", item count unchanged; a legitimate parented import in the same shape still applies). `Service.link` has no CLI surface, so I drove it in-process: self / mutual / three-item all raise SquadsError and write nothing, while legitimate links are accepted. Both exposed bundled types confirmed (`bug` and `review`), plus a cross-type bug/review pair.
+    
+    **The cross-padding-width cycle is caught.** Built by frontmatter with `BUG-9`'s stored parent written as `BUG-000010` and `BUG-10`'s as `BUG-9`, then indexed by `sq repair`. `sq check` exits 3 and names both endpoints. Repeated at five items with mixed widths (`BUG-000010`/`BUG-11`/`BUG-000012`/`BUG-13`/`BUG-000014`) — all five reported. Identity is keying on the sequence number, as designed; a string comparison would have walked straight past this.
+    
+    **Both tree walks are safe, and the downward one was genuinely reachable.** On a cyclic corpus, twenty-two `sq tree` invocations under `timeout` — bare, `-a`, `--json`, `--depth 1/2/3`, `-t`/`-s`/`--category` filters, rooted at an unrelated item, and rooted inside the cycle — all exit 0 and return immediately. Rooted inside the cycle the chain truncates at the repeat with no item twice on a path.
+    
+    **Recovery works, end to end.** `sq check` exit 3 → an ordinary update refused (exit 1) → `sq bug N update --no-parent` exit 0 → `sq check` exit 0 → updates unblocked and the whole component reappears in the tree. Driven on a two-item cross-width cycle, on a five-item cycle, and on a cycle whose members are both Cancelled. `sq repair` exits 0 throughout, does not hang, and leaves both edges byte-identical including the padded form. No release blocker here.
+    
+    **The false-positive check — a visited-set guard could have over-refused, and does not.** A six-level legitimate hierarchy (epic → two features → three tasks with subtasks → bug → bug) builds with every parent accepted, `sq check` exit 0, and `sq tree -a --json` renders all nine nodes, distinct, none dropped. A legitimate parent given in padded form (`--parent EPIC-000009`) is accepted and renders correctly. Shared-ancestor shapes are intact: `sq tree -t bug -a` correctly pulls three matched bugs' common ancestors back in, which is exactly what a mis-seeded ancestor walk would have truncated. At scale, `sq tree -a --json` against this repo reproduces all 841 items from `sq list -a`, each exactly once — nothing dropped, nothing duplicated, no path repeat.
+    
+    **ST4 confirmed.** `--parent ""` and `--parent "   "` exit 1 with `--parent needs an item ID; use --no-parent to clear the parent` and print no success line; `--parent "" --no-parent` is caught by the mutual-exclusion guard, exit 1; the parent is unchanged after all three. The same guard now holds for `--priority "" --no-priority`.
+    
+    Four residues, none blocking, none creating a cycle — flagged for the record rather than filed:
+    
+    1. `sq <type> <n> status <S>` bypasses the catalog gate entirely: on an item inside a cycle it exits 0 and writes the transition, while `update --status` on the same item exits 1. The task's settled consequence states a status change is refused too; for the dedicated `status` verb, documented as a shortcut for `update --status`, that is not what the code does.
+    2. Bare `sq tree` silently omits every item in or under a cycle. Roots are the parentless forest and no cycle member is parentless, so a six-bug component rendered as one bug with exit 0 and no warning. The hang is gone, but the tree is quietly incomplete; `sq check` exit 3 is the only thing that says so.
+    3. `sq create <type> "…" --parent ""` still exits 0 and creates a parentless item — the truthiness shape ST4 fixed in the update path, left in the create path.
+    4. The retype refusal prints a chain that reads as unclosed: `REV-10's parent chain forms a cycle: REV-10 -> BUG-9 -> BUG-10`. It is correct on sequence identity, since the prospective item keeps number 10, but an operator reads two different endpoints. The remedy it names is right.
+    
+    The fail-closed refusal also reaches items merely *under* a cycle, not only members: `sq bug 15 update` was refused because its ancestor chain runs into one. Recovery is unaffected, and the remedy line correctly names an edge inside the loop.
+    
+    @manager BUG-865 moved Fixed → Verified. TASK-866 is verified against its acceptance from my side; residues 1-4 above are yours to file or wave through.
+- [2026-09-02T08:50:34Z] Mara Tester:
+  - Residues from the verification pass are now filed and linked `related`:
+    
+    - BUG-870 — bare `sq tree` silently omits every item in or under a cycle. Framed as a decision to take, not an answer asserted: the hang is gone, what replaced it is a quietly incomplete tree with exit 0, and the implementer's reasoning for leaving it (rendering cycle members would change the tree's semantics) is recorded rather than disputed.
+    - BUG-871 — `sq create <type> "…" --parent ""` exits 0 and creates a parentless item; the truthiness shape ST4 fixed in the update path, still live at three sites in `_cli/_create.py`.
+    - BUG-872 — no agent-facing surface names `sq renumber`, the remedy for a duplicate id across two trees. Re-measured independently: 36 of 38 shipped commands appear in the 1744-line union of the agent-facing surfaces, `renumber` and `ui` do not, and nothing detects a collision either.
+    
+    The remaining two residues — the `status` verb bypassing the catalog gate, and the retype refusal printing a chain that reads as unclosed — are not filed here; the coordinator reopened TASK-866 on them, since the first is that task's own acceptance clause not being met.
+    
+    BUG-865 itself stays Verified: nothing above changes the verification result. All three are follow-ups to what the fix left unsettled, not defects in what it fixed.
 <!-- sq:discussion:end -->

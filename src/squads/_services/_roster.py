@@ -152,6 +152,20 @@ class RosterMixin(ServiceCore):
         has no notion of an index item at all)."""
         return await self.list_items(item_type=ROSTER_ROLE)
 
+    async def default_role_slug(self) -> str | None:
+        """The slug of the live role this squad currently designates as its default, or
+        ``None`` when no live role carries the designation.
+
+        Reads :meth:`~ServiceCore.roster` — the same live-filtered, catalog-resolved
+        projection the backend compiles the managed region's default-role line from, taking
+        the first holder exactly as that line does — so a display surface asking "who is the
+        default *here*" gets the same answer the generated agent files were written with,
+        rather than the bundled catalog's shipped designation. ``None`` is a legitimate
+        answer, not a gap: a squad that retired its designated role has no default until one
+        is designated again, and the generated line omits itself in that state too.
+        """
+        return next((r.slug for r in await self.roster() if r.is_default), None)
+
     async def set_default_role(self, item_id: str) -> DefaultRoleMoveResult:
         """Move the ``is_default`` designation onto a live role — a move, not a set. The
         projection resolves the designation by first match over the roster and

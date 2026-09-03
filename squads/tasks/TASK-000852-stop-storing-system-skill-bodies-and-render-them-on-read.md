@@ -3,7 +3,7 @@ id: TASK-852
 sequence_id: 852
 type: task
 title: Stop storing system skill bodies and render them on read
-status: InReview
+status: Done
 parent: FEAT-694
 author: tech-lead
 priority: high
@@ -27,7 +27,7 @@ subentities:
   title: Prove a custom skill body is untouched
   status: Done
 created_at: '2026-09-01T08:26:15Z'
-updated_at: '2026-09-01T12:54:19Z'
+updated_at: '2026-09-02T09:08:11Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -363,4 +363,7 @@ restore `is_system_skill`, watch them go green — and report both.
   - Verified the fixture correction independently. The old dropped-type test called refresh_managed on a spec with bug removed, then read the skill file — but refresh_managed skips a dropped type, so it was reading the file the fixture's own init had written with the full bundled spec. It asserted a frozen-playbook fallback that never existed and passed on a leftover artifact. Rewriting it to the resolver is a correction, not a weakening.
   - Both refusal messages were false and are now true: they named sq sync as the regenerator of a system skill body, which stopped being the case in this task.
   - Docs staleness he flagged (docs/internals.md:58 and :290, docs/backends.md:130, docs/stability.md:516) is adopter-facing prose and goes to the writer with TASK-855, not into this task.
+- [2026-09-02T09:08:10Z] Catherine Manager:
+  - Accepted InReview->Done on my own verification rather than an independent review, and recording why: this task blocks the corpus strip, and the strip's dedicated review cannot both cover this and be gated by it.
+  - What I actually verified: read the full diff, ran the authoritative suite (green at each landing), confirmed the managed-file byte-identity evidence, and drove the degradation cases. The strip's review will still see this code as the ground it stands on.
 <!-- sq:discussion:end -->

@@ -145,6 +145,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "parent_in",
         "no_parent",
         "parent_present",
+        "parent_acyclic",
         "item_status_valid",
         "dangling_ref",
         "ref_kind_valid",
@@ -200,7 +201,7 @@ PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset(
 #: Lives here rather than in ``_services`` for the same reason :data:`VALIDATOR_NAMES` does:
 #: the Plane-1 spec-validity pass below has to resolve a type's *effective* validator set to
 #: check that its declared capability fields are reachable at all, and ``_workflow`` must not
-#: import up into ``_services``. ``_services/_validators.py`` reads these three names from here,
+#: import up into ``_services``. ``_services/_validators.py`` reads these names from here,
 #: so there is one definition of what a category turns on.
 COMMON_CORE: tuple[str, ...] = (
     "item_status_valid",
@@ -208,6 +209,7 @@ COMMON_CORE: tuple[str, ...] = (
     "ref_kind_valid",
     "no_status_banner",
     "agent_registered",
+    "parent_acyclic",
 )
 
 #: Per-category default per-item validator-name bundle — the category's *behaviour*, since
@@ -1403,8 +1405,11 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #: The audit's third bucket, and the one that has to be argued rather than derived: a catalog
 #: member no clause guards, because no *declaration* selects it.
 #:
-#: - :data:`COMMON_CORE`'s five are effective for every type under every category, so nothing a
-#:   type declares can put one out of reach — there is no silent-loss shape to catch.
+#: - :data:`COMMON_CORE`'s members are effective for every type under every category, so nothing
+#:   a type declares can put one out of reach — there is no silent-loss shape to catch. That is
+#:   also why ``parent_acyclic`` lives there rather than in a bundle: an acyclic parent relation
+#:   is not a house convention a category could decline, and common-core placement means no
+#:   reachability clause is owed for it.
 #: - ``no_parent`` is the inverse of a declaration: it enforces the *absence* of a parent, so an
 #:   adopter declares nothing that it could stop enforcing. Its failure mode is the opposite one
 #:   — being on while a parent field is declared — which is
