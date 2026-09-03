@@ -50,23 +50,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 205 add-finding "…" --severity high`; track with `sq review 205 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Migration reimplements pointer rendering instead of delegating to backend |
-| F2 | 🟢 low | Open |  | Registry sq-type comprehension and bundled_skill_slugs use two independent type filters |
-| F3 | 🟢 low | Open |  | Description write semantics inconsistent across the three migration paths (fill-if-empty vs overwrite) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Migration reimplements pointer rendering instead of delegating to backend
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 src/squads/_migrations/_v0_4_to_v0_5.py:93-111 (_rewrite_pointer) hand-rolls the .claude pointer write via render('claude/pointer_skill.md.j2', ...) + oneline(), duplicating ClaudeCodeBackend.generate_skill_entry. seed_bundled_skills (the init path) correctly delegates to backend.generate_skill_entry; the migration does not. Currently the path/format match (verified: ctx.root_relative(item) == f'{squad_dir_rel}/{squad_rel}'), so no live bug. But this is a soft duplication of the very pointer-derivation TASK-204 tried to centralize, and it bypasses the backend ABC (invariant 6 — though migrations reaching into a specific backend is a known, defensible pattern since they are frozen-in-time). Acceptable as-is for a migration; flagging so a future pointer-template change knows this second copy exists.
@@ -81,11 +68,6 @@ src/squads/_migrations/_v0_4_to_v0_5.py:93-111 (_rewrite_pointer) hand-rolls the
 <!-- sq:finding:F2 -->
 ### F2 — Registry sq-type comprehension and bundled_skill_slugs use two independent type filters
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 src/squads/_interactions.py SKILL_DESCRIPTIONS builds the sq-<type> entries by iterating ItemType and EXCLUDING (ROLE, SKILL, OPERATOR), whereas bundled_skill_slugs() derives the same sq-<type> set from managed_item_types() (= PLAYBOOK keys). These are two independent definitions of 'which item types get a managed skill'. They agree today (verified: registry keys == bundled_skill_slugs(), 9 slugs, no gaps). But if a future ItemType is added that is in PLAYBOOK-or-not but not in the exclude tuple, the two lists silently diverge: a slug bundled_skill_slugs() yields with no registry entry falls back to skill_description()->slug (re-introducing exactly this regression), or the registry grows an sq-<type> nobody seeds. Low risk, latent coupling. Suggest deriving the registry comprehension from managed_item_types() too, so there is one source for the type set.
 <!-- sq:finding:F2:body:end -->
@@ -98,11 +80,6 @@ src/squads/_interactions.py SKILL_DESCRIPTIONS builds the sq-<type> entries by i
 
 <!-- sq:finding:F3 -->
 ### F3 — Description write semantics inconsistent across the three migration paths (fill-if-empty vs overwrite)
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 The migration writes the description through three code paths with two different policies: (a) _backfill_description (convention file already present, _v0_4_to_v0_5.py:128) is fill-if-empty — 'if cfm.get("description"): return False' — so a hand-edited description is preserved; (b) _rename_stamped_legacy (:156) unconditionally overwrites fm['description']=desc; (c) the unstamped-allocate branch sets desc on a brand-new item. Fill-if-empty is the correct/safe policy for a backfill. The overwrite in (b) does NOT break idempotence (a stamped-legacy file is renamed to a convention file and thereafter only ever hits path (a)), and a user-edited description on a still-slug-named stamped file is an extremely unlikely state, so this is cosmetic. Worth aligning (b) to fill-if-empty for consistency and to never clobber operator edits. Note: the live repo state is description-missing (None), not description==slug, so _backfill_description's truthy-check fires correctly and repairs the degraded pointers on migrate up — verified .claude pointers are currently bare slugs and item frontmatter has no description key.

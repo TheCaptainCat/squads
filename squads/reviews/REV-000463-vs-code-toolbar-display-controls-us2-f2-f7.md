@@ -33,22 +33,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 463 add-finding "…" --severity medium`; track with `sq review 463 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Type-filter picker omits closed-only types when show-closed is off |
-| F2 | 🟢 low | Open |  | clearFiltersAndGrouping intentionally leaves show-closed on |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Type-filter picker omits closed-only types when show-closed is off
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `knownItemTypes` feeds the filter-by-type quick-pick. It is now derived from the active fetch, which only includes closed items when the show-closed toggle is on (flat: `distinctTypes(sq list [--all])`; hierarchy: `distinctTypesInTree(sq tree [--all])`). So a type present only among closed items won't appear in the picker while show-closed is off.
@@ -64,11 +52,6 @@ Low / arguably-correct: filtering to a type whose items are all hidden would sho
 
 <!-- sq:finding:F2 -->
 ### F2 — clearFiltersAndGrouping intentionally leaves show-closed on
-
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 `clearFilterAndGrouping()` resets `filter` + `groupByType` but deliberately preserves `showClosed` (and `commands.ts` re-syncs only the `groupByType` context key afterward, which is correct since `showClosed` is untouched). This is a defensible design choice — show-closed is a display toggle, not a filter/grouping axis — and the context key stays in sync. Flagging only so the approver confirms the intent: "clear" no longer returns the view to DEFAULT_VIEW_STATE. No defect.

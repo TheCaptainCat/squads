@@ -193,25 +193,10 @@ the three spec TOMLs via `artifact_changed_since`).
 
 _Add with `sq task 801 add-subtask "<title>"`; track with `sq task 801 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Raise unstamped shadowing template and role overrides to error | US5 |
-| ST2 | Done |  | tests/meta uniformity guard over the override registry | US5 |
-| ST3 | Done |  | Correct OverrideEntry.kind docstring | US5 |
-| ST4 | Todo | architect | Narrow the stale playbook-override amendment note | US5 |
-| ST5 | Done |  | Restore the manifest-freshness content assertion | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Raise unstamped shadowing template and role overrides to error
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 A shadowing override with no provenance stamp becomes an **error**-level `sq check` finding for
@@ -274,11 +259,6 @@ nothing, and the message still names the file and both commands.
 <!-- sq:subtask:ST2 -->
 ### ST2 — tests/meta uniformity guard over the override registry
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add a `tests/meta` scan in the shape of the routing guard that already exists
 (`tests/meta/test_every_override_document_merges_through_the_shared_engine.py`), asserting that
@@ -304,11 +284,6 @@ message naming both the kind and the missing element.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Correct OverrideEntry.kind docstring
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `OverrideEntry.kind`'s docstring documents the value as `"template" or "role"`
 (`_overrides/_service.py:75`) while four values ship today and five ship once the roles catalog
@@ -330,12 +305,6 @@ list and the docstring cannot disagree.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Narrow the stale playbook-override amendment note
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-**Assignee:** Robert Architect
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The playbook decision's amendment note records "the playbook is not yet an override kind … named
@@ -360,11 +329,6 @@ with the original text intact above it.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Restore the manifest-freshness content assertion
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Restore the assertion that made `tests/meta/test_override_manifest_and_stamp_freshness.py` a

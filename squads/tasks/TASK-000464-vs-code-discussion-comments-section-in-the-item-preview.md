@@ -20,9 +20,6 @@ Render the item's discussion as a collapsible section in the webview preview, fr
 
 _Add with `sq task 464 add-subtask "<title>"`; track with `sq task 464 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

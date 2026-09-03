@@ -85,24 +85,10 @@ relevant `contract` item(s). squads is itself a squad-managed repo, so squads ge
 
 _Add with `sq feature 321 add-story "As a <role>, I want … so that …"`; track with `sq feature 321 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a team, I can create and manage contract items (PRD prefix) like any other item type |
-| US2 | Done |  | As a reader, a contract describes what the product does for a user right now, from the user's POV |
-| US3 | Done |  | As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land |
-| US4 | Done |  | As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type |
-| US5 | Done |  | sq migrate up adds the contracts folder in the shared 0.14 bump |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a team, I can create and manage contract items (PRD prefix) like any other item type
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a team, I want to create and manage `contract` items (PRD prefix) like any other item type so the product's functional truth has a first-class home.
@@ -121,10 +107,6 @@ As a team, I want to create and manage `contract` items (PRD prefix) like any ot
 
 <!-- sq:story:US2 -->
 ### US2 — As a reader, a contract describes what the product does for a user right now, from the user's POV
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a reader, I want a contract to describe what the product does for a user right now, from the
@@ -148,10 +130,6 @@ user's point of view, so it is the current functional truth.
 <!-- sq:story:US3 -->
 ### US3 — As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a team, I want a feature to link the contract it shapes and stale contracts surfaced when features land, so the living truth stays current.
 
@@ -169,10 +147,6 @@ As a team, I want a feature to link the contract it shapes and stale contracts s
 
 <!-- sq:story:US4 -->
 ### US4 — As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As an agent, I want the sq-contract skill and the .claude/AGENTS.md surface to teach and expose the
@@ -198,10 +172,6 @@ new type so I know how to work with contracts.
 
 <!-- sq:story:US5 -->
 ### US5 — sq migrate up adds the contracts folder in the shared 0.14 bump
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As an existing squad, I want `sq migrate up` to add the contracts folder and bump the schema so the

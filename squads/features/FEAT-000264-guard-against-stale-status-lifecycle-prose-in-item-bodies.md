@@ -138,20 +138,10 @@ Pierre decides if/when to schedule.
 
 _Add with `sq feature 264 add-story "As a <role>, I want … so that …"`; track with `sq feature 264 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | The tracker's status is never contradicted by body prose |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — The tracker's status is never contradicted by body prose
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a maintainer, I want every item's lifecycle position to come solely from its frontmatter `status:` field (shown by `sq … show`), so the body, ADR text, review notes, and `description:` summaries are never contradicted by stale status-as-prose. State-at-a-point-in-time belongs in dated discussion comments (append-only record), not in the body.

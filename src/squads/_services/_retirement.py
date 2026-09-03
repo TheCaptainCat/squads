@@ -28,12 +28,14 @@ asked to force the lifecycle edge.
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from squads._errors import ConfigIntegrityError
 from squads._interactions._models import PlaybookSpec
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
+from squads._roles._resolver import holds_default_designation
 from squads._services._config_integrity import (
     Clause,
     ConfigIntegrityFinding,
@@ -217,7 +219,9 @@ def open_assigned_work(db: SquadsDB, spec: WorkflowSpec, slug: str) -> list[str]
     )
 
 
-def lost_default_designation_warning(db: SquadsDB, spec: WorkflowSpec, item: Item) -> str | None:
+def lost_default_designation_warning(
+    db: SquadsDB, spec: WorkflowSpec, item: Item, squad_dir: Path | None
+) -> str | None:
     """A warning (never a refusal — the withdrawn ``no_default_role`` clause) for a transition
     that takes the last live ``is_default`` designation out of a live status: the generated
     config's default-role line and orchestration prose both lose the name they read off it.
@@ -226,17 +230,23 @@ def lost_default_designation_warning(db: SquadsDB, spec: WorkflowSpec, item: Ite
     other way back.
 
     Same shape as :func:`open_assigned_work`'s board-hygiene warning: never blocks, only
-    informs. Returns ``None`` when *item* does not carry the designation, or another live role
+    informs. Returns ``None`` when *item* does not hold the designation, or another live role
     already does.
+
+    Both questions go through :func:`~squads._roles._resolver.holds_default_designation`,
+    never a raw ``extra.is_default`` read: the stored key is an override on a designation the
+    role catalog also answers, so the catalog's own designated role holds it with nothing
+    stored — and a raw read would stay silent on exactly the retirement that costs the
+    generated config its default-role line.
     """
-    if not item.extra.get(X.IS_DEFAULT):
+    if not holds_default_designation(item, squad_dir):
         return None
     live = spec.live_statuses(item.type)
     if any(
         it.type == item.type
         and it.id != item.id
-        and it.extra.get(X.IS_DEFAULT)
         and it.status in live
+        and holds_default_designation(it, squad_dir)
         for it in db.items.values()
     ):
         return None

@@ -49,22 +49,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 162 add-finding "…" --severity high`; track with `sq review 162 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | Session cycle silently drops entries from the tree |
-| F2 | 🟢 low | Verified |  | No cycle/pathological-edge test for the renderer |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Session cycle silently drops entries from the tree
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Severity: medium.** A session cycle in the declared edges silently drops the cycled sessions from the rendered tree.
@@ -88,11 +76,6 @@ Required change: any `session_id` present in `session_entries` must surface SOME
 
 <!-- sq:finding:F2 -->
 ### F2 — No cycle/pathological-edge test for the renderer
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 **Severity: low.** The renderer has no test for cyclic / pathological parent edges, even though the task brief makes cycle-safety an explicit robustness requirement and the input is untrusted. The 27 tests cover empty / no-session / single-root / chain / 3-level / unknown-parent / missing-intermediate / self-review, but never a session whose parent chain loops. That gap is exactly what hid the F1 silent-drop behaviour.

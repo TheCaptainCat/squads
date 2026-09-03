@@ -52,21 +52,10 @@ the reflog half of US3.
 
 _Add with `sq task 300 add-subtask "<title>"`; track with `sq task 300 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Reflog + inline mentions rewritten; history left literal | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Reflog + inline mentions rewritten; history left literal
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Reflog and inline ID mentions are rewritten, not just frontmatter
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Done when the renumber transaction appends exactly ONE append-only 'renumber' reflog event whose delta summarizes the shift ({from, onto|by, remap}), and every historical reflog line is left byte-for-byte literal — no in-place rewrite of target/delta (ADR-295 §4; append-only + not-a-source-of-truth per ADR-117 preserved). The content-side rewrite already reaches inline ID mentions via rewrite_ids; a fixture asserts a prose mention of a shifted ID is updated and that old reflog lines still carry their pre-shift IDs.

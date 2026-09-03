@@ -64,21 +64,10 @@ EPIC-538 outcome list ("The three bundled TOMLs consolidated under squads/_specs
 
 _Add with `sq feature 715 add-story "As a <role>, I want … so that …"`; track with `sq feature 715 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a maintainer, I want the three bundled specs relocated to squads/_specs/ mirroring .overrides/'s layout |
-| US2 | Done |  | As a maintainer, I want every loader/migration/guard reference updated to the new path with zero behaviour change |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a maintainer, I want the three bundled specs relocated to squads/_specs/ mirroring .overrides/'s layout
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Move workflow.toml/roles.toml/playbook.toml from src/squads/_bundled/ to squads/_specs/ (final path confirmed by whoever picks this up). No content change to any of the three files.
@@ -92,10 +81,6 @@ Move workflow.toml/roles.toml/playbook.toml from src/squads/_bundled/ to squads/
 
 <!-- sq:story:US2 -->
 ### US2 — As a maintainer, I want every loader/migration/guard reference updated to the new path with zero behaviour change
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 Update the three loaders (_workflow/_loader.py, _roles/_loader.py, _interactions/_loader.py), the migration runners' frozen-literal carve-out, the tests/meta guard's path exemption, package-data manifest, and any doc/comment naming the old path. uv run pytest and uv build both green; sq check clean.

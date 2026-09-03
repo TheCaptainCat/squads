@@ -146,26 +146,10 @@ does not have is the failure mode this whole surface is being corrected for.
 
 _Add with `sq task 815 add-subtask "<title>"`; track with `sq task 815 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | tech-writer | Name ref_kinds in every override-section enumeration | US1 |
-| ST2 | Done | tech-writer | Write the ref-kinds field reference in the override docs | US1 |
-| ST3 | Done | tech-writer | Complete the workflow.md override-format field reference | US1 |
-| ST4 | Done | tech-writer | Cover ref kinds in the drop-and-rename live-corpus prose | US1 |
-| ST5 | Done | tech-writer | Restore the duplicate-filing guidance in the docs, not the spec | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Name ref_kinds in every override-section enumeration
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Name `ref_kinds` everywhere the docs enumerate the sections a workflow override may carry, so the
@@ -201,12 +185,6 @@ refusal matches the engine byte for byte.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Write the ref-kinds field reference in the override docs
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Add a ref-kinds subsection to the per-section field reference in `docs/overrides.md` (the run of
@@ -245,12 +223,6 @@ Done when an adopter can declare a navigational kind of their own from this subs
 <!-- sq:subtask:ST3 -->
 ### ST3 — Complete the workflow.md override-format field reference
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Give `docs/workflow.md` the same treatment, because `docs/overrides.md:236` sends the reader there
 for the complete field reference and it currently has no ref-kinds entry at all.
@@ -280,12 +252,6 @@ its own section count and add-list are true.
 <!-- sq:subtask:ST4 -->
 ### ST4 — Cover ref kinds in the drop-and-rename live-corpus prose
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 Cover ref kinds in the prose that explains what a drop or a rename actually does to a live squad.
 
@@ -314,12 +280,6 @@ remedy it offers is one a command performs.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Restore the duplicate-filing guidance in the docs, not the spec
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 The generated cheatsheet used to tell an author what to *do* with a duplicate. The pre-generation

@@ -25,7 +25,7 @@ subentities:
   story: US4
 - local_id: ST2
   title: Empty every role body and strip the role extra mirror
-  status: Blocked
+  status: Done
   story: US4
 - local_id: ST3
   title: Write the MANUAL section and the changelog announcement
@@ -37,7 +37,7 @@ subentities:
   story: US4
 - local_id: ST5
   title: Strip this repository's own squad corpus
-  status: Blocked
+  status: Done
   story: US4
 - local_id: ST6
   title: Empty every system skill body, keyed on is_system_skill
@@ -48,7 +48,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-09-01T08:04:14Z'
-updated_at: '2026-09-02T10:01:57Z'
+updated_at: '2026-09-02T11:33:07Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -282,25 +282,10 @@ needs.
 
 _Add with `sq task 849 add-subtask "<title>"`; track with `sq task 849 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Strip the summary and head marker regions corpus-wide | US4 |
-| ST2 | Todo |  | Strip the role Skills block and skills frontmatter key | US4 |
-| ST3 | Todo |  | Correct the runner docstring, registry summary and MANUAL | US4 |
-| ST4 | Todo |  | Prove the step on the frozen corpus fixtures | US4 |
-| ST5 | Todo |  | Strip this repository's own squad corpus | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Strip both retired marker region families in the repair sweep
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Migrate the corpus to remove the retired regions
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add one more recorder to `MaintenanceMixin._rebuild_index_from_disk`'s per-file loop that removes
@@ -363,11 +348,6 @@ second run.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Empty every role body and strip the role extra mirror
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Migrate the corpus to remove the retired regions
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The **whole** `sq:body` region of every role item is emptied — contents removed, markers kept —
 and the retired mirror keys are removed from its frontmatter `extra`, in the same repair sweep.
@@ -420,16 +400,26 @@ A role file must survive two `sq repair` runs with no second diff.
     What did land in its place, so the boundary is asserted rather than assumed: `test_a_role_file_is_untouched_while_its_writer_is_live` (byte-identity across the sweep) and `test_a_role_item_keeps_its_record_and_its_mirror_across_the_migration`. `MaintenanceMixin._sweep_empties_body`'s docstring states why a role body is not on the list, in the same terms.
     
     @tech-lead @architect this needs a home before ST2 and ST5 can move.
+- [2026-09-02T11:26:41Z] Elias Python:
+  - Built. The sweep now empties every role body and strips the retired mirror keys, in the same composed rewrite as the regions and the ref canonicalisation.
+    
+    - **Unblocked by `0f51411`, verified rather than taken on trust.** A fresh `sq init --roles core` + `sq dev add --tech rust` writes an empty `sq:body` region and an `extra` of `{slug}` for a bundled role, `{slug, model, is_dev, tech}` for a developer. `_refresh_catalog_extra` has no call sites left. The decision record's named failure is driven closed end to end: hand-write the legacy shape onto a role file, `sq repair`, then `sq sync` — nothing comes back, for a bundled role and a dev role alike.
+    - **`_sweep_empties_body` returns True for a role.** Its docstring no longer says a role's body is not emptied because its writer is live; it now records why a role needs no discriminator where a skill does — `set_body` and the importer's body event both refuse a role body outright, and `_create_core`'s scaffold already empties the region, so a stored role body is residue from a release that rendered one, not prose someone wrote.
+    - **Retained versus stripped is derived, never listed.** The candidates are `RETIRED_ROLE_EXTRA_KEYS` (`_models/_metadata.py`, the two existing refusal groups united) widened by `RoleDef.extra_keys()`; what comes back out is `RoleDef.stored_extra_keys(is_dev=...)`, read off `_EXTRA_FIELD_KEYS` / `_DEV_EXTRA_FIELD_KEYS`. That subtraction is the only thing deciding a developer's `model` survives and a bundled role's does not, so restoring a key to either table stops the sweep proposing it with no second list to remember. Proven both ways in one parametrised test, with an exact-equality assertion (a subset check catches only one of the two failure directions). Falsified: pin `is_dev=False` and the developer case reddens on a stripped `model`; restored, green.
+    - **One key more than this subtask's list, and it is the parent's.** `extra.skills` is on TASK-849's frozen list and absent from mine. Its writer retired with the skills-cache task, its `ExtraKey` member was deleted with it, and no live path reads it — but ten role files in this repo still carry it, so leaving it out would leave residue the parent's acceptance names. Included, with the name spelled out in `_metadata.py` because there is no constant left to reference. Flagging it rather than deciding it quietly.
+    - **The composition case was extended, not duplicated.** A role is the second shape of the same claim and it composes differently: its own edit is to the frontmatter, which is exactly what canonicalisation rewrites. The canonicalisation writes `item.to_frontmatter_dict()`, so the keys must leave the parsed `Item` before it runs — the same deletion the `db.add(item)` on the next line needs. Falsified twice: move the deletion after the canonicalisation and the role half reddens ("the canonicalisation rewrote the mirror back onto the role"); drop the deletion from the `Item` and the index-agreement test reddens too. Both restored.
+    - **A key-only rewrite no longer re-serialises through the model.** `to_frontmatter_dict()` also drops a key the model accepts on the way in but derives rather than stores — a legacy top-level `slug:`, which all ten corpus fixtures carry — and that name is not on the frozen list. A file needing only the key removal is now rewritten from its own parsed frontmatter (`_frontmatter_without`), so the diff contains the listed names and nothing else. A file needing the canonicalisation too takes that path as before.
+    - **Idempotence, never-carried, markdown-before-index.** Second `sq repair` reports nothing stripped and changes no byte, asserted over a corpus that now includes a role carrying the retired shape. A squad that never carried any of it writes no file at all. The write still rides the one deferred list, after the corpus-alignment refusal check and before the index commit.
+    - **Corpus proofs are per fixture now**, not spot-checked: all ten migrate forward and each is asserted to keep its role's `title`/`description` and `slug` and lose the mirror, with the index compared against the file rather than against itself. `v0_14` applies no runner, keeps its mirror through `migrate up`, and is stripped by the bare verb — that clause gained the role half too. An operator item keeps the `full_name` of its own: same key name, live writer, different item type, and the sweep is keyed on the type for exactly that reason.
+    
+    Measured on a **copy** of this repo's squad in the scratchpad (this repo's own corpus was not touched — ST5 is the operator's to authorise): 654 item files rewritten; ten role files lose nine keys each and their bodies; `releasing-squads` and the operator item are byte-identical; a second run changes no byte; `sq check` clean; `sq role python-dev show` renders the full definition from a file that no longer stores one.
+    
+    Gates: `uv run --all-extras pytest` once, to a file — **4499 passed, 8 skipped in 64.87s**, zero FAILED lines (baseline 4486/8; +13 is exactly the four net new sweep tests and the nine extra fixture parametrisations). `pyright` 0 errors, `ruff check .` and `ruff format --check .` clean, `sq check` clean. Nothing committed, no bundled template or spec touched.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Write the MANUAL section and the changelog announcement
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Migrate the corpus to remove the retired regions
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Write the adopter-facing prose the sweep owes. **No runner, registry or docstring change.**
@@ -486,11 +476,6 @@ registry `summary` nor the runner docstring has changed.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Prove the sweep on the fixtures and through the bare verb
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Migrate the corpus to remove the retired regions
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Prove the sweep on the frozen corpus fixtures, and prove it through the bare verb.
@@ -581,11 +566,6 @@ same tolerance an un-migrated adopter file needs, and it is why `markers.SUMMARY
 <!-- sq:subtask:ST5 -->
 ### ST5 — Strip this repository's own squad corpus
 
-<!-- sq:subtask:ST5:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — Migrate the corpus to remove the retired regions
-<!-- sq:subtask:ST5:head:end -->
-
 <!-- sq:subtask:ST5:body -->
 Strip this repository's own squad corpus. **This is the step a developer will otherwise skip while
 reporting the sweep verified.**
@@ -634,6 +614,9 @@ byte-identical; `sq check` is clean; and the diff was read rather than assumed.
     - 0 role files are touched.
     
     `sq check` on this repo is clean as it stands.
+- [2026-09-02T11:32:58Z] Catherine Manager:
+  - Ran the strip against this repository's corpus. 654 files rewritten, 632 summary regions and 436 head regions to zero, 851 items preserved, 10 roles preserved, the one authored skill byte-identical at 10118 bytes, a dev role's retained keys intact. Second repair is a no-op, so it is idempotent on the real corpus and not only the fixtures.
+  - One process note against myself: I ran it with uncommitted board writes in the tree, so the strip diff is mixed with agents' subtask status moves rather than being a pure removal. Both halves are legitimate and I verified the frontmatter changes are those moves and not rewritten state, but the diff is harder to review than it needed to be. Commit the board first next time.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -801,4 +784,18 @@ That assertion is what fails if the property is ever broken.
     Gates: `uv run --all-extras pytest` once, to a file — **4471 passed, 8 skipped in 62.63s**, exit 0, zero FAILED lines (baseline 4435/7; the delta is exactly the 37 tests added). `pyright` 0 errors, `ruff check .` clean, `ruff format --check .` clean, `sq check` clean. Nothing committed or pushed; no bundled template or spec touched.
     
     Left at InReview for the dedicated review. @reviewer the two things worth a second read: the one-entry-per-path composition in `_record_pending_rewrite` (falsified and restored — splitting it makes the canonicalisation discard the strip), and `_sweep_empties_body`'s discriminator (falsified and restored — anything cheaper destroys `releasing-squads`).
+- [2026-09-02T11:27:21Z] Elias Python:
+  - ST2 built and Done; the task stays InReview. Detail on ST2's own discussion, the cross-cutting points here.
+    
+    - **The sweep's role half now lands**: every role body emptied (markers kept) and the retired mirror keys removed from `extra`, composed into the same one-entry-per-path rewrite as the regions and the ref canonicalisation, still markdown-before-index and still after the corpus-alignment refusal check. `sq repair` reports role files in `stripped` like everything else.
+    - **The precondition amendment §3 sets is met, driven not assumed.** A fresh squad through the write path produces no role body and no mirror key, and `sq repair` → `sq sync` restores none of them. The frozen-list guard now covers the role names alongside the skill ones, so restoring either retired writer reddens it.
+    - **The docstring the previous run flagged is corrected.** `_sweep_empties_body` no longer claims a role's writer is live. What replaced it is a different statement, not a negated one: it records why a role needs no discriminator where a skill does — every body-writing seam refuses a role outright and the scaffold empties the region — which is checkable against the code rather than a claim about intent.
+    - **One key beyond ST2's list**, and it wants a reviewer's eye: `extra.skills`. It is on this task's own frozen list, absent from ST2's; its writer and its `ExtraKey` member were both deleted by the skills-cache task and nothing reads it, but ten role files here still carry it. Included, so ST5's "none of the removed role `extra` keys" is answerable. If that call is wrong it is one constant to remove.
+    - **Two things in this task's body I found to be wrong.** The frozen list names `skills` as a role `extra` key while `ExtraKey` has no such member any more, so the name has to be spelled out rather than referenced. And "preserve every other key and the file's key ordering" was not achievable through `item.to_frontmatter_dict()`, which also drops a legacy top-level `slug:` that all ten corpus fixtures carry — a key-only rewrite now goes through the file's own parsed frontmatter instead, so the diff carries the listed names and nothing else.
+    - **ST5 measured, not run.** On a scratchpad copy of this squad: 654 item files rewritten, ten role files losing nine keys and their bodies, `releasing-squads` and the operator item byte-identical, second run a no-op, `sq check` clean, `sq role <slug> show` still rendering in full. This repo's own corpus was not touched.
+    
+    Gates on the final tree: `uv run --all-extras pytest` once, to a file — **4499 passed, 8 skipped in 64.87s**, zero FAILED lines (baseline 4486/8). `pyright` 0 errors, `ruff check .` / `ruff format --check .` clean, `sq check` clean. Nothing committed or pushed; no bundled template or spec touched, so no manifest regeneration is owed.
+    
+    @reviewer two places worth a second read: the retained-versus-stripped derivation in `_retired_role_extra_keys` (the data-loss edge is a developer's `model`, and it is decided by subtracting `RoleDef.stored_extra_keys` rather than by any list), and the `skills` inclusion above.
+    @manager ST5 is the only thing left on this task and it is yours to authorise.
 <!-- sq:discussion:end -->

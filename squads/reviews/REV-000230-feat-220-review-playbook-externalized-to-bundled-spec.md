@@ -47,22 +47,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 230 add-finding "…" --severity high`; track with `sq review 230 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Loader bypasses extra='forbid' — typo'd TOML keys silently dropped |
-| F2 | 🟢 low | Open |  | Layer-B snapshot comment says 'verbatim from playbook.toml' — misleading provenance |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Loader bypasses extra='forbid' — typo'd TOML keys silently dropped
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **File:** `src/squads/_interactions/_loader.py` — `_parse_role_guide` (lines 101-112) and `_build_spec` (lines 70-82).
@@ -88,11 +76,6 @@ _Add with `sq review 230 add-finding "…" --severity high`; track with `sq revi
 
 <!-- sq:finding:F2 -->
 ### F2 — Layer-B snapshot comment says 'verbatim from playbook.toml' — misleading provenance
-
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 **File:** `tests/test_playbook.py` line 26 — `# ruff: noqa: E501  — snapshot strings are verbatim from playbook.toml; wrapping obscures diffs.`

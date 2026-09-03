@@ -38,21 +38,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 466 add-finding "…" --severity medium`; track with `sq review 466 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Human table renders whole orders as floats (10.0) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Human table renders whole orders as floats (10.0)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The human Rich table prints ItemSpec.order (a float) via str(), so whole values show as '10.0', '20.0', etc. Cosmetic only — the --json contract deliberately uses float (order can be 25.5 for insertion between types), the human table is NOT part of the frozen golden, and no ADR-459 requirement is violated. Optional polish: render whole floats as ints in the table (e.g. int(order) when order.is_integer()). Non-blocking; approver's call whether to bother.

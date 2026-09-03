@@ -52,23 +52,10 @@ Validate slug arguments so an unknown or typo'd slug is a clean error, not a sil
 
 _Add with `sq task 43 add-subtask "<title>"`; track with `sq task 43 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add resolve_slug_or_raise helper to _cli/_common.py |  |
-| ST2 | Done |  | Make sq mine require slug argument |  |
-| ST3 | Done |  | Validate slug on inbox, workload, comment --as, update --assignee/--author |  |
-| ST4 | Done |  | Add service-level and CLI smoke tests |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add resolve_slug_or_raise helper to _cli/_common.py
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add a shared resolve_slug_or_raise helper (near _cli/_common.py parsers, taking the service for roster access) that validates a slug against the roster — registered agents and operators (op-…) — and raises SquadsError (exit 1) naming the valid slugs / pointing at sq operator list. Mirrors FEAT-19's item-ID resolver shape.
@@ -83,10 +70,6 @@ Add a shared resolve_slug_or_raise helper (near _cli/_common.py parsers, taking 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Make sq mine require slug argument
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Make the slug argument required on sq mine so a bare invocation no longer silently defaults to manager — the invoking shell implies no agent identity, so an omitted slug is an error rather than a misleading default workload.
 <!-- sq:subtask:ST2:body:end -->
@@ -100,10 +83,6 @@ Make the slug argument required on sq mine so a bare invocation no longer silent
 <!-- sq:subtask:ST3 -->
 ### ST3 — Validate slug on inbox, workload, comment --as, update --assignee/--author
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Route every slug-accepting surface through resolve_slug_or_raise: sq inbox, sq workload filters, comment --as, update --assignee, and --author outside create. Closes the inconsistency where only create's --author was validated, so a typo'd slug is a clean error instead of a silent empty result.
 <!-- sq:subtask:ST3:body:end -->
@@ -116,10 +95,6 @@ Route every slug-accepting surface through resolve_slug_or_raise: sq inbox, sq w
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Add service-level and CLI smoke tests
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Service-level tests (resolver raises on unknown slug, accepts a registered agent and an operator slug) plus CLI smoke tests (sq mine unknown / sq inbox unknown exit 1 with a helpful message; bare sq mine errors as slug-required; a valid agent/operator slug still works on every audited surface).

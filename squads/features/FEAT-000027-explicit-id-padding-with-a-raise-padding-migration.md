@@ -82,22 +82,10 @@ a clean sentence instead of a shrug.
 
 _Add with `sq feature 27 add-story "As a <role>, I want … so that …"`; track with `sq feature 27 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Index-full error with fix instructions at sequence cap |
-| US2 | Done |  | Single command renames all files to new padding width |
-| US3 | Done |  | ID parsing tolerates any padding width for old refs |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Index-full error with fix instructions at sequence cap
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** with padding 6, allocating sequence 1,000,000 raises a SquadsError stating the index is full and naming the raise-padding command; no wider ID is ever emitted.
@@ -114,10 +102,6 @@ As a squad owner whose counter hits the cap, I want create to fail with a clear 
 <!-- sq:story:US2 -->
 ### US2 — Single command renames all files to new padding width
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** the raise command (design picks the name/home, near migrate/repair) bumps padding one-way, renames ALL item files to the new width, rebuilds the index, and leaves file contents byte-untouched; sq check clean afterwards.
 
@@ -132,10 +116,6 @@ As a squad owner raising the padding, I want one command that renames every file
 
 <!-- sq:story:US3 -->
 ### US3 — ID parsing tolerates any padding width for old refs
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** TASK-000007 and TASK-0000007 resolve to the same item everywhere an ID is read (refs, parent, prose mentions, CLI args, backrefs); display always uses the current padding; covered by mixed-width fixture tests. Lands in FEAT-19's shared resolver.

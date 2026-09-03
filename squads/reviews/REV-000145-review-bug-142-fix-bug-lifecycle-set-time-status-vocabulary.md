@@ -43,21 +43,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 145 add-finding "…" --severity high`; track with `sq review 145 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🔵 info | Verified |  | All ADR-143 acceptance points verified; no defects |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — All ADR-143 acceptance points verified; no defects
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🔵 Info
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 ADR-143 conformance: _BUG workflow matches exactly — initial Open; edges Open→{InProgress,WontFix,Cancelled}, InProgress→{Fixed,Blocked,WontFix,Cancelled}, Fixed→{Verified,InProgress}, Verified→{InProgress}, Blocked→{InProgress,WontFix,Cancelled}, WontFix→{Open}, Cancelled→{Open}; terminals Verified/WontFix/Cancelled already in TERMINAL. Draft/Ready/InReview/Done/Todo correctly excluded (test_bug_workflow_excludes_work_states).

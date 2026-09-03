@@ -51,21 +51,10 @@ The surface to close, with the scope boundary settled by product:
 
 _Add with `sq task 82 add-subtask "<title>"`; track with `sq task 82 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add --json to check and sub-entity list commands | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add --json to check and sub-entity list commands
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a script author, I want --json on every read command (blocked, mine, workload, inbox, check, refs included), so that I can parse squad state without scraping tables
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add --json to the commands genuinely missing it: check (one object per issue: {level, item, message}, preserving the exit-3-on-error behaviour by emitting the array then still raising typer.Exit(3)), the three sub-entity list commands (stories/subtasks/findings — id/status/assignee/severity/story/title per kind), and the role/skill/operator catalog viewers (catalog rows in a documented shape), per op-pierre's 2026-06-12 scope ruling. Reuses console.print_json (US1).

@@ -126,23 +126,10 @@ assertion. No test may assert a block, a non-zero exit, or a security guarantee.
 
 _Add with `sq task 164 add-subtask "<title>"`; track with `sq task 164 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Seam A: allowed_create_types/in_lane_owner/_is_lane_exempt in _interactions.py + table-pinning test | US1 |
-| ST2 | Done |  | Seam B: compute warning in ServiceCore.create, return on CreateResult.lane_warning, tag reflog delta (no print) | US1 |
-| ST3 | Done |  | Seam C: CLI render warning (escaped, exit 0, --json) + creates row in sq role show | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Seam A: allowed_create_types/in_lane_owner/_is_lane_exempt in _interactions.py + table-pinning test
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers Seam A of the advisory create-lane check (FEAT-122 Slice B, ADR-163): lane derivation co-located with PLAYBOOK in _interactions.py — allowed_create_types(slug) keyed off the literal 'sq create <type>' author verb in each RoleGuide.do, in_lane_owner(item_type) as the inverse, and _is_lane_exempt(slug) for manager/op-* — plus the mandatory table-pinning unit test locking each role's derived lane to Nina's §1 table so a future playbook edit that shifts a lane fails CI.
@@ -157,11 +144,6 @@ Covers Seam A of the advisory create-lane check (FEAT-122 Slice B, ADR-163): lan
 <!-- sq:subtask:ST2 -->
 ### ST2 — Seam B: compute warning in ServiceCore.create, return on CreateResult.lane_warning, tag reflog delta (no print)
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Covers Seam B: computing the advisory lane check inside ServiceCore.create on the declared author (exempt before lookup, no warning when the type is in the author's lane), returning the rendered advisory sentence on an optional CreateResult.lane_warning field (service never prints — layering invariant), and tagging the warning into the create op's reflog delta as an advisory lane check (no schema bump). Includes the dev-authored-bug case (allowed, warns, no --author qa required, no special-case path).
 <!-- sq:subtask:ST2:body:end -->
@@ -174,11 +156,6 @@ Covers Seam B: computing the advisory lane check inside ServiceCore.create on th
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Seam C: CLI render warning (escaped, exit 0, --json) + creates row in sq role show
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Covers Seam C: the CLI rendering the lane warning after the created line in _cli/_create.py (both _make and create_guide), escaped via e() and exit 0, plus a warning field in --json output; and the sq role show 'creates:' row derived on the fly via allowed_create_types(slug) next to the can spawn: row, with a create_lane array in the --json branches. All text stays advisory/best-effort — no enforcement or security claim.

@@ -49,9 +49,6 @@ Implements FEAT-100 story **US1** — "Squad hierarchy in VS Code sidebar with s
 
 _Add with `sq task 429 add-subtask "<title>"`; track with `sq task 429 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

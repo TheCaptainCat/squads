@@ -53,22 +53,10 @@ This is documentation of what IS, not a redesign. No literal sq anchor tags in t
 
 _Add with `sq task 70 add-subtask "<title>"`; track with `sq task 70 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Draft the architecture guide covering layering, data model, and the marker mechanism | US1 |
-| ST2 | Done |  | Cross-link the guide and the retroactive ADRs both directions with related refs | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Draft the architecture guide covering layering, data model, and the marker mechanism
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a new agent or contributor, I want an architecture guide readable through sq, so that I understand the system's shape without spelunking through git history
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Draft the single architecture guide item (sq create guide, 'architecture' in the title for searchability) covering the layering (_cli -> _services -> index store/backends/rendering, models as the dependency-free base), the data model (items, sub-entities carried on the parent, index keyed by sequence number), and the marker mechanism for safe managed-region edits. Lean and standalone-readable, pointing at sq docs internals for depth, no literal sq anchor tags (US1).
@@ -82,11 +70,6 @@ Draft the single architecture guide item (sq create guide, 'architecture' in the
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Cross-link the guide and the retroactive ADRs both directions with related refs
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a team member working an item, I want guides and ADRs cross-linked by refs, so that the relevant context travels with the work
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 After TASK-69's ADRs land, cross-link the architecture guide and every retroactive ADR plus ADR-49 in both directions with --kind related refs (guide cites ADRs, ADRs cite guide), delivering US3.

@@ -101,21 +101,10 @@ agents only prep).
 
 _Add with `sq task 343 add-subtask "<title>"`; track with `sq task 343 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | _v0_7_to_v0_8 runner + registry + manual + SCHEMA_VERSION 0.7->0.8 bump | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — _v0_7_to_v0_8 runner + registry + manual + SCHEMA_VERSION 0.7->0.8 bump
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Bug severity migration preserves data
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add _v0_7_to_v0_8.py (bug extra[X.SEVERITY] -> top-level severity:, one-way, frozen vocab), wire the Migration record into MIGRATIONS (to_schema 0.8) with MANUAL runbook + changelog index, and bump SCHEMA_VERSION 0.7->0.8. First 0.8 change on the line.

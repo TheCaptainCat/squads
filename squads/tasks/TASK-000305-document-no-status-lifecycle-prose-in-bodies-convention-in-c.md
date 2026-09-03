@@ -35,22 +35,10 @@ Note: this task edits CLAUDE.md prose only — no shipped source file is touched
 
 _Add with `sq task 305 add-subtask "<title>"`; track with `sq task 305 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Write the convention paragraph in CLAUDE.md | US1 |
-| ST2 | Done |  | Resolve the repo CLAUDE.md ## Status section + record decision | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Write the convention paragraph in CLAUDE.md
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — The tracker's status is never contradicted by body prose
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add the working-norm instruction to CLAUDE.md: status/lifecycle/workflow-state never goes in an item/ADR/review/doc body or its `description:` summary — status is the frontmatter field (shown by `sq … show`). State explicitly that timestamped discussion comments recording state-at-a-point-in-time are permitted/encouraged (append-only history, never stale), and that the ban targets a body declaring its OWN state, not discussing lifecycle as a topic or citing another item's status. Done when the paragraph is present, terse, and unambiguous on both surfaces (body + description).
@@ -68,11 +56,6 @@ Add the working-norm instruction to CLAUDE.md: status/lifecycle/workflow-state n
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Resolve the repo CLAUDE.md ## Status section + record decision
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — The tracker's status is never contradicted by body prose
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Decide the fate of the repo's own CLAUDE.md `## Status` section (product-maturity prose, same stale shape). The sq check guard never scans CLAUDE.md, so this is editorial only: keep vs reword to a durable, state-free statement (recommendation: reword). Apply the choice and record the rationale in a comment on TASK-305. Done when the section is resolved and the decision is on the record.

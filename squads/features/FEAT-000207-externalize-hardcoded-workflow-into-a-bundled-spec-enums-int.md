@@ -57,21 +57,10 @@ The spike gate (see EPIC-206) covers F1+F2 together: do not commit either to imp
 
 _Add with `sq feature 207 add-story "As a <role>, I want … so that …"`; track with `sq feature 207 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a maintainer, I want workflow spec loaded from TOML so behavior is in data not code |
-| US2 | Todo |  | As a maintainer, I want a golden test asserting default spec == today's behavior so regressions are caught immediately |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a maintainer, I want workflow spec loaded from TOML so behavior is in data not code
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squads maintainer, I want the entire workflow definition (types, state machines, statuses, parent rules, prefixes, folders, aliases, badges) loaded from a bundled TOML file at runtime, so that workflow knowledge lives in data rather than scattered Python enum declarations and dict literals.
@@ -87,10 +76,6 @@ As a squads maintainer, I want the entire workflow definition (types, state mach
 
 <!-- sq:story:US2 -->
 ### US2 — As a maintainer, I want a golden test asserting default spec == today's behavior so regressions are caught immediately
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a squads maintainer, I want a golden test that asserts the loaded default `WorkflowSpec` is identical to a frozen snapshot of today's `WORKFLOWS`, `TERMINAL`, `ALLOWED_PARENTS`, and enum dicts, so that any accidental behavioral drift in the default is caught immediately as a test failure.

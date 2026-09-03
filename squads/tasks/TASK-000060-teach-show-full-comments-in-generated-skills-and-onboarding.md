@@ -48,21 +48,10 @@ Assert the generated skill text contains the `--full --comments` guidance (a ren
 
 _Add with `sq task 60 add-subtask "<title>"`; track with `sq task 60 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Teach --full --comments in generated skills and onboarding | US6 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Teach --full --comments in generated skills and onboarding
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As an agent briefing on an item, I want the squads skill and the sq-<type> skills to teach reading with --full --comments as the standard briefing move, so that decisions captured in discussion comments are never missed
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Close the guidance gap so agents brief with show --full --comments: update the enter tuples in _interactions.py so every per-type sq-<type> skill's Enter checklist surfaces the flags, and the generated squads skill (squads_skill.md.j2), item_skill footer, and workflow cheatsheet recommend show --full --comments over plain show. Replayable through sq sync's generated output, not handwritten notes (US6).

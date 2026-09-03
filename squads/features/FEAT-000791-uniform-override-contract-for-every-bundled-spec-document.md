@@ -139,24 +139,10 @@ promises every overridable bundled artifact must meet.
 
 _Add with `sq feature 791 add-story "As a <role>, I want … so that …"`; track with `sq feature 791 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Widen the manifest to every overridable bundled artifact |
-| US2 | Done |  | Content-gate workflow/playbook/role drift |
-| US3 | Done |  | Whole-document override for the roles catalog |
-| US4 | Done |  | Close the role override top-level key space (align ADR-696 §4b) |
-| US5 | Done |  | Uniform unstamped-shadowing severity plus the uniformity guard |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Widen the manifest to every overridable bundled artifact
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 The provenance manifest generalises from a template-only manifest to a manifest of every
@@ -192,10 +178,6 @@ least one index entry.
 <!-- sq:story:US2 -->
 ### US2 — Content-gate workflow/playbook/role drift
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 With the manifest widened, `_workflow_state`/`_playbook_state` and their stamp-finding functions
 lose their "no per-release content-hash" branch: drift becomes content-gated, so an add-only
@@ -226,10 +208,6 @@ about.
 <!-- sq:story:US3 -->
 ### US3 — Whole-document override for the roles catalog
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 `.overrides/roles.toml` becomes a fourth spec override document, resolved by `load_role_catalog`
 on the same shape as the other two: `squad_dir`-aware, merged through the shared engine, a closed
@@ -251,10 +229,6 @@ no deselect-specific guard needed.
 <!-- sq:story:US4 -->
 ### US4 — Close the role override top-level key space (align ADR-696 §4b)
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 A role override's top-level key space stays closed, derived from `RoleSpec.model_fields` as it is
 today; ADR-696 §4b's "deliberately not closed" clause is narrowed in place at its own end, dated
@@ -273,10 +247,6 @@ than left as an unused vestige.
 
 <!-- sq:story:US5 -->
 ### US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 A shadowing override with no provenance stamp becomes an error-level `sq check` finding for every

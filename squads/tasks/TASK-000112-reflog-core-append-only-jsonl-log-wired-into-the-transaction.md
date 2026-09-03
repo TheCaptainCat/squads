@@ -91,22 +91,10 @@ versioned schema with its contract tier.
 
 _Add with `sq task 112 add-subtask "<title>"`; track with `sq task 112 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Append one JSONL reflog line per mutating transaction | US1 |
-| ST2 | Done |  | Thread actor + op identity down to the store | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Append one JSONL reflog line per mutating transaction
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Append one well-formed JSONL line per mutating transaction, atomically with the index write (writer + line schema + op/delta capture).
@@ -120,11 +108,6 @@ Append one well-formed JSONL line per mutating transaction, atomically with the 
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Thread actor + op identity down to the store
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Thread the actor (--as/--author/invoking agent) and op identity down to the store so removals/retypes/forced-status/repair are reconstructable from reflog lines alone.

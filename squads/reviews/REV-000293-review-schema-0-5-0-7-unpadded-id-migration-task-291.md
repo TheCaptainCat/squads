@@ -36,23 +36,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 293 add-finding "…" --severity high`; track with `sq review 293 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Prose rewrite unpads padded IDs embedded in on-disk filename references, breaking them |
-| F2 | 🟢 low | Fixed |  | Subentity titles (frontmatter) are not unpadded — stays padded in rendered summary/head |
-| F3 | 🟢 low | WontFix |  | Custom (spec-declared) item types are skipped entirely by the runner |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Prose rewrite unpads padded IDs embedded in on-disk filename references, breaking them
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **What.** The bounded prose rewrite (`_rewrite_mentions`, _v0_5_to_v0_7.py:97-108) substitutes each old padded id literal whole-word: `re.compile(r"\b{old}\b")`. `\b` matches at the trailing `-` of the id, so a padded id that is the *stem of an on-disk filename* is matched and unpadded too. But filenames stay padded on disk (the whole point of ADR-282), so the rewritten reference now points at a path that does not exist.
@@ -83,11 +70,6 @@ Both now reference non-existent filenames (the real files are ROLE-000001-manage
 <!-- sq:finding:F2 -->
 ### F2 — Subentity titles (frontmatter) are not unpadded — stays padded in rendered summary/head
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **What.** The runner rewrites frontmatter `id`/`parent`/`refs` (structural) and body-prose mentions (_v0_5_to_v0_7.py:153-159), but subentity **titles** live in the `subentities:` frontmatter list (SubEntity.title) and are never touched — `_rewrite_mentions` runs only on `body`.
 
@@ -106,11 +88,6 @@ Both now reference non-existent filenames (the real files are ROLE-000001-manage
 
 <!-- sq:finding:F3 -->
 ### F3 — Custom (spec-declared) item types are skipped entirely by the runner
-
-<!-- sq:finding:F3:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **What.** `_iter_files` (_v0_5_to_v0_7.py:111-119) iterates the built-in `ItemType` enum only. A squad that declared **custom item types** (config-driven, shipped in 0.6 while schema stayed 0.5) and now migrates 0.5->0.7 has its custom-type item files fully skipped: frontmatter id/refs/parent not unpadded, body prose not rewritten, and their padded ids are absent from the global id_map — so mentions of custom-type ids in *built-in* items' prose are missed too.

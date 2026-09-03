@@ -228,71 +228,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 736 add-finding "…" --severity medium`; track with `sq review 736 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | sq workflow serves the bundled spec at exit 0 on a broken override |
-| F2 | 🟠 high | Fixed |  | find_markers is blind to every sub-entity marker |
-| F3 | 🟠 high | Fixed |  | An absent timestamp invents now and wedges the item permanently |
-| F4 | 🟠 high | Fixed |  | A role override bypasses every validator, and can grant spawn rights |
-| F5 | 🟠 high | Fixed |  | A declared type whose name matches a bundled alias runs the wrong command |
-| F6 | 🟡 medium | Fixed |  | Generated agent text instructs --assignee qa on a minimal roster |
-| F7 | 🟡 medium | Fixed |  | The operator personal name and this repo ship in bundled templates |
-| F8 | 🟡 medium | Fixed |  | Generated text instructs status Cancelled and --story US1 under an override |
-| F9 | 🟡 medium | Fixed |  | A role override title never reaches the index, so the roster renders stale |
-| F10 | 🟡 medium | Fixed |  | sq sync never seeds bundled skills, leaving an unindexed skill file |
-| F11 | 🟡 medium | Fixed |  | A malformed override escapes as a raw traceback out of workflow lint |
-| F12 | 🟡 medium | Fixed |  | Renaming a sub-entity plural bricks add-kind on the existing corpus |
-| F13 | 🟡 medium | Fixed |  | A misspelled [selected] keep-entry silently drops the key it meant to keep |
-| F14 | 🟡 medium | Fixed |  | The create-lane advisory contradicts the tools own generated instructions |
-| F15 | 🟡 medium | Fixed |  | Sub-entity field flags are baked from the bundled spec on registration |
-| F16 | 🟡 medium | Fixed |  | The load boundary skips every adopter-declared badge field |
-| F17 | 🟡 medium | Fixed |  | A migration writes legacy sub-entity statuses with no mapping to the spec |
-| F18 | 🟢 low | Fixed |  | Migrations persist a derivable path key that then goes stale |
-| F19 | 🟢 low | Fixed |  | The scaffolded workflow override example fails on a retired key |
-| F20 | 🟡 medium | Fixed |  | Priority flag validates against the wrong collection, both ways |
-| F21 | 🟢 low | Fixed |  | Priority flag is advertised on types declaring no priority field |
-| F22 | 🟡 medium | Fixed |  | The client id regex breaks any hyphenated declared prefix |
-| F23 | 🟡 medium | Fixed |  | The preview sub-entity head hardcodes the severity field code and label |
-| F24 | 🟡 medium | Fixed |  | sq sync silently drops an unrecognised model from a role override |
-| F25 | 🟡 medium | Fixed |  | The AGENTS.md backend parses mission back out of its own generated text |
-| F26 | 🟢 low | Fixed |  | The memory skill hardcodes the squads path and ignores squad_dir |
-| F27 | 🟠 high | Fixed |  | search and inbox abort whole-corpus on one unreadable file |
-| F28 | 🟢 low | Fixed |  | The TUI glance line hardcodes the priority field code |
-| F29 | 🟢 low | Fixed |  | Declared ref_rules are inert and the kind vocabulary is unvalidated |
-| F30 | 🟢 low | Fixed |  | The Records view goes silently blank on a type-catalog failure |
-| F31 | 🟢 low | Fixed |  | The client squad_dir regex misses valid single-quoted TOML |
-| F32 | 🟢 low | Fixed |  | The graph node-click round trip is lossy for an underscored prefix |
-| F33 | 🟡 medium | Fixed |  | Derived pointer target uses the OS separator, breaking Windows |
-| F34 | 🟡 medium | Fixed |  | The runner duplicates a check sq check already makes |
-| F35 | 🟢 low | Fixed |  | A runner docstring now denies that any runner threads the spec |
-| F36 | 🟢 low | Fixed |  | A stale path key on an already-migrated squad is never stripped |
-| F37 | 🟢 low | WontFix |  | The spec-load swallow is unreachable and hides a check regression |
-| F38 | 🟡 medium | Fixed |  | search and inbox still abort whole-corpus on an out-of-squad path |
-| F39 | 🟡 medium | Fixed |  | repair invents created_at and the heal makes the loss permanent |
-| F40 | 🟢 low | Fixed |  | The marker single-definition guard misses a wrapped regex |
-| F41 | 🟢 low | WontFix |  | Every scale test has failed in setup since the actor guard landed |
-| F42 | 🟢 low | Fixed |  | ADR-663 does not name the absent-timestamp skew exclusion |
-| F43 | 🟢 low | Fixed |  | The marker guard body label omits the remediation guidance |
-| F44 | 🟢 low | Fixed |  | sq graph mermaid merges two ids differing only by hyphen or underscore |
-| F45 | 🟢 low | Fixed |  | The preview stamps a clickable item id on every mermaid node |
-| F46 | 🟠 high | Fixed |  | A category reassignment that contradicts itself loads clean |
-| F47 | 🟡 medium | Fixed |  | parent_required is read for hints but never enforced at create |
-| F48 | 🟡 medium | Fixed |  | Category consistency has no clause for a declared ref_rule |
-| F49 | 🟡 medium | Fixed |  | A broken role override is invisible to sq check |
-| F50 | 🟢 low | Fixed |  | A declared type dispatches to No such command under a broken override |
-| F51 | 🟢 low | Fixed |  | lifecycle_edges is orphaned by the diagram removal |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sq workflow serves the bundled spec at exit 0 on a broken override
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Fixed. A workflow override that will not resolve is now a refusal on every surface, never an
@@ -335,11 +274,6 @@ Driven after: all of them exit non-zero with the same named cause.
 <!-- sq:finding:F2 -->
 ### F2 — find_markers is blind to every sub-entity marker
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Driven, and independently verified by the manager. The regex at _sections.py:68 accepts only [a-z0-9], while every declared sub-entity local_prefix is uppercase (US/ST/F). On a real repo file, 16 well-formed markers present and find_markers returns 8. Two consumers go blind. reject_markers (_services/_base.py:299) accepts a forged sub-entity marker inside an agent-authored item body; the next finding body write then lands in the forged region and destroys the prose around it, leaving the genuine region empty -- invariant 3 broken. _marker_issues (_services/_maintenance.py:94) cannot see a duplicated or unclosed sub-entity marker, so sq check, the must-pass gate, reports clean. Any declared kind whose prefix is not all-lowercase is equally invisible.
 <!-- sq:finding:F2:body:end -->
@@ -363,11 +297,6 @@ Driven, and independently verified by the manager. The regex at _sections.py:68 
 
 <!-- sq:finding:F3 -->
 ### F3 — An absent timestamp invents now and wedges the item permanently
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 Driven. _parse_dt (_models/_item.py:557) returns datetime.now(UTC) for a missing created_at/updated_at, bypassing clock.now() -- an ADR-77 violation, and the module already imports clock for iso(). Because _itemfile.frontmatter_skew round-trips both sides through from_frontmatter, the disk side re-invents now on every read and can never equal the index. Every mutation is then refused with a run sq repair pointer, and repair cannot clear it because repair rebuilds the index and never rewrites markdown. Two full repair-then-mutate rounds both refused; sq check silent. The item is permanently unmutatable. Entry point is sq adopt or any hand-authored .md.
@@ -393,11 +322,6 @@ Driven. _parse_dt (_models/_item.py:557) returns datetime.now(UTC) for a missing
 
 <!-- sq:finding:F4 -->
 ### F4 — A role override bypasses every validator, and can grant spawn rights
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 Fixed. A role override now goes through the shared merge engine and is validated typed, like
@@ -447,11 +371,6 @@ declared field so a field added later must gain a row.
 <!-- sq:finding:F5 -->
 ### F5 — A declared type whose name matches a bundled alias runs the wrong command
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 Fixed. Two mechanisms, both closed.
 
@@ -474,11 +393,6 @@ Tests: tests/cli/test_bundled_type_aliases_route_by_the_active_spec.py (all ten 
 
 <!-- sq:finding:F6 -->
 ### F6 — Generated agent text instructs --assignee qa on a minimal roster
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 Fixed.
@@ -517,11 +431,6 @@ reverted by exact reverse substitution and re-verified green.
 
 <!-- sq:finding:F7 -->
 ### F7 — The operator personal name and this repo ship in bundled templates
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 Fixed — the template half had already landed; this closes it with the guard that keeps it closed.
@@ -567,11 +476,6 @@ byte-identical, green again.
 
 <!-- sq:finding:F8 -->
 ### F8 — Generated text instructs status Cancelled and --story US1 under an override
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 Fixed, in both halves.
@@ -623,11 +527,6 @@ substitution and re-verified green.
 <!-- sq:finding:F9 -->
 ### F9 — A role override title never reaches the index, so the roster renders stale
 
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 Fixed.
 
@@ -674,11 +573,6 @@ the next sync must converge rather than skip-report.
 
 <!-- sq:finding:F10 -->
 ### F10 — sq sync never seeds bundled skills, leaving an unindexed skill file
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 Fixed.
@@ -740,11 +634,6 @@ init/adopt guard widened to `sync` rather than a second guard beside it (renamed
 <!-- sq:finding:F11 -->
 ### F11 — A malformed override escapes as a raw traceback out of workflow lint
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 Fixed. A malformed override shape is a lint finding at every section and nesting position, never
 a traceback.
@@ -779,11 +668,6 @@ The finding names the offending path (`items.task`, not `items`).
 
 <!-- sq:finding:F12 -->
 ### F12 — Renaming a sub-entity plural bricks add-kind on the existing corpus
-
-<!-- sq:finding:F12:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F12:head:end -->
 
 <!-- sq:finding:F12:body -->
 Fixed, both halves.
@@ -827,11 +711,6 @@ heading following reddens rather than silently re-opening the gap for every squa
 <!-- sq:finding:F13 -->
 ### F13 — A misspelled [selected] keep-entry silently drops the key it meant to keep
 
-<!-- sq:finding:F13:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F13:head:end -->
-
 <!-- sq:finding:F13:body -->
 Fixed. A `[selected]` keep-list entry that names no key of its section fails closed.
 
@@ -861,11 +740,6 @@ with the ten real keys in the fix hint, at exit 1. The add-and-keep control stil
 
 <!-- sq:finding:F14 -->
 ### F14 — The create-lane advisory contradicts the tools own generated instructions
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 Fixed, by moving the lane into the playbook document as a declaration.
@@ -934,11 +808,6 @@ designation-follows case. All four went red, all four restored green.
 <!-- sq:finding:F15 -->
 ### F15 — Sub-entity field flags are baked from the bundled spec on registration
 
-<!-- sq:finding:F15:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F15:head:end -->
-
 <!-- sq:finding:F15:body -->
 Fixed. The rebuild trigger was the kind NAME; it is now the kind SIGNATURE.
 
@@ -959,11 +828,6 @@ Tests: tests/cli/test_subentity_field_flags_follow_the_active_spec.py, including
 
 <!-- sq:finding:F16 -->
 ### F16 — The load boundary skips every adopter-declared badge field
-
-<!-- sq:finding:F16:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F16:head:end -->
 
 <!-- sq:finding:F16:body -->
 Fixed, both halves — one mechanism: declared vocabulary validated against the scope that
@@ -1022,11 +886,6 @@ worth guessing at.
 <!-- sq:finding:F17 -->
 ### F17 — A migration writes legacy sub-entity statuses with no mapping to the spec
 
-<!-- sq:finding:F17:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F17:head:end -->
-
 <!-- sq:finding:F17:body -->
 **Corrected — the original F17 premise was partly wrong, and I built to it.**
 
@@ -1066,11 +925,6 @@ non-zero exit, naming the item and the bad status.
 
 <!-- sq:finding:F18 -->
 ### F18 — Migrations persist a derivable path key that then goes stale
-
-<!-- sq:finding:F18:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F18:head:end -->
 
 <!-- sq:finding:F18:body -->
 **Fixed** in both runners. Updated below to correct an overstatement the reviewer caught (F36)
@@ -1115,11 +969,6 @@ pre-fix, green post-fix.
 <!-- sq:finding:F19 -->
 ### F19 — The scaffolded workflow override example fails on a retired key
 
-<!-- sq:finding:F19:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F19:head:end -->
-
 <!-- sq:finding:F19:body -->
 Fixed. The scaffolded workflow override activates as written, and the example now demonstrates
 the field that replaced the retired one.
@@ -1150,11 +999,6 @@ file also has to be reachable through the verbs and the type it declares has to 
 <!-- sq:finding:F20 -->
 ### F20 — Priority flag validates against the wrong collection, both ways
 
-<!-- sq:finding:F20:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F20:head:end -->
-
 <!-- sq:finding:F20:body -->
 Fixed. The CLI stopped pre-parsing --priority against a collection name.
 
@@ -1176,11 +1020,6 @@ Tests: tests/cli/test_priority_flag_follows_the_types_declared_field.py. Falsifi
 <!-- sq:finding:F21 -->
 ### F21 — Priority flag is advertised on types declaring no priority field
 
-<!-- sq:finding:F21:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F21:head:end -->
-
 <!-- sq:finding:F21:body -->
 Fixed. badges.resolve_collection kept its rendering fallback and gained a strict sibling.
 
@@ -1201,11 +1040,6 @@ Tests: same module as F20. Guard: the widened tests/meta field-code scan now cov
 
 <!-- sq:finding:F22 -->
 ### F22 — The client id regex breaks any hyphenated declared prefix
-
-<!-- sq:finding:F22:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F22:head:end -->
 
 <!-- sq:finding:F22:body -->
 Fixed.
@@ -1253,11 +1087,6 @@ alone as a markdown link's url), plus the not-an-id cases and the degenerate cat
 
 <!-- sq:finding:F23 -->
 ### F23 — The preview sub-entity head hardcodes the severity field code and label
-
-<!-- sq:finding:F23:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F23:head:end -->
 
 <!-- sq:finding:F23:body -->
 Fixed, both halves, and verified end to end against the shipped catalog.
@@ -1320,11 +1149,6 @@ later reader does not "complete" it by accident.
 <!-- sq:finding:F24 -->
 ### F24 — sq sync silently drops an unrecognised model from a role override
 
-<!-- sq:finding:F24:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F24:head:end -->
-
 <!-- sq:finding:F24:body -->
 Fixed.
 
@@ -1382,11 +1206,6 @@ surface the finding named.
 <!-- sq:finding:F25 -->
 ### F25 — The AGENTS.md backend parses mission back out of its own generated text
 
-<!-- sq:finding:F25:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F25:head:end -->
-
 <!-- sq:finding:F25:body -->
 Fixed.
 
@@ -1437,11 +1256,6 @@ cannot send anyone off to fetch it again.
 <!-- sq:finding:F26 -->
 ### F26 — The memory skill hardcodes the squads path and ignores squad_dir
 
-<!-- sq:finding:F26:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F26:head:end -->
-
 <!-- sq:finding:F26:body -->
 Fixed.
 
@@ -1477,11 +1291,6 @@ by exact reverse substitution and re-verified green.
 <!-- sq:finding:F27 -->
 ### F27 — search and inbox abort whole-corpus on one unreadable file
 
-<!-- sq:finding:F27:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F27:head:end -->
-
 <!-- sq:finding:F27:body -->
 Driven independently by two reviewers and the manager. _services/_collab.py -- both the search and inbox loops call _aio.read_text with no per-item guard, and path_exists guards a MISSING file but not an unreadable one, so the error propagates out and discards every result already accumulated from readable files. sq search exits 1 with EMPTY stdout; with --json it emits nothing at all, not even [], so a consumer gets a parse failure on top of the exit. Same for sq inbox. Meanwhile list, tree, blocked, show and graph all exit 0 with everything, so the failure looks arbitrary. The VS Code client calls search and turns any non-zero exit into a runtime error, and its per-keystroke debounce stacks a fresh error toast per resolution. TASK-674 scoped per-file degradation to check/repair/board list/memory list by name and never claimed these two, so nothing regressed -- it is a coverage gap, and the release notes will say unreadable files degrade per file.
 <!-- sq:finding:F27:body:end -->
@@ -1509,11 +1318,6 @@ Driven independently by two reviewers and the manager. _services/_collab.py -- b
 <!-- sq:finding:F28 -->
 ### F28 — The TUI glance line hardcodes the priority field code
 
-<!-- sq:finding:F28:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F28:head:end -->
-
 <!-- sq:finding:F28:body -->
 Fixed. _tui/_reader.py::_glance_line iterates spec.fields_for(item.type) and renders one badge per declared field carrying a value - the same derivation _subentity_head_line twelve lines below already used and _tui/_filter.py already enumerated.
 
@@ -1532,11 +1336,6 @@ Tests: tests/tui/test_glance_line_shows_every_declared_field.py. Falsified: filt
 
 <!-- sq:finding:F29 -->
 ### F29 — Declared ref_rules are inert and the kind vocabulary is unvalidated
-
-<!-- sq:finding:F29:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F29:head:end -->
 
 <!-- sq:finding:F29:body -->
 Fixed for the inert-declaration half, which is the whole of what was in scope. The ref-kind
@@ -1585,11 +1384,6 @@ tests so the boundary cannot be re-litigated from memory. @architect @tech-lead
 <!-- sq:finding:F30 -->
 ### F30 — The Records view goes silently blank on a type-catalog failure
 
-<!-- sq:finding:F30:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F30:head:end -->
-
 <!-- sq:finding:F30:body -->
 Driven by the sweep. recordsTreeDataProvider.ts:133-134 falls back to NO_CATEGORIES on a failed type-catalog fetch, recordsTypes returns an empty list and buildRecordsView returns nothing for both the grouped and flat paths, while refresh() calls notifyError only for the LIST fetch -- so nothing is reported. package.json declares no viewsWelcome, so the panel renders wholly blank with no message. One failed getTypeCatalog degrades the three views in three different directions: Work keeps everything, Roster keeps its three fixed buckets, Records shows nothing. Filed after the fact because the sweep reported it and I did not transcribe it -- my omission, not the reviewers.
 <!-- sq:finding:F30:body:end -->
@@ -1603,11 +1397,6 @@ Driven by the sweep. recordsTreeDataProvider.ts:133-134 falls back to NO_CATEGOR
 <!-- sq:finding:F31 -->
 ### F31 — The client squad_dir regex misses valid single-quoted TOML
 
-<!-- sq:finding:F31:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F31:head:end -->
-
 <!-- sq:finding:F31:body -->
 Driven by the sweep. squadDir.ts:22,28 hand-rolls squad_dir out of .squads.toml with a double-quote-only regex and falls back to squads. sq reads squad_dir = (single-quoted, valid TOML) fine at exit 0; the client misses it and resolves the wrong directory, so squadWatcher.ts:53s RelativePattern watches a path that does not exist and AUTO-REFRESH SILENTLY NEVER FIRES -- manual refresh still works and resolveSquadDir returns a non-undefined string, so the tree never hits its no-squad short-circuit and nothing looks wrong. The m flag is also unanchored to top level, so a future table-scoped key would false-match. Filed after the fact for the same reason as the Records finding.
 <!-- sq:finding:F31:body:end -->
@@ -1620,11 +1409,6 @@ Driven by the sweep. squadDir.ts:22,28 hand-rolls squad_dir out of .squads.toml 
 
 <!-- sq:finding:F32 -->
 ### F32 — The graph node-click round trip is lossy for an underscored prefix
-
-<!-- sq:finding:F32:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F32:head:end -->
 
 <!-- sq:finding:F32:body -->
 Fixed.
@@ -1674,11 +1458,6 @@ of a string. Falsified: restoring the fold turns 26 tests red across the two fil
 <!-- sq:finding:F33 -->
 ### F33 — Derived pointer target uses the OS separator, breaking Windows
 
-<!-- sq:finding:F33:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F33:head:end -->
-
 <!-- sq:finding:F33:body -->
 **Fixed** — a real regression, confirmed. `str(convention_path.relative_to(paths.squad_dir))`
 renders with the host OS separator; on Windows that's a backslash, landing in a committed
@@ -1703,11 +1482,6 @@ is separator-stable). Falsified: reverted to plain `str()`, watched it redden, r
 
 <!-- sq:finding:F34 -->
 ### F34 — The runner duplicates a check sq check already makes
-
-<!-- sq:finding:F34:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F34:head:end -->
 
 <!-- sq:finding:F34:body -->
 **Fixed — recommendation adopted verbatim.** Reverted `_v0_2_to_v0_3.py`'s spec-threading: dropped
@@ -1734,11 +1508,6 @@ F35 and F37 addressed alongside this (see their own findings).
 <!-- sq:finding:F35 -->
 ### F35 — A runner docstring now denies that any runner threads the spec
 
-<!-- sq:finding:F35:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F35:head:end -->
-
 <!-- sq:finding:F35:body -->
 **Auto-resolved by F34's revert.** `_v0_2_to_v0_3.py` no longer threads the active spec — its own
 docstring now says "matching every other runner in this package (none of them thread the active
@@ -1755,11 +1524,6 @@ and with each other. No sentence needed correcting once the revert landed.
 
 <!-- sq:finding:F36 -->
 ### F36 — A stale path key on an already-migrated squad is never stripped
-
-<!-- sq:finding:F36:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F36:head:end -->
 
 <!-- sq:finding:F36:body -->
 **Decision: strip unconditionally, not accept the residue.** `_backfill_description` now checks
@@ -1795,11 +1559,6 @@ migration pass. Falsified: reverted to the description-only early return, watche
 <!-- sq:finding:F37 -->
 ### F37 — The spec-load swallow is unreachable and hides a check regression
 
-<!-- sq:finding:F37:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F37:head:end -->
-
 <!-- sq:finding:F37:body -->
 **WontFix — moot.** Conditional on the runner's spec read surviving, and it didn't: F34's revert
 dropped `_load_active_spec`, `_unreachable_status`, and the exception swallow entirely from
@@ -1817,11 +1576,6 @@ simply inapplicable — nothing left to fix.
 
 <!-- sq:finding:F38 -->
 ### F38 — search and inbox still abort whole-corpus on an out-of-squad path
-
-<!-- sq:finding:F38:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F38:head:end -->
 
 <!-- sq:finding:F38:body -->
 Driven, on the reviewed commit in an isolated worktree. F27's guard covers the read but not the
@@ -1877,11 +1631,6 @@ path helper.
 
 <!-- sq:finding:F39 -->
 ### F39 — repair invents created_at and the heal makes the loss permanent
-
-<!-- sq:finding:F39:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F39:head:end -->
 
 <!-- sq:finding:F39:body -->
 Driven, on the reviewed commit. The invented-timestamp default is not only read at a load boundary —
@@ -1939,11 +1688,6 @@ Fix direction (either, or both):
 <!-- sq:finding:F40 -->
 ### F40 — The marker single-definition guard misses a wrapped regex
 
-<!-- sq:finding:F40:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F40:head:end -->
-
 <!-- sq:finding:F40:body -->
 Driven, two holes, both in the new marker single-definition guard
 (`tests/meta/test_sq_marker_recognition_has_one_case_blind_definition.py`). Its stated job is "a
@@ -1996,11 +1740,6 @@ or to the specific line contents so a seventh pattern in `_meta_compat.py` fails
 <!-- sq:finding:F41 -->
 ### F41 — Every scale test has failed in setup since the actor guard landed
 
-<!-- sq:finding:F41:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F41:head:end -->
-
 <!-- sq:finding:F41:body -->
 Driven, and confirmed to pre-date the integrity-core work. Not one test — all five.
 
@@ -2041,11 +1780,6 @@ helper and runs unskipped.
 
 <!-- sq:finding:F42 -->
 ### F42 — ADR-663 does not name the absent-timestamp skew exclusion
-
-<!-- sq:finding:F42:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F42:head:end -->
 
 <!-- sq:finding:F42:body -->
 Read. `frontmatter_skew` now has two exclusion mechanisms, and only one of them is written down in
@@ -2124,11 +1858,6 @@ in another decision was narrowed.
 <!-- sq:finding:F43 -->
 ### F43 — The marker guard body label omits the remediation guidance
 
-<!-- sq:finding:F43:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F43:head:end -->
-
 <!-- sq:finding:F43:body -->
 Read, then driven. `reject_markers` (`_services/_base.py`) emits two different messages. The
 `title` and `comment message` labels get the extended one:
@@ -2175,11 +1904,6 @@ Fix: give the `body` label the extended message and update whatever asserts the 
 
 <!-- sq:finding:F44 -->
 ### F44 — sq graph mermaid merges two ids differing only by hyphen or underscore
-
-<!-- sq:finding:F44:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F44:head:end -->
 
 <!-- sq:finding:F44:body -->
 Reported by the typescript-dev while fixing F32, in the Python half she could not touch. _safe_id in _services/_refs.py folds non-alphanumeric characters the same way the client used to, and a fold is many-to-one -- so two declared prefixes differing only by hyphen versus underscore collapse to one node and sq graph --format mermaid draws two distinct items as a single node. Display-only: unlike the client there is no decode step, so nothing navigates to a wrong id. But the diagram is wrong before anyone clicks it, which is exactly the half of F32 the finding did not name. ItemSpec.prefix has no validator, so both spellings are legal. The client now escapes reversibly (non-alphanumerics to underscore plus four hex digits, fixed width); the same treatment applies here, and the two sides need not agree since neither decodes the others output.
@@ -2228,11 +1952,6 @@ sentence is now stale. It is in the typescript-dev's tree and I stayed out of it
 
 <!-- sq:finding:F45 -->
 ### F45 — The preview stamps a clickable item id on every mermaid node
-
-<!-- sq:finding:F45:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F45:head:end -->
 
 <!-- sq:finding:F45:body -->
 Reported by the typescript-dev, read from `clientScript`'s `g.node[data-item-id]` handler rather
@@ -2294,11 +2013,6 @@ here. The gate function is executed, and its wiring into the loop is asserted st
 
 <!-- sq:finding:F46 -->
 ### F46 — A category reassignment that contradicts itself loads clean
-
-<!-- sq:finding:F46:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F46:head:end -->
 
 <!-- sq:finding:F46:body -->
 Fixed. A category reassignment that contradicts itself now fails Plane-1 load validation and
@@ -2409,11 +2123,6 @@ refresh allowed to raise. All five reddened the intended tests.
 <!-- sq:finding:F47 -->
 ### F47 — parent_required is read for hints but never enforced at create
 
-<!-- sq:finding:F47:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F47:head:end -->
-
 <!-- sq:finding:F47:body -->
 Flagged by the dev while writing the F46 test, and not opened by him -- correctly, since it is pre-existing and outside that findings scope. Driven: sq create <type> with no parent succeeds even where the type declares parent_required, and it did so BEFORE any category reassignment. parent_required is not a create gate at all; it is read only by subtask_story_mapping and by hint text. So the field reads as a constraint and enforces nothing.
 
@@ -2498,11 +2207,6 @@ loaded before is now refused: `parent_required` pointing outside a non-empty `pa
 
 <!-- sq:finding:F48 -->
 ### F48 — Category consistency has no clause for a declared ref_rule
-
-<!-- sq:finding:F48:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F48:head:end -->
 
 <!-- sq:finding:F48:body -->
 Fixed, and the finding was right about the shape twice over: right that `ref_rules` needed a
@@ -2595,11 +2299,6 @@ type — it was asserting the wrong thing, not failing.
 <!-- sq:finding:F49 -->
 ### F49 — A broken role override is invisible to sq check
 
-<!-- sq:finding:F49:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F49:head:end -->
-
 <!-- sq:finding:F49:body -->
 Fixed. `sq check` now resolves every `.overrides/roles/<slug>.toml` and reports a file that
 will not load as an error-level issue, naming the file, the loader's own cause, and the
@@ -2685,11 +2384,6 @@ live dev roles. That is its own analysis, not a quiet adjacent change here.
 <!-- sq:finding:F50 -->
 ### F50 — A declared type dispatches to No such command under a broken override
 
-<!-- sq:finding:F50:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F50:head:end -->
-
 <!-- sq:finding:F50:body -->
 Fixed — the note was made true rather than corrected. Every one of the four surfaces now exits
 non-zero with the same named cause.
@@ -2764,11 +2458,6 @@ that exists precisely to stop this fix from swallowing every typo).
 
 <!-- sq:finding:F51 -->
 ### F51 — lifecycle_edges is orphaned by the diagram removal
-
-<!-- sq:finding:F51:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F51:head:end -->
 
 <!-- sq:finding:F51:body -->
 Fixed by deletion. `lifecycle_edges` is gone from `_workflow/_models.py`.

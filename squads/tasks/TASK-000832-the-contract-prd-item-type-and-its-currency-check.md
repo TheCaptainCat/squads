@@ -188,25 +188,10 @@ this lands. That is the correct signal.
 
 _Add with `sq task 832 add-subtask "<title>"`; track with `sq task 832 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Declare [items.contract] and its Draft-Active-Superseded lifecycle | US1 |
-| ST2 | Todo |  | The contract item template steering functional prose | US2 |
-| ST3 | Todo |  | The implements edge from a feature and the supersedes rule | US3 |
-| ST4 | Todo |  | The advisory ref_rule_target_present validator | US3 |
-| ST5 | Todo |  | Playbook entries and the generated sq-contract surface | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Declare [items.contract] and its Draft-Active-Superseded lifecycle
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a team, I can create and manage contract items (PRD prefix) like any other item type
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add one `[items.contract]` block and one `[lifecycles.contract]` block to
@@ -252,11 +237,6 @@ squad holding one.
 <!-- sq:subtask:ST2 -->
 ### ST2 — The contract item template steering functional prose
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a reader, a contract describes what the product does for a user right now, from the user's POV
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add `_rendering/templates/items/contract.md.j2`, steering the author toward **functional,
 user-facing behaviour prose**.
@@ -296,11 +276,6 @@ manifest is fresh with only the `0.14.0` entry changed.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — The implements edge from a feature and the supersedes rule
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Declare the two edges the living↔historic model rests on.
@@ -345,11 +320,6 @@ supersede rule.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — The advisory ref_rule_target_present validator
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — As a team, a feature links the contract it shapes, and stale contracts are surfaced when features land
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Add the advisory currency check as one more entry in the shipped validator framework — not a
@@ -466,11 +436,6 @@ that is the operator's call to make with a real number in hand.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Playbook entries and the generated sq-contract surface
-
-<!-- sq:subtask:ST5:head -->
-**Status:** ⚪ Todo
-**Implements:** US4 — As an agent, the sq-contract skill and .claude/AGENTS.md surface teach and expose the new type
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Grow the managed agent-facing surface for the new type, and verify it on the migrate path as well

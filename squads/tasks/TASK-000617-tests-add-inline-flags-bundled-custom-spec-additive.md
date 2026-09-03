@@ -54,9 +54,6 @@ spec — a service-level test plus a CLI smoke test, per repo convention.
 
 _Add with `sq task 617 add-subtask "<title>"`; track with `sq task 617 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

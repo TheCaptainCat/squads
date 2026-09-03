@@ -107,7 +107,7 @@ def test_a_genuine_dev_role_still_gets_dev_base_from_item() -> None:
     item = _item(
         "python-dev",
         is_dev=True,
-        extra={**role.to_extra(), X.TECH: "python"},
+        extra={**role.to_extra(is_dev=True), X.TECH: "python"},
     )
     assert _role_base_for_show("python-dev", item) == dev_base_from_item(item)
 

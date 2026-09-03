@@ -19,8 +19,15 @@ from squads import _itemfile as itemfile
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._models._extras import ExtraKey as X
+from squads._roles._resolver import resolve_role_for_item
 
 pytestmark = pytest.mark.anyio
+
+
+def _resolved(svc, item):
+    """*item*'s definition as every reader of it resolves one -- the role's own fields are
+    catalog answers, never a copy stored in its ``extra``."""
+    return resolve_role_for_item(item, svc.paths.squad_dir)
 
 
 def _place_dev_toml(squad_dir: Path, slug: str, content: str) -> None:
@@ -30,8 +37,10 @@ def _place_dev_toml(squad_dir: Path, slug: str, content: str) -> None:
 
 
 def _on_disk_full_name(svc, item) -> str:
+    """The name as the *file* carries it -- ``title``, the uniform-record field the resolved
+    full name projects onto, which is also where ``dev_base_from_item`` reads it back from."""
     fm = itemfile.read_frontmatter(text=item_file(svc.paths, item).read_text(encoding="utf-8"))
-    return fm["extra"]["full_name"]
+    return fm["title"]
 
 
 async def test_a_second_developers_full_name_survives_two_syncs_with_a_partial_override(
@@ -43,22 +52,22 @@ async def test_a_second_developers_full_name_survives_two_syncs_with_a_partial_o
     """
     await svc.add_dev("python")  # seq=0 -> pool[0]
     second = await svc.add_dev("typescript")  # seq=1 -> pool[1] ("Ada Typescript")
-    assert second.extra[X.FULL_NAME] == "Ada Typescript"
+    assert second.title == "Ada Typescript"
 
     _place_dev_toml(project.squad_dir, "typescript-dev", 'title = "Senior TypeScript developer"\n')
 
     await svc.sync()
     after_first_sync = await svc.get(second.id)
-    assert after_first_sync.extra[X.FULL_NAME] == "Ada Typescript"
+    assert after_first_sync.title == "Ada Typescript"
     assert _on_disk_full_name(svc, after_first_sync) == "Ada Typescript"
 
     await svc.sync()
     after_second_sync = await svc.get(second.id)
-    assert after_second_sync.extra[X.FULL_NAME] == "Ada Typescript"
+    assert after_second_sync.title == "Ada Typescript"
     assert _on_disk_full_name(svc, after_second_sync) == "Ada Typescript"
 
     # The override itself did apply -- this is not "sync ignored the file".
-    assert after_second_sync.extra[X.TITLE] == "Senior TypeScript developer"
+    assert _resolved(svc, after_second_sync).title == "Senior TypeScript developer"
 
 
 async def test_omitting_full_name_preserves_the_live_name(project, svc):
@@ -69,8 +78,8 @@ async def test_omitting_full_name_preserves_the_live_name(project, svc):
     await svc.sync()
 
     reloaded = await svc.get(second.id)
-    assert reloaded.extra[X.FULL_NAME] == second.extra[X.FULL_NAME]
-    assert _on_disk_full_name(svc, reloaded) == second.extra[X.FULL_NAME]
+    assert reloaded.title == second.title
+    assert _on_disk_full_name(svc, reloaded) == second.title
 
 
 async def test_declaring_full_name_renames_the_live_dev_role(project, svc):
@@ -79,13 +88,13 @@ async def test_declaring_full_name_renames_the_live_dev_role(project, svc):
     expectation from the omit case above; one test cannot cover both."""
     await svc.add_dev("python")
     second = await svc.add_dev("typescript")
-    assert second.extra[X.FULL_NAME] != "Zara Typescript"
+    assert second.title != "Zara Typescript"
 
     _place_dev_toml(project.squad_dir, "typescript-dev", 'full_name = "Zara Typescript"\n')
     await svc.sync()
 
     reloaded = await svc.get(second.id)
-    assert reloaded.extra[X.FULL_NAME] == "Zara Typescript"
+    assert reloaded.title == "Zara Typescript"
     assert _on_disk_full_name(svc, reloaded) == "Zara Typescript"
 
 
@@ -100,9 +109,13 @@ async def test_a_complete_dev_override_applies_every_declared_field(project, svc
     await svc.sync()
 
     reloaded = await svc.get(dev.id)
-    assert reloaded.extra[X.FULL_NAME] == "Priya Rust"
-    assert reloaded.extra[X.TITLE] == "Staff Rust developer"
-    assert reloaded.extra[X.MISSION] == "Own the Rust surface end to end."
+    assert reloaded.title == "Priya Rust"
+    resolved = _resolved(svc, reloaded)
+    assert resolved.full_name == "Priya Rust"
+    assert resolved.title == "Staff Rust developer"
+    assert resolved.mission == "Own the Rust surface end to end."
+    assert resolved.model == "opus"
+    # A dev's model has no catalog answer to fall back to, so it is also stored on the item.
     assert reloaded.extra[X.MODEL] == "opus"
 
 
@@ -122,13 +135,16 @@ async def test_sync_still_refuses_a_dev_override_whose_slug_disagrees_with_its_f
     project, svc
 ):
     dev = await svc.add_dev("elixir")
+    before = item_file(svc.paths, dev).read_text(encoding="utf-8")
     _place_dev_toml(project.squad_dir, "elixir-dev", 'slug = "other-dev"\ntitle = "x"\n')
 
     with pytest.raises(SquadsError, match="filename"):
         await svc.sync()
 
-    reloaded = await svc.get(dev.id)
-    assert reloaded.extra[X.TITLE] != "x"
+    # Nothing was mutated by the refused attempt. Asserted on the file's own bytes rather than
+    # through a resolve: the override that made this refuse is still on disk, so resolving the
+    # item would raise the same refusal again and prove nothing about what was written.
+    assert item_file(svc.paths, dev).read_text(encoding="utf-8") == before
 
 
 async def test_sync_no_ops_on_an_orphaned_custom_role_item(project, svc):

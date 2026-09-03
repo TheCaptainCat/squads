@@ -87,22 +87,10 @@ missed identity check not in the grep (implicit reliance on enum ordering/member
 
 _Add with `sq task 234 add-subtask "<title>"`; track with `sq task 234 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Reify the ~22 is-ItemType/is-Status checks onto flags across engine + backends | US2 |
-| ST2 | Todo |  | Replace WORK_TYPES/_SUBENTITY maps/parent_hint with spec-derived flag queries | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Reify the ~22 is-ItemType/is-Status checks onto flags across engine + backends
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a maintainer, I want engine spine checks replaced by TypeSpec flags so custom types can declare their own semantics
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers reifying the ~22 hardcoded `is ItemType.X`/`is Status.X` identity checks across `_services` (_base/_items/_maintenance/_subentities/_service), `_cli/_common.py`, `_workflow/__init__.py`, and both backends so the engine consults `TypeSpec`/`StatusSpec` capability flags (`is_meta`, `subentity_kind`, `severity_field`, `parent_required`, `ref_rules`, `StatusSpec.role == "superseded"`) instead of comparing to enum members. Migrations (`_vN_*.py`) are excluded as frozen historical code; field types are unchanged here; behavior stays byte-identical. (US2)
@@ -116,11 +104,6 @@ Covers reifying the ~22 hardcoded `is ItemType.X`/`is Status.X` identity checks 
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Replace WORK_TYPES/_SUBENTITY maps/parent_hint with spec-derived flag queries
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a maintainer, I want engine spine checks replaced by TypeSpec flags so custom types can declare their own semantics
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the specific structural replacements: the `WORK_TYPES` tuple becomes `spec.work_types()` (types with `not is_meta`), the `_SUBENTITY` maps in `_items.py`/`_common.py` become `subentity_kind` lookups (feature→story, task→subtask, review→finding), and `parent_hint`'s task-specific branch becomes spec-derived from `ref_rules`. The TASK-233 characterization tests pass UNCHANGED as the equivalence proof. (US2)

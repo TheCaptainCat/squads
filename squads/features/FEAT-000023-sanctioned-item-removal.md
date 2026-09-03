@@ -73,22 +73,10 @@ assume about it?
 
 _Add with `sq feature 23 add-story "As a <role>, I want … so that …"`; track with `sq feature 23 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Safe item removal without hand-editing files or index |
-| US2 | Done |  | Removal refuses or severs incoming refs to prevent dangling links |
-| US3 | Done |  | Sequence number gaps explained as recorded removals |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Safe item removal without hand-editing files or index
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** `sq <type> <n> remove` deletes the .md and index entry in one transaction with interactive confirmation (`--yes` to skip); the counter's high-water mark survives removal and a subsequent `sq repair` (never re-issues the number).
@@ -105,10 +93,6 @@ As an operator who created an item by mistake, I want sq remove to take it off t
 <!-- sq:story:US2 -->
 ### US2 — Removal refuses or severs incoming refs to prevent dangling links
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** removal refuses when incoming refs or children exist, listing them; `--force` severs refs from referrers' frontmatter and requires children to be re-parented first; `sq check` is clean after any removal.
 
@@ -123,10 +107,6 @@ As a teammate whose items reference the removed one, I want removal to refuse or
 
 <!-- sq:story:US3 -->
 ### US3 — Sequence number gaps explained as recorded removals
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** every removal leaves a queryable trace (tombstone/log per the design ADR); docs state the remove-vs-cancel rule (cancel = dropped work, remove = should never have existed).

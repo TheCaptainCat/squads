@@ -354,7 +354,7 @@ class TestReactivationRestoresAScopedSkill:
         (``BackendContext(paths=..., spec=...)`` with no ``role_skills`` at all) and prove it
         loses the scoped skill, before confirming the real reactivation path does not."""
         from squads._backends._base import BackendContext
-        from squads._roles._catalog import RoleDef
+        from squads._roles._resolver import resolve_role_for_item
 
         role = await svc.activate_role("qa")
         skill = await svc.add_skill("Custom Helper")
@@ -364,7 +364,7 @@ class TestReactivationRestoresAScopedSkill:
         role_item = await svc.get(role.id)
         for backend in svc._backends():
             await backend.generate_role_entry(
-                wrong_ctx, role_item, RoleDef.from_extra(role_item.extra)
+                wrong_ctx, role_item, resolve_role_for_item(role_item, svc.paths.squad_dir)
             )
         assert "custom-helper" not in _pointer(project, "qa").read_text(encoding="utf-8"), (
             "an empty role_skills context was expected to lose the scoped skill — if this "

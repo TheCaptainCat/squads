@@ -183,21 +183,10 @@ how `can_spawn` is surfaced for Slice A.
 
 _Add with `sq feature 122 add-story "As a <role>, I want … so that …"`; track with `sq feature 122 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Full structured capability profile per role (Slice B — gated on FEAT-125) |
-| US2 | Done |  | Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-152) |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Full structured capability profile per role (Slice B — gated on FEAT-125)
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squad manager, I want each worker role to declare its create lane and have out-of-lane creates surface a visible advisory warning, so that I can detect accidental lane violations in the reflog without blocking legitimate cross-lane coordination.
@@ -231,10 +220,6 @@ As a squad manager, I want each worker role to declare its create lane and have 
 
 <!-- sq:story:US2 -->
 ### US2 — Leaf roles structurally blocked from spawning agents (Slice A — fixes BUG-152)
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As any leaf-role agent (dev, qa, reviewer, architect), I want the system to prevent me from invoking the Agent/Task spawn tool, so that I cannot accidentally (or autonomously) re-delegate work that was assigned to me.

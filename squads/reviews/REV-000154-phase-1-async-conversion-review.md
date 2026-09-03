@@ -60,26 +60,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 154 add-finding "…" --severity high`; track with `sq review 154 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | transaction() in-process exclusion is not guaranteed: concurrent coroutines can corrupt the index |
-| F2 | 🟡 medium | Verified |  | repair() calls blocking store.overwrite() on the event loop |
-| F3 | 🟡 medium | Verified |  | Blocking path.exists() in inbox/search loops below the async edge |
-| F4 | 🟢 low | Verified |  | Blocking sync IO in init/adopt: mkdir/exists/create_empty on the event loop |
-| F5 | 🟢 low | Verified |  | repair/_scan_records use sync read_frontmatter() in a per-file loop |
-| F6 | 🟢 low | Verified |  | C8 not finished: tests/test_async_spike.py still exists; Timeout test not migrated |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — transaction() in-process exclusion is not guaranteed: concurrent coroutines can corrupt the index
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **File:** `src/squads/_index/_store.py:94-151` (`IndexStore.transaction`) + ADR-153 Decision 2.
@@ -122,11 +106,6 @@ Observed: `distinct acquire threads: 1 of 4`, `max coroutines simultaneously ins
 <!-- sq:finding:F2 -->
 ### F2 — repair() calls blocking store.overwrite() on the event loop
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **File:** `src/squads/_services/_maintenance.py:243` (`repair`) → `src/squads/_index/_store.py:163-166` (`IndexStore.overwrite`).
 
@@ -148,11 +127,6 @@ The whole point of ADR-153 Decision 2 (option a) is that the lock acquire — wh
 <!-- sq:finding:F3 -->
 ### F3 — Blocking path.exists() in inbox/search loops below the async edge
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **File:** `src/squads/_services/_collab.py:80` (`inbox`) and `:99` (`search`).
 
@@ -171,11 +145,6 @@ The whole point of ADR-153 Decision 2 (option a) is that the lock acquire — wh
 
 <!-- sq:finding:F4 -->
 ### F4 — Blocking sync IO in init/adopt: mkdir/exists/create_empty on the event loop
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 **File:** `src/squads/_services/_service.py` — `init` (61, 76, 78, 82) and `adopt` (113, 127, 129, 131, 135, 136).
@@ -197,11 +166,6 @@ The whole point of ADR-153 Decision 2 (option a) is that the lock acquire — wh
 
 <!-- sq:finding:F5 -->
 ### F5 — repair/_scan_records use sync read_frontmatter() in a per-file loop
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 **File:** `src/squads/_services/_maintenance.py:219` (`repair`), `:323` (`_scan_records`) → `src/squads/_itemfile.py:17-22` (`read_frontmatter`, sync).
@@ -225,11 +189,6 @@ The whole point of ADR-153 Decision 2 (option a) is that the lock acquire — wh
 
 <!-- sq:finding:F6 -->
 ### F6 — C8 not finished: tests/test_async_spike.py still exists; Timeout test not migrated
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **File:** `tests/test_async_spike.py` (still present; 7 tests).

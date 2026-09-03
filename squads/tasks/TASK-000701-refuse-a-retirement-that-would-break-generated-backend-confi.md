@@ -170,25 +170,10 @@ test name, or source comment.
 
 _Add with `sq task 701 add-subtask "<title>"`; track with `sq task 701 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Evaluate the clauses in the pure half of the status transition | US5 |
-| ST2 | Done |  | Widen rm_ref with an optional kind and demote unlink_role to a wrapper | US5 |
-| ST3 | Done |  | Add --unlink to the roster status verb: sever, re-evaluate, report | US5 |
-| ST4 | Done |  | Word each refusal to its tier with a satisfiable remedy | US5 |
-| ST5 | Done |  | Cover the refusals, the escape and the importer replay | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Evaluate the clauses in the pure half of the status transition
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Call the shared clause predicates from `_set_status_model` in `_services/_items.py` — the pure, pre-write half of the transition, which needs only the transaction's own snapshot. A violated clause raises a `SquadsError` before anything is written.
@@ -211,11 +196,6 @@ Done when each clause refuses at transition time, `--force` does not lift any of
 <!-- sq:subtask:ST2 -->
 ### ST2 — Widen rm_ref with an optional kind and demote unlink_role to a wrapper
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Engine hygiene called out in ADR-697 §8, and a prerequisite for the flag rather than a cleanup: the flag must not inherit the special case it exists to avoid.
 
@@ -236,11 +216,6 @@ Done when `rm_ref` honours a kind filter, `unlink_role` is a wrapper with unchan
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Add --unlink to the roster status verb: sever, re-evaluate, report
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `--unlink` on the roster `status` verb, registered once on the shared `register_status_verb` in `_cli/_common.py` that the three addressed subgroups already use, and offered only for a `roster`-category type — no other category has config-integrity clauses for it to satisfy.
@@ -269,11 +244,6 @@ Done when the flag severs only tier-1 edges, re-evaluates unforced, reports and 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Word each refusal to its tier with a satisfiable remedy
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 Every refusal is satisfiable and names the specific remedy for its clause. C3 additionally enumerates its dependants and classifies each by tier, because the refusal *is* the dry run — an operator decides whether to reach for the flag by reading it.
 
@@ -298,11 +268,6 @@ Done when each refusal names a remedy that exists, the tiers are distinguishable
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Cover the refusals, the escape and the importer replay
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Service level plus a CLI smoke per surface, named by behaviour. No ticket ID in any file name, test name or source comment.

@@ -117,25 +117,10 @@ declared kind a view's source can name — and FEAT-693 should not wait on the l
 
 _Add with `sq task 796 add-subtask "<title>"`; track with `sq task 796 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Declare the [ref_kinds] section and its spec model | US1 |
-| ST2 | InProgress |  | Move the bundled ref kinds into workflow.toml | US1 |
-| ST3 | Done |  | Retire VALID_REF_KINDS at the consultation sites | US1 |
-| ST4 | Done |  | Re-authority the ref_rules kind check onto the declared section | US1 |
-| ST5 | Done |  | sq workflow ref-kinds --json and the bundled targets kind | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Declare the [ref_kinds] section and its spec model
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add `[ref_kinds]` to `WORKFLOW_TOP_LEVEL_SECTIONS`, to the closed `[selected]` section list,
@@ -160,11 +145,6 @@ is deselectable via `[selected]`, all exercised by tests at the loader level.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Move the bundled ref kinds into workflow.toml
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟡 In Progress
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Move the nine bundled kinds — `related`, `blocks`, `depends-on`, `implements`, `fixes`,
 `addresses`, `supersedes`, `duplicates`, `scopes` — into `_specs/workflow.toml` as declared
@@ -187,11 +167,6 @@ generated kinds table renders from the merged spec rather than from a hand-writt
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Retire VALID_REF_KINDS at the consultation sites
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Retire `VALID_REF_KINDS` (`_models/_item.py:89-101`) as the vocabulary authority. Each
@@ -219,11 +194,6 @@ project that declares its own kind can add, read, list and graph edges of it.
 <!-- sq:subtask:ST4 -->
 ### ST4 — Re-authority the ref_rules kind check onto the declared section
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 `ItemSpec.ref_rules` already carries a per-type `kind`, and the loader already refuses a rule
 naming a kind no ref surface would accept, on the stated ground that such a rule could never
@@ -246,11 +216,6 @@ adopter-declared kind loads.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — sq workflow ref-kinds --json and the bundled targets kind
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — sq workflow ref-kinds --json catalog command
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Declare `targets` bundled with **no** semantic — the worked example of a kind whose only consumer

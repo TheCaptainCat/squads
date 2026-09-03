@@ -57,9 +57,6 @@ is not already a `related` ref, `sq decision <n> ref add <target> --kind related
 
 _Add with `sq task 586 add-subtask "<title>"`; track with `sq task 586 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

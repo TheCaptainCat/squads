@@ -69,22 +69,10 @@ revisiting, that's a new item, not scope creep here.
 
 _Add with `sq feature 18 add-story "As a <role>, I want … so that …"`; track with `sq feature 18 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Architecture guide readable through sq |
-| US2 | Done |  | Standing design decisions on record as ADRs |
-| US3 | Done |  | Guides and ADRs cross-linked by refs |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Architecture guide readable through sq
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** a guide item covers the layering (_cli → _services → index/backends/rendering), the data model (items, sub-entities, index) and the marker mechanism; `sq search architecture` finds it.
@@ -107,10 +95,6 @@ As a new agent or contributor, I want an architecture guide readable through sq,
 <!-- sq:story:US2 -->
 ### US2 — Standing design decisions on record as ADRs
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** each standing call (frontmatter as source of truth, global counter, forward-only refs, marker-safe edits, pluggable backends, schema-version scheme) has its own ADR item written as a decision in force, with context and consequences.
 
@@ -127,10 +111,6 @@ As an architect, I want the standing design decisions on record as ADRs, so that
 
 <!-- sq:story:US3 -->
 ### US3 — Guides and ADRs cross-linked by refs
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** guides ref the ADRs they explain and vice versa (`--kind related`); the schema_version and Python-floor ADRs called for by FEAT-13 / FEAT-17 can join the same record.

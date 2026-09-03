@@ -112,24 +112,10 @@ tasks don't both edit `_v0_4_to_v0_5.py` concurrently.
 
 _Add with `sq task 330 add-subtask "<title>"`; track with `sq task 330 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Delete Status enum; narrow _RESERVED_FLOOR to Draft/Active/Archived + STATUS_* constants | US2 |
-| ST2 | Done |  | Add completion flag + one-completion-per-machine validation; flag default_workflow.toml | US2 |
-| ST3 | Done |  | Sub-entity create=start state, done-toggle=completion status (no Status literals) | US2 |
-| ST4 | Done |  | Freeze Status refs in _v0_4_to_v0_5.py + _meta_compat.py to inline frozen local status-name constants | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Delete Status enum; narrow _RESERVED_FLOOR to Draft/Active/Archived + STATUS_* constants
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Statuses become ordinary spec vocabulary
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Delete the Status StrEnum from _enums.py; drop the Status(value) coercion in _workflow/_loader.py (keys stay str). Narrow _RESERVED_FLOOR to exactly Draft/Active/Archived and add validated STATUS_ACTIVE/STATUS_DRAFT/STATUS_ARCHIVED constants for the agent-lifecycle bindings in _maintenance.py/_roster.py. Flip remaining Status annotations to str.
@@ -144,11 +130,6 @@ Delete the Status StrEnum from _enums.py; drop the Status(value) coercion in _wo
 <!-- sq:subtask:ST2 -->
 ### ST2 — Add completion flag + one-completion-per-machine validation; flag default_workflow.toml
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Statuses become ordinary spec vocabulary
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add a completion (done-role) flag on StatusSpec layered atop FEAT-211's terminal flag, plus spec-load validation that each sub-entity/finding machine names exactly one completion status. Flag Done/Fixed as the completion status on each sub-entity/finding machine in default_workflow.toml so behavior stays byte-identical with no override.
 <!-- sq:subtask:ST2:body:end -->
@@ -162,11 +143,6 @@ Add a completion (done-role) flag on StatusSpec layered atop FEAT-211's terminal
 <!-- sq:subtask:ST3 -->
 ### ST3 — Sub-entity create=start state, done-toggle=completion status (no Status literals)
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Statuses become ordinary spec vocabulary
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 In _services/_subentities.py, create sets the machine's start state (no Status.TODO literal) and the done-toggle resolves the machine's completion status (no Status.DONE literal); terminal-but-not-done states like Cancelled/WontFix must not satisfy the toggle.
 <!-- sq:subtask:ST3:body:end -->
@@ -179,11 +155,6 @@ In _services/_subentities.py, create sets the machine's start state (no Status.T
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Freeze Status refs in _v0_4_to_v0_5.py + _meta_compat.py to inline frozen local status-name constants
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Statuses become ordinary spec vocabulary
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Replace Status.X in _v0_4_to_v0_5.py and _meta_compat.py with inline frozen local status-name constants equal to the status names as they existed at that schema version. Point-in-time snapshot pinned into the runner, never the live spec or the removed enum. _v0_4_to_v0_5.py's ItemType refs are TASK-328's.

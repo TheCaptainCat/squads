@@ -100,25 +100,10 @@ edges you have to route around."
 
 _Add with `sq feature 575 add-story "As a <role>, I want … so that …"`; track with `sq feature 575 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Add sq role list (active roster, active/inactive marker) |
-| US2 | Done |  | Add sq operator list (+ --json) |
-| US3 | Done |  | Add guarded remove for finding/story/subtask sub-entities |
-| US4 | Done |  | Add sq <type> <n> comments read-back verb (+ --json) |
-| US5 | Done |  | Lock in add-finding/add-story/add-subtask body-input parity |
-| US6 | Cancelled |  | Bundled designer/UX role (shape TBD — architect) |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Add sq role list (active roster, active/inactive marker)
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 New verb distinct from sq role catalog; lists activated roles with a marker column (F3).
@@ -133,10 +118,6 @@ New verb distinct from sq role catalog; lists activated roles with a marker colu
 <!-- sq:story:US2 -->
 ### US2 — Add sq operator list (+ --json)
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Enumerate registered operators; currently only add/show/rm exist (F4).
 <!-- sq:story:US2:body:end -->
@@ -149,10 +130,6 @@ Enumerate registered operators; currently only add/show/rm exist (F4).
 
 <!-- sq:story:US3 -->
 ### US3 — Add guarded remove for finding/story/subtask sub-entities
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 Parity with parent-item remove: hard-delete + --yes confirmation (F13).
@@ -167,10 +144,6 @@ Parity with parent-item remove: hard-delete + --yes confirmation (F13).
 <!-- sq:story:US4 -->
 ### US4 — Add sq <type> <n> comments read-back verb (+ --json)
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 List an item's discussion without going through full show --json (F15).
 <!-- sq:story:US4:body:end -->
@@ -184,10 +157,6 @@ List an item's discussion without going through full show --json (F15).
 <!-- sq:story:US5 -->
 ### US5 — Lock in add-finding/add-story/add-subtask body-input parity
 
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
-
 <!-- sq:story:US5:body -->
 Verify --file/-/-m already satisfy the non-stub path uniformly across all three add-* commands; add regression coverage (F10).
 <!-- sq:story:US5:body:end -->
@@ -200,10 +169,6 @@ Verify --file/-/-m already satisfy the non-stub path uniformly across all three 
 
 <!-- sq:story:US6 -->
 ### US6 — Bundled designer/UX role (shape TBD — architect)
-
-<!-- sq:story:US6:head -->
-**Status:** ⚫ Cancelled
-<!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->
 F7: no bundled designer/UX role today; dev add requires a coding --tech. Track the gap here; exact shape (bundled role vs. dev add --tech ux --kind design) is the architect's call — don't build ahead of that decision.

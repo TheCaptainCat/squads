@@ -49,23 +49,10 @@ Update the sq-review / sq-task / sq-feature skill generation templates to state 
 
 _Add with `sq task 170 add-subtask "<title>"`; track with `sq task 170 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add handle-vs-body note to sq-review add-finding guidance | US3 |
-| ST2 | Done |  | Add handle-vs-body note to sq-task add-subtask guidance | US3 |
-| ST3 | Done |  | Add handle-vs-body note to sq-feature add-story guidance | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add handle-vs-body note to sq-review add-finding guidance
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As any agent, I want the sq-review / sq-task / sq-feature skills to tell me titles are handles
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 In the sq-review skill template, near the add-finding guidance, add a concise (1–2 sentence) note: the finding title is a short one-line handle; the full finding description goes in the finding body. Must regenerate via sq sync with no manual edits.
@@ -80,11 +67,6 @@ In the sq-review skill template, near the add-finding guidance, add a concise (1
 <!-- sq:subtask:ST2 -->
 ### ST2 — Add handle-vs-body note to sq-task add-subtask guidance
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As any agent, I want the sq-review / sq-task / sq-feature skills to tell me titles are handles
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 In the sq-task skill template, near the add-subtask guidance, add a concise (1–2 sentence) note: the subtask title is a short handle; implementation detail goes in the subtask body. Must regenerate via sq sync with no manual edits.
 <!-- sq:subtask:ST2:body:end -->
@@ -97,11 +79,6 @@ In the sq-task skill template, near the add-subtask guidance, add a concise (1�
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Add handle-vs-body note to sq-feature add-story guidance
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As any agent, I want the sq-review / sq-task / sq-feature skills to tell me titles are handles
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 In the sq-feature skill template, near the add-story guidance, add a concise (1–2 sentence) note: the story title is the short user-story phrase; acceptance criteria and detail go in the story body. Must regenerate via sq sync with no manual edits. Verify sq sync is idempotent across all three skills (no diff on a second run).

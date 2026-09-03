@@ -90,23 +90,10 @@ See subtasks US1/US2/US3 for the per-story slices.
 
 _Add with `sq task 182 add-subtask "<title>"`; track with `sq task 182 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Depth-bounded ref traversal in the service layer | US1 |
-| ST2 | Done |  | Kind + direction filters on the traversal and CLI | US2 |
-| ST3 | Done |  | dot/mermaid export of the traversed graph | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Depth-bounded ref traversal in the service layer
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Depth-bounded dependency tree for one item before greenlighting
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 US1 — depth-bounded dependency tree before greenlighting.
@@ -132,11 +119,6 @@ Acceptance for this slice: `sq graph <id>` at depth 2 both-directions shows neig
 <!-- sq:subtask:ST2 -->
 ### ST2 — Kind + direction filters on the traversal and CLI
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Filter graph by kind and direction to pull only relevant context
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 US2 — filter the graph by kind and direction.
 
@@ -158,11 +140,6 @@ Acceptance for this slice: kind/direction filters behave (pulling only the reque
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — dot/mermaid export of the traversed graph
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — dot/mermaid export for full-graph rendering outside the terminal
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 US3 — dot/mermaid export for full-graph rendering outside the terminal.

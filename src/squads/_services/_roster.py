@@ -7,7 +7,11 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
-from squads._roles._resolver import resolve_dev_role, resolve_role
+from squads._roles._resolver import (
+    holds_default_designation,
+    resolve_dev_role,
+    resolve_role,
+)
 from squads._services._base import ServiceCore
 from squads._services._results import DefaultRoleMoveResult, MineRow, WorkloadRow
 from squads._util import operator_slug, slugify
@@ -50,10 +54,7 @@ class RosterMixin(ServiceCore):
             description=role.mission,
             slug=role.slug,
             author=role.slug,  # an activated role authors itself
-            extra={
-                **role.to_extra(),
-                X.DESCRIPTION: role.description,
-            },
+            extra=role.to_extra(),
         )
         # Materialise iff live: a project whose roster lifecycle's own
         # `initial` is non-live gets a parked-then-activated entry with no files yet —
@@ -81,8 +82,7 @@ class RosterMixin(ServiceCore):
             slug=role.slug,
             author=role.slug,  # a dev role authors itself
             extra={
-                **role.to_extra(),
-                X.DESCRIPTION: role.description,
+                **role.to_extra(is_dev=True),
                 X.IS_DEV: True,
                 X.TECH: tech,
             },
@@ -175,6 +175,17 @@ class RosterMixin(ServiceCore):
         a squad that already carries two (the state the bulk importer's ``update`` event can
         reach, since it is the only path that writes this key today outside this method).
 
+        **A holder is found by resolving, never by reading ``extra.is_default`` raw.** The
+        stored key is an *override* on a designation the role catalog also answers
+        (:func:`~squads._roles._resolver.role_base_from_item` falls back to the catalog's own
+        ``is_default``), and a role item no longer stores the key unless something wrote it —
+        so the catalog's designated role holds the designation with nothing in its ``extra`` at
+        all. A raw read finds no holder there, clears nothing, and leaves the squad with two
+        live defaults: the one this call just wrote and the one the catalog still names. That
+        is the same failure as the sync revert, reached from the other end, and resolving is
+        what closes both. Clearing writes an explicit ``False``, which is the only thing that
+        can override a designation the catalog (or a project override document) declares.
+
         Refuses a non-live target: a designation the projection cannot read is not a
         designation, and the generated default-role line already omits itself when no live
         role carries it. Designating the role that already holds it — with nothing else to
@@ -207,7 +218,7 @@ class RosterMixin(ServiceCore):
                 if (
                     other.type == ROSTER_ROLE
                     and other.id != item.id
-                    and other.extra.get(X.IS_DEFAULT, False)
+                    and holds_default_designation(other, self.paths.squad_dir)
                 ):
                     other_base = other.model_copy(deep=True)
                     other.extra[X.IS_DEFAULT] = False
@@ -218,7 +229,7 @@ class RosterMixin(ServiceCore):
                     )
                     cleared.append(other.id)
 
-            was_default = item.extra.get(X.IS_DEFAULT, False)
+            was_default = holds_default_designation(item, self.paths.squad_dir)
             changed = bool(cleared) or not was_default
             if not was_default:
                 base = item.model_copy(deep=True)

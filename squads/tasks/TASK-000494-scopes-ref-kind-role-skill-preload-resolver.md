@@ -88,21 +88,10 @@ always recomputable from system membership + scopes edges, so `repair` needs no 
 
 _Add with `sq task 494 add-subtask "<title>"`; track with `sq task 494 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Resolve a role's preload set from system membership + scopes edges | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Resolve a role's preload set from system membership + scopes edges
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a squad author, I want to scope a custom skill to one or more roles so exactly those agents preload it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 scopes ref kind + service resolver: for role R, union skills_for_role(R) with skills carrying R:scopes (kind-filtered backrefs), dedup system-first then scoped; the resolved list is the single source for both the pointer skills: YAML and the role body ## Skills (via BackendContext), consistent across backends.

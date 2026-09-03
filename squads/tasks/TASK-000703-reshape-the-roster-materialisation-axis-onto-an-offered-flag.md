@@ -147,24 +147,10 @@ reads `initial`, the projection reads the flag, and the two simply disagree for 
 
 _Add with `sq task 703 add-subtask "<title>"`; track with `sq task 703 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add offered to the status role and the bundled spec |  |
-| ST2 | Done |  | Reshape the two role-keyed accessors onto the flag |  |
-| ST3 | Done |  | Convert the nine call sites the three ways they split |  |
-| ST4 | Done |  | Restate the roster lifecycle floor as R1, R1' and R2 |  |
-| ST5 | Done |  | Keep the no-status-literal guard and the grammar true |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add offered to the status role and the bundled spec
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 A fourth boolean on the status-role object, alongside `settled`, `hidden`, and `color`:
@@ -220,10 +206,6 @@ role, the catalog JSON emits it, and every golden/fixture/canary that pins the r
 <!-- sq:subtask:ST2 -->
 ### ST2 — Reshape the two role-keyed accessors onto the flag
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Two derived accessors on the workflow spec, computed from the type's lifecycle states and the
 existing resolved-role lookup — no new stored field, nothing an adopter declares twice:
@@ -268,10 +250,6 @@ fail-closed on a spec that violates the floor.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Convert the nine call sites the three ways they split
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 The nine sites the foundation task converted to the role-name-keyed accessors are reconverted, and
@@ -326,10 +304,6 @@ predicate under a header that describes it.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Restate the roster lifecycle floor as R1, R1' and R2
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The additional floor a lifecycle bound to a `category = "roster"` type must satisfy, restated
@@ -388,10 +362,6 @@ reports every violation at once with the type named.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Keep the no-status-literal guard and the grammar true
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 The repo-hygiene scan added by the foundation task — no bundled roster status name may appear as a

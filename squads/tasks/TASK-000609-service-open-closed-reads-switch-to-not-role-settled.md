@@ -33,9 +33,6 @@ Implements FEAT-605 US1. Switch the service-level open/closed reads off the old 
 
 _Add with `sq task 609 add-subtask "<title>"`; track with `sq task 609 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

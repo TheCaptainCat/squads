@@ -67,22 +67,10 @@ allocation primitive). Sequence last among the core three.
 
 _Add with `sq task 189 add-subtask "<title>"`; track with `sq task 189 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Ordered migration walks agents/skills, allocates ids, stamps frontmatter | US2 |
-| ST2 | Done |  | Migration runs repair, stamps schema bump, ordering parity with init | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Ordered migration walks agents/skills, allocates ids, stamps frontmatter
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Automatic migration retrofits existing skills with IDs on sq migrate up
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the new ordered migration runner (private _vN_M_to_vP_Q.py registered in MIGRATIONS, run only via sq migrate up) that walks agents/skills/ in the shared lexical-by-slug order from TASK-188, allocates a SKILL-… id per skill through IndexStore.transaction() (invariant 2), and stamps sq frontmatter onto each existing skill body file leaving bodies and .claude/ pointers intact (invariant 5). Skips skills already carrying a SKILL id (idempotent, ADR #4).
@@ -96,11 +84,6 @@ Covers the new ordered migration runner (private _vN_M_to_vP_Q.py registered in 
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Migration runs repair, stamps schema bump, ordering parity with init
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Automatic migration retrofits existing skills with IDs on sq migrate up
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the migration's finalization: sq migrate up runs repair and stamps the new (release-cut-pinned) SCHEMA_VERSION after retrofitting, plus the ordering-parity test proving a migrated squad and a fresh sq init squad place the same skill in the same ordinal position (lexical-by-slug; identical numeric ids NOT asserted, per ADR #5). Includes the manual runbook surfacing in sq migrate chlog.

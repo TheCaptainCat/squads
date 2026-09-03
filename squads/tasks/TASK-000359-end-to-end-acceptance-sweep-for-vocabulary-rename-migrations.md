@@ -38,22 +38,10 @@ Files owned: tests/ (new acceptance test module, name by behaviour not ticket id
 
 _Add with `sq task 359 add-subtask "<title>"`; track with `sq task 359 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | End-to-end acceptance of rename-type | US1 |
-| ST2 | Todo |  | End-to-end acceptance of rename-status | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — End-to-end acceptance of rename-type
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 End-to-end acceptance of rename-type: on a squad with a target type declared via `.overrides/workflow.toml`, seeded items carrying sub-entities, non-initial statuses, cross-refs, and prose mentions are renamed and every id, folder, parent/ref, frontmatter, and prose mention is rewritten — with sub-entities and status preserved unconditionally (the point of the feature, which retype's guardrails would have rejected or reset) — and `sq check` plus `sq repair` both come out clean. Covered by the behaviour-named `tests/test_rename_acceptance.py`.
@@ -67,11 +55,6 @@ End-to-end acceptance of rename-type: on a squad with a target type declared via
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — End-to-end acceptance of rename-status
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a project admin, I want sq migrate rename-status to safely rename a status across all items of a type
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 End-to-end acceptance of rename-status: a rename to a status outside the type's lifecycle fails closed with no partial rewrite (every item's status unchanged after the failed call), plus a happy-path move of all matching items. Also asserts the audit trail (one reflog line + one system discussion comment per item), reserved-meta rejection, and no `SCHEMA_VERSION`/registry drift.

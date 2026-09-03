@@ -132,22 +132,10 @@ sanctioned, so that rule would be a trap laid for a decision already made.
 
 _Add with `sq task 812 add-subtask "<title>"`; track with `sq task 812 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Reachability sweep in the generator's write mode | US1 |
-| ST2 | Done |  | Orphan guard as a maintained invariant | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Reachability sweep in the generator's write mode
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add the reachability sweep to the generator's write mode
@@ -191,11 +179,6 @@ still writes nothing, and both contract sentences read as the narrowed rule.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Orphan guard as a maintained invariant
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Promote `tests/meta/test_override_manifest_and_stamp_freshness.py:150-158` from an assertion that

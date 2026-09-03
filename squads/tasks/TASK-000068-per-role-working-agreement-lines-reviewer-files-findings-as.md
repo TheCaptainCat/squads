@@ -26,9 +26,6 @@ updated_at: '2026-06-12T13:37:48Z'
 
 _Add with `sq task 68 add-subtask "<title>"`; track with `sq task 68 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

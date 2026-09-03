@@ -61,22 +61,10 @@ the introducing release) — the decision belongs to the contract, not to a migr
 
 _Add with `sq feature 13 add-story "As a <role>, I want … so that …"`; track with `sq feature 13 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Migration promise for 0.x squads reaching 1.0 |
-| US2 | Done |  | SemVer-stable CLI and --json surfaces documented |
-| US3 | Done |  | Internals explicitly marked non-public |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Migration promise for 0.x squads reaching 1.0
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** docs/stability.md states the migration promise verbatim — any squad created on any 0.x release reaches 1.0 intact via `sq migrate up` — and names it the strongest tier.
@@ -93,10 +81,6 @@ As a squad user on 0.x, I want a written promise that my items reach 1.0 via sq 
 <!-- sq:story:US2 -->
 ### US2 — SemVer-stable CLI and --json surfaces documented
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** the doc tiers CLI grammar and --json shapes as SemVer-stable from 1.0, says what 'additive change' means for JSON, and the README paragraph links to it.
 
@@ -111,10 +95,6 @@ As a script author, I want to know which CLI and --json surfaces are SemVer-stab
 
 <!-- sq:story:US3 -->
 ### US3 — Internals explicitly marked non-public
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** Python import paths are documented as not public (underscore convention is the contract) and generated .claude/ files as regenerable-never-migrated; the post-1.0 schema_version scheme is settled and recorded in an ADR linked from the doc.

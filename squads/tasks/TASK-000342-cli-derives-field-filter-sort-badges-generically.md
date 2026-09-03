@@ -90,22 +90,10 @@ currently sits in.
 
 _Add with `sq task 342 add-subtask "<title>"`; track with `sq task 342 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Generic parse_badge_code/badge_render; --<field>/--min-<field>/sort/columns from fields | US2 |
-| ST2 | Done |  | Verify full CLI surface against a custom badge axis beyond priority/severity | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Generic parse_badge_code/badge_render; --<field>/--min-<field>/sort/columns from fields
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — CLI derives filter/sort/badges from fields
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Collapse parse_priority/parse_severity into parse_badge_code and priority_badge/_severity_badge into badge_render; generate --<field>/--min-<field> (ordered only)/sort/columns per the type-or-kind's declared fields across _common/_main/_items/_discussion.
@@ -119,11 +107,6 @@ Collapse parse_priority/parse_severity into parse_badge_code and priority_badge/
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Verify full CLI surface against a custom badge axis beyond priority/severity
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — CLI derives filter/sort/badges from fields
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Add a test spec declaring a custom badge axis (e.g. impact off a custom 'level' collection, incl. the impact/urgency-off-one-collection reuse case) and exercise create/update/filter/min/sort/column for it — proving the surface isn't hardwired to priority/severity.

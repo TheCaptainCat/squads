@@ -68,25 +68,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 238 add-finding "…" --severity high`; track with `sq review 238 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Load-boundary vocab validation (ADR-232 §1) not implemented |
-| F2 | 🟡 medium | Fixed |  | Reserved-status set is all of Status, not the accepted structural floor |
-| F3 | 🟢 low | Fixed |  | parse_type/parse_status iterate enums, not the spec vocab (ADR-232 scope) |
-| F4 | 🟢 low | Fixed |  | _coerce_str_fields/_coerce_status do str(v) with no type guard |
-| F5 | 🟡 medium | Open |  | Sub-entity status is an unguarded ingestion path (crashes show --full) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Load-boundary vocab validation (ADR-232 §1) not implemented
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 ADR-232 §1 mandates that ItemStore.load / open_service validate each item's type/status against the loaded WorkflowSpec (spec.is_known_type / spec.is_valid_status), raising SquadsError with the offending item id on an unknown value. This was NOT implemented — _index/_store.py has zero diff, open_service does no validation, and there are no is_known_type/is_valid_status methods.
@@ -109,11 +94,6 @@ Also crash surfaces on the same gap: _paths.folder_for / squad_relative do FOLDE
 <!-- sq:finding:F2 -->
 ### F2 — Reserved-status set is all of Status, not the accepted structural floor
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 _workflow/_models.py:331 sets reserved_statuses = {s.value for s in Status} — i.e. ALL 22 statuses are reserved. But the ADR-accept comment (Catherine Manager, 2026-06-26) pinned the reserved-status floor as the STRUCTURAL minimum only: agent meta-type statuses (Active/Archived) + sub-entity statuses (subtask/story Todo/InProgress/Blocked/Done/Cancelled + finding Open/Fixed/Verified/WontFix). It states explicitly: 'work-item statuses are NOT reserved (customizable when F5/custom-statuses lands).'
 
@@ -131,11 +111,6 @@ Impact: fail-closed and behaviour-neutral TODAY (F2 has no way to define a custo
 <!-- sq:finding:F3 -->
 ### F3 — parse_type/parse_status iterate enums, not the spec vocab (ADR-232 scope)
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 _cli/_common.py parse_type/parse_status iterate ItemType / Status enum members. ADR-232 scope says they should iterate spec.managed_types() / the spec status set. Behaviour-identical for the default vocab (reserved == default), so no regression; arguably safer (validates against reserved vocab). Informational — flagging only because it deviates from the ADR's stated approach. Fine to leave within the F2 scope boundary (no custom types end-to-end yet).
 <!-- sq:finding:F3:body:end -->
@@ -149,11 +124,6 @@ _cli/_common.py parse_type/parse_status iterate ItemType / Status enum members. 
 <!-- sq:finding:F4 -->
 ### F4 — _coerce_str_fields/_coerce_status do str(v) with no type guard
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 Item._coerce_str_fields (type/status) and SubEntity._coerce_status (mode=before) do return str(v). For StrEnum members str() yields the value (correct). But str() never fails, so a non-str/non-enum value (e.g. an int 123, or None) is silently coerced to '123'/'None' instead of raising a validation error. Pre-de-typing, Pydantic's enum field would have rejected it. Minor — all real callers pass str/StrEnum — but it widens the accepted input set. Consider isinstance(v, str | StrEnum) guard, or rely on F1's load-boundary check.
 <!-- sq:finding:F4:body:end -->
@@ -166,11 +136,6 @@ Item._coerce_str_fields (type/status) and SubEntity._coerce_status (mode=before)
 
 <!-- sq:finding:F5 -->
 ### F5 — Sub-entity status is an unguarded ingestion path (crashes show --full)
-
-<!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 The F1 fix guards ITEM type/status on both ingestion paths (IndexStore.load -> _validate_item_vocab; repair -> inline after from_frontmatter) and is verified clean. But neither guard validates SUB-ENTITY status (Item.subentities[].status), which is the same de-typed field (SubEntity.status: str). SubEntity.from_frontmatter no longer calls Status(...), so a corrupt sub-entity status flows into the index unvalidated — HEAD rejected it at construction.

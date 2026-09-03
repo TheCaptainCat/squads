@@ -64,21 +64,10 @@ mentions — are rewritten** so nothing dangles. The verb joins the CLI grammar 
 
 _Add with `sq feature 20 add-story "As a <role>, I want … so that …"`; track with `sq feature 20 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Retype item in place preserving number, body, and discussion |
-| US2 | Done |  | Incoming refs and prose mentions rewritten to new ID after retype |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Retype item in place preserving number, body, and discussion
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** `sq task <n> retype bug` yields BUG-<same number>, file moved to bugs/, body verbatim, discussion intact + a system comment recording the change; status carried on same-workflow pairs, reset-and-announced otherwise; sub-entity/parent/children conflicts refuse with actionable errors.
@@ -94,10 +83,6 @@ As a user who filed work under the wrong type, I want to retype it in place, so 
 
 <!-- sq:story:US2 -->
 ### US2 — Incoming refs and prose mentions rewritten to new ID after retype
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 **Acceptance:** other items' refs (kinds preserved), children's parent fields and prose mentions all show the new ID after retype; sq check clean and sq repair stable afterwards.

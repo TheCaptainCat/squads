@@ -138,24 +138,10 @@ Report both directions in this task's discussion.
 
 _Add with `sq task 721 add-subtask "<title>"`; track with `sq task 721 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Move the three TOMLs and repoint the loaders | US1 |
-| ST2 | Done |  | Repoint the meta guards and prove the wheel ships them | US2 |
-| ST3 | Done |  | Sweep stale mentions of the old bundled path | US2 |
-| ST4 | Done |  | Make the wheel-path packaging assertion actually assert the path | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Move the three TOMLs and repoint the loaders
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a maintainer, I want the three bundled specs relocated to squads/_specs/ mirroring .overrides/'s layout
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Move the three bundled TOMLs and repoint the loaders.
@@ -187,11 +173,6 @@ contents; nothing under `src/squads/` still names the old package.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Repoint the meta guards and prove the wheel ships them
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a maintainer, I want every loader/migration/guard reference updated to the new path with zero behaviour change
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Repoint the two `tests/meta` guards and prove the wheel still ships the relocated files.
@@ -233,11 +214,6 @@ should; `uv build` ships all three TOMLs, verified through the packaging check r
 <!-- sq:subtask:ST3 -->
 ### ST3 — Sweep stale mentions of the old bundled path
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a maintainer, I want every loader/migration/guard reference updated to the new path with zero behaviour change
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Sweep every remaining mention of the old path, and confirm the near-misses are not references at
 all.
@@ -276,11 +252,6 @@ are confirmed by grep and recorded in the parent task's discussion; `sq check` c
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Make the wheel-path packaging assertion actually assert the path
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a maintainer, I want every loader/migration/guard reference updated to the new path with zero behaviour change
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The wheel-membership check in `tests/meta/test_bundled_toml_packaging.py` passes while asserting

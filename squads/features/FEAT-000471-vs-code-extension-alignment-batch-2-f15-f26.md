@@ -80,29 +80,10 @@ See story bodies for the finding IDs and desired behavior each one covers.
 
 _Add with `sq feature 471 add-story "As a <role>, I want … so that …"`; track with `sq feature 471 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Preview: render item's sub-entities |
-| US2 | Done |  | Webview panel tab icon |
-| US3 | Done |  | Watch .squads.json for view/preview auto-refresh |
-| US4 | Done |  | Roster display polish: no assignee, real meta-type icons |
-| US5 | Done |  | Custom type-icon VS Code setting |
-| US6 | Done |  | Graph presentation: collapse, reposition, label wrap, clickable nodes |
-| US7 | Done |  | Machine surface: generic spec-driven collection badges |
-| US8 | Done |  | Hover tooltip: priority/severity badges |
-| US9 | Done |  | Machine surface: status_role for active-role coloring |
-| US10 | Done |  | Tree: color active-role items green |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Preview: render item's sub-entities
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Covers REV-448 F15 (High). The item preview currently renders body, mermaid graphs (children+refs), and discussion, but omits the item's sub-entities array (stories/subtasks/findings) even though sq show --json already exposes it fully.
@@ -119,10 +100,6 @@ Desired: a preview section listing sub-entities in JSON array order — at minim
 <!-- sq:story:US2 -->
 ### US2 — Webview panel tab icon
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Covers REV-448 F16 (Low). Webview panels (item preview + workflow cheatsheet) are created via createWebviewPanel with no iconPath, so their editor tabs show VS Code's generic default icon.
 
@@ -137,10 +114,6 @@ Desired: set panel.iconPath to the squads icon (resources/squads-icon-vscode.svg
 
 <!-- sq:story:US3 -->
 ### US3 — Watch .squads.json for view/preview auto-refresh
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 Covers REV-448 F17 (Medium). Tree views + item preview only refresh on explicit command today; if work changes on disk (an agent runs sq, a git pull) the views go stale until the user hits refresh.
@@ -159,10 +132,6 @@ Prereq: the extension needs the resolved squad-dir path, not just the sq binary 
 <!-- sq:story:US4 -->
 ### US4 — Roster display polish: no assignee, real meta-type icons
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 Covers REV-448 F18 (Low) and F22 (Low), both in domain/metaView.ts — the Roster view (role/skill/operator).
 
@@ -180,10 +149,6 @@ F22: roster items all fall back to the generic circle-outline icon because ICON_
 <!-- sq:story:US5 -->
 ### US5 — Custom type-icon VS Code setting
 
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
-
 <!-- sq:story:US5:body -->
 Covers REV-448 F21 (Low). The one place the extension hardcodes work-item type names is displayNode.ts's ICON_BY_TYPE (the 7 bundled types -> codicons); it degrades gracefully to a generic icon for anything unrecognized, but a renamed/custom type gets no distinct icon, and icons aren't on the machine surface (sq workflow types --json has no icon field).
 
@@ -198,10 +163,6 @@ Desired (op-pierre): add a VS Code setting, e.g. squads.typeIcons: { <typeName>:
 
 <!-- sq:story:US6 -->
 ### US6 — Graph presentation: collapse, reposition, label wrap, clickable nodes
-
-<!-- sq:story:US6:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->
 Covers REV-448 F23 (Medium), F24 (Medium), F25 (Medium) — presentation and interaction fixes to the preview's two mermaid graphs (children/subtree, ref graph). Client-only, no new core surface.
@@ -222,10 +183,6 @@ F25: graph nodes aren't clickable. Desired: clicking a node navigates to that it
 <!-- sq:story:US7 -->
 ### US7 — Machine surface: generic spec-driven collection badges
 
-<!-- sq:story:US7:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US7:head:end -->
-
 <!-- sq:story:US7:body -->
 Covers REV-448 F20 (High). Per op-pierre: squads is a generic workflow engine — all spec-declared collections should be surfaced generically. Today only priority is surfaced on the tree JSON; that's the tell that priority is hardcoded rather than spec-driven.
 
@@ -245,10 +202,6 @@ Core CLI/machine-surface change touching the public JSON contract — pending AD
 <!-- sq:story:US8 -->
 ### US8 — Hover tooltip: priority/severity badges
 
-<!-- sq:story:US8:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US8:head:end -->
-
 <!-- sq:story:US8:body -->
 Covers REV-448 F19 (Medium). Request: surface priority/severity collection badges in the tree-item hover tooltip. Today's tooltip (displayNode.ts buildTooltip) shows id/type/Status/Assignee/Priority(raw code)/Blocked — severity is absent entirely.
 
@@ -265,10 +218,6 @@ Per the review's own recommendation, an interim step (ship as text codes, not em
 
 <!-- sq:story:US9 -->
 ### US9 — Machine surface: status_role for active-role coloring
-
-<!-- sq:story:US9:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US9:head:end -->
 
 <!-- sq:story:US9:body -->
 Covers REV-448 F26's machine-surface half (Medium). Goal: color 'work in flight' items green in the tree, generically keyed on a spec-declared semantic role — never on the literal status string (the F20 anti-pattern).
@@ -288,10 +237,6 @@ Explicitly deferred per the review, not part of this story: widening StatusSpec.
 
 <!-- sq:story:US10 -->
 ### US10 — Tree: color active-role items green
-
-<!-- sq:story:US10:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US10:head:end -->
 
 <!-- sq:story:US10:body -->
 Covers REV-448 F26's client half (Medium). Once US9's status_role surface lands, map role == "active" -> green in the VS Code tree (work tree + roster). Composes cleanly with F7's closed-item dimming (disjoint sets — a terminal status is never role=active).

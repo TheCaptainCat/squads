@@ -64,22 +64,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 580 add-finding "…" --severity medium`; track with `sq review 580 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | category_bundles mutable-dict default param is a latent aliasing footgun |
-| F2 | 🟢 low | WontFix |  | CHANGELOG 0.12.0 heading has no date unlike prior releases |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — category_bundles mutable-dict default param is a latent aliasing footgun
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 effective_validator_names(category_bundles=CATEGORY_BUNDLES) binds a module-level mutable dict as a default parameter value. Harmless today (the function only reads it and CATEGORY_BUNDLES is a documented never-mutated CODE constant), so no behaviour impact — but if a future edit ever mutates the parameter in-place (e.g. setdefault) it would silently corrupt the shared catalog for all callers. Optional hardening: type the param as a Mapping, or default to None and fall back inside. Not blocking.
@@ -93,11 +81,6 @@ effective_validator_names(category_bundles=CATEGORY_BUNDLES) binds a module-leve
 
 <!-- sq:finding:F2 -->
 ### F2 — CHANGELOG 0.12.0 heading has no date unlike prior releases
-
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 The 0.12.0 CHANGELOG entry drops '## [Unreleased]' to '## [0.12.0]' with no ' - <date>' suffix, unlike '## [0.11.1] - 2026-07-21'. Not a code issue; flagging so the release owner adds the date at publish (or confirms the date is intentionally deferred until Pierre publishes). Failure mode: a released changelog reads inconsistently / looks half-cut.

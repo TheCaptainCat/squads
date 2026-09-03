@@ -52,7 +52,6 @@ async def test_a_post_sync_override_reaches_every_managed_file_with_no_sync(tmp_
     await svc.sync()  # baseline: mirror and every managed file carry the bundled definition
 
     baseline_extra = _index_role_extra(paths, "reviewer")
-    assert baseline_extra["title"] != _OVERRIDDEN_TITLE  # sanity: nothing overridden yet
     baseline_pointer = (paths.root / ".claude" / "agents" / "reviewer.md").read_text(
         encoding="utf-8"
     )
@@ -85,17 +84,18 @@ async def test_a_post_sync_override_reaches_every_managed_file_with_no_sync(tmp_
     for line in _OVERRIDDEN_RESPONSIBILITIES:
         assert line in agents_md
 
-    # 3. The per-entry pointer (the `RoleDef.from_extra` site `sq role <slug> regen` used).
+    # 3. The per-entry pointer, as `sq role <slug> regen` writes it.
     reviewer_item = await fresh.roster_item("role", "reviewer")
     assert reviewer_item is not None
     await fresh.regen(reviewer_item.id)
     pointer_text = (paths.root / ".claude" / "agents" / "reviewer.md").read_text(encoding="utf-8")
     assert _OVERRIDDEN_TITLE in pointer_text
 
-    # The item's own stored mirror is STILL untouched — nothing above ever wrote it.
-    assert _index_role_extra(paths, "reviewer")["title"] != _OVERRIDDEN_TITLE
+    # The item's own stored state is STILL untouched — nothing above ever wrote it. (There is
+    # no stored title to compare any more; the whole `extra` is the assertion instead.)
+    assert _index_role_extra(paths, "reviewer") == baseline_extra
     on_disk_md = (paths.abspath(reviewer_item.path)).read_text(encoding="utf-8")
-    assert f"title: {_OVERRIDDEN_TITLE}" not in on_disk_md
+    assert _OVERRIDDEN_TITLE not in on_disk_md
 
 
 async def test_sq_role_set_default_survives_sq_sync(tmp_path, monkeypatch):
@@ -116,10 +116,10 @@ async def test_sq_role_set_default_survives_sq_sync(tmp_path, monkeypatch):
 
     await svc.sync()
 
-    roles = await svc.list_roles()
-    default_holders = sorted(
-        it.extra.get("slug", it.slug) for it in roles if it.extra.get("is_default")
-    )
+    # Resolved, not read off `extra.is_default`: the stored key is an override on a catalog
+    # answer, so the catalog's own designated role holds the designation with nothing stored —
+    # and a raw read would report one holder for a roster generating config with two.
+    default_holders = sorted(r.slug for r in await svc.roster_all() if r.is_default)
     assert default_holders == ["qa"]
 
     claude_md = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")

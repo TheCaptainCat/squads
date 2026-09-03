@@ -106,22 +106,10 @@ export to standard formats, rendered by tools built for it (and someday by `sq u
 
 _Add with `sq feature 37 add-story "As a <role>, I want … so that …"`; track with `sq feature 37 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Depth-bounded dependency tree for one item before greenlighting |
-| US2 | Todo |  | Filter graph by kind and direction to pull only relevant context |
-| US3 | Todo |  | dot/mermaid export for full-graph rendering outside the terminal |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Depth-bounded dependency tree for one item before greenlighting
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an operator sequencing work, I want the dependency tree of one item to a chosen depth, so that I can see what it waits on and what waits on it before greenlighting.
@@ -136,10 +124,6 @@ As an operator sequencing work, I want the dependency tree of one item to a chos
 <!-- sq:story:US2 -->
 ### US2 — Filter graph by kind and direction to pull only relevant context
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an agent briefing on an item, I want to filter the graph by kind and direction, so that I pull only the context that matters for my job.
 <!-- sq:story:US2:body:end -->
@@ -152,10 +136,6 @@ As an agent briefing on an item, I want to filter the graph by kind and directio
 
 <!-- sq:story:US3 -->
 ### US3 — dot/mermaid export for full-graph rendering outside the terminal
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a user wanting the big picture, I want a dot/mermaid export, so that the full graph renders in tools made for it instead of flooding my terminal.

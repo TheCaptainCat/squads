@@ -46,23 +46,10 @@ updated_at: '2026-06-23T09:57:47Z'
 
 _Add with `sq task 53 add-subtask "<title>"`; track with `sq task 53 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Restructure role.md.j2 working agreements into two regimes | US1 |
-| ST2 | Done |  | Separate decision-recording from handoff-signalling in live regime | US2 |
-| ST3 | Done |  | Normalize 'For <role>' handoff lines in _interactions.py | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Restructure role.md.j2 working agreements into two regimes
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent spawned for a job, I want my role to tell me exactly what must be on the record before I return, so that the loop never loses my work when my chat evaporates
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Restructure role.md.j2 working agreements into the two explicit regimes with the shared 'record when it becomes true' principle; sq sync propagates to all 8 roles + dev pool.
@@ -77,11 +64,6 @@ Restructure role.md.j2 working agreements into the two explicit regimes with the
 <!-- sq:subtask:ST2 -->
 ### ST2 — Separate decision-recording from handoff-signalling in live regime
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As an agent working live with the operator, I want agreements that separate recording decisions from signalling handoffs, so that I never put a false call-to-action in a teammate's inbox
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 In the live-regime text, separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work moves); reference the squads skill's operator section instead of duplicating it.
 <!-- sq:subtask:ST2:body:end -->
@@ -94,11 +76,6 @@ In the live-regime text, separate recording a decision (--as, when made) from si
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Normalize 'For <role>' handoff lines in _interactions.py
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a teammate reading my inbox, I want every @mention to be a real, current call-to-action, so that I can trust it as my work queue
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Consistency pass on _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead'), keeping every @mention a real call-to-action; align greeting/squads skill cross-references.

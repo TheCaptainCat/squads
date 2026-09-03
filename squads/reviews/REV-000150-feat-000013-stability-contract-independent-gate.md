@@ -54,27 +54,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 150 add-finding "…" --severity high`; track with `sq review 150 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | Ref-kind vocabulary table is WRONG: lists nonexistent kinds, omits real ones |
-| F2 | 🟠 high | Verified |  | F5 (reflog v decoupling) presented as SETTLED in Tier 1, contradicting Open-questions section and the bill |
-| F3 | 🟡 medium | Verified |  | References section uses fabricated github.com URLs instead of item-ID references |
-| F4 | 🟠 high | Verified |  | In-body cross-reference anchors are broken — point to heading slugs that do not exist |
-| F5 | 🟢 low | Verified |  | Migration promise not verbatim: inserts 'and beyond' into the AC-pinned sentence |
-| F6 | 🟢 low | Verified |  | ADR-114 remove-vs-cancel + ref-severance contract points not reflected in the doc |
-| F7 | 🟠 high | Verified |  | Official docs must not reference internal squad items or fabricated URLs |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Ref-kind vocabulary table is WRONG: lists nonexistent kinds, omits real ones
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 docs/stability.md line 235 lists the eight 'frozen at 1.0' ref kinds as: related, fixes, addresses, implements, blocked-by, blocks, duplicates, related-to.
@@ -93,11 +76,6 @@ So the contract INVENTS two kinds that do not exist (blocked-by, related-to) and
 <!-- sq:finding:F2 -->
 ### F2 — F5 (reflog v decoupling) presented as SETTLED in Tier 1, contradicting Open-questions section and the bill
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Tier 1 reflog body (line 95) states: 'v — schema version (currently DECOUPLED from the index SCHEMA_VERSION, per REV-119 F5)'. The Open-questions section (line 395) states the opposite and correct fact: F5 is 'whether the reflog line v DECOUPLES from the index SCHEMA_VERSION (currently COUPLED at 0.3)'.
 
@@ -113,11 +91,6 @@ This is (a) an internal self-contradiction, (b) factually wrong at line 95, and 
 <!-- sq:finding:F3 -->
 ### F3 — References section uses fabricated github.com URLs instead of item-ID references
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 The References section (lines 345-395) links every ADR/FEAT/GUIDE/REV to a hand-constructed external URL of the form https://github.com/anthropic-ai/squads/blob/main/squads/adrs/ADR-49-....md (~30 such URLs). These are fabricated: the repo path/owner is guessed, and docs/internals.md — the house-style reference — never links externally; it cites items by bare ID. Per project convention docs reference items by ID or by 'sq' command (e.g. 'sq decision 49 show'), not guessed github URLs. Even the file paths are wrong: source lives under src/squads/, not squads/. Fix: drop the external URLs; reference by item ID (the reader runs 'sq show ADR-49').
 <!-- sq:finding:F3:body:end -->
@@ -130,11 +103,6 @@ The References section (lines 345-395) links every ADR/FEAT/GUIDE/REV to a hand-
 
 <!-- sq:finding:F4 -->
 ### F4 — In-body cross-reference anchors are broken — point to heading slugs that do not exist
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 Every in-body citation uses an anchor link to a heading that does not exist. Examples: [ADR-149](#adr-000149-post-10-schema_version-scheme), [ADR-49](#adr-000049-ref-kind-vocabulary), [GUIDE-79](#guide-000079-architecture-guide), [FEAT-19](#feat-000019-item-addressing), [ADR-133](#adr-000133-backends-and-pluggability), etc. The actual headings are 'Tier N: ...' and '### Ref-kind vocabulary (closed at 1.0)' — none generate the slugs the body links to. Result: nearly all ~25 cross-references render as dead links. (The single exception that happens to resolve is #exit-codes-distinct-codes-for-distinct-failures.) Fix: either link to the References-section anchors that DO exist, or to the actual section headings, or drop the fragment and cite by ID.
@@ -149,11 +117,6 @@ Every in-body citation uses an anchor link to a heading that does not exist. Exa
 <!-- sq:finding:F5 -->
 ### F5 — Migration promise not verbatim: inserts 'and beyond' into the AC-pinned sentence
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 AC requires the migration promise VERBATIM: 'any squad created on any 0.x release reaches 1.0 intact via sq migrate up'. Line 10 reads 'Any squad created on any 0.x release reaches 1.0 AND BEYOND intact via sq migrate up.' The inserted 'and beyond' is a defensible strengthening (ADR-149 uses '1.0 (and beyond)'), but the AC and US1 pin the exact phrase. Low severity — recommend either restoring the verbatim sentence as the canonical promise line, or keeping 'and beyond' but quoting the verbatim form once so the AC's literal text appears.
 <!-- sq:finding:F5:body:end -->
@@ -167,11 +130,6 @@ AC requires the migration promise VERBATIM: 'any squad created on any 0.x releas
 <!-- sq:finding:F6 -->
 ### F6 — ADR-114 remove-vs-cancel + ref-severance contract points not reflected in the doc
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 ADR-114 / FEAT-23 deferral (FEAT-13 comment 2026-06-15T09:21) lists FOUR contract points; only point (1) (IDs-never-reused / gaps-are-normal) made it into the doc (lines 48-55). Missing: (2) removal is a HARD DELETE, no Archived soft-state, and the contractual remove-vs-cancel distinction (Cancelled = considered-and-dropped, stays on the books; remove = should-never-have-existed, leaves the corpus); (3) forced removal SEVERS incoming refs in the same transaction so no dangling refs survive and sq check stays clean, children never auto-reparented. (Point 4, reflog-as-audit-trace, is covered.) Add the remove-vs-cancel rule and the ref-severance guarantee to the 'IDs are never reused' subsection.
 <!-- sq:finding:F6:body:end -->
@@ -184,11 +142,6 @@ ADR-114 / FEAT-23 deferral (FEAT-13 comment 2026-06-15T09:21) lists FOUR contrac
 
 <!-- sq:finding:F7 -->
 ### F7 — Official docs must not reference internal squad items or fabricated URLs
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 Operator directive (op-pierre): the shipped, user-facing docs/stability.md must NOT reference squad files / internal sq items at all, and must contain NO external github URLs. Two compounding defects:

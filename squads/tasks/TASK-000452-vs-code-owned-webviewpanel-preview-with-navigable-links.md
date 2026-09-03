@@ -49,9 +49,6 @@ No new core surface — parent/refs are already in `sq show --json` / `--raw`.
 
 _Add with `sq task 452 add-subtask "<title>"`; track with `sq task 452 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

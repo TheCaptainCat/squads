@@ -31,9 +31,6 @@ Implements FEAT-570 US1 — the wire enabler. Expose each type's `category` on t
 
 _Add with `sq task 595 add-subtask "<title>"`; track with `sq task 595 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

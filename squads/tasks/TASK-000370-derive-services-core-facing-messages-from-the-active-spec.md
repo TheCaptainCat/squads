@@ -78,9 +78,6 @@ are message-accuracy fixes.
 
 _Add with `sq task 370 add-subtask "<title>"`; track with `sq task 370 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

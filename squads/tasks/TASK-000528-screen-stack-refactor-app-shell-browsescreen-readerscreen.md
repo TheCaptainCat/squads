@@ -76,9 +76,6 @@ unblocks US1–US4 of the filter popup rather than satisfying any one of them.
 
 _Add with `sq task 528 add-subtask "<title>"`; track with `sq task 528 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -87,22 +87,10 @@ while the semantic-binding task has `_workflow/_loader.py` open.
 
 _Add with `sq task 805 add-subtask "<title>"`; track with `sq task 805 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Gate the workflow stamp finding on content | US2 |
-| ST2 | Done |  | Retire the duplicate gated copy and guard the agreement | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Gate the workflow stamp finding on content
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Content-gate workflow/playbook/role drift
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Gate `workflow_stamp_finding` (`_workflow/_loader.py`) on content rather than stamp age, using
@@ -148,11 +136,6 @@ find it.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Retire the duplicate gated copy and guard the agreement
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Content-gate workflow/playbook/role drift
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Delete `_overrides/_service.py::_workflow_stamp_finding_gated` and re-point

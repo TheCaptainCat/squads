@@ -138,22 +138,10 @@ Pinned at the **CLI layer**, as the earlier read-path work established. A test a
 
 _Add with `sq task 677 add-subtask "<title>"`; track with `sq task 677 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Decode guard in the read helper and the config reader |  |
-| ST2 | Todo |  | Stale-path guard at the item-read seam |  |
-| ST3 | Todo |  | CLI-layer tests and the two control-flow regressions |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Decode guard in the read helper and the config reader
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The decode guard: one place for every reader, plus the two that bypass it.
@@ -197,10 +185,6 @@ Acceptance:
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Stale-path guard at the item-read seam
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 The stale-path guard — at the item-read seam, deliberately not in the shared helper.
@@ -253,10 +237,6 @@ Acceptance:
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — CLI-layer tests and the two control-flow regressions
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 CLI-layer tests, plus the two regression guards a blanket fix would trip.

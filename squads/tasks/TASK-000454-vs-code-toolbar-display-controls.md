@@ -42,9 +42,6 @@ Story: US2 (toolbar & display controls). Covers REV-448 findings F2, F3, F4, F5,
 
 _Add with `sq task 454 add-subtask "<title>"`; track with `sq task 454 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -82,9 +82,6 @@ Can run parallel to TASK-553 (disjoint fields) if fixture ownership is settled f
 
 _Add with `sq task 552 add-subtask "<title>"`; track with `sq task 552 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

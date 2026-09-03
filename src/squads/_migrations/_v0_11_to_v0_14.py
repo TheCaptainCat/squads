@@ -92,6 +92,32 @@ sq sync
 sq create contract
 sq create milestone
 ```
+
+## Two stored regions are removed from your item files
+
+This happens in the **index rebuild at the end of `sq migrate up`**, not in the step above —
+`sq repair` performs the same removal on its own, and both reach it the same way. Expect a
+content diff across your corpus; review it before committing, and prefer a clean working tree
+when you run either, since neither can separate its changes from yours.
+
+What goes, and what answers for it now:
+
+- **The sub-entity roll-up table and each block's badge line.** Both were snapshots of state
+  that lives in the item's frontmatter, rewritten on every change and stale the moment two
+  branches touched the same item. `sq <type> <n> show` renders both from the frontmatter on
+  every read, so nothing is lost and nothing can disagree any more.
+- **A template-owned skill's stored body** — the bundled skills and each per-type `sq-<type>`
+  one. `sq skill <slug> show` renders the definition from its template on every call. The
+  region itself stays, empty: it is emptied, never deleted.
+
+Your own content is untouched. A **custom** skill — one you created with `sq skill add` — is
+authored storage, is byte-identical afterwards, and keeps rendering from what you wrote,
+including one whose slug happens to start with `sq-`. So are every sub-entity's body and
+discussion, every item body, and every frontmatter field.
+
+One behaviour changes with the bytes: text that lived only in a removed region is no longer
+matched by `sq search`. Search a skill's guidance through `sq skill <slug> show`, and a
+sub-entity's status through `sq <type> <n> show` or `sq list`.
 """
 
 

@@ -95,22 +95,10 @@ Traceable to US4's client-render half:
 
 _Add with `sq task 730 add-subtask "<title>"`; track with `sq task 730 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Carry an optional discussion field through the type and guard | US4 |
-| ST2 | Done |  | Render a comments block inside each sub-entity pane | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Carry an optional discussion field through the type and guard
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — show --json: carry sub-entity discussion, incl. VS Code preview
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `SqSubEntity` (`clients/vscode/src/types.ts`) has no `discussion` field, so the preview has nothing
@@ -138,11 +126,6 @@ pinned by a test.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Render a comments block inside each sub-entity pane
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — show --json: carry sub-entity discussion, incl. VS Code preview
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 `buildSubEntityHtml` (`clients/vscode/src/domain/previewDocument.ts`) composes header, head-badges

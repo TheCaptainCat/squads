@@ -50,21 +50,10 @@ TASK-349 (local_prefix/placeholder/plural/fields/maps_parent_story on kind_spec)
 
 _Add with `sq task 352 add-subtask "<title>"`; track with `sq task 352 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Summary table renders from declared columns (base + fields + Story) | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Summary table renders from declared columns (base + fields + Story)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a project admin, I want to define custom sub-entity kinds for my custom types in TOML
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Retired the static per-kind tables in `_discussion.py` (`_LOCAL_ID_PREFIX`/`_PLACEHOLDER`/`_SUMMARY_COLS`) so local-id prefixes, placeholders, and the summary columns all derive from the resolved kind spec: a fixed base (local-id, Status, Assignee, Title) plus one column per declared field and a Story column only when the kind maps to a parent story. Built-in blocks render byte-identical, a custom field renders as a generic labelled column, and the column derivation is shared with the CLI list table.

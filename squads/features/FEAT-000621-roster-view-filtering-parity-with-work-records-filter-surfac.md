@@ -20,9 +20,6 @@ The Roster view (TUI + VS Code) lacks the type/status filtering that the work an
 
 _Add with `sq feature 621 add-story "As a <role>, I want … so that …"`; track with `sq feature 621 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

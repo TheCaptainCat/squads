@@ -27,21 +27,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 460 add-finding "…" --severity medium`; track with `sq review 460 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | FORCE_COLOR clause not exercised by an automated test |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — FORCE_COLOR clause not exercised by an automated test
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The task acceptance says 'verify no escape codes even under FORCE_COLOR'. The suite's autouse _neutralize_forced_color fixture strips FORCE_COLOR/CLICOLOR_FORCE/PY_COLORS for determinism, so test_workflow_raw_has_zero_rich_chrome runs with color already disabled and isatty()=False — it cannot distinguish the raw path from the old Markdown path on the color axis (it does still pin box-drawing/ANSI absence, which is a valid regression guard).

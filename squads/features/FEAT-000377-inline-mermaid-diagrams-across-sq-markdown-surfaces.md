@@ -35,22 +35,10 @@ No implementation in this drafting pass — feature stays Draft, no tasks create
 
 _Add with `sq feature 377 add-story "As a <role>, I want … so that …"`; track with `sq feature 377 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Fenced Mermaid output from sq graph |
-| US2 | Cancelled |  | Derived per-item Mermaid graph section in the item dossier |
-| US3 | Done |  | Spec-derived Mermaid diagrams in docs and the workflow cheatsheet |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Fenced Mermaid output from sq graph
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an operator, I want sq graph output already wrapped in a ```mermaid fence so I can drop it straight into a doc, PR description, or issue and have it render inline — no manual fencing.
@@ -70,10 +58,6 @@ Acceptance:
 <!-- sq:story:US2 -->
 ### US2 — Derived per-item Mermaid graph section in the item dossier
 
-<!-- sq:story:US2:head -->
-**Status:** ⚫ Cancelled
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As anyone opening an item's .md file in VSCode/GitHub, I want a derived :graph section showing that item's dependency/subtree shape as fenced Mermaid, so the shape renders inline without running sq.
 
@@ -92,10 +76,6 @@ Open design question — flag before implementation: this is the slice most like
 
 <!-- sq:story:US3 -->
 ### US3 — Spec-derived Mermaid diagrams in docs and the workflow cheatsheet
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a contributor reading docs/ or the workflow cheatsheet, I want auto-generated Mermaid diagrams of the item-type hierarchy and per-type lifecycle state machines, so the docs show the shape of the spec instead of just prose describing it.

@@ -74,21 +74,10 @@ concern, not a core property.
 
 _Add with `sq feature 34 add-story "As a <role>, I want … so that …"`; track with `sq feature 34 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Async-native service: no executor thread wrapping for consumers |
-| US2 | Todo |  | Async conversion invisible to CLI users: byte-identical outputs |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Async-native service: no executor thread wrapping for consumers
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a developer of an async consumer (TUI, web server, remote client), I want the service async-native, so that I never wrap calls in executor threads.
@@ -102,10 +91,6 @@ As a developer of an async consumer (TUI, web server, remote client), I want the
 
 <!-- sq:story:US2 -->
 ### US2 — Async conversion invisible to CLI users: byte-identical outputs
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a CLI user, I want the async conversion invisible, so that every command behaves and outputs byte-identically to today.

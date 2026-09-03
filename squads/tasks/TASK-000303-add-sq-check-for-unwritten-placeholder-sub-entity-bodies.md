@@ -41,23 +41,10 @@ Constraint: no sq/FEAT/TASK IDs may appear in the shipped source or test names �
 
 _Add with `sq task 303 add-subtask "<title>"`; track with `sq task 303 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add _check_unwritten_subentity_bodies helper + wire into check() | US1 |
-| ST2 | Done |  | Emit the check at warn severity per the recorded decision | US2 |
-| ST3 | Done |  | Tests: add-story stub is flagged, real body clears; CLI smoke | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add _check_unwritten_subentity_bodies helper + wire into check()
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a tech lead, I want sq check to flag unwritten sub-entity bodies
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Done when: a new `_check_unwritten_subentity_bodies(index)` (async or with file access) exists in `_services/_maintenance.py`, iterates every sub-entity-bearing item, reads each item file's `:body` region via `sections.get_section(text, discussion.body_tag(kind, local_id))`, and appends one CheckIssue for each whose stripped body equals `discussion.body_placeholder(kind)` exactly. The helper is called from `check()` alongside the other `_check_*` calls. Issue text names parent id + local id, e.g. 'FEAT-123 US3 body is unwritten (still the placeholder stub)'. Note the file-read wrinkle: siblings take the in-memory index, but body prose is not indexed, so this helper reads files (reuse the `_scan_for_check`/on_disk pattern or read per item).
@@ -72,11 +59,6 @@ Done when: a new `_check_unwritten_subentity_bodies(index)` (async or with file 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Emit the check at warn severity per the recorded decision
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As an architect, I want the check's severity left as an open decision
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Done when: each emitted CheckIssue uses the 'warn' level (advisory, non-blocking exit code), matching `_check_subentity_title_lengths`; no Draft->Ready transition gate is added (that enforcement is explicitly out of scope for FEAT-289). Post a short design comment on TASK-303 recording the warn choice + precedent (ADR-000167 advisory title-length check; ADR-000085 §3 warn/error split) so US2's 'resolved explicitly, citing precedent' acceptance is on the record.
 <!-- sq:subtask:ST2:body:end -->
@@ -89,11 +71,6 @@ Done when: each emitted CheckIssue uses the 'warn' level (advisory, non-blocking
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Tests: add-story stub is flagged, real body clears; CLI smoke
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a tech lead, I want sq check to flag unwritten sub-entity bodies
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Done when: a service-level test seeds a story via add-story (leaving the placeholder), asserts `check()` reports a warn issue for it, then sets a real body and asserts the issue clears; plus a CLI smoke test asserting `sq check` output includes the new line for an unwritten-story fixture. Cover a divergent-but-short body to prove no false positive. Name tests by behavior only — no sq/FEAT/TASK IDs in test names or source.

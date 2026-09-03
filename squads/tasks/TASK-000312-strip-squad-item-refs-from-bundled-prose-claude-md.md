@@ -30,23 +30,10 @@ USER-FACING WAVE. Scope: the bundled agent-facing prose templates (src/squads/_r
 
 _Add with `sq task 312 add-subtask "<title>"`; track with `sq task 312 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Strip refs from bundled prose templates | US5 |
-| ST2 | Done | python-dev | Verify/clean CLAUDE.md (removal only) | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Strip refs from bundled prose templates
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US5 — Bundled prose stripped of refs without churning wording
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Remove squad-item refs from the bundled agent-facing prose: src/squads/_rendering/templates/agents/greeting_skill.md.j2, agents/squads_skill.md.j2, agents_md/agents_section.md.j2, workflow.md.j2. REMOVAL ONLY — preserve the guidance wording; do not restyle/shorten/rewrite. Done when: grep over these templates returns zero refs, the rendered output (via sq sync) carries no refs, and wording is otherwise byte-for-byte unchanged apart from the removals.
@@ -60,12 +47,6 @@ Remove squad-item refs from the bundled agent-facing prose: src/squads/_renderin
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Verify/clean CLAUDE.md (removal only)
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US5 — Bundled prose stripped of refs without churning wording
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 CLAUDE.md currently has zero digit-refs (only template forms like --parent FEAT-… and USn), so this is primarily a verify-clean: confirm no real-citation ref exists and remove any that is real, without rewording. Do not restyle the file. Done when: grep of the ref pattern over CLAUDE.md returns zero real citations and the managed-region regeneration is unaffected.

@@ -95,28 +95,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 734 add-finding "…" --severity medium`; track with `sq review 734 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | The visibility matrix never crosses sub-entity kind with status |
-| F2 | 🟡 medium | WontFix |  | mine reads 'open' as not-hidden while workload reads it as not-settled |
-| F3 | 🟢 low | Fixed |  | inbox --json pairs lines to regions by index and drops item locators |
-| F4 | 🟢 low | Fixed |  | inbox attributes sub-entity-derived lines to the item level |
-| F5 | 🔵 info | Fixed | tech-writer | No CHANGELOG entry and no docs update, both task constraints |
-| F6 | 🔵 info | WontFix |  | workload counts a sub-entity as open under a closed parent |
-| F7 | 🔵 info | Fixed |  | mine does not exclude roster-category items while workload does |
-| F8 | 🟡 medium | Fixed |  | An @mention only in title or description yields an empty hit |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — The visibility matrix never crosses sub-entity kind with status
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Test-shape gap, not a defect.** I verified the behaviour is correct by driving it; what is
@@ -162,11 +144,6 @@ That is the shape that catches an input nobody thought of, which is what this ax
 <!-- sq:finding:F2 -->
 ### F2 — mine reads 'open' as not-hidden while workload reads it as not-settled
 
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Latent divergence between two spellings of "open".** Not reproducible as a user-visible bug on
 the bundled spec; a custom spec crosses it. Labelled a hypothesis for the user-visible half.
@@ -209,11 +186,6 @@ both surfaces agree on one predicate and say which.
 
 <!-- sq:finding:F3 -->
 ### F3 — inbox --json pairs lines to regions by index and drops item locators
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **Reproduced.** Two contract wrinkles on the new `inbox --json` key, both consequences of the
@@ -265,11 +237,6 @@ punctuation two functions later, removes the coupling entirely.
 <!-- sq:finding:F4 -->
 ### F4 — inbox attributes sub-entity-derived lines to the item level
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **Reproduced.** `region: null` is documented to mean "an item-level mention", but two of the
 lines it labels that way are sub-entity text.
@@ -308,12 +275,6 @@ local id it names. The first is the smaller change and removes duplicate hits as
 
 <!-- sq:finding:F5 -->
 ### F5 — No CHANGELOG entry and no docs update, both task constraints
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Theo Writer
-**Severity:** 🔵 Info
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 **Reproduced by inspection.** Two explicit task constraints are unmet.
@@ -374,11 +335,6 @@ adopter terms — no item ids, no build-process references.
 <!-- sq:finding:F6 -->
 ### F6 — workload counts a sub-entity as open under a closed parent
 
-<!-- sq:finding:F6:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🔵 Info
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 **Reproduced.** A consistency question the rulings did not reach, recorded so it is decided
 rather than inherited.
@@ -415,11 +371,6 @@ is authoritative. Worth one line in whichever doc describes the columns.
 <!-- sq:finding:F7 -->
 ### F7 — mine does not exclude roster-category items while workload does
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 **Observed in code; latent, not reproduced as a user-visible difference.**
 
@@ -455,11 +406,6 @@ it from `workload` and say why roster items cannot carry an assignee.
 
 <!-- sq:finding:F8 -->
 ### F8 — An @mention only in title or description yields an empty hit
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **Fixed**, in two halves. The `:summary` skip and its test are untouched — the asymmetry you named

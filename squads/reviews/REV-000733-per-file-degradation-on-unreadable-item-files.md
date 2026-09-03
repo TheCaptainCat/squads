@@ -109,35 +109,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 733 add-finding "…" --severity medium`; track with `sq review 733 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | repair loses the counter high-water mark of an unreadable file |
-| F2 | 🟠 high | Fixed |  | repair aborts board-wide on valid YAML with no id, misdiagnosed |
-| F3 | 🟠 high | Fixed |  | Type-invalid frontmatter crashes repair with a pydantic traceback |
-| F4 | 🟡 medium | Fixed |  | FileNotFoundError on a present dirent still crashes every command |
-| F5 | 🟡 medium | Fixed |  | The --json listings silently drop the unreadable-file messages |
-| F6 | 🟢 low | Fixed | tech-writer | board list and repair exit 0 while reporting an error |
-| F7 | 🔵 info | WontFix |  | check never names an unreadable file as on-disk-but-not-indexed |
-| F8 | 🟠 high | Fixed |  | The widened load boundary misses TypeError and ValueError |
-| F9 | 🟡 medium | Fixed |  | A malformed frontmatter id still aborts the whole check scan |
-| F10 | 🟢 low | Fixed |  | repad diagnoses a broken symlink differently from check |
-| F11 | 🔵 info | Fixed |  | The boundary catches KeyError wider than its three required reads |
-| F12 | 🟢 low | Fixed |  | Two of four empty-string list fields lost their compatibility |
-| F13 | 🟡 medium | Fixed |  | check and repair contradict each other on a malformed id |
-| F14 | 🟢 low | Fixed |  | The per-file message for a bad field is a raw pydantic dump |
-| F15 | 🟢 low | Fixed |  | The (got type) suffix misdescribes an absent field |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — repair loses the counter high-water mark of an unreadable file
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Reproduced.** Violates the global-counter invariant and then silently deletes a real item.
@@ -182,11 +157,6 @@ lower than that file's own sequence number.
 
 <!-- sq:finding:F2 -->
 ### F2 — repair aborts board-wide on valid YAML with no id, misdiagnosed
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 **Reproduced.** `sq repair` is still unavailable board-wide for a whole family of one-bad-file
@@ -236,11 +206,6 @@ prefix/folder change when it has not observed one.
 <!-- sq:finding:F3 -->
 ### F3 — Type-invalid frontmatter crashes repair with a pydantic traceback
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **Reproduced.** The fourth shape I was asked to attack. The per-file guard wraps
 `_aio.read_text` + `read_frontmatter`, but `Item.from_frontmatter` sits *outside* it, and pydantic
@@ -287,11 +252,6 @@ call site.
 <!-- sq:finding:F4 -->
 ### F4 — FileNotFoundError on a present dirent still crashes every command
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **Reproduced** (via a broken symlink). Realistic trigger is a race, which I did not reproduce
 and label a hypothesis.
@@ -337,11 +297,6 @@ way stop emitting a traceback.
 <!-- sq:finding:F5 -->
 ### F5 — The --json listings silently drop the unreadable-file messages
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **Reproduced.** The human surface reports the unreadable file; the machine surface hides it.
 
@@ -382,12 +337,6 @@ than the human one about a data-integrity failure is the wrong default.
 
 <!-- sq:finding:F6 -->
 ### F6 — board list and repair exit 0 while reporting an error
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Theo Writer
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **Reproduced.** Measured without a pipe (a pipeline reports the last element's status, not the
@@ -430,11 +379,6 @@ Not a defect on its own — recorded so the contract is decided rather than inhe
 <!-- sq:finding:F7 -->
 ### F7 — check never names an unreadable file as on-disk-but-not-indexed
 
-<!-- sq:finding:F7:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🔵 Info
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 **Reproduced.** Body/behaviour mismatch, no code defect.
 
@@ -465,11 +409,6 @@ reconciliation check that does not exist. Either add the claim to `check` or cor
 
 <!-- sq:finding:F8 -->
 ### F8 — The widened load boundary misses TypeError and ValueError
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **Fixed.** The boundary now has exactly two failure channels and nothing can raise outside them.
@@ -514,11 +453,6 @@ where the old `else: return now()` made a corrupt timestamp indistinguishable fr
 <!-- sq:finding:F9 -->
 ### F9 — A malformed frontmatter id still aborts the whole check scan
 
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 **Fixed.** Both `number_for_id` sites in `_scan_for_check` now route through
 `_seq_from_frontmatter_id`, which returns `None` for either unreadable shape — a non-integer
@@ -556,11 +490,6 @@ is what that function's own `FileNotFoundError` branch already promises in prose
 
 <!-- sq:finding:F10 -->
 ### F10 — repad diagnoses a broken symlink differently from check
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 **Reproduced.** F4's disposition gave one dirent two different diagnoses depending on which
@@ -610,11 +539,6 @@ call sites would keep them from drifting again.
 <!-- sq:finding:F11 -->
 ### F11 — The boundary catches KeyError wider than its three required reads
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 **Fixed** by the narrower of the two shapes you offered, taken together with F8's fix so both land
 in one change.
@@ -646,11 +570,6 @@ Also a better message for free: a missing `status` now reads `missing required f
 
 <!-- sq:finding:F12 -->
 ### F12 — Two of four empty-string list fields lost their compatibility
-
-<!-- sq:finding:F12:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F12:head:end -->
 
 <!-- sq:finding:F12:body -->
 **Reproduced.** The compatibility rule stated in `_empty_list_if_unset` — "a file that loaded
@@ -710,11 +629,6 @@ correctly limited to the empty string.
 
 <!-- sq:finding:F13 -->
 ### F13 — check and repair contradict each other on a malformed id
-
-<!-- sq:finding:F13:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F13:head:end -->
 
 <!-- sq:finding:F13:body -->
 **Reproduced. A new defect created by the F9 widening**, and the message that is wrong is the
@@ -782,11 +696,6 @@ worth treating as a pattern rather than three separate wordings.
 <!-- sq:finding:F14 -->
 ### F14 — The per-file message for a bad field is a raw pydantic dump
 
-<!-- sq:finding:F14:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F14:head:end -->
-
 <!-- sq:finding:F14:body -->
 **Reproduced.** F8's contract holds — no traceback, a clean `SquadsError` — but the text inside it
 is a pydantic internal dump, on both commands.
@@ -832,11 +741,6 @@ misleads.
 
 <!-- sq:finding:F15 -->
 ### F15 — The (got type) suffix misdescribes an absent field
-
-<!-- sq:finding:F15:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F15:head:end -->
 
 <!-- sq:finding:F15:body -->
 Fixed in `_validation_message` (src/squads/_models/_item.py): the (got <type>) suffix now keys on whether the pydantic error kind is a genuine type mismatch (`err["type"].endswith(("_type", "_parsing"))`), not on provenance (ours vs pydantic's).

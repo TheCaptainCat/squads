@@ -64,9 +64,6 @@ filesystem load. Note for the reviewer: keep `_paths` free of import cycles
 
 _Add with `sq task 258 add-subtask "<title>"`; track with `sq task 258 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

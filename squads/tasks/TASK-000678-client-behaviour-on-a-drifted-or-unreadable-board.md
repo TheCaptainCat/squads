@@ -127,23 +127,10 @@ there is no mutating command to exercise.
 
 _Add with `sq task 678 add-subtask "<title>"`; track with `sq task 678 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Confirm and pin the read-only property |  |
-| ST2 | Todo |  | Audit the extension's silent-degrade paths |  |
-| ST3 | Todo |  | Write the client refusal contract |  |
-| ST4 | Todo | op-pierre | Manual dev-host check on a drifted board |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Confirm and pin the read-only property
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Confirm the read-only property and pin it, so it cannot lapse silently.
@@ -185,10 +172,6 @@ Acceptance:
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Audit the extension's silent-degrade paths
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Audit the extension's silent-degrade paths against a board with a data error.
@@ -237,10 +220,6 @@ Acceptance:
 <!-- sq:subtask:ST3 -->
 ### ST3 — Write the client refusal contract
 
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Write the refusal contract down, before the first mutating command needs it.
 
@@ -285,11 +264,6 @@ Acceptance:
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Manual dev-host check on a drifted board
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-**Assignee:** Pierre Chat
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Manual confirmation on the Windows dev host — the operator's machine, so an agent cannot close this.

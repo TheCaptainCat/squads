@@ -42,9 +42,6 @@ Data: `sq list --json` filtered to the 3 reserved types — the complement of th
 
 _Add with `sq task 455 add-subtask "<title>"`; track with `sq task 455 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

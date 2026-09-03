@@ -74,23 +74,10 @@ Return a result dataclass (new entry in `src/squads/_services/_results.py`) carr
 
 _Add with `sq task 110 add-subtask "<title>"`; track with `sq task 110 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Retype operation: flip type, move file, carry/reset status, refuse conflicts, system comment | US1 |
-| ST2 | Done |  | Rewrite all incoming edges (refs, children parent, prose mentions) to the new ID in one transaction | US2 |
-| ST3 | Done |  | Wire the CLI verb + service tests, CLI smoke, workflow docs | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Retype operation: flip type, move file, carry/reset status, refuse conflicts, system comment
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Core retype(item_id, new_type) in a new RetypeMixin: validate work-type→work-type; refuse on sub-entities present / invalid new parent / a child that would be orphaned; carry status when old and new share the _WORK workflow else reset to initial_status and announce; flip item.type, rename+move the file across folders, rewrite frontmatter only (body verbatim); append an empty sub-entity container when retyping into feature/task/review; write a 'retyped OLD → NEW' system comment. Files: src/squads/_services/_retype.py (new), _service.py, _results.py, _base.py (reuse SUBENTITY_CONTAINER), _itemfile.py, _discussion.py, _sections.py.
@@ -105,11 +92,6 @@ Core retype(item_id, new_type) in a new RetypeMixin: validate work-type→work-t
 <!-- sq:subtask:ST2 -->
 ### ST2 — Rewrite all incoming edges (refs, children parent, prose mentions) to the new ID in one transaction
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a teammate whose items reference the retyped one, I want every incoming ref, parent link and prose mention rewritten to the new ID, so that nothing dangles
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 In the same transaction, build remap {OLD_ID: NEW_ID} and call rewrite_ids over every item file so other items' refs (kinds preserved via the ID:kind form), children's parent fields, and prose @-mentions all flip to the new ID. Re-sync affected in-memory items so the index matches disk; assert sq check clean and sq repair a no-op afterwards. Files: src/squads/_itemfile.py (rewrite_ids — reuse), src/squads/_services/_retype.py.
 <!-- sq:subtask:ST2:body:end -->
@@ -122,11 +104,6 @@ In the same transaction, build remap {OLD_ID: NEW_ID} and call rewrite_ids over 
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Wire the CLI verb + service tests, CLI smoke, workflow docs
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a user who filed work under the wrong type, I want to retype it in place, so that the number, body and discussion survive the fix
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Register the retype verb in build_item_app (thin wrapper over svc.retype, type-argument parser, prints new ID + carried/reset status + rewritten-ref count); add service tests across all work-item pairs + carry/reset + the three refusals + ref/parent/prose rewrite + check/repair stability, plus a CLI smoke test; document the verb in workflow.md.j2. Files: src/squads/_cli/_items.py, src/squads/_rendering/templates/workflow.md.j2, tests/.

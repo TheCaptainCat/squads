@@ -16,14 +16,15 @@ same value: one refuses at declaration time, the other says what the write just 
 render.
 """
 
+from dataclasses import replace
+
 import pytest
 
 from squads._backends._base import BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._backends._claude_code._frontmatter import model_drop_warning, normalize_model
 from squads._errors import SquadsError
-from squads._roles._catalog import RoleDef
-from squads._roles._resolver import resolve_role
+from squads._roles._resolver import resolve_role, resolve_role_for_item
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -98,7 +99,7 @@ async def test_the_warning_travels_on_the_artifact_the_write_returned(tmp_path, 
     svc = service.Service(result.paths)
     item = await svc.roster_item("role", "manager")
     assert item is not None
-    role = RoleDef.from_extra({**item.extra, "model": _UNRENDERABLE})
+    role = replace(resolve_role_for_item(item, result.paths.squad_dir), model=_UNRENDERABLE)
 
     ctx = BackendContext(paths=result.paths, spec=svc.spec, playbook=svc.playbook)
     artifact = await ClaudeCodeBackend().generate_role_entry(ctx, item, role)

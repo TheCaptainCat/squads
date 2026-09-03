@@ -71,9 +71,6 @@ before/with TASK-549 (guard) — the guard's allowlist keeps the now-bounded `_e
 
 _Add with `sq task 554 add-subtask "<title>"`; track with `sq task 554 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

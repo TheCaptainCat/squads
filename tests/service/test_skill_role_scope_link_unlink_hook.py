@@ -32,7 +32,7 @@ async def test_link_role_resyncs_the_pointer_without_a_separate_sync_call(svc):
     assert "release-runbook" in _pointer_path(svc, "tech-writer").read_text(encoding="utf-8")
     resolved = await svc.resolved_skills_for_role("tech-writer")
     assert "release-runbook" in resolved
-    assert role.extra.get("full_name")  # sanity: activation actually happened
+    assert role.title  # sanity: activation actually happened
 
 
 async def test_a_raw_ref_add_writes_the_edge_but_leaves_the_pointer_stale_until_sync(svc):

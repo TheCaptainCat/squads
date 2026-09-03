@@ -65,23 +65,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 225 add-finding "…" --severity high`; track with `sq review 225 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Golden test docstring overstates coverage: a newly-added RoleSpec field would NOT fail the lock |
-| F2 | 🟢 low | Open |  | Unknown TOML role keys silently ignored (pydantic extra=ignore + explicit key enum in _parse_role) |
-| F3 | 🟢 low | Open |  | Stale comment: lazy import of RoleSpec in _role_spec_to_def claims a circular-import risk that does not exist |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Golden test docstring overstates coverage: a newly-added RoleSpec field would NOT fail the lock
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 tests/test_role_catalog.py:33-34 — the docstring 'adding a field to RoleSpec without updating this test causes a failure' is aspirational, not enforced. The test asserts each of the 11 named fields explicitly but never asserts set(RoleSpec.model_fields) == set(snapshot keys). A future 12th field on RoleSpec would silently escape the golden lock. LOW for this feature (all 11 of today's fields ARE locked, byte-identical). Suggested hardening: add 'assert set(RoleSpec.model_fields) == {<the 11 keys>}' so a new field forces a snapshot update. No change required to ship.
@@ -96,11 +83,6 @@ tests/test_role_catalog.py:33-34 — the docstring 'adding a field to RoleSpec w
 <!-- sq:finding:F2 -->
 ### F2 — Unknown TOML role keys silently ignored (pydantic extra=ignore + explicit key enum in _parse_role)
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 src/squads/_roles/_loader.py:68-85 (_parse_role) + _models.py (RoleSpec has no extra='forbid'). An unknown role key in roles.toml (e.g. a typo like 'mision = ...') is silently dropped rather than rejected — verified: _build_catalog accepts a role with a bogus field. ADR-221 does not mandate rejecting unknowns, and the bundled TOML is clean, so this is a defensive nit, not a defect. A typo on a REQUIRED field would still be caught by the required-field check; a typo on an OPTIONAL field would silently revert to default. Optional hardening: ConfigDict(extra='forbid') on RoleSpec, or validate keys against a known set in _parse_role. LOW.
 <!-- sq:finding:F2:body:end -->
@@ -113,11 +95,6 @@ src/squads/_roles/_loader.py:68-85 (_parse_role) + _models.py (RoleSpec has no e
 
 <!-- sq:finding:F3 -->
 ### F3 — Stale comment: lazy import of RoleSpec in _role_spec_to_def claims a circular-import risk that does not exist
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 src/squads/_roles/_catalog.py:70-72 — the comment 'Import here to avoid a circular-import risk at module level' is inaccurate: _catalog.py already imports RoleCatalogSpec from squads._roles._models at module top (line 18), so _models is a fully-resolved dependency and importing RoleSpec at module scope would create no cycle (_models imports only pydantic). Cosmetic only — the lazy import is harmless and runs once during singleton build. Suggest hoisting RoleSpec to the top-level import and dropping the misleading comment. LOW / cosmetic.

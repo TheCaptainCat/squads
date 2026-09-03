@@ -62,21 +62,10 @@ This is a **new public 1.0-grammar verb** (ADR-295 §1) — get the surface exac
 
 _Add with `sq task 299 add-subtask "<title>"`; track with `sq task 299 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Pre-merge shift preserves referential intent | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Pre-merge shift preserves referential intent
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Pre-merge shift preserves referential intent
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Done when sq renumber --from N --onto M shifts the local block (seq>=N) strictly above max(M,C), rewrites frontmatter id:/refs + body prose + inline mentions, renames files, resyncs sequence_id, and bumps the counter to the new max — validated before any file is touched (an unsafe --by refuses first), then committed via the same unlocked-rewrite-then-locked-overwrite pattern sq repair already uses (not a single IndexStore.transaction() wrapper). Critically, a ref that pointed at a shifted item still points at that same item afterward (referential intent preserved, contrast post-merge --renumber which cannot). --onto/--by are mutually exclusive at the CLI; it is a standalone verb, not a repair mode (ADR-295 §1).

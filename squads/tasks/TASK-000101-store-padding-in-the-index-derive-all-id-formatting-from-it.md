@@ -45,21 +45,10 @@ Make ID width an explicit, stored part of the on-disk format.
 
 _Add with `sq task 101 add-subtask "<title>"`; track with `sq task 101 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Store padding in index; ID formatting derives from it | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Store padding in index; ID formatting derives from it
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a squad owner whose counter hits the cap, I want create to fail with a clear index-full error naming the fix, so that the format never silently grows a digit
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Padding stored in index; all ID formatting derives from it; allocate_id raises index-full at capacity naming sq migrate repad.

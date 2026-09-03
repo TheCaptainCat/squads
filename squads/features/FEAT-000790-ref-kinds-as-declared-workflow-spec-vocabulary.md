@@ -126,24 +126,10 @@ all.
 
 _Add with `sq feature 790 add-story "As a <role>, I want … so that …"`; track with `sq feature 790 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Declare [ref_kinds] as a workflow-spec section |
-| US2 | Done |  | Bind engine behaviour to declared semantics, not literals |
-| US3 | Done |  | Per-capability floor and the live-corpus refusal |
-| US4 | Done |  | sq workflow ref-kinds --json catalog command |
-| US5 | Done | tech-writer | Reissue the ref-kind contract prose (tech-writer) |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Declare [ref_kinds] as a workflow-spec section
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 `[ref_kinds]` enters the workflow document as a keyed section on the same terms as
@@ -163,10 +149,6 @@ acceptable entry now checks it against the declared section rather than the froz
 
 <!-- sq:story:US2 -->
 ### US2 — Bind engine behaviour to declared semantics, not literals
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 Engine behaviour binds to a kind's declared semantic role instead of its spelling, for the three
@@ -191,10 +173,6 @@ live spec.
 <!-- sq:story:US3 -->
 ### US3 — Per-capability floor and the live-corpus refusal
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 The per-capability floor is checked on the merged spec, fail-closed, with every violation
 collected in one pass rather than stopping at the first: exactly one declared kind may carry
@@ -216,10 +194,6 @@ first); a kind no live edge uses may be dropped or renamed freely.
 <!-- sq:story:US4 -->
 ### US4 — sq workflow ref-kinds --json catalog command
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 `sq workflow ref-kinds --json` joins the existing catalog family (`types`, `statuses`,
 `subentity-kinds`, `collections`, `lifecycles`, `roles`) as a new command, listing every declared
@@ -238,11 +212,6 @@ identical way, with no engine change required.
 
 <!-- sq:story:US5 -->
 ### US5 — Reissue the ref-kind contract prose (tech-writer)
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-**Assignee:** Theo Writer
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 The tech-writer reissues the ref-kind contract prose, not a developer landing it beside the engine

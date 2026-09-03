@@ -31,22 +31,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 603 add-finding "…" --severity medium`; track with `sq review 603 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | WontFix |  | StatusSpec.role docstring stale: now engine-consumed |
-| F2 | 🟢 low | WontFix |  | Rejected records now visible by default — confirm intent |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — StatusSpec.role docstring stale: now engine-consumed
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `StatusSpec.role` docstring (_workflow/_models.py ~L344) still reads "Currently used to identify Superseded" and "Not yet consumed by the engine." Both are now false: this task makes `role` engine-consumed via `WorkflowSpec.hidden_by_default` (records hide iff role in RETIRED_STATUS_ROLES), and the roled set is now {superseded, active, retired}. Refresh so the next reader doesn't trust a stale 'not consumed' marker. Doc-only; zero behavioral impact.
@@ -60,11 +48,6 @@ _Add with `sq review 603 add-finding "…" --severity medium`; track with `sq re
 
 <!-- sq:finding:F2 -->
 ### F2 — Rejected records now visible by default — confirm intent
-
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 New behavior: a records item at a terminal-but-unroled status stays visible by default. In the bundled spec that means a Rejected ADR now shows in the default sq list/tree (previously hidden under is_open). Deliberate + tested (test_records_category_terminal_but_unroled_status_stays_visible) and correct per the implemented rule (records hide only on a retired role), but it exceeds F9's stated intent: the driver named Accepted/Published as the final-but-live cases and Superseded/Deprecated/Cancelled as retired — Rejected was never classified. A Rejected decision is a dead-end, not a standing live record, so arguably it should hide like finished work. Not a code defect, not a blocker — a PO/architect intent call: accept Rejected-stays-visible, or give Rejected a retired role. Flagged so the choice is on the record.

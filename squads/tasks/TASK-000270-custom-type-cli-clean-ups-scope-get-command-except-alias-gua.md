@@ -39,9 +39,6 @@ updated_at: '2026-07-01T15:40:17Z'
 
 _Add with `sq task 270 add-subtask "<title>"`; track with `sq task 270 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

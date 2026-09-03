@@ -191,22 +191,10 @@ it means something decided changed, which this does not authorise.
 
 _Add with `sq task 717 add-subtask "<title>"`; track with `sq task 717 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Reground the duplicate-default docstring on ADR-697 §9 |  |
-| ST2 | Todo |  | Store the direction-independent scoped-edge remedy and append the flag |  |
-| ST3 | Todo |  | Update the three pinned remedy strings and the documented refusal example |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Reground the duplicate-default docstring on ADR-697 §9
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Rewrite `_default_designation_duplicated`'s docstring in `_services/_validators.py` so its
@@ -234,10 +222,6 @@ and its existing tests pass unedited.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Store the direction-independent scoped-edge remedy and append the flag
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 In `_services/_config_integrity.py`, make the stored `scoped_edge` remedy the one that is
 true in every rendering situation — sever the edge with `sq skill <addr> unlink-role <role>`,
@@ -264,10 +248,6 @@ to which findings fire, or to what refuses.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Update the three pinned remedy strings and the documented refusal example
-
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Exactly three assertions change, and they are the only ones permitted to:

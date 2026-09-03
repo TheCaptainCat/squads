@@ -80,22 +80,10 @@ navigation). Add two subtasks: one `--story US2` (type/status narrowing), one `-
 
 _Add with `sq task 532 add-subtask "<title>"`; track with `sq task 532 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Item type/status narrowing forwarded to svc.search | US2 |
-| ST2 | Done |  | Select hit -> push ReaderScreen (not tree navigation) | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Item type/status narrowing forwarded to svc.search
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Narrow results by item type and/or status
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add item-type and status inputs to SearchScreen; forward as svc.search(text, item_type=, status=) (unset -> None), AND-composing exactly as the service params do — no TUI-side re-filter. Done: narrowing changes results and is forwarded to svc.search.
@@ -109,11 +97,6 @@ Add item-type and status inputs to SearchScreen; forward as svc.search(text, ite
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Select hit -> push ReaderScreen (not tree navigation)
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Select a result to open it in the reader
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Selecting a result does push_screen(ReaderScreen(svc, hit_item_id)) — NOT tree navigation (ADR-527 s3): a hit may be filtered out of the browse tree, so a pushed reader opens any hit deterministically and leaves browse state untouched, reusing the existing ReaderScreen. Escape pops reader->results->browse. Done: selecting a hit (incl. a filtered-out item) opens its reader with the browse selection unchanged; escape chain works.

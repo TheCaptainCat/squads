@@ -37,9 +37,6 @@ The completion docs are FEAT-13 (stability contract) deferral material — flag 
 
 _Add with `sq task 128 add-subtask "<title>"`; track with `sq task 128 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

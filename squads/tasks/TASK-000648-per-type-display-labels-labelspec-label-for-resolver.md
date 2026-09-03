@@ -64,22 +64,10 @@ Do not redesign — ADR-646 is the fixed design.
 
 _Add with `sq task 648 add-subtask "<title>"`; track with `sq task 648 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add LabelSpec + ItemSpec.labels and the label_for resolver | US1 |
-| ST2 | Done |  | Retarget ad-hoc type-name display derivations through label_for | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add LabelSpec + ItemSpec.labels and the label_for resolver
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Labels schema field + label_for resolver
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Added frozen LabelSpec (4 optional str forms, extra=forbid) + ItemSpec.labels in _workflow/_models.py; label_for/labels_for resolver (pin-else-derive) in _models/_vocab.py; confirmed the override loader parses [items.X.labels] via the standard nested-model model_validate path (no dedicated parser needed).
@@ -93,11 +81,6 @@ Added frozen LabelSpec (4 optional str forms, extra=forbid) + ItemSpec.labels in
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Retarget ad-hoc type-name display derivations through label_for
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Retarget display-name consumers through the resolver
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Grepped for ad-hoc type-name .capitalize()/.title() derivations; only the Claude Code backend's two per-type item-skill title sites (_backend.py) were real hits — retargeted both through label_for(type, "singular", spec). No VS Code or CLI per-type grouping header derives a display name ad hoc (subentity-kind .title() sites in _cli/_common.py, _discussion.py, _retype.py are a different axis, out of ADR-646 scope).

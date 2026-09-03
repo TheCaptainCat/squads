@@ -60,9 +60,6 @@ Implements FEAT-100 (dev-time CI enablement, spans US1–US3). Addresses ADR-427
 
 _Add with `sq task 432 add-subtask "<title>"`; track with `sq task 432 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

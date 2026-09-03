@@ -48,22 +48,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 542 add-finding "…" --severity medium`; track with `sq review 542 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | Pre-existing sentinel char in body is not neutralized before extraction |
-| F2 | 🟢 low | Verified |  | Test gaps: multi-span index, escaping inside code span, digit-adjacency, table/heading |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Pre-existing sentinel char in body is not neutralized before extraction
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The placeholder scheme is `<index>` delimited by U+E000 on both sides. `extractCodeSpans` never strips or neutralizes a U+E000 that already exists in the raw body before substituting code spans, and `escapeHtml` does not touch that char. Two consequences:
@@ -86,11 +74,6 @@ Positive note: the double-delimiter design is otherwise sound. Because the index
 
 <!-- sq:finding:F2 -->
 ### F2 — Test gaps: multi-span index, escaping inside code span, digit-adjacency, table/heading
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 The 5 new tests pin the reported repro and guard plain emphasis, which is good. But they miss the edges that make the placeholder scheme trustworthy — add:

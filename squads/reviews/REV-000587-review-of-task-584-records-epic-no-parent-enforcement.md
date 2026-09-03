@@ -41,24 +41,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 587 add-finding "…" --severity medium`; track with `sq review 587 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🔵 info | Verified |  | Correct wiring, no over-reach |
-| F2 | 🔵 info | Verified |  | sq check clean on this repo |
-| F3 | 🔵 info | Verified |  | Enforcement genuine (tests not tautological) |
-| F4 | 🟢 low | Verified |  | Stale _no_parent function docstring |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Correct wiring, no over-reach
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🔵 Info
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 `no_parent` appears in exactly two places: `CATEGORY_BUNDLES["records"] = ("no_parent", "supersedes_incoming")` and epic's per-type `validators = ["no_parent"]` in default_workflow.toml. Verified nowhere else: work types feature/task/bug/review and all roster types (role/skill/operator) carry no `validators` field and no `no_parent`. `_run_per_item` threads `tuple(item_spec.validators)` as `extra`, so epic's addition composes as common_core + work bundle + no_parent. Epic is category=work, parents=[], so its `parent_in` is vacuous and `no_parent` narrows it with no conflict — a pure AND-compose tightening.
@@ -73,11 +59,6 @@ _Add with `sq review 587 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:finding:F2 -->
 ### F2 — sq check clean on this repo
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🔵 Info
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 `uv run sq check` exits 0 (no issues) on this repo. The FEAT-572 migration re-homed the 5 formerly-parented ADRs to `related` refs and there are no parented epics, so turning on the two enforcements surfaces zero new violations here — Plane-2 report stays clean, load is not bricked.
 <!-- sq:finding:F2:body:end -->
@@ -91,11 +72,6 @@ _Add with `sq review 587 add-finding "…" --severity medium`; track with `sq re
 <!-- sq:finding:F3 -->
 ### F3 — Enforcement genuine (tests not tautological)
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🔵 Info
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 Enforcement is real, not tautological. Create path gates via ValidatorEngine.gate() at _base.py:401; link/reparent path sets child.parent then gates at _items.py:191. `_no_parent` emits an **error**-level CheckIssue (`{type} takes no parent (got {parent})`) so gate() aborts. The link/create tests assert `match="takes no parent"` — the exact _no_parent string; a different validator firing would fail the match, so the assertion is load-bearing. The check() tests corrupt parent inside a real store transaction and assert the report surfaces the item+message. Parentless-still-succeeds is covered for decision/guide/epic. All 10 tests pass.
 <!-- sq:finding:F3:body:end -->
@@ -108,11 +84,6 @@ Enforcement is real, not tautological. Create path gates via ValidatorEngine.gat
 
 <!-- sq:finding:F4 -->
 ### F4 — Stale _no_parent function docstring
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 The module docstring, CATALOG comment, CATEGORY_BUNDLES comment, and effective_validator_names docstring were all correctly refreshed to describe the live wiring. But the `_no_parent` function docstring (`_services/_validators.py:147-148`) still ends "Not yet selected by any bundle." — now false: it is selected by the `records` bundle and epic's `validators`. Non-blocking (comment-only, zero functional impact), but it contradicts the now-live enforcement and should be corrected to match the other refreshed docstrings. Recommend dropping that trailing sentence.

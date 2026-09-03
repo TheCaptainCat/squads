@@ -64,9 +64,6 @@ lower layer) per the architect's guidance.
 
 _Add with `sq task 583 add-subtask "<title>"`; track with `sq task 583 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

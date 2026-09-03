@@ -71,9 +71,6 @@ Do not add a one-shot `sq role add`; create-surface stays scaffold-then-activate
 
 _Add with `sq task 545 add-subtask "<title>"`; track with `sq task 545 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

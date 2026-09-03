@@ -43,22 +43,10 @@ Foundation task for FEAT-14 (ADR-85 §1, §2). Lay the override lookup path that
 
 _Add with `sq task 87 add-subtask "<title>"`; track with `sq task 87 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | ChoiceLoader engine swap + squad-aware cache key | US1 |
-| ST2 | Done |  | .overrides/ path resolution + traversal guard + partial-override test | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — ChoiceLoader engine swap + squad-aware cache key
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a project lead, I want to override item templates from squads/.templates/, so that generated items follow our house format
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Swap the _rendering/_engine.py single PackageLoader for a ChoiceLoader([FileSystemLoader(<squad-dir>/.overrides/templates), PackageLoader(...)]) so a project template shadows its bundled counterpart per-file with the bundle as fallback, and fix the lru_cache(maxsize=1) on the Environment to key on the squad dir (or build per-resolve) so two squads in one process don't cross-contaminate. render() signature and all ~13 call sites unchanged (US1).
@@ -72,11 +60,6 @@ Swap the _rendering/_engine.py single PackageLoader for a ChoiceLoader([FileSyst
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — .overrides/ path resolution + traversal guard + partial-override test
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a project lead, I want to override item templates from squads/.templates/, so that generated items follow our house format
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Resolve/create the .overrides/ umbrella under the squad folder via _paths.resolve() walk-up, guarded by the abspath() traversal check, with templates/ mirroring _rendering/templates/ 1:1 so the override key is the existing render() name. Covered by a partial-override service test (dropping items/task.md.j2 shadows only task bodies; every other template still resolves to the bundle) plus a CLI smoke test (US1).

@@ -78,22 +78,10 @@ consume these models and this TOML.
 
 _Add with `sq task 227 add-subtask "<title>"`; track with `sq task 227 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec models, extra=forbid, ordered guides | US1 |
-| ST2 | Todo |  | Author bundled playbook.toml transcribing today's 7 work-type entries | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec models, extra=forbid, ordered guides
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content lives in data not code
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the pyright-strict pydantic v2 playbook value objects per ADR-226 §1, all with `model_config = ConfigDict(extra="forbid")` (the FEAT-219 nit lesson): `PlaybookSpec` (`types: dict[ItemType, ItemPlaybookSpec]`, work types only), `ItemPlaybookSpec` (overview/lifecycle/commands + ORDERED `roles: list[RoleGuideSpec]`), and `RoleGuideSpec` (slug or the `*dev` sentinel + enter/do/handoff/watch lists). Guides are lists, not sets, so section order in the generated skill is preserved. (US1)
@@ -107,11 +95,6 @@ Covers the pyright-strict pydantic v2 playbook value objects per ADR-226 §1, al
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Author bundled playbook.toml transcribing today's 7 work-type entries
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content lives in data not code
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers authoring the bundled `src/squads/_interactions/playbook.toml` — promoting `_interactions.py` into an `_interactions/` package (re-exporting current public names so import sites are unchanged) with the TOML beside the loader. Transcribes (not paraphrases) today's `PLAYBOOK` for all 7 work types (task/bug/feature/epic/decision/review/guide) with overview/lifecycle/commands and each type's ORDERED per-role guides (incl. the `*dev` sentinel) via array-of-tables. Meta types role/skill/operator stay deliberately absent. (US1)

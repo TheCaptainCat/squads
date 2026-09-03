@@ -28,21 +28,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 612 add-finding "…" --severity medium`; track with `sq review 612 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | Fallback role existence not validated at load; role_for KeyErrors if pending absent |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Fallback role existence not validated at load; role_for KeyErrors if pending absent
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 role_for() resolves a role-less status via a direct index: self.roles[self.statuses[status].role or FALLBACK_ROLE_NAME] — a KeyError if 'pending' is not declared. _check_role_references only validates EXPLICIT status.role references; it never asserts the fallback role (FALLBACK_ROLE_NAME) exists. So _validate does NOT guarantee the implicit fallback resolves — yet role_for's docstring claims 'validate guarantees every referenced role resolves', which is false for the fallback.

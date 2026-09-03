@@ -68,22 +68,10 @@ green going forward.
 
 _Add with `sq task 229 add-subtask "<title>"`; track with `sq task 229 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Layer-A golden: loaded PlaybookSpec == frozen snapshot of today's PLAYBOOK | US3 |
-| ST2 | Done |  | Layer-B golden: generated sq-<type> skills byte-identical; playbook.toml ships | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Layer-A golden: loaded PlaybookSpec == frozen snapshot of today's PLAYBOOK
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a maintainer, I want a golden test asserting generated skills are byte-identical before and after this change
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers Layer A of the two-layer golden-lock: build a frozen snapshot directly from today's `PLAYBOOK` dict and assert structural equality with the loaded `PlaybookSpec` — every type, every `RoleGuide` (slug + enter/do/handoff/watch), and every lifecycle and command string, IN ORDER. Fails on any drift; built from today's literals as an independent source of truth. (US3)
@@ -97,11 +85,6 @@ Covers Layer A of the two-layer golden-lock: build a frozen snapshot directly fr
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Layer-B golden: generated sq-<type> skills byte-identical; playbook.toml ships
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a maintainer, I want a golden test asserting generated skills are byte-identical before and after this change
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers Layer B (the decisive layer US3 demands) plus packaging: render each `sq-<type>` skill from the loaded spec through the SAME `agents/item_skill.md.j2` path the backend uses, with a fixed representative roster for determinism, and assert BYTE-equality against the output produced from today's Python `PLAYBOOK`. Also a build/packaging test confirming `playbook.toml` ships in the wheel. This is the gate that actually protects users — a faithful spec that rendered differently would still be a regression. (US3)

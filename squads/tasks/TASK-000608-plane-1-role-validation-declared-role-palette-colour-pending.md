@@ -34,9 +34,6 @@ Implements FEAT-605 US1. Add the Plane-1 (load-time) spec validation for the rol
 
 _Add with `sq task 608 add-subtask "<title>"`; track with `sq task 608 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

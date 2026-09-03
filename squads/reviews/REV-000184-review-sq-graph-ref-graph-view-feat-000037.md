@@ -40,24 +40,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 184 add-finding "…" --severity high`; track with `sq review 184 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | Rich tree crashes on any node with a priority |
-| F2 | 🟢 low | Verified |  | Dangling-ref stub branch in _build_graph_node is dead code |
-| F3 | 🟢 low | Verified |  | graph_to_dot _q does not escape backslashes |
-| F4 | 🟢 low | WontFix |  | dot/mermaid arrows follow traversal direction, not dependency semantics |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Rich tree crashes on any node with a priority
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 BLOCKING. `sq graph` aborts with a traceback whenever the rendered tree contains any node carrying a priority. Root cause: GraphNode.priority is a value-string (e.g. "high"), but _cli/_main.py passes it straight to priority_badge(), which is typed priority_badge(priority: Priority) and does PRIORITY_EMOJI[priority] (dict keyed by the Priority enum) + priority.value. With a str it raises AttributeError: 'str' object has no attribute 'value' (after a KeyError-prone lookup).
@@ -78,11 +64,6 @@ Fix: convert at the call site — priority_badge(Priority(child.priority)) / Pri
 <!-- sq:finding:F2 -->
 ### F2 — Dangling-ref stub branch in _build_graph_node is dead code
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 In _build_graph_node, the 'item is None' branch builds and returns a stub GraphNode for a dangling ref. But every caller (the loop in _build_graph_node over _neighbours) already pre-checks 'nb_item is None: continue' before recursing, and the root goes through require_item (raises if missing). So the stub branch is unreachable in practice — dead code. Harmless, but either wire it in (don't pre-skip, let the stub carry the dangling id) or drop it. Minor.
 <!-- sq:finding:F2:body:end -->
@@ -96,11 +77,6 @@ In _build_graph_node, the 'item is None' branch builds and returns a stub GraphN
 <!-- sq:finding:F3 -->
 ### F3 — graph_to_dot _q does not escape backslashes
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 graph_to_dot._q escapes double-quotes (" -> \") but not backslashes. A label/id containing a backslash would produce malformed DOT. In practice labels are kind names + 'depends on'/'required by' and ids are PREFIX-digits, so no backslash can occur today — not exploitable now. Worth a one-line guard (escape backslash before quote) for robustness if ids/labels ever widen. Low.
 <!-- sq:finding:F3:body:end -->
@@ -113,11 +89,6 @@ graph_to_dot._q escapes double-quotes (" -> \") but not backslashes. A label/id 
 
 <!-- sq:finding:F4 -->
 ### F4 — dot/mermaid arrows follow traversal direction, not dependency semantics
-
-<!-- sq:finding:F4:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 Observation, not a defect. In dot/mermaid export the edge arrow points parent->child following TREE TRAVERSAL order, and the label is the display string ('depends on'/'required by'). So a dependency rooted at the blocker emits 'BLOCKER -> DEPENDENT [label=required by]', i.e. the arrow is traversal-oriented, not dependency-oriented (a real dependency arrow would point dependent->blocker). Acceptance only requires 'renders in graphviz untouched', which it does, and it faithfully mirrors the tree. Flagging so it's a conscious choice; if the export is meant to be a canonical dependency graph, normalize arrow direction. Low/info.

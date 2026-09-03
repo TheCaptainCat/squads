@@ -88,22 +88,10 @@ being the slug authority. TASK-229 (golden-lock) gates on this being behavior-pr
 
 _Add with `sq task 228 add-subtask "<title>"`; track with `sq task 228 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | load_playbook via importlib.resources/tomllib; rewire _interactions onto spec | US1 |
-| ST2 | Done |  | Cross-spec slug validation against RoleCatalogSpec (*dev exempt), non-meta-only | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — load_playbook via importlib.resources/tomllib; rewire _interactions onto spec
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a maintainer, I want the PLAYBOOK loaded from playbook.toml so skill content lives in data not code
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers `load_playbook(catalog)`: read the bundled `playbook.toml` via `importlib.resources` + `tomllib`, parse into the models, and cache a singleton. Rewires `_interactions.py` consumers into thin shims over the loaded spec — `PLAYBOOK` → `spec.types`, `managed_item_types()` → `list(spec.types)`, `skills_for_role()`/`SKILL_DESCRIPTIONS` derived from `spec.types`, and the backend `_write_item_skills` reading `spec.types[item_type]` — retiring the `PLAYBOOK` dict with zero call-site churn and no renderer change. (US1)
@@ -117,11 +105,6 @@ Covers `load_playbook(catalog)`: read the bundled `playbook.toml` via `importlib
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Cross-spec slug validation against RoleCatalogSpec (*dev exempt), non-meta-only
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Project admin can add playbook entries for custom types so generated skills have role guidance
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the fail-closed validation `load_playbook` runs against the already-loaded role catalog (raises `SquadsError`): every `types` key is a real `ItemType`; every `RoleGuideSpec.slug` exists in the `RoleCatalogSpec` (FEAT-219 slug authority) EXCEPT the `*dev` (`DEV`) sentinel, which is allowed and resolved at render time; entries required only for the 7 work types (meta types absent is fine, a non-work-type entry is rejected); and each entry has non-empty overview + lifecycle. This is the cross-spec slug-validation contract a future custom-type playbook entry must satisfy. (US2)

@@ -35,9 +35,6 @@ The item preview renders body, mermaid graphs (children + refs), and discussion,
 
 _Add with `sq task 475 add-subtask "<title>"`; track with `sq task 475 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

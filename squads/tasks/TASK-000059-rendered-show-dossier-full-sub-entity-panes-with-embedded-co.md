@@ -57,21 +57,10 @@ Service + CLI smoke: --full sub panes (badge title, body, no comments), --full -
 
 _Add with `sq task 59 add-subtask "<title>"`; track with `sq task 59 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Sub-entity panes and the --full --comments dossier | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Sub-entity panes and the --full --comments dossier
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As a reader wanting the whole story, I want --full to render each sub-entity and its comments in tidy panes along with the main discussion, so that one command reads as the item's dossier
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Extend TASK-58's render entry point (not fork it) with the --full dossier layer: one rich Panel per sub-entity titled with local id + title + status/severity/assignee/story badges and rendered-markdown body. With --full --comments each pane embeds its own comments (reusing the TASK-58 comment splitter/pane) and the main discussion renders last, honouring the comments-follow-scope rule and the same piped/NO_COLOR degradation (US5).

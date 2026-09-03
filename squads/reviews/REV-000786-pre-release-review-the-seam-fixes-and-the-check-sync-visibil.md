@@ -211,26 +211,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 786 add-finding "…" --severity medium`; track with `sq review 786 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | Stored whitespace-only role name bricks sq sync after upgrade |
-| F2 | 🟡 medium | Verified |  | AgentBackend grew an 8th abstract method against its no-growth contract |
-| F3 | 🟢 low | Verified |  | Backend pointer rule is cross-source but skips check's confirm round |
-| F4 | 🟢 low | Verified |  | Warn-level rationale is false: gitignoring .claude still exits 3 |
-| F5 | 🟢 low | Verified |  | Two 0.13.1 changelog claims overstate history and scope |
-| F6 | 🟢 low | Verified |  | agents_md per-entry report names write-only files no host reads |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Stored whitespace-only role name bricks sq sync after upgrade
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **driven**, with the before/after measured against `v0.13.0` installed from its own source tree.
@@ -345,11 +329,6 @@ a driven test on the sequence "a role item carrying a whitespace-only stored nam
 <!-- sq:finding:F2 -->
 ### F2 — AgentBackend grew an 8th abstract method against its no-growth contract
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **driven** (the `TypeError`), **read** (the two documents).
 
@@ -417,11 +396,6 @@ all rather than in 0.14.
 <!-- sq:finding:F3 -->
 ### F3 — Backend pointer rule is cross-source but skips check's confirm round
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **driven** (the false positive, via a stale-snapshot harness), **read** (the confirm-round set).
 
@@ -481,11 +455,6 @@ should stop promising what this rule does not do.
 
 <!-- sq:finding:F4 -->
 ### F4 — Warn-level rationale is false: gitignoring .claude still exits 3
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 **driven.**
@@ -552,11 +521,6 @@ generated config is defensible.
 <!-- sq:finding:F5 -->
 ### F5 — Two 0.13.1 changelog claims overstate history and scope
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **read** (both claims), **driven** (the writer count).
 
@@ -606,11 +570,6 @@ pattern is worth naming, not just the instances.
 
 <!-- sq:finding:F6 -->
 ### F6 — agents_md per-entry report names write-only files no host reads
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **read** (the write-only property, from the backend's own two docstrings), **driven** (the counts).

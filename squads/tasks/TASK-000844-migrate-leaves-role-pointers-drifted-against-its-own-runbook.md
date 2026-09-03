@@ -79,22 +79,10 @@ repository: they run the runbook, read "no action is required", and their next `
 
 _Add with `sq task 844 add-subtask "<title>"`; track with `sq task 844 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Decide and apply: runbook step or a role-pointer pass |  |
-| ST2 | Done | python-dev | Close the parity test's .claude/agents blind spot |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Decide and apply: runbook step or a role-pointer pass
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Settle the contradiction between the runner's behaviour and the runbook it hands the operator, then
@@ -130,11 +118,6 @@ Done when: a pre-0.14 squad with the full bundled roster ends `sq migrate up` ei
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Close the parity test's .claude/agents blind spot
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Close the parity test's blind spot, so the next type addition cannot land in it.

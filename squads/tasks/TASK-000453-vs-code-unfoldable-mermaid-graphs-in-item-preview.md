@@ -46,9 +46,6 @@ Optional (note, don't block): make graph nodes navigable by reusing the foundati
 
 _Add with `sq task 453 add-subtask "<title>"`; track with `sq task 453 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

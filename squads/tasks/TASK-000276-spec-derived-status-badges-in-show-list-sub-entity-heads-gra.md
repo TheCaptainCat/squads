@@ -70,21 +70,10 @@ enum-keyed `STATUS_EMOJI` (`_models/_enums.py`) only covers the 9 sub-entity sta
 
 _Add with `sq task 276 add-subtask "<title>"`; track with `sq task 276 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Spec-derived badge resolver with graceful default in show/list/heads | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Spec-derived badge resolver with graceful default in show/list/heads
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a team member, I want custom status badges to render in sq show and sq list output
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers routing status-badge lookup through a spec-derived resolver so custom statuses render their configured badge and fall back to the neutral ⚪ default instead of crashing. Today `_discussion._status_badge` does `STATUS_EMOJI.get(Status(status_value), "")` and `Status(...)` raises `ValueError` for any custom status (e.g. Triage, Mitigating). The fix adds a resolved helper over `WorkflowSpec.status_badge(s)` (declared badge or ⚪ default) and rewires `_discussion._status_badge` plus the CLI badge sites (`_subentity_pane_title_raw`, `_build_item_panel_rows`, `_item_table`) onto the threaded active spec — no module-global singleton. The `InProgress → In Progress` label spacing is preserved; only the emoji source changes; built-in output stays byte-identical under the TASK-275 golden. (US2)

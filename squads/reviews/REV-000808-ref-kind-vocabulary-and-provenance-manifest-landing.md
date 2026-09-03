@@ -150,28 +150,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 808 add-finding "…" --severity medium`; track with `sq review 808 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | The 0.5-to-0.7 runner's on-disk output also changed retroactively |
-| F2 | 🟡 medium | Fixed |  | Manifest-freshness guard lost its stale-hash assertion |
-| F3 | 🟡 medium | Fixed |  | Pre-0.14 spelled-default refs become a false skew refusal on upgrade |
-| F4 | 🟡 medium | Fixed |  | README carries a third, untracked closed-nine-kinds claim |
-| F5 | 🟢 low | Fixed |  | Width-tolerant ref severing lost its bare-ref coverage |
-| F6 | 🟢 low | Fixed |  | sq workflow lint passes a spec every mutation then refuses |
-| F7 | 🟢 low | Fixed |  | Never-prune plus no-orphans deadlocks a same-release delete |
-| F8 | 🟢 low | Fixed |  | The VS Code client binds edge labels to a literal kind name |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — The 0.5-to-0.7 runner's on-disk output also changed retroactively
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Driven.** `_migrations/_v0_5_to_v0_7.py` was not touched by this commit and still imports the
@@ -225,11 +207,6 @@ can change its collapse behaviour is not frozen.
 <!-- sq:finding:F2 -->
 ### F2 — Manifest-freshness guard lost its stale-hash assertion
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Driven.** The widening deleted the one assertion that made the guard a freshness guard.
 `tests/meta/test_override_manifest_and_stamp_freshness.py`, before:
@@ -279,11 +256,6 @@ scripts (**read**). The two surviving content checks reach exactly four of the 2
 
 <!-- sq:finding:F3 -->
 ### F3 — Pre-0.14 spelled-default refs become a false skew refusal on upgrade
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **Driven, across versions.** ADR-775 A3 rules out a corrective sweep on the premise that "a corpus
@@ -342,11 +314,6 @@ differs, and record the upgrade behaviour where an adopter will meet it.
 <!-- sq:finding:F4 -->
 ### F4 — README carries a third, untracked closed-nine-kinds claim
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **Driven + read.** ADR-775 section 6 names exactly two carriers of the retired closed-vocabulary
 policy — `docs/stability.md:322-328` and `_rendering/templates/workflow_static.md.j2:88` (which is
@@ -382,11 +349,6 @@ covers all of it rather than leaving the front page asserting the retired policy
 <!-- sq:finding:F5 -->
 ### F5 — Width-tolerant ref severing lost its bare-ref coverage
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **Read.** `tests/service/test_remove.py:93` (`test_remove_width_tolerant_ref_severing`) changed its
 planted ref from `make_ref(old_width_id, "related")` to `make_ref(old_width_id, "blocks")`, with
@@ -419,11 +381,6 @@ F3 describes. Swapping the kind was a reasonable way to unblock; keeping only on
 
 <!-- sq:finding:F6 -->
 ### F6 — sq workflow lint passes a spec every mutation then refuses
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **Driven.** TASK-796 shipped `[ref_kinds]` as an overridable section and `sq workflow lint`
@@ -458,11 +415,6 @@ still leaves lint silent.
 
 <!-- sq:finding:F7 -->
 ### F7 — Never-prune plus no-orphans deadlocks a same-release delete
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 **Driven** in a copied source tree (repo untouched): the store's two retention guards interact into
@@ -506,11 +458,6 @@ as requiring the deletion to ride a release in which it is otherwise unchanged. 
 
 <!-- sq:finding:F8 -->
 ### F8 — The VS Code client binds edge labels to a literal kind name
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **Read.** `clients/vscode/src/domain/graphDiagrams.ts:120-134`:

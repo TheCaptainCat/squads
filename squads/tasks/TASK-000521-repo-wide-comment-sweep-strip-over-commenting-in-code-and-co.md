@@ -58,9 +58,6 @@ where something is genuinely non-obvious, and then a single short line.
 
 _Add with `sq task 521 add-subtask "<title>"`; track with `sq task 521 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

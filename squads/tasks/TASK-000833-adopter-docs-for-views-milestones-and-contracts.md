@@ -120,24 +120,10 @@ alongside the release's migration work without contending for a single artifact.
 
 _Add with `sq task 833 add-subtask "<title>"`; track with `sq task 833 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Document [views] as a declarable, overridable spec section | US1 |
-| ST2 | Done |  | Document the milestone type and its roll-up | US3 |
-| ST3 | Done |  | Document the contract type and its advisory currency check |  |
-| ST4 | Done |  | The 0.14 upgrade page and the changelog section |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Document [views] as a declarable, overridable spec section
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Document `[views]` in `docs/workflow.md` and `docs/overrides.md` as one more section of the
@@ -183,11 +169,6 @@ every command printed resolves against the live CLI, and no internal reference a
 <!-- sq:subtask:ST2 -->
 ### ST2 — Document the milestone type and its roll-up
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — The MILE- item type, its lifecycle and target date
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Document the milestone type: what it is for, how work joins one, and what its roll-up answers.
 
@@ -225,10 +206,6 @@ membership-by-ref is stated plainly, and nothing about estimation or sprints app
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Document the contract type and its advisory currency check
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Document the contract type: what it is, how it differs from everything else in the tool, and what
@@ -276,10 +253,6 @@ and no internal reference appears.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — The 0.14 upgrade page and the changelog section
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Write the upgrade page and the release's changelog section.

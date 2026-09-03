@@ -40,23 +40,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 337 add-finding "…" --severity high`; track with `sq review 337 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | No automated test for the completion-count spec-load validation |
-| F2 | 🟡 medium | Fixed |  | completion decoupled from terminal deviates from Accepted ADR-322 §5 wording — needs architect sign-off |
-| F3 | 🟢 low | WontFix |  | Global-per-status-name completion flag reuses terminal's shared-name coupling |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — No automated test for the completion-count spec-load validation
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Done-criteria requires: 'Spec load rejects a sub-entity/finding machine that lacks exactly one completion status.' ST2 adds _check_completion_status (wired into _validate). But NO automated test drives it — grep for 'completion'/'subentity_completion'/'must name'/'exactly one' across tests/ finds only a _helpers.py comment and unrelated shell-completion tests. test_collab::test_subtask_done_toggle exercises subentity_completion('subtask')->Done indirectly, but would still pass if the entire validation were deleted, and never touches the finding path or the zero/2+ rejection.
@@ -74,11 +61,6 @@ Fix: add negative tests (a spec with 0 and with 2+ completion statuses on a sub-
 
 <!-- sq:finding:F2 -->
 ### F2 — completion decoupled from terminal deviates from Accepted ADR-322 §5 wording — needs architect sign-off
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 ADR-322 §5 (Accepted) states the done-toggle target is 'one of its TERMINAL statuses ... the success end-state, distinct from cancel-style terminals' — i.e. completion is a subset of terminal. FEAT-326 scope repeats this ('terminal-but-not-done states ... must not satisfy the toggle'). The dev instead made StatusSpec.completion INDEPENDENT of terminal: the finding machine's completion status is Fixed, which is terminal=false.
@@ -98,11 +80,6 @@ This is a contract-level divergence from an Accepted ADR that is part of the 1.0
 
 <!-- sq:finding:F3 -->
 ### F3 — Global-per-status-name completion flag reuses terminal's shared-name coupling
-
-<!-- sq:finding:F3:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 StatusSpec.completion is a global attribute keyed by status NAME (like terminal), not per-(machine,status). The bundled default is fine (Done and Fixed don't collide across subtask/story/finding). But FEAT-212 (custom sub-entity kinds) will hit the same shared-name coupling the dev navigated for Fixed: if two sub-entity machines share a status name but want different completion semantics, or a new machine reuses 'Done' for a non-completion meaning, it's unrepresentable — you'd force Done.completion=false and break subtask/story, or get 2 completions -> load rejected.

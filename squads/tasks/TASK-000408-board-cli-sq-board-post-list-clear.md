@@ -45,23 +45,10 @@ Build the `sq board ...` command group over the board storage layer.
 
 _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | sq board post -m [--until]; attributable author | US1 |
-| ST2 | Done |  | sq board list: ordinal, author, posted-at, expiry | US3 |
-| ST3 | Done |  | sq board clear <n>: resolve ordinal to hash id; clean out-of-range | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq board post -m [--until]; attributable author
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `post` creates the notice via the storage layer with author (operator `--as op-<slug>` or agent role), posted-at, optional `--until` expiry, and body; regenerates the index.
@@ -76,11 +63,6 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 <!-- sq:subtask:ST2 -->
 ### ST2 — sq board list: ordinal, author, posted-at, expiry
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As anyone, I can list current notices to see what's active
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 `list` shows unexpired notices with the positional ordinal (entry-line position in the generated index, header excluded), author, posted-at, and expiry if set. Expired filtered out; listing never mutates git-tracked files.
 <!-- sq:subtask:ST2:body:end -->
@@ -93,11 +75,6 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — sq board clear <n>: resolve ordinal to hash id; clean out-of-range
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As a lead or operator, I can clear a notice that no longer applies
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `clear <n>` resolves the n-th entry line of the live `squads/board/.index.jsonl` to the notice's stable hash id and removes its file (real deletion). An out-of-range ordinal errors cleanly.

@@ -30,23 +30,10 @@ USER-FACING WAVE. Scope: docs/*.md + README.md (ref-bearing: adoption, agents, i
 
 _Add with `sq task 311 add-subtask "<title>"`; track with `sq task 311 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Remove refs from docs/README (no rewording) | US4 |
-| ST2 | Done | python-dev | Preserve legit CLI-syntax / example payloads | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Remove refs from docs/README (no rewording)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US4 — User-facing content carries no squad-item references
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Strip every real-citation squad-item ref from docs/*.md and README.md; state the guarantee on its own terms. REMOVAL ONLY — do not reword, shorten, or restyle the surrounding prose; the diff must be reference removals only. Covers the 'shipped docs must not cite internal items' principle. Done when: grep of the ref pattern over docs/ + README.md returns zero real citations, and a diff review confirms no sentence-level rewrites.
@@ -60,12 +47,6 @@ Strip every real-citation squad-item ref from docs/*.md and README.md; state the
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Preserve legit CLI-syntax / example payloads
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US4 — User-facing content carries no squad-item references
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Do NOT strip legitimate non-references: CLI-syntax templates (--parent FEAT-…, sq task <n>) and illustrative example payloads (e.g. a recipe's sample id, a reflog JSON sample). Confirm each surviving id-shaped token is a shape/example, not a citation of a real tracked item, so it is a valid non-violation for the guard. Done when: recipes/tutorial examples still render as valid illustrative shapes and each surviving token is confirmed non-citing.

@@ -35,21 +35,10 @@ CLI smoke test asserting the fence lines (opening ```` ```mermaid ```` and closi
 
 _Add with `sq task 400 add-subtask "<title>"`; track with `sq task 400 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Fenced Mermaid output from sq graph
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Wrap the existing `graph_to_mermaid` output in a ```mermaid fence via a new `mermaid-md` format value (or `--md` flag) in the `graph` command. Serializer unchanged; print with `markup=False`. CLI smoke test asserts the fence lines.

@@ -43,9 +43,6 @@ Implements FEAT-605 US1. Introduce the role catalog as a first-class spec constr
 
 _Add with `sq task 606 add-subtask "<title>"`; track with `sq task 606 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -247,44 +247,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 724 add-finding "…" --severity medium`; track with `sq review 724 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | sq create on a dropped type raises a raw KeyError traceback |
-| F2 | 🟠 high | Fixed |  | Shrinking a badge collection bricks a live squad; lint reports it clean |
-| F3 | 🟠 high | Fixed |  | Corpus alignment compares folders unnormalised: 'guides/' is a false refusal |
-| F4 | 🟡 medium | Fixed |  | sq check falsely reports 'workflow config invalid' for a missing stamp |
-| F5 | 🟡 medium | Fixed |  | Role pointers keep preloading a dropped or renamed type's sq- skill |
-| F6 | 🟡 medium | Fixed |  | CLAUDE.md managed region hardcodes 'feature'; audit recorded it clean |
-| F7 | 🟡 medium | Fixed |  | Lint half of the stamp obligation has no test: neutering it stays green |
-| F8 | 🟢 low | Open |  | sq workflow lint reports only the first per-entry shape violation |
-| F9 | 🔵 info | Fixed |  | One creatable-type list, two derivations with different orderings |
-| F10 | 🔵 info | Fixed |  | Corpus-alignment folder half is only covered against a mock spec |
-| F11 | 🔵 info | WontFix |  | A key omitted from a [selected] keep list vanishes silently |
-| F12 | 🔵 info | Fixed |  | Build-process narration left in delivered source and test prose |
-| F13 | 🔵 info | WontFix |  | A bare 'assert errors' lint test can now pass on the wrong finding |
-| F14 | 🟠 high | Fixed |  | Badge cross-check asserts override causation it cannot establish |
-| F15 | 🟡 medium | Fixed |  | Lint's badge-alignment fix hint names the wrong remedy and command |
-| F16 | 🟢 low | Fixed |  | sq --help still advertises a dropped type; only sq create hides it |
-| F17 | 🟢 low | Fixed |  | Read path's dropped-type refusal gives advice that cannot work |
-| F18 | 🟢 low | Fixed |  | Dropped type's sq-<type> skill and SKILL item survive as orphans |
-| F19 | 🔵 info | Fixed |  | claude_section genericisation is inconsistent within edited lines |
-| F20 | 🔵 info | WontFix |  | Folder normalisation leaves case and the unconstrained folder open |
-| F21 | 🟠 high | Fixed |  | sq repair and sq adopt discard a re-foldered type's corpus |
-| F22 | 🟡 medium | Fixed |  | A bad pre-placed override wedges sq init half-created |
-| F23 | 🟡 medium | Fixed |  | Orphan sweep withdraws any author-created skill slugged sq-* |
-| F24 | 🟢 low | Fixed |  | Additive-only collection change reopens the false attribution |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sq create on a dropped type raises a raw KeyError traceback
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 ## What happens
@@ -352,11 +318,6 @@ one place; hiding the subcommand for a type absent from the active spec is the c
 
 <!-- sq:finding:F2 -->
 ### F2 — Shrinking a badge collection bricks a live squad; lint reports it clean
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 ## What happens
@@ -432,11 +393,6 @@ field values, so closing it needs a ruling first.
 <!-- sq:finding:F3 -->
 ### F3 — Corpus alignment compares folders unnormalised: 'guides/' is a false refusal
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 ## What happens
 
@@ -499,11 +455,6 @@ spelling can ever be declared.
 <!-- sq:finding:F4 -->
 ### F4 — sq check falsely reports 'workflow config invalid' for a missing stamp
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 ## What happens
 
@@ -560,11 +511,6 @@ at any `error` level, or tag findings with a category the gate can filter on.
 
 <!-- sq:finding:F5 -->
 ### F5 — Role pointers keep preloading a dropped or renamed type's sq- skill
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 ## What happens
@@ -632,11 +578,6 @@ thin-custom-skill path the loop already has.
 <!-- sq:finding:F6 -->
 ### F6 — CLAUDE.md managed region hardcodes 'feature'; audit recorded it clean
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 ## What happens
 
@@ -684,11 +625,6 @@ Worth separating two kinds of literal when this is fixed:
 <!-- sq:finding:F7 -->
 ### F7 — Lint half of the stamp obligation has no test: neutering it stays green
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 ## What happens
 
@@ -728,11 +664,6 @@ return the same level for the same file.
 
 <!-- sq:finding:F8 -->
 ### F8 — sq workflow lint reports only the first per-entry shape violation
-
-<!-- sq:finding:F8:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 Filed for tracking at the reviewing party's request — assessed and deliberately left out of the
@@ -791,11 +722,6 @@ right fix is translating one into per-field findings rather than privileging one
 <!-- sq:finding:F9 -->
 ### F9 — One creatable-type list, two derivations with different orderings
 
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 Documentation / consistency, ranked below the defects.
 
@@ -826,11 +752,6 @@ has to be made twice and will drift.
 
 <!-- sq:finding:F10 -->
 ### F10 — Corpus-alignment folder half is only covered against a mock spec
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 Coverage note, ranked below the defects. The mechanism works — verified by hand.
@@ -868,11 +789,6 @@ type is that.
 <!-- sq:finding:F11 -->
 ### F11 — A key omitted from a [selected] keep list vanishes silently
 
-<!-- sq:finding:F11:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🔵 Info
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 Spec/usability note, ranked below the defects. Conformant with the decision as written.
 
@@ -903,11 +819,6 @@ document declares, would close it without changing the ordering.
 
 <!-- sq:finding:F12 -->
 ### F12 — Build-process narration left in delivered source and test prose
-
-<!-- sq:finding:F12:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F12:head:end -->
 
 <!-- sq:finding:F12:body -->
 Prose hygiene, ranked below the defects.
@@ -942,11 +853,6 @@ stripped of its justification.
 <!-- sq:finding:F13 -->
 ### F13 — A bare 'assert errors' lint test can now pass on the wrong finding
 
-<!-- sq:finding:F13:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🔵 Info
-<!-- sq:finding:F13:head:end -->
-
 <!-- sq:finding:F13:body -->
 Test-quality note, ranked below the defects.
 
@@ -975,11 +881,6 @@ about a specific rule and should name it — `match` on `duplicate prefix` would
 
 <!-- sq:finding:F14 -->
 ### F14 — Badge cross-check asserts override causation it cannot establish
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 ## What happens
@@ -1094,11 +995,6 @@ stale index.
 <!-- sq:finding:F15 -->
 ### F15 — Lint's badge-alignment fix hint names the wrong remedy and command
 
-<!-- sq:finding:F15:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F15:head:end -->
-
 <!-- sq:finding:F15:body -->
 ## What happens
 
@@ -1156,11 +1052,6 @@ produced each string — or, at minimum, widen it to name the badge remedy and d
 <!-- sq:finding:F16 -->
 ### F16 — sq --help still advertises a dropped type; only sq create hides it
 
-<!-- sq:finding:F16:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F16:head:end -->
-
 <!-- sq:finding:F16:body -->
 ## What happens
 
@@ -1214,11 +1105,6 @@ than a second copy of the alias-expansion loop.
 
 <!-- sq:finding:F17 -->
 ### F17 — Read path's dropped-type refusal gives advice that cannot work
-
-<!-- sq:finding:F17:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F17:head:end -->
 
 <!-- sq:finding:F17:body -->
 ## What happens
@@ -1278,11 +1164,6 @@ Lift the provenance branch into one helper both paths call, so the message is wr
 <!-- sq:finding:F18 -->
 ### F18 — Dropped type's sq-<type> skill and SKILL item survive as orphans
 
-<!-- sq:finding:F18:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F18:head:end -->
-
 <!-- sq:finding:F18:body -->
 ## What happens
 
@@ -1341,11 +1222,6 @@ temporarily may want the skill kept.
 <!-- sq:finding:F19 -->
 ### F19 — claude_section genericisation is inconsistent within edited lines
 
-<!-- sq:finding:F19:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F19:head:end -->
-
 <!-- sq:finding:F19:body -->
 Documentation / consistency, ranked below the defects.
 
@@ -1391,11 +1267,6 @@ released manifest entry moved.
 
 <!-- sq:finding:F20 -->
 ### F20 — Folder normalisation leaves case and the unconstrained folder open
-
-<!-- sq:finding:F20:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🔵 Info
-<!-- sq:finding:F20:head:end -->
 
 <!-- sq:finding:F20:body -->
 Spec gap, ranked below the defects. The normalisation fix itself is correct and verified.
@@ -1450,11 +1321,6 @@ these at the point of declaration, where the adopter can still act on it.
 
 <!-- sq:finding:F21 -->
 ### F21 — sq repair and sq adopt discard a re-foldered type's corpus
-
-<!-- sq:finding:F21:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F21:head:end -->
 
 <!-- sq:finding:F21:body -->
 ## What happens
@@ -1552,11 +1418,6 @@ rather than reporting those items as deleted.
 <!-- sq:finding:F22 -->
 ### F22 — A bad pre-placed override wedges sq init half-created
 
-<!-- sq:finding:F22:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F22:head:end -->
-
 <!-- sq:finding:F22:body -->
 ## What happens
 
@@ -1639,11 +1500,6 @@ guard tolerate a config with no index beside it, so a retry after the fix just c
 <!-- sq:finding:F23 -->
 ### F23 — Orphan sweep withdraws any author-created skill slugged sq-*
 
-<!-- sq:finding:F23:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F23:head:end -->
-
 <!-- sq:finding:F23:body -->
 ## What happens
 
@@ -1725,11 +1581,6 @@ predicate can ask history instead of guessing from the prefix.
 
 <!-- sq:finding:F24 -->
 ### F24 — Additive-only collection change reopens the false attribution
-
-<!-- sq:finding:F24:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F24:head:end -->
 
 <!-- sq:finding:F24:body -->
 Residue of F14, now narrow. The attribution test is "does this collection differ from bundled

@@ -69,21 +69,10 @@ decision required.
 
 _Add with `sq task 147 add-subtask "<title>"`; track with `sq task 147 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Rewrite default_backend to active_backends in 0.2->0.3 migration | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Rewrite default_backend to active_backends in 0.2->0.3 migration
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US3 — Migrate existing squads to active_backends schema
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers tightening the existing _v0_2_to_v0_3 migration runner to also rewrite .squads.toml's legacy default_backend = "X" into the canonical active_backends = ["X"] (idempotent — leaves a toml already on active_backends untouched), staying on schema 0.3 with no SCHEMA_VERSION bump and no new runner. Also flips the v0_3 corpus fixture to the canonical shape and pins the config reader's legacy default_backend translation with a dedicated back-compat unit test.

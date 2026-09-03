@@ -120,25 +120,10 @@ them — closing both the rendering gap and the guidance gap in one feature.
 
 _Add with `sq feature 26 add-story "As a <role>, I want … so that …"`; track with `sq feature 26 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Rendered markdown in show output for terminal browsing |
-| US2 | Done |  | Plain stable output when piped, --raw, or NO_COLOR |
-| US3 | Done |  | Root sq show command accepts any item ID without naming its type |
-| US4 | Done |  | show includes sub-entity summary table and main discussion |
-| US5 | Done |  | --full renders each sub-entity with comments as a dossier |
-| US6 | Done |  | Skills teach --full --comments as the standard briefing move |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Rendered markdown in show output for terminal browsing
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** headings, bold, bullets and code blocks display styled on a TTY for body, sub-entity prose and discussion; no redundant viewer-injected labels.
@@ -155,10 +140,6 @@ As an operator reading the backlog in my terminal, I want show to render the mar
 <!-- sq:story:US2 -->
 ### US2 — Plain stable output when piped, --raw, or NO_COLOR
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** when piped, with --raw, or with NO_COLOR set, output is unstyled and byte-stable; --json byte-identical to pre-change.
 
@@ -173,10 +154,6 @@ As an agent or script consuming show output, I want piped/--raw/NO_COLOR output 
 
 <!-- sq:story:US3 -->
 ### US3 — Root sq show command accepts any item ID without naming its type
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** `sq show FEAT-000013` and `sq show 13` both work for every work-item type, with the same rendered output as `sq <type> <n> show`; unknown id/number errors cleanly. Resolution follows FEAT-19's shared-resolver rules (bare numbers are unambiguous via the global counter; no type to mismatch since none is named).
@@ -193,10 +170,6 @@ As a user with an ID or number in hand, I want a root sq show command that displ
 <!-- sq:story:US4 -->
 ### US4 — show includes sub-entity summary table and main discussion
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 **Acceptance:** default `show` = panel + rendered body + compact summary table; `--comments` alone adds the item's main discussion only (one pretty pane per comment, author + timestamp as title) — sub-entity comments stay out because subs aren't in scope. Today show stops at the body (verified 2026-06-11).
 
@@ -212,10 +185,6 @@ As a reader of a feature, task or review, I want show to include the sub-entity 
 <!-- sq:story:US5 -->
 ### US5 — --full renders each sub-entity with comments as a dossier
 
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
-
 <!-- sq:story:US5:body -->
 **Acceptance:** `--full` alone adds one pane per sub-entity (local id + title + badges as pane title, rendered body, no comments); `--full --comments` embeds each sub-entity's comments in its pane and closes with the main discussion. Rule: comments follow scope. Panes degrade to plain text when piped/NO_COLOR; --json unaffected by flags.
 
@@ -230,10 +199,6 @@ As a reader wanting the whole story, I want --full to render each sub-entity and
 
 <!-- sq:story:US6 -->
 ### US6 — Skills teach --full --comments as the standard briefing move
-
-<!-- sq:story:US6:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US6:head:end -->
 
 <!-- sq:story:US6:body -->
 **Acceptance criteria:**

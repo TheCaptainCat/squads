@@ -178,24 +178,10 @@ would be catching third-party exceptions in the service layer.
 
 _Add with `sq task 674 add-subtask "<title>"`; track with `sq task 674 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Third scan state and the reconciliation predicates |  |
-| ST2 | Done | python-dev | Tests that the scan continued and no phantom appeared |  |
-| ST3 | Done | python-dev | Repair rebuilds and carries the unreadable item forward |  |
-| ST4 | Done | python-dev | Board and memory listings degrade per file |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Third scan state and the reconciliation predicates
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The third state in the scan, and the reconciliation predicates that consume it.
@@ -248,11 +234,6 @@ Acceptance:
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Tests that the scan continued and no phantom appeared
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Pin that each command actually continued, that no phantom appeared, and that the refusals that remain
@@ -324,11 +305,6 @@ Acceptance:
 <!-- sq:subtask:ST3 -->
 ### ST3 — Repair rebuilds and carries the unreadable item forward
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `sq repair` rebuilds from what it can read, and carries forward what it cannot.
 
@@ -385,11 +361,6 @@ Acceptance:
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Board and memory listings degrade per file
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The listing readers: one bad file must not empty the whole list.

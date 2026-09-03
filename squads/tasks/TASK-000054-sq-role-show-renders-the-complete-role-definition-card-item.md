@@ -44,21 +44,10 @@ updated_at: '2026-06-23T09:58:02Z'
 
 _Add with `sq task 54 add-subtask "<title>"`; track with `sq task 54 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Render active role body below the catalog card in sq role show | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Render active role body below the catalog card in sq role show
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent adopting my persona, I want sq role show to give me the complete definition including working agreements, so that I never open the file to learn my job
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Render active role item body (working agreements + skills) below the catalog card in sq role show, with a test asserting the agreements are present.

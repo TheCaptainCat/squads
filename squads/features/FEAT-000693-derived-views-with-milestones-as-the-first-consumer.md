@@ -162,23 +162,10 @@ exists.
 
 _Add with `sq feature 693 add-story "As a <role>, I want … so that …"`; track with `sq feature 693 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | View declaration and the projection data model |
-| US2 | Done |  | The JSON contract and the presentation layer over it |
-| US3 | Done |  | The MILE- item type, its lifecycle and target date |
-| US4 | Done |  | Milestone roll-up as the first declared view |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — View declaration and the projection data model
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 A view declares three things: its source (refs of a declared kind pointing at this item, a
@@ -204,10 +191,6 @@ declare fails the existing referential check.
 <!-- sq:story:US2 -->
 ### US2 — The JSON contract and the presentation layer over it
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 One projection, many presentations. `--json` emits the projected records and skips presentation
 entirely, so the VS Code extension and sq ui lay the data out themselves instead of reimplementing
@@ -228,10 +211,6 @@ under the bundled-template tree — so it is adopter-overridable through the exi
 <!-- sq:story:US3 -->
 ### US3 — The MILE- item type, its lifecycle and target date
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 A milestone item type with prefix MILE-, its own folder, a target date and its own status
 vocabulary. Wires the already-declared `targets` ref kind (bundled navigational, no consumer yet)
@@ -251,10 +230,6 @@ of its own.
 
 <!-- sq:story:US4 -->
 ### US4 — Milestone roll-up as the first declared view
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 The milestone's members surfaced as a computed derived view over the inverted `targets` edges:

@@ -192,13 +192,21 @@ def test_a_squad_with_no_catalog_document_resolves_exactly_as_before(tmp_path: P
 
 def test_a_developer_role_delegates_to_dev_base_from_item() -> None:
     role = dev_role("python", name="Elias Python", model="opus")
-    item = _item("python-dev", {**role.to_extra(), X.IS_DEV: True, X.TECH: "python"})
+    item = _item(
+        "python-dev",
+        {**role.to_extra(is_dev=True), X.IS_DEV: True, X.TECH: "python"},
+        title=role.full_name,
+    )
     assert role_base_from_item(item) == dev_base_from_item(item)
 
 
 def test_a_developer_roles_full_name_and_model_come_from_the_item_not_the_pool() -> None:
     role = dev_role("typescript", name="Ada Typescript", model="opus")
-    item = _item("typescript-dev", {**role.to_extra(), X.IS_DEV: True, X.TECH: "typescript"})
+    item = _item(
+        "typescript-dev",
+        {**role.to_extra(is_dev=True), X.IS_DEV: True, X.TECH: "typescript"},
+        title=role.full_name,
+    )
     base = role_base_from_item(item)
     assert base is not None
     assert base.full_name == "Ada Typescript"
@@ -211,7 +219,12 @@ def test_a_developer_roles_full_name_comes_from_item_title_not_extra_full_name()
     role = dev_role("typescript", name="a stale mirrored name", model="opus")
     item = _item(
         "typescript-dev",
-        {**role.to_extra(), X.IS_DEV: True, X.TECH: "typescript"},
+        {
+            **role.to_extra(is_dev=True),
+            X.FULL_NAME: role.full_name,  # the mirror an older release wrote
+            X.IS_DEV: True,
+            X.TECH: "typescript",
+        },
         title="Ada Typescript",
     )
     base = role_base_from_item(item)
@@ -223,10 +236,9 @@ def test_a_developer_role_with_no_extra_full_name_at_all_resolves_from_item_titl
     """The bare-subscript read this used to be would raise ``KeyError`` here; reading
     ``item.title`` instead makes this the cheap, non-raising path it always should have been."""
     role = dev_role("typescript", model="opus")
-    extra: dict[str, object] = {**role.to_extra(), X.IS_DEV: True, X.TECH: "typescript"}
-    del extra[X.FULL_NAME]
+    extra: dict[str, object] = {**role.to_extra(is_dev=True), X.IS_DEV: True, X.TECH: "typescript"}
     item = _item("typescript-dev", extra, title="Ada Typescript")
-    assert X.FULL_NAME not in item.extra
+    assert X.FULL_NAME not in item.extra  # the shape the write path now produces
     base = role_base_from_item(item)
     assert base is not None
     assert base.full_name == "Ada Typescript"
@@ -236,7 +248,8 @@ def test_a_developer_roles_is_default_designation_is_carried_from_the_item() -> 
     role = dev_role("typescript", name="Ada Typescript", model="opus")
     item = _item(
         "typescript-dev",
-        {**role.to_extra(), X.IS_DEV: True, X.TECH: "typescript", X.IS_DEFAULT: True},
+        {**role.to_extra(is_dev=True), X.IS_DEV: True, X.TECH: "typescript", X.IS_DEFAULT: True},
+        title=role.full_name,
     )
     base = role_base_from_item(item)
     assert base is not None
@@ -245,7 +258,11 @@ def test_a_developer_roles_is_default_designation_is_carried_from_the_item() -> 
 
 def test_a_developer_role_with_no_stored_is_default_falls_back_to_false() -> None:
     role = dev_role("typescript", name="Ada Typescript", model="opus")
-    item = _item("typescript-dev", {**role.to_extra(), X.IS_DEV: True, X.TECH: "typescript"})
+    item = _item(
+        "typescript-dev",
+        {**role.to_extra(is_dev=True), X.IS_DEV: True, X.TECH: "typescript"},
+        title=role.full_name,
+    )
     base = role_base_from_item(item)
     assert base is not None
     assert base.is_default is False

@@ -82,21 +82,10 @@ time-bounded claim that is visible to other agents and enforced by the index —
 
 _Add with `sq feature 123 add-story "As a <role>, I want … so that …"`; track with `sq feature 123 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Clear conflict error on concurrent item mutation |
-| US2 | Todo |  | Manager visibility into all active leases |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Clear conflict error on concurrent item mutation
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As any agent, I want to see a clear conflict error when I attempt to mutate an item already claimed by another agent, so that I do not silently overwrite concurrent work.
@@ -112,10 +101,6 @@ As any agent, I want to see a clear conflict error when I attempt to mutate an i
 
 <!-- sq:story:US2 -->
 ### US2 — Manager visibility into all active leases
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a squad manager, I want to list all active leases, so that I can see which items are locked, by whom, and when the lease expires.

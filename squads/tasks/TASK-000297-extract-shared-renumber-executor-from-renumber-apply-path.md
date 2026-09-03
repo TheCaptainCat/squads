@@ -56,21 +56,10 @@ apply-path and the machinery does not fork (ADR-295 §5).
 
 _Add with `sq task 297 add-subtask "<title>"`; track with `sq task 297 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Reused apply-path executor drives repair --renumber unchanged | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Reused apply-path executor drives repair --renumber unchanged
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — Pre-merge shift and post-merge --renumber coexist
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Done when the rewrite_ids -> file-rename -> sequence_id-resync apply-path lives in one reusable executor that both sq renumber and repair --renumber call (ADR-295 §5), and repair --renumber produces byte-identical results on collision fixtures with the full suite green — a pure refactor, no behaviour change, no forked machinery. The executor stays counter-neutral (each caller reconciles the counter).

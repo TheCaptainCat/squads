@@ -164,26 +164,10 @@ test name, or source comment.
 
 _Add with `sq task 702 add-subtask "<title>"`; track with `sq task 702 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Split the roster accessors into active-only and full projections | US4 |
-| ST2 | Done |  | Audit every roster caller against the projection table | US4 |
-| ST3 | Done |  | Materialise and withdraw through the backend ABC on a transition | US4 |
-| ST4 | Done |  | Make sq sync the convergence point for the projection | US4 |
-| ST5 | Done |  | Accept only a live slug where a participant is written | US4 |
-| ST6 | Done |  | Cover both directions, the fan-out and the wrong projection | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Split the roster accessors into active-only and full projections
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `Service.roster()` and `Service.operators()` in `_services/_base.py` list every entry of the type regardless of status today, and those two lists are exactly what `write_managed` compiles from. They become **active-only** and after this mean "the entries this squad currently offers".
@@ -204,11 +188,6 @@ Done when both pairs exist with the split semantics and no caller has been re-po
 <!-- sq:subtask:ST2 -->
 ### ST2 — Audit every roster caller against the projection table
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Which projection a caller takes is a correctness question, not a preference, and picking the wrong one is a silent bug: an active-only list where the full list belongs makes a retired entry look like an orphan or its authorship look unregistered. Go caller by caller against ADR-697 §3's table.
 
@@ -227,11 +206,6 @@ Done when every call site has been visited and the reason for its projection is 
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Materialise and withdraw through the backend ABC on a transition
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 An entry is materialised if and only if its status resolves to the live role. Every other role is unmaterialised. One predicate, read through the spec — there is no third state and no per-role table of behaviours.
@@ -260,11 +234,6 @@ Done when a transition in either direction converges the projection across every
 <!-- sq:subtask:ST4 -->
 ### ST4 — Make sq sync the convergence point for the projection
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 `sync` in `_services/_maintenance.py` already sweeps every roster item and regenerates. It gains the same predicate: materialise the entry when its status is live, withdraw it otherwise. That single rule keeps sync idempotent and makes it the total convergence point for the projection.
 
@@ -283,11 +252,6 @@ Done when sync converges an entry in either state on every run and is a no-op on
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Accept only a live slug where a participant is written
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 A retired entry stops being **offered** while its history stays intact. Those are two different questions and must be answered differently, or the board rots.
@@ -309,11 +273,6 @@ Done when a retired slug is rejected with a clean error at every write entry poi
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Cover both directions, the fan-out and the wrong projection
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 Service level plus a CLI smoke per surface, named by behaviour. No ticket ID in any file name, test name or source comment.

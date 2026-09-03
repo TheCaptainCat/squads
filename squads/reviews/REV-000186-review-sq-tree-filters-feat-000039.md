@@ -32,22 +32,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 186 add-finding "…" --severity high`; track with `sq review 186 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | dim-render CLI test asserts nothing about dimming |
-| F2 | 🟡 medium | Verified |  | stale docstring references removed CLI helper _build_children |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — dim-render CLI test asserts nothing about dimming
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 File: tests/test_tree.py:593 test_cli_tree_path_only_ancestors_dimmed. The test's own docstring admits it cannot verify dimming under CliRunner (Rich [dim] markup is stripped), so it only re-asserts that ancestors and the match appear — already covered by test_cli_tree_filter_type. Net: there is no automated guard that path_only ancestors are actually wrapped in [dim]. The behaviour IS correct (verified by live CLI smoke: EPIC/FEAT emit dim ANSI, TASK does not). Suggested fix: render with a console that has force_terminal/color enabled (or call svc.tree_view directly and assert TreeNode.path_only) so a future regression that drops the [dim] wrap would be caught. Non-blocking: the path_only flag itself is well-tested at the service layer.
@@ -61,11 +49,6 @@ File: tests/test_tree.py:593 test_cli_tree_path_only_ancestors_dimmed. The test'
 
 <!-- sq:finding:F2 -->
 ### F2 — stale docstring references removed CLI helper _build_children
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 File: src/squads/_services/_base.py:160 (docstring of _build_tree_children). It says 'This is the service-layer equivalent of the CLI helper _build_children' but _build_children was deleted from _cli/_main.py in this same change (it was moved here verbatim). The cross-reference now points at a symbol that no longer exists, which will mislead the next reader. Suggested fix: reword to 'replaces the former CLI helper _build_children (FEAT-27 / TASK-103)' or drop the back-reference. Trivial, non-blocking.

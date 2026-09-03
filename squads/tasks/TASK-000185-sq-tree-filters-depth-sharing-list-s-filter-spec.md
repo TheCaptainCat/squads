@@ -140,22 +140,10 @@ Filtering by ref kinds / graph relations — that is FEAT-37 (`sq graph`).
 
 _Add with `sq task 185 add-subtask "<title>"`; track with `sq task 185 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Shared ItemFilter predicate + tree filter flags | US1 |
-| ST2 | Done |  | Ancestor-preserving prune, --depth, path-only render + JSON | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Shared ItemFilter predicate + tree filter flags
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Filter tree by status/priority/assignee/type for focused reviews
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 US1 — filter the tree by status/priority/assignee/type, sharing list's filter spec.
@@ -177,11 +165,6 @@ Done = each filter flag exists on tree with list-identical names/parsing, backed
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Ancestor-preserving prune, --depth, path-only render + JSON
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — --depth and context-preserving pruning keep filtered trees readable
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 US2 — --depth + context-preserving pruning keep filtered trees readable.

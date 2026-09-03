@@ -39,9 +39,6 @@ Alongside the category grouping above, render each tree row's colour from its st
 
 _Add with `sq task 598 add-subtask "<title>"`; track with `sq task 598 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

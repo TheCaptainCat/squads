@@ -61,21 +61,10 @@ Requires F1 (FEAT-207). The `WorkflowSpec` must exist and be loaded before valid
 
 _Add with `sq feature 208 add-story "As a <role>, I want … so that …"`; track with `sq feature 208 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a maintainer, I want Item type/status to be str-typed so unknown values don't raise at load time |
-| US2 | Todo |  | As a maintainer, I want engine spine checks replaced by TypeSpec flags so custom types can declare their own semantics |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a maintainer, I want Item type/status to be str-typed so unknown values don't raise at load time
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a squads maintainer, I want `Item.type` and `Item.status` to be `str`-typed fields validated against the loaded `WorkflowSpec` at the service boundary, so that frontmatter with a future custom type or status value round-trips losslessly instead of raising at Pydantic construction.
@@ -91,10 +80,6 @@ As a squads maintainer, I want `Item.type` and `Item.status` to be `str`-typed f
 
 <!-- sq:story:US2 -->
 ### US2 — As a maintainer, I want engine spine checks replaced by TypeSpec flags so custom types can declare their own semantics
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a squads maintainer, I want every hardcoded `is ItemType.TASK` / `is ItemType.DECISION` / `is ItemType.SKILL` identity check in the engine replaced by a declared `TypeSpec` capability flag query, so that the engine's behavior is driven by spec declarations rather than compiled-in type knowledge.

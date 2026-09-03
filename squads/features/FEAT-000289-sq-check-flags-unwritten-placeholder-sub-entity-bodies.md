@@ -94,22 +94,10 @@ equality/prefix check against `_discussion.py::_PLACEHOLDER[kind]` — no heuris
 
 _Add with `sq feature 289 add-story "As a <role>, I want … so that …"`; track with `sq feature 289 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a tech lead, I want sq check to flag unwritten sub-entity bodies |
-| US2 | Todo |  | As an architect, I want the check's severity left as an open decision |
-| US3 | Todo |  | As a PO, I want the skill to state the body-write step as a done-criterion |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a tech lead, I want sq check to flag unwritten sub-entity bodies
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a tech lead reviewing a feature, I want `sq check` to flag any story/subtask/finding whose body
@@ -140,10 +128,6 @@ acceptance criteria surface before the item is promoted instead of hiding behind
 <!-- sq:story:US2 -->
 ### US2 — As an architect, I want the check's severity left as an open decision
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As an architect, I want the warning-vs-error severity of the new placeholder-body check left as an
 explicit open decision for design time, so that we don't accidentally hard-block Draft→Ready (or
@@ -171,10 +155,6 @@ any transition) before agreeing on the right gate.
 
 <!-- sq:story:US3 -->
 ### US3 — As a PO, I want the skill to state the body-write step as a done-criterion
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a product owner following the `sq-feature` skill, I want filling in a story's body to be its

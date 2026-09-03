@@ -93,22 +93,10 @@ The `.squads.toml` `default_backend` field is about to freeze at 1.0 as part of 
 
 _Add with `sq feature 137 add-story "As a <role>, I want … so that …"`; track with `sq feature 137 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Switch active backend cleanly |
-| US2 | Todo |  | List configured backends and active status |
-| US3 | Todo |  | Reject non-conformant backends at registration |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Switch active backend cleanly
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a developer switching agent tools, I want to run `sq backend switch <name>` on an existing squad, so that my new tool's context file is generated and the old one is removed without leaving orphaned files on disk.
@@ -125,10 +113,6 @@ As a developer switching agent tools, I want to run `sq backend switch <name>` o
 <!-- sq:story:US2 -->
 ### US2 — List configured backends and active status
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a team using mixed agent tooling, I want to list the backends configured on my squad, so that I can see which is active and which are available.
 
@@ -143,10 +127,6 @@ As a team using mixed agent tooling, I want to list the backends configured on m
 
 <!-- sq:story:US3 -->
 ### US3 — Reject non-conformant backends at registration
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a backend author, I want the registry to reject any backend that fails the conformance suite, so that managed backends cannot be added in a broken state.

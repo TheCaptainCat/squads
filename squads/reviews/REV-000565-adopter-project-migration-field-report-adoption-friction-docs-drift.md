@@ -118,35 +118,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 565 add-finding "…" --severity medium`; track with `sq review 565 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | WontFix |  | Global IDs break dense cross-refs; no alias / preferred-ID on import |
-| F2 | 🟠 high | Verified |  | History replay is one-timestamp-per-invocation; no bulk event import |
-| F3 | 🟡 medium | Verified |  | Docs drift: sq role list / --available do not exist (it is role catalog) |
-| F4 | 🟡 medium | Verified |  | Docs drift + CLI gap: no verb to enumerate operators |
-| F5 | 🟡 medium | Verified |  | Docs drift: story add / subtask add — actual verbs are add-story / add-subtask |
-| F6 | 🟢 low | Verified |  | Docs: stale override-base version examples |
-| F7 | 🟡 medium | WontFix |  | No bundled designer/UX role; dev add requires a coding --tech |
-| F8 | 🟡 medium | Verified |  | init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified |
-| F9 | 🟡 medium | Verified |  | Closed items (incl. Accepted decisions) hidden from default list/tree |
-| F10 | 🟢 low | Verified |  | add-* leaves an unwritten-body stub that sq check warns on |
-| F11 | 🟢 low | WontFix |  | Sub-entity title-length advisory fires easily on migrated data |
-| F12 | 🟢 low | WontFix |  | Per-invocation process overhead |
-| F13 | 🟡 medium | Verified |  | Sub-entities cannot be deleted (no remove for finding/story/subtask) |
-| F14 | 🟢 low | Verified |  | add-* cannot take --severity/--status inline (two-step for full metadata) |
-| F15 | 🟢 low | Verified |  | No read-back verb for an item's discussion/comments |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Global IDs break dense cross-refs; no alias / preferred-ID on import
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Report §2.1 — the dominant hidden cost of the migration.
@@ -182,11 +157,6 @@ few commands.
 <!-- sq:finding:F2 -->
 ### F2 — History replay is one-timestamp-per-invocation; no bulk event import
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Report §2.2.
 
@@ -209,11 +179,6 @@ driver" into "emit a file", and collapses hundreds of process spawns into one.
 <!-- sq:finding:F3 -->
 ### F3 — Docs drift: sq role list / --available do not exist (it is role catalog)
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 Report §3.1 — docs drift, verified against 0.11.1.
 
@@ -234,11 +199,6 @@ active/available roster is `sq role catalog` (but catalog has no active/inactive
 
 <!-- sq:finding:F4 -->
 ### F4 — Docs drift + CLI gap: no verb to enumerate operators
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 Report §3.2 — docs drift AND a real CLI gap, verified against 0.11.1.
@@ -261,11 +221,6 @@ would close the gap and make the docs true.
 <!-- sq:finding:F5 -->
 ### F5 — Docs drift: story add / subtask add — actual verbs are add-story / add-subtask
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 Report §3.3 — docs drift, verified against 0.11.1.
 
@@ -286,11 +241,6 @@ Report §3.3 — docs drift, verified against 0.11.1.
 <!-- sq:finding:F6 -->
 ### F6 — Docs: stale override-base version examples
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 Report §3.4 — docs, verified against 0.11.1.
 
@@ -309,11 +259,6 @@ signal an old release.
 
 <!-- sq:finding:F7 -->
 ### F7 — No bundled designer/UX role; dev add requires a coding --tech
-
-<!-- sq:finding:F7:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 Report §4.1.
@@ -340,11 +285,6 @@ specialty without a hand-written override.
 
 <!-- sq:finding:F8 -->
 ### F8 — init/adopt into a pre-existing non-squads CLAUDE.md/.claude is unspecified
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 Report §4.2.
@@ -375,11 +315,6 @@ generate (candidate orphans).
 <!-- sq:finding:F9 -->
 ### F9 — Closed items (incl. Accepted decisions) hidden from default list/tree
 
-<!-- sq:finding:F9:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 Report §4.3 — surprising, not wrong.
 
@@ -400,11 +335,6 @@ add a hint in empty `sq list`/`sq tree` output ("N closed items hidden — use `
 
 <!-- sq:finding:F10 -->
 ### F10 — add-* leaves an unwritten-body stub that sq check warns on
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 Report §4.4.
@@ -429,11 +359,6 @@ Related: §7.2 (F14) — the metadata two-step compounds this.
 <!-- sq:finding:F11 -->
 ### F11 — Sub-entity title-length advisory fires easily on migrated data
 
-<!-- sq:finding:F11:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 Report §4.5.
 
@@ -454,11 +379,6 @@ title/body rather than a per-item advisory, or relax the advisory for imported i
 <!-- sq:finding:F12 -->
 ### F12 — Per-invocation process overhead
 
-<!-- sq:finding:F12:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F12:head:end -->
-
 <!-- sq:finding:F12:body -->
 Report §4.6 — subsumed by §2.2 (F2).
 
@@ -478,11 +398,6 @@ migration-perf motivation for that direction; the actual fix is the bulk-import 
 
 <!-- sq:finding:F13 -->
 ### F13 — Sub-entities cannot be deleted (no remove for finding/story/subtask)
-
-<!-- sq:finding:F13:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F13:head:end -->
 
 <!-- sq:finding:F13:body -->
 Report §7.1 (surfaced in the review-rework pass).
@@ -505,11 +420,6 @@ mistakes are correctable.
 
 <!-- sq:finding:F14 -->
 ### F14 — add-* cannot take --severity/--status inline (two-step for full metadata)
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 Report §7.2 (surfaced in the review-rework pass).
@@ -537,11 +447,6 @@ Verify parity across `add-story`/`add-subtask` before scoping a fix.
 
 <!-- sq:finding:F15 -->
 ### F15 — No read-back verb for an item's discussion/comments
-
-<!-- sq:finding:F15:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F15:head:end -->
 
 <!-- sq:finding:F15:body -->
 Report §7.3 (surfaced in the review-rework pass) — discoverability.

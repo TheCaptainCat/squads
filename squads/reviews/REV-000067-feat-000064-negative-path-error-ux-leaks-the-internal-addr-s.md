@@ -97,30 +97,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 67 add-finding "…" --severity high`; track with `sq review 67 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | Removed list commands do not error comprehensibly (US3 acceptance) |
-| F2 | 🟠 high | Verified |  | The hidden _addr name leaks into every negative-path usage/error line |
-| F3 | 🟡 medium | Verified |  | show/regen/rm are undiscoverable from sq role / --help (US1 spirit) |
-| F4 | 🟢 low | Verified |  | N1 slug shadowing: slug matching a group verb is unaddressable by slug |
-| F5 | 🟢 low | Verified |  | N2 resolver duplication: resolve_agent_addr iterates db.items inline instead of reusing item helpers |
-| F6 | 🟢 low | Verified |  | N3 empty-body hint inaccurate: suggests a 'body' verb the groups do not have |
-| F7 | 🟢 low | Verified |  | N4 inline shape check: _resolve_addr reimplements full-ID detection instead of _is_full_id_shape |
-| F8 | 🟢 low | Verified |  | N5 stale comment: SKIL-000002 should be SKILL-000002 in test_skill_item_first_grammar |
-| F9 | 🟢 low | Verified |  | N6 test coverage: no direct test for REV-61 bracket/no-backslash fidelity on the new body path |
-| F10 | 🟢 low | WontFix |  | N7 sq dev consistency: still uses the old listing shape, reads inconsistently against the flipped groups |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Removed list commands do not error comprehensibly (US3 acceptance)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 US3 acceptance: removed list commands must "error comprehensibly". Affected: src/squads/_cli/_role.py, _skill.py, _operator.py (all via AddressDispatchGroup).
@@ -143,11 +123,6 @@ Resolution (after op-pierre criterion change, see finding comment): the bar for 
 
 <!-- sq:finding:F2 -->
 ### F2 — The hidden _addr name leaks into every negative-path usage/error line
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 The internal `_addr` subgroup name is a construct that should never appear in user-facing output, but any malformed invocation printed `Usage: sq role _addr [OPTIONS] ADDR COMMAND ...`.
@@ -172,11 +147,6 @@ Resolution (verified): two-part fix in _common.py (see finding comment). (1) Mis
 <!-- sq:finding:F3 -->
 ### F3 — show/regen/rm are undiscoverable from sq role / --help (US1 spirit)
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 US1 spirit (discoverability): `sq role` and `sq role --help` listed only `catalog` and `activate` because the `_addr` subgroup is `hidden=True`. The primary item verbs (show/regen/rm) appeared nowhere in the group help. A user had no documented way to learn the grammar from --help; they only saw the verbs by guessing a valid address first (and then the usage line was wrong per F2).
 
@@ -194,11 +164,6 @@ Resolution (verified): added `epilog=` to role_app, skill_app, and operator_app.
 <!-- sq:finding:F4 -->
 ### F4 — N1 slug shadowing: slug matching a group verb is unaddressable by slug
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 N1 (non-blocking). A role/skill/operator slugged exactly as a group verb (add/catalog/activate) is unaddressable by slug -- the named verb wins in get_command before _addr is tried. Number/full-ID still addresses it (verified), so there is an escape hatch, but the shadowing is silent. Acceptable given the escape hatch; worth a one-line doc note.
 
@@ -213,11 +178,6 @@ Resolution: folded into the F3 epilog on all three groups -- one line each notin
 
 <!-- sq:finding:F5 -->
 ### F5 — N2 resolver duplication: resolve_agent_addr iterates db.items inline instead of reusing item helpers
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 N2 (non-blocking). resolve_agent_addr (src/squads/_cli/_common.py:546-561) iterated db.items.values() inline with it.extra.get(X.SLUG, it.slug) for all three types instead of reusing _role_item/_skill_item/_operator_item (_services/_base.py:251-282) as the tech lead directed. Behavioral superset (roles/operators always carry a SLUG extra), but slug-matching semantics lived in two places that could drift.
@@ -234,11 +194,6 @@ Resolution (verified): resolve_agent_addr now delegates slug lookup to svc._role
 <!-- sq:finding:F6 -->
 ### F6 — N3 empty-body hint inaccurate: suggests a 'body' verb the groups do not have
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 N3 (non-blocking). render_body_text -> _render_body printed `(empty -- set it with body)` when a body is empty, but there is no `body` verb on the role/skill/operator groups -- an inaccurate hint. Bodies are template-managed so it is rarely reached.
 
@@ -253,11 +208,6 @@ Resolution (verified): render_body_text gained an empty_hint param; role/skill/o
 
 <!-- sq:finding:F7 -->
 ### F7 — N4 inline shape check: _resolve_addr reimplements full-ID detection instead of _is_full_id_shape
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 N4 (non-blocking). _role.py::_resolve_addr re-implemented full-ID-shape detection (t.rpartition("-")) inline instead of calling the new _is_full_id_shape helper in _common.py. Minor DRY.
@@ -274,11 +224,6 @@ Resolution (verified): _resolve_addr now calls _is_full_id_shape(t).
 <!-- sq:finding:F8 -->
 ### F8 — N5 stale comment: SKIL-000002 should be SKILL-000002 in test_skill_item_first_grammar
 
-<!-- sq:finding:F8:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F8:head:end -->
-
 <!-- sq:finding:F8:body -->
 N5 (non-blocking). tests/test_cli.py::test_skill_item_first_grammar had a `# SKIL-000002` comment; the prefix is SKILL.
 
@@ -294,11 +239,6 @@ Resolution (verified): SKIL-000002 -> SKILL-000002.
 <!-- sq:finding:F9 -->
 ### F9 — N6 test coverage: no direct test for REV-61 bracket/no-backslash fidelity on the new body path
 
-<!-- sq:finding:F9:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 N6 (non-blocking). No test asserted REV-61 bracket / no-backslash fidelity on the new role/skill/operator body path (structurally inherited from the shared _render_body markup=False, so low risk, but the regression net did not cover it directly).
 
@@ -313,11 +253,6 @@ Resolution (verified): test_role_skill_body_bracket_fidelity added -- asserts --
 
 <!-- sq:finding:F10 -->
 ### F10 — N7 sq dev consistency: still uses the old listing shape, reads inconsistently against the flipped groups
-
-<!-- sq:finding:F10:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 N7 (non-blocking). sq dev still uses the old listing shape and now reads inconsistently against the three flipped groups. Flagged per the lead request; out of scope for TASK-65.

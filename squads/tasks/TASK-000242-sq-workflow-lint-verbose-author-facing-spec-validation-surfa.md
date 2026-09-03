@@ -60,21 +60,10 @@ same validate()); align so both call one validation core.
 
 _Add with `sq task 242 add-subtask "<title>"`; track with `sq task 242 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | sq workflow lint verbose validate, exit 0/1 | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq workflow lint verbose validate, exit 0/1
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a project admin, I want sq workflow lint to validate my spec config and report every error clearly before I commit it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers `sq workflow lint` — the verbose, author-facing validation surface (added as a sub-verb while preserving the bare `sq workflow` cheatsheet). It runs the SAME checks as `open_service` (TASK-240/241) but in collect-all-errors mode: parse + merge + pure-spec validation + index cross-check, accumulating (level, location, message, fix-hint) findings instead of raising on the first. Prints every error/warning with its config key + an actionable fix hint, exits 0 + "OK" on a clean spec and exit 1 when any error is present (warnings alone still exit 0). The validation core is factored to back both fail-closed and collect modes without duplicating rules. (US2)

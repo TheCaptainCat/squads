@@ -86,23 +86,10 @@ reads never go through `store.transaction()` (read-only, no lock needed, mirrors
 
 _Add with `sq task 113 add-subtask "<title>"`; track with `sq task 113 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | sq reflog read command: tail by default, filter by --item/--actor/--op/--since, with --json passthrough | US1 |
-| ST2 | Done |  | Reflog back-compat: absent/truncated file never an error | US2 |
-| ST3 | Done |  | Version and document the line schema; golden-test the --json shape and state its stability tier in the contract doc | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq reflog read command: tail by default, filter by --item/--actor/--op/--since, with --json passthrough
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an operator, I want a chronological log of every mutation with its actor, so that I can review what the agents did without having been in their conversations
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the sq reflog read command alongside inbox/blocked/search: tail-by-default of the operation log with --item/--actor/--op/--since filters (ISO via _clock.parse_iso) and a --json passthrough emitting the line shape verbatim. Backed by a read-only service method that reads+filters the JSONL without store.transaction() (mirrors load()).
@@ -117,11 +104,6 @@ Covers the sq reflog read command alongside inbox/blocked/search: tail-by-defaul
 <!-- sq:subtask:ST2 -->
 ### ST2 — Reflog back-compat: absent/truncated file never an error
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a team member investigating an anomaly, I want removals, retypes and forced transitions explainable from the squad directory alone, so that a gap or surprise reads as history, not corruption
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Back-compat: a squad with no reflog file behaves identically; reflog never consulted for state, missing/truncated never an error.
 <!-- sq:subtask:ST2:body:end -->
@@ -134,11 +116,6 @@ Back-compat: a squad with no reflog file behaves identically; reflog never consu
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Version and document the line schema; golden-test the --json shape and state its stability tier in the contract doc
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a tool builder, I want the reflog as stable, documented JSONL, so that I can build dashboards and automation on the operation stream
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Covers versioning and documenting the reflog line schema (field names, types, op vocabulary, delta format) under docs/ next to the stability doc, golden-testing the --json shape, and stating the line's stability tier in the FEAT-13 contract doc (which fields are promised stable through 1.0 vs additive).

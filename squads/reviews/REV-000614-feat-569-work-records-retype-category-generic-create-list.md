@@ -29,22 +29,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 614 add-finding "…" --severity medium`; track with `sq review 614 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | WontFix |  | Parent self-check in _validate_refusals now overlaps the gate |
-| F2 | 🟢 low | WontFix |  | Retype now fails closed on a dangling parent (contract change) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Parent self-check in _validate_refusals now overlaps the gate
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 _retype.py::_validate_refusals (lines 74-82) still checks spec.parent_allowed(new_type, parent.type) for the item's own parent. The new ValidatorEngine.gate(prospective, db) at line 161 already enforces the same rule generically (parent_in for work, no_parent for records), so this branch is now redundant for the single-item parent case. Not a conflict (both give the same verdict; _validate_refusals runs first and raises a more actionable message), and _validate_refusals is still load-bearing for the has_subentities and invalid-children cases the gate does not cover. Left as-is is acceptable; noting the consolidation opportunity. No action required to approve.
@@ -60,11 +48,6 @@ _retype.py::_validate_refusals (lines 74-82) still checks spec.parent_allowed(ne
 
 <!-- sq:finding:F2 -->
 ### F2 — Retype now fails closed on a dangling parent (contract change)
-
-<!-- sq:finding:F2:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 The gate at line 161 runs parent_in/no_parent on the prospective item. parent_in refuses a dangling parent (parent lookup is None -> 'dangling parent' error) and no_parent refuses any truthy parent. So retyping an item that carries a dangling/orphaned parent ref now fails closed, whereas the pre-change path (_validate_refusals only) silently allowed it (it skips when db.get(parent) is None). This is a defensible improvement (a dangling parent is already an sq-check error, and fail-closed is correct), but it is a slight contract change to retype worth recording. No fix needed; flagging for awareness only.

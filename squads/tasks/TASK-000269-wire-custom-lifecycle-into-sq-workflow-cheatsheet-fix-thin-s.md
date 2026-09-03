@@ -46,9 +46,6 @@ Both F3 and F4 are behaviourally gated on a working, correctly-prefixed create p
 
 _Add with `sq task 269 add-subtask "<title>"`; track with `sq task 269 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

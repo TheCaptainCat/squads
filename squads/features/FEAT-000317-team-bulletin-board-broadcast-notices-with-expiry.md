@@ -76,24 +76,10 @@ board.**
 
 _Add with `sq feature 317 add-story "As a <role>, I want … so that …"`; track with `sq feature 317 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it |
-| US2 | Todo |  | As any agent, current board notices are surfaced at the start of a run so I'm aware of standing notices |
-| US3 | Todo |  | As anyone, I can list current notices to see what's active |
-| US4 | Todo |  | As a lead or operator, I can clear a notice that no longer applies |
-| US5 | Todo |  | As an agent, a guiding skill teaches board posting discipline and the memory-vs-board boundary |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a lead or operator, I want to post a notice to the board with an optional expiry so the whole team sees it.
@@ -114,10 +100,6 @@ As a lead or operator, I want to post a notice to the board with an optional exp
 <!-- sq:story:US2 -->
 ### US2 — As any agent, current board notices are surfaced at the start of a run so I'm aware of standing notices
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As any agent, I want current board notices surfaced at the start of a run so I am aware of standing team notices.
 
@@ -136,10 +118,6 @@ As any agent, I want current board notices surfaced at the start of a run so I a
 
 <!-- sq:story:US3 -->
 ### US3 — As anyone, I can list current notices to see what's active
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As anyone on the team, I want to list current notices so I can see what is active.
@@ -160,10 +138,6 @@ As anyone on the team, I want to list current notices so I can see what is activ
 <!-- sq:story:US4 -->
 ### US4 — As a lead or operator, I can clear a notice that no longer applies
 
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 As a lead or operator, I want to clear a notice that no longer applies so the board stays current.
 
@@ -181,10 +155,6 @@ As a lead or operator, I want to clear a notice that no longer applies so the bo
 
 <!-- sq:story:US5 -->
 ### US5 — As an agent, a guiding skill teaches board posting discipline and the memory-vs-board boundary
-
-<!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As an agent, I want a guiding skill to teach board posting discipline and the memory-vs-board boundary so notices stay useful and land in the right place.

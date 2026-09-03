@@ -167,25 +167,10 @@ Then:
 
 _Add with `sq task 664 add-subtask "<title>"`; track with `sq task 664 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Atomic replace primitive for squad-data writes |  |
-| ST2 | Done |  | Route every squad-data write through the primitive |  |
-| ST3 | Done |  | Board notices and memory entries onto the primitive |  |
-| ST4 | Done |  | Ordering audit across mutation cores; fix the violating sites |  |
-| ST5 | Done |  | Repair-convergence tests and the changelog line |  |
-| ST6 | Done |  | Route the sync filesystem calls on the mutation path through _aio |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Atomic replace primitive for squad-data writes
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add one async atomic-write helper for squad-data text. `_aio.py` is the only place awaitables
@@ -220,10 +205,6 @@ Acceptance:
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Route every squad-data write through the primitive
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Convert every write of an item `.md` onto the atomic primitive:
@@ -272,10 +253,6 @@ Acceptance:
 <!-- sq:subtask:ST3 -->
 ### ST3 — Board notices and memory entries onto the primitive
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 ADR-663 §2 names item `.md` files, board notices, and memory entries as squad **data**.
 `_board/_store.py` and `_memory/_store.py` both write their `.md` files with the plain helper;
@@ -299,10 +276,6 @@ Acceptance:
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Ordering audit across mutation cores; fix the violating sites
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Walk every `store.transaction()` site and every mutation core reached from one (~26 sites across
@@ -348,10 +321,6 @@ Acceptance:
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Repair-convergence tests and the changelog line
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 The crash window is reachable without killing a process: raise from inside a transaction body
@@ -407,10 +376,6 @@ Acceptance:
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Route the sync filesystem calls on the mutation path through _aio
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 Three filesystem calls on the async mutation path in `_services/_items.py` are made synchronously,

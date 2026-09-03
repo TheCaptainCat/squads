@@ -54,21 +54,10 @@ Out of scope: the data-model/reflog/schema/migration work (→ TASK-159, must la
 
 _Add with `sq task 160 add-subtask "<title>"`; track with `sq task 160 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Spawn-tree view + show --full session surfacing (best-effort, untrusted) | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Spawn-tree view + show --full session surfacing (best-effort, untrusted)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Spawn-tree view in sq reflog
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the read/render layer on top of TASK-159's data (FEAT-125 US2, ADR-158): a sq reflog --tree flag rendering a parent→children spawn-lineage tree from recorded session_id/parent_session_id edges over the existing filter plumbing (no/unknown parent = root; missing intermediate degrades to a forest, never errors), plus show --full surfacing the creating/last-modifying session (slug @ session, parent) where recorded and degrading to slug-only when absent. The view and its help label the lineage best-effort/untrusted observability with no tamper-evidence claim; the 2026-06-15 self-review case must render a visibly non-independent subtree.

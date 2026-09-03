@@ -63,22 +63,10 @@ safe to write). Sequence after 187, before 189.
 
 _Add with `sq task 188 add-subtask "<title>"`; track with `sq task 188 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Shared lexical-by-slug ordering primitive consumed by init and migration | US1 |
-| ST2 | Done |  | sq init seeds bundled skills as SKILL Items via IndexStore.transaction | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Shared lexical-by-slug ordering primitive consumed by init and migration
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Stable SKILL-… ID per skill for cross-entity referencing
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the single shared lexical-by-slug ordering primitive that enumerates the bundled skill set / agents/skills/ in a deterministic order, consumed by BOTH sq init seeding and the migration (TASK-189) so the same skill lands in the same ordinal position in both paths (ADR-181 #5 ordering parity — not identical numeric ids).
@@ -92,11 +80,6 @@ Covers the single shared lexical-by-slug ordering primitive that enumerates the 
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — sq init seeds bundled skills as SKILL Items via IndexStore.transaction
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Fresh sq init produces skills already carrying IDs from the start
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers wiring sq init to seed each bundled skill as a full Item of ItemType.SKILL via IndexStore.transaction() (single global counter, invariant 2), stamping sq frontmatter (id/sequence_id/type: skill/title/status/author/schema_version) onto the existing agents/skills/<slug>.md body file (pointers stay pointers, invariant 5) on the meta-type profile (Active/Archived, no sub-entities), with identity allocated exactly once and never reallocated (ADR #4).

@@ -56,21 +56,10 @@ After TASK-241/242 (shares the validation core). Independent of TASK-244 (overri
 
 _Add with `sq task 243 add-subtask "<title>"`; track with `sq task 243 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | sq check one-line invalid-workflow-spec warning | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq check one-line invalid-workflow-spec warning
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a project admin, I want sq workflow lint to validate my spec config and report every error clearly before I commit it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers making `sq check` degrade gracefully on a bad workflow override: `Service.check()` runs the workflow validation in collect-mode (the same core as TASK-242) guarded so a broken spec yields exactly ONE concise `CheckIssue` — "workflow config invalid — run `sq workflow lint`" — rather than aborting check entirely, letting the rest of the checks still run. No workflow line appears for a squad with no override or a valid override (no false positive). Detail lives in `sq workflow lint`, per AC#4's one-line wording. (US2)

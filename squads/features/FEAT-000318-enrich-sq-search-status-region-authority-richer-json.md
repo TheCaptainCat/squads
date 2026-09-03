@@ -87,24 +87,10 @@ ever makes the scan too slow, an indexing decision can be raised as an ADR then;
 
 _Add with `sq feature 318 add-story "As a <role>, I want … so that …"`; track with `sq feature 318 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a steering user, I can search item prose by free text so I can find buried context |
-| US2 | Done |  | As a steering user, results show where each match is and its authority so I can judge relevance |
-| US3 | Done |  | As a steering user, I can narrow the search with structured filters so I can audit a slice |
-| US4 | Done |  | As an agent, I can get search results as JSON so a session can act on them programmatically |
-| US5 | Done |  | As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a steering user, I can search item prose by free text so I can find buried context
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a steering user, I want to search item prose by free text so I can find context buried on the board.
@@ -128,10 +114,6 @@ As a steering user, I want to search item prose by free text so I can find conte
 <!-- sq:story:US2 -->
 ### US2 — As a steering user, results show where each match is and its authority so I can judge relevance
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a steering user, I want each result to show where the match is and its authority so I can judge relevance at a glance.
 
@@ -153,10 +135,6 @@ As a steering user, I want each result to show where the match is and its author
 <!-- sq:story:US3 -->
 ### US3 — As a steering user, I can narrow the search with structured filters so I can audit a slice
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a steering user, I want to narrow the search with the structured filters I already know so I can audit a slice of the board.
 
@@ -177,10 +155,6 @@ As a steering user, I want to narrow the search with the structured filters I al
 <!-- sq:story:US4 -->
 ### US4 — As an agent, I can get search results as JSON so a session can act on them programmatically
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 As an agent, I want search results as JSON so a session can act on them programmatically.
 
@@ -199,10 +173,6 @@ As an agent, I want search results as JSON so a session can act on them programm
 
 <!-- sq:story:US5 -->
 ### US5 — As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As an agent, I want the squads skill to teach when to reach for search so it is used for steering, not as a ritual.

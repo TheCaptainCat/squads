@@ -93,9 +93,6 @@ machine surface, so the client (TASK follow-up) can drop its workarounds.
 
 _Add with `sq task 439 add-subtask "<title>"`; track with `sq task 439 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

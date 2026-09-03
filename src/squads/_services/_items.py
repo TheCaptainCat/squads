@@ -137,7 +137,9 @@ class ItemsMixin(ServiceCore):
                         f"{item.id} ({slug}) still holds open assigned work: " + ", ".join(open_ids)
                     )
             if item.type == ROSTER_ROLE and is_retirement:
-                warning = retirement.lost_default_designation_warning(db, self.spec, item)
+                warning = retirement.lost_default_designation_warning(
+                    db, self.spec, item, self.paths.squad_dir
+                )
                 if warning:
                     warnings.append(warning)
         item.updated_at = now if now is not None else clock.now()
@@ -513,10 +515,16 @@ class ItemsMixin(ServiceCore):
                         f"{item_id} is a system skill; its definition is template-owned and"
                         " rendered on read (an authored body here would never be shown)"
                     )
+            elif item.type == ROSTER_ROLE:
+                raise SquadsError(
+                    f"{item_id} is a role; its definition is resolved from the role catalog"
+                    " and rendered on read (an authored body here would never be shown) —"
+                    " declare it in `.overrides/roles.toml`, or in"
+                    " `.overrides/roles/<slug>.toml` for a project-defined role"
+                )
             elif self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
                 raise SquadsError(
-                    f"{item_id} is a {item.type}; its body is generated from its fields"
-                    " (edit via `sq update --set …` / `sq sync`)"
+                    f"{item_id} is a {item.type}; its body is generated, not authored"
                 )
             current = (sections.get_section(text, markers.BODY) or "").strip("\n")
             if append:
@@ -546,11 +554,12 @@ class ItemsMixin(ServiceCore):
         """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
 
         The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
-        summary. Role bodies are generated from their fields, so they're rejected here — and so
-        is a system (template-owned) skill's body, since its definition renders from a template
-        on every read (``ServiceCore.skill_definition_text``) and nothing would ever show what
-        was written here. A *custom* (author-defined) skill is the one roster-type exception: its
-        body is authored content, and the only place that content lives, so it's admitted.
+        summary. A role's body is rejected here because its definition renders from the role
+        catalog on every read (``ServiceCore.role_definition_text``) and nothing would ever show
+        what was written; a system (template-owned) skill's body is rejected for the same reason
+        one document over (``ServiceCore.skill_definition_text``). A *custom* (author-defined)
+        skill is the one roster-type exception: its body is authored content, and the only place
+        that content lives, so it's admitted.
 
         Replacing an **authored** body is refused unless ``force`` — the write is destructive and
         there is no undo (see :func:`~squads._services._base.reject_body_overwrite`). Writing over

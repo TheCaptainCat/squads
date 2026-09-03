@@ -216,27 +216,10 @@ squad folder, which is why the downgrade shape exists at all.
 
 _Add with `sq task 799 add-subtask "<title>"`; track with `sq task 799 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Widen the manifest to every overridable bundled artifact | US1 |
-| ST2 | Done |  | Content-addressed store with insert-if-absent semantics | US1 |
-| ST3 | Done |  | Seed the store back to the 0.4.0 index floor | US1 |
-| ST4 | Done |  | Coverage guards and the in-wheel store ceiling | US1 |
-| ST5 | Done |  | Content-gate workflow and playbook drift | US2 |
-| ST6 | Done |  | Measure role drift against roles.toml and fix its delta-mine | US2 |
-| ST7 | Done |  | Delta-upgrade from the store, and the uncarried-base path | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Widen the manifest to every overridable bundled artifact
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The manifest stops being a template manifest and becomes a manifest of every overridable bundled
@@ -267,11 +250,6 @@ freshness guard covers all of them.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Content-addressed store with insert-if-absent semantics
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Add the content-addressed store beside the hash index: hash to bytes, deduplicated across
@@ -305,11 +283,6 @@ byte-identical, and a lookup from a CRLF checkout resolves.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Seed the store back to the 0.4.0 index floor
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Seed the store once, at this widening release, back to the index's own floor (0.4.0, the first
 release the manifest records). A store covering fewer versions than the index would be a third
@@ -337,11 +310,6 @@ seeding script is separate from the generator, and `grep` finds no git access in
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Coverage guards and the in-wheel store ceiling
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Widen the manifest to every overridable bundled artifact
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Never pruning is unbounded in principle, so the bound is asserted rather than assumed, and the
@@ -373,11 +341,6 @@ shipped one.
 <!-- sq:subtask:ST5 -->
 ### ST5 — Content-gate workflow and playbook drift
 
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Content-gate workflow/playbook/role drift
-<!-- sq:subtask:ST5:head:end -->
-
 <!-- sq:subtask:ST5:body -->
 `_workflow_state`/`_playbook_state` (`_overrides/_service.py:158-231`) and their stamp findings —
 `workflow_stamp_finding` (`_workflow/_loader.py:966-999`), `playbook_stamp_finding`
@@ -405,11 +368,6 @@ still warns.
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Measure role drift against roles.toml and fix its delta-mine
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Content-gate workflow/playbook/role drift
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 `_role_state` and `_diff_role` ask `template_changed_since("agents/role.md.j2", …)`
@@ -440,11 +398,6 @@ edit does not, and `sq override diff --mine` on a role override shows a real del
 
 <!-- sq:subtask:ST7 -->
 ### ST7 — Delta-upgrade from the store, and the uncarried-base path
-
-<!-- sq:subtask:ST7:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Content-gate workflow/playbook/role drift
-<!-- sq:subtask:ST7:head:end -->
 
 <!-- sq:subtask:ST7:body -->
 Resolve Δ-upgrade out of the content store, replacing

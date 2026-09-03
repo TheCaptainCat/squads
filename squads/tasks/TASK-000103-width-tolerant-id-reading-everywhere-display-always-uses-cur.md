@@ -45,21 +45,10 @@ A fixture squad where item files were renamed to a wider padding but bodies/refs
 
 _Add with `sq task 103 add-subtask "<title>"`; track with `sq task 103 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Width-tolerant ID equality across resolver/backrefs/check | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Width-tolerant ID equality across resolver/backrefs/check
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a teammate whose items hold old-width refs and mentions, I want ID parsing tolerant of any padding, so that content written before the raise keeps resolving forever
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Width-tolerant ID equality in resolver/backrefs/check; mixed-width refs+mentions+parent+CLI args resolve; display uses current padding; mixed-width fixture tests.

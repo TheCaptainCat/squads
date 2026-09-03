@@ -63,28 +63,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 118 add-finding "…" --severity high`; track with `sq review 118 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🔵 info | Open |  | Check 1 — Write ordering (ADR-117 §1): PASS |
-| F2 | 🔵 info | Open |  | Check 2 — Append atomicity (ADR-117 §2): PASS |
-| F3 | 🔵 info | Open |  | Check 3 — Actor threading (ADR-117 §3): PASS |
-| F4 | 🔵 info | Open |  | Check 4 — Invariant 1 / not-source-of-truth (ADR-114): PASS |
-| F5 | 🔵 info | Open |  | Check 5 — Schema + version field + golden (ADR-117 §4): PASS |
-| F6 | 🟢 low | Fixed |  | json.dumps outside append_line swallow could break committed write |
-| F7 | 🟢 low | Fixed |  | Dead test: test_failed_reflog_append_does_not_rollback_mutation asserts nothing meaningful |
-| F8 | 🔵 info | Open |  | Stale doc comments + minor op-naming nit (non-blocking) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Check 1 — Write ordering (ADR-117 §1): PASS
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 _store.py transaction(): reflog ops are buffered on _TransactionCtx during the body and flushed only AFTER _atomic_write()'s os.replace, inside the same `with self._lock` block (lines 116-131). Append cannot run before commit — logged-without-applied is structurally impossible. No per-line fsync on the reflog (only the index is fsync'd in _atomic_write). append_line swallows OSError to a stderr warning and never raises (lines 89-97). Confirmed by test_create_emits_reflog_line + reading the seam.
@@ -99,11 +81,6 @@ _store.py transaction(): reflog ops are buffered on _TransactionCtx during the b
 <!-- sq:finding:F2 -->
 ### F2 — Check 2 — Append atomicity (ADR-117 §2): PASS
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 _reflog.py append_line(): one compact json.dumps line (separators (',',':'), no embedded newlines — json escapes them) + '\n', written in a single fh.write() under open(path,'a') (O_APPEND). read_lines() tolerates all three required cases: missing file → [] (line 107-108); trailing partial line with no terminating newline → silently skipped (lines 119-123, no warning); interior malformed line → warn+skip (lines 142-147); never raises (OSError on read → [] at 112-113). Covered by test_read_lines_* tests.
 <!-- sq:finding:F2:body:end -->
@@ -116,11 +93,6 @@ _reflog.py append_line(): one compact json.dumps line (separators (',',':'), no 
 
 <!-- sq:finding:F3 -->
 ### F3 — Check 3 — Actor threading (ADR-117 §3): PASS
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 _actor.py mirrors _clock exactly: module-global _override, set_actor/current_actor, default 'system'. Root callback (_cli/__init__.py:69) calls set_actor('system') first thing on every invocation; comment/create/status call sites override via set_actor(slug) before the mutation (_items.py:209,677; _create.py:60). op + before→after delta are captured at each CALL SITE (not ambient) and buffered via store._log — verified across _base/_items/_refs/_subentities/_collab/_maintenance.
@@ -137,11 +109,6 @@ CRITICAL actor-leak check (the subtlety the architect flagged): VERIFIED CLEAN. 
 <!-- sq:finding:F4 -->
 ### F4 — Check 4 — Invariant 1 / not-source-of-truth (ADR-114): PASS
 
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 Nothing makes the index depend on the reflog. repair() (_maintenance.py:182-252) rebuilds db purely from .md frontmatter and never calls read_lines; it appends a 'repair' reflog line at the END via the bare append_line (after store.overwrite). repad() renames files, runs a transaction to set padding (buffering a repad reflog op), then repair(). migrate appends after repair completes. All three run outside transaction() and use the error-swallowing append_line, so a missing/unwritable reflog is never an error. test_reflog_not_consulted_by_repair corrupts the reflog and proves repair still succeeds; test_no_reflog_squad_is_backward_compatible proves a reflog-less squad is unaffected. The remove line carries the ADR-114 gone-item snapshot {type,title,status,severed_refs} (_items.py:312-321).
 <!-- sq:finding:F4:body:end -->
@@ -155,11 +122,6 @@ Nothing makes the index depend on the reflog. repair() (_maintenance.py:182-252)
 <!-- sq:finding:F5 -->
 ### F5 — Check 5 — Schema + version field + golden (ADR-117 §4): PASS
 
-<!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 Every line carries v=SCHEMA_VERSION ('0.3'), present from line one (_reflog.py:80). The documented shape (docs/workflow.md 'Operation reflog' section: fields v/ts/actor/op/target/delta + op vocabulary + delta-additive stability note deferring the freeze to FEAT-13) matches the golden tests/goldens/reflog_shape.json (fields list, schema_version 0.3, example_ops). Golden + --json shape exercised by test_golden_reflog_json and test_cli_reflog_json_shape.
 <!-- sq:finding:F5:body:end -->
@@ -172,11 +134,6 @@ Every line carries v=SCHEMA_VERSION ('0.3'), present from line one (_reflog.py:8
 
 <!-- sq:finding:F6 -->
 ### F6 — json.dumps outside append_line swallow could break committed write
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 ADR-117 §1 rules that 'logging must never be able to break a write that the index already committed' and a failed append must warn/swallow, never fail the mutation. In _reflog.py append_line, json.dumps(record, ...) is at line 88, BEFORE the try/except OSError block (89-97). The store's transaction() append loop (_store.py:123-131) runs AFTER os.replace with no try/except of its own. So if any delta value were non-JSON-serializable (e.g. a Status enum or datetime), json.dumps would raise TypeError, escape append_line's OSError-only guard, and propagate out of transaction() — surfacing the already-committed mutation as a failure to the caller. That is precisely the failure mode the ADR designs out.
@@ -193,11 +150,6 @@ Severity LOW, not blocking: every current call site builds deltas from JSON-safe
 <!-- sq:finding:F7 -->
 ### F7 — Dead test: test_failed_reflog_append_does_not_rollback_mutation asserts nothing meaningful
 
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 tests/test_reflog_core.py:306 sets up a _boom monkeypatch that raises OSError (line 315) but then reverts it (line 323) BEFORE the create call (line 328), so the assertion runs against the REAL append_line. The test passes but never exercises an append failure reaching the store — it does not actually prove the no-rollback guarantee. Combined with finding F6, this is why the propagation gap went unnoticed. Recommend rewriting it to genuinely force append_line to fail (e.g. chmod the reflog read-only, or make the parent dir unwritable) and assert the mutation still committed + a stderr warning was emitted. @python-dev
 <!-- sq:finding:F7:body:end -->
@@ -210,11 +162,6 @@ tests/test_reflog_core.py:306 sets up a _boom monkeypatch that raises OSError (l
 
 <!-- sq:finding:F8 -->
 ### F8 — Stale doc comments + minor op-naming nit (non-blocking)
-
-<!-- sq:finding:F8:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 (a) _cli/__init__.py:67-68 comment claims 'The try/finally in the hook clears it per-invocation' — inaccurate: the try/finally in _store.transaction clears _current_ctx, not the actor; the actor is reset at the start of the next callback (set_actor('system')), not cleared at end. Reword to match the actual (clock-like) mechanism.

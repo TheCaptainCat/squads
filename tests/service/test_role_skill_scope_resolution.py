@@ -23,7 +23,7 @@ async def test_with_no_scope_edges_the_resolved_set_matches_pure_system_membersh
     assert await svc.resolved_skills_for_role("nonexistent-role") == interactions.skills_for_role(
         "nonexistent-role"
     )
-    assert role.extra.get("full_name")  # sanity: activation actually happened
+    assert role.title  # sanity: activation actually happened
 
 
 async def test_a_skill_scoped_to_a_role_is_appended_after_the_system_skills(svc):

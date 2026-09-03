@@ -151,21 +151,10 @@ EPIC-325 (Done) and ADR-322/323 (Accepted) — see the re-baseline section above
 
 _Add with `sq feature 281 add-story "As a <role>, I want … so that …"`; track with `sq feature 281 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad |
-| US2 | Todo |  | As a project admin, I want sq migrate rename-status to safely rename a status across all items of a type |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a project admin, I want `sq migrate rename-type <old> <new>` to safely rename a type across my entire squad — rewriting all IDs, folders, refs, and prose mentions atomically — so that I can evolve my team's vocabulary without manual file surgery or broken refs.
@@ -181,10 +170,6 @@ As a project admin, I want `sq migrate rename-type <old> <new>` to safely rename
 
 <!-- sq:story:US2 -->
 ### US2 — As a project admin, I want sq migrate rename-status to safely rename a status across all items of a type
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a project admin, I want `sq migrate rename-status <type> <old> <new>` to rewrite all items of a given type from an old status to a new one, so that I can evolve my status vocabulary without leaving items in a stale or invalid state.

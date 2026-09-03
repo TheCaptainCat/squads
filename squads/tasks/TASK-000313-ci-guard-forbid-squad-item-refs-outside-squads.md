@@ -41,24 +41,10 @@ THE GATE (lands last / green). Ship an enforced lint/CI gate (grep gate or ruff 
 
 _Add with `sq task 313 add-subtask "<title>"`; track with `sq task 313 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Implement gate + wire into CI | US3 |
-| ST2 | Done | python-dev | Tolerate legitimate id-shaped tokens | US3 |
-| ST3 | Done | python-dev | Negative check: gate fails on a new ref | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Implement gate + wire into CI
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US3 — CI guard blocks squad-item refs outside item files
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add an enforced lint/CI gate (grep gate script or ruff rule) with allowlist = squads/** item markdown ONLY and forbidden territory = everything else (src/, docs/, README, shipped markdown, CLI output strings, bundled prose, CLAUDE.md). Detection at minimum: (FEAT|TASK|ADR|REV|BUG|EPIC)-\d, bare US/ST numbers, bare §. Wire it into the CI checks alongside pyright/ruff. Done when: the gate runs in CI and is GREEN on the cleaned tree.
@@ -73,12 +59,6 @@ Add an enforced lint/CI gate (grep gate script or ruff rule) with allowlist = sq
 <!-- sq:subtask:ST2 -->
 ### ST2 — Tolerate legitimate id-shaped tokens
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US3 — CI guard blocks squad-item refs outside item files
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The gate must NOT false-positive on legitimate non-references: CLI-syntax templates (--parent FEAT-…, sq task <n>) and illustrative example payloads (a reflog JSON sample carrying a TASK id; a recipe's example id). Encode the necessary allowances (pattern scoping / inline-allow markers / path carve-outs) so those surviving uses pass. Done when: the gate is green with those known-legit occurrences present in the tree.
 <!-- sq:subtask:ST2:body:end -->
@@ -91,12 +71,6 @@ The gate must NOT false-positive on legitimate non-references: CLI-syntax templa
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Negative check: gate fails on a new ref
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US3 — CI guard blocks squad-item refs outside item files
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Prove the gate actually bites: introducing a squad-item ref on a forbidden surface (e.g. a new src comment or a docs line) must make the gate exit non-zero. Capture this as a documented negative check (a test or a CI-verifiable step). Done when: the negative case is demonstrated to fail the build and the demonstration is reproducible.

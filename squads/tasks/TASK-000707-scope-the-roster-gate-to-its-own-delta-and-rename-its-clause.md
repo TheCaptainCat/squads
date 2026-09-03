@@ -351,32 +351,10 @@ Named by behaviour. The modules that already own this surface, extended rather t
 
 _Add with `sq task 707 add-subtask "<title>"`; track with `sq task 707 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Refuse only what this transition introduces | US5 |
-| ST2 | Done |  | Sever only the edges the refusal enumerated | US5 |
-| ST3 | Done |  | Withdraw the default-role clause and warn instead | US5 |
-| ST4 | Done |  | Omit the default role from generated prose when none is live | US4 |
-| ST5 | Done |  | Condition the clause family on an active backend | US5 |
-| ST6 | Done |  | Derive the always-on floor instead of listing it | US5 |
-| ST7 | Done |  | Report one finding per detected dependency | US6 |
-| ST8 | Done |  | Name clauses for their condition, keep the name internal | US5 |
-| ST9 | Done |  | Define a retirement as a move out of a live status | US5 |
-| ST10 | Done |  | Leave one gated entry point for a roster status change | US5 |
-| ST11 | Done |  | Say retired, not unknown, for a retired slug | US4 |
-| ST12 | Done |  | Restate the module's rationale, drop the dead parameter |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Refuse only what this transition introduces
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Evaluate the clauses as a delta: compare the prospective state against the pre-transition snapshot and raise on the difference, or restrict to findings naming the transitioning entry plus the last-live-role cardinality property. A squad already violating a clause keeps every transition available to it, the repairing ones included, and two co-existing violations can each be fixed independently. The importer's pre-pass inherits the same behaviour.
@@ -391,11 +369,6 @@ Evaluate the clauses as a delta: compare the prospective state against the pre-t
 <!-- sq:subtask:ST2 -->
 ### ST2 — Sever only the edges the refusal enumerated
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Pass the violated findings into the severance instead of unioning every declared ref kind and matching the item's whole ref list. An unrelated severable-kind edge on the retiring item survives; the re-evaluation after severing stays a delta against the pre-transition snapshot. A still-refused transition leaves the squad byte-identical, refs included.
 <!-- sq:subtask:ST2:body:end -->
@@ -408,11 +381,6 @@ Pass the violated findings into the severance instead of unioning every declared
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Withdraw the default-role clause and warn instead
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Remove the clause from the clause set and from the sq check reporter — the state it refused is legitimate, so the report is no longer owed. Add a warning, not a refusal, on a transition that takes the last live designation out of a live status, in the same shape as the open-assigned-work warning already carried on the transition result.
@@ -427,11 +395,6 @@ Remove the clause from the clause set and from the sq check reporter — the sta
 <!-- sq:subtask:ST4 -->
 ### ST4 — Omit the default role from generated prose when none is live
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 The Claude backend substitutes a hardcoded name and slug when no live role carries the designation, and both template sites read that value — the default-role line and the orchestration paragraph. Both omit rather than invent, leaving coherent prose. Same degradation the developer-gated skill text already performs when the last developer role retires.
 <!-- sq:subtask:ST4:body:end -->
@@ -444,11 +407,6 @@ The Claude backend substitutes a hardcoded name and slug when no live role carri
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Condition the clause family on an active backend
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 State the condition once for the whole family — no projection, no clause — with the always-on-floor tier exempted by name, because its authority is a declared rule of the roster contract rather than a derived property of the projection. The skill-dependency clause therefore cannot early-return on an empty backend list; it must still reach the floor tier.
@@ -463,11 +421,6 @@ State the condition once for the whole family — no projection, no clause — w
 <!-- sq:subtask:ST6 -->
 ### ST6 — Derive the always-on floor instead of listing it
 
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST6:head:end -->
-
 <!-- sq:subtask:ST6:body -->
 Replace the hand-maintained frozenset of three names with the property it claims to state: whatever the preload resolver implies for every live role is un-retirable. Mind the vacuous case — an intersection over an empty live-role set is everything. A test must prove the derivation moves when the resolver's implied set moves.
 <!-- sq:subtask:ST6:body:end -->
@@ -480,11 +433,6 @@ Replace the hand-maintained frozenset of three names with the property it claims
 
 <!-- sq:subtask:ST7 -->
 ### ST7 — Report one finding per detected dependency
-
-<!-- sq:subtask:ST7:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As a team, sq check reports a roster entry already in a broken config state
-<!-- sq:subtask:ST7:head:end -->
 
 <!-- sq:subtask:ST7:body -->
 The skill-dependency clause classifies with if/elif, so a skill that is both type-implied and scoped to a live role reports only the type-implied finding and the refusal never names the roles whose edges the flag would sever. Emit one finding per detected dependency, or carry both on one; the collected list shape already supports several per entry.
@@ -499,11 +447,6 @@ The skill-dependency clause classifies with if/elif, so a skill that is both typ
 <!-- sq:subtask:ST8 -->
 ### ST8 — Name clauses for their condition, keep the name internal
 
-<!-- sq:subtask:ST8:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST8:head:end -->
-
 <!-- sq:subtask:ST8:body -->
 Rename each clause and tier to describe the condition it checks rather than its position in a list, and drop the label from every user-facing string so a refusal and a report each read as the condition plus its remedy. Gate and reporter render the same condition text through the one shared renderer. Sequence this after the semantics settle, so the rename runs once over a stable set.
 <!-- sq:subtask:ST8:body:end -->
@@ -516,11 +459,6 @@ Rename each clause and tier to describe the condition it checks rather than its 
 
 <!-- sq:subtask:ST9 -->
 ### ST9 — Define a retirement as a move out of a live status
-
-<!-- sq:subtask:ST9:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST9:head:end -->
 
 <!-- sq:subtask:ST9:body -->
 Move the operator exemption above the severance, so an operator transition never strips a ref with no clause consulted. Redefine the retirement predicate as old status live and new status not live, using the old status already in hand at the call site, so a non-live-to-non-live move under a richer lifecycle stops accepting the flag.
@@ -535,11 +473,6 @@ Move the operator exemption above the severance, so an operator transition never
 <!-- sq:subtask:ST10 -->
 ### ST10 — Leave one gated entry point for a roster status change
 
-<!-- sq:subtask:ST10:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST10:head:end -->
-
 <!-- sq:subtask:ST10:body -->
 The metadata-update path's status branch applies a status with no clause evaluation and no projection. Route it through the same gate, or add a guard asserting a roster item's status cannot change through any path that does not evaluate the clauses. Not reachable for a roster type today, but nothing keeps it that way.
 <!-- sq:subtask:ST10:body:end -->
@@ -553,11 +486,6 @@ The metadata-update path's status branch applies a status with no clause evaluat
 <!-- sq:subtask:ST11 -->
 ### ST11 — Say retired, not unknown, for a retired slug
 
-<!-- sq:subtask:ST11:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST11:head:end -->
-
 <!-- sq:subtask:ST11:body -->
 The participation gate raises unknown slug for a slug that is well known and merely retired, sending the operator after a typo or a missing activation. When the slug resolves against the full roster but not the live one, say so, name the entry, and give the one command that undoes it. The full-roster lookup is already one call away.
 <!-- sq:subtask:ST11:body:end -->
@@ -570,10 +498,6 @@ The participation gate raises unknown slug for a slug that is well known and mer
 
 <!-- sq:subtask:ST12 -->
 ### ST12 — Restate the module's rationale, drop the dead parameter
-
-<!-- sq:subtask:ST12:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST12:head:end -->
 
 <!-- sq:subtask:ST12:body -->
 The clause module's docstring explains its avoidance of a service accessor by reference to a change that has since shipped, in pre-rename vocabulary, narrating a sequencing accident. The durable reason is purity — no I/O and no service instance, so the same predicates serve both a reporter over on-disk state and a gate over a transaction snapshot. Also drop the finding renderer's callerless keyword parameter.

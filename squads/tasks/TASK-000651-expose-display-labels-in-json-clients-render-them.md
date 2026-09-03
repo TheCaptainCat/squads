@@ -51,24 +51,10 @@ Completion: the final gate is a HUMAN visual check on the operator's Windows VS 
 
 _Add with `sq task 651 add-subtask "<title>"`; track with `sq task 651 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add resolved labels to sq workflow types --json | US3 |
-| ST2 | Done |  | Extension renders per-type Records buckets with plural labels | US3 |
-| ST3 | Done |  | Route Work tree group-by-type headers through the shared resolver | US3 |
-| ST4 | Done |  | De-hardcode Roster tree bucket labels from the catalog | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add resolved labels to sq workflow types --json
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Clients render per-type display labels
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Added a `labels` object {singular, plural, singular_lower, plural_lower} to each row of `sq workflow types --json`, resolved via labels_for(type, spec) (pin-else-derive). Additive only; TYPE_CATALOG_FIELDS extended, golden regenerated, new tests added.
@@ -83,11 +69,6 @@ Added a `labels` object {singular, plural, singular_lower, plural_lower} to each
 <!-- sq:subtask:ST2 -->
 ### ST2 — Extension renders per-type Records buckets with plural labels
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Clients render per-type display labels
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Shape guard for the new labels field + shared TS resolver (domain/typeLabels.ts::pluralLabel) + Records tree bucket headers routed through it.
 <!-- sq:subtask:ST2:body:end -->
@@ -101,11 +82,6 @@ Shape guard for the new labels field + shared TS resolver (domain/typeLabels.ts:
 <!-- sq:subtask:ST3 -->
 ### ST3 — Route Work tree group-by-type headers through the shared resolver
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Clients render per-type display labels
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Work tree's group-by-type headers (domain/listView.ts::groupListItems) routed through the shared pluralLabel resolver.
 <!-- sq:subtask:ST3:body:end -->
@@ -118,11 +94,6 @@ Work tree's group-by-type headers (domain/listView.ts::groupListItems) routed th
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — De-hardcode Roster tree bucket labels from the catalog
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Clients render per-type display labels
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Roster tree bucket labels (domain/metaView.ts) now resolved from the type catalog via pluralLabel; META_BUCKETS keeps only the 3 fixed reserved types, no longer the TS-literal labels.

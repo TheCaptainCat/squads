@@ -53,9 +53,6 @@ in `docs/overrides.md` so they stop reading as an old release.
 
 _Add with `sq task 629 add-subtask "<title>"`; track with `sq task 629 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

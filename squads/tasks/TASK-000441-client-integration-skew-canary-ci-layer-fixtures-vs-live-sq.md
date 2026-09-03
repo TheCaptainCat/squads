@@ -82,9 +82,6 @@ REV-438 F2 (medium); implements ADR-427 #3's integration test layer.
 
 _Add with `sq task 441 add-subtask "<title>"`; track with `sq task 441 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

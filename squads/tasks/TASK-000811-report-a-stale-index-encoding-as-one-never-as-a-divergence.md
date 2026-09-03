@@ -155,23 +155,10 @@ an oversight to be helpfully corrected.
 
 _Add with `sq task 811 add-subtask "<title>"`; track with `sq task 811 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Separate normalisation from divergence at the skew site | US1 |
-| ST2 | Done |  | One wording for one state on both surfaces | US1 |
-| ST3 | Done |  | Coverage for the three skew states | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Separate normalisation from divergence at the skew site
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Separate the two states at `frontmatter_skew` (`_itemfile.py:182-237`), the one site that
@@ -230,11 +217,6 @@ classification reaches both message sites from this one computation.
 <!-- sq:subtask:ST2 -->
 ### ST2 — One wording for one state on both surfaces
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Reword both surfaces so one state gets one explanation, in the same words, wherever it is met.
 
@@ -274,11 +256,6 @@ severity are unchanged, and no message names a cause the reader can disprove.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Coverage for the three skew states
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Cover the three states end to end, on both surfaces, so neither can regress alone.

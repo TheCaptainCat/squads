@@ -50,25 +50,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 248 add-finding "…" --severity high`; track with `sq review 248 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | WontFix |  | AC#1 'sq create incident works' is NOT met end-to-end — custom-type create CLI is FEAT-210 scope |
-| F2 | 🟢 low | Fixed |  | open_service: vestigial F5 comment block + redundant SquadsError re-wrap |
-| F3 | 🟢 low | WontFix |  | Two new reportPrivateUsage suppressions on _common._active_dir |
-| F4 | 🟢 low | Fixed |  | docs/workflow.md: lint sample shows a line number never emitted + wrong hard-stop message |
-| F5 | 🟢 low | WontFix |  | No e2e test for override-type round-trip; is_open now returns True on unknown status |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — AC#1 'sq create incident works' is NOT met end-to-end — custom-type create CLI is FEAT-210 scope
-
-<!-- sq:finding:F1:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **File:** src/squads/_cli/__init__.py:97 (`_ORDERED_WORK_TYPES = [t for t in ItemType if t in _work_types()]`) + src/squads/_cli/_create.py:26-32,99 (`_TYPES` hardcoded from `ItemType` enum, one create command per enum member).
@@ -92,11 +77,6 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 
 <!-- sq:finding:F2 -->
 ### F2 — open_service: vestigial F5 comment block + redundant SquadsError re-wrap
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 **File:** src/squads/_services/_service.py, open_service() — the F5 comment block (lines ~196-201, the multi-line '# F5 (REV-246): wrap OSError ... (Already handled by load_workflow_spec's own OSError handling ... but the guard above makes the pattern explicit for reviewers.)') and the try/except around validate_against_index_fail_closed (lines ~205-208: `try: validate_against_index_fail_closed(...) except SquadsError as exc: raise SquadsError(f'{exc}') from exc`).
@@ -123,11 +103,6 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 <!-- sq:finding:F3 -->
 ### F3 — Two new reportPrivateUsage suppressions on _common._active_dir
 
-<!-- sq:finding:F3:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **File:** src/squads/_cli/_workflow_cmd.py:80 (`sp = resolve(_common._active_dir)  # pyright: ignore[reportPrivateUsage]`) and src/squads/_cli/_main.py:998 (same, in `check`).
 
@@ -150,11 +125,6 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 
 <!-- sq:finding:F4 -->
 ### F4 — docs/workflow.md: lint sample shows a line number never emitted + wrong hard-stop message
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 **File:** docs/workflow.md:329-337 (lint error sample table) and docs/workflow.md:406-412 (hard-stop sample).
@@ -180,11 +150,6 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 
 <!-- sq:finding:F5 -->
 ### F5 — No e2e test for override-type round-trip; is_open now returns True on unknown status
-
-<!-- sq:finding:F5:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 **Files:** tests/test_workflow_override.py (coverage gap); src/squads/_workflow/__init__.py:206 (is_open behavior).

@@ -130,33 +130,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 757 add-finding "…" --severity medium`; track with `sq review 757 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | sq role show and sq check crash on a non-dev slug ending in -dev |
-| F2 | 🟡 medium | Fixed |  | Unactivated -dev slug previews a name sq dev add will not assign |
-| F3 | 🟡 medium | Fixed |  | New-slug required-field validation is skipped for any -dev slug |
-| F4 | 🟡 medium | WontFix |  | Schema hard-stop and five more error sites still split remedies |
-| F5 | 🟡 medium | Verified |  | Read scope's cross-call sharing has no observable effect today |
-| F6 | 🟡 medium | Verified |  | sq <type> <n> <verb> costs two index loads, not the ADR's one |
-| F7 | 🟡 medium | WontFix |  | Override-carrying squads pay 3-5 whole-index parses per command |
-| F8 | 🟡 medium | Fixed |  | ADR-753's read-only-alias premise is false at sq sync |
-| F9 | 🟢 low | WontFix |  | Empty-string override fields yield a nameless roster entry |
-| F10 | 🟢 low | WontFix |  | No test pins transaction scope invalidation on the raise path |
-| F11 | 🟢 low | Verified |  | Docs say states is what the machine reaches; unreached are too |
-| F12 | 🟢 low | Verified |  | SHA pins have no update channel and no guard against regressing |
-| F13 | 🟢 low | Fixed |  | Two CHANGELOG entries claim more reach than the fixes deliver |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sq role show and sq check crash on a non-dev slug ending in -dev
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **driven.**
@@ -222,11 +199,6 @@ integrity gate, and an adopter cannot tell a crash apart from a real refusal.
 <!-- sq:finding:F2 -->
 ### F2 — Unactivated -dev slug previews a name sq dev add will not assign
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **driven.**
 
@@ -276,11 +248,6 @@ yet assigned — never print a concrete name that activation will contradict.
 <!-- sq:finding:F3 -->
 ### F3 — New-slug required-field validation is skipped for any -dev slug
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **driven.**
 
@@ -325,11 +292,6 @@ that removes F1's crash does not by itself remove this one.
 
 <!-- sq:finding:F4 -->
 ### F4 — Schema hard-stop and five more error sites still split remedies
-
-<!-- sq:finding:F4:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 **driven — the residual is real (BUG-755 already has the schema site) and it is wider than
@@ -390,11 +352,6 @@ re-missable at the next new error message, which is how these four survived.
 <!-- sq:finding:F5 -->
 ### F5 — Read scope's cross-call sharing has no observable effect today
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **driven.**
 
@@ -440,11 +397,6 @@ the mechanism has an effect the load count can see.
 
 <!-- sq:finding:F6 -->
 ### F6 — sq <type> <n> <verb> costs two index loads, not the ADR's one
-
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F6:head:end -->
 
 <!-- sq:finding:F6:body -->
 **driven — this is the recorded gap; my call: acceptable to ship, real enough to own an item.**
@@ -500,11 +452,6 @@ written also locks the gap in: closing it turns that test red.
 <!-- sq:finding:F7 -->
 ### F7 — Override-carrying squads pay 3-5 whole-index parses per command
 
-<!-- sq:finding:F7:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F7:head:end -->
-
 <!-- sq:finding:F7:body -->
 **driven — the multiplicity costs more outside the read scope than inside it.**
 
@@ -555,11 +502,6 @@ discovered later as a regression against the changelog entry.
 
 <!-- sq:finding:F8 -->
 ### F8 — ADR-753's read-only-alias premise is false at sq sync
-
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F8:head:end -->
 
 <!-- sq:finding:F8:body -->
 **read** (the mechanism is traced in source; I could not drive a wrong output — see below).
@@ -619,11 +561,6 @@ copying every read, not against copying this one caller's list.
 <!-- sq:finding:F9 -->
 ### F9 — Empty-string override fields yield a nameless roster entry
 
-<!-- sq:finding:F9:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F9:head:end -->
-
 <!-- sq:finding:F9:body -->
 **driven.** Pre-existing for bundled roles; `fb92ef5` newly extends the blast radius to
 developers.
@@ -664,11 +601,6 @@ already means that.
 
 <!-- sq:finding:F10 -->
 ### F10 — No test pins transaction scope invalidation on the raise path
-
-<!-- sq:finding:F10:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 **read** (the gap), **driven** (the behaviour it should pin).
@@ -716,11 +648,6 @@ regression in it would be silent.
 
 <!-- sq:finding:F11 -->
 ### F11 — Docs say states is what the machine reaches; unreached are too
-
-<!-- sq:finding:F11:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F11:head:end -->
 
 <!-- sq:finding:F11:body -->
 **read.**
@@ -773,11 +700,6 @@ Cosmetic, and only reachable by an adopter writing a redundant declaration.
 <!-- sq:finding:F12 -->
 ### F12 — SHA pins have no update channel and no guard against regressing
 
-<!-- sq:finding:F12:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F12:head:end -->
-
 <!-- sq:finding:F12:body -->
 **read** (repo state), with the pins themselves verified against the GitHub API.
 
@@ -821,11 +743,6 @@ year later when a pinned action has a known CVE.
 
 <!-- sq:finding:F13 -->
 ### F13 — Two CHANGELOG entries claim more reach than the fixes deliver
-
-<!-- sq:finding:F13:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F13:head:end -->
 
 <!-- sq:finding:F13:body -->
 **driven** (the behaviour), **read** (the entries).

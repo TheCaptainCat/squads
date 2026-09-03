@@ -88,21 +88,10 @@ engine FEAT-567 stands up starts actually enforcing something.
 
 _Add with `sq feature 568 add-story "As a <role>, I want … so that …"`; track with `sq feature 568 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | lift seed catalog verbatim from today's _check_* methods |
-| US2 | Todo |  | category bundles + per-type validators + the two new enforcements |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — lift seed catalog verbatim from today's _check_* methods
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Named validators 1:1 with today's hardcoded checks, per-item + squad-global classes, byte-identical sq check output for the untouched checks.
@@ -116,10 +105,6 @@ Named validators 1:1 with today's hardcoded checks, per-item + squad-global clas
 
 <!-- sq:story:US2 -->
 ### US2 — category bundles + per-type validators + the two new enforcements
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 Wire category default bundles, type-level extend-only validators list, records/epic no_parent additions -- sequenced with the ADR-migration feature (Phase C) so this repo's sq check stays clean.

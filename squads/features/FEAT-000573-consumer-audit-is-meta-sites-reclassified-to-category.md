@@ -75,9 +75,6 @@ re-introduces the same conflation bug this whole epic exists to fix.
 
 _Add with `sq feature 573 add-story "As a <role>, I want … so that …"`; track with `sq feature 573 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

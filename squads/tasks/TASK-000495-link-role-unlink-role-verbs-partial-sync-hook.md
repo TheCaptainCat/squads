@@ -79,22 +79,10 @@ the hook is an optimisation, never the only path.
 
 _Add with `sq task 495 add-subtask "<title>"`; track with `sq task 495 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | link-role / unlink-role verbs scope a skill to roles | US3 |
-| ST2 | Done |  | Partial-sync hook keeps affected role pointers current | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — link-role / unlink-role verbs scope a skill to roles
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a squad author, I want to scope a custom skill to one or more roles so exactly those agents preload it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Dedicated verbs write/remove the SKILL->ROLE:scopes edge; multi-role scoping; unlink drops one role; removing the last link leaves no orphan; linking a non-existent role errors clearly.
@@ -108,11 +96,6 @@ Dedicated verbs write/remove the SKILL->ROLE:scopes edge; multi-role scoping; un
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Partial-sync hook keeps affected role pointers current
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As a squad author, I want role pointers to stay current when I link or unlink a skill without a manual full resync
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 link/unlink recompute the resolver and rewrite only the affected role(s)' pointer + body + extra[skills]; other roles untouched; end state identical to a full sq sync (no drift).

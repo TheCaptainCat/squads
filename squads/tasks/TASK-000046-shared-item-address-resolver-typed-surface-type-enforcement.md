@@ -58,22 +58,10 @@ One shared item-address resolver in `_cli/_common.py` (next to `resolve_item_id`
 
 _Add with `sq task 46 add-subtask "<title>"`; track with `sq task 46 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Shared resolver: typed (live-DB type check) + type-less variants, both-forms unknown-item errors | US1 |
-| ST2 | Done |  | Close the silent type-mismatch hole on the item-verb surface (13 is FEAT-13, not a task) | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Shared resolver: typed (live-DB type check) + type-less variants, both-forms unknown-item errors
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add the shared item-address resolver(s) to _cli/_common.py alongside resolve_item_id/resolve_slug_or_raise: a typed resolve (verifies the resolved item's actual type against the live DB, raising SquadsError like '13 is FEAT-000013 (feature), not a task' on mismatch) and a type-less resolve (bare number resolves to whatever item owns that sequence, no type word). Both thread the Service/SquadsDB through cleanly; unknown-item errors mention both accepted forms (full ID and bare number).
@@ -87,11 +75,6 @@ Add the shared item-address resolver(s) to _cli/_common.py alongside resolve_ite
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Close the silent type-mismatch hole on the item-verb surface (13 is FEAT-13, not a task)
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a user who typos the type, I want sq to tell me 13 is a feature instead of silently obeying, so that I never act on the wrong item
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Wire the item-verb argument (the surface already going through resolve_item_id) onto the new typed resolve so sq task 13 show errors naming the real item+type instead of silently displaying FEAT-13. Closes the silent type-mismatch obey hole (US3); broader adoption across other surfaces is TASK-47.

@@ -146,24 +146,10 @@ golden diff in the implementing PR.
 
 _Add with `sq feature 283 add-story "As a <role>, I want … so that …"`; track with `sq feature 283 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | IDs read unpadded on every human-facing surface (frontmatter, refs, prose, CLI, tables) |
-| US2 | Todo |  | Files stay padded and lexicographically sorted on disk while the id is unpadded |
-| US3 | Todo |  | An existing squad migrates cleanly: structural id/refs + bounded prose rewrite, code fences untouched |
-| US4 | Todo |  | CLI lookup stays width-tolerant: FEAT-283 and FEAT-283 both resolve |
-| US5 | Todo |  | Managed artifacts and goldens regenerate to unpadded; managed-section diff verified clean |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — IDs read unpadded on every human-facing surface (frontmatter, refs, prose, CLI, tables)
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a developer reading squads output, I want every human-facing surface to show IDs unpadded (e.g. `FEAT-283`) so that I see the short form people actually type and say, instead of the padded on-disk artifact.
@@ -186,10 +172,6 @@ As a developer reading squads output, I want every human-facing surface to show 
 <!-- sq:story:US2 -->
 ### US2 — Files stay padded and lexicographically sorted on disk while the id is unpadded
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a maintainer of the on-disk squad folder, I want files to keep their padded, lexicographically-sortable filenames while the id itself displays unpadded, so that directory listings stay sorted and nothing forces a mass rename.
 
@@ -211,10 +193,6 @@ As a maintainer of the on-disk squad folder, I want files to keep their padded, 
 
 <!-- sq:story:US3 -->
 ### US3 — An existing squad migrates cleanly: structural id/refs + bounded prose rewrite, code fences untouched
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As an operator upgrading an existing squad, I want a single migration run to flip stored ids, refs, and body-prose mentions to the unpadded form without touching filenames or mangling unrelated text, so that my squad works correctly the moment the schema bumps.
@@ -240,10 +218,6 @@ As an operator upgrading an existing squad, I want a single migration run to fli
 <!-- sq:story:US4 -->
 ### US4 — CLI lookup stays width-tolerant: FEAT-283 and FEAT-283 both resolve
 
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 As someone typing an id at the CLI, I want lookup to accept either the padded or the unpadded form so that I never have to remember which width the tool expects.
 
@@ -263,10 +237,6 @@ As someone typing an id at the CLI, I want lookup to accept either the padded or
 
 <!-- sq:story:US5 -->
 ### US5 — Managed artifacts and goldens regenerate to unpadded; managed-section diff verified clean
-
-<!-- sq:story:US5:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As the team maintaining squads' own bundled content, I want every managed skill, managed CLAUDE.md/AGENTS.md section, and golden fixture that embeds an id to regenerate in unpadded form, so that shipped artifacts and this project's own working tree don't lag the new display rule.

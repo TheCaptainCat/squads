@@ -20,23 +20,7 @@
     "created_session": null,
     "modified_session": null,
     "extra": {
-      "full_name": "Catherine Manager",
-      "slug": "manager",
-      "title": "manager",
-      "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done \u2014 keeping everything tracked in squads.",
-      "responsibilities": [
-        "Triage incoming requests and clarify intent",
-        "Delegate work to the right specialist agents and integrate their results",
-        "Drive features through the loop (implement \u2192 review \u2192 fix) until done",
-        "Keep the backlog and statuses honest",
-        "Summarise progress for the operator"
-      ],
-      "agreements": [],
-      "model": "opus",
-      "color": "cyan",
-      "is_default": true,
-      "can_spawn": true,
-      "description": "Default agent: triages the operator's request and routes it to the right specialist."
+      "slug": "manager"
     },
     "id": "ROLE-1",
     "badges": {}

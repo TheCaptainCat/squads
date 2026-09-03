@@ -97,22 +97,10 @@ frontmatter or the index; role/the new catalog are workflow-spec vocabulary.
 
 _Add with `sq feature 605 add-story "As a <role>, I want … so that …"`; track with `sq feature 605 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Role-object model, derivation, Plane-1 validation |
-| US2 | Done |  | sq workflow roles --json + statuses catalog change + goldens |
-| US3 | Done |  | CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Role-object model, derivation, Plane-1 validation
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 New RoleSpec model (settled/hidden/color) + WorkflowSpec.roles loaded from [roles.<name>]; bundled default_workflow.toml regenerated with the 8-role catalog, each status's role reference, and terminal lines removed.
@@ -131,10 +119,6 @@ Plane-1 validation: every status.role names a declared role; every role.color is
 <!-- sq:story:US2 -->
 ### US2 — sq workflow roles --json + statuses catalog change + goldens
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 sq workflow roles --json (new): one row per role, {role, settled, hidden, color}.
 
@@ -151,10 +135,6 @@ Goldens: regenerate workflow_statuses.json (drop terminal, populate role); add a
 
 <!-- sq:story:US3 -->
 ### US3 — CLI colour rendering + is_open drop across list/tree/mine/workload/cheatsheet
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 Status colour in sq list/tree/mine/workload and the workflow cheatsheet template: keyed on role.color intent, mapped to a concrete rich colour per surface, with a neutral fallback for an unrecognised intent.

@@ -56,9 +56,6 @@ Depends on Phase 0 (inventory informs the taxonomy). Blocks Phase 2.
 
 _Add with `sq task 373 add-subtask "<title>"`; track with `sq task 373 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

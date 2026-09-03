@@ -77,9 +77,6 @@ stay untouched except as needed to keep them consistent. Do not touch the per-ty
 
 _Add with `sq task 363 add-subtask "<title>"`; track with `sq task 363 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

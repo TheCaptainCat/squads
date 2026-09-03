@@ -76,7 +76,7 @@ async def test_dev_add_with_internal_whitespace_still_works(project, svc, invoke
 
     roles = await svc.list_items(item_type=ROSTER_ROLE)
     dev = next(it for it in roles if it.extra.get(X.SLUG) == "go-dev")
-    assert dev.extra.get(X.FULL_NAME) == "Ada Lovelace"
+    assert dev.title == "Ada Lovelace"
 
 
 async def test_role_activate_with_internal_whitespace_still_works(project, svc, invoke):
@@ -85,7 +85,7 @@ async def test_role_activate_with_internal_whitespace_still_works(project, svc, 
 
     role = await svc.roster_item(ROSTER_ROLE, "architect")
     assert role is not None
-    assert role.extra.get(X.FULL_NAME) == "Ada Lovelace"
+    assert role.title == "Ada Lovelace"
 
 
 async def test_leading_and_trailing_whitespace_around_real_content_is_preserved_not_trimmed(
@@ -100,4 +100,4 @@ async def test_leading_and_trailing_whitespace_around_real_content_is_preserved_
 
     role = await svc.roster_item(ROSTER_ROLE, "qa")
     assert role is not None
-    assert role.extra.get(X.FULL_NAME) == "  Ada Lovelace  "
+    assert role.title == "  Ada Lovelace  "

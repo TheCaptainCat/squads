@@ -78,9 +78,6 @@ Implements FEAT-100 (core prerequisite for story US2). Addresses ADR-427.
 
 _Add with `sq task 434 add-subtask "<title>"`; track with `sq task 434 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -36,22 +36,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 564 add-finding "…" --severity medium`; track with `sq review 564 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Verified |  | Dropped division-of-responsibility note in WorkflowSpec floor comment |
-| F2 | 🟢 low | Verified |  | Acceptance gap: terse-comment standard not documented; hygiene-guard extension not addressed |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Dropped division-of-responsibility note in WorkflowSpec floor comment
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 In src/squads/_workflow/_models.py the condensed WorkflowSpec reserved-vocab comment dropped the sentence explaining that a status omitted from the spec but still referenced by a declared lifecycle's initial/transitions is caught by the transition check *above*, not by this floor check. That is a non-local 'which check owns what' clarification — it reassures a maintainer that narrowing the floor to Draft/Active/Archived leaves no validation hole for dropped-but-referenced statuses. Suggest restoring a half-line, e.g. '(a dropped status still referenced by a declared lifecycle is caught by the transition check above, not here).' Everything else in the condensation is accurate. Low severity — informational loss only, no code impact.
@@ -67,11 +55,6 @@ In src/squads/_workflow/_models.py the condensed WorkflowSpec reserved-vocab com
 
 <!-- sq:finding:F2 -->
 ### F2 — Acceptance gap: terse-comment standard not documented; hygiene-guard extension not addressed
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 Task acceptance #2 has two parts beyond the strip itself: (a) write the terse-comment standard into a conventions doc so it doesn't regress, and (b) check whether the existing hygiene guard can be extended to catch item-ref/over-comment regressions in code+config. Neither appears in the diff (no CONTRIBUTING.md/CLAUDE.md/guard change) and the dev's handoff comment doesn't mention them. Not a defect in the sweep's quality — the strip itself is clean — but flagging that the task's own acceptance is not fully met. Manager to triage: complete here or split to a follow-up. Low severity.

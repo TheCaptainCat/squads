@@ -208,23 +208,10 @@ separate defect with its own task.
 
 _Add with `sq task 806 add-subtask "<title>"`; track with `sq task 806 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Normalise at the fold input via a required keyword | US1 |
-| ST2 | Done |  | Convergence table and the call-site drift guard | US1 |
-| ST3 | Done |  | Refreeze the 0.1-to-0.2 runner fold and guard the boundary | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Normalise at the fold input via a required keyword
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Normalise at the **fold's input**, which is one site: `Item.from_frontmatter` takes the resolved
@@ -285,11 +272,6 @@ a legacy-map item loads with canonical refs on every path including `sq repair`.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Convergence table and the call-site drift guard
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 A fold-level unit test would **not** have caught this defect — `fold_legacy_kinds`' output is
 correct as a mechanical function, and asserting it in isolation asserts the wrong thing. Do not
@@ -341,11 +323,6 @@ passes, and the call-site guard fails on a fourth site.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Refreeze the 0.1-to-0.2 runner fold and guard the boundary
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `_migrations/_v0_1_to_v0_2.py` imports `fold_legacy_kinds` from `_models._item` (line 21) and calls

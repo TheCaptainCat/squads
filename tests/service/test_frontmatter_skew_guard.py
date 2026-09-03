@@ -305,7 +305,7 @@ async def test_a_permitted_extra_key_ahead_of_the_index_is_never_falsely_refused
     from squads._sections import join_frontmatter, split_frontmatter
 
     fm, rest = split_frontmatter(text)
-    fm["extra"]["color"] = "magenta"
+    fm["extra"]["model"] = "haiku"  # a `PERMITTED_EXTRA_SKEW` member, on a non-dev role
     path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
 
     # Must not raise -- disk is ahead of the index on a permitted key; the guard cannot and
@@ -316,44 +316,48 @@ async def test_a_permitted_extra_key_ahead_of_the_index_is_never_falsely_refused
 
 
 async def test_a_catalog_field_merged_by_sync_reaches_the_index_and_never_false_refuses(svc):
-    """The broader shape: a role catalog gains a field (or an override edit does the same) and
-    `sync` merges it into the role's file, so the merge reaches a key the index has not seen.
-    Simulated by stripping a catalog field consistently from both sides, syncing, then
-    mutating the role through an unrelated seam.
+    """The broader shape: a role catalog changes (or an override edit does the same) and `sync`
+    reconciles the role's file to it, so the reconcile reaches a value the index has not seen.
+    Simulated by planting a stale value consistently on both sides, syncing, then mutating the
+    role through an unrelated seam.
 
-    Two properties. The merge reaches the *index* in the same transaction that writes the
+    The reconciled value is the **projection** -- the resolved full name and mission on the
+    item's own ``title``/``description`` -- because that is what a role item stores of its
+    definition; the rest is resolved on read and never written anywhere to go stale.
+
+    Two properties. The reconcile reaches the *index* in the same transaction that writes the
     frontmatter, so a caller reading the item back sees the merged value, not the pre-merge
     one. And the following mutation through a different seam must not be refused."""
-    role = await svc.activate_role("reviewer")  # a role whose catalog carries `agreements`
+    role = await svc.activate_role("reviewer")
+    catalog_mission = role.description
 
     path = svc.paths.abspath(role.path)
     text = path.read_text(encoding="utf-8")
     from squads._sections import join_frontmatter, split_frontmatter
 
     fm, rest = split_frontmatter(text)
-    fm["extra"].pop("agreements", None)
+    fm["description"] = "a stale mission the catalog no longer says"
     path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
 
     db = await svc.store.load()
     item = db.get(role.id)
     assert item is not None
-    item.extra.pop("agreements", None)
+    item.description = "a stale mission the catalog no longer says"
     await svc.store.overwrite(db)
 
     skipped = await svc.sync()
-    assert not skipped  # the merge write went through -- no false report either
+    assert not skipped  # the reconcile write went through -- no false report either
 
     on_disk = itemfile.read_frontmatter(path=path)
-    assert on_disk["extra"]["agreements"]  # merged back onto disk
+    assert on_disk["description"] == catalog_mission  # reconciled back onto disk
     reloaded = await svc.get(role.id)
     # ... and mirrored into the index by the same transaction, so the two agree.
-    assert reloaded.extra["agreements"] == on_disk["extra"]["agreements"]
+    assert reloaded.description == on_disk["description"]
 
-    # Must not raise -- the merged field is exempt everywhere, not just at the writer that
-    # merged it.
-    await svc.update(role.id, description="mutated after a catalog merge")
+    # Must not raise -- the two sides agree, so an unrelated seam mutates cleanly right after.
+    await svc.update(role.id, assignee=None, description="mutated after a catalog reconcile")
     final = await svc.get(role.id)
-    assert final.description == "mutated after a catalog merge"
+    assert final.description == "mutated after a catalog reconcile"
 
 
 async def test_a_project_override_role_under_a_new_slug_is_not_falsely_refused_after_sync(svc):
@@ -377,28 +381,28 @@ async def test_a_project_override_role_under_a_new_slug_is_not_falsely_refused_a
     from squads._sections import join_frontmatter, split_frontmatter
 
     fm, rest = split_frontmatter(text)
-    fm["extra"].pop("model", None)
+    fm["description"] = "a stale mission the override no longer declares"
     path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
 
     db = await svc.store.load()
     item = db.get(role.id)
     assert item is not None
-    item.extra.pop("model", None)
+    item.description = "a stale mission the override no longer declares"
     await svc.store.overwrite(db)
 
     skipped = await svc.sync()
-    assert not skipped  # the merge write went through -- no false report either
+    assert not skipped  # the reconcile write went through -- no false report either
 
     on_disk = itemfile.read_frontmatter(path=path)
-    assert on_disk["extra"]["model"] == "opus"  # merged back onto disk by the override
+    assert on_disk["description"] == "Find and fix security issues."  # from the override
     reloaded = await svc.get(role.id)
-    assert reloaded.extra["model"] == "opus"  # ... and mirrored into the index alongside it
+    assert reloaded.description == on_disk["description"]  # ... mirrored into the index too
 
-    # Must not raise -- the merged field is exempt for an override-defined role too, not only
-    # a role the bundled catalog itself recognizes.
-    await svc.update(role.id, description="mutated after an override catalog merge")
+    # Must not raise -- the reconcile behaves the same for an override-defined role as for a
+    # role the bundled catalog itself recognizes.
+    await svc.update(role.id, assignee=None, description="mutated after an override reconcile")
     final = await svc.get(role.id)
-    assert final.description == "mutated after an override catalog merge"
+    assert final.description == "mutated after an override reconcile"
 
 
 async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_refusing(svc):
@@ -415,14 +419,13 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
     db = await svc.store.load()
     item = db.get(role.id)
     assert item is not None
-    item.extra.pop("agreements", None)
-    item.extra.pop("title", None)
+    item.extra.pop("slug", None)  # the key the reconciler still writes, and still exempts
     await svc.store.overwrite(db)
 
-    # Disk is ahead of the index on two catalog keys, and nothing has re-synced.
+    # Disk is ahead of the index on a permitted key, and nothing has re-synced.
     on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(role.path))
-    assert on_disk["extra"]["title"]
-    assert "title" not in (await svc.get(role.id)).extra
+    assert on_disk["extra"]["slug"] == "reviewer"
+    assert "slug" not in (await svc.get(role.id)).extra
 
     # Must not raise: an unrelated seam mutating a role a stale index lags on.
     await svc.update(role.id, description="mutated against a lagging index")
@@ -432,10 +435,10 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
     # still-lagging index, so the pointer it wrote already carries the real title — never the
     # blank one a mirror-backed regen would have produced — and this sync finds nothing to fix.
     pointer = svc.paths.root / ".claude" / "agents" / "reviewer.md"
-    assert on_disk["extra"]["title"] in pointer.read_text(encoding="utf-8")
+    assert "code reviewer" in pointer.read_text(encoding="utf-8")
     assert await svc.sync() == []
     healed = await svc.get(role.id)
-    assert healed.extra["title"] == on_disk["extra"]["title"]
+    assert healed.extra["slug"] == "reviewer"
 
 
 # ---------------------------------------------------------------------------------------------

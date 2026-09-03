@@ -59,25 +59,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 191 add-finding "…" --severity high`; track with `sq review 191 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Open |  | Regen else-branch wipes frontmatter when body region is missing/partial |
-| F2 | 🟢 low | Open |  | sq check: skills added to registered-authors set is an out-of-scope semantic change |
-| F3 | 🟢 low | Open |  | Existing test suite runs the non-default no-seed path; default seed-on-init under-tested |
-| F4 | 🟢 low | Open |  | sq adopt does not seed bundled skills; init/adopt asymmetry |
-| F5 | 🟢 low | Open |  | Counter bump before file write can leak an id on stamp failure |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Regen else-branch wipes frontmatter when body region is missing/partial
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 File: src/squads/_backends/_claude_code/_backend.py:132-145 (_write_managed_skill).
@@ -98,11 +83,6 @@ Recommended fix: when frontmatter is present, never blunt-overwrite. Re-emit pre
 <!-- sq:finding:F2 -->
 ### F2 — sq check: skills added to registered-authors set is an out-of-scope semantic change
 
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 File: src/squads/_services/_maintenance.py:615-619 (_check_items).
 
@@ -121,11 +101,6 @@ The concern is scope/transparency: it is a behavior change to sq check semantics
 
 <!-- sq:finding:F3 -->
 ### F3 — Existing test suite runs the non-default no-seed path; default seed-on-init under-tested
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 Files: tests/conftest.py (project fixture now passes _skip_skill_seed=True) + ~17 test files sprinkled with 'init --no-seed-skills'.
@@ -146,11 +121,6 @@ Recommendation (non-blocking): keep the flag, but flip at least one or two repre
 <!-- sq:finding:F4 -->
 ### F4 — sq adopt does not seed bundled skills; init/adopt asymmetry
 
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 File: src/squads/_services/_service.py — init() (line ~98) calls seed_bundled_skills(); adopt() (line ~160) calls refresh_managed() but NOT seed_bundled_skills().
 
@@ -167,11 +137,6 @@ This is likely intentional given the migration (TASK-189) is the seam that stamp
 
 <!-- sq:finding:F5 -->
 ### F5 — Counter bump before file write can leak an id on stamp failure
-
-<!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 File: src/squads/_services/_maintenance.py:205-235 (seed_bundled_skills).

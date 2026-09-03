@@ -80,23 +80,10 @@ those are the core task this one depends on.
 
 _Add with `sq task 291 add-subtask "<title>"`; track with `sq task 291 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Bump SCHEMA_VERSION; register Migration record + runner | US3 |
-| ST2 | Done |  | Runner: structural id/refs + bounded, fence-skipping prose rewrite | US3 |
-| ST3 | Done |  | Migration test: mixed fixture, unpadded outside fences, idempotent | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Bump SCHEMA_VERSION; register Migration record + runner
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — An existing squad migrates cleanly: structural id/refs + bounded prose rewrite, code fences untouched
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Bump _models/_schema.py::SCHEMA_VERSION past 0.5 (compare via schema_tuple, never raw string </>). The root CLI callback already hard-stops on a schema mismatch until sq migrate up runs, so no callback change is needed. Add a Migration record to _migrations/_registry.py::MIGRATIONS (from_schema 0.5 → the new version) plus a private _v0_5_to_v<new>.py runner exposing migrate(paths) and a MANUAL runbook string, wired like the existing entries (async or _wrap_sync). Never run the runner via python -m — only through sq migrate.
@@ -111,11 +98,6 @@ Bump _models/_schema.py::SCHEMA_VERSION past 0.5 (compare via schema_tuple, neve
 <!-- sq:subtask:ST2 -->
 ### ST2 — Runner: structural id/refs + bounded, fence-skipping prose rewrite
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — An existing squad migrates cleanly: structural id/refs + bounded prose rewrite, code fences untouched
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Implement the runner. (1) Structural, deterministic: rewrite each item's frontmatter id: and every refs: entry (and any padded parent) to the unpadded form, driven by the stored sequence_id. (2) Prose, bounded: rewrite padded ID mentions in body prose to unpadded — the same whole-word class of edit as the renumber path's rewrite_ids (_itemfile.py:45, \bOLD\b → NEW). Bound it to the exact old-form strings the migration knows: iterate the index's {padded → unpadded} map per item and substitute those literals only — NEVER a blind zero-collapsing pattern. Skip fenced code blocks and inline code, matching how retype/renumber scope their mention rewrites. (3) Filenames untouched (already width-6). (4) Trailing repair rebuilds .squads.json, re-deriving both widths from disk. (5) MANUAL note: the prose rewrite is best-effort and worth an eyeball on mention-heavy bodies.
 <!-- sq:subtask:ST2:body:end -->
@@ -128,11 +110,6 @@ Implement the runner. (1) Structural, deterministic: rewrite each item's frontma
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Migration test: mixed fixture, unpadded outside fences, idempotent
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — An existing squad migrates cleanly: structural id/refs + bounded prose rewrite, code fences untouched
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Add a migration test (behaviour-named, no ticket ID in the filename) over a mixed fixture: padded frontmatter id:, padded refs, padded prose mentions, AND a fenced code block containing a padded id that must be left alone. Assert the result is fully unpadded outside the fence, the fence content is untouched, and filenames are unchanged. Assert idempotence: a second run is a no-op. Full suite green; uv run pyright && uv run ruff check . && uv run ruff format --check . clean.

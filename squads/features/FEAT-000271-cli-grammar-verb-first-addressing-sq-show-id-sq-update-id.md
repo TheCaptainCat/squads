@@ -71,21 +71,10 @@ The ADRs that decide the target grammar, formally supersede FEAT-13, and resolve
 
 _Add with `sq feature 271 add-story "As a <role>, I want … so that …"`; track with `sq feature 271 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | As a user, I address any item by ID alone without specifying its type |
-| US2 | Todo |  | As a user, custom types work with the same verb-first commands as built-in types |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a user, I address any item by ID alone without specifying its type
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 The user types 'sq show TASK-35' or 'sq comment BUG-7 --as reviewer -m ...' without having to know or repeat the item's type. The ID prefix carries the type; the CLI resolves it automatically at dispatch time.
@@ -99,10 +88,6 @@ The user types 'sq show TASK-35' or 'sq comment BUG-7 --as reviewer -m ...' with
 
 <!-- sq:story:US2 -->
 ### US2 — As a user, custom types work with the same verb-first commands as built-in types
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 Once a custom type is registered in the workflow spec, 'sq show INC-3', 'sq update INC-3 --status Mitigating', and 'sq comment INC-3 --as on-call -m ...' all work without any additional CLI wiring. There is no '_CustomTypeGroup' registration step visible to the user, and no sub-app to maintain per type.

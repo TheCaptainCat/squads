@@ -46,9 +46,6 @@ Mirror the `sq show --raw` precedent (opt out of the markdown render, plain text
 
 _Add with `sq task 451 add-subtask "<title>"`; track with `sq task 451 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

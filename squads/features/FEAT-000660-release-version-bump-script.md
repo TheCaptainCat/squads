@@ -41,9 +41,6 @@ Explicitly out of scope for the script — these stay human/manual:
 
 _Add with `sq feature 660 add-story "As a <role>, I want … so that …"`; track with `sq feature 660 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

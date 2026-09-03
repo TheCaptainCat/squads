@@ -96,24 +96,10 @@ stops the guard depending on a hand-maintained copy of a list the service alread
 
 _Add with `sq task 818 add-subtask "<title>"`; track with `sq task 818 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Derive the guard's kind set from scan_overrides | US5 |
-| ST2 | Done | python-dev | Add CLI reachability as the fifth uniformity element | US5 |
-| ST3 | Done | python-dev | Correct the dispatcher claim in _uniformity_gaps' docstring | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Derive the guard's kind set from scan_overrides
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Build a squad carrying one override of each kind (the existing `place_shadowing` fixtures already
@@ -136,12 +122,6 @@ watch this test go red without touching `_KIND_FIXTURES`, then remove it.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Add CLI reachability as the fifth uniformity element
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Give `_KindFixture` a field carrying the CLI argument form for the kind — the exact argv a human
@@ -167,12 +147,6 @@ and the kind together.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Correct the dispatcher claim in _uniformity_gaps' docstring
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US5 — Uniform unstamped-shadowing severity plus the uniformity guard
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `_uniformity_gaps`' docstring says each check goes "through the same top-level dispatcher every

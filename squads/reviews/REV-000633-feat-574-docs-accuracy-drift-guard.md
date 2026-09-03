@@ -27,21 +27,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 633 add-finding "…" --severity medium`; track with `sq review 633 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | Drift guard does not validate options/flags on leaf commands |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Drift guard does not validate options/flags on leaf commands
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The resolver walks the subcommand PATH token-by-token but stops validating once it reaches a leaf command: remaining tokens (options AND positionals) are treated as the leaf's own args and never inspected. So flag-level and positional-arg drift silently PASS.

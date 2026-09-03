@@ -49,9 +49,6 @@ Add the catalog dict's exact name to `tests/meta/test_no_unallowlisted_module_le
 
 _Add with `sq task 579 add-subtask "<title>"`; track with `sq task 579 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

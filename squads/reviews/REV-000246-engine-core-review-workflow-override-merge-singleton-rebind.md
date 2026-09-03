@@ -54,25 +54,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 246 add-finding "…" --severity high`; track with `sq review 246 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | AC#5 not enforced at any runtime boundary in this core |
-| F2 | 🟢 low | Fixed |  | Override source is .overrides/workflow.toml only; FEAT AC#1 wording says .squads.toml |
-| F3 | 🟢 low | Fixed |  | open_service re-reads + re-validates the bundled TOML on every call, even with no override |
-| F4 | 🟢 low | Fixed |  | Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and e2e sq list are not asserted |
-| F5 | 🔵 info | Fixed |  | Two minor robustness/clarity nits in the loader |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — AC#5 not enforced at any runtime boundary in this core
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 validate_against_index() (src/squads/_workflow/_loader.py:338) is the AC#5 guarantee (TASK-241: removing a status/type still used by live items must fail closed listing offenders). But it is NOT called anywhere in the runtime path — grep shows it is referenced only by tests. open_service() (src/squads/_services/_service.py:165) loads+validates the merged spec and calls use_spec(), but never calls validate_against_index(); sq check (_cli/_main.py:986) does not either.
@@ -95,11 +80,6 @@ Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) 
 <!-- sq:finding:F2 -->
 ### F2 — Override source is .overrides/workflow.toml only; FEAT AC#1 wording says .squads.toml
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 load_workflow_spec() reads ONLY <squad_dir>/.overrides/workflow.toml (_loader.py:29 WORKFLOW_OVERRIDE_FILENAME; the [workflow.*] block in .squads.toml is not read — SquadsConfig in _models/_config.py has no workflow field and the loader never opens .squads.toml).
 
@@ -119,11 +99,6 @@ Suggested fix: reconcile the wording. Either (a) @product-owner edits AC#1/US1 t
 <!-- sq:finding:F3 -->
 ### F3 — open_service re-reads + re-validates the bundled TOML on every call, even with no override
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 load_workflow_spec() (_loader.py:50) calls _load_bundled_spec() unconditionally at the top — re-reading default_workflow.toml from importlib.resources, re-parsing, and re-running the full WorkflowSpec model validation — on EVERY open_service(), including the common no-override case. Then use_spec() rebuilds all derived constants (3 dicts + frozenset) each call. The already-cached _BUNDLED_SPEC in __init__.py is bypassed.
 
@@ -142,11 +117,6 @@ Suggested fix (optional): when no override file exists, return the cached single
 
 <!-- sq:finding:F4 -->
 ### F4 — Test gaps: claimed no-leak isolation, sub-entity cross-check branch, and e2e sq list are not asserted
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 tests/test_workflow_override.py docstring line 12 claims to test 'use_spec rebind does not leak between tests' but there is no two-test sequence that installs an override in one test and asserts a later test sees the bundled spec. The autouse _reset_workflow_spec fixture is exercised implicitly only. (I verified reset works manually, so this is a coverage, not correctness, gap.)
@@ -168,11 +138,6 @@ Suggested fix: add (a) a two-test leak guard or an explicit assert that after a 
 
 <!-- sq:finding:F5 -->
 ### F5 — Two minor robustness/clarity nits in the loader
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 (a) _loader.py:60 wraps tomllib.TOMLDecodeError but not OSError — a workflow.toml that exists but is unreadable (permissions) would raise a raw OSError rather than a SquadsError. is_file() guards the missing-file case, so this is a narrow edge; consider widening the except or letting it surface as a non-SquadsError (it currently would not get the 'sq workflow lint' pointer either, since open_service only catches SquadsError).

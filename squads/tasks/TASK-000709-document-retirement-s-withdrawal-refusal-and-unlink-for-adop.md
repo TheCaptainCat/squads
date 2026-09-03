@@ -127,25 +127,10 @@ section end to end as an adopter who has not followed any of the work.
 
 _Add with `sq task 709 add-subtask "<title>"`; track with `sq task 709 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add the withdrawal entry under action required | US4 |
-| ST2 | Done |  | Add the refusal and --unlink entry under Added | US5 |
-| ST3 | Done |  | Correct the sq check entry's withdrawn condition | US6 |
-| ST4 | Done |  | Cover all three roster types in the roles doc | US3 |
-| ST5 | Done |  | Reconcile the workflow diagram with its own table |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add the withdrawal entry under action required
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Retiring a role or skill deletes its generated per-entry file and rewrites every compiled region that named it. It belongs in the action-required tier because a file an adopter had come to rely on disappears; say plainly that it is reversible and how.
@@ -160,11 +145,6 @@ Retiring a role or skill deletes its generated per-entry file and rewrites every
 <!-- sq:subtask:ST2 -->
 ### ST2 — Add the refusal and --unlink entry under Added
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Two conditions refuse a retirement: the last live role while an agent backend is active, and a skill a live role still preloads. Say what the refusal gives the reader, that where no remedy exists the message says so rather than inventing one, and that the severing flag satisfies the check rather than suppressing it. --force covers the lifecycle edge only.
 <!-- sq:subtask:ST2:body:end -->
@@ -177,11 +157,6 @@ Two conditions refuse a retirement: the last live role while an agent backend is
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Correct the sq check entry's withdrawn condition
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As a team, sq check reports a roster entry already in a broken config state
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 The existing entry lists three flagged conditions, one of them the default-carrying role not being live. That condition is withdrawn: retiring the designated role is legitimate and the generated config omits the default-role line instead of naming a role that is not there. List what remains, and give the withdrawal its own line with the recovery path named.
@@ -196,11 +171,6 @@ The existing entry lists three flagged conditions, one of them the default-carry
 <!-- sq:subtask:ST4 -->
 ### ST4 — Cover all three roster types in the roles doc
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a team, the generated CLI help and skill text teach the new verb
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 The roles doc gained a status line for role and for operator but not for skill, and mentions neither that the transition can be refused nor the severing flag. Add all three, verifying each command spelling by running it rather than inferring it from help text.
 <!-- sq:subtask:ST4:body:end -->
@@ -213,10 +183,6 @@ The roles doc gained a status line for role and for operator but not for skill, 
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Reconcile the workflow diagram with its own table
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 The ASCII diagram labels the roster row as role and skill while the table directly beneath it correctly says role, skill and operator. Make the two agree.

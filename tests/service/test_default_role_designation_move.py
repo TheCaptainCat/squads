@@ -1,12 +1,16 @@
 """``Service.set_default_role()`` — the ``is_default`` designation move.
 
-No interactive command wrote ``is_default`` before this: it was set once from the bundled
-catalog at ``sq role activate`` and otherwise only reachable through the bulk importer's
-``update`` event replaying history. The projection resolves the designation by first match
-over the roster and nothing validates a single holder at item level, so a plain set (the
-generic ``update(set_extra=...)`` seam already allows writing the key directly) can silently
-leave two holders and an arbitrary winner — the move clears every other holder in the same
-transaction instead.
+``set_default_role`` and the bulk importer's ``update`` event are the only writers of the
+stored key; the *designation* itself is a catalog answer the stored key overrides, so the role
+the catalog designates holds it with nothing in its own ``extra`` at all. Every assertion here
+therefore asks the resolved question (:func:`_default_holders`), never the raw key — a raw read
+sees no holder on the catalog's own role, which is exactly the blind spot that let a move leave
+two live defaults standing.
+
+The projection resolves the designation by first match over the roster and nothing validates a
+single holder at item level, so a plain set (the generic ``update(set_extra=...)`` seam already
+allows writing the key directly) can silently leave two holders and an arbitrary winner — the
+move clears every other holder in the same transaction instead.
 """
 
 import pytest
@@ -17,8 +21,20 @@ from squads._models._extras import ExtraKey as X
 pytestmark = pytest.mark.anyio
 
 
-def _default_holders(items) -> list[str]:
-    return sorted(it.id for it in items if it.extra.get(X.IS_DEFAULT))
+async def _default_holders(svc) -> list[str]:
+    """The ids of every role that holds the designation *as every reader sees it* — resolved
+    through the role catalog, with the item's stored ``is_default`` as the override it is.
+
+    Reading ``extra.is_default`` raw would miss the catalog's own designated role, which stores
+    nothing until something overrides it, and so would pass on a roster carrying two live
+    defaults."""
+    by_slug = {it.extra.get(X.SLUG, it.slug): it.id for it in await svc.list_roles()}
+    return sorted(by_slug[r.slug] for r in await svc.roster_all() if r.is_default)
+
+
+async def _holds_default(svc, slug: str) -> bool:
+    """Whether *slug* holds the designation, resolved — see :func:`_default_holders`."""
+    return any(r.is_default for r in await svc.roster_all() if r.slug == slug)
 
 
 # --------------------------------------------------------------------------- the move itself
@@ -43,8 +59,7 @@ async def test_move_leaves_exactly_one_holder(svc):
 
     await svc.set_default_role(qa.id)
 
-    roles = await svc.list_roles()
-    assert _default_holders(roles) == [qa.id]
+    assert await _default_holders(svc) == [qa.id]
 
 
 async def test_generated_config_presents_the_new_default_without_a_sq_sync(project, svc):
@@ -79,7 +94,8 @@ async def test_designating_the_current_holder_is_a_reported_no_op(svc):
 
     assert result.changed is False
     assert result.cleared == []
-    assert (await svc.get(manager.id)).extra.get(X.IS_DEFAULT) is True
+    assert await _holds_default(svc, "manager")
+    assert await _default_holders(svc) == [manager.id]
 
 
 async def test_no_op_writes_no_reflog_line(svc):
@@ -101,7 +117,7 @@ async def test_designating_a_non_live_role_is_refused(svc):
         await svc.set_default_role(qa.id)
 
     manager = await svc.roster_item("role", "manager")
-    assert (await svc.get(manager.id)).extra.get(X.IS_DEFAULT) is True  # untouched
+    assert await _default_holders(svc) == [manager.id]  # untouched
 
 
 async def test_refusing_a_non_live_target_writes_nothing(svc):
@@ -123,15 +139,13 @@ async def test_the_move_repairs_a_pre_existing_two_holder_state(svc):
     manager = await svc.roster_item("role", "manager")
     qa = await svc.activate_role("qa")
     await svc.update(qa.id, set_extra={"is_default": "true"})  # hand-plant a second holder
-    roles = await svc.list_roles()
-    assert _default_holders(roles) == sorted([manager.id, qa.id])  # sanity: two holders
+    assert await _default_holders(svc) == sorted([manager.id, qa.id])  # sanity: two holders
 
     result = await svc.set_default_role(qa.id)
 
     assert result.changed
     assert result.cleared == [manager.id]
-    roles = await svc.list_roles()
-    assert _default_holders(roles) == [qa.id]
+    assert await _default_holders(svc) == [qa.id]
 
 
 async def test_redesignating_the_current_holder_still_clears_a_stray_second_holder(svc):
@@ -146,8 +160,7 @@ async def test_redesignating_the_current_holder_still_clears_a_stray_second_hold
 
     assert result.changed  # not a no-op: qa's stray flag was cleared
     assert result.cleared == [qa.id]
-    roles = await svc.list_roles()
-    assert _default_holders(roles) == [manager.id]
+    assert await _default_holders(svc) == [manager.id]
 
 
 # ------------------------------------------------------ pinning the gap a plain set would leave
@@ -166,5 +179,4 @@ async def test_a_plain_set_without_the_move_leaves_two_holders(svc):
 
     await svc.update(qa.id, set_extra={"is_default": "true"})
 
-    roles = await svc.list_roles()
-    assert _default_holders(roles) == sorted([manager.id, qa.id])  # two holders, arbitrary winner
+    assert await _default_holders(svc) == sorted([manager.id, qa.id])  # two, arbitrary winner

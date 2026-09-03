@@ -159,23 +159,10 @@ Consequences for this work:
 
 _Add with `sq task 681 add-subtask "<title>"`; track with `sq task 681 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | One global refresh command, all callers routed through it |  |
-| ST2 | Done |  | Capture and replay preview fold state |  |
-| ST3 | Done |  | In-content refresh action left of the nav arrows |  |
-| ST4 | Done | op-pierre | Dev-host verification of both behaviours |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — One global refresh command, all callers routed through it
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 One global refresh, four callers.
@@ -219,10 +206,6 @@ Acceptance:
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Capture and replay preview fold state
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 A preview keeps the folds the reader had open, across every refresh.
@@ -274,10 +257,6 @@ Acceptance:
 <!-- sq:subtask:ST3 -->
 ### ST3 — In-content refresh action left of the nav arrows
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 A refresh action on the preview itself, immediately left of the back/forward buttons.
 
@@ -325,11 +304,6 @@ Acceptance:
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Dev-host verification of both behaviours
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Pierre Chat
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Manual verification in a running dev host — the operator's machine, so an agent cannot close this.

@@ -32,23 +32,10 @@ SRC WAVE (part 1 of 2). Scope: all Python under src/squads/_workflow, _interacti
 
 _Add with `sq task 308 add-subtask "<title>"`; track with `sq task 308 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Strip refs from comments/docstrings | US1 |
-| ST2 | Done |  | Restyle: terse + history-free | US2 |
-| ST3 | Done |  | Remove refs from any user-facing strings here | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Strip refs from comments/docstrings
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Code comments carry no squad-item references
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Removed every squad-item reference (FEAT/TASK/ADR/REV/BUG/EPIC, US/ST numbers, bare §N) from comments and docstrings in src/squads/_workflow, _interactions, _roles, _models. Load-bearing refs were restated on the code's own terms (e.g. section-number checks became plain descriptions); illustrative TASK-0000NN example IDs were reworded to PREFIX-000NN placeholders since they're not real citations. Verified via grep: zero hits across the .py files in scope.
@@ -63,11 +50,6 @@ Removed every squad-item reference (FEAT/TASK/ADR/REV/BUG/EPIC, US/ST numbers, b
 <!-- sq:subtask:ST2 -->
 ### ST2 — Restyle: terse + history-free
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Src comments describe current behavior, not history
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Restyled the same files' commentary to be terse and history-free: dropped 'F1/F2/F3' wave labels, 'formerly in __init__.py', 'AC#5', schema-version narration, and other archaeology; comments now describe current behavior/contract only. Full suite green and unchanged.
 <!-- sq:subtask:ST2:body:end -->
@@ -80,11 +62,6 @@ Restyled the same files' commentary to be terse and history-free: dropped 'F1/F2
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Remove refs from any user-facing strings here
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — User-facing content carries no squad-item references
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Checked help/error/console strings emitted from these files for real-citation squad-item refs; none were present needing removal beyond the doc/comment sweep in ST1. The one CLI-syntax example in playbook.toml (--story US1) is a legitimate illustrative shape per the FEAT-237 carve-out and was left as-is (playbook.toml itself is TASK-310's file, not TASK-308's).

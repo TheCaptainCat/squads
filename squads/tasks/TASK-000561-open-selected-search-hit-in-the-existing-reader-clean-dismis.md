@@ -34,9 +34,6 @@ Make a search hit a jumping-off point (US3): selecting a result opens that item 
 
 _Add with `sq task 561 add-subtask "<title>"`; track with `sq task 561 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -45,10 +45,13 @@ async def _plant_stored_blank_full_name(svc, item) -> None:
         stored.extra[X.FULL_NAME] = "   "
 
 
-async def _role_extra_full_name(svc, slug: str) -> str:
+async def _role_stored_name(svc, slug: str) -> str:
+    """The role's stored name, read where it lives: the item's own ``title`` field. The
+    ``extra.full_name`` copy the planting helper still writes is what a pre-0.14 corpus
+    carries, and nothing reads it."""
     roles = await svc.list_items(item_type=ROSTER_ROLE)
     role = next(it for it in roles if it.extra.get(X.SLUG) == slug)
-    return role.extra[X.FULL_NAME]
+    return role.title
 
 
 # ------------------------------------------------------------------------------- bundled role
@@ -61,7 +64,7 @@ async def test_sync_self_heals_a_stored_blank_name_on_a_bundled_role(project, sv
     synced = await invoke(["sync"])
     assert synced.exit_code == 0, synced.output
 
-    healed = await _role_extra_full_name(svc, "devops")
+    healed = await _role_stored_name(svc, "devops")
     assert healed.strip()
     assert healed == "Hugo Ops"  # the bundled catalog's own name for this slug
 
@@ -108,7 +111,7 @@ async def test_sync_self_heals_a_stored_blank_name_on_a_developer_role(project, 
     synced = await invoke(["sync"])
     assert synced.exit_code == 0, synced.output
 
-    healed = await _role_extra_full_name(svc, "python-dev")
+    healed = await _role_stored_name(svc, "python-dev")
     assert healed.strip()
 
     checked = await invoke(["check"])

@@ -69,22 +69,10 @@ ADR-133's just-landed ABC surface. Sequence after 139's schema/runner.
 
 _Add with `sq task 140 add-subtask "<title>"`; track with `sq task 140 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | active_backends config model + runtime fan-out over all backends | US1 |
-| ST2 | Done |  | sq check rule for active backends (empty + deactivation semantics) | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — active_backends config model + runtime fan-out over all backends
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Maintain multiple active backends at once
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Config model active_backends + runtime fan-out over all active backends in scaffold/sync/write_managed + init/adopt populate the list; tests proving multiple backends (CLAUDE.md + AGENTS.md) are generated and checked.
@@ -98,11 +86,6 @@ Config model active_backends + runtime fan-out over all active backends in scaff
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — sq check rule for active backends (empty + deactivation semantics)
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Empty active_backends and deactivation-ignore semantics
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 sq check rule: each active backend's files present & current, empty active_backends=[] verifies nothing (sq-only squad), deactivated backend's lingering files are ignored not flagged; tests for empty + deactivation semantics.

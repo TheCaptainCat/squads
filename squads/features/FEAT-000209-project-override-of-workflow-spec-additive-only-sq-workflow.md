@@ -101,22 +101,10 @@ no override).
 
 _Add with `sq feature 209 add-story "As a <role>, I want … so that …"`; track with `sq feature 209 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Project admin can add custom types and statuses via .overrides/workflow.toml |
-| US2 | Todo |  | As a project admin, I want sq workflow lint to validate my spec config and report every error clearly before I commit it |
-| US3 | Todo |  | Broken workflow spec hard-stops sq with a clear actionable error |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Project admin can add custom types and statuses via .overrides/workflow.toml
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a project admin, I want to add new item types, statuses, and state machines 
@@ -141,10 +129,6 @@ etc.) are scoped to FEAT-210, not this feature.
 <!-- sq:story:US2 -->
 ### US2 — As a project admin, I want sq workflow lint to validate my spec config and report every error clearly before I commit it
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a project admin, I want `sq workflow lint` to validate my override spec and print every error and warning with context, so I can fix config problems before they reach the team.
 
@@ -159,10 +143,6 @@ As a project admin, I want `sq workflow lint` to validate my override spec and p
 
 <!-- sq:story:US3 -->
 ### US3 — Broken workflow spec hard-stops sq with a clear actionable error
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As a team member using a squad with a custom workflow, I want a broken spec to hard-stop `sq` with an actionable error message rather than silently running with invalid configuration.

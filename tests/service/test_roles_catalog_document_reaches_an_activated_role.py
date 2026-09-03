@@ -23,10 +23,18 @@ from pathlib import Path
 import pytest
 
 from squads import __version__
-from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 
 pytestmark = pytest.mark.anyio
+
+
+def _resolved(svc, item):
+    """*item*'s definition as every reader of it resolves one -- a role's title and mission are
+    catalog answers, never copies stored in its ``extra``."""
+    from squads._roles._resolver import resolve_role_for_item
+
+    return resolve_role_for_item(item, svc.paths.squad_dir)
+
 
 _BUNDLED_ARCHITECT = next(r for r in PREDEFINED if r.slug == "architect")
 
@@ -64,8 +72,8 @@ async def test_a_catalog_document_field_reaches_an_already_activated_role_via_sy
     ]
 
     reloaded = await svc.get(role.id)
-    assert reloaded.extra[X.TITLE] == "Chief Architect"
-    assert reloaded.extra[X.MISSION] == _BUNDLED_ARCHITECT.mission  # untouched field, unaffected
+    assert _resolved(svc, reloaded).title == "Chief Architect"
+    assert _resolved(svc, reloaded).mission == _BUNDLED_ARCHITECT.mission  # untouched, unaffected
 
 
 async def test_a_squad_with_no_catalog_document_syncs_exactly_as_before(project, svc):
@@ -73,7 +81,7 @@ async def test_a_squad_with_no_catalog_document_syncs_exactly_as_before(project,
     skipped = await svc.sync()
     assert not skipped
     reloaded = await svc.get(role.id)
-    assert reloaded.extra[X.TITLE] == _BUNDLED_ARCHITECT.title
+    assert _resolved(svc, reloaded).title == _BUNDLED_ARCHITECT.title
 
 
 async def test_precedence_bundled_then_catalog_document_then_per_slug_file(project, svc):
@@ -89,8 +97,9 @@ async def test_precedence_bundled_then_catalog_document_then_per_slug_file(proje
     await svc.sync()
 
     reloaded = await svc.get(role.id)
-    assert reloaded.extra[X.TITLE] == "Chief Architect"  # catalog document, over bundled
-    assert reloaded.extra[X.MODEL] == "haiku"  # per-slug file, over the catalog document
+    resolved = _resolved(svc, reloaded)
+    assert resolved.title == "Chief Architect"  # catalog document, over bundled
+    assert resolved.model == "haiku"  # per-slug file, over the catalog document
 
 
 async def test_sq_check_stays_clean_with_the_catalog_document_reaching_an_activated_role(
@@ -179,5 +188,6 @@ async def test_sq_check_stays_clean_for_a_valid_document_field_reaching_the_same
     await svc.sync()
     assert not await svc.check()  # the warn clears once the sync it names has run
     reloaded = await svc.get(role.id)
-    assert reloaded.extra[X.MISSION] == "Own the whole system's shape and its security posture."
-    assert reloaded.extra[X.TITLE] == "Chief Architect (per-slug)"
+    resolved = _resolved(svc, reloaded)
+    assert resolved.mission == "Own the whole system's shape and its security posture."
+    assert resolved.title == "Chief Architect (per-slug)"

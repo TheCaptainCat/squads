@@ -145,25 +145,10 @@ cost is paperwork rather than risk. What must actually land:
 
 _Add with `sq task 800 add-subtask "<title>"`; track with `sq task 800 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Resolve .overrides/roles.toml through the shared merge engine | US3 |
-| ST2 | Done |  | Stamp, drift and sq override scaffold roles | US3 |
-| ST3 | Done |  | Deselect on the roles catalog document | US3 |
-| ST4 | Done |  | Close the role override top-level key space | US4 |
-| ST5 | Todo | architect | Narrow the superseded role-top-level clause in place | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Resolve .overrides/roles.toml through the shared merge engine
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `load_role_catalog()` takes no `squad_dir` and reads only package data
@@ -194,11 +179,6 @@ is refused by name.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Stamp, drift and sq override scaffold roles
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Wire the catalog document into the override surface as a first-class kind, so it has the same
 four things every other kind has: a manifest entry for its bundled counterpart (supplied by the
@@ -225,11 +205,6 @@ Done when `sq override scaffold roles` writes a stamped scaffold, the kind appea
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Deselect on the roles catalog document
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 `[selected]` on the catalog document deselects `roles` and `bundles` entries, retiring the
@@ -260,11 +235,6 @@ a deselect that empties a bundle or removes the default fails through the existi
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Close the role override top-level key space
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Close the role override top-level key space (align ADR-696 §4b)
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The resolver already passes a closed top-level set derived from `RoleSpec.model_fields`
@@ -297,12 +267,6 @@ the roles loader, and `top_level_keys`' `None` path is either removed or has a l
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Narrow the superseded role-top-level clause in place
-
-<!-- sq:subtask:ST5:head -->
-**Status:** ⚪ Todo
-**Assignee:** Robert Architect
-**Implements:** US4 — Close the role override top-level key space (align ADR-696 §4b)
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 The decision that ruled a role override's top level "deliberately not closed" is narrowed in

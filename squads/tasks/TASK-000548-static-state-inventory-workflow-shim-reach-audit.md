@@ -74,9 +74,6 @@ TASK-550/552/553.
 
 _Add with `sq task 548 add-subtask "<title>"`; track with `sq task 548 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -179,9 +179,6 @@ Purely-technical hygiene task: no feature parent, no fixes/addresses ref.
 
 _Add with `sq task 333 add-subtask "<title>"`; track with `sq task 333 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

@@ -111,22 +111,10 @@ stale spelling being created, and this stops an edge already carrying one from v
 
 _Add with `sq task 807 add-subtask "<title>"`; track with `sq task 807 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Split the declared-vocabulary drop from the --kind filter | US2 |
-| ST2 | Done |  | Emit a null semantic and hold the four surfaces in agreement | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Split the declared-vocabulary drop from the --kind filter
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `_TraversalCtx.kinds` is doing two jobs at once, and the single
@@ -163,11 +151,6 @@ Done when an undeclared-kind edge appears in an unfiltered traversal in both dir
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Emit a null semantic and hold the four surfaces in agreement
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Bind engine behaviour to declared semantics, not literals
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 An undeclared-kind edge's node reports **no declared semantic**: `edge_semantic: null`, the key

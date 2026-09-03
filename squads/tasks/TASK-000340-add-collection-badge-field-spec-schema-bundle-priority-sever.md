@@ -121,22 +121,10 @@ mechanism for item types and sub-entity kinds, not forked).
 
 _Add with `sq task 340 add-subtask "<title>"`; track with `sq task 340 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add Collection/Badge/Field schema + bundle byte-identical priority/severity | US1 |
-| ST2 | Done |  | Fail-closed validation: field-code uniqueness, reserved-key, collection integrity | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add Collection/Badge/Field schema + bundle byte-identical priority/severity
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Priority/severity become spec badge collections
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add Collection/Badge/Field pydantic models + collections map + fields on ItemSpec/subentity-kind + fields_for()/collection() accessors; parse [collections.*] and .fields in the loader; declare bundled priority/severity collections+fields reproducing today's enum codes/labels/emoji/defaults exactly. Enums still drive runtime — additive only.
@@ -150,11 +138,6 @@ Add Collection/Badge/Field pydantic models + collections map + fields on ItemSpe
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Fail-closed validation: field-code uniqueness, reserved-key, collection integrity
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Spec load fails closed on bad field decls
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 In WorkflowSpec._validate: reject a duplicate field code within one type/kind, a field code shadowing a reserved item/sub-entity frontmatter key, and a field whose collection (or default badge code) doesn't resolve — each a clear SquadsError.

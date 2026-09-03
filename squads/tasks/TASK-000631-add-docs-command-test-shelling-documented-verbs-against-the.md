@@ -79,9 +79,6 @@ it (correctly) fails.
 
 _Add with `sq task 631 add-subtask "<title>"`; track with `sq task 631 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

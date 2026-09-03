@@ -90,22 +90,10 @@ item's settled statuses carry a role that stays visible while genuinely retired.
 
 _Add with `sq feature 570 add-story "As a <role>, I want … so that …"`; track with `sq feature 570 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | category-aware default visibility + empty-view hint + --category filter |
-| US2 | InProgress |  | TUI: records as a third tree root |
-| US3 | InProgress |  | VS Code extension: dedicated records view |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — category-aware default visibility + empty-view hint + --category filter
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 sq list/tree default visibility is consumed from role.hidden (from the FEAT-605 role model), not re-derived here — a records-category item's settled statuses stay visible while genuinely retired ones hide.
@@ -124,10 +112,6 @@ sq list --category roster|work|records flag; wire category onto sq workflow type
 <!-- sq:story:US2 -->
 ### US2 — TUI: records as a third tree root
 
-<!-- sq:story:US2:head -->
-**Status:** 🟡 In Progress
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Switch the browse tree's grouping from is_meta to category; add the records root alongside work/roster; wire the filter popup's category dimension.
 
@@ -142,10 +126,6 @@ Render row colour from the status role (FEAT-605): join status to role and map r
 
 <!-- sq:story:US3 -->
 ### US3 — VS Code extension: dedicated records view
-
-<!-- sq:story:US3:head -->
-**Status:** 🟡 In Progress
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 New records provider mirroring domain/metaView.ts's separation from the work tree; category filter in the QuickPick/tree.

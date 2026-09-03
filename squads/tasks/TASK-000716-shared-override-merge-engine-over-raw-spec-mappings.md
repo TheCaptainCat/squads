@@ -451,26 +451,10 @@ restructuring around the guard, and run `tests/meta` before handing back.
 
 _Add with `sq task 716 add-subtask "<title>"`; track with `sq task 716 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Splat-ref resolution pass against the bundled base | US3 |
-| ST2 | Done |  | Deep recursive merge at leaf granularity | US1 |
-| ST3 | Done |  | selected deselect: apply, strip, record provenance | US2 |
-| ST4 | Done |  | Ordered entry point with fail-fast and collect-all modes | US2 |
-| ST5 | Done |  | Closed top-level key space for the override document | US2 |
-| ST6 | Done |  | Declared nesting bound on both recursive walks | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Splat-ref resolution pass against the bundled base
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a spec author, I want a splat-ref to append to a bundled list without restating it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The resolution pass that walks an override mapping and replaces every splat token with a value
@@ -619,11 +603,6 @@ Built first even though it maps to the third story: steps 2 and 3 both consume i
 <!-- sq:subtask:ST2 -->
 ### ST2 — Deep recursive merge at leaf granularity
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a spec author, I want overrides to deep-merge onto the bundled base so I only declare what changes
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The recursive merge of a resolved override mapping over the base mapping.
 
@@ -648,11 +627,6 @@ equal to the base — same keys, values, and nesting, nothing added and nothing 
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — selected deselect: apply, strip, record provenance
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a spec author, I want a selected list to drop built-ins I don't want, refused cleanly if the result is unsafe
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Applying the deselect after the merge, then removing its declaration from the mapping.
@@ -692,11 +666,6 @@ dropped it; an unknown section key raises.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Ordered entry point with fail-fast and collect-all modes
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a spec author, I want a selected list to drop built-ins I don't want, refused cleanly if the result is unsafe
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 The public surface of `src/squads/_specmerge.py`: one entry point that runs the steps in the
@@ -738,11 +707,6 @@ short-circuiting the rest of the report.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Closed top-level key space for the override document
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a spec author, I want a selected list to drop built-ins I don't want, refused cleanly if the result is unsafe
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 The override document's top level becomes a closed key space, checked at the raw-mapping layer
@@ -811,11 +775,6 @@ engine.
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Declared nesting bound on both recursive walks
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a spec author, I want a splat-ref to append to a bundled list without restating it
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 A declared nesting bound on both of the engine's recursive walks, so a document deeper than the

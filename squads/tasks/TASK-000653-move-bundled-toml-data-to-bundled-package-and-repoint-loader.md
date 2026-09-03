@@ -48,22 +48,10 @@ Move the three bundled TOML data files into a single `src/squads/_bundled/` pack
 
 _Add with `sq task 653 add-subtask "<title>"`; track with `sq task 653 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Move the three TOML files into a new _bundled package |  |
-| ST2 | Done |  | Repoint the three loaders and update path/prefix references |  |
-| ST3 | Done |  | Fix packaging so the wheel ships _bundled/*.toml |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Move the three TOML files into a new _bundled package
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Created src/squads/_bundled/ with __init__.py; git mv'd all three TOMLs in, dropping the default_ prefix on workflow.toml.
@@ -78,10 +66,6 @@ Created src/squads/_bundled/ with __init__.py; git mv'd all three TOMLs in, drop
 <!-- sq:subtask:ST2 -->
 ### ST2 — Repoint the three loaders and update path/prefix references
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Repointed the 3 loaders' importlib.resources.files() to squads._bundled + new filenames; updated stale default_workflow.toml/path mentions in _models.py, _cli/__init__.py, and tests (_helpers.py, test_status_semantic_role_active.py, test_bundled_toml_packaging.py).
 <!-- sq:subtask:ST2:body:end -->
@@ -94,10 +78,6 @@ Repointed the 3 loaders' importlib.resources.files() to squads._bundled + new fi
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Fix packaging so the wheel ships _bundled/*.toml
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 No pyproject change needed: hatchling's packages=["src/squads"] already auto-includes _bundled/*.toml. uv build + zipfile -l confirmed all 3 TOMLs ship at squads/_bundled/, no stale old-path entries; packaging test green.

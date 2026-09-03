@@ -145,24 +145,10 @@ changes what the adopter is told and which catalog a preview reads — not prece
 
 _Add with `sq task 820 add-subtask "<title>"`; track with `sq task 820 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Carry the origin into roles catalog validation refusals | US3 |
-| ST2 | Done | python-dev | Name roles in the stamp finding and retire the stale docstring | US3 |
-| ST3 | Done | python-dev | Thread squad_dir into the dev-role preview merge base | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Carry the origin into roles catalog validation refusals
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `load_role_catalog` already knows whether it merged an override and, when it did, the override
@@ -192,12 +178,6 @@ survives for the case it is true of.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Name roles in the stamp finding and retire the stale docstring
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 In `_roles_catalog_stamp_finding_gated`:
 
@@ -225,12 +205,6 @@ that" costs nothing.
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Thread squad_dir into the dev-role preview merge base
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-**Implements:** US3 — Whole-document override for the roles catalog
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Give `dev_base_for_slug` an optional `squad_dir` and have it resolve the dev pool the way

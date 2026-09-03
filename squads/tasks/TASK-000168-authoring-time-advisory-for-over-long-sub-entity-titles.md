@@ -55,23 +55,10 @@ The length and the body-set command must reflect the actual item/kind/index.
 
 _Add with `sq task 168 add-subtask "<title>"`; track with `sq task 168 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add TITLE_ADVISORY_MAX=120 constant in _interactions.py | US1 |
-| ST2 | Done |  | Carry title advisory on add-finding/add-subtask/add-story service results | US1 |
-| ST3 | Done |  | Render advisory + reflog entry at the CLI edge for the three add-* commands | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add TITLE_ADVISORY_MAX=120 constant in _interactions.py
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent author, I want a warning when I give a sub-entity a long title
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Define TITLE_ADVISORY_MAX = 120 as a single module-level constant in _interactions.py, alongside CREATE_LANES. This is the one source of truth for the threshold (also consumed by TASK-169). Not .squads.toml-configurable per ADR-167.
@@ -86,11 +73,6 @@ Define TITLE_ADVISORY_MAX = 120 as a single module-level constant in _interactio
 <!-- sq:subtask:ST2 -->
 ### ST2 — Carry title advisory on add-finding/add-subtask/add-story service results
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent author, I want a warning when I give a sub-entity a long title
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 In the service layer for add-finding / add-subtask / add-story, compute an advisory message when the supplied title length exceeds TITLE_ADVISORY_MAX and attach it to the result object — mirroring CreateResult.lane_warning (FEAT-122 / ADR-163). The sub-entity is still created. Message is the pinned ADR copy: states the char count, that the title is a one-line handle, and the exact 'sq <type> <n> <kind> <k> body -m …' command for this sub-entity.
 <!-- sq:subtask:ST2:body:end -->
@@ -103,11 +85,6 @@ In the service layer for add-finding / add-subtask / add-story, compute an advis
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Render advisory + reflog entry at the CLI edge for the three add-* commands
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent author, I want a warning when I give a sub-entity a long title
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 At the CLI edge, render the advisory (if present) for each of the three add-* commands and record it in the reflog alongside the create event, the way lane_warning is surfaced. Command exits 0. Add CLI smoke tests: title >120 shows the warning and still creates + exits 0; title ≤120 is silent.

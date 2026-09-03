@@ -36,9 +36,6 @@ Implements FEAT-605 US3. Render status colour across the CLI surfaces keyed on t
 
 _Add with `sq task 611 add-subtask "<title>"`; track with `sq task 611 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

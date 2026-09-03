@@ -67,21 +67,10 @@ updated_at: '2026-07-06T15:21:10Z'
 
 _Add with `sq task 277 add-subtask "<title>"`; track with `sq task 277 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Lint rejects undeclared transition targets and terminal-less lifecycles | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Lint rejects undeclared transition targets and terminal-less lifecycles
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers two `sq workflow lint` spec-defect checks. The real new validation is reachable-terminal: for each lifecycle, BFS from `initial` and error if none of the reachable states is terminal (an item that can never close would break `sq blocked`, the default filter, and inbox suppression) — added as a new `_check_*` helper in `WorkflowSpec._validate` so `open_service` also fails closed and it surfaces through lint with a config key + fix hint. The transition-target-not-in-vocab case is already covered by `_check_lifecycle_statuses`; this confirms (test-only) that it reports the offending lifecycle + status clearly. The bundled spec and a valid custom override both lint clean. (US1)

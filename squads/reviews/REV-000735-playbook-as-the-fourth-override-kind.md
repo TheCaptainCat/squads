@@ -123,33 +123,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 735 add-finding "…" --severity medium`; track with `sq review 735 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed | python-dev | A custom role cannot be given playbook guidance |
-| F2 | 🟠 high | Fixed | python-dev | check drops the valid workflow spec when the playbook is broken |
-| F3 | 🟡 medium | Fixed | python-dev | The append idiom duplicates a role section, as the scaffold shows |
-| F4 | 🟡 medium | Fixed | python-dev | The context half of the playbook seam has no production consumer |
-| F5 | 🟢 low | Fixed | python-dev | The scaffold's field-merge rule is false for the roles array |
-| F6 | 🟢 low | Fixed | python-dev | The [selected] refusal offers an empty menu of sections |
-| F7 | 🔵 info | Fixed | python-dev | The bundled playbook is immutable by convention, not by type |
-| F8 | 🔵 info | Fixed | python-dev | Each playbook load reparses the bundled TOML two or three times |
-| F9 | 🟡 medium | Fixed |  | A guide for a non-roster project role validates then vanishes |
-| F10 | 🟢 low | Fixed |  | check still masks both findings when both overrides are broken |
-| F11 | 🔵 info | Fixed |  | The scaffold does not say a project role slug is now accepted |
-| F12 | 🟡 medium | Fixed |  | The new guide warning fires on a stock squad and cannot be cleared |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — A custom role cannot be given playbook guidance
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Reproduced.** ADR-696 §4a names this as the reason the playbook override exists, and it does not
@@ -206,12 +183,6 @@ Whatever the fix, ADR-696 §4a should not be left asserting a mechanism that doe
 
 <!-- sq:finding:F2 -->
 ### F2 — check drops the valid workflow spec when the playbook is broken
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 **Reproduced.** `sq check` — the pre-handoff gate whose job is to say what is wrong — reports a
@@ -273,12 +244,6 @@ no workflow override worth losing.
 
 <!-- sq:finding:F3 -->
 ### F3 — The append idiom duplicates a role section, as the scaffold shows
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 **Reproduced, from the shipped scaffold's own worked example.**
@@ -343,12 +308,6 @@ may be out of scope for this task, but it should be named rather than left for a
 <!-- sq:finding:F4 -->
 ### F4 — The context half of the playbook seam has no production consumer
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 **Reproduced by exhaustive grep over `src/`, `tests/` and `clients/`.**
 
@@ -406,12 +365,6 @@ class of thing, which is why it is worth deciding now.
 <!-- sq:finding:F5 -->
 ### F5 — The scaffold's field-merge rule is false for the roles array
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 **Reproduced by reading the file the command writes.** The scaffolded
 `.overrides/playbook.toml` states, in its own rules list:
@@ -452,12 +405,6 @@ spread the bundled one with `$(*self)`, in which case you are appending, not edi
 <!-- sq:finding:F6 -->
 ### F6 — The [selected] refusal offers an empty menu of sections
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 **Reproduced.** The refusal is correct — ADR-696 requires that a `[selected]` table in a playbook
 override be rejected rather than silently ignored, and `PLAYBOOK_SELECTED_SECTIONS = frozenset()`
@@ -493,12 +440,6 @@ is a fail-closed hard stop on every command, so the message is the entire user e
 
 <!-- sq:finding:F7 -->
 ### F7 — The bundled playbook is immutable by convention, not by type
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🔵 Info
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 **Verified by inspection; no defect today.** Recorded because the seam's safety rests on it.
@@ -540,12 +481,6 @@ writes to it.
 <!-- sq:finding:F8 -->
 ### F8 — Each playbook load reparses the bundled TOML two or three times
 
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Assignee:** Elias Python
-**Severity:** 🔵 Info
-<!-- sq:finding:F8:head:end -->
-
 <!-- sq:finding:F8:body -->
 **Verified by inspection.** Not a defect; a cost worth knowing, and it compounds with F4.
 
@@ -583,11 +518,6 @@ until a squad is large.
 
 <!-- sq:finding:F9 -->
 ### F9 — A guide for a non-roster project role validates then vanishes
-
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
 **Fixed** on the surfaces you recommended, and the loader is untouched — it stays permissive,
@@ -635,11 +565,6 @@ same test as the warning.
 
 <!-- sq:finding:F10 -->
 ### F10 — check still masks both findings when both overrides are broken
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 **Reproduced. Pre-existing, and out of TASK-720's scope** — recorded because it is now the only
@@ -704,11 +629,6 @@ most needed" argument TASK-674 already won for the per-file case.
 <!-- sq:finding:F11 -->
 ### F11 — The scaffold does not say a project role slug is now accepted
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔵 Info
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 **Fixed**, with your suggested wording and the ordering constraint carried, as you asked.
 
@@ -743,11 +663,6 @@ coordinator for the tech-writer.
 
 <!-- sq:finding:F12 -->
 ### F12 — The new guide warning fires on a stock squad and cannot be cleared
-
-<!-- sq:finding:F12:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F12:head:end -->
 
 <!-- sq:finding:F12:body -->
 **Reproduced. A new defect created by F9's fix** — the release-risk you flagged, and it is real,

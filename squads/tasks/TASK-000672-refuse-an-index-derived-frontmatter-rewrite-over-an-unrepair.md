@@ -195,23 +195,10 @@ clean; the suite green under `uv run --all-extras`.
 
 _Add with `sq task 672 add-subtask "<title>"`; track with `sq task 672 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Compare and refuse on the mutation path |  |
-| ST2 | Done |  | Skip and report a drifted roster item in sync |  |
-| ST3 | Done |  | Tests for both failure directions across every path |  |
-| ST4 | Done |  | Pre-flight the batch: import, bulk retype, rename-status |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Compare and refuse on the mutation path
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 The three-way comparison and the refusal, on the single-mutation write path.
@@ -274,10 +261,6 @@ Acceptance:
 <!-- sq:subtask:ST2 -->
 ### ST2 — Skip and report a drifted roster item in sync
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 The roster regen path, which loses the same fields through a different door — with the opposite
 response.
@@ -320,10 +303,6 @@ Acceptance:
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Tests for both failure directions across every path
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Pin the guard against both ways it can be wrong, across every path it attaches to. The
@@ -393,10 +372,6 @@ Acceptance:
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Pre-flight the batch: import, bulk retype, rename-status
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Batch mutation: the check runs **before** the batch, never inside it.

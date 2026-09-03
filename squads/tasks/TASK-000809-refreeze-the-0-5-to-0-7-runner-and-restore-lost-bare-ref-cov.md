@@ -184,24 +184,10 @@ Keep the `blocks` leg; get the bare leg back.
 
 _Add with `sq task 809 add-subtask "<title>"`; track with `sq task 809 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Freeze the 0.5-to-0.7 runner's own ref handling | US1 |
-| ST2 | Done |  | Re-derive the migration import guard's rule | US1 |
-| ST3 | Done |  | Repad fixture legs for spelled ref kinds | US1 |
-| ST4 | Done |  | Restore the bare leg of width-tolerant ref severing | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Freeze the 0.5-to-0.7 runner's own ref handling
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Give `_migrations/_v0_5_to_v0_7.py` its own frozen ref handling, beside the frozen `_TYPES`
@@ -247,11 +233,6 @@ asserted on bytes, and the spelled-default row collapses to bare.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Re-derive the migration import guard's rule
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Re-derive the rule `tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py`
@@ -304,11 +285,6 @@ their own frozen copies, and no test asserts the retired exemption.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Repad fixture legs for spelled ref kinds
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 No fixture in the tree ever feeds a repad path a spelled default-kind ref, which is why both
 runners' output could move unnoticed.
@@ -338,11 +314,6 @@ an `ID:kind` entry without raising.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Restore the bare leg of width-tolerant ref severing
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Declare [ref_kinds] as a workflow-spec section
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Restore the bare-ref leg to the width-tolerant severing test.

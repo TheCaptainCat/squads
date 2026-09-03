@@ -51,9 +51,6 @@ Implements FEAT-100 story **US2** — "Clicking a tree node opens sq show --raw 
 
 _Add with `sq task 430 add-subtask "<title>"`; track with `sq task 430 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

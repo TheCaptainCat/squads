@@ -92,23 +92,10 @@ route, or `render()` needs to resolve it from something that is not per-call-sta
 
 _Add with `sq task 841 add-subtask "<title>"`; track with `sq task 841 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Carry the active squad dir across both bridge crossings | US2 |
-| ST2 | Done |  | CLI-level override proof for the milestone roll-up on show | US2 |
-| ST3 | Done |  | Guard every leaf-verb render site against the same seam | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Carry the active squad dir across both bridge crossings
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Carry the active squad directory across both `anyio.run` crossings of one invocation, so the leaf
@@ -140,11 +127,6 @@ it — keeps its current always-fresh behaviour.
 <!-- sq:subtask:ST2 -->
 ### ST2 — CLI-level override proof for the milestone roll-up on show
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Write the CLI-level proof FEAT-693's acceptance criterion names and that no existing test covers.
 
@@ -169,11 +151,6 @@ Done when: the test fails against the current seam and passes after it, both obs
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Guard every leaf-verb render site against the same seam
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Close the class, not the instance: enumerate every template rendered from a leaf verb and prove

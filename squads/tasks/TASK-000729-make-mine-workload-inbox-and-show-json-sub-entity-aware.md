@@ -191,25 +191,10 @@ Traceable to US1 through US5:
 
 _Add with `sq task 729 add-subtask "<title>"`; track with `sq task 729 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | mine: surface items whose sub-entity is assigned to the slug | US1 |
-| ST2 | Done |  | workload: count sub-entity assignments per assignee | US2 |
-| ST3 | Done |  | inbox: attribute each hit to the region it matched | US3 |
-| ST4 | Done |  | show --json: discussion on every sub-entity entry | US4 |
-| ST5 | Done |  | sub-entity show --json: standalone machine-readable surface | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — mine: surface items whose sub-entity is assigned to the slug
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — mine: surface sub-entity-only assignments
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 `sq mine <slug>` returns only items whose own `assignee` matches: the command calls
@@ -246,11 +231,6 @@ the `mine_manager` golden diff is additive.
 <!-- sq:subtask:ST2 -->
 ### ST2 — workload: count sub-entity assignments per assignee
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — workload: count sub-entity assignments
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 `workload` buckets on `it.assignee` alone (`src/squads/_services/_roster.py`), so an actor who owns
 only sub-entities gets no row at all — verified: a subtask assigned to `manager` leaves `manager`
@@ -281,11 +261,6 @@ diff is additive.
 <!-- sq:subtask:ST3 -->
 ### ST3 — inbox: attribute each hit to the region it matched
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — inbox: attribute hits to the sub-entity that matched
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `inbox` already detects a mention placed inside a sub-entity discussion — it reads the whole `.md`
 text and extracts mentions from all of it — but reports the hit as a bare item-level entry
@@ -314,11 +289,6 @@ distinguishable from it; the `inbox_manager` golden diff is additive.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — show --json: discussion on every sub-entity entry
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — show --json: carry sub-entity discussion, incl. VS Code preview
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 `build_item_json` (`src/squads/_cli/_common.py`) fetches a full `SubentityDetail` per sub-entity via
@@ -350,11 +320,6 @@ at least story/subtask/finding; `feature_show` and `task_show` golden diffs are 
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — sub-entity show --json: standalone machine-readable surface
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — standalone sub-entity show --json
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 `sq <type> <n> <kind> <k> show --json` exits 2 with `No such option: --json` — the dedicated

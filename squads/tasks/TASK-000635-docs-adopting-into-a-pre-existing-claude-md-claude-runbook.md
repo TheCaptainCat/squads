@@ -37,9 +37,6 @@ Keep it practical: what to check before adopting, what the warnings mean, the ma
 
 _Add with `sq task 635 add-subtask "<title>"`; track with `sq task 635 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

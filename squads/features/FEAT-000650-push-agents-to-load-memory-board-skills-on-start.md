@@ -31,21 +31,10 @@ Acceptance: a fresh sq sync-rendered CLAUDE.md and every rendered role sheet und
 
 _Add with `sq feature 650 add-story "As a <role>, I want … so that …"`; track with `sq feature 650 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | All agents: memory+board load-on-start guidance |
-| US2 | Done |  | Manager: load squads skill on start and after compaction |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — All agents: memory+board load-on-start guidance
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Add the memory+board load-on-start instruction to CLAUDE.md's managed-region template and to the role-sheet template, so every rendered agent-facing file carries it.
@@ -59,10 +48,6 @@ Add the memory+board load-on-start instruction to CLAUDE.md's managed-region tem
 
 <!-- sq:story:US2 -->
 ### US2 — Manager: load squads skill on start and after compaction
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 Add manager-specific guidance (in CLAUDE.md and/or the manager's role sheet) to load the squads skill at session start and again after any context compaction.

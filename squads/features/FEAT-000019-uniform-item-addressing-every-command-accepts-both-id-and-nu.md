@@ -74,22 +74,10 @@ that silently obeyed will start failing), so it must land before the grammar fre
 
 _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track with `sq feature 19 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere |
-| US2 | Done |  | Full ID accepted in tree, --parent, and ref add without reformatting |
-| US3 | Done |  | Type mismatch on bare number surfaces the actual item type |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — As a CLI user, I want to name an item by full ID or bare number in any command, so that one habit works everywhere
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** the inventory of ID-accepting surfaces is complete and each accepts both forms via the shared resolver; a test matrix covers every surface with both forms.
@@ -103,10 +91,6 @@ _Add with `sq feature 19 add-story "As a <role>, I want … so that …"`; track
 
 <!-- sq:story:US2 -->
 ### US2 — Full ID accepted in tree, --parent, and ref add without reformatting
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 **Acceptance:** `sq tree 13`, `--parent 12` and `sq task <n> ref add 19` work with bare numbers, and all verbs work with full IDs; unknown-item errors mention both accepted forms.
@@ -122,10 +106,6 @@ As a user copy-pasting an ID from a comment or tree, I want it accepted by every
 
 <!-- sq:story:US3 -->
 ### US3 — Type mismatch on bare number surfaces the actual item type
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** addressing an existing item through the wrong type errors, naming the actual item and type (`13 is FEAT-000013 (feature), not a task`); behaviour is identical across all commands and covered by tests. (Decided by op-pierre: error, never silently obey.)

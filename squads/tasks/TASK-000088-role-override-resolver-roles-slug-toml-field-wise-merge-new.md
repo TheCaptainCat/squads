@@ -42,22 +42,10 @@ Role-override task for FEAT-14 (ADR-85 §2 'roles merge field-wise', §1 roles-a
 
 _Add with `sq task 88 add-subtask "<title>"`; track with `sq task 88 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Field-wise roles/<slug>.toml resolver over PREDEFINED + new-slug admission | US2 |
-| ST2 | Done |  | activate_role/add_dev read through resolver; full_name seed; tests | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Field-wise roles/<slug>.toml resolver over PREDEFINED + new-slug admission
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a project lead, I want to add or override role definitions for my project, so that the squad matches my actual team
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add a thin role-override resolver beside _roles/_catalog.py that layers .overrides/roles/<slug>.toml over PREDEFINED field-wise: for a bundled slug, override only the fields the TOML sets (rename, model change) inheriting the rest; for a new slug, define a wholly new RoleDef. Field-wise merge is the one sanctioned merge point (RoleDef is structured data, not prose) (US2).
@@ -71,11 +59,6 @@ Add a thin role-override resolver beside _roles/_catalog.py that layers .overrid
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — activate_role/add_dev read through resolver; full_name seed; tests
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a project lead, I want to add or override role definitions for my project, so that the squad matches my actual team
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Make activate_role/add_dev read RoleDefs through the new resolver, and honour a full_name key in roles/<slug>.toml that seeds the name on activation (coordinated with T4's extra.full_name channel). Covered by a service-level test (field-wise override of a bundled role + a brand-new slug flowing to roster/pointers/CLAUDE.md) and a CLI smoke test, with sq check staying clean (US2).

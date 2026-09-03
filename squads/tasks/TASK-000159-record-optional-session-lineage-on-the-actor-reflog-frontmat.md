@@ -65,21 +65,10 @@ Out of scope: the `--tree` view and `show --full` session surfacing (→ TASK-16
 
 _Add with `sq task 159 add-subtask "<title>"`; track with `sq task 159 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Structured actor record: read env session pair, additive reflog + frontmatter fields, schema 0.4 migration | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Structured actor record: read env session pair, additive reflog + frontmatter fields, schema 0.4 migration
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Structured actor record in the reflog (slug + session + parent)
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the structured-actor data-model foundation (FEAT-125 US1, ADR-158): reading the optional SQUADS_SESSION_ID/SQUADS_PARENT_SESSION_ID env pair once at the CLI root callback (never settable by a later flag), additive nullable session_id/parent_session_id reflog line fields (actor stays a flat slug; legacy lines parse as None), optional created_session/modified_session item frontmatter (existing files load unchanged), and the additive 0.3→0.4 schema bump with a no-op _v0_3_to_v0_4 runner + MANUAL runbook. All wording is best-effort/untrusted/observability-only — squads never mints, injects, or verifies session ids.

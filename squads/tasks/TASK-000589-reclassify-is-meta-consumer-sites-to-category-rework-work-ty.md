@@ -85,9 +85,6 @@ breaks. Run all gates with `uv run --all-extras`:
 
 _Add with `sq task 589 add-subtask "<title>"`; track with `sq task 589 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

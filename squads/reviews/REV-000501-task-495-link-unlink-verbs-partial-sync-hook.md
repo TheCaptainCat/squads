@@ -35,21 +35,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 501 add-finding "…" --severity medium`; track with `sq review 501 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Test gap: multi-role scoping + unlink selectivity unproven |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Test gap: multi-role scoping + unlink selectivity unproven
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Implementation is correct by inspection, but two acceptance-named cases lack a direct assertion. (1) One skill scoped to SEVERAL roles at once — the ADR-492 release-runbook case (manager/devops/tech-writer) and the task's own test plan — is not exercised at the verb level; the resolver test (tests/service/test_role_skill_scope_resolution.py) only covers one role per skill. (2) unlink_role selectivity (src/squads/_services/_refs.py:378-386): the filter correctly keeps a non-'scopes' edge to the same role and 'scopes' edges to OTHER roles, but no test asserts either survives an unlink — the only unlink tests remove the sole edge. Low severity: the code paths are independent-per-role and the filter predicate is exact, so risk is low; adding a one-skill-to-two-roles link test and a mixed-edge unlink test would close the gap against stated acceptance.

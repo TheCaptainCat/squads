@@ -54,7 +54,11 @@ from squads._models._vocab import label_for, prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, set_active_squad_dir
 from squads._roles._catalog import RoleDef
-from squads._roles._resolver import resolve_role, resolve_role_for_item
+from squads._roles._resolver import (
+    holds_default_designation,
+    resolve_role,
+    resolve_role_for_item,
+)
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
@@ -583,15 +587,25 @@ class ServiceCore:
         """This squad's own ``is_default`` role slug, read from the live roster in *db*.
 
         The lane exemption belongs to whichever role this squad designates as its
-        coordinator, not to a slug spelled in the engine — ``sq role <slug> default`` moves
-        that designation, and the exemption has to move with it. Falls back to the role
-        catalog's designation (:func:`~squads._interactions.catalog_default_slug`) when no
-        live role carries the flag, which is also what a squad that retired its coordinator
-        gets — a legitimate state, not a gap to paper over.
+        coordinator, not to a slug spelled in the engine — ``sq role <slug> set-default`` moves
+        that designation, and the exemption has to move with it. Returns ``None`` when no live
+        role holds it, which is what a squad that retired its coordinator gets — a legitimate
+        state, not a gap to paper over; the caller falls back to the role catalog's own
+        designation there (:func:`~squads._interactions.catalog_default_slug`).
+
+        The designation goes through :func:`~squads._roles._resolver
+        .holds_default_designation`, not a raw ``extra.is_default`` read: the stored key is an
+        override on an answer the role catalog also gives, so a role designated by a project's
+        own ``.overrides/roles.toml`` carries nothing in its ``extra`` and a raw read would hand
+        the exemption to the bundled catalog's role instead of this squad's.
         """
         live = self.spec.live_statuses(ROSTER_ROLE)
         for it in db.items.values():
-            if it.type == ROSTER_ROLE and it.status in live and it.extra.get(X.IS_DEFAULT, False):
+            if (
+                it.type == ROSTER_ROLE
+                and it.status in live
+                and holds_default_designation(it, self.paths.squad_dir)
+            ):
                 return it.extra.get(X.SLUG, it.slug)
         return None
 
@@ -806,18 +820,19 @@ class ServiceCore:
             fields=fields,
         )
         item_type = item.type
-        # ``agents/role.md.j2`` renders from a resolved ``RoleDef`` rather than ``item``/
-        # ``extra`` (see `role_definition_text`) and requires one on every call — Jinja's
-        # ``StrictUndefined`` means a missing or partial ``role`` fails loudly rather than
-        # degrading. ``activate_role``/``add_dev`` always pass a full ``role.to_extra()`` as
-        # ``extra``, but ``create()`` is a lower-level, roster-type-agnostic entry point with
-        # no such guarantee (there is no CLI verb for ``sq create role`` — the guard is
-        # CLI-only — but the service layer itself does not refuse it), so
-        # ``from_extra_or_item`` builds a complete ``RoleDef`` by falling back to the item's
-        # own ``title``/``slug``/``description`` field by field wherever ``extra`` is silent,
-        # rather than trusting ``extra`` to already be a resolved mirror. `None` for every
-        # other item type; an unreferenced context variable is harmless to a template that
-        # never reads it.
+        # ``agents/role.md.j2`` is both this item type's file scaffold and the definition
+        # ``role_definition_text`` renders on read, so it reads ``role.<field>`` throughout and
+        # Jinja's ``StrictUndefined`` makes a missing or partial ``role`` fail loudly rather
+        # than degrade. The scaffold still has to render even though its body region is
+        # emptied below — what survives it is the file's frame (the markers, the ``##
+        # Discussion`` heading) — so a complete ``RoleDef`` is required here regardless.
+        # ``activate_role``/``add_dev`` pass their resolved role's ``to_extra()``, but
+        # ``create()`` is a lower-level, roster-type-agnostic entry point with no such
+        # guarantee (there is no CLI verb for ``sq create role`` — the guard is CLI-only — but
+        # the service layer itself does not refuse it), so ``from_extra_or_item`` falls back to
+        # the item's own ``title``/``slug``/``description`` field by field wherever ``extra``
+        # is silent. `None` for every other item type; an unreferenced context variable is
+        # harmless to a template that never reads it.
         role_ctx = (
             RoleDef.from_extra_or_item(
                 item.extra, title=item.title, slug=item.slug, description=item.description
@@ -839,6 +854,15 @@ class ServiceCore:
         # hardcodes its old container tag. Idempotent no-op when the template already emitted
         # the current kind's container correctly.
         rendered = ensure_subentity_container_text(self.spec, item_type, rendered)
+        if item_type == ROSTER_ROLE:
+            # A role's definition is rendered on every read (`role_definition_text`), from the
+            # same template that produced the scaffold above, so the stored region would be a
+            # second copy of a value the resolver already answers — and the only copy that can
+            # go stale, since no write path refreshes it. The region is emptied rather than
+            # removed: an absent one is a different fact about an item file, and the marker
+            # pair is the shape every item file shares. An explicit `body` still wins below —
+            # that is the caller stating a body, not this template producing one.
+            rendered = sections.replace_section(rendered, markers.BODY, "")
         if body is not None:
             rendered = sections.replace_section(rendered, markers.BODY, body)
         squad_rel = item.path

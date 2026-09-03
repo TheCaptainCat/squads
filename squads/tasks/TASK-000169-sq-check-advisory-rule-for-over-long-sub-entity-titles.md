@@ -46,22 +46,10 @@ Add an advisory sq check rule that audits every sub-entity title across all item
 
 _Add with `sq task 169 add-subtask "<title>"`; track with `sq task 169 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add sq check pass walking all sub-entity titles | US2 |
-| ST2 | Done |  | Report over-long titles as advisory findings with ID/kind/index/length | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add sq check pass walking all sub-entity titles
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a team lead, I want sq check to flag over-long sub-entity titles corpus-wide
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add a new pass to sq check that iterates every item's sub-entities (findings, subtasks, stories) and measures each title against TITLE_ADVISORY_MAX (the shared constant from TASK-168 / _interactions.py). Pure read; no mutation, no migration.
@@ -75,11 +63,6 @@ Add a new pass to sq check that iterates every item's sub-entities (findings, su
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Report over-long titles as advisory findings with ID/kind/index/length
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a team lead, I want sq check to flag over-long sub-entity titles corpus-wide
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Emit each over-long title as an ADVISORY finding (not a structural error), formatted consistently with existing advisory-only check output. Each line includes: item ID, sub-entity kind + index (e.g. finding F1), actual title length, and the threshold. sq check must still exit 0 when no structural errors exist. Test: long + short titles seeded; advisories only on the long ones; exit 0.

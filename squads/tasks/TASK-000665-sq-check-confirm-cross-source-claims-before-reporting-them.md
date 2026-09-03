@@ -140,24 +140,10 @@ only land before the closing `---` exists or at/after it with the whole dict alr
 
 _Add with `sq task 665 add-subtask "<title>"`; track with `sq task 665 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Partition check's issues into single-source and cross-source |  |
-| ST2 | Done | python-dev | One confirm round over the candidate set |  |
-| ST3 | Done | python-dev | Name the skew direction on a confirmed drift |  |
-| ST4 | Done | python-dev | Claim boundary in the docstring, exit-code tests, changelog |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Partition check's issues into single-source and cross-source
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Cross-source claims (status/parent drift; both index/disk reconciliation directions) split from single-source scan issues in _services/_maintenance.py and _services/_validators.py. Drift is decomposed into _status_drift/_parent_drift/_drift_issues (single-item, reused unchanged by scan and confirm); index_reconciled's two directions factored into _on_disk_not_indexed(seq, fid, *, indexed: bool)/_not_on_disk(item, *, on_disk: bool) — bool-flag signatures, evaluable per item id. The per-item-id requirement is stated on SquadGlobalValidator's docstring, the seam where the next validator gets added. A dedicated test proves a single-source issue (marker damage) triggers no second index load.
@@ -172,11 +158,6 @@ Cross-source claims (status/parent drift; both index/disk reconciliation directi
 <!-- sq:subtask:ST2 -->
 ### ST2 — One confirm round over the candidate set
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Service.check() now runs a scan pass, then _confirm_cross_source(index, on_disk): if the drift/orphan/missing candidate sets are all empty it returns immediately (no reload, no reread). Otherwise it reloads the index once and, per candidate, re-observes at the path the fresh index gives that item (drift: reread the file there; missing: existence check there) — the orphan direction has no fresh index-given path, so it re-checks the original scanned path plus fresh index membership, matching the ADR's asymmetry note. Same predicate functions run in both passes (no duplicated comparison). Verified with genuine two-coroutine interleaving (anyio task group + a real transaction landing inside a paused _scan_for_check) for all three candidate kinds, plus a CLI-level version using a real background thread through the full sq check stack. Sabotage-checked: reverting the confirm round to unconfirmed reporting makes exactly these tests fail (both service- and CLI-level), while the durable/true-positive tests keep passing.
 <!-- sq:subtask:ST2:body:end -->
@@ -190,11 +171,6 @@ Service.check() now runs a scan pass, then _confirm_cross_source(index, on_disk)
 <!-- sq:subtask:ST3 -->
 ### ST3 — Name the skew direction on a confirmed drift
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 _drift_direction(item, fdata) compares item.updated_at (index) against the frontmatter's own updated_at (parsed via clock.parse_iso); returns markdown/index/None. _drift_message appends '— markdown is ahead' or '— index is ahead of markdown, which should not happen' only when determinable; level stays warn either way. Tests pin both directions, the warn level in both, and that no direction is claimed when the pair doesn't order (equal timestamps).
 <!-- sq:subtask:ST3:body:end -->
@@ -207,11 +183,6 @@ _drift_direction(item, fdata) compares item.updated_at (index) against the front
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Claim boundary in the docstring, exit-code tests, changelog
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 check()'s docstring now states the claim boundary: no lock, never blocks/blocked, never writes; a reported issue means a real durable inconsistency; a clean result means no confirmed inconsistency was observed, not that the board is consistent now. Exit-code coverage: a service-level test asserts the index is loaded exactly once on a clean board and exactly twice when a candidate exists; CLI-level tests (through invoke/CliRunner, one via a real background thread racing the CLI's own check() through a class-level _scan_for_check pause) assert exit 0 under a race and exit 3 for a durable orphan, plus one literal subprocess invocation (no shell pipe) for the plain clean-board case. CHANGELOG [0.12.2]/Changed gained the adopter-facing line; no ticket ids.

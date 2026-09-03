@@ -48,23 +48,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 438 add-finding "…" --severity medium`; track with `sq review 438 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Hierarchy refresh fires a redundant open-only sq list invocation |
-| F2 | 🟡 medium | Fixed |  | CI covers only the unit test layer; integration skew-canary + host smoke absent |
-| F3 | 🟢 low | Fixed |  | Python test.yml runs on TS-only changes (no paths filter) despite the stated isolation |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Hierarchy refresh fires a redundant open-only sq list invocation
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 In treeDataProvider.refresh(), the hierarchy (non-flat) path runs Promise.all([getTree, getListSnapshot]). getListSnapshot issues TWO sq list calls (one --all, one default/open-only) and returns { items, openIds }. But the hierarchy branch uses only listOutcome.data.items (for buildTitleLookup + distinctTypes) and never touches openIds — so the second, open-only list fetch is pure waste on every full-tree refresh (tree + list --all + list = 3 spawns where 2 suffice).
@@ -85,11 +72,6 @@ getListSnapshot is the right call for the flat/grouped view (which needs openIds
 <!-- sq:finding:F2 -->
 ### F2 — CI covers only the unit test layer; integration skew-canary + host smoke absent
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 ADR-427 #3 specifies three test layers — unit / thin integration skew-canary (real sq vs committed fixtures) / @vscode/test-electron extension-host smoke — but only the unit layer exists, so vscode-client.yml's test job runs only that. Hugo flagged this honestly (the other layers aren't npm scripts yet, and adding them was scoped out of TASK-432).
 
@@ -104,11 +86,6 @@ Ruling: acceptable to ship 0.10 without them (the unit layer is the bulk of the 
 
 <!-- sq:finding:F3 -->
 ### F3 — Python test.yml runs on TS-only changes (no paths filter) despite the stated isolation
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 vscode-client.yml is correctly path-filtered on clients/vscode/** so it never runs on Python-only changes. But the reverse isolation is not actually in place: test.yml (the Python CI) has NO paths filter — it triggers on every push/PR to main — so a clients/vscode-only PR triggers the full 3-OS Python matrix too. Hugo's handoff states 'test.yml has no clients/** trigger so it never runs on TS-only changes'; that is inaccurate.

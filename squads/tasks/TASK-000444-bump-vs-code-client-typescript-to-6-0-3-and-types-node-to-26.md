@@ -20,9 +20,6 @@ Bump clients/vscode devDependencies. typescript ^5.9.3 -> ^6.0.3: 6.0.3 is the l
 
 _Add with `sq task 444 add-subtask "<title>"`; track with `sq task 444 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

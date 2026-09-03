@@ -73,9 +73,6 @@ spec's per-type aliases (coordinate the retirement with task 257).
 
 _Add with `sq task 261 add-subtask "<title>"`; track with `sq task 261 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

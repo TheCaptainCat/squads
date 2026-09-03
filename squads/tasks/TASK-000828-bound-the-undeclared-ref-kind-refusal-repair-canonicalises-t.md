@@ -167,23 +167,10 @@ it is free.
 
 _Add with `sq task 828 add-subtask "<title>"`; track with `sq task 828 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Bound the refusal to the write and lint boundary |  |
-| ST2 | Done |  | Repair canonicalises the file, not only the index |  |
-| ST3 | Done |  | Correct the three refusal and hint messages |  |
-| ST4 | Done |  | Drive the recovery sequence end to end in tests |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Bound the refusal to the write and lint boundary
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Drop the ref-kind family from the fail-closed load path: `validate_against_index`
@@ -223,10 +210,6 @@ Done: dropped _collect_ref_kind_alignment_errors from validate_against_index (_w
 <!-- sq:subtask:ST2 -->
 ### ST2 — Repair canonicalises the file, not only the index
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Make `sq repair` (`src/squads/_services/_maintenance.py:1498`, rebuilding through
 `_rebuild_index_from_disk`) write back every file whose folded frontmatter differs from its raw
@@ -260,10 +243,6 @@ Done: _rebuild_index_from_disk now writes back every file whose raw refs/extra.r
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Correct the three refusal and hint messages
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Three messages state something a reader disproves by running a command.
@@ -303,10 +282,6 @@ Done: removed the false 'sq workflow lint is the one command that still runs' cl
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Drive the recovery sequence end to end in tests
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 No test in the suite exercises the ref-kind axis through `validate_against_index` — grepped

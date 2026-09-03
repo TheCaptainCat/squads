@@ -481,24 +481,49 @@ def resolve_role_for_item(item: Item, squad_dir: Path | None) -> RoleDef:
     override or a catalog change reaches every one of them without a prior ``sq sync`` having
     to heal the item's stored mirror first.
 
-    Falls back to :meth:`RoleDef.from_extra` only for the one case resolution cannot cover —
-    an orphaned custom role item whose backing definition has vanished (neither a catalog
-    entry nor a project override; :func:`role_base_from_item`'s "anything else" case, the same
-    one :meth:`~squads._services._maintenance.MaintenanceMixin._refresh_catalog_extra` already
-    skips via its own ``RoleNotFoundError`` catch). The mirror is still fully written at this
-    stage, so this is a read of a value that is still current for that item, not a
-    reintroduction of the degradation this seam otherwise exists to remove — the two fields
-    that silently degrade when a catalog entry *is* found but a key is missing
-    (``title``/``responsibilities``) never take that path here, because ``from_extra`` reads
-    both straight off ``extra``, same as ever, for the one shape where there is nothing else to
-    read them from.
+    Falls back to :meth:`RoleDef.from_extra_or_item` only for the one case resolution cannot
+    cover — an orphaned custom role item whose backing definition has vanished (neither a
+    catalog entry nor a project override; :func:`role_base_from_item`'s "anything else" case,
+    the same one :meth:`~squads._services._maintenance.MaintenanceMixin._refresh_catalog_extra`
+    already skips via its own ``RoleNotFoundError`` catch). There is nothing to resolve
+    against for that shape, so the item itself is the only source, and the item is read the
+    way a read boundary must be: whatever ``extra`` still carries (an older corpus stored the
+    whole definition there) over the item's own ``title``/``description``, never a subscript
+    that would raise on the shape the current write path produces.
     """
     slug = item.extra.get(X.SLUG, item.slug)
     base = role_base_from_item(item, squad_dir)
     try:
         return resolve_role_with_base(slug, squad_dir, base=base)
     except RoleNotFoundError:
-        return RoleDef.from_extra(item.extra)
+        return RoleDef.from_extra_or_item(
+            item.extra, title=item.title, slug=slug, description=item.description
+        )
+
+
+def holds_default_designation(item: Item, squad_dir: Path | None) -> bool:
+    """Whether *item* holds this squad's default-role designation, as every reader of that
+    designation sees it — the one seam the lane exemption, the retirement warning, ``sq check``'s
+    duplicate-holder report and ``set_default_role``'s own move all ask.
+
+    The designation is **resolved**, not read off ``extra.is_default``. That key is an override
+    on an answer the role catalog also gives (see :func:`role_base_from_item`), and a role item
+    does not store it unless something wrote it — so the role the catalog designates holds the
+    designation with nothing in its ``extra`` at all. A raw read finds no holder there, which
+    turns "clear every other holder" into "clear none of them" and leaves a squad generating
+    config with two live defaults.
+
+    Falls back to the stored key alone when resolution refuses — a role override document the
+    resolver rejects. That refusal is already a ``sq check`` finding in its own right
+    (:func:`~squads._overrides._service._check_role_override_resolves`), and every caller here
+    is either a reporter, which must survive one broken role to finish the scan, or a mutation
+    that must not be blocked by a file it is not touching. The fallback is the narrower of the
+    two readings, never the wider one, so a broken override can only under-report a holder.
+    """
+    try:
+        return resolve_role_for_item(item, squad_dir).is_default
+    except SquadsError:
+        return bool(item.extra.get(X.IS_DEFAULT, False))
 
 
 def dev_base_for_slug(slug: str, squad_dir: Path | None = None) -> RoleDef:

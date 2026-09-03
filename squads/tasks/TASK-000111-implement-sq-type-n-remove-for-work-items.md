@@ -72,23 +72,10 @@ Before implementing, the FEAT-23 design questions must be settled in an ADR (see
 
 _Add with `sq task 111 add-subtask "<title>"`; track with `sq task 111 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Atomic remove preserving counter high-water mark | US1 |
-| ST2 | Done |  | Ref/child safety on removal; --force severs incoming refs | US2 |
-| ST3 | Done |  | Traceable removal trace + remove-vs-cancel docs | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Atomic remove preserving counter high-water mark
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an operator who created an item by mistake, I want sq remove to take it off the books safely, so that I never have to hand-edit files or the index
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Atomic remove: delete .md + index entry in one transaction; counter high-water mark survives removal and a subsequent repair (never re-issues the number); interactive confirm unless --yes.
@@ -103,11 +90,6 @@ Atomic remove: delete .md + index entry in one transaction; counter high-water m
 <!-- sq:subtask:ST2 -->
 ### ST2 — Ref/child safety on removal; --force severs incoming refs
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a teammate whose items reference the removed one, I want removal to refuse or cleanly sever those refs, so that nothing dangles silently
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Ref/child safety: refuse removal when incoming refs or children exist (list them); --force severs incoming refs from referrers' frontmatter (no danglers); children must be re-parented first; sq check clean after any removal.
 <!-- sq:subtask:ST2:body:end -->
@@ -120,11 +102,6 @@ Ref/child safety: refuse removal when incoming refs or children exist (list them
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Traceable removal trace + remove-vs-cancel docs
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As someone auditing a squad later, I want number gaps to be explainable, so that a missing sequence number reads as a recorded removal, not corruption
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Traceable removal + docs: leave a queryable trace per the design ADR (tombstone/log) so a sequence-number gap reads as a recorded removal; document the remove-vs-cancel rule.

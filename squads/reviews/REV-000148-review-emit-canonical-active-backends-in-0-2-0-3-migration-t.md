@@ -33,22 +33,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 148 add-finding "…" --severity high`; track with `sq review 148 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | Regression pin is vacuous: corpus test passes without _migrate_toml |
-| F2 | 🔵 info | Open |  | Confirmed correct: round-trip preserves all config keys + schema stamp stays 0.3 |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Regression pin is vacuous: corpus test passes without _migrate_toml
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 test_v0_2_migration_rewrites_backend_key (tests/test_migration_corpus.py) is intended to pin the new _migrate_toml rewrite — the task acceptance states 'the corpus test would fail if the rewrite were removed.' Empirically it does NOT: I deleted the 'if _migrate_toml(paths): changed += 1' call from migrate() and the corpus test still passed, and the full migrate-up flow still produced a canonical active_backends toml.
@@ -72,11 +60,6 @@ Suggested fix (small): add a direct unit test that calls _v0_2_to_v0_3._migrate_
 
 <!-- sq:finding:F2 -->
 ### F2 — Confirmed correct: round-trip preserves all config keys + schema stamp stays 0.3
-
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🔵 Info
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 Empirical check (copy tests/fixtures/corpus/v0_2, chdir, sq migrate up). Before: schema_version=0.2, default_backend=claude_code, squad_dir='.', default_role=manager, squads_version=0.2.0. After: schema_version="0.3", squad_dir=".", active_backends=["claude_code"], default_role="manager", squads_version="0.2.0". No keys dropped or corrupted; default_backend removed; schema stamped to 0.3 (re-stamped by _stamp_schema, not regressed by the rewrite). squads_version correctly NOT bumped (that is sq sync's job).

@@ -47,23 +47,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 135 add-finding "…" --severity high`; track with `sq review 135 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Verified |  | AGENTS.md carries no workflow/skill content; role definitions are title-only stubs |
-| F2 | 🟢 low | Verified |  | CLI init summary hardcodes Claude wording '(pointers + squads skill + CLAUDE.md)' for all backends |
-| F3 | 🟢 low | Verified |  | agents_md backend docstring claims write_managed compiles staging entries into AGENTS.md; it does not |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — AGENTS.md carries no workflow/skill content; role definitions are title-only stubs
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 FEAT-16 US1 acceptance: 'a valid AGENTS.md carrying roster, workflow and skill content'. Live 'sq init --backend agents_md' + sync produces an AGENTS.md with ONLY the roster + a static 'Working with squads' blurb. Missing: (1) workflow content — the tool-neutral workflow.md.j2 cheatsheet (named in TASK-132 approach) is never rendered into AGENTS.md; (2) skill content — none of the squads/greeting/per-type skill bodies appear; (3) role definitions are title-only stubs ('### Catherine Manager' / '**Role:** manager'), no mission/responsibilities.
@@ -82,11 +69,6 @@ Not an ABC violation (the conformance suite passes; the role-entry/managed-secti
 <!-- sq:finding:F2 -->
 ### F2 — CLI init summary hardcodes Claude wording '(pointers + squads skill + CLAUDE.md)' for all backends
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 src/squads/_cli/_main.py:185 — the init summary appends '[bold]agent backend:[/bold] ' + default_backend + ' (pointers + squads skill + CLAUDE.md)' unconditionally. For agents_md this prints 'agent backend: agents_md (pointers + squads skill + CLAUDE.md)' — all three parenthetical claims are false for agents_md (no pointers, no squads skill, no CLAUDE.md).
 
@@ -101,11 +83,6 @@ ADR-133 CC-005 step 3 told the dev to keep this line backend-neutral and said 't
 
 <!-- sq:finding:F3 -->
 ### F3 — agents_md backend docstring claims write_managed compiles staging entries into AGENTS.md; it does not
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 src/squads/_backends/_agents_md/_backend.py module docstring (lines 3-7) states generate_role_entry/generate_skill_entry stage files 'while write_managed compiles everything into the single AGENTS.md the tools actually read.' write_managed does NOT read the staging dir; it re-renders the roster section from RoleView only. The staging files are never compiled in. Misleading docstring; tighten it or actually fold the staging entries (ties to F1).

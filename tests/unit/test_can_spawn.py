@@ -1,7 +1,9 @@
-"""RoleDef.can_spawn: manager and tech-lead can spawn, every leaf/dev role cannot, the
-field defaults to False, and it round-trips through extra.
+"""RoleDef.can_spawn: manager and tech-lead can spawn, every leaf/dev role cannot, and the
+field defaults to False.
 
-The rendered pointer denylist and ``sq role show`` surfacing live in
+``can_spawn`` is a catalog answer resolved on every read, never stored on the role item -- that
+it is absent from ``to_extra()`` is pinned in tests/unit/test_role_def_extra_keys.py, and the
+rendered pointer denylist and ``sq role show`` surfacing live in
 tests/integration/test_can_spawn_surfaces.py.
 """
 
@@ -35,14 +37,3 @@ def test_default_can_spawn_is_false() -> None:
         mission="Do custom things.",
     )
     assert role.can_spawn is False
-
-
-def test_can_spawn_round_trips_through_extra_both_ways() -> None:
-    for slug in ("manager", "tech-lead"):
-        role = next(r for r in PREDEFINED if r.slug == slug)
-        restored = RoleDef.from_extra(role.to_extra())
-        assert restored.can_spawn is True
-
-    architect = next(r for r in PREDEFINED if r.slug == "architect")
-    restored = RoleDef.from_extra(architect.to_extra())
-    assert restored.can_spawn is False

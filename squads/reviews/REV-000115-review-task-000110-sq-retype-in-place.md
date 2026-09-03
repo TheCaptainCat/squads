@@ -38,22 +38,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 115 add-finding "…" --severity high`; track with `sq review 115 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | Avoidable type suppression in _carry_or_reset_status |
-| F2 | 🟢 low | Open |  | Duplicated subentity-kind reverse map |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Avoidable type suppression in _carry_or_reset_status
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 src/squads/_services/_retype.py: _carry_or_reset_status types current_status as 'object' and returns tuple[bool, object], which forces the '# type: ignore[assignment]' at line 129 (item.status = new_status). The inputs are fully typed: item.status is Status, workflow_for(...).states is set[Status], and initial_status(...) returns Status. Typing the param as Status and the return as tuple[bool, Status] removes the suppression entirely. CLAUDE.md asks for strict typing with no avoidable ignores. Non-blocking.
@@ -67,11 +55,6 @@ src/squads/_services/_retype.py: _carry_or_reset_status types current_status as 
 
 <!-- sq:finding:F2 -->
 ### F2 — Duplicated subentity-kind reverse map
-
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 src/squads/_services/_retype.py line 32 defines _SUBENTITY_KIND_FOR = {parent: k for k, parent in SUBENTITY_PARENT.items()}, which is byte-for-byte the same map already exported from _services/_base.py as SUBENTITY_KIND (line 45: {p: k for k, p in SUBENTITY_PARENT.items()}). The module already imports from _base. Reuse the existing SUBENTITY_KIND instead of recomputing it, so the reverse map has a single home. Non-blocking.

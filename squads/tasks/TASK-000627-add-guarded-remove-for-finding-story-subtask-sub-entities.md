@@ -85,9 +85,6 @@ This is destructive-verb territory; scope it as carefully as item-level
 
 _Add with `sq task 627 add-subtask "<title>"`; track with `sq task 627 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

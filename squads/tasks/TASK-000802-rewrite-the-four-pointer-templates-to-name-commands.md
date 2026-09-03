@@ -186,25 +186,10 @@ The orphaned `agents_md` entry templates (ground truth 2) go to the architect on
 
 _Add with `sq task 802 add-subtask "<title>"`; track with `sq task 802 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Drop squad_path from the four templates and its five producers | US1 |
-| ST2 | Todo |  | Declare the startup command set once and render both pointers from it | US2 |
-| ST3 | Todo |  | Remove the role body template's duplicate startup command block | US2 |
-| ST4 | Todo |  | Reword invariant 5 to the containment statement | US5 |
-| ST5 | Todo |  | Regenerate the template manifest and re-pin the goldens | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Drop squad_path from the four templates and its five producers
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Drop squad_path from all four pointer/entry templates
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Remove `@{{ squad_path }}` from `claude/pointer_agent.md.j2:25` and
@@ -238,11 +223,6 @@ hashes, and no template renders with a `squad_path` in its context.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Declare the startup command set once and render both pointers from it
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — Slug-bound startup commands and the definition-fetch command
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 The five startup commands — `sq memory <slug> list`, `sq memory <slug> show <slug>`,
@@ -281,11 +261,6 @@ there makes it appear in both pointers with no template edit.
 <!-- sq:subtask:ST3 -->
 ### ST3 — Remove the role body template's duplicate startup command block
 
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — Slug-bound startup commands and the definition-fetch command
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `agents/role.md.j2` gives up its startup-command block (lines 29-36), which is the copy the
 pointer's now supersedes. Two slug-bound copies of one command set, in two files with two
@@ -314,11 +289,6 @@ find them.
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Reword invariant 5 to the containment statement
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-**Implements:** US5 — Reword invariant 5 to state the containment rule
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Replace `CLAUDE.md` line 107 with the wording ADR-781 section 4 quotes. Copy it verbatim from the
@@ -353,11 +323,6 @@ Done when line 107 reads the replacement, `claude_section.md.j2` is untouched by
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Regenerate the template manifest and re-pin the goldens
-
-<!-- sq:subtask:ST5:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — Drop squad_path from all four pointer/entry templates
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Four bundled templates change in this task, so `src/squads/_rendering/templates_manifest.json`

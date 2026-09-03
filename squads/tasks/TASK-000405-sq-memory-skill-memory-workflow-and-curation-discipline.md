@@ -38,21 +38,10 @@ Add a managed `sq-memory` skill, generated like the other skills, teaching the m
 
 _Add with `sq task 381 add-subtask "<title>"`; track with `sq task 381 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Managed cross-role sq-memory skill | US6 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Managed cross-role sq-memory skill
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As an agent, the sq-memory skill teaches the memory workflow and curation discipline
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 A managed `sq-memory` skill, generated like the other skills, documenting: check your index at run start; one fact per memory; prune stale/wrong entries; and the memory-vs-board boundary. Cross-role (surfaced to all roles), not a per-type skill.

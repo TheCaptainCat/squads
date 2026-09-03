@@ -61,22 +61,10 @@ once they exist in the index (use a stamped fixture / seeded init for tests).
 
 _Add with `sq task 190 add-subtask "<title>"`; track with `sq task 190 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | sq list -t skill and sq skill show render SKILL items | US1 |
-| ST2 | Done |  | Basic SKILL ref support: ref add SKILL- shows on source and backref | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq list -t skill and sq skill show render SKILL items
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Stable SKILL-… ID per skill for cross-entity referencing
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers wiring sq list -t skill to return indexed SKILL items and sq skill <n> show to render a skill's dossier (frontmatter + body region) following the role/operator command pattern — no work lifecycle, no sub-entity surface — on the meta-type profile. Also ensures sq check treats SKILL correctly (no parent-is-feature rule, no subtask→US rule).
@@ -90,11 +78,6 @@ Covers wiring sq list -t skill to return indexed SKILL items and sq skill <n> sh
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Basic SKILL ref support: ref add SKILL- shows on source and backref
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — Stable SKILL-… ID per skill for cross-entity referencing
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers basic SKILL ref support so sq <type> <n> ref add SKILL-… --kind related (and other kinds) succeeds, the ref appears in the source item's show, and the backref inverts correctly onto the skill (forward edges only, invariant 4) — skills ride the same Item/ItemStore seam with no SKILL-specific storage path.

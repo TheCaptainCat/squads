@@ -56,25 +56,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 97 add-finding "…" --severity high`; track with `sq review 97 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Manifest-freshness unguarded — silent drift-miss at release |
-| F2 | 🟡 medium | Fixed |  | New override list/diff --json read commands not golden-pinned |
-| F3 | 🟢 low | Fixed |  | gen_template_manifest.py docstring exit-code claim is wrong |
-| F4 | 🟢 low | Open |  | Bare 'sq override diff' hides broken overrides (filters to drifted) |
-| F5 | 🟢 low | Open |  | Delta-upgrade blocked: base_version_template_content is hash-only |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Manifest-freshness unguarded — silent drift-miss at release
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Manifest-freshness is unguarded — silent drift-miss at release. The whole feature fails OPEN if scripts/gen_template_manifest.py isn't re-run before a release that changes a template: template_changed_since() returns False for a missing/stale current-version entry, so every override silently shows no drift — exactly what the feature exists to prevent. The dev's @devops note documents the manual build step but nothing enforces it. test_manifest_loads_current_version_hashes only checks ONE template has *a* hash, not that it matches current bundled content, and not that all 20 are present. A single guard test would convert this from a release-time human-memory failure into a red build.
@@ -89,11 +74,6 @@ Manifest-freshness is unguarded — silent drift-miss at release. The whole feat
 <!-- sq:finding:F2 -->
 ### F2 — New override list/diff --json read commands not golden-pinned
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 New --json read commands (override list/diff) are not golden-pinned. FEAT-15/TASK-84 established that EVERY --json read command gets a golden in tests/goldens/ pinned by test_golden_json.py, so any shape drift fails the build. override list --json and override diff --json are new read commands joining the 1.0 machine-readable surface but are only key-set-asserted in test_override_commands.py — not added to the golden suite. Consistency gap against a just-frozen convention; should be closed before 1.0.
 <!-- sq:finding:F2:body:end -->
@@ -106,11 +86,6 @@ New --json read commands (override list/diff) are not golden-pinned. FEAT-15/TAS
 
 <!-- sq:finding:F3 -->
 ### F3 — gen_template_manifest.py docstring exit-code claim is wrong
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exit codes: 0 = success, 1 = error (already at this version with unchanged hashes; nothing to write...)'. The no-change path actually prints and exits 0 (correct behaviour for a no-op), so the docstring contradicts the code. Fix the docstring (exit 0 on no-op is fine to keep).
@@ -125,11 +100,6 @@ gen_template_manifest.py docstring exit-code claim is wrong. Docstring says 'Exi
 <!-- sq:finding:F4 -->
 ### F4 — Bare 'sq override diff' hides broken overrides (filters to drifted)
 
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 diff with no name hides broken overrides. The bare 'sq override diff' path filters to STATE_DRIFTED only, so a user whose only override is BROKEN (missing marker) gets 'no drifted overrides found' with no hint that a broken override needs attention. ADR scopes bare diff to drifted, so not a contract violation, but a one-line note pointing at 'sq override list'/'sq check' for broken overrides would close the UX gap.
 <!-- sq:finding:F4:body:end -->
@@ -142,11 +112,6 @@ diff with no name hides broken overrides. The bare 'sq override diff' path filte
 
 <!-- sq:finding:F5 -->
 ### F5 — Delta-upgrade blocked: base_version_template_content is hash-only
-
-<!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 base_version_template_content is hash-only, so Δ-upgrade is unavailable for any genuinely-upgraded template. By design the manifest stores hashes not snapshots, so base content is recoverable only when base_hash == current_hash (i.e. unchanged) — meaning the Δ-upgrade view degrades to the '(cannot recover...)' message in exactly the case it is most needed (template changed since base). ADR §3 step 2 describes Δ-upgrade as 'reconstructed from the manifest plus the bundled archive it indexes'; the manifest indexes nothing but hashes. The code handles this gracefully and the limitation is documented in the docstring, but it is a partial fulfilment of the ADR's stated Δ-upgrade capability — flagging so it is a deliberate, recorded deferral rather than an unnoticed shortfall.

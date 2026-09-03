@@ -227,21 +227,10 @@ missing `show --json`) are the real, narrower fix — not a views entry. Confirm
 
 _Add with `sq feature 690 add-story "As a <role>, I want … so that …"`; track with `sq feature 690 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Memory hygiene-oversight view (sq ui first, extension once list --json carries created_at) |
-| US2 | Todo |  | Team board view (both clients, low cost, no named urgency — sequence after memory) |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Memory hygiene-oversight view (sq ui first, extension once list --json carries created_at)
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Nest per-role/operator memory as eager, glance-visible children in each client's Roster tree/group: entry count + staleness on the parent node, sorted-oldest-first entries on expand, drill-to-body as the secondary step. sq ui ships complete today (in-process Service, no CLI gap). The extension's overview (count + summary) needs no CLI change; its staleness signal needs created_at added to sq memory <role> list --json; its drill-to-body needs the separate sq memory <role> show <slug> --json addition — sequence accordingly, don't half-build the drill-in ahead of the CLI surface. Read-only: acting on a spotted entry (forget/add) is an explicit follow-on, out of scope here.
@@ -255,10 +244,6 @@ Nest per-role/operator memory as eager, glance-visible children in each client's
 
 <!-- sq:story:US2 -->
 ### US2 — Team board view (both clients, low cost, no named urgency — sequence after memory)
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 A dedicated small read surface on each client, not a tree branch: a modal screen in sq ui (peer to FilterScreen/SearchScreen), a single webview panel behind one command in the extension (same tier as the existing workflow-cheatsheet panel). sq board list --json already returns each notice's full body inline, so this needs no CLI change on either client. Build after the memory story, not alongside it — there is no equivalent felt pain named for the board.

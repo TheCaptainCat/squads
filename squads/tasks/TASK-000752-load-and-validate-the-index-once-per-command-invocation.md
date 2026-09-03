@@ -145,9 +145,6 @@ Report each of these as red-then-green, not as an assertion that it holds:
 
 _Add with `sq task 752 add-subtask "<title>"`; track with `sq task 752 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

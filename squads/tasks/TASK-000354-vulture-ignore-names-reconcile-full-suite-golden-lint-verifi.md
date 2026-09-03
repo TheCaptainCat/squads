@@ -42,9 +42,6 @@ TASK-351 + TASK-353 (wrappers/dispatch settled). Runs last.
 
 _Add with `sq task 354 add-subtask "<title>"`; track with `sq task 354 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

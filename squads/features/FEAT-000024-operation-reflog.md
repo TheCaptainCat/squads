@@ -81,22 +81,10 @@ history that survives the conversation:
 
 _Add with `sq feature 24 add-story "As a <role>, I want … so that …"`; track with `sq feature 24 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Chronological mutation log per actor for agent activity review |
-| US2 | Done |  | Removals, retypes, forced transitions reconstructable from reflog |
-| US3 | Done |  | Reflog as stable documented JSONL for automation and dashboards |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Chronological mutation log per actor for agent activity review
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** every mutating command appends one line (timestamp, actor, op, item, delta) atomically with the change; `sq reflog` tails and filters by --item/--actor/--op/--since.
@@ -113,10 +101,6 @@ As an operator, I want a chronological log of every mutation with its actor, so 
 <!-- sq:story:US2 -->
 ### US2 — Removals, retypes, forced transitions reconstructable from reflog
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** remove/retype/forced-status/repair operations are reconstructable from reflog lines alone (FEAT-23's audit trail and BUG-22's repair-reporting wish land here); a squad with no reflog file still works identically.
 
@@ -131,10 +115,6 @@ As a team member investigating an anomaly, I want removals, retypes and forced t
 
 <!-- sq:story:US3 -->
 ### US3 — Reflog as stable documented JSONL for automation and dashboards
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** the line schema is versioned and documented; `sq reflog --json` shape is golden-tested (FEAT-15) and its stability tier stated in the contract doc (FEAT-13).

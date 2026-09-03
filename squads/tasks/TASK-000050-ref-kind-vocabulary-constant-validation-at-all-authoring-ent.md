@@ -64,23 +64,10 @@ Consumers (`depends-on` in `sq blocked`, `supersedes`/unknown-kind warnings in `
 
 _Add with `sq task 50 add-subtask "<title>"`; track with `sq task 50 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Define VALID_REF_KINDS and validate --kind in add_ref | US1 |
-| ST2 | Done |  | Keep bare ref add first-class: default related validates trivially, no nudge, no warning | US2 |
-| ST3 | Done |  | Accept depends-on/supersedes/duplicates ref kinds | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Define VALID_REF_KINDS and validate --kind in add_ref
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in add_ref, rejecting unknowns with the valid list.
@@ -95,11 +82,6 @@ Define VALID_REF_KINDS (closed eight) in _models/_item.py; validate --kind in ad
 <!-- sq:subtask:ST2 -->
 ### ST2 — Keep bare ref add first-class: default related validates trivially, no nudge, no warning
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Keep a bare ref add <id> (no --kind) first-class: it defaults to related, which validates trivially as a member of the closed vocabulary — no nudge to over-type and no warning. The frictionless untyped-ref path is preserved (US2).
 <!-- sq:subtask:ST2:body:end -->
@@ -112,11 +94,6 @@ Keep a bare ref add <id> (no --kind) first-class: it defaults to related, which 
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Accept depends-on/supersedes/duplicates ref kinds
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Wire depends-on/supersedes/duplicates as accepted kinds at ref add and create --ref id:kind; authorable from the dependent.

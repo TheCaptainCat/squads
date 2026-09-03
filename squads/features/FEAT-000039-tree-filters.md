@@ -62,21 +62,10 @@ so there is nothing new to learn — the same vocabulary, applied to the hierarc
 
 _Add with `sq feature 39 add-story "As a <role>, I want … so that …"`; track with `sq feature 39 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Filter tree by status/priority/assignee/type for focused reviews |
-| US2 | Todo |  | --depth and context-preserving pruning keep filtered trees readable |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Filter tree by status/priority/assignee/type for focused reviews
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an operator reviewing the board, I want to filter the tree by status, priority, assignee or type, so that greenlight discussions look at exactly the slice that matters.
@@ -90,10 +79,6 @@ As an operator reviewing the board, I want to filter the tree by status, priorit
 
 <!-- sq:story:US2 -->
 ### US2 — --depth and context-preserving pruning keep filtered trees readable
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 As a reader of a deep backlog, I want --depth and context-preserving pruning, so that a filtered tree stays readable and every match keeps its place in the hierarchy.

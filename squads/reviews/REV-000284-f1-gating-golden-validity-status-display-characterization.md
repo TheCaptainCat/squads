@@ -69,24 +69,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 284 add-finding "…" --severity high`; track with `sq review 284 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟠 high | Fixed |  | Working tree violates 'green against HEAD' — rewire + tests uncommitted together |
-| F2 | 🟠 high | Fixed |  | Golden extended in-tree with post-rewire custom-status tests that FAIL against HEAD |
-| F3 | 🟢 low | WontFix |  | sq inbox terminal-suppression not pinned (transitively guarded via spec.is_open) |
-| F4 | 🟡 medium | Fixed |  | After rewire STATUS_EMOJI is no longer the badge source; ensure a golden pins the toml badges |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Working tree violates 'green against HEAD' — rewire + tests uncommitted together
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The task's core acceptance reads: 'GREEN against current HEAD (no product code changed)'. The working tree has uncommitted product-code modifications to src/squads/_discussion.py (the TASK-276 _status_badge rewire: now takes a spec param, reads active_spec.status_badge() with a _DEFAULT_BADGE='⚪' fallback), src/squads/_cli/_common.py, and src/squads/_services/_subentities.py. So the golden as it currently runs is passing against ALREADY-REWIRED code, not against HEAD.
@@ -107,11 +93,6 @@ Fix: commit the golden by itself (or confirm it already is — it is, at 495fc95
 <!-- sq:finding:F2 -->
 ### F2 — Golden extended in-tree with post-rewire custom-status tests that FAIL against HEAD
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 The working-tree copy of tests/test_status_display_characterization.py has 43 lines added vs HEAD (git diff HEAD): a new class TestCustomStatusBadgeResolvesThroughSpec with 5 tests asserting the NEW behavior — custom status resolves its declared badge or a ⚪ default through the spec, never raises. Against true HEAD these FAIL (4 fail), because they assert the post-rewire contract.
 
@@ -131,11 +112,6 @@ Fix: keep the 5 custom-status tests as part of TASK-276's deliverable, committed
 <!-- sq:finding:F3 -->
 ### F3 — sq inbox terminal-suppression not pinned (transitively guarded via spec.is_open)
 
-<!-- sq:finding:F3:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 src/squads/_services/_collab.py::inbox (line ~75) filters mentions via self.spec.is_open(item.status) — the same open/terminal classification the rewire generalizes. FEAT-211's own scope explicitly names sq inbox as a surface that must flow custom statuses correctly. The golden pins sq list default filter and sq blocked (both consumers of spec.is_open) but not inbox.
 
@@ -152,11 +128,6 @@ Severity low because the classification FUNCTION (spec.is_open) is transitively 
 
 <!-- sq:finding:F4 -->
 ### F4 — After rewire STATUS_EMOJI is no longer the badge source; ensure a golden pins the toml badges
-
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 STATUS_EMOJI (src/squads/_models/_enums.py) has zero production consumers after the TASK-276 rewire — production badge display is 100% spec-driven (WorkflowSpec.status_badge, backed by default_workflow.toml). The dict now exists ONLY as a test oracle: the expected 9 built-in glyphs that tests/test_workflow_spec.py::test_golden_status_badges and tests/test_status_display_characterization.py assert the spec did not drift from.

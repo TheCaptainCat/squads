@@ -233,27 +233,10 @@ text.
 
 _Add with `sq task 711 add-subtask "<title>"`; track with `sq task 711 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Compare the delta on the condition, not on its rendering | US5 |
-| ST2 | Done |  | Name a remedy the transition direction will accept | US5 |
-| ST3 | Done |  | State the reason the meaningless-unlink guard tested | US5 |
-| ST4 | Done |  | Report two holders of the default designation | US6 |
-| ST5 | Done |  | Describe both status flags in adopter vocabulary | US3 |
-| ST6 | Done |  | Count the scopes kind in the ref-kind reference |  |
-| ST7 | Done |  | Leave no gap where the omitted default-role line was |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Compare the delta on the condition, not on its rendering
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Key the delta on `(clause, entry, kind)` instead of whole-object membership over
@@ -276,11 +259,6 @@ must not refuse, a growing one must.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Name a remedy the transition direction will accept
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Make the remedy a property of the situation rather than of the predicate. The stored-edge finding
 names `--unlink` first, and that finding is also rendered on a reactivation, where `--unlink` is
@@ -301,11 +279,6 @@ the reactivation itself does not change.
 <!-- sq:subtask:ST3 -->
 ### ST3 — State the reason the meaningless-unlink guard tested
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an operator, retiring a still-depended-on roster entry is refused, with a remedy
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 The guard rejecting `--unlink` on a non-retirement asserts that the target status is live. Since a
 retirement is a move out of a live status, that guard now also covers a move between two non-live
@@ -323,11 +296,6 @@ declaring two non-live statuses, which ADR-696 §3 permits, reaches this with no
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Report two holders of the default designation
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US6 — As a team, sq check reports a roster entry already in a broken config state
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 More than one `role` item carrying `is_default` becomes a `sq check` error naming the holders,
@@ -355,11 +323,6 @@ predicate.
 <!-- sq:subtask:ST5 -->
 ### ST5 — Describe both status flags in adopter vocabulary
 
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a team, the generated CLI help and skill text teach the new verb
-<!-- sq:subtask:ST5:head:end -->
-
 <!-- sq:subtask:ST5:body -->
 Both flags on the roster `status` verb (`register_status_verb` in `_cli/_common.py`). `--unlink`
 describes itself as severing the config-integrity clauses' severable edges, which is the engine's
@@ -379,10 +342,6 @@ config-integrity refusal. No clause or tier identifier in either string.
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Count the scopes kind in the ref-kind reference
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 `VALID_REF_KINDS` holds nine kinds, while `docs/stability.md` says the eight built-in kinds are
@@ -407,10 +366,6 @@ for a later release, and ADR-49 body stays untouched.
 
 <!-- sq:subtask:ST7 -->
 ### ST7 — Leave no gap where the omitted default-role line was
-
-<!-- sq:subtask:ST7:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST7:head:end -->
 
 <!-- sq:subtask:ST7:body -->
 The two `{% if default_role_full_name %}` blocks in

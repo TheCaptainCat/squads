@@ -154,23 +154,10 @@ The `operator` group currently has no `show` command at all. As part of grammar 
 
 _Add with `sq feature 64 add-story "As a <role>, I want … so that …"`; track with `sq feature 64 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Item-first grammar for roles, skills, and operators |
-| US2 | Done |  | Role and skill bodies rendered as styled markdown like any item show |
-| US3 | Done |  | Single list surface for tracked agents; sq role catalog for bundled ones |
-| US4 | Done |  | Grammar decisions recorded as deferral obligation on FEAT-13 |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Item-first grammar for roles, skills, and operators
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a CLI user, I want to address roles, skills, and operators with the same item-first grammar I use for every other type (sq role N show, sq skill N show, sq operator N show), so that one habit works everywhere without exceptions.
@@ -189,10 +176,6 @@ As a CLI user, I want to address roles, skills, and operators with the same item
 <!-- sq:story:US2 -->
 ### US2 — Role and skill bodies rendered as styled markdown like any item show
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a CLI user reading a role or skill definition, I want the body rendered as styled markdown (headings, bullets, code blocks, panes) just like any other item show, so that role bodies are as readable as feature bodies.
 <!-- sq:story:US2:body:end -->
@@ -210,10 +193,6 @@ As a CLI user reading a role or skill definition, I want the body rendered as st
 <!-- sq:story:US3 -->
 ### US3 — Single list surface for tracked agents; sq role catalog for bundled ones
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a CLI user, I want a single list surface for tracked items (sq list -t role|skill|operator) and a dedicated catalog command for the bundled role catalog (sq role catalog), so that the command surface is clean and unambiguous.
 <!-- sq:story:US3:body:end -->
@@ -230,10 +209,6 @@ As a CLI user, I want a single list surface for tracked items (sq list -t role|s
 
 <!-- sq:story:US4 -->
 ### US4 — Grammar decisions recorded as deferral obligation on FEAT-13
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As the stability contract author, I want this feature's grammar decisions recorded as a deferral obligation on FEAT-13 before it closes, so that the contract document reflects the final CLI surface accurately.

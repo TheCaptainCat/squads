@@ -62,9 +62,6 @@ reachable custom types:
 
 _Add with `sq task 259 add-subtask "<title>"`; track with `sq task 259 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

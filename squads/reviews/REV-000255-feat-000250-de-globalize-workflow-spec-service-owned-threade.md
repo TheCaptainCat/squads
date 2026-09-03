@@ -88,27 +88,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 255 add-finding "…" --severity high`; track with `sq review 255 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Parse-ordering test under-proves its docstring claim |
-| F2 | 🟢 low | Fixed |  | test_rendering._template_for is a hand-copy of ServiceCore._template_for (drift risk) |
-| F3 | 🟢 low | WontFix |  | _meta_compat uses bundled_spec() inline rather than a threaded-in spec param |
-| F4 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
-| F5 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
-| F6 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
-| F7 | 🟢 low | WontFix |  | [duplicate — see F1/F2/F3] tool-retry artifact |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Parse-ordering test under-proves its docstring claim
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 tests/test_cli.py:1764 `test_spec_bound_before_parse_type_runs` documents that parse_type/parse_status fire after the callback body, but it invokes `sq list --all` (no `--type`/`--status`), so neither parser callback actually runs — it only asserts `get_active_spec() is bundled_spec()` after the call. The real parse-time ordering with an OVERRIDE spec (where bundled != active) is proven elsewhere: tests/test_workflow_override.py:1534 `test_ac1_sq_list_custom_type_returns_no_items` runs `sq list -t incident` for an override-only type and asserts exit 0 (only possible if the override spec is bound before parse_type fires). So the coverage exists; this test is just mislabeled relative to what it exercises. Suggestion: have it pass `--status`/`--type` so a parser callback genuinely fires, or note that the override case is covered by the override test. Not a behaviour bug.
@@ -125,11 +108,6 @@ tests/test_cli.py:1764 `test_spec_bound_before_parse_type_runs` documents that p
 <!-- sq:finding:F2 -->
 ### F2 — test_rendering._template_for is a hand-copy of ServiceCore._template_for (drift risk)
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 tests/test_rendering.py defines a module-local `_template_for` that hand-copies the logic of `ServiceCore._template_for` (now an instance method using `self.spec.item_is_meta`). The old test imported the real free function; since it became a method it can't be imported standalone, so the rewrite reconstructs it against `bundled_spec()`. This is faithful today, but the copy can silently drift if the real method changes (e.g. a third template branch). Low risk — the production logic is simple. Optional: have the test build a `ServiceCore`/`Service` and call the real method, or extract the mapping to a shared pure helper. Positive side-note: this rewrite removed a `# pyright: ignore[reportPrivateUsage]` suppression.
 <!-- sq:finding:F2:body:end -->
@@ -144,11 +122,6 @@ tests/test_rendering.py defines a module-local `_template_for` that hand-copies 
 
 <!-- sq:finding:F3 -->
 ### F3 — _meta_compat uses bundled_spec() inline rather than a threaded-in spec param
-
-<!-- sq:finding:F3:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 src/squads/_migrations/_meta_compat.py:96 calls `bundled_spec().subentity_initial(kind)` inline. TASK-252 prescribed "thread a spec explicitly (pass the bundled/loaded spec into the migration helper)" rather than reaching a module-level accessor. The impl reaches `bundled_spec()` directly inside `_parse_block`.
@@ -169,11 +142,6 @@ It is a minor shape deviation from the task's "pass it in" wording — `bundled_
 <!-- sq:finding:F4 -->
 ### F4 — [duplicate — see F1/F2/F3] tool-retry artifact
 
-<!-- sq:finding:F4:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--file -)` noise while the command actually succeeded). The canonical findings are F1 (parse-ordering test), F2 (test_rendering._template_for copy), and F3 (_meta_compat bundled_spec inline). Disregard this entry.
 <!-- sq:finding:F4:body:end -->
@@ -188,11 +156,6 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 
 <!-- sq:finding:F5 -->
 ### F5 — [duplicate — see F1/F2/F3] tool-retry artifact
-
-<!-- sq:finding:F5:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--file -)` noise while the command actually succeeded). The canonical findings are F1 (parse-ordering test), F2 (test_rendering._template_for copy), and F3 (_meta_compat bundled_spec inline). Disregard this entry.
@@ -209,11 +172,6 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 <!-- sq:finding:F6 -->
 ### F6 — [duplicate — see F1/F2/F3] tool-retry artifact
 
-<!-- sq:finding:F6:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--file -)` noise while the command actually succeeded). The canonical findings are F1 (parse-ordering test), F2 (test_rendering._template_for copy), and F3 (_meta_compat bundled_spec inline). Disregard this entry.
 <!-- sq:finding:F6:body:end -->
@@ -228,11 +186,6 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 
 <!-- sq:finding:F7 -->
 ### F7 — [duplicate — see F1/F2/F3] tool-retry artifact
-
-<!-- sq:finding:F7:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟢 Low
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--file -)` noise while the command actually succeeded). The canonical findings are F1 (parse-ordering test), F2 (test_rendering._template_for copy), and F3 (_meta_compat bundled_spec inline). Disregard this entry.

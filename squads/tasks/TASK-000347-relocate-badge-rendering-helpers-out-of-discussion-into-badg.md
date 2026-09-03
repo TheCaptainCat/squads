@@ -28,9 +28,6 @@ Acceptance: `_discussion.py` holds no badge-rendering functions (grep-verified);
 
 _Add with `sq task 347 add-subtask "<title>"`; track with `sq task 347 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

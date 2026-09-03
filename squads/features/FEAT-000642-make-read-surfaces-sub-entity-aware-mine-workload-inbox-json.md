@@ -50,24 +50,10 @@ attribute `inbox` hits to the matched sub-entity, carry sub-entity discussion in
 
 _Add with `sq feature 642 add-story "As a <role>, I want … so that …"`; track with `sq feature 642 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | mine: surface sub-entity-only assignments |
-| US2 | Done |  | workload: count sub-entity assignments |
-| US3 | Done |  | inbox: attribute hits to the sub-entity that matched |
-| US4 | Done |  | show --json: carry sub-entity discussion, incl. VS Code preview |
-| US5 | Done |  | standalone sub-entity show --json |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — mine: surface sub-entity-only assignments
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As an actor assigned only a sub-entity (not its parent item), I want that work to show up in my
@@ -102,10 +88,6 @@ Operator slugs (`op-<slug>`) work identically to role slugs.
 <!-- sq:story:US2 -->
 ### US2 — workload: count sub-entity assignments
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As anyone reading `sq workload`, I want actors who own only sub-entities to appear with a count,
 so workload isn't blind to subtask-level assignment.
@@ -129,10 +111,6 @@ status list. Roster-category items stay excluded, as they are today.
 
 <!-- sq:story:US3 -->
 ### US3 — inbox: attribute hits to the sub-entity that matched
-
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 As an actor scanning my `sq inbox`, I want a hit inside a sub-entity's discussion to name which
@@ -160,10 +138,6 @@ explicitly out of scope here.
 <!-- sq:story:US4 -->
 ### US4 — show --json: carry sub-entity discussion, incl. VS Code preview
 
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
-
 <!-- sq:story:US4:body -->
 As a JSON-driven consumer — including the VS Code item preview — I want every sub-entity entry to
 carry its discussion, so a decision recorded as a comment on a story, subtask or finding isn't
@@ -189,10 +163,6 @@ blanking the pane.
 
 <!-- sq:story:US5 -->
 ### US5 — standalone sub-entity show --json
-
-<!-- sq:story:US5:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US5:head:end -->
 
 <!-- sq:story:US5:body -->
 As a script or integration, I want `sq <type> <n> <kind> <k> show --json` to work, so I can read

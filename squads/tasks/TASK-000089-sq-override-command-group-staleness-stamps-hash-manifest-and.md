@@ -47,23 +47,10 @@ Staleness + authoring-UX task for FEAT-14 (ADR-85 §3, the `sq override` group, 
 
 _Add with `sq task 89 add-subtask "<title>"`; track with `sq task 89 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | override-base stamp + per-release content-hash manifest in package data | US3 |
-| ST2 | Done |  | sq check: version-drift warn + missing-marker error | US3 |
-| ST3 | Done |  | sq override scaffold/diff/update/list command group | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — override-base stamp + per-release content-hash manifest in package data
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Stamp scaffolded overrides with '<!-- squads:override-base:<squads_version> -->' (reusing the managed-file stamping convention, inert to rendering) and ship a generated per-release content-hash manifest of each bundled template as package data, wired into the build — used both for drift detection and to reconstruct the base-version bundled template for the diff Δ-upgrade view (US3).
@@ -78,11 +65,6 @@ Stamp scaffolded overrides with '<!-- squads:override-base:<squads_version> -->'
 <!-- sq:subtask:ST2 -->
 ### ST2 — sq check: version-drift warn + missing-marker error
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add the two override checks to _services/_maintenance.py::check: a version-drift WARN when an override's override-base is older than the running version AND the bundled counterpart actually changed between those versions per the hash manifest (an old stamp with an unchanged bundle stays silent), pointing at sq override diff/update; and a structural-breakage ERROR when an overridden item/role template is missing a required sq marker region (Invariant 3). A valid override is never downgraded to error for being old and always renders (US3).
 <!-- sq:subtask:ST2:body:end -->
@@ -95,11 +77,6 @@ Add the two override checks to _services/_maintenance.py::check: a version-drift
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — sq override scaffold/diff/update/list command group
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a maintainer upgrading squads, I want defined precedence and staleness behaviour for my overrides, so that an upgrade never silently breaks them
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Ship the sq override command group: scaffold <name> (copy a bundled template or --role <slug> into .overrides/, stamped with current override-base, refusing to clobber without --force; the only command that writes override bodies); diff [<name>] (read-only two-delta view — Δ-mine override vs current bundled, Δ-upgrade base-version bundled reconstructed from the manifest vs current bundled; all drifted if no name); update [<name>] (re-stamp override-base to current version and nothing else, bulk when unnamed); list (every present override with kind, override-base, and current/drifted/broken state) (US3).

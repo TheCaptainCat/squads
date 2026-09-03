@@ -80,22 +80,10 @@ into children, back to parent"**. Add two subtasks: one `--story US2` (populated
 
 _Add with `sq task 518 add-subtask "<title>"`; track with `sq task 518 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Populate tree from svc.tree_view matching sq tree | US2 |
-| ST2 | Done |  | Keyboard navigation with visible selection indicator | US3 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Populate tree from svc.tree_view matching sq tree
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Tree matches sq tree at launch
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Build the Textual Tree from svc.tree_view() (async, from Textual's loop), mirroring sq tree's parent/child nesting; load once at launch. No --json, no re-implemented traversal. Done: tree structure matches sq tree for the same squad.
@@ -109,11 +97,6 @@ Build the Textual Tree from svc.tree_view() (async, from Textual's loop), mirror
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Keyboard navigation with visible selection indicator
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Navigate siblings, into children, back to parent
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Keyboard-only navigation via the Tree widget: siblings up/down, expand into children, collapse/step out to parent, with an always-visible current-selection indicator; works over a plain no-mouse terminal. Done: all three moves work by keyboard with visible selection.

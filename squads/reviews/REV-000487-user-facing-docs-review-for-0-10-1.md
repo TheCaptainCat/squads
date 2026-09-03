@@ -58,25 +58,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 487 add-finding "…" --severity medium`; track with `sq review 487 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Fixed |  | Tutorial shows padded IDs in CLI output when they should be unpadded (0.10.0 display format) |
-| F2 | 🟡 medium | Fixed |  | Recipes doc shows padded IDs in copy-paste examples when they should be unpadded |
-| F3 | 🟡 medium | Fixed |  | Adoption guide shows padded IDs in migration examples when they should be unpadded |
-| F4 | 🟡 medium | Fixed |  | Missing documentation for sq workflow collections and sq workflow statuses subcommands |
-| F5 | 🟡 medium | Fixed |  | README command reference lacks sq workflow subcommands added in 0.10.0 |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Tutorial shows padded IDs in CLI output when they should be unpadded (0.10.0 display format)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Fixed: Updated all padded IDs (EPIC-000009, FEAT-000010, BUG-000012) to unpadded format (EPIC-9, FEAT-10, BUG-12) in CLI output examples, frontmatter examples, and command arguments. Filenames remain padded on-disk. All changes in docs/tutorial.md lines 26, 38, 72, 92, 113.
@@ -91,11 +76,6 @@ Fixed: Updated all padded IDs (EPIC-000009, FEAT-000010, BUG-000012) to unpadded
 <!-- sq:finding:F2 -->
 ### F2 — Recipes doc shows padded IDs in copy-paste examples when they should be unpadded
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 Fixed: Updated all padded IDs in recipes.md to unpadded format: EPIC-000001→EPIC-1, FEAT-000002→FEAT-2, BUG-000010→BUG-10, REV-000012→REV-12, ADR-000014→ADR-14, GUIDE-000015→GUIDE-15, TASK-000003→TASK-3, TASK-000020→TASK-20. All copy-paste examples now show standard unpadded display format.
 <!-- sq:finding:F2:body:end -->
@@ -108,11 +88,6 @@ Fixed: Updated all padded IDs in recipes.md to unpadded format: EPIC-000001→EP
 
 <!-- sq:finding:F3 -->
 ### F3 — Adoption guide shows padded IDs in migration examples when they should be unpadded
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 Fixed: Updated all padded IDs in adoption.md to unpadded format: TASK-000002→TASK-2, EPIC-000001→EPIC-1, FEAT-000007→FEAT-7, TASK-000008→TASK-8, BUG-000009→BUG-9. Migration examples now consistently show unpadded format, reducing confusion for adopters migrating legacy systems.
@@ -127,11 +102,6 @@ Fixed: Updated all padded IDs in adoption.md to unpadded format: TASK-000002→T
 <!-- sq:finding:F4 -->
 ### F4 — Missing documentation for sq workflow collections and sq workflow statuses subcommands
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 Fixed: Added new section 'Inspecting the workflow spec' in docs/workflow.md (before 'Status lifecycles') documenting all workflow subcommands: sq workflow [show|types|collections|statuses|lint]. Section includes brief descriptions and examples for querying badge collections and status values programmatically.
 <!-- sq:finding:F4:body:end -->
@@ -144,11 +114,6 @@ Fixed: Added new section 'Inspecting the workflow spec' in docs/workflow.md (bef
 
 <!-- sq:finding:F5 -->
 ### F5 — README command reference lacks sq workflow subcommands added in 0.10.0
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 Fixed: Updated README.md command reference (line 166) from bare 'sq workflow' to full entry listing subcommands: 'sq workflow [show|types|collections|statuses|lint]' with description covering team-workflow cheatsheet, type listing, badge collection querying, status listing, and override validation.

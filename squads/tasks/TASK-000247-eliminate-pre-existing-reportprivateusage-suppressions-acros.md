@@ -199,23 +199,10 @@ concerns above first.
 
 _Add with `sq task 247 add-subtask "<title>"`; track with `sq task 247 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done | python-dev | Public store logging API and its 23 call sites |  |
-| ST2 | Done | python-dev | Roster accessor, shared type-change helpers, full-ID predicate |  |
-| ST3 | Done | python-dev | Prove the suppressions are gone and hold the gate |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Public store logging API and its 23 call sites
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Renamed IndexStore._log to public log(), same signature/behaviour; docstring now states the no-open-transaction (or foreign-store) silent no-op and its ADR-663 §4 rationale, plus the provisional/txn.log() promotion note. Converted all 23 call sites (items 6, subentities 6, refs 3, maintenance 3, rename 2, base 1, collab 1, retype 1), dropping every trailing pyright ignore. Updated store._log() mentions to store.log() in _items.py's docstring prose (retype/subentities had none left after fresh grep). Existing no-open-transaction no-op test (tests/unit/test_transaction_context_scoping.py) converted to call the public name and still passes.
@@ -230,11 +217,6 @@ Renamed IndexStore._log to public log(), same signature/behaviour; docstring now
 <!-- sq:subtask:ST2 -->
 ### ST2 — Roster accessor, shared type-change helpers, full-ID predicate
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Added Service.roster_item(item_type, slug) on ServiceCore (_base.py), replacing _role_item/_skill_item/_operator_item; kept the skill-only extra.get(X.SLUG, it.slug) fallback vs role/operator's no-fallback. Updated the 6 internal callers (_roster.py x4, _base.py x2) and collapsed _cli/_common.py's resolve_agent_addr to call svc.roster_item directly, deleting the _SLUG_LOOKUP dict-of-privates. Promoted _apply_type_change/_resync_edges to apply_type_change/resync_edges in place in _retype.py; updated _rename.py's import and call sites (kept in _retype.py, no new module). Promoted _is_full_id_shape to is_full_id_shape in _cli/_common.py; updated _cli/_role.py's import and caller.
 <!-- sq:subtask:ST2:body:end -->
@@ -247,11 +229,6 @@ Added Service.roster_item(item_type, slug) on ServiceCore (_base.py), replacing 
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Prove the suppressions are gone and hold the gate
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Assignee:** Elias Python
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 grep -rn reportPrivateUsage src/ returns nothing; uv run --all-extras pyright is 0/0 tree-wide. Demonstrated the src gate still fires: added a throwaway module importing/calling _index/_store.py's _transaction_ctx_for from outside, pyright reported reportPrivateUsage as an error, then deleted the file and re-confirmed 0/0. Fresh grep also turned up 2 sites the filed table missed: _validators.py's _on_disk_not_indexed/_not_on_disk reached into by _maintenance.py — promoted in place (on_disk_not_indexed/not_on_disk), same pattern as the full-ID predicate. Total was 31 sites in src/, not 29 (23+3+2+1 per the table, +2 undercounted). Tests policy (Pierre's sign-off): added reportPrivateUsage = "none" to pyproject.toml's tests executionEnvironment with a one-line reason, deleted all ~121 now-redundant per-line ignore comments under tests/ (including tests/tui's Textual-internals reach-ins), converted 3 tests that genuinely imported/monkeypatched renamed src names (test_transaction_context_scoping.py, test_transaction_context_concurrency.py, test_rename.py) to the new public names. ruff check/format clean tree-wide. Targeted pytest runs (tests/unit, tests/service, tests/cli, tests/integration, tests/tui, tests/meta) all green.

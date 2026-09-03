@@ -46,7 +46,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._paths import SquadPaths, number_for_id
-from squads._roles._resolver import resolve_role_for_item
+from squads._roles._resolver import holds_default_designation, resolve_role_for_item
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
@@ -907,8 +907,14 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
 
 
 def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """More than one **live** ``role`` item carrying ``is_default`` — an error naming the
-    holders, with ``sq role <addr> set-default`` as the remedy.
+    """More than one **live** ``role`` item holding the default-role designation — an error
+    naming the holders, with ``sq role <addr> set-default`` as the remedy.
+
+    A holder is found through :func:`~squads._roles._resolver.holds_default_designation`, not
+    by reading ``extra.is_default``. The stored key is an override on a designation the
+    role catalog also answers, so the catalog's own designated role holds it with nothing in
+    its ``extra`` — and a raw read reports one holder for a roster that is generating config
+    with two, which is precisely the ambiguity this exists to name.
 
     Report-only, deliberately: this predicate is never folded into
     ``config_integrity.check_all``, so the retirement gate (``_retirement.py::enforce``) never
@@ -924,7 +930,9 @@ def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]
     holders = sorted(
         it.id
         for it in ctx.index.items.values()
-        if it.type == ROSTER_ROLE and it.status in live and it.extra.get(X.IS_DEFAULT)
+        if it.type == ROSTER_ROLE
+        and it.status in live
+        and holds_default_designation(it, ctx.paths.squad_dir)
     )
     if len(holders) <= 1:
         return []

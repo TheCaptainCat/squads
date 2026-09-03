@@ -105,24 +105,10 @@ renames.
 
 _Add with `sq task 290 add-subtask "<title>"`; track with `sq task 290 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | id_padding becomes constant 0; every surface renders unpadded | US1 |
-| ST2 | Done |  | Format padded filenames from sequence_id at rename/retype seams | US2 |
-| ST3 | Done |  | Pin lookup tolerance: FEAT-283 and FEAT-283 both resolve | US4 |
-| ST4 | Done |  | Regenerate managed artifacts + goldens; verify managed-section diff | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — id_padding becomes constant 0; every surface renders unpadded
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — IDs read unpadded on every human-facing surface (frontmatter, refs, prose, CLI, tables)
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Make Item.id_padding a fixed constant 0 (not a persisted/configurable Field) so Item.id computes to the unpadded form (FEAT-283) via format_item_id at width 0. Change SquadsDB._propagate_padding (_models/_index.py:59) to stamp 0 onto each item's id_padding instead of the stored SquadsDB.padding. SquadsDB.padding itself is unchanged (it stays the derived filename-width cache in .squads.json); only its display consumer is removed. Then fix every construction site that passes id_padding=db.padding as a kwarg (it will break once the field is constant): _base.py:311, _maintenance.py:231/262/336, and _v0_4_to_v0_5.py:231 — grep id_padding src/ to catch them all. Acceptance: frontmatter id:, refs, prose mentions, and all CLI surfaces (show/list/tree/tables/JSON) read unpadded; id_padding is not stored or configurable.
@@ -137,11 +123,6 @@ Make Item.id_padding a fixed constant 0 (not a persisted/configurable Field) so 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Format padded filenames from sequence_id at rename/retype seams
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — Files stay padded and lexicographically sorted on disk while the id is unpadded
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Fix the two path-builders that break once item.id is unpadded but the file must stay padded (FEAT-283-slug.md). _rename (_services/_items.py:137) currently does f"{item.id}-{new_slug}.md"; _retype (_services/_retype.py:142) builds new_rel from new_id = item.id. Both must format the padded stem explicitly from the sequence number: format_item_id(item.prefix, item.sequence_id, db.padding). Verify the already-safe sites stay padded (create path _base.py:288 via db.allocate_id; renumber _maintenance.py:528; skill renames _maintenance.py:246/320) and note that item_file (_index/_resolver.py:18) resolves via the stored item.path, so the read side is unaffected. Add a clarifying comment at each filename-building site: the stem is the padded form, deliberately NOT the displayed item.id. Acceptance: an invariant test asserts, for both create and rename/retype, the file exists at the padded name while frontmatter id: is unpadded.
 <!-- sq:subtask:ST2:body:end -->
@@ -155,11 +136,6 @@ Fix the two path-builders that break once item.id is unpadded but the file must 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Pin lookup tolerance: FEAT-283 and FEAT-283 both resolve
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — CLI lookup stays width-tolerant: FEAT-283 and FEAT-283 both resolve
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Pin that CLI lookup stays width-tolerant: add a test asserting FEAT-283 and FEAT-283 both resolve to the same item, for a representative command/type. No input-parsing change is made — resolution already keys off (prefix, int sequence_id) via ref_id_matches (_item.py:62) and the sequence-keyed index; only output narrows to unpadded. This subtask is guardrail-only: confirm both widths still resolve after the display change and lock it with the test.
 <!-- sq:subtask:ST3:body:end -->
@@ -172,11 +148,6 @@ Pin that CLI lookup stays width-tolerant: add a test asserting FEAT-283 and FEAT
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Regenerate managed artifacts + goldens; verify managed-section diff
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — Managed artifacts and goldens regenerate to unpadded; managed-section diff verified clean
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Regenerate every managed artifact and golden fixture that embeds an ID so shipped content and this repo's working tree do not lag the new display rule. In scope: per-type sq-<type> skills, the squads/greeting core skills, the CLAUDE.md/AGENTS.md managed sections, the sq workflow cheatsheet, and roster/roadmap prose citing real IDs (e.g. FEAT-27, EPIC-12). Run the managed-section diff check the way we do on item-type changes (the 'verify .claude artifacts' discipline) and confirm the diff is clean and purely mechanical. Acceptance: all affected goldens regenerated and reviewed as one mechanical diff; managed-section diff clean; sq check green; uv run pyright && uv run ruff check . && uv run ruff format --check . clean.

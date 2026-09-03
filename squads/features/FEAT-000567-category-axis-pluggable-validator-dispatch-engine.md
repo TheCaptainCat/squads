@@ -105,21 +105,10 @@ call time in the service layer? This is an architecture call, not a product one 
 
 _Add with `sq feature 567 add-story "As a <role>, I want … so that …"`; track with `sq feature 567 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | category axis on ItemSpec, replacing is_meta |
-| US2 | Todo |  | validator dispatch engine (report + abort modes) |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — category axis on ItemSpec, replacing is_meta
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Add ItemSpec.category (roster/work/records), settled assignments per ADR-541, drop is_meta, Plane-1 load validation (catalog membership, roster-locked, reassignment well-formedness).
@@ -133,10 +122,6 @@ Add ItemSpec.category (roster/work/records), settled assignments per ADR-541, dr
 
 <!-- sq:story:US2 -->
 ### US2 — validator dispatch engine (report + abort modes)
-
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 One engine over a per-type validator set, run in sq check report mode and create/update abort mode; no catalog population yet (Phase B), no behaviour change to today's sq check output.

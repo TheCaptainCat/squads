@@ -364,8 +364,10 @@ async def _role_json_payload(
         # *invalid* project role override — the refusal disappeared and the card rendered from
         # the stored item, so a squad answered as though the broken override were not there.
         # Nothing resolves for this shape, so what can be rebuilt comes from the uniform
-        # record (`item.title`/`item.description`) where one exists, and the retained `extra`
-        # keys — the mirror is still all there is — for the rest.
+        # record (`item.title`/`item.description`) where one exists, and from whatever the
+        # item's own `extra` still carries for the rest — a corpus written before the
+        # definition stopped being mirrored there answers these; one written since reports the
+        # absence honestly rather than inventing a catalog answer there is none of.
         if it is None:
             raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
         data.update(

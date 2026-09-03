@@ -190,25 +190,10 @@ Editing `src/squads/_specs/workflow.toml` and adding templates under
 
 _Add with `sq task 830 add-subtask "<title>"`; track with `sq task 830 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | [views] as a keyed section of the workflow document | US1 |
-| ST2 | Done |  | The projection engine and its uniform record shape | US1 |
-| ST3 | Done |  | Presentation as a bundled, overridable template | US2 |
-| ST4 | Done |  | The --json contract and the sq workflow views catalog row | US2 |
-| ST5 | Done |  | Prove the declaration expresses the sub-entity summary shape | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — [views] as a keyed section of the workflow document
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Register `[views]` as a keyed section of the **workflow document**, so the whole override
@@ -248,11 +233,6 @@ view-specific merge, stamp or deselect code was written.
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — The projection engine and its uniform record shape
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Build the projection: resolve a view's source, carry the declared fields, group and order, and
@@ -299,11 +279,6 @@ branching on which view produced them, and no vocabulary literal appears outside
 <!-- sq:subtask:ST3 -->
 ### ST3 — Presentation as a bundled, overridable template
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Render a view's records through a **Jinja2 template**, resolved by the one engine every rendering
 path already uses (`_rendering/_engine.py`, `StrictUndefined`).
@@ -344,11 +319,6 @@ project-level template override is driven and wins, and the manifest is fresh wi
 <!-- sq:subtask:ST4 -->
 ### ST4 — The --json contract and the sq workflow views catalog row
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — The JSON contract and the presentation layer over it
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 Publish the projection as data and give the spec section its catalog row.
 
@@ -385,11 +355,6 @@ view with a complete row.
 
 <!-- sq:subtask:ST5 -->
 ### ST5 — Prove the declaration expresses the sub-entity summary shape
-
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — View declaration and the projection data model
-<!-- sq:subtask:ST5:head:end -->
 
 <!-- sq:subtask:ST5:body -->
 Prove the declaration is expressive enough to describe the **shipped** sub-entity roll-up summary

@@ -140,26 +140,10 @@ Every help surface that already enumerates the addressed verb set must gain the 
 
 _Add with `sq task 695 add-subtask "<title>"`; track with `sq task 695 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Register the status verb on all three roster address subgroups | US1 |
-| ST2 | Done |  | Match the work-item status verb's --force and error shape | US1 |
-| ST3 | Done |  | Derive allowed targets from the addressed type's lifecycle | US2 |
-| ST4 | Done |  | Add the verb to the addressed-verb help and grammar blocks | US3 |
-| ST5 | Done |  | Add the verb to the roster grammar lines in README and docs | US3 |
-| ST6 | Done |  | Cover the verb with a service test and a CLI smoke test | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Register the status verb on all three roster address subgroups
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a manager, I can set a role's/skill's/operator's status from the CLI
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 One shared registration used by all three `_addr` subgroups in `_cli/_role.py`, `_cli/_skill.py`,
@@ -188,11 +172,6 @@ the frontmatter `status` through `Service.set_status`.
 <!-- sq:subtask:ST2 -->
 ### ST2 — Match the work-item status verb's --force and error shape
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a manager, I can set a role's/skill's/operator's status from the CLI
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Behaviour parity with the work-item `status` verb, verb-for-verb:
 
@@ -217,11 +196,6 @@ indistinguishable from the work-item verb's, modulo the type and status names in
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Derive allowed targets from the addressed type's lifecycle
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As an adopter, a custom roster lifecycle gets the same command for free
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 The allowed target set is read from the addressed type's own declared lifecycle —
@@ -253,11 +227,6 @@ an end-to-end run against a renamed roster lifecycle.
 <!-- sq:subtask:ST4 -->
 ### ST4 — Add the verb to the addressed-verb help and grammar blocks
 
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a team, the generated CLI help and skill text teach the new verb
-<!-- sq:subtask:ST4:head:end -->
-
 <!-- sq:subtask:ST4:body -->
 Every in-CLI surface that already enumerates the addressed verb set gains the new verb, so the
 command is discoverable rather than merely present:
@@ -286,11 +255,6 @@ each name the new verb.
 <!-- sq:subtask:ST5 -->
 ### ST5 — Add the verb to the roster grammar lines in README and docs
 
-<!-- sq:subtask:ST5:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a team, the generated CLI help and skill text teach the new verb
-<!-- sq:subtask:ST5:head:end -->
-
 <!-- sq:subtask:ST5:body -->
 The adopter-facing docs that already spell out the roster address grammar gain the new verb.
 Grammar-line edits only — no new prose sections, no restructuring, and nothing about how the change
@@ -318,11 +282,6 @@ Done when the three files describe the verb and the meta suite is green.
 
 <!-- sq:subtask:ST6 -->
 ### ST6 — Cover the verb with a service test and a CLI smoke test
-
-<!-- sq:subtask:ST6:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a manager, I can set a role's/skill's/operator's status from the CLI
-<!-- sq:subtask:ST6:head:end -->
 
 <!-- sq:subtask:ST6:body -->
 Two homes, both existing files, tests named by behaviour with no ticket ID anywhere in a file name,

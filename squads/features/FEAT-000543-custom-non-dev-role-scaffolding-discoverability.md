@@ -95,22 +95,10 @@ resolver/activation path already in place, not the item-type/category system.
 
 _Add with `sq feature 543 add-story "As a <role>, I want … so that …"`; track with `sq feature 543 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Scaffold a net-new custom role slug |
-| US2 | Todo |  | Activate a custom role end-to-end, incl. can_spawn opt-in |
-| US3 | Todo |  | Surface custom-role discoverability in catalog/help/docs |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Scaffold a net-new custom role slug
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Extend 'sq override scaffold' with a net-new-slug path: 'sq override scaffold role --new <slug>' writes '.overrides/roles/<slug>.toml' stamped 'squads:override-base:<version>', with full_name/title/description/mission stubbed and responsibilities/agreements/model/color commented out. Refuses to clobber an existing file without --force. No 'sq role add' one-shot command.
@@ -125,10 +113,6 @@ Extend 'sq override scaffold' with a net-new-slug path: 'sq override scaffold ro
 <!-- sq:story:US2 -->
 ### US2 — Activate a custom role end-to-end, incl. can_spawn opt-in
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Confirm/harden the existing 'sq role activate <slug>' path for a hand-edited net-new TOML: creates the tracked ROLE item + '.claude/' pointer, same as a bundled slug. 'can_spawn = true' in the TOML (and/or a scaffold flag) opts a custom role into spawning; default is false. Note the tension with ADR-155 (leaf roles can't spawn) as context for the architect — chosen policy here is opt-in and allowed.
 <!-- sq:story:US2:body:end -->
@@ -141,10 +125,6 @@ Confirm/harden the existing 'sq role activate <slug>' path for a hand-edited net
 
 <!-- sq:story:US3 -->
 ### US3 — Surface custom-role discoverability in catalog/help/docs
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 'sq role catalog' output and 'sq role activate --help' text mention that a wholly custom non-dev role is possible and point at 'sq override scaffold role --new <slug>'. Any relevant docs (override/customization docs) get the same pointer.

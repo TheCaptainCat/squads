@@ -48,24 +48,10 @@ Cover the board behaviour through the service and CLI, per the repo testing conv
 
 _Add with `sq task 387 add-subtask "<title>"`; track with `sq task 387 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Test post writes notice + hash id + index; distinct ids | US1 |
-| ST2 | Done |  | Test list ordinal; expired filtered; no spurious diffs | US3 |
-| ST3 | Done |  | Test clear resolves ordinal to hash and deletes; out-of-range error | US4 |
-| ST4 | Done |  | Test boot surfacing excludes expired; empty surfaces nothing | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Test post writes notice + hash id + index; distinct ids
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As a lead or operator, I can post a notice to the board with an optional expiry so the team sees it
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Post writes a notice `.md` with a short-hash id and regenerates `.index.jsonl`. Assert the global counter is not advanced and independent posts get distinct ids (no merge collision).
@@ -80,11 +66,6 @@ Post writes a notice `.md` with a short-hash id and regenerates `.index.jsonl`. 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Test list ordinal; expired filtered; no spurious diffs
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As anyone, I can list current notices to see what's active
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 `list` shows unexpired notices with the correct entry-line ordinal (header excluded); expired notices are filtered at read time; listing mutates no git-tracked files.
 <!-- sq:subtask:ST2:body:end -->
@@ -98,11 +79,6 @@ Post writes a notice `.md` with a short-hash id and regenerates `.index.jsonl`. 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Test clear resolves ordinal to hash and deletes; out-of-range error
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As a lead or operator, I can clear a notice that no longer applies
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `clear <n>` resolves the n-th live entry line to the hash id and removes the file (real deletion); an out-of-range ordinal raises a clean error.
 <!-- sq:subtask:ST3:body:end -->
@@ -115,11 +91,6 @@ Post writes a notice `.md` with a short-hash id and regenerates `.index.jsonl`. 
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Test boot surfacing excludes expired; empty surfaces nothing
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As any agent, current board notices are surfaced at the start of a run so I'm aware of standing notices
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Boot surfacing includes unexpired notice content and excludes expired ones; an empty or all-expired board surfaces nothing. Board sits outside `.squads.json`; `sq repair` ignores it.

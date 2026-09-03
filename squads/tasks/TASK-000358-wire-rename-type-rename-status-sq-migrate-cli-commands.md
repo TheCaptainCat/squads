@@ -34,22 +34,10 @@ Files owned: src/squads/_cli/_migrate.py, tests/test_cli_migrate.py (or the exis
 
 _Add with `sq task 358 add-subtask "<title>"`; track with `sq task 358 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | sq migrate rename-type CLI command | US1 |
-| ST2 | Todo |  | sq migrate rename-status CLI command | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq migrate rename-type CLI command
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a project admin, I want sq migrate rename-type to safely rename a built-in type across my whole squad
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Wired `sq migrate rename-type <old-type> <new-type>` as a sibling of `repad` in `_cli/_migrate.py`, calling `svc.rename_type(...)` and printing a green summary (type transition, count renamed, index rebuilt). It carries no `SCHEMA_VERSION` bump and no `_registry.py` entry — an on-demand, project-invoked data rewrite — and service refusals surface as a clean exit 1 through the existing error handler.
@@ -63,11 +51,6 @@ Wired `sq migrate rename-type <old-type> <new-type>` as a sibling of `repad` in 
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — sq migrate rename-status CLI command
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a project admin, I want sq migrate rename-status to safely rename a status across all items of a type
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Wired `sq migrate rename-status <type> <old-status> <new-status>` alongside rename-type, calling `svc.rename_status(...)` and printing the status transition plus count renamed (deliberately not rendering `RenameResult`'s id pairs, which are unchanged for a status rename). Same shape as repad: no schema bump, no registry entry, clean exit 1 on refusal.

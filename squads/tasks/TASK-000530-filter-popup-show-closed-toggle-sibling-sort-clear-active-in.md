@@ -81,22 +81,10 @@ indicator).
 
 _Add with `sq task 530 add-subtask "<title>"`; track with `sq task 530 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Show-closed toggle reveals/hides terminal items | US3 |
-| ST2 | Done |  | Sibling sort (TUI-side) + clear/reset + active-filter indicator | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Show-closed toggle reveals/hides terminal items
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — Show-closed toggle reveals and hides terminal items
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Show-closed toggle in FilterScreen bound to BrowseState.include_closed; applying with it on passes include_closed=True to tree_view, revealing terminal/Done items; off hides them. Done: toggle reveals/hides terminal items in the tree.
@@ -110,11 +98,6 @@ Show-closed toggle in FilterScreen bound to BrowseState.include_closed; applying
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Sibling sort (TUI-side) + clear/reset + active-filter indicator
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — Choose sibling sort order, clear/reset filters, see active-filter indicator
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 SortKey on BrowseState reorders siblings within each level of the tree_view forest TUI-side before population (id default, badge field, status, title, last-updated via Item fields; recurse, never across levels); no sort pushed to the service. Clear/reset returns filters+show-closed+sort to default in one step. Active-filter indicator on BrowseScreen derived from BrowseState, shown when any dimension/show-closed/non-default sort is active. Done: siblings reorder per key, clear->default, indicator on/off.

@@ -50,23 +50,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 443 add-finding "…" --severity medium`; track with `sq review 443 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | sq mine --json emits the item shape without the new is_open key |
-| F2 | 🟢 low | Fixed |  | release.yml pins softprops/action-gh-release to mutable @v2 under contents:write |
-| F3 | 🟢 low | Fixed |  | No .vscodeignore: the VSIX will bundle src/, test/ and fixtures |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sq mine --json emits the item shape without the new is_open key
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 TASK-439 enriched sq list --json (line 410) and sq tree --json (line 513), both correct. But sq mine --json (_main.py line 886) emits the same Item shape via [i.model_dump(mode='json') for i in items] WITHOUT is_open — the one sibling item-list JSON surface left un-enriched.
@@ -82,11 +69,6 @@ Out of TASK-439's stated scope (list + tree only), and the VS Code client does n
 
 <!-- sq:finding:F2 -->
 ### F2 — release.yml pins softprops/action-gh-release to mutable @v2 under contents:write
-
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 release.yml runs with 'permissions: contents: write' and uploads the VSIX release asset via 'softprops/action-gh-release@v2'. @v2 is a mutable major-version tag on a third-party action; the other actions in this workflow are exact-pinned (checkout@v6.0.3, setup-python@v6.2.0, setup-uv@v8.2.0). A third-party action that runs with write permission on releases is the highest-value supply-chain target here — pin it to an exact version or a commit SHA so a compromised/retagged @v2 can't silently gain write access at release time. Low, hardening only; not a functional defect.
@@ -104,11 +86,6 @@ release.yml runs with 'permissions: contents: write' and uploads the VSIX releas
 
 <!-- sq:finding:F3 -->
 ### F3 — No .vscodeignore: the VSIX will bundle src/, test/ and fixtures
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 clients/vscode/ has no .vscodeignore, so 'vsce package' will include everything not covered by defaults — src/, test/, test/fixtures/, tsconfig, eslint/prettier config — not just the compiled out/ + package.json + README. Two consequences: (1) packaging bloat (source + tests shipped to end users); (2) test/fixtures/show-raw.txt contains internal item IDs (ADR-427, TASK-428, TASK-434 — legitimate test data under the hygiene carve-out) which would then ship inside the public VSIX. Both are minor and inert, but a .vscodeignore excluding src/**, test/**, and config files is the clean fix — recommend adding one before the first real release cut. Low; TASK-433 wires the release correctly, this is packaging hygiene on top.

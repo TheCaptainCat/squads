@@ -40,9 +40,6 @@ Alongside the category map, migrate the type/status wiring off the removed is_op
 
 _Add with `sq task 600 add-subtask "<title>"`; track with `sq task 600 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

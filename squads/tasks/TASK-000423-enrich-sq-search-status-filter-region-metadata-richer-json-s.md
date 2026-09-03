@@ -62,24 +62,10 @@ Service-level test for the structured result (region attribution + `--status` AN
 
 _Add with `sq task 399 add-subtask "<title>"`; track with `sq task 399 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Add --status filter, AND-composed with query and --type | US3 |
-| ST2 | Done |  | Return region/authority + snippet per hit; item type/status per result; console escaped | US2 |
-| ST3 | Done |  | Richer --json superset shape (type/status/region/snippet/location), documented + stable | US4 |
-| ST4 | Done |  | squads skill: finding things across the board section | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Add --status filter, AND-composed with query and --type
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As a steering user, I can narrow the search with structured filters so I can audit a slice
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Thread `list_items`'s existing `status=` dimension into search; AND with query and `--type`. Reuse the status parsing the `list`/`tree` commands use.
@@ -94,11 +80,6 @@ Thread `list_items`'s existing `status=` dimension into search; AND with query a
 <!-- sq:subtask:ST2 -->
 ### ST2 — Return region/authority + snippet per hit; item type/status per result; console escaped
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As a steering user, results show where each match is and its authority so I can judge relevance
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Change the service to return structured hits: each result carries item type + status, each hit carries its region (body / a specific discussion comment / a named sub-entity) and an in-context snippet. Attribute region during the whole-file scan. Console rendering stays escaped via `e()`.
 <!-- sq:subtask:ST2:body:end -->
@@ -112,11 +93,6 @@ Change the service to return structured hits: each result carries item type + st
 <!-- sq:subtask:ST3 -->
 ### ST3 — Richer --json superset shape (type/status/region/snippet/location), documented + stable
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an agent, I can get search results as JSON so a session can act on them programmatically
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Grow `--json` to a documented, stable superset of `{id,title,hits}` adding type/status and per-hit region + snippet/location. Match the shape/doc style of the other `--json` surfaces; document it in the command docstring.
 <!-- sq:subtask:ST3:body:end -->
@@ -129,11 +105,6 @@ Grow `--json` to a documented, stable superset of `{id,title,hits}` adding type/
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — squads skill: finding things across the board section
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As an agent, the squads skill teaches when to reach for search so it's used for steering not as a ritual
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Add a 'finding things across the board' section to the squads skill: `sq search`, its `--type`/`--status` filters, and its output incl. region metadata. Frame it as a steering/scoping move, not a boot ritual. No new skill.

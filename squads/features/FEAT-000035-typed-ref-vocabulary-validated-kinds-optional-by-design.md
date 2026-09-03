@@ -100,23 +100,10 @@ refusing), which is exactly why it must happen in 0.x.
 
 _Add with `sq feature 35 add-story "As a <role>, I want … so that …"`; track with `sq feature 35 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Unknown ref kind rejected immediately with the valid vocabulary |
-| US2 | Done |  | Untyped refs remain first-class: context links without taxonomy |
-| US3 | Done |  | Single canonical kinds table: direction and consumers documented |
-| US4 | Done |  | depends-on authorable from the dependent without touching the blocker |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Unknown ref kind rejected immediately with the valid vocabulary
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 As a user adding a typed ref, I want a typo'd kind rejected on the spot with the valid vocabulary, so that I can't silently create an edge nothing consumes.
@@ -131,10 +118,6 @@ As a user adding a typed ref, I want a typo'd kind rejected on the spot with the
 <!-- sq:story:US2 -->
 ### US2 — Untyped refs remain first-class: context links without taxonomy
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 As a user linking context, I want plain untyped refs to stay first-class, so that not every link needs a taxonomy decision.
 <!-- sq:story:US2:body:end -->
@@ -148,10 +131,6 @@ As a user linking context, I want plain untyped refs to stay first-class, so tha
 <!-- sq:story:US3 -->
 ### US3 — Single canonical kinds table: direction and consumers documented
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 As a team member learning the system, I want one documented table of kinds with direction and consumers, so that I pick the right kind without archaeology across five docs.
 <!-- sq:story:US3:body:end -->
@@ -164,10 +143,6 @@ As a team member learning the system, I want one documented table of kinds with 
 
 <!-- sq:story:US4 -->
 ### US4 — depends-on authorable from the dependent without touching the blocker
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 As a user drafting an item that needs another one first, I want to record depends-on from the item I'm editing, so that dependencies are authorable without touching the blocker.

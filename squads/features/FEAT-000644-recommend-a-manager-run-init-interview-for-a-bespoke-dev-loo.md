@@ -48,21 +48,10 @@ updated_at: '2026-09-01T08:04:01Z'
 
 _Add with `sq feature 644 add-story "As a <role>, I want … so that …"`; track with `sq feature 644 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Recommend an init-time interview in docs/agents.md |
-| US2 | Done |  | Ship the seven-area interview checklist as offered prompts |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Recommend an init-time interview in docs/agents.md
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **As an operator opening a new squad, I want the docs to recommend an init-time
@@ -110,10 +99,6 @@ Don't restate the flow in three places — one home, linked from the others.
 
 <!-- sq:story:US2 -->
 ### US2 — Ship the seven-area interview checklist as offered prompts
-
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
 
 <!-- sq:story:US2:body -->
 **As the manager running an init-time interview, I want a suggested checklist of

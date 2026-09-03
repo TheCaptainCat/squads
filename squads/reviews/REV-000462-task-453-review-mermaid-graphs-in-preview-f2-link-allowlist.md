@@ -37,24 +37,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 462 add-finding "…" --severity medium`; track with `sq review 462 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Open |  | CSP/mermaid render path is sound but unverified in a live webview host |
-| F2 | 🟢 low | Fixed |  | F2 link-scheme allowlist: no bypass found, well-tested |
-| F3 | 🟢 low | Open |  | Graph builders are mermaid-injection-safe and match the core CLI convention |
-| F4 | 🟢 low | Open |  | Packaging clean; vsce large-file warning benign |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — CSP/mermaid render path is sound but unverified in a live webview host
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Assessment of Ada's nonce-injection technique (previewDocument.ts mermaidRenderScript + itemPreviewManager render()): SOUND, and I recommend keeping it over the unsafe-inline fallback.
@@ -79,11 +65,6 @@ My call on nonce-injection vs. the documented fallback (narrow style-src 'unsafe
 <!-- sq:finding:F2 -->
 ### F2 — F2 link-scheme allowlist: no bypass found, well-tested
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 markdown.ts renderLink + isSafeLinkUrl: SAFE_LINK_SCHEME=/^(https?|mailto):/i applied to url.trim(); a url that is itself a bare item id routes through the internal a.sq-item-link mechanism; everything else is dropped to escaped visible text. No bypass found:
 
@@ -103,11 +84,6 @@ Well-tested (test/markdown.test.ts: safe/unsafe/case-insensitive/relative/protoc
 
 <!-- sq:finding:F3 -->
 ### F3 — Graph builders are mermaid-injection-safe and match the core CLI convention
-
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 graphDiagrams.ts — both builders are mermaid-injection-safe and correct:
@@ -129,11 +105,6 @@ Tested against literal cases (incl. <script>, a|b) + the committed tree.json/gra
 
 <!-- sq:finding:F4 -->
 ### F4 — Packaging clean; vsce large-file warning benign
-
-<!-- sq:finding:F4:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
 
 <!-- sq:finding:F4:body -->
 Packaging verified clean:

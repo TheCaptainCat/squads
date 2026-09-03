@@ -33,22 +33,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 285 add-finding "…" --severity high`; track with `sq review 285 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Open |  | TASK-277 done-report says '23 tests'; test_workflow_lint.py has 15 |
-| F2 | 🟢 low | Open |  | TASK-277: test_ac5_...drops_live_status name overstates its body (asserts success); pre-existing, not introduced |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — TASK-277 done-report says '23 tests'; test_workflow_lint.py has 15
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 The dev's done-comment on TASK-277 (and the manager brief) states '23 new tests' in tests/test_workflow_lint.py. The file actually defines 15 test functions. Coverage itself is complete for AC#5 (both failure modes at unit/lint/CLI levels + branching-terminal-via-side-path + green case + bundled-spec regression guard), so this is an accuracy issue in the report, not a coverage gap. Recommend not blocking on it; flag for the record.
@@ -62,11 +50,6 @@ The dev's done-comment on TASK-277 (and the manager brief) states '23 new tests'
 
 <!-- sq:finding:F2 -->
 ### F2 — TASK-277: test_ac5_...drops_live_status name overstates its body (asserts success); pre-existing, not introduced
-
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 test_ac5_open_service_fails_closed_when_override_drops_live_status asserts BOTH open_service calls SUCCEED (is not None) because no live items exist, so the cross-check passes — the name promises a fail-closed assertion the body does not make. This predates TASK-277 (the fixture edit only added a reachable terminal so the spec is otherwise-valid; intent preserved). Not introduced by this task; noting so it isn't mistaken for a regression.

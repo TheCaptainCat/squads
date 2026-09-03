@@ -35,9 +35,6 @@ Data layer for the VS Code full-text search QuickPick (US1 foundation). Read-onl
 
 _Add with `sq task 558 add-subtask "<title>"`; track with `sq task 558 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

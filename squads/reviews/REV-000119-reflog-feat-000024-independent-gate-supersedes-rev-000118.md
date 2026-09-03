@@ -69,25 +69,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 119 add-finding "…" --severity high`; track with `sq review 119 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟢 low | Fixed |  | Stale 'no-op until TASK-112' docstrings now factually wrong (two sites) |
-| F2 | 🟢 low | Fixed |  | Inaccurate actor-reset comment in _cli/__init__.py |
-| F3 | 🟢 low | Open |  | op/delta double-key: outer op='subentity'/'migrate' with inner delta['op'] |
-| F4 | 🟢 low | Fixed |  | No autouse actor-reset fixture in conftest (test hygiene) |
-| F5 | 🟢 low | Open |  | Reflog 'v' reuses index SCHEMA_VERSION (coupled bumps) |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Stale 'no-op until TASK-112' docstrings now factually wrong (two sites)
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 Two docstrings still claim the reflog writer is unwired, which is now false:
@@ -108,11 +93,6 @@ Impact: documentation only; misleads the next reader into thinking removal is un
 <!-- sq:finding:F2 -->
 ### F2 — Inaccurate actor-reset comment in _cli/__init__.py
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 src/squads/_cli/__init__.py:67-68 comment: 'The try/finally in the hook clears it per-invocation so state never leaks between calls (same hygiene as the clock).'
 
@@ -130,11 +110,6 @@ Impact: misleading comment; the behaviour is correct (verified: no leak across C
 <!-- sq:finding:F3 -->
 ### F3 — op/delta double-key: outer op='subentity'/'migrate' with inner delta['op']
 
-<!-- sq:finding:F3:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 subentity and repad log lines carry an outer op (op='subentity' or op='migrate') plus a nested delta['op'] (delta={'op':'add'|'status'|'update'|'body'|'repad', ...}).
 
@@ -150,11 +125,6 @@ Impact: a reader scanning for 'the op' must know to read the outer key for the c
 <!-- sq:finding:F4 -->
 ### F4 — No autouse actor-reset fixture in conftest (test hygiene)
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 test_reflog_core.py has an autouse _reset_actor fixture, but test_reflog_read.py::test_read_reflog_filter_by_actor sets the ambient actor to 'python-dev' then 'system' with no reset, and conftest.py has autouse resets only for the clock and engine state — not the actor.
 
@@ -169,11 +139,6 @@ Impact: the global actor override is left at 'system' (not None) after that test
 
 <!-- sq:finding:F5 -->
 ### F5 — Reflog 'v' reuses index SCHEMA_VERSION (coupled bumps)
-
-<!-- sq:finding:F5:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 The reflog line 'v' field is set to the index SCHEMA_VERSION ('0.3') in src/squads/_index/_reflog.py. ADR-117 §4 says v should be 'consistent with the SCHEMA_VERSION dotted-string convention', which this satisfies, but reusing the same constant couples the reflog line version to the index schema version — they bump together even when only one format changes.

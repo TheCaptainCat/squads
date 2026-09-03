@@ -34,9 +34,6 @@ Story: US5 (REV-448 F21, Low). **Discipline: CLIENT / TypeScript** (`clients/vsc
 
 _Add with `sq task 479 add-subtask "<title>"`; track with `sq task 479 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

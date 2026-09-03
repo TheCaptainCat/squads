@@ -3,7 +3,7 @@ id: TASK-853
 sequence_id: 853
 type: task
 title: Render the role definition at read time and stop storing it
-status: InProgress
+status: InReview
 parent: FEAT-694
 author: tech-lead
 priority: high
@@ -25,12 +25,14 @@ subentities:
   status: Done
 - local_id: ST4
   title: Stop writing the role extra mirror keys
-  status: Todo
+  status: Done
+  assignee: python-dev
 - local_id: ST5
   title: Narrow PERMITTED_EXTRA_SKEW, its pin, and the settable fields
-  status: Todo
+  status: Done
+  assignee: python-dev
 created_at: '2026-09-01T08:43:24Z'
-updated_at: '2026-09-02T10:03:22Z'
+updated_at: '2026-09-02T10:55:49Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -308,6 +310,26 @@ the narrowing unnoticed.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-09-02T10:53:21Z] Elias Python:
+  - Built. The role `extra` mirror is no longer written by any path.
+    
+    **What I cut.** `_EXTRA_FIELD_KEYS` (`_roles/_catalog.py`) is now `(slug,)`; a second table `_DEV_EXTRA_FIELD_KEYS` holds `model`, and `to_extra(*, is_dev=False)` writes it only when the caller says the item is a developer. `is_dev` is a parameter, not `slug.endswith("-dev")`: the marker lives on the item, and both callers already know which shape they are writing (`add_dev`, and the reconciler reading `extra.is_dev` back off the item). `_RECONCILED_EXTRA_KEYS` is gone with `description`, its only member.
+    
+    **The producer the ticket did not name, and it mattered.** `activate_role` and `add_dev` do *not* just spread `to_extra()` — both wrote `X.DESCRIPTION: role.description` explicitly in the create literal. Narrowing the table alone would have left `description` on every new role item. Removed from both. That is exactly the "verify rather than assume" this subtask asked for, and the answer was no.
+    
+    **The role body writer retired too.** `sq dev add --tech rust` was still storing a 54-line rendered definition; `_create_core` now empties the `sq:body` region for a role after rendering (the scaffold still has to render — `agents/role.md.j2` is both the file scaffold and the read-time definition, so it needs a complete `RoleDef` regardless — but its body is discarded). Markers kept, region empty: a removed region is what `show` reads as "no item for this slug".
+    
+    **What I deliberately left.**
+    - `_ITEM_FIELD_PROJECTION` untouched: `item.title` from `full_name`, `item.description` from `mission`.
+    - `is_dev`/`tech`/`is_default` still stored, written only by their own verbs.
+    - The migration runner's frozen local copy (`_v0_11_to_v0_14.py`) still reads `extra` — the permitted exception.
+    - `dev_base_from_item`'s bare `item.extra[X.MODEL]` subscript. Left loud on purpose: `model` is a *retained* key for a dev role, so a missing one is a corpus defect a sweep should not be able to cause silently. Flagging it rather than softening it.
+    
+    **One thing this ticket's own body has wrong.** "`RoleDef.from_extra` retires here. It was left in place through stage 1 with no call sites deliberately" — it had one: `resolve_role_for_item`'s orphaned-custom-role fallback (`_roles/_resolver.py`). That call site is why retiring it naively would have been a crash: after this change `extra[X.FULL_NAME]` is a `KeyError` on every role. Folded onto `from_extra_or_item`, which already takes the item's own `title`/`slug`/`description` as fallbacks and therefore reads *both* corpus vintages — mirror present and mirror absent — with no subscript. `_fallback_full_name` went with it.
+    
+    **A read-boundary defect found on the way.** `from_extra_or_item` documented "absent *or* blank, treated alike" and implemented `extra.get(k) or fallback` — a stored `"   "` is truthy, so it went straight through to `RoleDef.__post_init__`'s refusal. That is the v0.13.0 blank-name corpus, and the old `from_extra` did tolerate it. Fixed in `_or_fallback`, one place for every field, and the docstring now states what the code does.
+    
+    Driven, not asserted — fresh scratch squad, `init --roles core` + `dev add --tech rust` + `sync`: a bundled role's whole `extra` is `{slug: architect}`, a dev's is `{slug, model, is_dev, tech}`, every `sq:body` region present and empty, `sq check` clean. `.claude/` and `CLAUDE.md` byte-identical against the same drive on the pre-change tree, roster held constant. And the named failure driven end to end: hand-strip a legacy corpus to the post-sweep shape, `sq repair`, then `sq sync` — nothing comes back, including for a bundled role reduced to `{slug}` alone, with `sq role show` still rendering the full definition.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -347,6 +369,20 @@ should not.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-09-02T10:53:44Z] Elias Python:
+  - Built. `PERMITTED_EXTRA_SKEW` is `{slug, model}`, its pin says so and why, and `_ROLE_FIELDS` matches.
+    
+    **The pin.** `tests/unit/test_role_def_extra_keys.py` keeps its literal (a small set is exactly when an accidental re-widening is easiest to miss) and its docstring now names what left and that narrowing is the safe direction. Added a positive clause beside it — `to_extra()` stores none of the eight definition keys, for a bundled role and a dev one — so the removal is guarded rather than merely absent. The two `description`-specific tests were re-pointed to assert its *absence*; `test_can_spawn_round_trips_through_extra_both_ways` was deleted, its subject having been removed (the field's values stay pinned by the other three tests in that file, and its surfacing by `test_can_spawn_surfaces.py`).
+    
+    **`_ROLE_FIELDS`** is now `(model, is_default, tech)`. The refusal for a removed key names where the value lives now, via `_refusal_hint`: `full_name` → the item's own `title` (`sq role activate --name` / `sq dev add --name`), the rest → `.overrides/roles.toml` or `.overrides/roles/<slug>.toml`. The role clauses are gated on `item_type == "role"` and come *before* the `GLOBAL_FIELDS` clause, for the reason this subtask flagged: `title` means two different things on a role item, and the old ordering would have sent an operator to `--title` (which sets the person's name) for a value that is now a catalog answer. A skill's own `title`/`description`/`model` still gets its own refusal with no role-override remedy in it — pinned by a test.
+    
+    **Same defect one document over.** `set_body`'s roster refusal named `sq update --set …` as the remedy, which after this narrowing would be a remedy that no longer applies. Split: a role now gets the override-document remedy, any other roster type a plain "generated, not authored".
+    
+    **The skew discriminator** was already off `extra.mission` (stage 1), as this subtask says — verified, not assumed.
+    
+    **What the narrowing broke, and it was mine.** `is_default` leaving the table means the role the *catalog* designates holds the designation with nothing stored at all. Four readers asked `extra.is_default` raw, so they stopped seeing it: `set_default_role`'s clearing loop (which then cleared nobody and left two live defaults — driven, `sq role list` showed `manager ✓` and `rust-dev ✓` at once), `sq check`'s duplicate-holder report, the retirement warning, and the lane exemption. All four now go through one seam, `holds_default_designation` (`_roles/_resolver.py`), which resolves and falls back to the stored key only when a broken override document makes resolution refuse — narrower reading, never wider, so it can only under-report. Clearing writes an explicit `False`, which is the only thing that can override a declared designation.
+    
+    Driven for both role shapes: `set-default` on a bundled role and on a dev role, each followed by `sync` → `repair` → `sync`, exactly one holder throughout and the compiled `CLAUDE.md` default-role line naming it; `sq check` clean. Falsified both new guards — restore the raw read and four tests redden; restore either mirror writer and five redden.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 <!-- sq:subtasks:end -->
@@ -412,4 +448,15 @@ should not.
   - Reopened Done->InProgress. I moved this to Done with ST4 and ST5 still at Todo, to unblock the corpus strip. That was the same error the capstone task was reopened for earlier in this release, and this time it was mine rather than an agent's.
   - It also bought nothing: the strip's role half is now Blocked on exactly the stage I waved through. Driven by the strip's implementer — empty a role body, strip all ten mirror keys, sq repair, then sq sync, and _refresh_catalog_extra writes every key back. That is the decision record's named failure verbatim: strip on repair, restore on sync.
   - Not amending the acceptance. ST4 and ST5 are the work; they get built.
+- [2026-09-02T10:55:49Z] Elias Python:
+  - ST4 and ST5 built; stage 3 is done and the corpus strip's role half is unblocked. Detail on each subtask's own discussion; the cross-cutting points are here.
+    
+    - **Nothing writes the mirror or the role body.** `to_extra()` is `{slug}` (+ `model` for a developer), `activate_role`/`add_dev` no longer write `description` explicitly, and `_create_core` empties a role's `sq:body` region. Driven on a fresh squad and on a hand-stripped legacy corpus: `sq repair` then `sq sync` restores none of the ten names, for a bundled role, a dev role, and a bundled role reduced to `{slug}` alone.
+    - **Two corrections to this ticket's own body.** `RoleDef.from_extra` was *not* call-site-free — `resolve_role_for_item`'s orphaned-role fallback used it, and retiring it naively would have made every post-change role item a `KeyError` at that boundary. And `activate_role`/`add_dev` did *not* follow the narrowed table with no edit: both wrote `extra.description` outside `to_extra()`.
+    - **A regression I introduced and closed.** `is_default` leaving the table means the catalog's designated role holds the designation with nothing stored, and four raw `extra.is_default` readers stopped seeing it — `set_default_role` cleared nobody and left two live defaults. All four now go through one resolved seam. Driven across `sync` and `repair` for a bundled role and a dev role: exactly one holder, the compiled default-role line naming it, `sq check` clean.
+    - **For the strip's role half (`sq task 849`), one line to change with it.** `_sweep_empties_body`'s docstring still says "A role's body is not emptied here. Its writer has not retired — activating a role still renders the definition into the region." That writer has now retired, so the sentence is false as of this change. It sits in the strip's own uncommitted work, which I left alone.
+    
+    Gates on the final tree: `uv run --all-extras pytest` → **4486 passed, 8 skipped in 73.53s** (baseline 4471/8; +16 new, −1 removed for behaviour that no longer exists). `pyright` 0 errors, `ruff check`/`format --check` clean, `sq check` clean. One data file regenerated the sanctioned way: `tests/goldens/list.json` (`UPDATE_GOLDENS=1`), diff is one role's `extra` shrinking to `{slug}` and nothing else. No bundled template or spec touched, so no manifest regeneration is owed.
+    
+    @tech-lead ready for review.
 <!-- sq:discussion:end -->

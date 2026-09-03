@@ -48,21 +48,10 @@ The **only** offender is the generated CLAUDE.md section template:
 
 _Add with `sq task 55 add-subtask "<title>"`; track with `sq task 55 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Rewrite CLAUDE.md impersonation paragraph to direct to sq role show | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Rewrite CLAUDE.md impersonation paragraph to direct to sq role show
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As an agent following the onboarding texts, I want every read they prescribe to be an sq command, so that one interface covers work and identity — locally and, someday, remotely
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Rewrite the CLAUDE.md impersonation paragraph to direct to sq role show; verify the rest of the generated onboarding text is path-free and sync propagates.

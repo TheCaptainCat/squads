@@ -62,21 +62,10 @@ under the TASK-275 guard.
 
 _Add with `sq task 278 add-subtask "<title>"`; track with `sq task 278 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | sq list --status + default filter + blocked + inbox honor custom statuses | US1 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — sq list --status + default filter + blocked + inbox honor custom statuses
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US1 — As a team member, I want sq list --status and sq blocked to work correctly with my custom statuses
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers characterization + regression proving that custom statuses flow through every query/filter surface: `parse_status`, `sq list --status`, the `sq list` default (open-only) filter, `sq blocked`, and `sq inbox` all classify items by the loaded spec's custom statuses (open/terminal is already spec-derived via `self.spec.is_open(status)`). Adds an end-to-end `.overrides/workflow.toml` with a custom non-terminal status (e.g. Triage) and a custom terminal status (e.g. Resolved) and asserts each surface's behavior — list-by-status returns the item, the default filter hides terminal / shows non-terminal, blocked treats a non-terminal blocker as blocking and a terminal one as cleared, inbox suppresses terminal-status mentions — plus the unknown-`--status` actionable error. Fixes any residual hardcoded `TERMINAL`/`Status(...)`/enum-membership found in services/CLI. (US1)

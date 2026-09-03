@@ -62,22 +62,10 @@ green going forward (and is the slug authority FEAT-220 will validate against).
 
 _Add with `sq task 224 add-subtask "<title>"`; track with `sq task 224 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Golden-lock test: loaded catalog == frozen snapshot of today's _catalog.py | US2 |
-| ST2 | Todo |  | Build test: roles.toml ships in the wheel | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Golden-lock test: loaded catalog == frozen snapshot of today's _catalog.py
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a maintainer, I want a golden test asserting the loaded catalog == today's hardcoded roles so regressions are caught
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Covers the role-catalog golden-lock test: build the snapshot directly from today's `PREDEFINED`/`BUNDLES`/`DEV_NAME_POOL` and assert structural equality with the loaded `RoleCatalogSpec` across all 8 roles' every field (slug/full_name/title/description/mission/responsibilities/agreements/model/color/is_default/can_spawn), the three bundles and their exact membership, and the dev pool (12 names + defaults), plus a `dev_role("dotnet", seq=0)` spot-check. Fails on any field drift; CI-enforced. (US2)
@@ -91,11 +79,6 @@ Covers the role-catalog golden-lock test: build the snapshot directly from today
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Build test: roles.toml ships in the wheel
-
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-**Implements:** US2 — As a maintainer, I want a golden test asserting the loaded catalog == today's hardcoded roles so regressions are caught
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Covers the packaging verification: a build/packaging test asserting `roles.toml` is present in the built wheel, mirroring the existing templates/workflow-toml-in-wheel test and relying on the `packages = ["src/squads"]` sweep (confirm, don't add a per-file include). (US2)

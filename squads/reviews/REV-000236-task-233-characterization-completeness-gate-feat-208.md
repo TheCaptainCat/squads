@@ -118,22 +118,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 236 add-finding "…" --severity high`; track with `sq review 236 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Open |  | operator self-author bypass not characterized in spine tests |
-| F2 | 🟢 low | Open |  | workload exclusion of role/skill items not characterized |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — operator self-author bypass not characterized in spine tests
-
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 _base.py:460 checks `item_type in (ItemType.ROLE, ItemType.SKILL, ItemType.OPERATOR)` for the self-author bypass. The characterization tests cover role and skill self-author (tests 2a/2b) but do NOT explicitly pin operator self-author as a named behavioral contract.
@@ -151,11 +139,6 @@ Fix: add a test to test_spine_characterization.py asserting that svc.add_operato
 
 <!-- sq:finding:F2 -->
 ### F2 — workload exclusion of role/skill items not characterized
-
-<!-- sq:finding:F2:head -->
-**Status:** 🔴 Open
-**Severity:** 🟢 Low
-<!-- sq:finding:F2:head:end -->
 
 <!-- sq:finding:F2:body -->
 _roster.py:141 uses `it.type in _NON_WORK_TYPES` (where _NON_WORK_TYPES = {ROLE, SKILL, OPERATOR}) to exclude meta-type items from workload counts. The operator leg is covered by test_operators.py:98, but there is no test asserting that role items and skill items are excluded from workload.

@@ -39,9 +39,6 @@ The QuickPick surface itself (US1 + US4). Registers the command + keybinding, dr
 
 _Add with `sq task 559 add-subtask "<title>"`; track with `sq task 559 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

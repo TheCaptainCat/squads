@@ -60,9 +60,6 @@ only become real verbs there; the doc fixes below point at them.
 
 _Add with `sq task 628 add-subtask "<title>"`; track with `sq task 628 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

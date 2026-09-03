@@ -38,23 +38,10 @@ Acceptance: an unconfigured type still resolves all four forms exactly as before
 
 _Add with `sq feature 647 add-story "As a <role>, I want … so that …"`; track with `sq feature 647 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Done |  | Labels schema field + label_for resolver |
-| US2 | Done |  | Retarget display-name consumers through the resolver |
-| US3 | Done |  | Clients render per-type display labels |
-| US4 | Done |  | sq ui renders per-type display labels |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Labels schema field + label_for resolver
-
-<!-- sq:story:US1:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 Add LabelSpec (frozen, extra=forbid; singular/plural/singular_lower/plural_lower, all optional str) to ItemSpec.labels, plus the label_for(type_str, form, spec) resolver in _models/_vocab.py implementing pin-else-derive for each form.
@@ -69,10 +56,6 @@ Add LabelSpec (frozen, extra=forbid; singular/plural/singular_lower/plural_lower
 <!-- sq:story:US2 -->
 ### US2 — Retarget display-name consumers through the resolver
 
-<!-- sq:story:US2:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Replace ad-hoc .capitalize()/.title() type-name display derivations (Claude Code backend per-type section titles, VS Code tree/list views, CLI per-type grouping headers) with calls to label_for, so acronym/irregular labels render correctly everywhere.
 <!-- sq:story:US2:body:end -->
@@ -86,10 +69,6 @@ Replace ad-hoc .capitalize()/.title() type-name display derivations (Claude Code
 <!-- sq:story:US3 -->
 ### US3 — Clients render per-type display labels
 
-<!-- sq:story:US3:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 Resolved display labels are exposed on the sq JSON surface and clients render them: the Records tree shows pretty per-type names instead of the raw lowercase type key, matching the Roster tree's pretty Roles/Skills.
 <!-- sq:story:US3:body:end -->
@@ -102,10 +81,6 @@ Resolved display labels are exposed on the sq JSON surface and clients render th
 
 <!-- sq:story:US4 -->
 ### US4 — sq ui renders per-type display labels
-
-<!-- sq:story:US4:head -->
-**Status:** 🟢 Done
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 The terminal TUI (sq ui) shows resolved display labels for item types, not raw lowercase type names.

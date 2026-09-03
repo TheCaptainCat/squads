@@ -73,23 +73,10 @@ title, or by last-updated.
 
 _Add with `sq feature 525 add-story "As a <role>, I want … so that …"`; track with `sq feature 525 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | Open/dismiss the filter+sort popup by keyboard |
-| US2 | Todo |  | Set filters and apply, tree updates keeping ancestors as context |
-| US3 | Todo |  | Show-closed toggle reveals and hides terminal items |
-| US4 | Todo |  | Choose sibling sort order, clear/reset filters, see active-filter indicator |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — Open/dismiss the filter+sort popup by keyboard
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 A keyboard shortcut opens the filter/sort popup over the tree; Escape dismisses it without applying pending changes.
@@ -104,10 +91,6 @@ A keyboard shortcut opens the filter/sort popup over the tree; Escape dismisses 
 <!-- sq:story:US2 -->
 ### US2 — Set filters and apply, tree updates keeping ancestors as context
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 Setting one or more filter dimensions (type, status, assignee, label, badge field) and applying updates the tree to matches, keeping ancestors visible as context.
 <!-- sq:story:US2:body:end -->
@@ -121,10 +104,6 @@ Setting one or more filter dimensions (type, status, assignee, label, badge fiel
 <!-- sq:story:US3 -->
 ### US3 — Show-closed toggle reveals and hides terminal items
 
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
-
 <!-- sq:story:US3:body -->
 A show-closed toggle reveals terminal/Done items in the tree; toggling it off hides them again.
 <!-- sq:story:US3:body:end -->
@@ -137,10 +116,6 @@ A show-closed toggle reveals terminal/Done items in the tree; toggling it off hi
 
 <!-- sq:story:US4 -->
 ### US4 — Choose sibling sort order, clear/reset filters, see active-filter indicator
-
-<!-- sq:story:US4:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US4:head:end -->
 
 <!-- sq:story:US4:body -->
 A sort dimension reorders siblings at every level (id, badge field, status, title, or last-updated); a clear/reset action returns filters and sort to default in one step, and an indicator shows when the view is filtered.

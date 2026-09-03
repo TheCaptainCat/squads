@@ -54,23 +54,10 @@ Make the global counter monotonic so an item's sequence number is never reused, 
 
 _Add with `sq task 42 add-subtask "<title>"`; track with `sq task 42 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Todo |  | Repair keeps high-water mark: counter = max(previous counter, max found on disk) |  |
-| ST2 | Todo |  | Load-time counter validation: repair upward when stored counter is below max item sequence |  |
-| ST3 | Todo |  | Report items missing from disk vs the previous index in repair/check |  |
-| ST4 | Todo |  | Regression tests (service + CLI) covering both regression routes |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Repair keeps high-water mark: counter = max(previous counter, max found on disk)
-
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Change repair's index rebuild in _services/_maintenance.py so the counter is set to max(previous counter, max sequence found on disk) instead of just the on-disk max. Deleting the highest-numbered item's file can then no longer regress the global counter.
@@ -85,10 +72,6 @@ Change repair's index rebuild in _services/_maintenance.py so the counter is set
 <!-- sq:subtask:ST2 -->
 ### ST2 — Load-time counter validation: repair upward when stored counter is below max item sequence
 
-<!-- sq:subtask:ST2:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 Add load-time counter validation in _index/_store.py: on load, if the stored counter is below the max item sequence in the index, raise the counter to that max rather than trusting a regressed value. Prevents a hand-edited or regressed index from silently allocating a reused sequence number; allocation stays inside IndexStore.transaction().
 <!-- sq:subtask:ST2:body:end -->
@@ -102,10 +85,6 @@ Add load-time counter validation in _index/_store.py: on load, if the stored cou
 <!-- sq:subtask:ST3 -->
 ### ST3 — Report items missing from disk vs the previous index in repair/check
 
-<!-- sq:subtask:ST3:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 Surface items present in the previous index but absent from disk through repair/check. Wires the missing-items report through the _services/_results.py result dataclasses and the _cli/ surface so a deletion is flagged rather than silently absorbed.
 <!-- sq:subtask:ST3:body:end -->
@@ -118,10 +97,6 @@ Surface items present in the previous index but absent from disk through repair/
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Regression tests (service + CLI) covering both regression routes
-
-<!-- sq:subtask:ST4:head -->
-**Status:** ⚪ Todo
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Regression tests covering both routes: service-level (repair after deleting the top item holds the counter, next allocate is max+1 never a reuse; load with a regressed stored counter repairs upward; missing items reported) and CLI smoke (sq repair / sq check over a squad with a deleted top item — counter held, missing item surfaced, exit codes correct).

@@ -126,22 +126,10 @@ finding label in a file name, test name or comment.
 
 _Add with `sq task 708 add-subtask "<title>"`; track with `sq task 708 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Collapse the two projections into one helper | US4 |
-| ST2 | Done |  | Regenerate a reactivated entry with its full preload list | US4 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Collapse the two projections into one helper
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 One helper takes a roster item and performs materialise-or-withdraw plus the managed-region recompile; both the transition path and the sync sweep call it. One predicate, one backend-context construction, one code path — fixing only the missing argument would leave the two free to diverge again on the next input either grows. The sweep's unconditional refresh of an item's own sq-managed state must not move under the liveness gate.
@@ -155,11 +143,6 @@ One helper takes a roster item and performs materialise-or-withdraw plus the man
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Regenerate a reactivated entry with its full preload list
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an operator, retiring a roster entry withdraws it from generated backend config
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Reactivation currently writes a pointer missing every skill the role holds through a scoping edge, because the transition path hands the backend a context with no resolved preload map. The pointer a reactivated role gets must be byte-identical to the one a sync writes immediately afterwards, and the sync a no-op. Resolve the map in one index read for the whole roster, not one per role.

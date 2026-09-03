@@ -48,9 +48,6 @@ crossing our fingers.
 
 _Add with `sq feature 17 add-story "As a <role>, I want … so that …"`; track with `sq feature 17 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

@@ -146,22 +146,10 @@ these is asserted at the CLI layer:
 
 _Add with `sq task 673 add-subtask "<title>"`; track with `sq task 673 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Guard the .squads.toml parse |  |
-| ST2 | Done |  | CLI-layer tests pinning the clean failure |  |
-| ST3 | Done |  | Guard the frontmatter parse and name the file |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Guard the .squads.toml parse
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Guard the `.squads.toml` parse — the same defect with a wider blast radius.
@@ -200,10 +188,6 @@ Acceptance:
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — CLI-layer tests pinning the clean failure
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Pin the outcome a user actually sees, at the CLI layer.
@@ -254,10 +238,6 @@ Acceptance:
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Guard the frontmatter parse and name the file
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Guard the frontmatter parse, once, where every caller reaches it.

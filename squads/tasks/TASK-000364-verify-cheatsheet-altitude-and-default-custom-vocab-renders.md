@@ -49,9 +49,6 @@ surfaces (which should fold back into the implementation task).
 
 _Add with `sq task 364 add-subtask "<title>"`; track with `sq task 364 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 <!-- sq:subtasks:end -->
 

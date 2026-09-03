@@ -130,46 +130,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 448 add-finding "…" --severity medium`; track with `sq review 448 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🟡 medium | Verified |  | Order type groups by the spec's per-type order field |
-| F2 | 🟡 medium | Verified |  | Item id sort is lexicographic, not numeric (REV-447 before REV-48) |
-| F3 | 🟡 medium | Verified |  | Group-by-type: make it a view-title icon, not a menu item |
-| F4 | 🟡 medium | Verified |  | Show-closed: a view-title icon toggle |
-| F5 | 🟡 medium | Verified |  | Remove group-by-open/closed |
-| F6 | 🟢 low | Verified |  | Add a collapse-all button |
-| F7 | 🟡 medium | Verified |  | Closed items rendered greyed/dimmed in the list |
-| F8 | 🟡 medium | Verified |  | Title button to open the workflow cheatsheet in the preview |
-| F9 | 🟡 medium | Verified |  | Item preview gets hijacked (dynamic md preview) — use locked preview or custom webview |
-| F10 | 🟡 medium | Verified |  | Navigable item links in the preview, middle-click opens a new tab (needs webview) |
-| F11 | 🟡 medium | Verified |  | Unfoldable mermaid graphs in the preview: item children + item refs, separate (needs webview) |
-| F12 | 🟡 medium | Verified |  | Second view section for meta items (role/skill/operator) under 3 fixed subfolders |
-| F13 | 🟢 low | Verified |  | Use squads-icon-vscode.svg as the extension icon; delete the other svg variants |
-| F14 | 🟡 medium | Verified |  | Display the item's discussion/comments in the preview |
-| F15 | 🟠 high | Verified |  | Preview omits the item's sub-entities (stories/subtasks/findings) |
-| F16 | 🟢 low | Verified |  | Webview panels should show the squads icon in their tab |
-| F17 | 🟡 medium | Verified |  | Watch .squads.json to auto-refresh views + preview (local squads) |
-| F18 | 🟢 low | Verified |  | Roster items should not display an assignee |
-| F19 | 🟡 medium | Verified |  | Show priority/severity collection badges in the item hover |
-| F20 | 🟠 high | Verified |  | Machine surfaces hardcode 'priority' instead of emitting all spec collections |
-| F21 | 🟢 low | Verified |  | Type icons are hardcoded to bundled names; add a custom-icon setting |
-| F22 | 🟢 low | Verified |  | Roster items fall back to circle-outline; give meta types real icons |
-| F23 | 🟡 medium | Verified |  | Mermaid graphs: collapse by default + move directly under the frontmatter |
-| F24 | 🟡 medium | Verified |  | Ref-graph node labels are cropped inside the node |
-| F25 | 🟡 medium | Verified |  | Graph nodes should be clickable to navigate to that item |
-| F26 | 🟡 medium | Verified |  | Activate role="active" + surface status_role so the tree can color active items green |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — Order type groups by the spec's per-type order field
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 When grouping by type, order the type groups by the workflow spec's per-type `order` (ItemSpec.order; default epic=10/feature=20/task=30/bug=40/decision=50/review=60/guide=70, un-ordered types last, type-name breaks ties) — not by discovery/alphabetical. REQUIRES a core change first: expose the per-type order on a machine surface (none today — no `sq workflow --json` type catalog; tree/list --json give the type name but not its order). Two parts: (1) sq exposes the per-type order additively; (2) the client sorts type groups by it. Must stay spec-driven — no hardcoded type list in the client.
@@ -188,11 +152,6 @@ When grouping by type, order the type groups by the workflow spec's per-type `or
 <!-- sq:finding:F2 -->
 ### F2 — Item id sort is lexicographic, not numeric (REV-447 before REV-48)
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 listView.ts:92 sorts items by `a.id.localeCompare(b.id)` — plain lexicographic, so REV-447 sorts before REV-48 ('447' < '48' char-by-char). Fix: numeric/natural collation — `a.id.localeCompare(b.id, undefined, { numeric: true })`, or better a shared `Intl.Collator(undefined, { numeric: true }).compare` comparator reused everywhere ids/sequence numbers are sorted so this can't recur. This is the item order WITHIN a group; distinct from F1 (type-GROUP order = spec order). A genuine defect, not a preference.
 <!-- sq:finding:F2:body:end -->
@@ -207,11 +166,6 @@ listView.ts:92 sorts items by `a.id.localeCompare(b.id)` — plain lexicographic
 
 <!-- sq:finding:F3 -->
 ### F3 — Group-by-type: make it a view-title icon, not a menu item
-
-<!-- sq:finding:F3:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F3:head:end -->
 
 <!-- sq:finding:F3:body -->
 Move the group-by-type control from the quick-pick/menu (squads.groupBy) to a view-title-bar icon button (contributes.menus view/title, group: navigation, with a command icon). A direct toggle in the title bar, not a menu selection.
@@ -228,11 +182,6 @@ Move the group-by-type control from the quick-pick/menu (squads.groupBy) to a vi
 <!-- sq:finding:F4 -->
 ### F4 — Show-closed: a view-title icon toggle
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 Add a 'show closed' toggle as a view-title icon (navigation group) that includes/excludes closed (terminal) items in the current view. Replaces having to switch to the flat group-by-state view to see closed items. Pairs with F5 (drop open/closed grouping) and F7 (closed rendered greyed).
 <!-- sq:finding:F4:body:end -->
@@ -247,11 +196,6 @@ Add a 'show closed' toggle as a view-title icon (navigation group) that includes
 
 <!-- sq:finding:F5 -->
 ### F5 — Remove group-by-open/closed
-
-<!-- sq:finding:F5:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F5:head:end -->
 
 <!-- sq:finding:F5:body -->
 Drop the group-by-open/closed grouping mode entirely (the state option on squads.groupBy / the listView state grouping). Open/closed becomes a show-closed toggle (F4) plus a greyed visual treatment (F7), not a grouping axis. Group-by-type (F3) stays.
@@ -268,11 +212,6 @@ Drop the group-by-open/closed grouping mode entirely (the state option on squads
 <!-- sq:finding:F6 -->
 ### F6 — Add a collapse-all button
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 Add a collapse-all control to the tree. Native path: set showCollapseAll: true on the vscode.window.createTreeView registration — gives VS Code's built-in collapse-all title-bar icon, no custom command needed.
 <!-- sq:finding:F6:body:end -->
@@ -287,11 +226,6 @@ Add a collapse-all control to the tree. Native path: set showCollapseAll: true o
 
 <!-- sq:finding:F7 -->
 ### F7 — Closed items rendered greyed/dimmed in the list
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 When closed/terminal items are shown (via F4's toggle), render them visually de-emphasized (greyed) rather than normal — e.g. a muted ThemeColor (disabledForeground / descriptionForeground) on the TreeItem, or resourceUri + a FileDecorationProvider. Open vs closed then reads at a glance without a separate grouping.
@@ -308,11 +242,6 @@ When closed/terminal items are shown (via F4's toggle), render them visually de-
 <!-- sq:finding:F8 -->
 ### F8 — Title button to open the workflow cheatsheet in the preview
 
-<!-- sq:finding:F8:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F8:head:end -->
-
 <!-- sq:finding:F8:body -->
 Add a view-title button that opens the workflow cheatsheet as rendered markdown in the preview (reuse the squads: virtual-doc + markdown-preview path items already use). REQUIRES a core change first: sq workflow currently emits Rich terminal chrome (267 box-drawing chars; no --raw/--json/md flag) — the same problem sq show had before --raw. Add a clean-markdown mode (e.g. sq workflow --raw): markdown tables + fenced mermaid blocks, no box-drawing. Two parts: (1) core sq workflow --raw; (2) client title button + open in preview. Caveat: VS Code's built-in markdown preview does not render mermaid natively — the diagrams would show as fenced code blocks unless mermaid rendering is added.
 <!-- sq:finding:F8:body:end -->
@@ -327,11 +256,6 @@ Add a view-title button that opens the workflow cheatsheet as rendered markdown 
 
 <!-- sq:finding:F9 -->
 ### F9 — Item preview gets hijacked (dynamic md preview) — use locked preview or custom webview
-
-<!-- sq:finding:F9:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
 commands.ts:94 opens the item via markdown.showPreview — VS Code's single DYNAMIC preview that follows the active editor, so opening another markdown file replaces the item preview (loses it). API question answered: there is no clean per-tab pin API — window.tabGroups is read-only, and pinning is the workbench.action.pinEditor command acting on the active tab (clunky, and not the real issue). Fixes: (a) markdown.showLockedPreviewToSide — a locked preview that stays on its own document, built-in, ~one-line swap; (b) render each item into a custom WebviewPanel the extension owns — dedicated tab, never hijacked, and would also enable mermaid rendering (pairs with F8). Recommend (a) as the cheap fix, (b) as the robust option.
@@ -348,11 +272,6 @@ commands.ts:94 opens the item via markdown.showPreview — VS Code's single DYNA
 <!-- sq:finding:F10 -->
 ### F10 — Navigable item links in the preview, middle-click opens a new tab (needs webview)
 
-<!-- sq:finding:F10:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F10:head:end -->
-
 <!-- sq:finding:F10:body -->
 In the item preview, render item-ID references (parent, refs) as navigable links: click opens that item's preview; middle-click opens it in a NEW tab. Requires the custom WebviewPanel (see F9 option b) — the built-in markdown preview cannot do item-to-item navigation or middle-click-new-tab. No new core surface: refs are already in sq show --json. The webview turns the IDs into links it intercepts and routes to open the target item (same tab on click, new webview panel on middle-click).
 <!-- sq:finding:F10:body:end -->
@@ -367,11 +286,6 @@ In the item preview, render item-ID references (parent, refs) as navigable links
 
 <!-- sq:finding:F11 -->
 ### F11 — Unfoldable mermaid graphs in the preview: item children + item refs, separate (needs webview)
-
-<!-- sq:finding:F11:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F11:head:end -->
 
 <!-- sq:finding:F11:body -->
 In the item preview, show two collapsible (unfoldable) mermaid graphs as separate diagrams: (1) the item's children/subtree, (2) the item's ref graph. Requires the custom WebviewPanel (F9 option b) with a bundled mermaid renderer (VS Code's built-in md preview does not render mermaid). Data already exposed, no new core surface: children from sq tree <id> --json; refs from sq graph <id> --json (nested id/type/status/edge_kind/direction/children) or sq graph's fenced-mermaid output. The webview builds/renders both diagrams from those shapes.
@@ -388,11 +302,6 @@ In the item preview, show two collapsible (unfoldable) mermaid graphs as separat
 <!-- sq:finding:F12 -->
 ### F12 — Second view section for meta items (role/skill/operator) under 3 fixed subfolders
 
-<!-- sq:finding:F12:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F12:head:end -->
-
 <!-- sq:finding:F12:body -->
 Add a second view within the Squads activity-bar container (like Explorer stacks folder-tree + outline + timeline as separate collapsible sections) — contributes.views.squads gets a second entry with its own TreeDataProvider. It hosts the meta/reserved items (role, skill, operator) that the main work tree deliberately excludes, bucketed under 3 fixed subfolders: Roles, Skills, Operators. Not groupable/filterable like work items — just the 3 buckets. Data: sq list --json filtered to the 3 reserved types (already available; this is the complement of the work tree's reserved-type exclusion). Client-only, no new core surface.
 <!-- sq:finding:F12:body:end -->
@@ -407,11 +316,6 @@ Add a second view within the Squads activity-bar container (like Explorer stacks
 
 <!-- sq:finding:F13 -->
 ### F13 — Use squads-icon-vscode.svg as the extension icon; delete the other svg variants
-
-<!-- sq:finding:F13:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F13:head:end -->
 
 <!-- sq:finding:F13:body -->
 Use resources/squads-icon-vscode.svg (viewBox 0 0 64 64, currentColor fill+stroke — activity-bar-suitable) as the activity-bar icon (package.json viewsContainers icon, currently points at squads-icon-mono.svg). Delete the other 6 svg variants: squads-icon-mono.svg, squads-icon-mono-black.svg, squads-icon-mono-white.svg, squads-icon-color.svg, squads-icon-color-black.svg, squads-icon-color-white.svg. Update .vscodeignore (its current exclusion list names the old variants) so the VSIX ships squads-icon-vscode.svg and nothing else from resources/.
@@ -428,11 +332,6 @@ Use resources/squads-icon-vscode.svg (viewBox 0 0 64 64, currentColor fill+strok
 <!-- sq:finding:F14 -->
 ### F14 — Display the item's discussion/comments in the preview
 
-<!-- sq:finding:F14:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F14:head:end -->
-
 <!-- sq:finding:F14:body -->
 The preview shows the item body but not its discussion. Render the comments as a section in the webview preview. Source: sq show <id> --json's structured 'discussion' array ([{author, ts, body}]) — already exposed (TASK-434), so NO core change; client-only. Ideally a collapsible section, consistent with the children/refs graphs. Per op-pierre.
 <!-- sq:finding:F14:body:end -->
@@ -447,11 +346,6 @@ The preview shows the item body but not its discussion. Render the comments as a
 
 <!-- sq:finding:F15 -->
 ### F15 — Preview omits the item's sub-entities (stories/subtasks/findings)
-
-<!-- sq:finding:F15:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F15:head:end -->
 
 <!-- sq:finding:F15:body -->
 The item preview renders body, mermaid graphs (children + refs), and the discussion — but not the item's **sub-entities**. `sq show <id> --json` already exposes a full `subentities` array (each with local_id, title, status, assignee, severity, story, body), yet the preview's JSON model (`types.ts`) maps only `discussion`.
@@ -474,11 +368,6 @@ Desired: a preview section listing the item's sub-entities — at minimum the he
 <!-- sq:finding:F16 -->
 ### F16 — Webview panels should show the squads icon in their tab
 
-<!-- sq:finding:F16:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F16:head:end -->
-
 <!-- sq:finding:F16:body -->
 The webview panels (item preview + workflow cheatsheet) are created via `createWebviewPanel` with no `iconPath`, so their editor tabs show VS Code's generic default icon.
 
@@ -497,11 +386,6 @@ Desired: set `panel.iconPath` to the squads icon so the tab is recognizable as a
 
 <!-- sq:finding:F17 -->
 ### F17 — Watch .squads.json to auto-refresh views + preview (local squads)
-
-<!-- sq:finding:F17:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F17:head:end -->
 
 <!-- sq:finding:F17:body -->
 Today the tree views + item preview refresh only on explicit command (`extension.ts` wires a manual refresh). If work changes on disk (an agent runs `sq`, a git pull), the views go stale until the user hits refresh.
@@ -526,11 +410,6 @@ Prereq: the extension must know the squad-dir path. Discovery today only locates
 <!-- sq:finding:F18 -->
 ### F18 — Roster items should not display an assignee
 
-<!-- sq:finding:F18:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F18:head:end -->
-
 <!-- sq:finding:F18:body -->
 The Roster view (roles / skills / operators) builds each item's description as `${status} · ${assignee ?? 'unassigned'}` (`domain/metaView.ts`), same as the work tree. But assignee is meaningless for meta items — every one renders a noise `· unassigned`.
 
@@ -549,11 +428,6 @@ Desired: drop the assignee segment from roster item descriptions. Keep status if
 
 <!-- sq:finding:F19 -->
 ### F19 — Show priority/severity collection badges in the item hover
-
-<!-- sq:finding:F19:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F19:head:end -->
 
 <!-- sq:finding:F19:body -->
 Request: surface collection badges (priority, severity) in the tree-item hover tooltip.
@@ -582,11 +456,6 @@ Recommendation: ship (a) now (add severity to the tooltip alongside priority as 
 <!-- sq:finding:F20 -->
 ### F20 — Machine surfaces hardcode 'priority' instead of emitting all spec collections
 
-<!-- sq:finding:F20:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟠 High
-<!-- sq:finding:F20:head:end -->
-
 <!-- sq:finding:F20:body -->
 Principle (op-pierre): squads is a **generic workflow engine**. All spec-declared collections should be surfaced generically. If only `priority` is surfaced, that is the tell that `priority` is **hardcoded** — the surface leaks the bundled defaults instead of reflecting the active spec.
 
@@ -612,11 +481,6 @@ This is the **root cause behind F19** (severity absent from the tree surface; no
 <!-- sq:finding:F21 -->
 ### F21 — Type icons are hardcoded to bundled names; add a custom-icon setting
 
-<!-- sq:finding:F21:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F21:head:end -->
-
 <!-- sq:finding:F21:body -->
 The one place the extension hardcodes **work-item type names**: `domain/displayNode.ts` `ICON_BY_TYPE` maps the 7 bundled types (epic/feature/task/bug/decision/review/guide) to codicons. It degrades gracefully (`iconForType` → generic `DEFAULT_ICON` for anything unrecognized), so a renamed/custom type still renders — but with no distinct icon. Root cause: icons aren't on the machine surface (`sq workflow types --json` carries type/order/prefix/reserved, no icon), so the client has no spec-driven source.
 
@@ -637,11 +501,6 @@ Resolution (op-pierre): add a VS Code setting for custom type icons — e.g. `sq
 
 <!-- sq:finding:F22 -->
 ### F22 — Roster items fall back to circle-outline; give meta types real icons
-
-<!-- sq:finding:F22:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟢 Low
-<!-- sq:finding:F22:head:end -->
 
 <!-- sq:finding:F22:body -->
 Roster items (role / skill / operator) all render as plain `circle-outline`. Cause: `domain/metaView.ts` calls `iconForType(item.type)`, but `ICON_BY_TYPE` only holds the 7 work-item types — the 3 meta types miss and fall back to `DEFAULT_ICON = 'circle-outline'`.
@@ -669,11 +528,6 @@ Pierre's ask was a silhouette for the role; `account` gives the classic head-and
 <!-- sq:finding:F23 -->
 ### F23 — Mermaid graphs: collapse by default + move directly under the frontmatter
 
-<!-- sq:finding:F23:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F23:head:end -->
-
 <!-- sq:finding:F23:body -->
 Two changes to the two mermaid graph sections (children/subtree, ref graph):
 
@@ -696,11 +550,6 @@ Impl note: `bodyHtml` is currently one rendered blob (`sq show --raw`) covering 
 <!-- sq:finding:F24 -->
 ### F24 — Ref-graph node labels are cropped inside the node
 
-<!-- sq:finding:F24:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F24:head:end -->
-
 <!-- sq:finding:F24:body -->
 Many ref-graph node labels are cropped inside the node — text runs past the node boundary / gets clipped, so ids+titles aren't fully readable.
 
@@ -722,11 +571,6 @@ Desired: labels fully contained. Options — set `mermaid.initialize({ flowchart
 <!-- sq:finding:F25 -->
 ### F25 — Graph nodes should be clickable to navigate to that item
 
-<!-- sq:finding:F25:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F25:head:end -->
-
 <!-- sq:finding:F25:body -->
 Each node in the preview graphs (children/subtree + ref graph) should be clickable to navigate to that item's preview.
 
@@ -747,11 +591,6 @@ Impl: mermaid runs with `securityLevel: 'strict'`, which disables click-callback
 
 <!-- sq:finding:F26 -->
 ### F26 — Activate role="active" + surface status_role so the tree can color active items green
-
-<!-- sq:finding:F26:head -->
-**Status:** 🟢 Verified
-**Severity:** 🟡 Medium
-<!-- sq:finding:F26:head:end -->
 
 <!-- sq:finding:F26:body -->
 Goal: color 'work in flight' items green in the tree — generically, keyed on a spec-declared semantic role, never on the literal status string (that would be the F20 anti-pattern).

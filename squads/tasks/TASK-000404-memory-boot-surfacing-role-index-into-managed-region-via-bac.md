@@ -34,21 +34,10 @@ Surface the agent's own role memory `.index.jsonl` at role-boot through the acti
 
 _Add with `sq task 380 add-subtask "<title>"`; track with `sq task 380 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Surface role memory index (index-only) via backend | US2 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Surface role memory index (index-only) via backend
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US2 — As an agent, my role's memory index is surfaced at boot so relevant facts don't slip past me
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 At boot, the agent's own role `.index.jsonl` is surfaced into context through the active backend into the managed region — index only, slug-addressed, empty pool surfaces nothing. Backend-neutral, mirroring the managed-region writer.

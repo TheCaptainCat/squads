@@ -47,24 +47,10 @@ Cover the memory behaviour through the service and CLI, per the repo testing con
 
 _Add with `sq task 382 add-subtask "<title>"`; track with `sq task 382 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Test add writes file + regenerates index; no counter allocation | US1 |
-| ST2 | Done |  | Test list/search/show and slug addressing | US3 |
-| ST3 | Done |  | Test forget deletes + regenerates; clean error on missing slug | US4 |
-| ST4 | Done |  | Test US5 merge: .md merges clean, committed index conflicts, sync/repair resolves | US5 |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Test add writes file + regenerates index; no counter allocation
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-**Implements:** US1 — As an agent, I can jot a small learned fact to my role's memory so it persists for future runs
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Add creates `<slug>.md` with light frontmatter and regenerates `.index.jsonl` (header line + one entry). Assert the global counter is not advanced.
@@ -79,11 +65,6 @@ Add creates `<slug>.md` with light frontmatter and regenerates `.index.jsonl` (h
 <!-- sq:subtask:ST2 -->
 ### ST2 — Test list/search/show and slug addressing
 
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-**Implements:** US3 — As an agent, I can list, search, and show my role's memories to pull full content when relevant
-<!-- sq:subtask:ST2:head:end -->
-
 <!-- sq:subtask:ST2:body -->
 `list` reflects the index entries; `search` matches content; `show <slug>` returns the right body by slug, independent of line position.
 <!-- sq:subtask:ST2:body:end -->
@@ -97,11 +78,6 @@ Add creates `<slug>.md` with light frontmatter and regenerates `.index.jsonl` (h
 <!-- sq:subtask:ST3 -->
 ### ST3 — Test forget deletes + regenerates; clean error on missing slug
 
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-**Implements:** US4 — As an agent or operator, I can prune a stale or wrong memory so the pool stays trustworthy
-<!-- sq:subtask:ST3:head:end -->
-
 <!-- sq:subtask:ST3:body -->
 `forget` removes the file and rewrites the index; forgetting an unknown slug raises a clean `SquadsError`.
 <!-- sq:subtask:ST3:body:end -->
@@ -114,11 +90,6 @@ Add creates `<slug>.md` with light frontmatter and regenerates `.index.jsonl` (h
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Test US5 merge: .md merges clean, committed index conflicts, sync/repair resolves
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Implements:** US5 — As a teammate, committed per-role memory arrives on checkout and merges cleanly across branches
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Two branches each adding a DISTINCT memory: the slug-named .md content files merge cleanly (no memory lost), while the committed .index.jsonl roll-up conflicts — both branches rewrote it whole with a different entry line. sq sync / sq repair then mechanically regenerates the index from the .md files to resolve the conflict (not: 'merges with no conflict').

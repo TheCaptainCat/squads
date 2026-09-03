@@ -76,9 +76,6 @@ Acceptance is:
 
 _Add with `sq feature 250 add-story "As a <role>, I want … so that …"`; track with `sq feature 250 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 <!-- sq:stories:end -->
 

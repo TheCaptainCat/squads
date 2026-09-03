@@ -278,50 +278,10 @@ _Severity:_ 🔴 critical · 🟠 high · 🟡 medium · 🟢 low · 🔵 info
 
 _Add with `sq review 726 add-finding "…" --severity medium`; track with `sq review 726 finding <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Finding | Severity | Status | Assignee | Title |
-| --- | --- | --- | --- | --- |
-| F1 | 🔴 critical | Fixed |  | sq repair drops a type's items and regresses the global counter |
-| F2 | 🔴 critical | Fixed |  | Hyphenated prefix mangles filenames in renumber, repad and offset |
-| F3 | 🔴 critical | Fixed |  | Renamed sub-entity kinds lose the story-map refusal and validator |
-| F4 | 🟠 high | Fixed |  | Hardcoded agents/skills path defeats a relocated skill folder |
-| F5 | 🟠 high | Fixed |  | The squads skill teaches task/feature/review commands that error |
-| F6 | 🟠 high | Fixed |  | AGENTS.md teaches the same dead task commands as the squads skill |
-| F7 | 🟠 high | Fixed |  | CLAUDE.md loop stops on types and statuses that may not exist |
-| F8 | 🟠 high | Fixed |  | CLAUDE.md names roster roles and subagents the squad lacks |
-| F9 | 🟠 high | Fixed |  | Role card create_lane comes from a hardcoded CREATE_LANES table |
-| F10 | 🟠 high | Fixed |  | _default.md.j2 has no sub-entity container, so add-block fails |
-| F11 | 🟠 high | Fixed |  | Dropping task deletes the priority vocabulary from the squads skill |
-| F12 | 🟠 high | Fixed |  | Custom-type skills always claim the type has no sub-entities |
-| F13 | 🟠 high | Fixed |  | Generated role and managed text hardcode the InProgress status |
-| F14 | 🟠 high | Fixed |  | Per-kind service wrappers raise a bare KeyError on a renamed kind |
-| F15 | 🟠 high | Fixed |  | Dedicated priority kwarg bypasses the declared-field gate |
-| F16 | 🟠 high | Fixed |  | A type name may shadow a built-in CLI verb and lint calls it clean |
-| F17 | 🟡 medium | WontFix |  | Playbook prose in surviving skills names dropped or renamed types |
-| F18 | 🟡 medium | Fixed |  | The tech field is unreachable once the guide type is renamed |
-| F19 | 🟡 medium | Fixed |  | sq mine uses a category-blind visibility predicate |
-| F20 | 🟡 medium | Fixed |  | Item templates hardcode region tags, headings and a field code |
-| F21 | 🟡 medium | Fixed |  | The squads skill hardcodes Done/Cancelled and the visibility rule |
-| F22 | 🟡 medium | Fixed |  | retype help lists the bundled type set, not the active one |
-| F23 | 🟡 medium | Fixed |  | Priority help on built-in create/update advertises rejected values |
-| F24 | 🟡 medium | Fixed |  | sq create completion is bundled-blind while root completion is not |
-| F25 | 🟡 medium | Fixed |  | item_is_roster and eleven sibling accessors raise a bare KeyError |
-| F26 | 🟡 medium | Fixed |  | VS Code client mis-derives the role for a role-less status |
-| F27 | 🟢 low | Fixed |  | init and adopt never seed skill items for custom or renamed types |
-| F28 | 🟢 low | Fixed |  | The squads skill lists declared sub-entity kinds, not hosted ones |
-| F29 | 🟢 low | Fixed |  | workflow_static hardcodes a retype example and ref-kind types |
-| F30 | 🟢 low | Fixed |  | Root help epilog hardcodes the type-command alias set |
-<!-- sq:summary:end -->
-
 <!-- sq:findings -->
 
 <!-- sq:finding:F1 -->
 ### F1 — sq repair drops a type's items and regresses the global counter
-
-<!-- sq:finding:F1:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔴 Critical
-<!-- sq:finding:F1:head:end -->
 
 <!-- sq:finding:F1:body -->
 **Remediation was already underway when this was recorded — read the current code before fixing.**
@@ -452,11 +412,6 @@ disk correctly refuses, naming `GUIDE-21`). This is a different trigger reaching
 <!-- sq:finding:F2 -->
 ### F2 — Hyphenated prefix mangles filenames in renumber, repad and offset
 
-<!-- sq:finding:F2:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔴 Critical
-<!-- sq:finding:F2:head:end -->
-
 <!-- sq:finding:F2:body -->
 **Remediation was already underway when this was recorded — read the current code before fixing.**
 
@@ -550,11 +505,6 @@ it is not revived as a landmine.
 <!-- sq:finding:F3 -->
 ### F3 — Renamed sub-entity kinds lose the story-map refusal and validator
 
-<!-- sq:finding:F3:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🔴 Critical
-<!-- sq:finding:F3:head:end -->
-
 <!-- sq:finding:F3:body -->
 **Remediation was already underway when this was recorded — read the current code before fixing.**
 
@@ -635,11 +585,6 @@ sibling, and every subsequent `sq check` says the squad is fine.
 <!-- sq:finding:F4 -->
 ### F4 — Hardcoded agents/skills path defeats a relocated skill folder
 
-<!-- sq:finding:F4:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F4:head:end -->
-
 <!-- sq:finding:F4:body -->
 ## Site
 
@@ -706,11 +651,6 @@ exist, and every downstream surface that resolves a skill by ID has nothing to r
 <!-- sq:finding:F5 -->
 ### F5 — The squads skill teaches task/feature/review commands that error
 
-<!-- sq:finding:F5:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F5:head:end -->
-
 <!-- sq:finding:F5:body -->
 ## Site
 
@@ -766,11 +706,6 @@ which is the sharpest possible demonstration that the derivation was available a
 <!-- sq:finding:F6 -->
 ### F6 — AGENTS.md teaches the same dead task commands as the squads skill
 
-<!-- sq:finding:F6:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F6:head:end -->
-
 <!-- sq:finding:F6:body -->
 ## Sites
 
@@ -810,11 +745,6 @@ Fix them together; the `_also_creatable_types` anchor and the template literals 
 
 <!-- sq:finding:F7 -->
 ### F7 — CLAUDE.md loop stops on types and statuses that may not exist
-
-<!-- sq:finding:F7:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F7:head:end -->
 
 <!-- sq:finding:F7:body -->
 ## Site
@@ -866,11 +796,6 @@ spawning.
 <!-- sq:finding:F8 -->
 ### F8 — CLAUDE.md names roster roles and subagents the squad lacks
 
-<!-- sq:finding:F8:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F8:head:end -->
-
 <!-- sq:finding:F8:body -->
 ## Sites
 
@@ -916,11 +841,6 @@ have. The roster is available in the render context; the bundled catalog is what
 
 <!-- sq:finding:F9 -->
 ### F9 — Role card create_lane comes from a hardcoded CREATE_LANES table
-
-<!-- sq:finding:F9:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F9:head:end -->
 
 <!-- sq:finding:F9:body -->
 Found independently by two sweeps — at the CLI consumer and at the `_interactions` table itself.
@@ -1007,11 +927,6 @@ gates the out-of-lane advisory on `item_type in LANED_TYPES`, documented at
 
 <!-- sq:finding:F10 -->
 ### F10 — _default.md.j2 has no sub-entity container, so add-block fails
-
-<!-- sq:finding:F10:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F10:head:end -->
 
 <!-- sq:finding:F10:body -->
 Found three times independently — as a template gap, as a service-layer `add_block` failure, and as
@@ -1119,11 +1034,6 @@ error: no bundled template 'items/job.md.j2' — use a path like 'items/task.md.
 <!-- sq:finding:F11 -->
 ### F11 — Dropping task deletes the priority vocabulary from the squads skill
 
-<!-- sq:finding:F11:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F11:head:end -->
-
 <!-- sq:finding:F11:body -->
 ## Site
 
@@ -1168,11 +1078,6 @@ directly.
 
 <!-- sq:finding:F12 -->
 ### F12 — Custom-type skills always claim the type has no sub-entities
-
-<!-- sq:finding:F12:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F12:head:end -->
 
 <!-- sq:finding:F12:body -->
 ## Site
@@ -1227,11 +1132,6 @@ both undocumented *and* non-functional, so nothing surfaces the breakage.
 <!-- sq:finding:F13 -->
 ### F13 — Generated role and managed text hardcode the InProgress status
 
-<!-- sq:finding:F13:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F13:head:end -->
-
 <!-- sq:finding:F13:body -->
 ## Sites
 
@@ -1279,11 +1179,6 @@ state" of the item's own lifecycle), since the role file is not written per-type
 
 <!-- sq:finding:F14 -->
 ### F14 — Per-kind service wrappers raise a bare KeyError on a renamed kind
-
-<!-- sq:finding:F14:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F14:head:end -->
 
 <!-- sq:finding:F14:body -->
 ## Sites
@@ -1343,11 +1238,6 @@ a `.get()` with a clean raise. Both halves want fixing; they are separable.
 
 <!-- sq:finding:F15 -->
 ### F15 — Dedicated priority kwarg bypasses the declared-field gate
-
-<!-- sq:finding:F15:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F15:head:end -->
 
 <!-- sq:finding:F15:body -->
 ## Sites
@@ -1417,11 +1307,6 @@ dropped the severity field it produces this same shape. Worth handling in the sa
 <!-- sq:finding:F16 -->
 ### F16 — A type name may shadow a built-in CLI verb and lint calls it clean
 
-<!-- sq:finding:F16:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟠 High
-<!-- sq:finding:F16:head:end -->
-
 <!-- sq:finding:F16:body -->
 ## Site
 
@@ -1481,11 +1366,6 @@ from the Typer app. This should be a lint error at declaration time, not a disco
 
 <!-- sq:finding:F17 -->
 ### F17 — Playbook prose in surviving skills names dropped or renamed types
-
-<!-- sq:finding:F17:head -->
-**Status:** ⚫ Wont Fix
-**Severity:** 🟡 Medium
-<!-- sq:finding:F17:head:end -->
 
 <!-- sq:finding:F17:body -->
 ## Sites
@@ -1604,11 +1484,6 @@ the named next step if the team wants the silence removed.
 <!-- sq:finding:F18 -->
 ### F18 — The tech field is unreachable once the guide type is renamed
 
-<!-- sq:finding:F18:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F18:head:end -->
-
 <!-- sq:finding:F18:body -->
 ## Sites
 
@@ -1663,11 +1538,6 @@ the extra flags from the type's declaration rather than from its name.
 <!-- sq:finding:F19 -->
 ### F19 — sq mine uses a category-blind visibility predicate
 
-<!-- sq:finding:F19:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F19:head:end -->
-
 <!-- sq:finding:F19:body -->
 ## Site
 
@@ -1709,11 +1579,6 @@ The fix is a one-predicate swap to the category-aware helper the rest of the CLI
 
 <!-- sq:finding:F20 -->
 ### F20 — Item templates hardcode region tags, headings and a field code
-
-<!-- sq:finding:F20:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F20:head:end -->
 
 <!-- sq:finding:F20:body -->
 ## Sites
@@ -1783,11 +1648,6 @@ helper's behaviour when it receives one.
 <!-- sq:finding:F21 -->
 ### F21 — The squads skill hardcodes Done/Cancelled and the visibility rule
 
-<!-- sq:finding:F21:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F21:head:end -->
-
 <!-- sq:finding:F21:body -->
 ## Site
 
@@ -1837,11 +1697,6 @@ names and the visibility rule are derivable: the roles catalog carries `hidden` 
 
 <!-- sq:finding:F22 -->
 ### F22 — retype help lists the bundled type set, not the active one
-
-<!-- sq:finding:F22:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F22:head:end -->
 
 <!-- sq:finding:F22:body -->
 ## Site
@@ -1904,11 +1759,6 @@ They do. The comment should either become true or stop making the claim.
 <!-- sq:finding:F23 -->
 ### F23 — Priority help on built-in create/update advertises rejected values
 
-<!-- sq:finding:F23:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F23:head:end -->
-
 <!-- sq:finding:F23:body -->
 ## Sites
 
@@ -1967,11 +1817,6 @@ byte-identical; it does not extend to printing values the parser refuses.
 <!-- sq:finding:F24 -->
 ### F24 — sq create completion is bundled-blind while root completion is not
 
-<!-- sq:finding:F24:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F24:head:end -->
-
 <!-- sq:finding:F24:body -->
 ## Site
 
@@ -2025,11 +1870,6 @@ strongest argument for the fix: the mechanism exists twenty lines away.
 
 <!-- sq:finding:F25 -->
 ### F25 — item_is_roster and eleven sibling accessors raise a bare KeyError
-
-<!-- sq:finding:F25:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F25:head:end -->
 
 <!-- sq:finding:F25:body -->
 ## Site
@@ -2109,11 +1949,6 @@ that everything must degrade, it is that the contract must be stated and consist
 <!-- sq:finding:F26 -->
 ### F26 — VS Code client mis-derives the role for a role-less status
 
-<!-- sq:finding:F26:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟡 Medium
-<!-- sq:finding:F26:head:end -->
-
 <!-- sq:finding:F26:body -->
 **Evidence note:** this is the one finding derived from *reading* the client plus *driving* the CLI
 half. The extension itself was not run — no visual or runtime confirmation of the rendering claim.
@@ -2191,11 +2026,6 @@ explicit degrade-gracefully default.
 <!-- sq:finding:F27 -->
 ### F27 — init and adopt never seed skill items for custom or renamed types
 
-<!-- sq:finding:F27:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F27:head:end -->
-
 <!-- sq:finding:F27:body -->
 ## Sites
 
@@ -2247,11 +2077,6 @@ takes.
 <!-- sq:finding:F28 -->
 ### F28 — The squads skill lists declared sub-entity kinds, not hosted ones
 
-<!-- sq:finding:F28:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F28:head:end -->
-
 <!-- sq:finding:F28:body -->
 ## Site
 
@@ -2299,11 +2124,6 @@ declared catalog.
 <!-- sq:finding:F29 -->
 ### F29 — workflow_static hardcodes a retype example and ref-kind types
 
-<!-- sq:finding:F29:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F29:head:end -->
-
 <!-- sq:finding:F29:body -->
 ## Sites
 
@@ -2350,11 +2170,6 @@ breakage and should be swept in the same pass.
 
 <!-- sq:finding:F30 -->
 ### F30 — Root help epilog hardcodes the type-command alias set
-
-<!-- sq:finding:F30:head -->
-**Status:** 🟡 Fixed
-**Severity:** 🟢 Low
-<!-- sq:finding:F30:head:end -->
 
 <!-- sq:finding:F30:body -->
 ## Site

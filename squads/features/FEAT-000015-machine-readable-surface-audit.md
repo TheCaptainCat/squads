@@ -61,22 +61,10 @@ epic for the CLI surface.
 
 _Add with `sq feature 15 add-story "As a <role>, I want … so that …"`; track with `sq feature 15 story <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Story | Status | Assignee | Title |
-| --- | --- | --- | --- |
-| US1 | Todo |  | --json on every read command including blocked, mine, workload, inbox |
-| US2 | Todo |  | As a CI pipeline author, I want documented exit codes, so that I can gate builds on commands like sq check |
-| US3 | Todo |  | As a tool builder, I want the JSON shapes frozen by tests, so that an sq upgrade can't break my parser unannounced |
-<!-- sq:summary:end -->
-
 <!-- sq:stories -->
 
 <!-- sq:story:US1 -->
 ### US1 — --json on every read command including blocked, mine, workload, inbox
-
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
 
 <!-- sq:story:US1:body -->
 **Acceptance:** blocked, mine, workload, inbox, check and refs all accept --json; every read command emits a documented shape.
@@ -93,10 +81,6 @@ As a script author, I want --json on every read command (blocked, mine, workload
 <!-- sq:story:US2 -->
 ### US2 — As a CI pipeline author, I want documented exit codes, so that I can gate builds on commands like sq check
 
-<!-- sq:story:US2:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US2:head:end -->
-
 <!-- sq:story:US2:body -->
 **Acceptance:** an exit-code table (success, user error, check failure, schema mismatch, …) is documented and each code is asserted in a test.
 <!-- sq:story:US2:body:end -->
@@ -109,10 +93,6 @@ As a script author, I want --json on every read command (blocked, mine, workload
 
 <!-- sq:story:US3 -->
 ### US3 — As a tool builder, I want the JSON shapes frozen by tests, so that an sq upgrade can't break my parser unannounced
-
-<!-- sq:story:US3:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US3:head:end -->
 
 <!-- sq:story:US3:body -->
 **Acceptance:** golden files pin the JSON output of every --json command and run in CI; changing a shape requires a deliberate golden-file diff in the same PR.

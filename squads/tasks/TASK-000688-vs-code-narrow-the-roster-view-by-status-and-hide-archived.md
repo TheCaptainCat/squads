@@ -103,23 +103,10 @@ one working affordance in the tree is worth more than a complete implementation 
 
 _Add with `sq task 688 add-subtask "<title>"`; track with `sq task 688 subtask <n> update --status <Status>`._
 
-<!-- sq:summary -->
-| Subtask | Status | Assignee | Title | Story |
-| --- | --- | --- | --- | --- |
-| ST1 | Done |  | Hide archived roster entries |  |
-| ST2 | Done |  | Status filter on the Roster view |  |
-| ST3 | Done |  | Visible filter state, and clear |  |
-| ST4 | Done | op-pierre | Dev-host verification per increment |  |
-<!-- sq:summary:end -->
-
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
 ### ST1 — Hide archived roster entries
-
-<!-- sq:subtask:ST1:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST1:head:end -->
 
 <!-- sq:subtask:ST1:body -->
 Hide-archived on the Roster view. First because it is the smallest thing that is visibly, obviously
@@ -164,10 +151,6 @@ Acceptance:
 
 <!-- sq:subtask:ST2 -->
 ### ST2 — Status filter on the Roster view
-
-<!-- sq:subtask:ST2:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST2:head:end -->
 
 <!-- sq:subtask:ST2:body -->
 Status filter on the Roster view.
@@ -214,10 +197,6 @@ Acceptance:
 
 <!-- sq:subtask:ST3 -->
 ### ST3 — Visible filter state, and clear
-
-<!-- sq:subtask:ST3:head -->
-**Status:** 🟢 Done
-<!-- sq:subtask:ST3:head:end -->
 
 <!-- sq:subtask:ST3:body -->
 Make the Roster's filter state legible, and clearable.
@@ -266,11 +245,6 @@ Acceptance:
 
 <!-- sq:subtask:ST4 -->
 ### ST4 — Dev-host verification per increment
-
-<!-- sq:subtask:ST4:head -->
-**Status:** 🟢 Done
-**Assignee:** Pierre Chat
-<!-- sq:subtask:ST4:head:end -->
 
 <!-- sq:subtask:ST4:body -->
 Dev-host verification — the operator's machine, so an agent cannot close this.
