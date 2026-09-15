@@ -3,10 +3,10 @@ id: EPIC-316
 sequence_id: 316
 type: epic
 title: Shared team knowledge — agent memory and the bulletin board
-status: Done
+status: InProgress
 author: product-owner
 created_at: '2026-07-06T16:08:36Z'
-updated_at: '2026-07-15T13:14:48Z'
+updated_at: '2026-09-14T12:11:28Z'
 ---
 <!-- sq:body -->
 # Shared team knowledge
@@ -31,4 +31,6 @@ decision for the shared mechanics.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-14T12:11:28Z] Catherine Manager:
+  - Reopened Done→InProgress: FEAT-690 (memory/board oversight views in the extension and sq ui) is active scope in 0.15 and sits under this epic. A parent must not trail its child.
 <!-- sq:discussion:end -->

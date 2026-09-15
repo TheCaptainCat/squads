@@ -41,9 +41,12 @@ async def test_create_set_target_date_join_and_show_the_rollup(project, invoke) 
 
     data = json.loads(r.output)
     assert data["extra"]["target_date"] == "2026-12-01"
-    rollup = data["views"]["milestone_rollup"]
-    all_ids = {rec["id"] for g in rollup["groups"] for rec in g["records"]}
-    assert all_ids == {task_id}
+    # The roll-up is placed by a body tag now (not a type-attached `views` key): its rendered
+    # output is part of the body's own expanded text, the same one plain `show` printed above.
+    assert "views" not in data
+    assert "## Delivered" in data["body"]
+    assert "## Outstanding" in data["body"]
+    assert task_id in data["body"]
 
 
 async def test_an_unparseable_target_date_is_refused_via_the_cli(project, invoke) -> None:

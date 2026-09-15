@@ -328,15 +328,33 @@ class MigrationRun:
     ``applied`` holds the :class:`~squads._migrations._registry.Migration` records that ran, in
     order, and is empty when the squad was already at the current stamp.
 
+    ``changed`` carries each applied migration's own returned count (its ``to_schema`` ->
+    the ``int`` its ``run`` awaitable resolved to), keyed rather than positional so a caller
+    never has to zip it back against ``applied`` by index. Every runner already returns this
+    count (``Migration.run``'s ``Callable[[SquadPaths], Awaitable[int]]`` contract), and this
+    is what stops it from being computed and then thrown away: ``run_pending_migrations``
+    used to ``await m.run(self.paths)`` for its side effect alone, so a migration whose own
+    write is otherwise easy to miss in a large corpus diff (seeding one line onto every
+    existing milestone, say) had nowhere to report how many files it actually touched.
+
     ``repair`` is the :class:`RepairResult` of the rebuild that follows the runners, and is
     ``None`` exactly when ``applied`` is empty (no runner applies, so nothing rebuilds). It is
     carried out of the service rather than discarded because the rebuild is also the corpus
     sweep: on this route the operator gets a content diff from a command whose own output
     otherwise says only "index rebuilt", and the migration is the only route a squad behind the
     current schema takes.
+
+    ``skipped`` is each applied migration's own reported skip list (its ``to_schema`` -> the
+    item ids its :class:`~squads._migrations._outcome.MigrationOutcome` named), keyed the same
+    way as ``changed`` and from the same single construction site — extending that one
+    per-runner reporting channel rather than adding a second one. Empty for every migration
+    that has nothing to skip (every one but the 0.14→0.15 milestone tag seed, as of this
+    writing): a runner that never raises has nothing that needed skipping instead of aborting.
     """
 
     applied: list[Migration]
+    changed: dict[str, int] = field(default_factory=lambda: dict[str, int]())
+    skipped: dict[str, list[str]] = field(default_factory=lambda: dict[str, list[str]]())
     repair: RepairResult | None = None
 
 

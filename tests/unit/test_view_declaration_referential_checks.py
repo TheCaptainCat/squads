@@ -32,25 +32,27 @@ def test_views_is_a_member_of_the_closed_top_level_section_set() -> None:
     assert "views" in WORKFLOW_TOP_LEVEL_SECTIONS
 
 
-def test_exactly_one_relation_view_ships_bundled_and_it_is_type_attached() -> None:
+def test_exactly_one_relation_view_ships_bundled_and_none_are_type_attached() -> None:
     """Naming a bundled ref kind / sub-entity kind / item type as a source would ordinarily
     couple every project that later drops or renames it (an ordinary, already-tested
     customisation — see ``test_workflow_subentity_kinds_cli.py``'s dropped-kind cases) to
-    keeping a view nothing consumes — the reason the mechanism itself shipped with none
-    *relation*-sourced view beyond one. The milestone roll-up is that one exception, and only
-    because it's attached: something in the document actually reads it
-    (``items.milestone.views``), and dropping ``milestone`` from ``[selected].items`` takes the
-    attachment — and the loader then the view itself — with it
-    (``tests/unit/test_milestone_view_deselect_cascade.py``). Every OTHER bundled
-    *relation*-sourced view stays proven through test-only declarations instead (this module
-    and ``tests/unit/test_view_expresses_the_subentity_summary_shape.py``).
+    keeping a view nothing consumes — the reason the mechanism itself shipped with no
+    *relation*-sourced view beyond one. The milestone roll-up is that one exception.
+
+    It is placed the same way the other five bundled views are: a ``sq:view:<name>`` tag
+    seeded straight into its host's creation template (``templates/items/milestone.md.j2``),
+    never an ``items.<type>.views`` attachment — no bundled type declares one any more, which
+    is what this test pins. ``milestone_rollup`` is therefore freestanding: deselecting
+    ``milestone`` changes nothing about whether it stays declared
+    (``tests/unit/test_milestone_view_deselect_cascade.py`` covers that, and keeps the
+    now-unreachable-against-bundled-vocabulary type-owned-prune mechanism itself covered
+    through a simulated bundled attachment). Every OTHER bundled relation-sourced view stays
+    proven through test-only declarations instead (this module and
+    ``tests/unit/test_view_expresses_the_subentity_summary_shape.py``).
 
     The other five bundled views (``role_definition``, ``squads_skill``, ``greeting_skill``,
-    ``memory_skill``, ``item_skill``) are non-relation-sourced and carry no
-    ``items.<type>.views`` attachment at all — each is placed by a ``sq:view:<name>`` tag
-    seeded straight into its host's creation template instead, so this test's own subject (the
-    type-attachment axis) does not apply to them; their own end-to-end content is covered by
-    ``tests/integration/test_role_body_content_generation.py``,
+    ``memory_skill``, ``item_skill``) are non-relation-sourced; their own end-to-end content is
+    covered by ``tests/integration/test_role_body_content_generation.py``,
     ``tests/service/test_a_system_skills_definition_is_never_stored_in_its_file.py`` and the
     ``tests/integration/test_*_skill_content_generation.py``/``test_*_skill_generation.py``/
     ``test_item_skill_body_generation.py`` modules — the generic ``role``/``playbook``/``self``
@@ -67,10 +69,8 @@ def test_exactly_one_relation_view_ships_bundled_and_it_is_type_attached() -> No
     }
     relation_views = set(spec.views) - non_relation_views
     assert relation_views == {"milestone_rollup"}
-    assert spec.items["milestone"].views == ["milestone_rollup"]
     for t, ts in spec.items.items():
-        if t != "milestone":
-            assert ts.views == [], f"{t}: unexpected attached views {ts.views}"
+        assert ts.views == [], f"{t}: unexpected attached views {ts.views}"
 
 
 # --------------------------------------------------------------------------- a valid declaration
@@ -429,12 +429,13 @@ fields = [ { code = "severity", label = "Bad" } ]
 
 def test_selected_may_drop_a_declared_view(tmp_path: Path) -> None:
     """Dropping a genuinely freestanding view — one no item type's own ``views`` list
-    attaches — needs no companion edit. ``[selected].views`` here must also keep the bundled
-    ``milestone_rollup`` (``items.milestone`` still names it): a ``[selected]`` line that
-    enumerates the *declared* views without also re-selecting the bundled attached one would
-    collaterally drop ``milestone_rollup`` too and trip the reciprocal attachment check this
-    module also covers — see ``test_a_dropped_declared_view_still_attached_by_its_type_is_
-    refused_at_load`` below for that shape on its own."""
+    attaches — needs no companion edit. ``[selected].views`` here re-selects the bundled
+    ``milestone_rollup`` alongside the test-declared ``kept`` view simply to prove a
+    re-selected bundled view survives an otherwise-narrowing ``[selected]`` line unchanged —
+    milestone_rollup itself is freestanding today (no type attaches it), so omitting it here
+    would just drop it too, cleanly, with no reciprocal-attachment refusal to trip; see
+    ``test_a_dropped_declared_view_still_attached_by_its_type_is_refused_at_load`` below for
+    that refusal's own shape, driven through a project-declared attachment instead."""
     _write_override(
         tmp_path,
         """
@@ -486,11 +487,17 @@ ref_kinds = [
 def test_a_dropped_declared_view_still_attached_by_its_type_is_refused_at_load(
     tmp_path: Path,
 ) -> None:
-    """``[selected] views = []`` drops every declared view, including the bundled
-    ``milestone_rollup`` — but ``items.milestone`` still names it in its own ``views`` list.
-    That dangling attachment is refused at load, naming the type, the dangling view name and the
-    ``[selected]`` provenance, rather than surviving until the first ``sq milestone <n> show``."""
-    _write_override(tmp_path, "[selected]\nviews = []\n")
+    """No bundled type carries a ``views`` attachment any more (``milestone_rollup``, the last
+    one that did, is placed by a template-seeded tag instead — see
+    ``tests/unit/test_milestone_view_deselect_cascade.py``), so this drives the dangling shape
+    through a project's own attachment: ``items.milestone`` names ``milestone_rollup`` in its
+    own ``views`` list, and ``[selected] views = []`` then drops every declared view including
+    it. That dangling attachment is refused at load, naming the type, the dangling view name
+    and the ``[selected]`` provenance, rather than surviving until the first
+    ``sq milestone <n> show``."""
+    _write_override(
+        tmp_path, '[items.milestone]\nviews = ["milestone_rollup"]\n\n[selected]\nviews = []\n'
+    )
     with pytest.raises(SquadsError, match=r"milestone.*milestone_rollup.*selected\.views"):
         load_workflow_spec(squad_dir=tmp_path)
 
@@ -572,10 +579,14 @@ def test_sq_workflow_lint_reports_a_dangling_view_attachment_before_any_item_is_
     tmp_path: Path,
 ) -> None:
     """The same refusal, through the collect-all lint entry point rather than the fail-fast
-    loader — ``sq workflow lint`` must catch this before ``sq <type> <n> show`` ever would."""
+    loader — ``sq workflow lint`` must catch this before ``sq <type> <n> show`` ever would.
+    No bundled type carries a ``views`` attachment any more, so this drives the shape through
+    a project-declared one, the same as the loader-refusal test above."""
     from squads._workflow._loader import lint_workflow_spec
 
-    _write_override(tmp_path, "[selected]\nviews = []\n")
+    _write_override(
+        tmp_path, '[items.milestone]\nviews = ["milestone_rollup"]\n\n[selected]\nviews = []\n'
+    )
     findings = lint_workflow_spec(tmp_path)
     assert any(
         "milestone" in msg and "milestone_rollup" in msg for _level, _loc, msg, _hint in findings

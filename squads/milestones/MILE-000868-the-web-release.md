@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - EPIC-29
 created_at: '2026-09-02T08:03:39Z'
-updated_at: '2026-09-02T08:04:47Z'
+updated_at: '2026-09-14T14:58:07Z'
 ---
 <!-- sq:body -->
 A squad readable in a browser: `sq` serves a local web view, and the squad's
@@ -35,6 +35,7 @@ linked epic carries the outcome and the framing.
 
 This milestone deliberately carries no version number. It is defined by the
 surface it delivers, not by a slot in the release sequence.
+<!-- sq:view:milestone_rollup -->
 <!-- sq:body:end -->
 
 ## Discussion

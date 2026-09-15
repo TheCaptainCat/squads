@@ -36,7 +36,7 @@ from squads._models import _markers as markers
 from squads._models._vocab import label_for
 from squads._paths import number_for_id
 from squads._util import slugify
-from squads._workflow._models import linearize_lifecycle
+from squads._workflow._models import WorkflowSpec, linearize_lifecycle
 
 # The active squad directory for this logical call stack. None means bundled-only.
 _active_squad_dir: ContextVar[Path | None] = ContextVar("_active_squad_dir", default=None)
@@ -194,6 +194,48 @@ def has_template(template_name: str) -> bool:
     except TemplateNotFound:
         return False
     return True
+
+
+def creation_template_name(item_type: str, spec: WorkflowSpec) -> str:
+    """The Jinja2 template path *item_type*'s creation writes from — the one resolution the
+    create path (:meth:`~squads._services._base.ServiceCore._template_for`, a thin wrapper
+    over this) and the template-seeded-view derivation
+    (:func:`~squads._views.template_seeded_view_names`) both read, so the two can never
+    disagree about which file "the creation template" names.
+
+    A roster type (role/skill/operator) always resolves to its dedicated
+    ``agents/<type>.md.j2``. Every other declared type resolves to its dedicated
+    ``items/<type>.md.j2`` when one exists (checked via :func:`has_template`, so a project
+    override shadowing a bundled per-type template is honoured), else the generic
+    ``items/_default.md.j2`` fallback that lets a custom type render at all.
+    """
+    if spec.item_is_roster(item_type):
+        return f"agents/{item_type}.md.j2"
+    per_type = f"items/{item_type}.md.j2"
+    if has_template(per_type):
+        return per_type
+    return "items/_default.md.j2"
+
+
+def template_source(template_name: str) -> str:
+    """*template_name*'s raw source text, resolved through the same override-aware loader
+    :func:`render` uses — never rendered, since a caller reading a template's own authored
+    content (which ``sq:view:<name>`` tags its creation scaffold seeds statically) has no item
+    to render against and a render would need a context this question does not have.
+
+    Raises :class:`SquadsError` wrapping ``jinja2.TemplateNotFound`` when *template_name*
+    doesn't resolve — the same failure :func:`render` converts, for the same reason.
+    """
+    from jinja2 import TemplateNotFound
+
+    env = _env()
+    if env.loader is None:
+        raise SquadsError(f"template {template_name!r} not found (no loader configured)")
+    try:
+        source, _filename, _uptodate = env.loader.get_source(env, template_name)
+    except TemplateNotFound as exc:
+        raise SquadsError(f"template {template_name!r} not found") from exc
+    return source
 
 
 def render(template_name: str, /, **context: object) -> str:

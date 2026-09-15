@@ -53,10 +53,10 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, prefix_from_id, ref_id_matches, split_ref
 from squads._models._subentity import SubEntity
 from squads._paths import number_for_id
-from squads._rendering._engine import has_template, render
+from squads._rendering._engine import creation_template_name, has_template, render, template_source
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_for_item
-from squads._sections import iter_marker_spans
+from squads._sections import get_section, iter_marker_spans
 from squads._workflow._models import (
     ROSTER_ROLE,
     ROSTER_SKILL,
@@ -965,6 +965,45 @@ def has_view_tag(text: str) -> bool:
     a redundant pre-check.
     """
     return any(markers.view_tag_name(raw) is not None for raw, _, _ in iter_marker_spans(text))
+
+
+def template_seeded_view_names(item_type: str, spec: WorkflowSpec) -> frozenset[str]:
+    """The ``sq:view:<name>`` tag names *item_type*'s creation template places inside its
+    ``sq:body`` region, as that template stands today — read from the template's own SOURCE,
+    never a render (there is no item to render against, and a render would need a context this
+    question does not have).
+
+    Resolves the template through the identical resolution the create path uses
+    (:func:`~squads._rendering._engine.creation_template_name`, including the
+    ``items/_default.md.j2`` fallback) and the same override-aware loader
+    (:func:`~squads._rendering._engine.template_source`), so a project that overrode a type's
+    creation template to add or drop a tag gets the overridden answer, never the bundled one.
+
+    The one derivation the retroactive migration (which view names to place, and on which
+    types) and the ``sq check`` advisory for a template-seeded tag missing from a body both
+    read, so the two can never disagree about what "the template seeds this tag" means.
+    Recognises a tag through :func:`~squads._models._markers.view_tag_name` over the same
+    positional marker scan every other consumer of the family uses
+    (:func:`~squads._sections.iter_marker_spans`) — never a re-spelled ``sq:view:`` literal at
+    this call site.
+
+    Empty — never an error — when *item_type* isn't declared, its resolved template doesn't
+    exist, its file carries no ``sq:body`` region, or that region carries no view tag: a type
+    asked about that seeds nothing is an ordinary, unremarkable answer.
+    """
+    if item_type not in spec.items:
+        return frozenset()
+    template_name = creation_template_name(item_type, spec)
+    if not has_template(template_name):
+        return frozenset()
+    body = get_section(template_source(template_name), markers.BODY)
+    if body is None:
+        return frozenset()
+    return frozenset(
+        name
+        for raw, _start, _end in iter_marker_spans(body)
+        if (name := markers.view_tag_name(raw)) is not None
+    )
 
 
 def expand_view_tags(

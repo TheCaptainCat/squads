@@ -54,7 +54,24 @@ async def migrate_up():
         console.print(f"already at schema v{SCHEMA_VERSION}; nothing to migrate")
         return
     for m in applied:
-        console.print(f"  {m.version} (schema v{m.from_schema}→v{m.to_schema}): {e(m.summary)}")
+        count = run.changed.get(m.to_schema)
+        changed_suffix = f" — {count} changed" if count else ""
+        console.print(
+            f"  {m.version} (schema v{m.from_schema}→v{m.to_schema}): "
+            f"{e(m.summary)}{changed_suffix}"
+        )
+        skipped_ids = run.skipped.get(m.to_schema, [])
+        if skipped_ids:
+            console.print(
+                f"  [yellow]skipped[/yellow] {len(skipped_ids)} item(s) rather than abort the "
+                f"run: {', '.join(e(i) for i in skipped_ids)} — a skewed one needs `sq repair`, "
+                "a missing file needs restoring or re-adopting, a missing body region needs "
+                "one added by hand; only once that is true and the item genuinely carries no "
+                "tag does `sq <type> <n> view add <name>` place one — an item already carrying "
+                "the tag outside its own region needs none of this: it was left exactly as it "
+                "was, and placing another copy would duplicate it",
+                soft_wrap=True,
+            )
     console.print(
         f"[green]migrated[/green] to schema v{SCHEMA_VERSION}; index rebuilt — "
         "run `sq sync` to refresh managed files",

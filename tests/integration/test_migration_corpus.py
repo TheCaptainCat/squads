@@ -45,6 +45,7 @@ _CORPUS_CASES: list[tuple[str, str]] = [
     ("0.10", "v0_10"),
     ("0.11", "v0_11"),
     ("0.14", "v0_14"),
+    ("0.15", "v0_15"),
 ]
 
 
@@ -170,6 +171,34 @@ async def test_v0_2_migration_rewrites_the_legacy_backend_key(tmp_path: Path) ->
     assert post["active_backends"] == ["claude_code"]
 
 
+async def test_the_v0_14_fixtures_milestone_gains_its_roll_up_tag_across_the_chain(
+    tmp_path: Path,
+) -> None:
+    """The one corpus fixture that carries the write end to end: `v0_14` holds a milestone
+    with no `sq:view:milestone_rollup` tag, and the 0.14->0.15 runner is the only step in the
+    chain that can place one. Every other corpus case's own milestone (`v0_15`, already
+    current) or absence of one (`v0_1`..`v0_11`) means this is the sole fixture that can fail
+    if the runner stops writing.
+
+    **Falsification**: with the runner's own write disabled, this test alone reddens, with no
+    other test's help — `sq check` does not flag a *missing* tag (only a dangling one), so
+    every other corpus assertion (schema reached, check clean) stays green regardless.
+    """
+    dst = tmp_path / "v0_14"
+    shutil.copytree(_CORPUS_DIR / "v0_14", dst)
+    paths = _load_paths(dst)
+    svc = Service(paths)
+    await svc.run_pending_migrations()
+
+    mile_files = sorted((paths.squad_dir / "milestones").glob("*.md"))
+    assert mile_files, (
+        "the v0_14 fixture carries no milestone for this migration to prove the write on"
+    )
+    tag = markers.open_marker(markers.view_tag("milestone_rollup"))
+    for path in mile_files:
+        assert tag in path.read_text(encoding="utf-8"), f"{path.name}: the roll-up tag is missing"
+
+
 def _md_files(squad_dir: Path) -> list[Path]:
     return sorted(p for p in squad_dir.rglob("*.md") if p.is_file())
 
@@ -190,7 +219,7 @@ async def test_corpus_carries_no_retired_region_after_migrating(
     materialises one for every sub-entity host on the way up, and the rebuild at the end takes
     them out again.
 
-    `v0_14` is the exception this asserts rather than exempts: a corpus already at the current
+    `v0_15` is the exception this asserts rather than exempts: a corpus already at the current
     stamp applies no runner, so `repair()` is never called, and it still carries its regions
     afterwards. That tolerance is the point — it is what an un-migrated adopter file needs from
     the read path, and it is why `markers.SUMMARY` stays in the validator's structural tag set.
@@ -209,7 +238,7 @@ async def test_corpus_carries_no_retired_region_after_migrating(
         or ":head -->" in path.read_text(encoding="utf-8")
     ]
     if not applied:
-        assert corpus_name == "v0_14", f"{corpus_name!r} applied no runner unexpectedly"
+        assert corpus_name == "v0_15", f"{corpus_name!r} applied no runner unexpectedly"
         assert carried, "the frozen current-stamp fixture must keep carrying its regions"
         return
     assert not carried, (
@@ -308,7 +337,7 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
     rebuild builds each index entry from the very frontmatter it rewrites, so the two agreeing
     is a claim about the sweep and not a restatement of one value read twice.
 
-    ``v0_14`` is stamped current, applies no runner and so is never rebuilt — it keeps its
+    ``v0_15`` is stamped current, applies no runner and so is never rebuilt — it keeps its
     mirror here, and the bare verb is what reaches it further down.
     """
     dst = tmp_path / corpus_name
@@ -334,7 +363,7 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
         assert set(was.get("extra", {})) & _RETIRED_MIRROR_KEYS
         assert has_section(text, markers.BODY), f"{item.id}: the body markers were deleted"
         if not applied:
-            assert corpus_name == "v0_14", f"{corpus_name!r} applied no runner unexpectedly"
+            assert corpus_name == "v0_15", f"{corpus_name!r} applied no runner unexpectedly"
             assert set(stored) & _RETIRED_MIRROR_KEYS
             continue
         assert set(stored) & _RETIRED_MIRROR_KEYS == set(), f"{item.id}: the mirror survived"
@@ -391,13 +420,13 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
     """The case the migration path structurally cannot reach, and the whole reason the vehicle
     is ``repair`` rather than a runner.
 
-    ``v0_14`` is stamped current, so ``sq migrate up`` answers "nothing to migrate" and no
+    ``v0_15`` is stamped current, so ``sq migrate up`` answers "nothing to migrate" and no
     runner — and therefore no rebuild — ever visits it. The population is not an artefact of
     this release's staging either: ``adopt`` over a folder with no config stamps the build's
     own schema and rebuilds, manufacturing the same corpus with no release doing anything.
     """
-    dst = tmp_path / "v0_14"
-    shutil.copytree(_CORPUS_DIR / "v0_14", dst)
+    dst = tmp_path / "v0_15"
+    shutil.copytree(_CORPUS_DIR / "v0_15", dst)
     paths = _load_paths(dst)
     svc = Service(paths)
     run = await svc.run_pending_migrations()

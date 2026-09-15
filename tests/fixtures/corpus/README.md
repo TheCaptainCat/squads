@@ -23,6 +23,9 @@ corpus/
   v0_14/   — schema 0.14: two new bundled item types (contract/PRD, milestone/MILE) — carries
              v0_11's content plus each type's managed skill, stamped as a SKILL item, body and
              `.claude` pointer; no existing frontmatter shape changed
+  v0_15/   — schema 0.15: the milestone roll-up moves off its type attachment onto a
+             `sq:view:milestone_rollup` body tag; byte-identical to v0_14 except the schema
+             stamp, since this fixture carries no milestone item for the migration to touch
 ```
 
 Each directory contains:

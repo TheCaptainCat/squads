@@ -8,7 +8,7 @@ author: architect
 description: Retire the projection layer; keep and widen sources; a content-free tag
   marks where a view renders on read
 created_at: '2026-09-02T12:23:01Z'
-updated_at: '2026-09-04T12:59:28Z'
+updated_at: '2026-09-15T08:59:42Z'
 ---
 <!-- sq:body -->
 ## The operator's model, restated
@@ -942,6 +942,567 @@ the emptiness clause's answer and not a gap.
 - The equivalence owed on landing is per **type**, not per bundled type: the rendered text for every
   declared type's skill, and for a synthetic project-declared type, is what the collapse must leave
   unchanged — a bundled-only diff would prove the half of this the ruling above refuses.
+
+## Fourth amendment — 2026-09-14: a view declaration carries `required`, and the third refusal falls
+
+op-pierre ruled that a view declaration carries a **`required`** boolean; that a document of a
+type carrying a required view MUST hold its tag; and that **skipping a required view is
+forbidden, and `--force` does not override it**. That overturns the third of the three
+mitigations this record's first amendment refused. The ruling, the pricing and all three earlier
+amendments are otherwise untouched.
+
+The ruling is not re-argued here. What follows is the part it leaves open: where `required`
+lives, what its default is, which surfaces bind it, what an upgrading corpus sees, which `sq
+check` tier reports it, and which bundled views take it.
+
+Every claim below is labelled **read** (traced in source) or **inferred**. Nothing was driven:
+the ruling turns on classification and on what the source already says.
+
+### 0. The refusal that falls, and the two that stand
+
+The first amendment refused three mitigations in one clause, on one stated reason:
+
+> Refused: preserving a tag across a `body` replace, re-inserting it silently, or refusing the
+> write. Each of those makes the tag tool-maintained bytes inside an authored region.
+
+That reason is true of the first two and **false of the third**, and grouping them was the
+error. Preserving and silent re-insertion both have the tool write bytes the author's own input
+did not contain — and preservation cannot even preserve *position*, since a replace supplies the
+whole region, so it converts a visible loss into a silent relocation. Both stand refused, and
+the ruling does not touch either.
+
+Refusing the write puts **no bytes anywhere**. A refusal is a precondition on the author's
+input, not authorship of the file. Calling it "tool-maintained bytes in an authored region" was
+a category error about a code path that writes nothing.
+
+The codebase settles it, and this record cited the very fact without weighing it (**read**):
+`_services/_items.py::set_body`'s `mutate` closure refuses a **role** body write outright on
+`item.type == ROSTER_ROLE`, and a **system skill** body write outright on `is_system_skill` —
+no `--force`, no escape — precisely because those bodies are the slot `sq:view:role_definition`
+and the system-skill views render into (tag names spelled bare here, as elsewhere in this
+record, since a body may not carry a well-formed marker), the region `_services/_base.py` seeds
+the tag into at creation. That refusal has shipped for releases. Nobody has ever described it as the tool owning
+content in a file it does not own, because it is not: it owns the *rule*, and the author owns
+every byte that survives it.
+
+So the operator's distinction is the correct one and it is the one this record was missing:
+
+- **Overwriting an existing authored body is *protected*.** `--force` is exactly the consent
+  that lifts that protection (`reject_body_overwrite`), and lifting it is what the flag is for.
+- **Producing a body that omits a required view tag is *forbidden*.** It is a document
+  invariant, not prose the author is consenting to lose. No flag lifts it, and `--force` says
+  nothing about it — the two guards are independent and a write must clear both.
+
+`required` is the declared, per-view generalisation of behaviour that already ships hardcoded
+per type. My original reasoning survives only for the two mitigations that write; for the one
+that refuses, it does not survive the codebase's own precedent.
+
+### 1. Ruled: `required` is a key of the view declaration; the host set is derived, never declared
+
+`required: bool` is a field of `ViewSpec` — one `[views.<name>]` key, beside `source`. It is
+**not** a key of a type's selection or placement of a view, and no per-type view attachment
+returns to carry it.
+
+Refused, for the reason this record already spent a section on: a per-type requirement axis is
+`ItemSpec.views` coming back. That surface was deleted by the ruling above, together with
+`_prune_orphaned_type_owned_views`, because it put a view's name into a type's declaration and
+coupled every project that later dropped or renamed the type to keeping the view. A `required`
+flag hung off that axis would reintroduce exactly that coupling for a strictly smaller payload.
+The third amendment refused the mirror shape for the same class of reason.
+
+**The half the ruling leaves open is not "where does the flag live" but "which documents does a
+required view bind".** The ruling's phrase is "a document of a type that carries it". Ruled:
+**a required view's hosts are exactly the documents the tool's own placement authority seeds the
+tag onto**, and that authority is already implemented, in one place per family:
+
+- for an ordinary item type, the type's **creation template**, read through
+  `views.template_seeded_view_names(item_type, spec)` — override-aware, resolved through the
+  same `creation_template_name`/`template_source` pair the create path uses (**read**);
+- for a role, a permanently-system skill, and a per-item-type `sq-<type>` skill, the **roster
+  writer's classification**, which `MaintenanceMixin._repair_body_tag(item)` already computes —
+  `role_definition` for a role, the `SYSTEM_SKILL_VIEW_NAMES` entry for the three fixed slugs,
+  `ITEM_SKILL_VIEW_NAME` for a slug that currently documents a declared type, `None` for a
+  custom author-defined skill (**read**).
+
+Three properties make this the right derivation rather than a convenience:
+
+- **A requirement nothing seeds is unsatisfiable.** If the host set were declared independently
+  of the seeding authority, a type could require a view its creation path never places, and
+  every freshly created item would be born in violation with no write able to fix it (a tag
+  cannot enter through the prose door — `reject_markers`, first amendment). Deriving the host
+  set from the seeder makes creation satisfy the invariant **by construction**, which is why §3
+  gives item creation no gate of its own.
+- **It declares nothing derivable**, the standing rule the first amendment already applied to a
+  per-item `views:` list and the third applied to a per-type view name.
+- **It is decidable from the host's type and slug alone** — never from the host's content. That
+  is the same clause the second amendment put on source applicability, restated here as binding
+  for this predicate, and it is what makes §5's tier placement available.
+
+**Accepted, named: one flag per view, not per (view, type) pair.** A view seeded on two types is
+required on both; there is no way to say "required on milestones, optional on epics". That is a
+matrix declaration whose cells would be the same value in every case anyone has raised, and it
+is declaration growth out of proportion to a distinction nobody needs yet. If the case arrives
+it arrives as a new key on the declaration, never by moving `required` onto a type.
+
+**Accepted, named: a hand-placed tag on a non-host document is not bound.** `sq view add` will
+place a required view's tag on any document whose type the view's source applies to; that
+document is not a host, so nothing requires it to keep the tag and `sq view rm` takes it off.
+The requirement is keyed on the host relation **as the spec and its templates currently stand** —
+never on how a tag arrived, which nothing records and nothing may start recording. That is the
+first amendment's provenance rule, unchanged.
+
+### 2. Ruled: the default is `required = false`
+
+A view that says nothing about `required` is not required.
+
+- **An upgrading corpus predates the flag.** Defaulting true would make every adopter view
+  instantly binding on every host, retroactively, and the ruling gives the author no per-write
+  escape from it. A restriction with no flag to lift it must be opted into, never inherited.
+- **It is the honest default for the surface it governs.** A view an author places by hand, on
+  documents of their own choosing, with `sq view add`/`rm`, is the ordinary adopter case. Its
+  posture is exactly `required = false`: place it where you want it, take it off when you don't.
+- **It keeps the bundled postures readable in one place.** Each bundled declaration states its
+  own answer explicitly (§6), so `[views]` is the whole story and no reader has to know a
+  default to read it.
+
+**`required` is only ever asked of a *declared* view.** A view dropped from `[selected]` is not
+declared, therefore has no hosts, therefore requires nothing — the same gate `_repair_body_tag`
+already applies to every branch of its own classification (**read**), inherited rather than
+restated.
+
+### 3. Ruled: what binds it
+
+**The body write path — bound, and it is the enforcement point that matters.** The guard sits in
+`_body_mutate`'s `mutate` closure, so it covers `set_body` and the bulk importer's `body` op
+through the one shared closure, not two implementations.
+
+- **Replace refuses, unconditionally, on a required host.** It refuses without consulting
+  `force`, and it refuses *before* `reject_body_overwrite` is reached, because the two guards
+  are independent and this one is not forceable. There is no compliant replace to fall back to:
+  a body text carrying the tag cannot enter through the prose door at all (`reject_markers`,
+  first amendment, ruled with no hole in it), so "omit it" and "include it" are both unavailable
+  and the honest answer is a refusal. **This is exactly today's observable behaviour for a role
+  and a system skill** (**read**) — which is the point: the hardcoded refusals retire into the
+  general rule with no behaviour change on the surface they already covered (§6).
+- **Append is not refused by this rule.** `--append` keeps the whole existing region and writes
+  after it, so it cannot produce a body missing a tag the body already had. A required host
+  whose tag is genuinely absent is a different state, handled by §4.
+
+**`sq view rm` — bound, narrowly.** `remove_view` refuses only when the named view is declared,
+`required`, and *this* document is one of its hosts. Every other removal stays free, which
+preserves the recovery path the second amendment wrote into it verbatim: a tag naming an
+undeclared view, a view whose source cannot apply to this host, or a non-required view all come
+off exactly as they do today. Without this clause the invariant would be a one-command bypass,
+and `--force` not lifting it would mean nothing.
+
+**`sq view add` — unbound.** Adding a tag is never the violation, and it is the remedy §4 names.
+Its existing refusals (undeclared name, unresolvable template, inapplicable source) are
+unchanged.
+
+**`sq retype` — unbound, and it writes nothing.** A retype carries the body verbatim, so it can
+move a document *into* a type that requires a view the document lacks, or *out of* one, leaving
+an ex-required tag behind as an ordinary optional one. Neither is refused, stripped, relocated
+or repaired. That is the second amendment's disposition applied unchanged: a tag valid when
+placed and no longer valid is made **visible, never undone**, and retype's behaviour stays
+unchanged while its outcome becomes a reported finding. The consequence to state plainly:
+**a violating document is reachable without any write path producing it**, which is why the
+invariant is "no write may produce it" plus a report — not "no corpus may contain it".
+
+**Item creation — bound by construction, with no gate.** Creation renders the type's template,
+which is the placement authority the host set is derived from (§1), so the tag is present the
+moment the file exists. A gate here would be a check that the create path had done what the
+create path is defined as doing.
+
+**Spec load — unbound.** A `required = true` view that no template and no roster writer seeds
+has an empty host set and binds nothing. That is vacuous, not broken, and it is the ordinary
+intermediate state of an adopter who declares a view before overriding a creation template to
+place it. Refusing it at load would fail a squad hard for a state that harms nothing — the
+emptiness clause of the second amendment, applied to the declaration axis.
+
+### 4. Ruled: what an upgrading adopter sees — a finding, not a migration and not a wall
+
+**No new migration, and no hard stop.** The one-time retroactive write into authored bodies was
+licensed once, under a closed condition set, and this record already states it is not a
+precedent. `required` does not reopen it: `sq repair` gains **no** new backfill for an ordinary
+item type, and no command rewrites an authored body to satisfy the flag.
+
+What an adopter with a host document missing its required tag sees:
+
+- **every read keeps working.** The rule binds writes, not reads. A body without the tag renders
+  without that view's output, exactly as it does today.
+- **`sq check` reports it**, at error level, naming the document, the required view, and the
+  remedy — `sq view add` (§5).
+- **the first body replace on that document is refused**, and the refusal names the same remedy
+  rather than a bare "required view missing", so the author is never left blocked without the
+  unblock in hand.
+
+Two escapes exist, both spec-level and both deliberate, which is what makes "no flag lifts it"
+livable: an adopter may **drop the view from `[selected]`** (undeclared, so no hosts), or
+**override the creation template** that seeds it (the type stops being a host). Neither is a
+per-write flag, both are visible in the spec tree, and both are the existing customisation
+surface rather than a new one.
+
+For the two roster families the corpus-level remedy also already exists and needs no change:
+`_repair_body_tag` plus `_backfill_roster_body_tags` converge a role's and a system skill's
+region onto the tag under their existing licence (**read**).
+
+**This repository is already compliant** (**read**): all four milestone files carry
+`sq:view:milestone_rollup` after this release's migration, all ten role files carry
+`sq:view:role_definition`, and every skill file carries its own view tag except
+`releasing-squads` — a custom, author-defined skill, which correctly has no required view and
+whose body is authored content.
+
+### 5. Ruled: tier 1 — the always-on per-file scan, not the selectable catalog
+
+A required view's tag missing from one of its hosts is an **error-level finding produced
+unconditionally by `MaintenanceMixin._scan_for_check`'s raw-text file-level pass**, beside
+`_marker_issues` and `_view_target_issues`. It is **not** a `CATALOG`/`VALIDATOR_NAMES` member,
+and it never will be. Both of `_validators.py`'s stated tier-1 properties hold, and the second
+one decides it:
+
+- **It needs no resolved `Item`.** The scan binds the host type from the type folder and the
+  `PREFIX-*.md` filename before `read_frontmatter` runs, and the filename's own slug segment is
+  what `Item.slug` is defined as (`_models/_item.py::_slug_from_path`) — so both inputs §1's
+  predicate is allowed to read are in hand at that point (**read**). A file too broken to parse
+  still gets the finding, which is where a finding about a document that cannot render earns its
+  keep.
+- **It must not be selectable.** This is the tiering test's easy case. `required` is a *declared*
+  statement that a document of this shape must hold this tag; a project that does not want the
+  requirement clears `required`, drops the view, or overrides the template (§4). A project that
+  declares the requirement and then selects the check that enforces it separately has expressed
+  the same intention twice and can leave the two disagreeing. A binding invariant whose
+  enforcement is opt-in is not a binding invariant.
+
+**Said plainly, because earlier decisions assumed otherwise: this removes the catalog-only
+advisory entirely.** TASK-942's warn-level member, its `VALIDATOR_NAMES` /
+`DEFAULT_VALIDATOR_LEVEL` / `UNGUARDED_VALIDATOR_NAMES` entries, its category placement, this
+project's own selection of it, and the `squads/.overrides/workflow.toml` that selection would
+have required all fall away. This repository keeps having no overrides, and the enforcement it
+now gets is stronger than the advisory it is not building. The one derivation TASK-942 was
+correctly held to — "which view names does this type's creation template currently seed", read
+once, never reimplemented — survives intact and is what §1 consumes.
+
+**Nothing is reported for a non-required view.** A view with `required = false` has no host set,
+so "this document used to carry it" is a question about provenance, which nothing records and
+nothing may start recording. A tag taken off such a document is an ordinary body edit.
+
+### 6. Ruled: the five roster views and `milestone_rollup` are all `required = true`
+
+- `role_definition`, `squads_skill`, `greeting_skill`, `memory_skill`, `item_skill` —
+  **required**. Each of these bodies *is* the slot its view renders into; without the tag the
+  document reads as nothing. This is the behaviour already hardcoded in `set_body`, now
+  declared.
+- `milestone_rollup` — **required**. This one is a change of position and it is stated as such.
+  The first amendment's problem-2 disposition rested on "an author who does not want a view on
+  one document is in a state a competent squad can sit in on purpose"; the ruling replaces that
+  per-document opt-out with a spec-level one (§4), which is what "a document invariant, not
+  prose the author is consenting to lose" means. It is also the only bundled view a body write
+  can reach at all — the other five sit on bodies already refused — so leaving it optional would
+  ship a flag with no bundled consumer and change nothing the ruling was made about. The corpus
+  satisfies it today (§4).
+
+**The hardcoded per-type refusals in `set_body` retire**, with two constraints on the retirement:
+
+1. **Replace only.** The `ROSTER_ROLE` and `is_system_skill` branches are replaced by the general
+   required-host rule, which refuses a replace on exactly those documents for exactly the same
+   reason. The unrelated third branch — a project-declared roster type whose body is generated —
+   is not a view question and stays as it is. The custom-skill admission stays too, and falls out
+   of the derivation rather than being special-cased: a custom skill has no seeded view, so
+   nothing requires anything of it.
+2. **The append refusal on tool-converged roster bodies stays, and it is a separate rule.**
+   Today's role/system-skill branches refuse `--append` as well, and the general rule does not
+   (§3). That widening must not happen by accident here, because those regions are converged by
+   the repair sweep: prose appended beside the tag is erased by the next `sq repair` with no
+   warning (`_repair_body_tag`/`_converge_body_tag`, **read**). Ruled: the append refusal
+   survives, keyed on the sweep's own classification — the same predicate, asked once — and
+   never on a type literal re-spelled in `set_body`. Whether a converged roster body should ever
+   admit authored prose beside its tag is a separate question this amendment does not open.
+
+One thing the retirement must not lose: today's role refusal names the real remedy — declare the
+definition in `.overrides/roles.toml`, or `.overrides/roles/<slug>.toml` for a project-defined
+role. A generalised refusal composed from the view's name cannot carry that sentence without a
+per-view message key, which is declaration growth for one string. Ruled: the generalised refusal
+names the item, the required view, and the placement verb; the role-authoring pointer belongs to
+the role surface and stays reachable from `sq role <slug> show`'s empty-body hint
+(`empty_body_hint_state`'s consumers), and putting it there is part of the retirement, not a
+follow-up.
+
+### 7. What this obliges
+
+- TASK-942 is rescoped and renamed by the tech lead around the required flag: the `ViewSpec`
+  key, its default, the one host-set helper composing the two existing derivations of §1, the
+  write-path and `view rm` guards, the tier-1 finding, and the `set_body` retirement with its
+  two constraints. The catalog member, its tables and the overrides file it needed are dropped.
+- The host-set helper is **one** function, consuming `template_seeded_view_names` and the
+  `_repair_body_tag` classification rather than re-deriving either. Two answers to "which view
+  does this document carry" is the drift TASK-942's single-condition rule already existed to
+  prevent, and adding a requirement on top of it raises the cost of disagreement from a missing
+  advisory to a wrongly refused write.
+- The predicate may not read the host's content — type and slug only — and a future required
+  view that cannot be decided that way is a proposal to move this finding out of tier 1, to be
+  read and answered as exactly that.
+- The regression shapes owed on landing: a replace refused on a milestone (the case that has
+  never been refused before), `--force` failing to lift it, an append succeeding on the same
+  document, `view rm` refused on a host and permitted on a hand-placed non-host, a retype into a
+  required host producing a readable document and a reported finding, and a dropped-from-
+  `[selected]` view requiring nothing.
+
+## Fifth amendment — 2026-09-15: the retirement narrows the roster refusal, intentionally, and the repair sweep's wide licence goes with it
+
+FEAT-907's breakdown found that the fourth amendment's `set_body` retirement is **not** the
+behaviour-preserving substitution that amendment claimed. It is a narrowing, it is intended, and
+it has a consequence in `_services/_maintenance.py` that the fourth amendment did not reach. The
+ruling, the pricing and the first three amendments are untouched; the fourth is corrected in
+place below.
+
+Every claim is labelled **read** (traced in source) or **inferred**. Nothing was driven.
+
+### 1. The two sentences that are wrong
+
+From the fourth amendment §3:
+
+> **This is exactly today's observable behaviour for a role and a system skill** (**read**) —
+> which is the point: the hardcoded refusals retire into the general rule with no behaviour
+> change on the surface they already covered (§6).
+
+And from its §6:
+
+> The `ROSTER_ROLE` and `is_system_skill` branches are replaced by the general required-host
+> rule, which refuses a replace on exactly those documents for exactly the same reason.
+
+"Exactly those documents" is false. The required-host derivation gates on the view still being
+declared; `is_system_skill` does not gate on anything — it is **unconditionally bundled-blind**
+on its built-in half (`bundled_skill_slugs()` takes no spec and no playbook, and composes
+`managed_item_types()` against the *bundled* playbook singleton, **read**). So the derived set is
+strictly smaller than the hardcoded one, in three shapes rather than the two the breakdown found:
+
+- **a permanently-system skill whose view is dropped from `[selected]`** — `squads`/`greeting`/
+  `sq-memory` stay in `bundled_skill_slugs()` forever, so `set_body` refuses today; the
+  derivation yields no host and admits the write;
+- **a role, when `role_definition` is dropped** — the third shape, not named in the breakdown
+  and following identically: today's refusal is `item.type == ROSTER_ROLE`, which asks nothing
+  about the spec at all;
+- **a stale `sq-<type>` skill whose type is no longer declared** — and this one only narrows for
+  a **historically-bundled** type. `sq-bug` after `bug` is dropped stays in the bundled-blind
+  list and is refused today, while `item_type_for_skill_slug("sq-bug", spec)` returns `None`
+  (**read**). A *project-declared* `widget`'s stale `sq-widget` is already writable today, since
+  `custom_skill_slugs` iterates the live `spec.items` — no change there. The breakdown's second
+  shape is real but half as wide as stated.
+
+### 2. Ruled: the narrowing is intended, and it is the correction rather than the cost
+
+A body region is tool-owned **because something the tool maintains renders into it**. That is
+exactly "this document is a host of a declared view". Drop the view and nothing the tool
+maintains renders there; the region reverts to what every other body already is — authored prose
+the author owns. The narrowing is that sentence applied, and refusing it would mean keeping a
+refusal whose own stated reason has gone false.
+
+Because it has. Today's refusal tells the author that "an authored body here would never be
+shown". In all three shapes that is **untrue** (**read**): `read_body` returns the `sq:body`
+region's content verbatim and only calls `expand_view_tags` when the body carries a tag, so a
+body with no tag — which is what a dropped view's host has, since every seeding writer and
+`_repair_body_tag` alike gate on the view being declared — displays its prose exactly like any
+other item's. The old refusal was, in these shapes, refusing a write whose output would have
+rendered fine and telling the author the opposite.
+
+**What the adopter in either shape now experiences.** An adopter who drops `role_definition`
+(or a system-skill view) is an adopter who has said they do not want the generated definition;
+authoring those bodies by hand is a coherent reason to have dropped it, and until now it was the
+one thing the drop did not let them do. After this they write those bodies like any other. The
+prose survives `sq sync` and `sq repair` — `_repair_body_tag` returns `None` for an undeclared
+view, so the sweep never reaches the region (**read**) — and it is displayed by every read
+surface. A later re-add of the view makes the document a host again: the tier-1 finding fires
+for the missing tag, and `sq view add` inserts the tag at the region's end **keeping the prose**,
+so the round trip loses nothing.
+
+**One thing the narrowing incidentally fixes, and it is a real defect today (read).** `set_body`
+and the repair sweep currently ask *different* membership questions about the same region:
+`set_body` asks `is_system_skill` (bundled-blind ∪ live custom), the sweep asks
+`SYSTEM_SKILL_VIEW_NAMES` / `item_type_for_skill_slug` (live only). They disagree on exactly the
+stale historically-bundled slug above: `sq-bug` with `bug` dropped is **refused by the write path
+and never reached by the sweep** — a region no command can write and no sweep can converge.
+Routing the refusal through the one derivation the sweep already computes is what removes that
+dead state, and keeping two membership tests for one question is the drift this record has
+refused twice already.
+
+### 3. Ruled: `_converge_body_tag`'s wide licence retires with the refusal that justified it
+
+This is the consequence the fourth amendment did not reach, and it is the real answer to "is
+anything lost that the old refusal was protecting". Not read-visibility — that reason was already
+false (§2). What the unconditional refusal was actually protecting sits one module over, and says
+so in its own words (`_converge_body_tag`, **read**):
+
+> `set_body` refuses a role's and a permanently-system skill's body unconditionally *in current
+> code* … so **no code path today can have authored either region**. … *strict_empty* stays
+> `False` for these two.
+
+That premise is the whole safety argument for the **wide** licence: a non-empty, marker-free
+`sq:body` on a role or permanently-system skill can only be a pre-0.14 plain-prose rendering, so
+converging over it discards a derived rendering and never authored work. The narrowing falsifies
+it. Drop a view, author the body, re-add the view, and a version-drift backfill runs
+`_converge_body_tag` non-strict over prose with no markers — which takes the
+`if not sections.find_markers(current)` branch and **replaces the author's text with the tag
+line** (**read**). The sweep cannot tell that prose from a legacy rendering, and it may not learn
+to: both are marker-free plain text, and nothing records a tag's or a body's provenance — the
+refusal this record has now made three times.
+
+**Ruled: a role and a permanently-system skill move to `strict_empty=True`, the same licence a
+per-item-type skill already carries.** Only an empty or already-tagged region converges;
+anything else is left untouched, silently. The reason is not new — it is the reason already
+written beside `strict_empty`, which exists because a `sq-<type>` slug "can be genuinely custom
+at one point and become template-owned later, the moment a project declares a matching item
+type." **The drop/re-add cycle is that exact shape one level up.** The narrowing does not create
+a new hazard; it moves two more families into the one the narrower licence was built for.
+
+**And the pre-0.14 legacy reclaim moves to where a one-time licence already belongs: a
+migration.** A migration knows which release the corpus is arriving from, so it can know that a
+marker-free role body is a superseded rendering; the standing sweep runs forever and cannot. That
+is this record's own problem-1 distinction — a closed, release-scoped licence into a region the
+standing tool does not get — applied to the one shape that still needs it. It also closes the
+trap the narrower licence would otherwise leave: a legacy-rendered role body is not writable
+(required host), not convergeable (strict), and would have had no remedy at all; converged once
+by the migration that brings the corpus to this release, it never needs one.
+
+**The escape for a required host whose region holds content the author wants gone** is the
+spec-level one this record already names, not a new flag: clear the requirement (drop the view
+from `[selected]`, or override the seeding template), write the body, restore it. To change what
+a required document must hold, you change the requirement — which is the same answer `--force`
+already gets.
+
+### 4. Confirmed: the narrowing does not reach `view rm`, and cannot
+
+`remove_view` refuses **nothing** today beyond a missing `sq:body` region (**read**), so the
+fourth amendment's declared-and-required-and-host rule can only *add* refusals there. There is no
+existing behaviour for a narrowing to remove.
+
+In all three shapes of §1 the view is undeclared, therefore not required, therefore not a host —
+so removal stays free, which is precisely the second amendment's ruling that `view rm` must keep
+taking a tag off a document for a view the spec no longer declares, because that is the recovery
+path for exactly this state. The two rules agree without either being weakened, and a stale tag
+left on a body by a dropped view remains removable by the one verb built for it.
+
+### 5. What this obliges
+
+- The fourth amendment's two sentences quoted in §1 are corrected here rather than tidied away:
+  the retirement is a narrowing, it is intended, and the tech lead's breakdown must scope it as a
+  behaviour change with its own regression shapes rather than as a substitution nobody needs to
+  look for.
+- `set_body`'s roster refusal and the repair sweep's convergence read **one** classification, and
+  the write path may not keep a second membership test of its own. That is what removes the dead
+  region of §2, and it is the same single-derivation obligation the fourth amendment §7 already
+  placed on the host-set helper.
+- `_converge_body_tag` loses its non-strict branch for a role and a permanently-system skill; the
+  pre-0.14 reclaim it existed for lands as a migration step under the closed, one-time licence
+  this record already defines. A future reader proposing to restore the wide licence is
+  proposing to let a standing sweep guess at authored prose, and is to be answered as that.
+- Regression shapes owed, beyond the fourth amendment's list: a role body written and read back
+  with `role_definition` dropped from `[selected]`; the same for a permanently-system skill; a
+  stale historically-bundled `sq-<type>` body written after its type is dropped (the region that
+  is dead today); that prose surviving a `sync`, a `repair`, and a version-drift backfill; and
+  the drop → author → re-add round trip ending with the tag placed and the prose intact.
+
+## Sixth amendment — 2026-09-15: the placement-verb clause is restated as a property, and it was not met
+
+REV-952's F6 found that the 0.14 to 0.15 corpus migration does not call FEAT-905's placement
+verb. The finding is dispositioned WontFix on the mechanism, with the record half raised here.
+This section settles the record half. The ruling, the pricing and the five earlier amendments
+are untouched.
+
+Every claim below is labelled **read** (traced in source) or **cited** (taken from REV-952's own
+driven evidence, which I did not re-drive).
+
+### 1. The clause, and what it was doing
+
+From the first amendment's second correction:
+
+> That verb also settles problem 1's remaining discomfort: the migration inserts through the same
+> path an operator uses, so it is the tool's own placement applied in bulk rather than a bespoke
+> one-off write into authored prose. The licence and the fence on it stand exactly as ruled.
+
+Two things sit in that sentence and only one of them is a ruling.
+
+The **ruling** is the one before it: `reject_markers` stays fully closed for prose, and placement
+is its own marker-safe verb. That is untouched and is not what this amendment is about.
+
+The **clause** is the sentence quoted — a mechanism named in order to guarantee an outcome. Its
+operative content is that the six conditions of the retroactivity licence (insert-only, one
+deterministic anchor, idempotent skip, scoped to types whose creation template seeds the tag, a
+reported count, an author's later placement preserved) are satisfied by the tool's own placement
+code rather than re-spelled by the migration. "Run through the verb" was how I proposed to
+guarantee that, not a seventh condition of its own.
+
+### 2. What was delivered
+
+The runner does not call `insert_view`. It inlines `_section_edit_core`'s read → skew-check →
+mutate → write sequence, under one open transaction for the whole run rather than
+`insert_view`'s one transaction per item (**read**, the runner's own module docstring).
+
+**Cited**, from REV-952's line-by-line comparison: the anchor, the insert-only property, the
+idempotent skip and the tag's own text all come from the one shared
+`insert_unpaired_marker` / `markers.view_tag` pair; none of them is re-spelled locally, and the
+inlined sequence is faithful to `_section_edit_core`.
+
+The runner's stated reason for not calling the verb is overstated and is corrected here rather
+than carried: its docstring says it "cannot call that verb directly" because `squads._services`
+imports the module through the migration registry. The static cycle is real; a deferred import is
+not blocked by it, and this codebase uses deferred imports for exactly this purpose. The honest
+driver is the one-open-transaction shape, which the delivering task offered as a free choice and
+which `insert_view` cannot provide. That is a legitimate reason, and it is the one the record
+should carry.
+
+### 3. Ruled: the clause is restated as a property, and the property is what binds
+
+**A migration is not obliged to call the placement verb.** The one-transaction-per-run shape is a
+sufficient reason to compose the primitives directly, and this record does not require a bulk
+writer to accept N lock acquisitions and N index commits to satisfy a sentence about routing.
+
+What it is obliged to do instead, and what replaces the clause:
+
+> A bulk writer that places view tags composes the tool's own placement primitives — it re-spells
+> none of the licence's conditions — **and applies each of them at the granularity the placement
+> verb applies it.**
+
+The second half is the part the original clause carried implicitly and the restatement makes
+binding, because it is the half that failed.
+
+### 4. Ruled: the condition was not met, and the clause earned its keep
+
+I decline the reading that the condition was satisfied in substance by a different route. It is
+true of five of the six conditions and it is false of the one that matters, and stating the
+comfortable four-fifths as the finding would leave the next reader believing a constraint had
+been costlessly substituted when its one uninherited clause is the defect under review.
+
+What is true, stated at the right width: the runner satisfies the restated property on every
+clause but one. The exception is the applicability predicate. `insert_view` asks
+`resolve_view_target` **inside the locked edit, per item**, so an unresolvable name refuses one
+placement; the runner hoists the same predicate above the write loop and applies it per
+`(type, name)` pair, which widens a per-item refusal to the whole corpus — and, because a raising
+migration writes no schema stamp, to the whole squad (**cited**, driven in REV-952 on a corpus of
+two milestones and again on a freshly initialised squad holding zero milestones).
+
+So the divergence is not a residue of the substitution; it is the substitution's only real
+content, and it produced the release-blocking finding. The clause did the work it was written to
+do, which is why it is being restated rather than dropped.
+
+The remaining clause is met when per-item granularity is restored, and the record should be read
+that way: the substitution is complete at that point and not before. Nothing about the delivered
+runner is being re-architected to get there — the fix is to the predicate's position, which the
+same task already owns.
+
+### 5. What the next reader takes from this
+
+- **The ruling's reviewer test is widened by one item.** It reads today: "a reviewer finding the
+  anchor, the idempotence rule, or the tag's text composed anywhere in the new code should read
+  that as the defect it is." Add: **a predicate the placement verb asks per item, asked by a bulk
+  writer per corpus, is the same defect class** — even though nothing has been re-spelled and
+  every shared primitive is in use. Re-spelling is the visible form of the failure; changing a
+  check's granularity is the invisible one, and it is the one that shipped.
+- **The licence and its fence are unchanged.** The one-time retroactive write into authored bodies
+  stands as ruled, with its six conditions and its "not a precedent" clause, and this amendment
+  neither widens it nor licenses a second one.
+- **A record correction is owed in the runner itself**, not only here: the "cannot call that verb
+  directly" claim is withdrawn in favour of the transaction-shape reason, in the same pass that
+  corrects the other false claim in that docstring.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -978,4 +1539,35 @@ the emptiness clause's answer and not a gap.
     - Adopter case ruled explicitly: one declaration `[views.item_skill]`, one template, one tag name; a project-declared `widget` gets `sq-widget` from the same writer, seeded with the same tag, resolving `widget` off the live `[items]`, thin because it has no lane. No per-type TOML for a bundled type either, so nothing a custom type is missing.
     - Accepted cost, named: `playbook`'s predicate is constantly true, so placement won't refuse the tag on a non-skill host. `role`'s precondition prevents a wrong answer; this one would prevent only an odd choice, and buying it costs a per-view predicate axis.
     - Corrected in place, quoted: the grammar table's `playbook` row was short by one clause; and the second amendment §6's "its precondition is that the resolved type is declared and carries a lane" is withdrawn on the "carries a lane" half — it contradicted the emptiness clause three paragraphs above it, REV-920 F1 settled it, and the "declared" half is enforced at spec load, not by a predicate.
+- [2026-09-14T19:20:18Z] Pierre Chat:
+  - Ruling on view tag placement and erasure, overturning this ADR's refusal of "refusing the write":
+    
+    - **A view declaration carries a `required` boolean.** When a view is required, a document of a
+      type that carries it MUST hold its tag.
+    - **Skipping a required view is forbidden, and `--force` does not override it.** The two
+      protections are distinct and only one is forceable:
+      - overwriting an existing authored body is *protected*, and `--force` is exactly the consent
+        that lifts that protection — it forces a whole rewrite, which is what it is for;
+      - producing a body that omits a required view tag is *forbidden*, not protected. It is a
+        document invariant, not prose the author is consenting to lose, so no flag lifts it.
+    - The precedent this follows is already in the codebase: `set_body` refuses a role or
+      system-skill body write outright, because that body is the slot its definition renders into.
+      `required` makes that declared and per-view instead of hardcoded per-type.
+    
+    TASK-942 is to be rescoped and renamed around the required flag rather than built as the
+    template-derived advisory it currently describes.
+- [2026-09-14T19:28:26Z] Robert Architect:
+  - - Fourth amendment appended, recording @op-pierre's ruling on `required`. The ruling, the pricing and all three earlier amendments are untouched; @manager @tech-lead.
+    - My original refusal falls on one of its three limbs, and the codebase says so: preserving a tag and silently re-inserting it both have the tool write bytes the author never supplied (still refused, untouched); *refusing the write* writes nothing anywhere, and `set_body` has shipped exactly that refusal for role and system-skill bodies for releases. Calling a code path that writes nothing "tool-maintained bytes in an authored region" was a category error, and I cited that very refusal in the same amendment without weighing it. `required` is the declared, per-view generalisation of behaviour already hardcoded per type.
+    - Settled: `required` is a key of the view declaration, never of a type's selection — a per-type axis is `ItemSpec.views` returning. The half the ruling leaves open is the host set, and it is **derived, never declared**: a required view's hosts are the documents the tool's own placement authority seeds it onto — `template_seeded_view_names` for an item type, `_repair_body_tag`'s classification for role/system/per-item-type skills. That makes creation satisfy the invariant by construction and keeps the predicate type-and-slug decidable.
+    - Default `required = false` (an upgrading corpus predates the flag and there is no per-write escape from a restriction, so it must be opted into). Bound: the body write path (replace refused unconditionally, before and independent of `--force`; append untouched) and `sq view rm` on a host. Unbound: `view add`, `retype` (writes nothing, outcome becomes a reported finding), item creation, spec load.
+    - Tier 1, plainly: the missing-required-tag finding is an unconditional error in the per-file scan beside the dangling-tag one — it needs no resolved Item and a declared requirement whose enforcement is opt-in is not a requirement. So TASK-942's catalog member, its tables, this project's selection of it and the `.overrides/workflow.toml` that selection needed all fall away. Nothing is reported for a non-required view: that would be a provenance question.
+    - All six bundled views are `required = true`, `milestone_rollup` included — a stated change of position, and the only bundled view a body write can even reach. `set_body`'s hardcoded role/system-skill branches retire into the general rule for **replace**; the append refusal stays as a separate rule keyed on the repair sweep's own classification, because that region is converged and appended prose would be erased silently. This repo is already compliant (4/4 milestones, 10/10 roles, every skill but the one custom `releasing-squads`).
+- [2026-09-15T07:20:35Z] Robert Architect:
+  - - Fifth amendment appended, ruling @tech-lead's finding. The fourth amendment's "no behaviour change" claim is quoted and corrected; the ruling, the pricing and the first three amendments are untouched. @manager @tech-lead.
+    - **The narrowing is intended.** A body region is tool-owned because something the tool maintains renders into it — drop the view and nothing does, so the region reverts to authored prose. Today's refusal tells the author "an authored body here would never be shown", and in these shapes that is simply untrue: `read_body` returns the region verbatim and only expands when a tag is present, so the prose would display fine.
+    - **Three shapes, not two, and one is half as wide as reported.** The role with `role_definition` dropped is the third (today's `item.type == ROSTER_ROLE` asks nothing about the spec). And the stale `sq-<type>` shape narrows only for a *historically-bundled* type — `sq-bug` is bundled-blind and refused today, while a project-declared `widget`'s stale `sq-widget` is already writable, since `custom_skill_slugs` iterates the live spec.
+    - **What the old refusal was actually protecting is one module over, and it has to go with it.** `_converge_body_tag`'s wide licence rests in writing on "no code path today can have authored either region" — which the narrowing falsifies across drop → author → re-add: a version-drift backfill then hits marker-free prose and replaces it with the tag line. Ruled: role and permanently-system skill move to `strict_empty=True`, the licence a per-item-type skill already has for exactly this shape one level up; the pre-0.14 legacy reclaim moves to a migration, under the closed one-time licence this record already defines. That also closes the trap where a legacy-rendered role body would be neither writable nor convergeable.
+    - **One real defect the narrowing fixes.** `set_body` asks `is_system_skill` while the sweep asks `item_type_for_skill_slug` — two membership tests for one question, disagreeing on exactly the stale bundled slug: `sq-bug` with `bug` dropped is refused by the write path and never reached by the sweep. A region no command can write and no sweep can converge.
+    - **`view rm`: confirmed unaffected.** It refuses nothing today, so my declared+required+host rule can only add refusals — there is no behaviour for a narrowing to remove. In all three shapes the view is undeclared, so removal stays free, which is the second amendment's recovery path preserved exactly.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: FEAT-690
 sequence_id: 690
 type: feature
 title: See memory and board in the extension and sq ui
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - EPIC-316
@@ -14,13 +14,13 @@ subentities:
 - local_id: US1
   title: Memory hygiene-oversight view (sq ui first, extension once list --json carries
     created_at)
-  status: Todo
+  status: InProgress
 - local_id: US2
   title: Team board view (both clients, low cost, no named urgency — sequence after
     memory)
-  status: Todo
+  status: InProgress
 created_at: '2026-07-29T10:03:25Z'
-updated_at: '2026-09-02T08:07:49Z'
+updated_at: '2026-09-14T13:12:37Z'
 ---
 <!-- sq:body -->
 Surface the team's two CLI-only knowledge surfaces — per-role **memory** and the team **board** —
@@ -265,4 +265,19 @@ A dedicated small read surface on each client, not a tree branch: a modal screen
   - No story rewrite needed — US1/US2 premises are still accurate, left as-is per no-churn guidance. This is a refresh, not a reauthor: nothing here is stale or broken, the feature was simply missing the derived-views answer.
   - Splits cleanly by client for delivery, but the CLI is the shared dependency both lean on: sq ui needs zero CLI change (in-process Service already exposes created_at + full body); the extension's overview needs the small created_at addition to memory list --json, and its drill-to-body needs the separate memory show --json addition — both CLI-side, land once, unlock the extension regardless of which client builds first. Board needs no CLI change on either side.
   - Left Draft per instruction. @tech-lead for breakdown once greenlit.
+- [2026-09-14T12:17:30Z] Olivia Lead:
+  - Breakdown done: two tasks, split by owning role, not by story — TASK-939 (python-dev: `sq ui` + the `sq memory` JSON additions, 5 subtasks) and TASK-940 (typescript-dev: the extension, 4 subtasks). Both carry US1 and US2 subtasks; both left Draft.
+    
+    Build order, in one pass each: TASK-939 first, because the two CLI additions it carries (`created_at` on `sq memory <role> list --json`; a new `sq memory <role> show <slug> --json`) are the only things gating the extension's depth, and `sq ui` needs neither. Then TASK-940. I put a `depends-on` edge on TASK-940 → TASK-939: its board subtask and the count-only level of its memory subtask are genuinely independent, but its full acceptance cannot be met until the JSON surfaces exist, so the edge is honest for the task as a whole rather than per-subtask.
+    
+    Two things I checked rather than took from the feature body, both confirming it: the roster item's `slug` field really is the role slug the memory pool folder is keyed on (`sq list --type role --json` returns `tech-lead`, not the filename stem), and `sq board list --json` already returns every notice's body inline, so the board half needs nothing from the CLI on either client.
+    
+    One structural consequence the feature body did not name, now in TASK-939 ST3: `sq ui`'s tree is a `Tree[str]` whose node data is an item id that `on_tree_node_highlighted` feeds straight to `ReaderPanel.load`. Memory children are not items, so the payload has to become a typed discriminator, and `sort_siblings` has to leave them alone. That is the real cost of the story in the TUI — not the fetch.
+    
+    Nothing I need you to rule on to dispatch. Two calls I made that you may want to reverse:
+    
+    - I bundled the two CLI additions into the Python task rather than splitting them out as their own. Same owner, small, and the extension is blocked on them either way; splitting would buy a slightly earlier unblock for TASK-940 at the cost of a third task.
+    - I sized `sq memory <role> show <slug> --json` as in-scope now, inside TASK-939 ST2, rather than deferring it as the feature's priority read allows. It is a few lines next to a change already being made in the same file, and deferring it means TASK-940 ST3 lands as a second extension pass.
+    
+    @manager over to you for promotion and dispatch. `sq check` is clean.
 <!-- sq:discussion:end -->

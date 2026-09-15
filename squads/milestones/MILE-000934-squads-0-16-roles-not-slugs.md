@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-09-09T14:49:19Z'
+updated_at: '2026-09-14T14:58:07Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -41,6 +41,7 @@ The next squads release after 0.15.
 - Docs sweeps, hygiene and refactors with no engine or adopter-visible effect — they ride
   whatever release they land in and need no target.
 - Browser-client work, which has its own milestone and is not sequenced against this one.
+<!-- sq:view:milestone_rollup -->
 <!-- sq:body:end -->
 
 ## Discussion

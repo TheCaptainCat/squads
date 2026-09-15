@@ -6,7 +6,7 @@ title: squads 0.15 - views, rebuilt
 status: InProgress
 author: product-owner
 created_at: '2026-09-02T08:03:36Z'
-updated_at: '2026-09-09T14:50:13Z'
+updated_at: '2026-09-14T14:58:07Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.14. It holds the engine and vocabulary work that was
@@ -48,6 +48,7 @@ follow-through on decisions taken during it.
 - Docs sweeps, hygiene and refactors with no engine or adopter-visible effect — they ride
   whatever release they land in and need no target.
 - Browser-client work, which has its own milestone and is not sequenced against this one.
+<!-- sq:view:milestone_rollup -->
 <!-- sq:body:end -->
 
 ## Discussion
