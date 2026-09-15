@@ -233,6 +233,43 @@ export interface SqSearchHit {
   readonly hits: readonly SqSearchHitRegion[];
 }
 
+/** One row of `sq memory <role> list --json` — a role/operator's committed notebook index.
+ * `filename` is unused by this client (kept only because `sq` emits it); `description` is the
+ * memory's short punchline summary, the same field name the CLI itself uses. `created_at` is
+ * **optional**, not just possibly-absent-and-null: an older `sq` predating it omits the key
+ * entirely, and the age/staleness signal (`domain/memoryView.ts`) degrades to "unknown" for that
+ * row rather than rejecting the whole payload. */
+export interface SqMemoryListRow {
+  readonly slug: string;
+  readonly filename: string;
+  readonly description: string;
+  readonly created_at?: string;
+}
+
+/** `sq memory <role> show <slug> --json` — one memory's full record: summary, timestamp, tags,
+ * and the full markdown body, addressed by slug (not index position). Feeds the Roster tree's
+ * drill-to-body step (`itemPreviewManager.ts`'s memory panel). */
+export interface SqMemoryDetail {
+  readonly slug: string;
+  readonly summary: string;
+  readonly created_at: string;
+  readonly tags: readonly string[];
+  readonly body: string;
+}
+
+/** One row of `sq board list --json` — a current (unexpired) team bulletin-board notice. `n` is
+ * a display-only positional ordinal (re-resolved on every listing, never a stable id — see
+ * `sq board --help`); `id` is the notice's own stable (but not counter-allocated) identity.
+ * `until` is `null` for a notice with no expiry set. */
+export interface SqBoardNotice {
+  readonly n: number;
+  readonly id: string;
+  readonly author: string;
+  readonly posted_at: string;
+  readonly until: string | null;
+  readonly body: string;
+}
+
 /** One row of `sq list --json`. Open/closed is not carried per-row — see `SqTreeNode`'s
  * doc comment: a client re-derives it from `status` through the statuses/roles catalog join. */
 export interface SqListItem {

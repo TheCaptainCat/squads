@@ -55,6 +55,7 @@ function itemToLeaf(
   return {
     id: item.id,
     itemId: item.id,
+    memoryRef: null,
     label: `${item.id}  ${item.title}`,
     // Status alone — same as `metaView.ts`: a records item's assignee (an ADR, a guide) isn't
     // the operative field the way it is for work items.

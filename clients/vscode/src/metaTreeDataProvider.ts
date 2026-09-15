@@ -13,7 +13,7 @@
  */
 import * as vscode from 'vscode';
 
-import { describeTriedOrder, type SqDiscovery } from './discovery';
+import { describeTriedOrder, type SqDiscovery, type SqInvocation } from './discovery';
 import {
   buildBadgeVocabulary,
   buildFieldBindings,
@@ -27,6 +27,11 @@ import {
   errorDisplayNode,
 } from './domain/displayNode';
 import { ExpansionTracker } from './domain/expansionTracker';
+import {
+  memoryEligibleSlugs,
+  type MemoryFetchResult,
+  type MemoryPoolsBySlug,
+} from './domain/memoryView';
 import {
   allDeclaredStatuses,
   DEFAULT_META_VIEW_STATE,
@@ -46,12 +51,41 @@ import {
   describeFailure,
   getCollectionsCatalog,
   getList,
+  getMemoryList,
   getRolesCatalog,
   getStatusesCatalog,
   getTypeCatalog,
   type SqOutcome,
 } from './sqAdapter';
 import { toTreeItem } from './treeItemRendering';
+
+/** Eagerly fetches one memory pool per `slugs` entry, in parallel — the Roster refresh's
+ * "compare hygiene across the whole roster at a glance" fetch (`domain/metaView.ts`'s module
+ * doc comment). Run as its own stage, after the type/status/role catalogs resolve, rather than
+ * folded into `refresh()`'s first `Promise.all`: which identities are even eligible depends on
+ * the current filter (`memoryEligibleSlugs`), which itself needs `statusRoles`/`roleCatalog` —
+ * both come out of that first round trip. A fetch that fails outright (bad slug, `sq` not
+ * found, malformed output) becomes `'failed'` rather than dropping the identity or aborting the
+ * whole refresh — the rest of the tree renders regardless. */
+async function fetchMemoryPools(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  slugs: readonly string[],
+): Promise<MemoryPoolsBySlug> {
+  const pairs = await Promise.all(
+    slugs.map(async (slug): Promise<readonly [string, MemoryFetchResult]> => {
+      const outcome = await getMemoryList(runner, invocation, workspaceRoot, slug);
+      return [
+        slug,
+        outcome.kind === 'success'
+          ? { kind: 'loaded', entries: outcome.data }
+          : { kind: 'failed', message: describeFailure(outcome) },
+      ];
+    }),
+  );
+  return new Map(pairs);
+}
 
 export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<DisplayNode> {
   private readonly changeEmitter = new vscode.EventEmitter<DisplayNode | undefined>();
@@ -167,6 +201,13 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
       catalogOutcome.kind === 'success' ? buildTypeLabelMap(catalogOutcome.data) : NO_LABELS;
     this.knownStatuses =
       statusesOutcome.kind === 'success' ? allDeclaredStatuses(statusesOutcome.data) : [];
+    // Eager, per-identity memory fetch — but only for the Role/Operator slugs that survive the
+    // *current* filter (`this.state`), so a filtered view never pays for an identity it isn't
+    // about to show. Sequenced here (its own `Promise.all`, not folded into the one above)
+    // because eligibility needs `statusRoles`/`roleCatalog`, which that first round trip just
+    // produced.
+    const slugs = memoryEligibleSlugs(outcome.data, statusRoles, roleCatalog, this.state);
+    const memoryPools = await fetchMemoryPools(this.runner, invocation, this.workspaceRoot, slugs);
     this.roots = buildMetaView(
       outcome.data,
       fieldBindings,
@@ -175,6 +216,7 @@ export class SquadsMetaTreeDataProvider implements vscode.TreeDataProvider<Displ
       roleCatalog,
       labelMap,
       this.state,
+      { pools: memoryPools, now: new Date() },
     );
     this.expansion.prune(collectNodeIds(this.roots));
     this.changeEmitter.fire(undefined);

@@ -15,6 +15,7 @@ from textual.widgets.tree import TreeNode
 from squads._tui._app import SquadsApp
 from squads._tui._browse import BrowseScreen
 from squads._tui._search import SearchScreen, _HitItem
+from squads._tui._tree import NodeData
 
 from ._helpers import wait_until
 
@@ -23,7 +24,7 @@ pytestmark = pytest.mark.anyio
 _BRACKETY = "has a [/dim] stray closing tag, a [Note] callout, and [bold]nested[/bold] markup"
 
 
-def _find(root: TreeNode[str], item_id: str) -> TreeNode[str]:
+def _find(root: TreeNode[NodeData], item_id: str) -> TreeNode[NodeData]:
     """Find *item_id* anywhere under *root* — items nest under the category groups."""
     nodes = [root]
     while nodes:

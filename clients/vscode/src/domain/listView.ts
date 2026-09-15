@@ -87,6 +87,7 @@ function itemToLeaf(
   return {
     id: item.id,
     itemId: item.id,
+    memoryRef: null,
     label: `${item.id}  ${item.title}`,
     description: `${item.status} · ${item.assignee ?? 'unassigned'}`,
     tooltip: buildTooltip({

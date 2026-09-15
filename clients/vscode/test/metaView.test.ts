@@ -202,6 +202,160 @@ describe('buildMetaView', () => {
     expect(skills?.children[0]?.iconId).toBe('mortar-board');
     expect(operators?.children[0]?.iconId).toBe('account');
   });
+
+  describe('memory (eager Roster children)', () => {
+    const NOW = new Date('2026-01-10T00:00:00Z');
+
+    it('appends a count+age suffix to a Role/Operator leaf whose pool was fetched', () => {
+      const items: SqListItem[] = [makeItem('ROLE-1', 'role')];
+      const pools = new Map([
+        [
+          'role-1',
+          {
+            kind: 'loaded' as const,
+            entries: [
+              { slug: 'a', filename: 'a.md', description: 'a', created_at: '2026-01-09T00:00:00Z' },
+            ],
+          },
+        ],
+      ]);
+
+      const [roles] = buildMetaView(
+        items,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          pools,
+          now: NOW,
+        },
+      );
+
+      expect(roles?.children[0]?.label).toBe('ROLE-1  ROLE-1 title  memory: 1 · 1d ago');
+    });
+
+    it('never appends a suffix, or gives children, to a Skill leaf', () => {
+      const items: SqListItem[] = [makeItem('SKILL-1', 'skill')];
+      const pools = new Map([
+        [
+          'skill-1',
+          { kind: 'loaded' as const, entries: [{ slug: 'a', filename: 'a.md', description: 'a' }] },
+        ],
+      ]);
+
+      const [, skills] = buildMetaView(
+        items,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          pools,
+          now: NOW,
+        },
+      );
+
+      expect(skills?.children[0]?.label).toBe('SKILL-1  SKILL-1 title');
+      expect(skills?.children[0]?.children).toEqual([]);
+    });
+
+    it('leaves a Role/Operator leaf exactly as before this feature when its pool was never fetched', () => {
+      const items: SqListItem[] = [makeItem('ROLE-1', 'role')];
+
+      const [roles] = buildMetaView(items);
+
+      expect(roles?.children[0]?.label).toBe('ROLE-1  ROLE-1 title');
+      expect(roles?.children[0]?.children).toEqual([]);
+    });
+
+    it('renders a zero-entry pool as "0", not as no signal at all', () => {
+      const items: SqListItem[] = [makeItem('ROLE-1', 'role')];
+      const pools = new Map([['role-1', { kind: 'loaded' as const, entries: [] }]]);
+
+      const [roles] = buildMetaView(
+        items,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          pools,
+          now: NOW,
+        },
+      );
+
+      expect(roles?.children[0]?.label).toContain('memory: 0');
+    });
+
+    it('renders a failed pool without children, surfacing the failure rather than swallowing it', () => {
+      const items: SqListItem[] = [makeItem('ROLE-1', 'role')];
+      const pools = new Map([['role-1', { kind: 'failed' as const, message: 'sq not found' }]]);
+
+      const [roles] = buildMetaView(
+        items,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          pools,
+          now: NOW,
+        },
+      );
+
+      const node = roles?.children[0];
+      expect(node?.children).toEqual([]);
+      expect(node?.label).toContain('memory: error');
+      expect(node?.tooltip).toContain('sq not found');
+    });
+
+    it('gives every memory-entry child a null itemId and a memoryRef, so selecting it never opens an item preview', () => {
+      const items: SqListItem[] = [makeItem('ROLE-1', 'role')];
+      const pools = new Map([
+        [
+          'role-1',
+          {
+            kind: 'loaded' as const,
+            entries: [
+              {
+                slug: 'a-fact',
+                filename: 'a-fact.md',
+                description: 'A fact.',
+                created_at: '2026-01-01T00:00:00Z',
+              },
+            ],
+          },
+        ],
+      ]);
+
+      const [roles] = buildMetaView(
+        items,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          pools,
+          now: NOW,
+        },
+      );
+
+      const entry = roles?.children[0]?.children[0];
+      expect(entry?.itemId).toBeNull();
+      expect(entry?.memoryRef).toEqual({ roleSlug: 'role-1', entrySlug: 'a-fact' });
+    });
+  });
 });
 
 function makeItem(id: string, type: string): SqListItem {

@@ -67,7 +67,17 @@ export function toTreeItem(
     item.tooltip = new vscode.MarkdownString(node.tooltip);
   }
   item.iconPath = iconForNode(node);
-  if (node.itemId !== null) {
+  if (node.memoryRef !== null) {
+    // A memory-entry leaf: `itemId` is always `null` here (see `DisplayNode.itemId`'s doc
+    // comment), so this branch and the one below are mutually exclusive — a click never
+    // attempts to open a memory entry as an (nonexistent) item preview.
+    item.contextValue = 'squadsMemoryEntry';
+    item.command = {
+      command: 'squads.openMemoryEntry',
+      title: 'Open Memory Entry',
+      arguments: [node.memoryRef.roleSlug, node.memoryRef.entrySlug],
+    };
+  } else if (node.itemId !== null) {
     item.contextValue = 'squadsItem';
     item.command = {
       command: 'squads.openItemPreview',
