@@ -7,6 +7,7 @@
 import type { SqOutcome } from '../sqAdapter';
 import type { SqBoardNotice } from '../types';
 import { renderMarkdownToHtml } from './markdown';
+import { summarizeOmissions } from './omissions';
 
 /** Newest-posted notice first, the notice's own `id` as the tiebreak — mirrors `sq ui`'s
  * `BoardScreen` (`sorted(notices, key=lambda n: (n.posted_at, n.id), reverse=True)`), so both
@@ -37,11 +38,18 @@ export function buildBoardMarkdown(notices: readonly SqBoardNotice[]): string {
  * as `previewDocument.ts::renderWorkflowHtml`: the failure message becomes the whole document
  * body on anything but success, rather than the panel rendering blank. `renderMarkdownToHtml`
  * is what actually escapes every notice's author/body text — this module never emits HTML of
- * its own. */
+ * its own.
+ *
+ * A one-or-more-unreadable-notices read (the partial-result exit code `4`) still comes back
+ * `kind: 'success'` (`sqAdapter.ts::classifyNonZeroExit`), with `omissions` populated — so the notices that *were*
+ * read render exactly as a clean board's would, with a visible "listing partial" line appended
+ * rather than the panel showing nothing (the failure branch below is unreachable for this case). */
 export function renderBoardHtml(outcome: SqOutcome<readonly SqBoardNotice[]>): string {
-  const markdown =
-    outcome.kind === 'success'
-      ? buildBoardMarkdown(outcome.data)
-      : `# Squads: unable to load the board\n\n${outcome.message}`;
-  return renderMarkdownToHtml(markdown);
+  if (outcome.kind !== 'success') {
+    return renderMarkdownToHtml(`# Squads: unable to load the board\n\n${outcome.message}`);
+  }
+  const markdown = buildBoardMarkdown(outcome.data);
+  const partialNote =
+    outcome.omissions !== undefined ? `\n\n---\n\n*${summarizeOmissions(outcome.omissions)}*` : '';
+  return renderMarkdownToHtml(`${markdown}${partialNote}`);
 }

@@ -115,12 +115,14 @@ must be an epic. Invalid links are rejected at create/link time and flagged by `
 `sq` is the whole product — every mutation goes through it. Two extra clients exist for *reading* a
 squad, which is what you do most once agents are the ones writing:
 
-- **`sq ui`** — a terminal browser for the squad: the item tree, filters, full-text search, and a
-  reader pane for any item. Needs the optional `tui` extra (`uv tool install "squads[tui]"`).
+- **`sq ui`** — a terminal browser for the squad: the item tree, filters, full-text search, a
+  reader pane for any item, each role's and operator's memory notebook under its roster entry, and
+  the team board. Needs the optional `tui` extra (`uv tool install "squads[tui]"`).
 - **Squads for VS Code** — the same idea in the editor: work items, records, and roster as
-  activity-bar trees, plus a rendered dossier per item with its sub-entities, discussion, and
-  reference graphs. Install it from the VS Code Marketplace (search *Squads*), or from the `.vsix`
-  attached to each release. Read-only, like `sq ui`.
+  activity-bar trees, each identity's memory notebook nested under it, plus a rendered dossier per
+  item with its sub-entities, discussion, and reference graphs, and the team board in a panel of its
+  own. Install it from the VS Code Marketplace (search *Squads*), or from the `.vsix` attached to
+  each release. Read-only, like `sq ui`.
 
 ---
 

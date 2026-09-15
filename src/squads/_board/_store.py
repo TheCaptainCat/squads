@@ -20,12 +20,13 @@ from squads import _aio
 from squads import _clock as clock
 from squads._board._model import BoardNotice
 from squads._errors import SquadsError
+from squads._models._omission import Omission
 from squads._paths import SquadPaths
 from squads._sections import join_frontmatter, split_frontmatter
 
-#: One skipped-notice message per unreadable file, as :func:`_all_notices` returns it —
-#: named so :func:`list_notices`/:func:`clear` don't repeat the shape.
-type UnreadableNotices = list[str]
+#: One :class:`Omission` per unreadable file, as :func:`_all_notices` returns it — named so
+#: :func:`list_notices`/:func:`clear` don't repeat the shape.
+type UnreadableNotices = list[Omission]
 
 #: Squad-relative root for the board's notice pool: ``<squad_dir>/board/``.
 BOARD_ROOT = "board"
@@ -140,17 +141,19 @@ async def _all_notices(paths: SquadPaths) -> tuple[list[BoardNotice], Unreadable
     nothing reported — it was never really there for this listing to report on.
     """
     out: list[BoardNotice] = []
-    unreadable: list[str] = []
+    unreadable: list[Omission] = []
     for path in await _content_files(board_folder(paths)):
+        source = str(path.relative_to(paths.squad_dir))
         try:
             text = await _aio.read_text(path)
             frontmatter, body = split_frontmatter(text, source=str(path))
         except FileNotFoundError:
             if await _aio.path_is_symlink(path):
-                unreadable.append(f"{path} is a broken symlink (its target does not exist)")
+                message = f"{path} is a broken symlink (its target does not exist)"
+                unreadable.append(Omission(source=source, message=message))
             continue
         except SquadsError as exc:
-            unreadable.append(str(exc))
+            unreadable.append(Omission(source=source, message=str(exc)))
             continue
         out.append(BoardNotice.from_frontmatter(path.stem, frontmatter, body.strip("\n")))
     return out, unreadable

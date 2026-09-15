@@ -79,7 +79,11 @@ async function fetchMemoryPools(
       return [
         slug,
         outcome.kind === 'success'
-          ? { kind: 'loaded', entries: outcome.data }
+          ? {
+              kind: 'loaded',
+              entries: outcome.data,
+              ...(outcome.omissions ? { omissions: outcome.omissions } : {}),
+            }
           : { kind: 'failed', message: describeFailure(outcome) },
       ];
     }),

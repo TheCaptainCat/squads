@@ -8,10 +8,11 @@
  * load at all.
  */
 import type { SqOutcome } from '../sqAdapter';
-import type { SqListItem, SqMemoryDetail, SqMemoryListRow } from '../types';
+import type { SqListItem, SqMemoryDetail, SqMemoryListRow, SqOmission } from '../types';
 import { type DisplayNode, escapeTooltipMarkdown } from './displayNode';
 import { renderMarkdownToHtml } from './markdown';
 import { DEFAULT_META_VIEW_STATE, matchesMetaFilter, type MetaViewState } from './metaFilter';
+import { summarizeOmissions } from './omissions';
 import { META_BUCKETS } from './reservedTypes';
 import { NO_ROLES, NO_STATUS_ROLES, type RoleCatalogMap, type StatusRoleMap } from './statusRole';
 
@@ -26,14 +27,18 @@ export function isMemoryEligibleType(type: string): boolean {
   return MEMORY_ELIGIBLE_TYPES.has(type);
 }
 
-/** One role/operator identity's eagerly-fetched memory pool: either its entries loaded, or the
- * whole fetch failed outright (a bad role slug, `sq` not found, malformed output — a subprocess-
- * level failure, not a per-entry one). There is no partial/degraded state modelled here:
- * `sq memory <role> list --json` never fails the array for one unreadable entry (it's silently
- * omitted and named on stderr, which this client doesn't inspect on a successful exit) — only a
- * genuine fetch failure reaches `'failed'`. */
+/** One role/operator identity's eagerly-fetched memory pool: either its entries loaded (maybe
+ * with one or more files `sq` could not read — the adapter's `omissions`, populated straight from
+ * the general adapter outcome rather than parsed here), or the whole fetch failed outright (a
+ * bad role slug, `sq` not found, malformed output — a subprocess-level failure, not a per-entry
+ * one). `omissions` present (even `[]`) means the pool is short; its absence means a clean read.
+ * A partial pool is never treated as `'failed'` — the entries that *were* read still render. */
 export type MemoryFetchResult =
-  | { readonly kind: 'loaded'; readonly entries: readonly SqMemoryListRow[] }
+  | {
+      readonly kind: 'loaded';
+      readonly entries: readonly SqMemoryListRow[];
+      readonly omissions?: readonly SqOmission[];
+    }
   | { readonly kind: 'failed'; readonly message: string };
 
 /** Every Role/Operator identity's memory pool, keyed by its own roster slug (`SqListItem.slug`,
@@ -134,24 +139,28 @@ export function sortMemoryEntries(entries: readonly SqMemoryListRow[]): SqMemory
   );
 }
 
-/** The bare "N" / "N · age" / "error" fragment shared by a Role/Operator's own glance suffix and
- * its tooltip's memory line, so the two never drift apart. A pool with zero entries still
- * renders `"0"` — a quiet role reads as a signal, not as nothing to show. */
+/** The bare "N" / "N · age" / "N (partial)" / "error" fragment shared by a Role/Operator's own
+ * glance suffix and its tooltip's memory line, so the two never drift apart. A pool with zero
+ * entries still renders `"0"` — a quiet role reads as a signal, not as nothing to show. A
+ * partial pool (`omissions !== undefined`) always carries the "(partial)" marker so a
+ * short count is never mistaken for a genuinely smaller notebook, whether or not the omissions
+ * report named how many entries it left out. */
 export function memoryGlanceText(pool: MemoryFetchResult, now: Date): string {
   if (pool.kind === 'failed') {
     return 'error';
   }
-  const { entries } = pool;
+  const { entries, omissions } = pool;
+  const suffix = omissions !== undefined ? ' (partial)' : '';
   if (entries.length === 0) {
-    return '0';
+    return `0${suffix}`;
   }
   if (!hasAgeData(entries)) {
-    return entries.length.toString();
+    return `${entries.length.toString()}${suffix}`;
   }
   const newest = entries.reduce((latest, entry) =>
     entry.created_at > latest.created_at ? entry : latest,
   );
-  return `${entries.length.toString()} · ${humanizeAge(newest.created_at, now)}`;
+  return `${entries.length.toString()} · ${humanizeAge(newest.created_at, now)}${suffix}`;
 }
 
 /** The `"  memory: ..."` fragment appended to a Role/Operator's own tree-node label. */
@@ -160,13 +169,16 @@ export function memoryLabelSuffix(pool: MemoryFetchResult, now: Date): string {
 }
 
 /** The extra tooltip line describing a Role/Operator's memory pool — appended (as a markdown
- * hard-break continuation) to `buildTooltip`'s own lines. A failed fetch's message is escaped
- * the same way `buildTooltip` already escapes `assignee`: free-form, sq-authored text landing
- * in a `vscode.MarkdownString`. */
+ * hard-break continuation) to `buildTooltip`'s own lines. A failed fetch's message, and a
+ * partial pool's omissions summary, are both escaped the same way `buildTooltip` already
+ * escapes `assignee`: free-form, sq-authored text landing in a `vscode.MarkdownString`. */
 export function memoryTooltipLine(pool: MemoryFetchResult, now: Date): string {
   const glance = memoryGlanceText(pool, now);
   if (pool.kind === 'failed') {
     return `  \nMemory: ${glance} (${escapeTooltipMarkdown(pool.message)})`;
+  }
+  if (pool.omissions !== undefined) {
+    return `  \nMemory: ${glance} (${escapeTooltipMarkdown(summarizeOmissions(pool.omissions))})`;
   }
   return `  \nMemory: ${glance}`;
 }
@@ -228,14 +240,19 @@ export function memoryChildren(
  * HTML-significant characters here; this module never emits raw HTML of its own). Same
  * outcome-to-HTML shape as `domain/boardView.ts::renderBoardHtml` /
  * `previewDocument.ts::renderWorkflowHtml` — the failure message becomes the whole document body
- * rather than the panel rendering blank. */
-export function renderMemoryEntryHtml(outcome: SqOutcome<SqMemoryDetail>): string {
+ * rather than the panel rendering blank. The heading names `roleSlug` alongside the entry slug,
+ * matching `memoryEntryPanelTitle` — the tab title is what stays visible once the panel loses
+ * focus, but the heading is what a reader sees on the page itself. */
+export function renderMemoryEntryHtml(
+  roleSlug: string,
+  outcome: SqOutcome<SqMemoryDetail>,
+): string {
   if (outcome.kind !== 'success') {
     return renderMarkdownToHtml(`# Squads: unable to load memory entry\n\n${outcome.message}`);
   }
   const entry = outcome.data;
   const tagsLine = entry.tags.length > 0 ? `\n\nTags: ${entry.tags.join(', ')}` : '';
-  const header = `# ${entry.slug}\n\n${entry.summary}\n\n*${entry.created_at}*${tagsLine}`;
+  const header = `# ${memoryEntryPanelTitle(roleSlug, entry.slug)}\n\n${entry.summary}\n\n*${entry.created_at}*${tagsLine}`;
   const body = entry.body.trim() === '' ? '*(no body yet)*' : entry.body;
   return renderMarkdownToHtml(`${header}\n\n---\n\n${body}`);
 }
@@ -244,4 +261,20 @@ export function renderMemoryEntryHtml(outcome: SqOutcome<SqMemoryDetail>): strin
  * `title` and `buildPreviewHtml`'s document `<title>`. */
 export function memoryEntryPanelTitle(roleSlug: string, entrySlug: string): string {
   return `${roleSlug}: ${entrySlug}`;
+}
+
+/** The panel title once a `getMemoryShow` fetch has settled — pulled out of
+ * `itemPreviewManager.ts::renderMemoryEntry` so the rule is unit-testable with no VS Code host.
+ * A successful fetch keeps naming the role alongside the (possibly-renamed) entry slug the fetch
+ * actually returned, via `memoryEntryPanelTitle` — the same shape the in-flight/failure
+ * `fallbackTitle` already is, so the tab is never retitled to a bare slug that no longer says
+ * whose notebook is open. Anything but success keeps `fallbackTitle` unchanged. */
+export function resolveMemoryEntryPanelTitle(
+  roleSlug: string,
+  fallbackTitle: string,
+  outcome: SqOutcome<SqMemoryDetail>,
+): string {
+  return outcome.kind === 'success'
+    ? memoryEntryPanelTitle(roleSlug, outcome.data.slug)
+    : fallbackTitle;
 }

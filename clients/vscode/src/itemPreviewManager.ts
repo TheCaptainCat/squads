@@ -54,7 +54,11 @@ import {
   DEFAULT_ITEM_ID_MATCHER,
   type ItemIdMatcher,
 } from './domain/itemIdPattern';
-import { memoryEntryPanelTitle, renderMemoryEntryHtml } from './domain/memoryView';
+import {
+  memoryEntryPanelTitle,
+  renderMemoryEntryHtml,
+  resolveMemoryEntryPanelTitle,
+} from './domain/memoryView';
 import {
   buildArticleHtml,
   buildDiscussionHtml,
@@ -699,9 +703,10 @@ export class ItemPreviewManager {
   }
 
   /** Fetches and renders one memory entry's full body into the owned memory panel — same shape
-   * as `renderWorkflow`/`renderBoard`. Sets `panel.title` from the fetched entry's own slug on
-   * success (the pre-fetch fallback title, `roleSlug: entrySlug`, covers the request itself and
-   * any failure). */
+   * as `renderWorkflow`/`renderBoard`. The panel is a single reused slot, so the settled title on
+   * success keeps naming the role alongside the entry (`memoryEntryPanelTitle`), the same as the
+   * in-flight/failure fallback — never just the bare entry slug, which would leave nothing on
+   * screen distinguishing one identity's notebook from another's after drilling in. */
   private async renderMemoryEntry(
     panel: vscode.WebviewPanel,
     roleSlug: string,
@@ -713,7 +718,7 @@ export class ItemPreviewManager {
     if (!resolution.ok) {
       const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
       this.notifyError(`Squads: ${message}`);
-      bodyHtml = renderMemoryEntryHtml({ kind: 'spawn-error', message });
+      bodyHtml = renderMemoryEntryHtml(roleSlug, { kind: 'spawn-error', message });
     } else {
       const { invocation } = resolution;
       const outcome = await getMemoryShow(
@@ -723,15 +728,14 @@ export class ItemPreviewManager {
         roleSlug,
         entrySlug,
       );
-      if (outcome.kind === 'success') {
-        title = outcome.data.slug;
-      } else {
+      title = resolveMemoryEntryPanelTitle(roleSlug, title, outcome);
+      if (outcome.kind !== 'success') {
         if (outcome.kind === 'spawn-error') {
           this.discovery.invalidate();
         }
         this.notifyError(`Squads: ${describeFailure(outcome)}`);
       }
-      bodyHtml = renderMemoryEntryHtml(outcome);
+      bodyHtml = renderMemoryEntryHtml(roleSlug, outcome);
     }
     panel.title = title;
     const nonce = randomUUID();

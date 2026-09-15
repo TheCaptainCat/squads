@@ -270,6 +270,19 @@ export interface SqBoardNotice {
   readonly body: string;
 }
 
+/** One entry of a partial-read command's omissions report — the single compact JSON object a
+ * command in that class (`inbox`, `search`, `board list`, `memory list`, `memory search`) writes
+ * to stderr under `--json` on the frozen partial-result exit code `4`:
+ * `{"omitted":[{"code","source","message"}, ...]}`.
+ * `code` is the open-ended machine class of the omission (`"unreadable"` today); a consumer must
+ * not branch on it to decide *whether* the result is partial, only treat any entry as "part of
+ * the result is missing". `source` is a display token, never parsed. */
+export interface SqOmission {
+  readonly code: string;
+  readonly source: string;
+  readonly message: string;
+}
+
 /** One row of `sq list --json`. Open/closed is not carried per-row — see `SqTreeNode`'s
  * doc comment: a client re-derives it from `status` through the statuses/roles catalog join. */
 export interface SqListItem {

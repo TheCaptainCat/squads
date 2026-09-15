@@ -3,7 +3,7 @@ id: FEAT-690
 sequence_id: 690
 type: feature
 title: See memory and board in the extension and sq ui
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - EPIC-316
@@ -14,13 +14,13 @@ subentities:
 - local_id: US1
   title: Memory hygiene-oversight view (sq ui first, extension once list --json carries
     created_at)
-  status: InProgress
+  status: Done
 - local_id: US2
   title: Team board view (both clients, low cost, no named urgency — sequence after
     memory)
-  status: InProgress
+  status: Done
 created_at: '2026-07-29T10:03:25Z'
-updated_at: '2026-09-14T13:12:37Z'
+updated_at: '2026-09-15T12:42:26Z'
 ---
 <!-- sq:body -->
 Surface the team's two CLI-only knowledge surfaces — per-role **memory** and the team **board** —

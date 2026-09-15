@@ -143,19 +143,30 @@ The documented, stable contract:
 | Code | Meaning | When you see it |
 |------|---------|-----------------|
 | `0` | Success | Command completed normally (including `sq check` with no errors, or warnings only). |
-| `1` | squads could not complete what you asked | A `SquadsError` (unknown ID, invalid transition, etc.), a schema-version mismatch (`sq migrate up` is needed), or a command that finished only partly and named what it could not read — `sq board list` and `sq repair` when they report a file that is not readable. |
+| `1` | squads could not complete what you asked | A `SquadsError` (unknown ID, invalid transition, etc.), a schema-version mismatch (`sq migrate up` is needed), or `sq repair` reporting a file it could not read while rebuilding. |
 | `2` | Usage error | Invalid `--at` timestamp format; Typer/Click usage errors (unknown option, missing required argument). |
 | `3` | `sq check` found error-level issues | One or more `error`-level issues were reported. `warn`-level-only results still exit 0. |
+| `4` | The answer is short | A listing finished and named what it could not read: `sq board list`, `sq inbox`, `sq search`, `sq memory <role> list`, `sq memory <role> search`. stdout still carries a valid payload in its usual shape. |
 
 Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
 directly. Codes `1` and `2` indicate a broken invocation or squad state, not a lint failure.
 
-**A degraded read is a non-zero exit.** When `sq board list` or `sq repair` prints
-`error: <path> …` for a file it could not read, it exits `1` even though it listed or rebuilt
-everything else — a caller testing `$?` needs to see that the answer is short. In the same
-situation `sq check` reports the file as an error-level issue, so it exits `3` like any other
-error-level finding. `--json` output is unaffected in shape: `sq board list --json` still writes a
-bare, valid array to stdout and names the unreadable files on stderr.
+**A degraded read is a non-zero exit, and it has a code of its own.** When one of the five listings
+on code `4` cannot read part of the corpus, it prints everything it *could* read, names what it
+skipped on stderr, and exits `4` — "the answer is short", which is a different sentence from `1`'s
+"there is no answer". A caller testing `$?` still sees a failure; a caller that knows `4` also
+learns that stdout is worth parsing. `sq repair` reports a mutation rather than a result and keeps
+`1` when it carries an unreadable file, and `sq check` turns the same file into an error-level issue
+and exits `3` like any other error-level finding. `--json` output is unaffected in shape:
+`sq board list --json` still writes a bare, valid array to stdout, and names what it left out in one
+JSON line on stderr.
+
+**Upgrading from before 0.15.0?** Those five listings all moved onto `4`. `sq board list`, `sq inbox`
+and `sq search` returned `1` here, so no script's pass/fail verdict moves — only the number does.
+`sq memory <role> list` and `sq memory <role> search` returned `0`, so a script that treats a zero
+exit as success will start failing on a notebook it cannot fully read. That is the fix rather than a
+regression — the old `0` told the caller a partly-read notebook was the whole notebook — but check
+any pipeline that reads memory before you upgrade.
 
 The formal stability contract (tiers, versioning, post-1.0 semantics) lives in
 `docs/stability.md`.

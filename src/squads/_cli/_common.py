@@ -37,6 +37,7 @@ from squads._models._item import (
     format_item_id,
     split_ref,
 )
+from squads._models._omission import Omission
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
@@ -60,6 +61,45 @@ def print_json_clean(s: str) -> None:
     must go through this function — never through ``console.print_json()``.
     """
     print(json.dumps(json.loads(s), indent=2))
+
+
+def report_omissions(omissions: list[Omission], *, json_out: bool) -> None:
+    """The shared tail of every command in the partial-read class: name what a partial read
+    left out, then exit ``4`` — after the command's own results have already been printed.
+
+    One code path decides this for all five bound commands (``inbox``, ``search``,
+    ``board list``, ``memory list``, ``memory search``) so a listing added later inherits the
+    contract by calling this rather than by re-deriving it. A no-op — no output, no raise — when
+    *omissions* is empty, so a clean read is unaffected by this function ever having been called.
+
+    Human mode (``json_out=False``) keeps today's prose, one ``error: <message>`` line per
+    omission on stderr, unchanged from before this contract existed. ``--json`` mode instead
+    emits the omissions report: one compact line on stderr holding a single JSON object,
+    ``{"omitted": [{"code", "source", "message"}, ...]}``, written with plain ``print()`` (like
+    :func:`print_json_clean`) so no ANSI codes can land in it and a consumer can find it by "the
+    one line of stderr that parses as a JSON object" even with a prose co-tenant (the
+    ``sq sync`` version notice) also on the stream. The report replaces the human prose in
+    ``--json`` mode rather than accompanying it — the same fact twice on one stream is two
+    things to keep in agreement.
+
+    Exit code ``4`` means: the command did what was asked, stdout carries a valid payload in
+    its documented shape, and entries are missing. Callers only reach this function after
+    printing a successful result, so ``1``/``2``/``3`` (a prior ``SquadsError``, a usage error,
+    ``sq check`` findings) already outrank it by construction — they raise before this point.
+    """
+    if not omissions:
+        return
+    if json_out:
+        payload = {
+            "omitted": [
+                {"code": o.code, "source": o.source, "message": o.message} for o in omissions
+            ]
+        }
+        print(json.dumps(payload, separators=(",", ":")), file=sys.stderr)
+    else:
+        for o in omissions:
+            err_console.print(f"[red]error[/red]: {e(o.message)}", soft_wrap=True)
+    raise typer.Exit(4)
 
 
 # The active squad folder and per-invocation WorkflowSpec are ambient RequestContext fields

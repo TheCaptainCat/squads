@@ -8,6 +8,7 @@ from typing import Any
 from squads._migrations._registry import Migration
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._omission import Omission
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths
 from squads._services._retirement import Severance
@@ -466,17 +467,18 @@ class SearchResult:
     hits: list[SearchHit]
 
 
-#: One human-readable message per item file a corpus-walking read had to skip — the same
-#: skipped-file channel ``check``/``repair``/``board list``/``memory list`` already report on,
-#: returned alongside the results rather than replacing them.
+#: One :class:`~squads._models._omission.Omission` per item file a corpus-walking read had to
+#: skip — the same skipped-file channel ``check``/``repair``/``board list``/``memory list``
+#: already report on, returned alongside the results rather than replacing them.
 #:
 #: The posture it encodes: **one unreadable file degrades that file, never the answer**. A
 #: reader that lets the error propagate discards every result it had already accumulated from
 #: files it *could* read, which is both less useful and less honest than naming the one file
 #: and returning the rest — and it makes the failure look arbitrary next to ``list``/``tree``/
-#: ``blocked``/``show``/``graph``, which walk the same corpus and are unaffected. Callers pair
-#: this with a non-zero exit so a script still learns the answer was partial.
-type UnreadableItems = list[str]
+#: ``blocked``/``show``/``graph``, which walk the same corpus and are unaffected. A caller whose
+#: command emits a usable-but-short result pairs this with exit code ``4`` so a script still
+#: learns the answer was partial.
+type UnreadableItems = list[Omission]
 
 
 @dataclass(frozen=True)

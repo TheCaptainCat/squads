@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 957,
+  "counter": 958,
   "padding": 6,
   "items": {
     "12": {
@@ -5456,7 +5456,7 @@
       "type": "feature",
       "title": "See memory and board in the extension and sq ui",
       "slug": "see-memory-and-board-in-the-extension-and-sq-ui",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Read-only oversight views for per-role memory (hygiene audit) and the team board in both browse clients",
       "parent": null,
       "author": "product-owner",
@@ -5472,7 +5472,7 @@
         {
           "local_id": "US1",
           "title": "Memory hygiene-oversight view (sq ui first, extension once list --json carries created_at)",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5481,7 +5481,7 @@
         {
           "local_id": "US2",
           "title": "Team board view (both clients, low cost, no named urgency — sequence after memory)",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -5490,7 +5490,7 @@
       ],
       "path": "features/FEAT-000690-see-memory-and-board-in-the-extension-and-sq-ui.md",
       "created_at": "2026-07-29T10:03:25Z",
-      "updated_at": "2026-09-14T13:12:37Z",
+      "updated_at": "2026-09-15T12:42:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25067,7 +25067,7 @@
       "type": "task",
       "title": "Fix sq ui's memory gate and land the partial-read contract",
       "slug": "fix-sq-ui-s-memory-gate-and-land-the-partial-read-contract",
-      "status": "Ready",
+      "status": "Done",
       "description": "The sq ui memory-attachment fix and its coverage, plus ADR-947's exit code 4 and omissions report across the five listing commands",
       "parent": "FEAT-690",
       "author": "tech-lead",
@@ -25083,7 +25083,7 @@
         {
           "local_id": "ST1",
           "title": "Gate sq ui memory attachment on item type, not slug lookup",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -25092,7 +25092,7 @@
         {
           "local_id": "ST2",
           "title": "Render a zero-memory identity as a leaf, not an empty branch",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -25101,7 +25101,7 @@
         {
           "local_id": "ST3",
           "title": "Exit code 4: a usable-but-short result, across the five listings",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25110,7 +25110,7 @@
         {
           "local_id": "ST4",
           "title": "Regression-cover the memory show --json payload shape",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -25119,7 +25119,7 @@
         {
           "local_id": "ST5",
           "title": "Cover bracket safety on the sq ui memory surfaces",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -25128,7 +25128,7 @@
         {
           "local_id": "ST6",
           "title": "Split source from message where an unreadable file is named",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25137,7 +25137,7 @@
         {
           "local_id": "ST7",
           "title": "The omissions report: one JSON line on stderr under --json",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25146,7 +25146,7 @@
         {
           "local_id": "ST8",
           "title": "Cover the five commands against the degraded-read shapes",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25155,7 +25155,7 @@
       ],
       "path": "tasks/TASK-000944-fix-sq-ui-s-memory-gate-and-land-the-partial-read-contract.md",
       "created_at": "2026-09-14T13:46:21Z",
-      "updated_at": "2026-09-15T08:07:16Z",
+      "updated_at": "2026-09-15T12:12:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25166,7 +25166,7 @@
       "type": "task",
       "title": "Extension: consume exit 4 and the omissions report, keep the role",
       "slug": "extension-consume-exit-4-and-the-omissions-report-keep-the-r",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-690",
       "author": "tech-lead",
@@ -25183,7 +25183,7 @@
         {
           "local_id": "ST1",
           "title": "Show a degraded memory pool as partial, not as a smaller pool",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -25192,7 +25192,7 @@
         {
           "local_id": "ST2",
           "title": "Map exit 4 in the adapter and keep the board rendering",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -25201,7 +25201,7 @@
         {
           "local_id": "ST3",
           "title": "Keep the role in the memory panel title after a successful fetch",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -25210,7 +25210,7 @@
         {
           "local_id": "ST4",
           "title": "Prove the memory entry summary is escaped as the body already is",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -25219,7 +25219,7 @@
       ],
       "path": "tasks/TASK-000945-extension-consume-exit-4-and-the-omissions-report-keep-the-r.md",
       "created_at": "2026-09-14T13:53:51Z",
-      "updated_at": "2026-09-15T08:07:27Z",
+      "updated_at": "2026-09-15T12:30:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25230,7 +25230,7 @@
       "type": "task",
       "title": "Document the memory and board read views and the new --json shapes",
       "slug": "document-the-memory-and-board-read-views-and-the-new-json-sh",
-      "status": "Draft",
+      "status": "Done",
       "description": "",
       "parent": "FEAT-690",
       "author": "tech-lead",
@@ -25247,7 +25247,7 @@
         {
           "local_id": "ST1",
           "title": "Name the new json shapes and the partial-listing contract",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25256,7 +25256,7 @@
         {
           "local_id": "ST2",
           "title": "Write the 0.15.0 changelog entry for the memory and board views",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25265,7 +25265,7 @@
         {
           "local_id": "ST3",
           "title": "Say what each client shows in the README descriptions",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25274,7 +25274,7 @@
       ],
       "path": "tasks/TASK-000946-document-the-memory-and-board-read-views-and-the-new-json-sh.md",
       "created_at": "2026-09-14T13:55:18Z",
-      "updated_at": "2026-09-14T13:58:37Z",
+      "updated_at": "2026-09-15T12:41:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -39604,7 +39604,7 @@
       "type": "review",
       "title": "FEAT-690 memory and board read views across sq ui and the VS Code extension",
       "slug": "feat-690-memory-and-board-read-views-across-sq-ui-and-the-vs",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -39619,7 +39619,7 @@
         {
           "local_id": "F1",
           "title": "sq ui attaches memory by slug, not item type",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -39628,7 +39628,7 @@
         {
           "local_id": "F2",
           "title": "Extension memory count silently under-reports a degraded pool",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -39637,7 +39637,7 @@
         {
           "local_id": "F3",
           "title": "Extension board panel goes blank when one notice is unreadable",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -39646,7 +39646,7 @@
         {
           "local_id": "F4",
           "title": "Memory panel title drops the role once the fetch succeeds",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -39655,7 +39655,7 @@
         {
           "local_id": "F5",
           "title": "sq ui: a zero-memory identity renders as an empty expandable branch",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -39664,7 +39664,7 @@
         {
           "local_id": "F6",
           "title": "New memory show --json surface is undocumented",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -39673,7 +39673,7 @@
         {
           "local_id": "F7",
           "title": "Memory bracket-safety is correct but untested",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -39682,7 +39682,7 @@
       ],
       "path": "reviews/REV-000943-feat-690-memory-and-board-read-views-across-sq-ui-and-the-vs.md",
       "created_at": "2026-09-14T13:29:22Z",
-      "updated_at": "2026-09-14T14:09:44Z",
+      "updated_at": "2026-09-15T12:42:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40846,6 +40846,32 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-957"
+    },
+    "958": {
+      "sequence_id": 958,
+      "type": "review",
+      "title": "The --help surface: what belongs in a command's help text",
+      "slug": "the-help-surface-what-belongs-in-a-command-s-help-text",
+      "status": "Requested",
+      "description": "A read of every rendered --help body and flag description, settling what help text is for versus a module docstring or docs/.",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "REV-956"
+      ],
+      "subentities": [],
+      "path": "reviews/REV-000958-the-help-surface-what-belongs-in-a-command-s-help-text.md",
+      "created_at": "2026-09-15T10:12:29Z",
+      "updated_at": "2026-09-15T10:13:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-958"
     }
   }
 }

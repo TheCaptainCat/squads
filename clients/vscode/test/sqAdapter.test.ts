@@ -7,9 +7,11 @@ import type { SqInvocation } from '../src/discovery';
 import type { ProcessResult, ProcessRunner } from '../src/processRunner';
 import {
   describeFailure,
+  getBoardList,
   getCollectionsCatalog,
   getGraph,
   getList,
+  getMemoryList,
   getRaw,
   getRolesCatalog,
   getSearch,
@@ -361,6 +363,117 @@ describe('exit code mapping', () => {
     const outcome = await getTree(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'EPIC-99');
 
     expect(outcome.kind).toBe('parse-error');
+  });
+});
+
+/**
+ * The frozen partial-result contract: exit `4` means the command did what was asked, stdout
+ * carries a valid payload in its documented shape, and entries are missing. `classifyNonZeroExit`
+ * maps it to a `success`
+ * outcome carrying `omissions` (never a `runtime-error`), for every `--json` surface — this is
+ * one row in the general mapping, not a per-command special case.
+ */
+describe('exit 4: partial results', () => {
+  it('reads a well-formed omissions line on stderr, and still returns the stdout payload', async () => {
+    const runner = stubRunner({
+      stdout: '[{"slug":"a","filename":"a.md","description":"a"}]',
+      stderr:
+        '{"omitted":[{"code":"unreadable","source":"ROLE-1/b.md","message":"Permission denied"}]}',
+      exitCode: 4,
+    });
+    const outcome = await getMemoryList(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'role-1');
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data).toEqual([{ slug: 'a', filename: 'a.md', description: 'a' }]);
+    expect(outcome.omissions).toEqual([
+      { code: 'unreadable', source: 'ROLE-1/b.md', message: 'Permission denied' },
+    ]);
+  });
+
+  it('finds the one JSON-object line even beside a prose co-tenant (the sq sync version notice)', async () => {
+    const runner = stubRunner({
+      stdout: '[]',
+      stderr: [
+        'squads 0.16.0 detected (managed files at 0.15.0). Run `sq sync` to refresh them.',
+        '{"omitted":[{"code":"unreadable","source":"BOARD-1","message":"bad"}]}',
+      ].join('\n'),
+      exitCode: 4,
+    });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({
+      kind: 'success',
+      data: [],
+      omissions: [{ code: 'unreadable', source: 'BOARD-1', message: 'bad' }],
+    });
+  });
+
+  it('degrades to "partial, no detail" (empty omissions) when "omitted" is not an array', async () => {
+    const runner = stubRunner({
+      stdout: '[]',
+      stderr: '{"omitted": "not-an-array"}',
+      exitCode: 4,
+    });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'success', data: [], omissions: [] });
+  });
+
+  it('degrades to "partial, no detail" when "omitted" is an array of wrongly-shaped entries', async () => {
+    const runner = stubRunner({
+      stdout: '[]',
+      stderr: '{"omitted": [{"code": "unreadable"}]}',
+      exitCode: 4,
+    });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'success', data: [], omissions: [] });
+  });
+
+  it('degrades to "partial, no detail" when the omissions line is absent entirely', async () => {
+    const runner = stubRunner({ stdout: '[]', stderr: '', exitCode: 4 });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'success', data: [], omissions: [] });
+  });
+
+  it('degrades to "partial, no detail" when stderr has only unrelated prose (an older sq shape)', async () => {
+    const runner = stubRunner({
+      stdout: '[]',
+      stderr: 'squads 0.16.0 detected. Run `sq sync` to refresh them.',
+      exitCode: 4,
+    });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'success', data: [], omissions: [] });
+  });
+
+  it('an older sq predating exit 4 exits 1 instead, and falls through to a runtime-error unchanged', async () => {
+    const runner = stubRunner({ stdout: '', stderr: 'boom', exitCode: 1 });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome).toEqual({ kind: 'runtime-error', message: 'boom', exitCode: 1 });
+  });
+
+  it('still surfaces a genuinely broken stdout payload as a parse-error even on exit 4', async () => {
+    const runner = stubRunner({ stdout: 'not json', stderr: '{"omitted":[]}', exitCode: 4 });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('parse-error');
+  });
+
+  it('a clean exit 0 never carries an omissions key at all', async () => {
+    const runner = stubRunner({ stdout: '[]', stderr: '', exitCode: 0 });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.omissions).toBeUndefined();
   });
 });
 

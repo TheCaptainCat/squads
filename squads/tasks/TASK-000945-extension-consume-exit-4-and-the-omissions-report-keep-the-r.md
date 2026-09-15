@@ -3,7 +3,7 @@ id: TASK-945
 sequence_id: 945
 type: task
 title: 'Extension: consume exit 4 and the omissions report, keep the role'
-status: Draft
+status: Done
 parent: FEAT-690
 author: tech-lead
 assignee: typescript-dev
@@ -14,22 +14,22 @@ refs:
 subentities:
 - local_id: ST1
   title: Show a degraded memory pool as partial, not as a smaller pool
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Map exit 4 in the adapter and keep the board rendering
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST3
   title: Keep the role in the memory panel title after a successful fetch
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Prove the memory entry summary is escaped as the body already is
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-09-14T13:53:51Z'
-updated_at: '2026-09-15T08:07:27Z'
+updated_at: '2026-09-15T12:30:58Z'
 ---
 <!-- sq:body -->
 The TypeScript half of the fixes raised by the batch review of this feature's two delivered
@@ -242,4 +242,15 @@ Done when:
   - ST1/ST2 rescoped for the accepted ADR-947 rather than the shape TASK-944 was going to invent. Exit 4 is a new row in the adapter's general exit-code mapping (classifyNonZeroExit), the same standing as 2 and 3 — both fixes land there, so the adapter still gains no per-command exit-code knowledge. The omissions detail comes from the one line of stderr that parses as a JSON object; payloads stay bare arrays, so there is no new field on the listing to read. ST2 renamed to say where the edit goes.
   - Added: a malformed or absent omissions line on an exit 4 must still render the payload, degrading to 'partial, no detail' rather than to an error; and an older sq exits 1 and falls through to today's behaviour, so no version probe.
   - implements ADR-947 added; depends-on TASK-944 stands, CLI first. Left Draft. @manager
+- [2026-09-15T12:29:46Z] Ada Typescript:
+  - All four subtasks Done. clients/vscode only; src/squads and tests/ untouched.
+  - F2/ST1: MemoryFetchResult's loaded variant gained an optional omissions field, populated from the general adapter outcome (not memory-specific parsing). memoryGlanceText/memoryTooltipLine append a (partial) marker + omissions summary; memoryChildren still renders the entries that were read. A pool is partial iff omissions !== undefined (present-but-empty means the report itself was malformed/absent, degrading to 'partial, no detail' rather than clean).
+  - F3/ST2: classifyNonZeroExit gained one row for exit 4 -> a success outcome carrying data (stdout) + omissions (parsed via the 'one stderr line that parses as a JSON object' rule), instead of falling into runtime-error. runSqJson/runSqJsonObject thread omissions through unchanged. Every caller (getTree/getList/getMemoryList/getBoardList/etc.) inherits this from one place; the adapter still pins no per-command exit-code knowledge. renderBoardHtml renders the readable notices plus a visible 'listing partial' line instead of the old failure branch that discarded them.
+  - F4/ST3: extracted resolveMemoryEntryPanelTitle (pure, unit-tested) — success keeps roleSlug: entrySlug via memoryEntryPanelTitle instead of dropping to the bare slug. renderMemoryEntryHtml's heading now also takes roleSlug.
+  - F7/ST4: added a summary-escaping assertion mirroring the existing body one; behavior was already correct (renderMarkdownToHtml escapes both), this closes the coverage gap.
+  - Robustness: malformed/absent omissions line on exit 4 -> omissions: [] (still partial, no detail, never an error) — verified with (a) well-formed line, (b) malformed ('omitted' not an array, and an array of wrongly-shaped entries), (c) absent line and stderr with only the sq-sync version-notice prose. No version probe added; an older sq exiting 1 falls through to runtime-error unchanged (tested).
+  - Shared a summarizeOmissions helper (new src/domain/omissions.ts) between board and memory views so the two never compose divergent wording — mirrors sq ui's 'N ... could not be read — listing partial' phrasing.
+  - Falsified all 6 behaviours individually (exit-4 mapping, malformed-report degrade, memory glance/tooltip partial marker, memoryChildren-still-renders-on-partial, renderBoardHtml partial rendering, resolveMemoryEntryPanelTitle, F7 summary escaping): broke each, watched vitest go red, restored, watched it go green.
+  - Gates (npm run check = typecheck+lint+format:check) and npm test: all clean, 688/688 passing. TypeScript stayed pinned at ^6.0.3, type-aware lint untouched. sq check clean.
+  - Not touching TASK-945's own status per your note — over to you to verify. @manager
 <!-- sq:discussion:end -->

@@ -60,9 +60,10 @@ async def test_repair_exits_1_bare_on_a_corrupt_item_file(tmp_path):
     assert task.id in listed.stdout.decode("utf-8", "replace")
 
 
-async def test_board_list_exits_1_bare_on_a_corrupt_notice(tmp_path):
-    """Same exit-code decision as `repair` above, for the same reason: a listing that printed
-    `error:` and silently kept exit 0 is indistinguishable from a clean one to a script.
+async def test_board_list_exits_4_bare_on_a_corrupt_notice(tmp_path):
+    """A degraded `board list` read exits `4` (not the old bare `1`) -- a listing that printed
+    `error:` and kept a code indistinguishable from "squads could not complete what you asked"
+    would leave a caller unable to tell a short answer from no answer at all.
 
     The per-file error itself belongs on stderr, exactly as the human and ``--json`` branches
     both promise -- asserted here on the two streams captured separately (a real OS pipe per
@@ -78,15 +79,16 @@ async def test_board_list_exits_1_bare_on_a_corrupt_notice(tmp_path):
 
     stdout = result.stdout.decode("utf-8", "replace")
     stderr = result.stderr.decode("utf-8", "replace")
-    assert result.returncode == 1, stderr
+    assert result.returncode == 4, stderr
     assert notice_path.name in stderr
     assert notice_path.name not in stdout
 
 
-async def test_board_list_json_stays_a_bare_array_and_reports_on_stderr(tmp_path):
+async def test_board_list_json_stays_a_bare_array_and_reports_omissions_on_stderr(tmp_path):
     """`--json`'s array shape is a frozen contract, so a degraded read cannot add a key to it
-    -- the unreadable notice is instead named on stderr, and the exit code (not the JSON body)
-    is what tells an automated caller the listing was incomplete."""
+    -- the unreadable notice is instead named in one compact `{"omitted": [...]}` object on
+    stderr, and the exit code (`4`) is what tells an automated caller the listing was
+    incomplete."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     svc = service.Service(init.paths)
     await svc.board_post("op-alice", "a fine notice")
@@ -96,18 +98,24 @@ async def test_board_list_json_stays_a_bare_array_and_reports_on_stderr(tmp_path
 
     result = _run(tmp_path, "board", "list", "--json")
 
-    assert result.returncode == 1, result.stderr.decode("utf-8", "replace")
     stdout = result.stdout.decode("utf-8", "replace")
+    stderr = result.stderr.decode("utf-8", "replace")
+    assert result.returncode == 4, stderr
     assert stdout.strip().startswith("["), stdout
     assert notice_path.name not in stdout, "the JSON body itself must stay untouched"
-    assert notice_path.name in result.stderr.decode("utf-8", "replace")
+    report = json.loads(stderr.strip())
+    assert list(report.keys()) == ["omitted"]
+    (omission,) = report["omitted"]
+    assert omission["code"] == "unreadable"
+    assert notice_path.name in omission["message"]
 
 
-async def test_memory_list_names_the_unreadable_entry_on_stderr_only(tmp_path):
+async def test_memory_list_names_the_unreadable_entry_on_stderr_only_and_exits_4(tmp_path):
     """`sq memory <role> list`'s docstring promises the per-file error is "named on stderr
     in both output modes" -- checked here on the human branch, with the two streams captured
     separately (a real OS pipe per stream) so a script that splits them never finds the
-    degraded-read notice mixed into its results."""
+    degraded-read notice mixed into its results. The memory commands' exit code is now
+    load-bearing: `0` -> `4` is the intended flip, not a regression to soften."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     svc = service.Service(init.paths)
     await svc.memory_add("manager", "a remembered fact")
@@ -118,13 +126,14 @@ async def test_memory_list_names_the_unreadable_entry_on_stderr_only(tmp_path):
 
     stdout = result.stdout.decode("utf-8", "replace")
     stderr = result.stderr.decode("utf-8", "replace")
+    assert result.returncode == 4, stderr
     assert memory_path.name in stderr
     assert memory_path.name not in stdout
 
 
-async def test_memory_search_names_the_unreadable_entry_on_stderr_only(tmp_path):
+async def test_memory_search_names_the_unreadable_entry_on_stderr_only_and_exits_4(tmp_path):
     """Same stream contract as `memory list` above, for `memory search`'s identical per-file
-    loop."""
+    loop, and the same `0` -> `4` exit-code flip."""
     init = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
     svc = service.Service(init.paths)
     await svc.memory_add("manager", "a remembered fact")
@@ -135,6 +144,7 @@ async def test_memory_search_names_the_unreadable_entry_on_stderr_only(tmp_path)
 
     stdout = result.stdout.decode("utf-8", "replace")
     stderr = result.stderr.decode("utf-8", "replace")
+    assert result.returncode == 4, stderr
     assert memory_path.name in stderr
     assert memory_path.name not in stdout
 
@@ -149,45 +159,54 @@ async def _inbox_and_search_setup(tmp_path):
     await svc.set_body(bad.id, "also quinoa, also @manager")
     bad_path = item_file(svc.paths, bad)
     make_unreadable_by_the_os(bad_path)
-    return good, bad_path
+    return good, bad, bad_path
 
 
 @pytest.mark.parametrize("args", [["inbox", "manager"], ["search", "quinoa"]])
 async def test_inbox_and_search_name_the_unreadable_file_on_stderr_only(tmp_path, args):
-    """`sq inbox` and `sq search` share `_report_unreadable` (unlike `board list`/`memory
-    list`, which have their own inline loop) -- checked here with the two streams captured
-    as real, separate OS pipes (``subprocess.run``'s default), because a combined-output
-    grep passes on the defect this guards against and is exactly how it survived the
-    earlier stream-contract sweep."""
-    good, bad_path = await _inbox_and_search_setup(tmp_path)
+    """`sq inbox` and `sq search` share `common.report_omissions` (unlike `board list`/`memory
+    list`, which call it with their own results already printed) -- checked here with the two
+    streams captured as real, separate OS pipes (``subprocess.run``'s default), because a
+    combined-output grep passes on the defect this guards against and is exactly how it
+    survived the earlier stream-contract sweep. Exit `4`, not the old bare `1` -- non-zero
+    either way, so no script's pass/fail verdict flips, only the number."""
+    good, _bad, bad_path = await _inbox_and_search_setup(tmp_path)
 
     result = _run(tmp_path, *args)
 
     stdout = result.stdout.decode("utf-8", "replace")
     stderr = result.stderr.decode("utf-8", "replace")
-    assert result.returncode == 1, stderr
+    assert result.returncode == 4, stderr
     assert good.id in stdout  # the answer is still delivered
     assert bad_path.name in stderr
     assert bad_path.name not in stdout
 
 
 @pytest.mark.parametrize("command", ["inbox", "search"])
-async def test_inbox_and_search_json_stays_a_bare_array_and_reports_on_stderr(tmp_path, command):
-    """`--json`'s stream split was already correct before this fix and must stay
-    byte-for-byte the same: a bare JSON array on stdout, the per-file error on stderr, and
-    nothing of the error leaking into either the JSON body or stdout generally."""
-    good, bad_path = await _inbox_and_search_setup(tmp_path)
+async def test_inbox_and_search_json_stays_a_bare_array_and_reports_omissions_on_stderr(
+    tmp_path, command
+):
+    """`--json`'s array shape must stay byte-for-byte what it was: a bare JSON array on
+    stdout, nothing of the omission leaking into it. The per-file error is no longer bare
+    prose on stderr under `--json` -- it is now one compact `{"omitted": [...]}` object,
+    found by parsing the one stderr line that is a JSON object."""
+    good, bad, bad_path = await _inbox_and_search_setup(tmp_path)
     args = ["inbox", "manager", "--json"] if command == "inbox" else ["search", "quinoa", "--json"]
 
     result = _run(tmp_path, *args)
 
     stdout = result.stdout.decode("utf-8", "replace")
     stderr = result.stderr.decode("utf-8", "replace")
-    assert result.returncode == 1, stderr
+    assert result.returncode == 4, stderr
     payload = json.loads(stdout)
     assert [row["id"] for row in payload] == [good.id]
     assert bad_path.name not in stdout
-    assert bad_path.name in stderr
+    report = json.loads(stderr.strip())
+    assert list(report.keys()) == ["omitted"]
+    (omission,) = report["omitted"]
+    assert omission["code"] == "unreadable"
+    assert omission["source"] == bad.id  # the item id, not the path
+    assert bad_path.name in omission["message"]
 
 
 @pytest.mark.parametrize("args", [["inbox", "manager"], ["search", "quinoa"]])
@@ -232,21 +251,13 @@ def _soft_wrap_true_at(rel_path: str, func_name: str) -> bool:
     )
 
 
-@pytest.mark.parametrize(
-    ("rel_path", "func_name"),
-    [
-        ("src/squads/_cli/_board.py", "list_notices"),
-        ("src/squads/_cli/_memory.py", "list_memories"),
-        ("src/squads/_cli/_memory.py", "search_memories"),
-        ("src/squads/_cli/_main.py", "_report_unreadable"),
-    ],
-)
-def test_the_human_mode_unreadable_error_still_carries_soft_wrap(rel_path, func_name):
-    """The stream fix above (`console` -> `err_console`) must not quietly drop
-    ``soft_wrap=True`` at these sites -- the earlier wrapping fix stays intact. The last entry
-    is the single shared site for both `inbox` and `search` (`_report_unreadable`, called from
-    each rather than inlined in either)."""
-    assert _soft_wrap_true_at(rel_path, func_name)
+def test_the_human_mode_unreadable_error_still_carries_soft_wrap():
+    """The stream fix (`console` -> `err_console`) must not quietly drop ``soft_wrap=True`` --
+    the earlier wrapping fix stays intact. All five bound commands (`inbox`, `search`,
+    `board list`, `memory list`, `memory search`) now share one site,
+    `common.report_omissions` in ``_cli/_common.py``, rather than each carrying its own
+    inline loop."""
+    assert _soft_wrap_true_at("src/squads/_cli/_common.py", "report_omissions")
 
 
 async def test_check_reports_a_type_invalid_field_without_a_traceback(tmp_path):
