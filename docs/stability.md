@@ -318,8 +318,41 @@ Frozen contract:
 | `1` | squads runtime error (schema mismatch, corrupt index, validation failure, etc.) |
 | `2` | Usage error (bad arguments, missing required flag) |
 | `3` | Check failures (one or more issues found by `sq check`) |
+| `4` | The result is incomplete — stdout carries a valid payload in its documented shape, and entries are missing |
 
 The distinct code for check failures lets CI distinguish "check found issues" from "command errored".
+
+#### Partial results and code `4`
+
+A **partial result** is what a listing produces when its payload is valid and in its frozen shape,
+but entries are missing because part of the corpus could not be read — an item file with no read
+permission, a memory or notice file that has gone unreadable. The commands bound by this are
+`sq inbox`, `sq search`, `sq board list`, `sq memory <role> list` and `sq memory <role> search`, and
+any listing added later with the same property: it emits a result payload you are meant to consume,
+and that payload can come back short.
+
+- `4` means the command did what was asked. Everything that *could* be read is on stdout, in the
+  shape that command always emits, and something is missing from it.
+- `1`, `2` and `3` outrank `4`. It is returned only where the command would otherwise have returned
+  `0`, so a partial result never masks a more specific outcome.
+- It does not depend on `--json`. Human output returns `4` on the same condition.
+- Commands outside the class keep the codes they had. `sq check` turns an unreadable file into an
+  error-level issue and exits `3`, because a clean check over a partly-read corpus is a *false*
+  clean. `sq repair` and `sq migrate up` report a mutation rather than a result, and keep `1`.
+
+`4` is the one bit that says *stdout is worth parsing*, and it is available to a shell script that
+parses nothing. A consumer that branches on `0`/`1`/`2`/`3` and treats anything else as an error is
+safe under it: it stops, loudly, rather than reporting a short answer as the whole one.
+
+**This changed in 0.15.0, for five already-released commands.** `sq board list`, `sq inbox` and
+`sq search` returned `1` on a degraded read and now return `4` — non-zero either way, so no script's
+pass/fail verdict moves, only the number does. **The two memory listings are the ones to check
+before you upgrade.** `sq memory <role> list` and `sq memory <role> search` returned `0`, and now
+return `4`: a script that runs either and treats a zero exit as success passed over a short notebook
+before this release and fails on one now. That is the point of the change — the old `0` told a caller
+a partly-read notebook was the whole notebook — but it is a failure appearing where none appeared
+before. Where a short answer is genuinely acceptable to a given caller, test for `4` explicitly
+rather than widening what counts as success.
 
 ### Ref-kind vocabulary (declared, bound by semantic)
 
@@ -463,7 +496,43 @@ renamed or retyped within a major version. The frozen surface includes:
   `{v, ts, actor, op, target, delta, session_id, parent_session_id}`. Note the difference from the
   file: the two session fields are always *present* here, `null` when absent, where on disk they
   are omitted. They carry the same untrusted, observability-only caveat either way
-- **Notices and memory:** `board list --json`, `memory list --json`, `memory search --json`
+- **Notices and memory:** `board list --json`, `memory list --json`, `memory search --json`, and
+  `memory show --json` — one object for the memory you addressed, `{slug, summary, created_at,
+  tags, body}`, the whole entry including its body text. A `memory list --json` row carries
+  `created_at` alongside `slug`, `filename` and `description`. That is a field addition, which this
+  tier permits between majors, and it is named here rather than left to be discovered from a sample
+  of output because any age or staleness display is built on it
+- **The omissions report** — how a `--json` reader learns its listing is short. This is the
+  machine-readable half of a partial result (exit code `4` above) and a property of every listing in
+  that class, not a quirk of any one of them. Under `--json`, a command that left something out
+  writes **one compact line to stderr** holding a single JSON object:
+
+  ```
+  {"omitted":[{"code":"unreadable","source":"TASK-<n>","message":"<path> could not be read: …"}]}
+  ```
+
+  - `omitted` holds one entry per thing the result leaves out. The report is written only when that
+    list would be non-empty, so its presence is the signal: an absent report and an empty `omitted`
+    mean the same thing. There is no `partial` boolean, because that is exactly "`omitted` is
+    non-empty", and the exit code already carries the same bit for a caller that cannot parse.
+  - `code` is the machine class of the omission. `unreadable` is the only value squads emits today
+    and the set grows additively. **Do not branch on it to decide whether the result is partial** —
+    an entry whose `code` you do not recognise still means part of the result is missing.
+  - `source` is what was left out, as squads identifies it: an item ID where there is one, otherwise
+    a squad-relative path. It is a display token; do not parse it.
+  - `message` is the human sentence — the same text human-mode output prints for that omission.
+  - Every key is present on every entry, `null` for absent, matching the convention the workflow
+    catalogs set.
+
+  **Find the report as the one line of stderr that parses as a JSON object.** Stderr carries prose
+  that is not part of any result — the `sq sync` version notice, for one — so "stderr is JSON" is
+  false where "at most one line of stderr is JSON" holds. The report never goes to stdout, and
+  stdout stays exactly one JSON document.
+
+  **The payload shapes do not change for it.** No envelope, no added key, no sentinel row: a
+  degraded listing emits the same frozen shape a clean one does, for the entries it could read.
+  Human output keeps its `error: <message>` prose, one line per omission; `--json` emits the report
+  *instead of* that prose, not alongside it
 - **Bulk import:** `sq import --json` (with or without `--dry-run`)
 - **Commands that stay human-output-only:** `repair`, `renumber`, `docs`, `sync`, `init`,
   `sq workflow show` (the cheatsheet), `sq workflow lint` (which reports through its exit code —
@@ -472,6 +541,14 @@ renamed or retyped within a major version. The frozen surface includes:
 Between major versions, new fields may be added to any shape; old fields stay present, named, and
 typed identically. Every shape above is covered by a regression test, so it cannot drift on you
 unnoticed.
+
+**Where each shape's fields are written down.** This document tabulates the field set for the
+workflow catalogs, derived views, override inspection, the reflog and the omissions report. For the
+rest, the authority is the command's own `--json` output together with what `sq <command> --help`
+says about it: `sq search`, `sq tree` and `sq graph` document their shapes there in full, while the
+plainer listings (`list`, `blocked`, `workload`, `mine`) leave their field set to the output itself.
+The promise above covers the fields a shape emits either way, whether or not you find them
+enumerated here.
 
 ---
 

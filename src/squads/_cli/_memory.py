@@ -29,7 +29,6 @@ import squads._cli._common as common
 from squads._cli._common import (
     console,
     e,
-    err_console,
     get_service,
     print_json_clean,
     render_body_text,
@@ -64,9 +63,11 @@ async def _resolve_role(
 async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")) -> None:
     """Print the role's memory index: one line per memory (slug + summary).
 
-    A memory that could not be read is named on stderr in both output modes — ``--json``'s
-    array shortens silently otherwise, with nothing to distinguish a degraded read from a
-    genuinely smaller pool.
+    Exit codes: 0 = a clean listing, 4 = one or more memory files could not be read (the
+    readable memories are still listed, so a short exit-4 pool is never mistaken for a
+    genuinely smaller one). The skipped files are named on stderr: one ``error: <message>``
+    line each in human mode, or one ``{"omitted": [...]}`` JSON line under ``--json``. The
+    ``--json`` array shape is unchanged either way.
     """
     role_slug = _role(ctx)
     svc = get_service()
@@ -85,16 +86,14 @@ async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False,
                 ]
             )
         )
-        for msg in unreadable:
-            err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
+        common.report_omissions(unreadable, json_out=True)
         return
-    for msg in unreadable:
-        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
     if not entries:
         console.print(f"[dim]no memories for {e(role_slug)}[/dim]")
-        return
-    for m in entries:
-        console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.summary)}")
+    else:
+        for m in entries:
+            console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.summary)}")
+    common.report_omissions(unreadable, json_out=False)
 
 
 @memory_app.command("search")
@@ -106,8 +105,10 @@ async def search_memories(
 ) -> None:
     """Memories whose summary or body contains the query text.
 
-    Same degrade-signal rule as `sq memory <role> list`: an unreadable memory is named on
-    stderr in both output modes.
+    Same degrade-signal rule as `sq memory <role> list`: exit 0 = a clean search, 4 = one or
+    more memory files could not be read, reported the same way — an ``error: <message>`` line
+    per skipped file in human mode, one compact ``{"omitted": [...]}`` JSON line under
+    ``--json``.
     """
     role_slug = _role(ctx)
     svc = get_service()
@@ -118,18 +119,16 @@ async def search_memories(
                 [{"slug": m.slug, "description": m.summary, "hits": lines} for m, lines in hits]
             )
         )
-        for msg in unreadable:
-            err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
+        common.report_omissions(unreadable, json_out=True)
         return
-    for msg in unreadable:
-        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
     if not hits:
         console.print(f"[dim]no matches for {e(query)}[/dim]")
-        return
-    for m, lines in hits:
-        console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.summary)}")
-        for ln in lines[:3]:
-            console.print(f"    {e(ln)}")
+    else:
+        for m, lines in hits:
+            console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.summary)}")
+            for ln in lines[:3]:
+                console.print(f"    {e(ln)}")
+    common.report_omissions(unreadable, json_out=False)
 
 
 @memory_app.command("show")

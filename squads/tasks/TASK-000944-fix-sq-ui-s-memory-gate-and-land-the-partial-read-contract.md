@@ -3,7 +3,7 @@ id: TASK-944
 sequence_id: 944
 type: task
 title: Fix sq ui's memory gate and land the partial-read contract
-status: Ready
+status: Done
 parent: FEAT-690
 author: tech-lead
 assignee: python-dev
@@ -15,34 +15,34 @@ description: The sq ui memory-attachment fix and its coverage, plus ADR-947's ex
 subentities:
 - local_id: ST1
   title: Gate sq ui memory attachment on item type, not slug lookup
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Render a zero-memory identity as a leaf, not an empty branch
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: 'Exit code 4: a usable-but-short result, across the five listings'
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Regression-cover the memory show --json payload shape
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST5
   title: Cover bracket safety on the sq ui memory surfaces
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST6
   title: Split source from message where an unreadable file is named
-  status: Todo
+  status: Done
 - local_id: ST7
   title: 'The omissions report: one JSON line on stderr under --json'
-  status: Todo
+  status: Done
 - local_id: ST8
   title: Cover the five commands against the degraded-read shapes
-  status: Todo
+  status: Done
 created_at: '2026-09-14T13:46:21Z'
-updated_at: '2026-09-15T08:07:16Z'
+updated_at: '2026-09-15T12:12:58Z'
 ---
 <!-- sq:body -->
 The Python half of the fixes raised by the batch review of this feature's two delivered halves:
@@ -470,4 +470,125 @@ pipeline reports the last element's status, not the command's.
     - One consequence worth naming for dispatch: `_report_unreadable` takes `json_out` and currently ignores it. Under this contract that parameter becomes load-bearing.
     
     `sq check` clean. @manager TASK-944 then TASK-945; 946 writes from 944's handback.
+- [2026-09-15T10:19:15Z] Elias Python:
+  - All 8 subtasks landed and marked Done. `sq check` clean.
+    
+    ## Half one — sq ui memory defects (F1, F5, F7)
+    
+    - `_tui/_tree.py::_attach`: memory eligibility now gates on `_memory_eligible(item.type)`
+      (Role/Operator only, reusing `roster_identity_slugs`'s own check) instead of a bare slug
+      lookup — fixes a same-slugged Skill picking up a Role's notebook. The memory branch is also
+      no longer conditional on `not node.children`, so an eligible identity keeps its count+age
+      suffix and memory children alongside real item children (untestable via the bundled spec, so
+      covered by directly wiring a synthetic parent link through `tree_view`).
+    - Same function: a branch is now created whenever there's something to disclose (item
+      children, entries, or unreadable files) — a genuinely empty pool (no entries, nothing
+      unreadable) collapses to a leaf; a pool that's empty *because everything in it is
+      unreadable* keeps its branch, asserted as two separate cases.
+    - Bracket-safety coverage added for the memory tree leaf label and the memory reader header
+      (glance suffix was already a fixed string — covered as "survives a bracketed sibling"
+      instead).
+    - Caught and fixed one real bug of my own while writing the item-children test: my first pass
+      at `_attach` had `expand=not node.children` (inverted) — writing the test forced the fix.
+    
+    ## Half two — ADR-947 partial-read contract
+    
+    - New `Omission` dataclass (`_models/_omission.py`: `source`, `message`, `code="unreadable"`),
+      dependency-free so `_memory/_store.py`/`_board/_store.py` (below the service layer) can build
+      it without inverting the layering. `UnreadableItems`/`UnreadableMemories`/`UnreadableNotices`
+      now all alias `list[Omission]`.
+    - `source`/`message` split landed in all three producers: `_services/_collab.py::_read_or_report`
+      (source = item id, always known — all three failure branches), `_memory/_store.py::list_entries`
+      and `_board/_store.py::_all_notices` (source = squad-relative path via `path.relative_to(paths.squad_dir)`,
+      the established pattern from `_rename.py`/`_retype.py`). Human-mode message text is
+      byte-identical to before.
+    - `_cli/_common.py::report_omissions(omissions, *, json_out)` is the one shared emitter for all
+      five commands: no-op on empty, otherwise human mode keeps today's `error: <message>` lines,
+      `--json` mode emits one compact `{"omitted":[{"code","source","message"}]}` line via plain
+      `print(..., file=sys.stderr)` (no ANSI), then raises `Exit(4)`. `inbox`/`search` (`_main.py`),
+      `board list` (`_board.py`), `memory list`/`memory search` (`_memory.py`) all route through it;
+      `_report_unreadable` is gone. Payload shapes untouched — still bare arrays.
+    - `_cli/*` docstrings: rewrote per the coordinator's note that these are `--help` text — dropped
+      the ADR framing entirely, kept them to what an adopter needs (the code, where the detail is,
+      what's unchanged), same length as before or shorter (`sq search --help` unchanged at 53 lines).
+    
+    ## Exit codes observed (bare invocation, no pipe)
+    
+    | Command | Clean | Some unreadable | All unreadable |
+    |---|---|---|---|
+    | `sq inbox` | 0 | 4 | 4 |
+    | `sq search` | 0 | 4 | 4 |
+    | `sq board list` | 0 | 4 | 4 |
+    | `sq memory <r> list` | 0 | 4 (was 0 — the fix) | 4 |
+    | `sq memory <r> search` | 0 | 4 (was 0 — the fix) | 4 |
+    | `sq check` (unaffected) | 3 on error-level issues | — | — |
+    | `sq repair` (unaffected) | 1 on unreadable | — | — |
+    | `sq migrate up` (unaffected) | 0 (nothing pending; returns before the corpus sweep) | — | — |
+    
+    Precedence verified: an unresolvable role on `inbox` still exits 1 even with an unreadable file
+    present (fails before the corpus walk runs). One-JSON-line rule verified with a real prose
+    co-tenant (staled `squads_version` to force the `sq sync` version notice) on the same stderr.
+    
+    ## Falsification (each: broke it, watched red, restored, watched green)
+    
+    - F1 (type gate): reverted `_attach` to the old slug-only lookup — colliding-skill test and
+      item-children test both went red with the exact wrong values (`memory: 1` on the skill;
+      `memory` suffix absent on the parented role).
+    - F5 (zero-pool leaf): reverted to unconditional `parent.add` — the empty-pool test's new
+      `allow_expand is False` assertion went red. Then isolated the all-unreadable case alone
+      (`entries or unreadable` → `entries`) — only that one test went red, confirming the two
+      shapes are independently asserted, not folded together.
+    - F7 (bracket safety): swapped `Text.assemble`/`Content.from_markup(template, **vars)` for
+      markup-string concatenation in both the tree leaf label and the reader header — both new
+      tests went red (one via a `MarkupError` crash, one via a timeout waiting for literal `[tag]`).
+    - ST3/ST7 (exit 4 + report shape): confirmed via the table-driven suite itself — it caught a
+      real setup bug in its own first draft (an unconditionally-created "good" item leaking into
+      the "all_unreadable" shape, which should have zero readable results).
+    - ST4: didn't add new coverage — `tests/cli/test_memory_cli.py` already pins `memory show
+      --json` (slug/summary/created_at/tags/body) and `memory list --json`'s `created_at`,
+      committed with FEAT-690. Falsified by dropping the `tags` key from the JSON dict — the
+      existing test caught it (`KeyError: 'tags'`).
+    
+    ## Gates (real output)
+    
+    ```
+    uv run --all-extras pyright   → 0 errors, 0 warnings, 0 informations
+    uv run --all-extras ruff check .           → All checks passed!
+    uv run --all-extras ruff format --check .  → 671 files already formatted
+    uv run --all-extras pytest tests/meta      → 303 passed
+    ```
+    
+    Targeted suites run (not the full suite): the touched files above, plus
+    `tests/cli/test_partial_read_degrades_across_the_five_listings.py` (new, 24 cases),
+    `tests/tui/test_memory_view.py`, `tests/tui/test_board_screen.py`,
+    `tests/tui/test_bracket_content_renders_safely.py`, `tests/tui/test_browse_screen.py`,
+    `tests/cli/test_memory_cli.py`, `tests/cli/test_board_cli.py`,
+    `tests/cli/test_json_output_shape.py`, and a handful of others exercising `inbox`/`search`/
+    `board`/`memory` — all green. `tests/meta`'s ticket-ID hygiene gate is clean (swept every
+    docstring/comment I touched, in both `src/` and `tests/`, not just the lines you flagged).
+    
+    ## Files changed
+    
+    - `src/squads/_models/_omission.py` (new)
+    - `src/squads/_services/_results.py`, `_services/_collab.py`
+    - `src/squads/_memory/_store.py`, `_board/_store.py`
+    - `src/squads/_cli/_common.py`, `_cli/_main.py`, `_cli/_memory.py`, `_cli/_board.py`
+    - `src/squads/_tui/_tree.py`
+    - `tests/cli/test_partial_read_degrades_across_the_five_listings.py` (new)
+    - `tests/cli/test_unreadable_files_degrade_per_file_cli.py`,
+      `test_undecodable_squad_files_fail_cleanly.py`,
+      `test_malformed_frontmatter_and_config_fail_cleanly.py`
+    - `tests/service/test_search_and_inbox_degrade_per_file.py`,
+      `test_unreadable_files_degrade_per_file.py`
+    - `tests/tui/test_memory_view.py`
+    
+    ## Unfinished / for the record
+    
+    - Nothing outstanding against this task's scope. `docs/stability.md`/`docs/faq.md`/changelog/
+      README are explicitly TASK-946's (writer) — I did not touch docs.
+    - REV-958 appeared in the squad tree mid-task (untracked on disk) — not mine, left untouched.
+    - I have not staged or committed anything (forbidden per brief); the working tree carries all
+      of the above plus the subtask status updates on this task.
+    
+    @manager
 <!-- sq:discussion:end -->

@@ -20,6 +20,7 @@ import type {
   SqListItem,
   SqMemoryDetail,
   SqMemoryListRow,
+  SqOmission,
   SqRoleCatalogEntry,
   SqSearchHit,
   SqSearchHitRegion,
@@ -34,7 +35,18 @@ import type {
 } from './types';
 
 export type SqOutcome<T> =
-  | { readonly kind: 'success'; readonly data: T }
+  | {
+      readonly kind: 'success';
+      readonly data: T;
+      /** Present (an array, possibly empty) only on a partial result — the frozen contract's
+       * exit code `4`: stdout is a valid, complete-shape payload and this names what it left
+       * out. `undefined`
+       * means an ordinary clean read (exit `0`); an empty array means the command signalled
+       * "partial" but the omissions report itself was missing or malformed, which degrades to
+       * "partial, no detail" rather than being read as clean. Never inspect `.length === 0` to
+       * mean "not partial" — check `!== undefined` instead. */
+      readonly omissions?: readonly SqOmission[];
+    }
   | {
       readonly kind: 'usage-error';
       readonly message: string;
@@ -65,17 +77,63 @@ export function buildArgv(invocation: SqInvocation, subcommandArgs: readonly str
   return [...invocation.args, ...subcommandArgs];
 }
 
+function isSqOmission(value: unknown): value is SqOmission {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  return (
+    typeof entry.code === 'string' &&
+    typeof entry.source === 'string' &&
+    typeof entry.message === 'string'
+  );
+}
+
+/** The documented consumer rule for stderr under `--json`: "the one line of stderr that parses
+ * as a JSON object is the report" — stderr can carry a prose co-tenant (the `sq sync` version
+ * notice), so this can't assume the whole stream, or its first/last line, is the report. Returns
+ * `[]` — never throws, never returns `undefined` — when no line parses as an object, or the one
+ * that does lacks a well-formed `omitted` array: both cases degrade to "partial, no detail",
+ * exactly like an older `sq` that emits the report in a shape this build doesn't recognise yet. */
+function parseOmissionsReport(stderr: string): readonly SqOmission[] {
+  for (const line of stderr.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed === '') {
+      continue;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      continue;
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      continue;
+    }
+    const omitted = (parsed as Record<string, unknown>).omitted;
+    return Array.isArray(omitted) && omitted.every(isSqOmission) ? omitted : [];
+  }
+  return [];
+}
+
 function classifyNonZeroExit(
   exitCode: number,
+  stdout: string,
   stderr: string,
   fullCommand: readonly string[],
-): SqOutcome<never> {
+): SqOutcome<string> {
   const message = stderr.trim();
   if (exitCode === 2) {
     return { kind: 'usage-error', message, argv: fullCommand };
   }
   if (exitCode === 3) {
     return { kind: 'check-error', message };
+  }
+  if (exitCode === 4) {
+    // The command did what was asked, stdout is a valid payload in its documented shape, and
+    // entries are missing — a success carrying omissions, not a runtime error. Every caller of
+    // the adapter inherits this from one place; none needs its own exit-code knowledge.
+    return { kind: 'success', data: stdout, omissions: parseOmissionsReport(stderr) };
   }
   // 1, or anything else (including a schema-skew hard-stop) — surfaced verbatim, no
   // special-casing: the adapter doesn't try to interpret it.
@@ -514,7 +572,10 @@ async function runSqRaw(
     return { kind: 'spawn-error', message: error instanceof Error ? error.message : String(error) };
   }
   if (result.exitCode !== 0) {
-    return classifyNonZeroExit(result.exitCode, result.stderr, [invocation.command, ...argv]);
+    return classifyNonZeroExit(result.exitCode, result.stdout, result.stderr, [
+      invocation.command,
+      ...argv,
+    ]);
   }
   return { kind: 'success', data: result.stdout };
 }
@@ -537,7 +598,11 @@ async function runSqJson<T>(
   if (!Array.isArray(parsed.data) || !parsed.data.every(isItem)) {
     return { kind: 'parse-error', message: 'sq --json output did not match the expected shape' };
   }
-  return { kind: 'success', data: parsed.data };
+  return {
+    kind: 'success',
+    data: parsed.data,
+    ...(raw.omissions ? { omissions: raw.omissions } : {}),
+  };
 }
 
 /** Same as `runSqJson`, for a `--json` surface that emits a single nested object (`sq graph`)
@@ -560,7 +625,11 @@ async function runSqJsonObject<T>(
   if (!isItem(parsed.data)) {
     return { kind: 'parse-error', message: 'sq --json output did not match the expected shape' };
   }
-  return { kind: 'success', data: parsed.data };
+  return {
+    kind: 'success',
+    data: parsed.data,
+    ...(raw.omissions ? { omissions: raw.omissions } : {}),
+  };
 }
 
 /** `sq tree [<root>] --json [--all]` — drives the sidebar tree. `includeClosed` (the
@@ -770,11 +839,11 @@ export function getGraph(
 }
 
 /** `sq memory <role> list --json` — one role/operator's notebook index, feeding the Roster
- * tree's eager memory children (`metaTreeDataProvider.ts::refresh`). An unreadable individual
- * entry is named on `sq`'s stderr and silently dropped from the array on an otherwise-zero
- * exit — this adapter doesn't inspect stderr on success, so that per-entry skew is invisible
- * here; only a genuine fetch failure (bad role slug, `sq` not found, malformed output) surfaces
- * as a non-success outcome. */
+ * tree's eager memory children (`metaTreeDataProvider.ts::refresh`). One or more unreadable
+ * entries exits `4` (the frozen partial-result contract): the readable rows are still a valid array on stdout, and the
+ * outcome comes back `kind: 'success'` with `omissions` populated — never dropped to a plain
+ * failure, never silently under-counted. Only a genuine fetch failure (bad role slug, `sq` not
+ * found, malformed output) surfaces as a non-success outcome. */
 export function getMemoryList(
   runner: ProcessRunner,
   invocation: SqInvocation,
@@ -809,13 +878,11 @@ export function getMemoryShow(
 }
 
 /** `sq board list --json` — the team bulletin board's current (unexpired) notices, feeding the
- * `Squads: Open Team Board` panel. Note: the CLI itself exits 1 (a degraded-but-real listing,
- * same convention as `sq search`/`sq memory list`'s unreadable-entry signal) when one or more
- * notices could not be read, even though it already wrote the readable ones to stdout as valid
- * JSON — this adapter's general non-zero-exit contract (`classifyNonZeroExit`) doesn't parse
- * stdout on that path, so a degraded board read surfaces as a full failure here rather than a
- * partial listing. Sequenced after the memory/board CLI work; not a regression this client
- * introduces. */
+ * `Squads: Open Team Board` panel. One or more unreadable notices exits `4` (the partial-result
+ * contract), and
+ * `classifyNonZeroExit` maps that to a `success` outcome carrying `omissions` — the readable
+ * notices that were already valid JSON on stdout are not discarded, and `renderBoardHtml`
+ * (`domain/boardView.ts`) renders them plus a visible "listing is partial" line. */
 export function getBoardList(
   runner: ProcessRunner,
   invocation: SqInvocation,

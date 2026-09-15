@@ -15,12 +15,13 @@ from squads import _aio
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._memory._model import MemoryEntry
+from squads._models._omission import Omission
 from squads._paths import SquadPaths
 from squads._sections import join_frontmatter, split_frontmatter
 from squads._util import slugify
 
-#: One skipped-entry message per unreadable memory file — see :func:`list_entries`.
-type UnreadableMemories = list[str]
+#: One :class:`Omission` per unreadable memory file — see :func:`list_entries`.
+type UnreadableMemories = list[Omission]
 
 #: Squad-relative root for every role's memory pool: ``<squad_dir>/agents/memory/<role-slug>/``.
 MEMORY_ROOT = "agents/memory"
@@ -156,17 +157,19 @@ async def list_entries(
     """
     folder = role_folder(paths, role_slug)
     out: list[MemoryEntry] = []
-    unreadable: list[str] = []
+    unreadable: list[Omission] = []
     for path in await _content_files(folder):
+        source = str(path.relative_to(paths.squad_dir))
         try:
             text = await _aio.read_text(path)
             frontmatter, body = split_frontmatter(text, source=str(path))
         except FileNotFoundError:
             if await _aio.path_is_symlink(path):
-                unreadable.append(f"{path} is a broken symlink (its target does not exist)")
+                message = f"{path} is a broken symlink (its target does not exist)"
+                unreadable.append(Omission(source=source, message=message))
             continue
         except SquadsError as exc:
-            unreadable.append(str(exc))
+            unreadable.append(Omission(source=source, message=str(exc)))
             continue
         out.append(MemoryEntry.from_frontmatter(path.stem, frontmatter, body.strip("\n")))
     return out, unreadable

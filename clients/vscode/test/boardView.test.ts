@@ -90,4 +90,32 @@ describe('renderBoardHtml', () => {
 
     expect(html).toContain('sq exploded');
   });
+
+  it('renders the readable notices plus a partial-listing line on a partial read, never blank', () => {
+    const html = renderBoardHtml({
+      kind: 'success',
+      data: [notice({ id: 'a', body: 'Still readable' })],
+      omissions: [{ code: 'unreadable', source: 'BOARD-2', message: 'bad' }],
+    });
+
+    expect(html).toContain('Still readable');
+    expect(html).toContain('listing partial');
+  });
+
+  it('states the listing is partial even when the omissions report has no per-item detail', () => {
+    const html = renderBoardHtml({
+      kind: 'success',
+      data: [notice({ id: 'a', body: 'Still readable' })],
+      omissions: [],
+    });
+
+    expect(html).toContain('Still readable');
+    expect(html).toContain('listing partial');
+  });
+
+  it('does not mention a partial listing on a genuinely clean read', () => {
+    const html = renderBoardHtml({ kind: 'success', data: [notice()] });
+
+    expect(html).not.toContain('partial');
+  });
 });

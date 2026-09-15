@@ -4,8 +4,9 @@ patch — and a `.squads.toml` with a syntax error must each name the file clean
 raw interpreter traceback. `renumber`/`sync`/an ordinary command still abort outright (a single
 `error: ...` line); `check`/`repair`/`board list`/`memory list` degrade per file instead —
 report the bad file as an error-level issue and keep going for the rest of the board — so their
-own tests assert the command *completes* (exit 0 or the ordinary error-level exit) rather than
-aborting. Either shape is "clean": no traceback, the file named.
+own tests assert the command *completes* (exit 0/3/4, per the command — `board list`/
+`memory list` exit 4 on a degraded-but-otherwise-successful read) rather than aborting. Either
+shape is "clean": no traceback, the file named.
 
 Pins the user-visible outcome (what reaches the terminal), not just the exception type: a
 test asserting only that a `SquadsError` was raised would pass even if the CLI still printed
@@ -131,28 +132,30 @@ async def test_sync_fails_cleanly_on_a_merge_conflicted_skill_file(project, svc,
 async def test_board_list_degrades_past_a_merge_conflicted_notice(project, svc, invoke):
     """`board list` names the corrupt notice and keeps listing the rest rather than emptying
     the whole listing — the same reporter-stops-at-the-first-problem shape `check` rejects.
-    Exit 1, not 0: an `error:` line reached the terminal, so `$?` must say so too."""
+    Exit `4`, not 0 and not the old bare `1`: an `error:` line reached the terminal, so `$?`
+    must say so too."""
     posted = await invoke(["board", "post", "-m", "a notice", "--as", "manager"])
     assert posted.exit_code == 0, posted.output
     notice_path = next(iter(board_folder(project).glob("*.md")))
     _corrupt_with_merge_conflict(notice_path)
 
     result = await invoke(["board", "list"])
-    assert result.exit_code == 1, result.output
+    assert result.exit_code == 4, result.output
     _assert_clean_failure(result.output, names=str(notice_path))
     assert "no current notices" in result.output
 
 
 async def test_memory_list_degrades_past_a_merge_conflicted_entry(project, svc, invoke):
-    """`memory list` names the corrupt entry and exits clean rather than emptying the whole
-    listing — same rationale as the board sibling above."""
+    """`memory list` names the corrupt entry and exits `4` (fixing the defective bare `0` a
+    degraded read used to return) rather than emptying the whole listing — same rationale as
+    the board sibling above."""
     added = await invoke(["memory", "manager", "add", "a remembered fact"])
     assert added.exit_code == 0, added.output
     memory_path = next(iter(role_folder(project, "manager").glob("*.md")))
     _corrupt_with_merge_conflict(memory_path)
 
     result = await invoke(["memory", "manager", "list"])
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 4, result.output
     _assert_clean_failure(result.output, names=str(memory_path))
     assert "no memories for manager" in result.output
 

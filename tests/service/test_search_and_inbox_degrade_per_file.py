@@ -122,10 +122,16 @@ async def _two_items(svc):
     return good, bad
 
 
-def _names_the_victim(message: str, bad, path_name: str, cause: str) -> bool:
-    """A skipped-file message has to identify *which* item was skipped — by path where there
-    is a trustworthy one, and by item id where path resolution is the thing that failed."""
-    return bad.id in message if cause in _ID_NAMED_CAUSES else path_name in message
+def _names_the_victim(omission, bad, path_name: str, cause: str) -> bool:
+    """A skipped-file omission has to identify *which* item was skipped: `.source` is always
+    the item id (the walk is over items, so one is always known), and `.message` is the same
+    human sentence as before, naming a path where there is a trustworthy one and the item id
+    where path resolution is the thing that failed."""
+    if omission.source != bad.id:
+        return False
+    if cause in _ID_NAMED_CAUSES:
+        return bad.id in omission.message
+    return path_name in omission.message
 
 
 @pytest.mark.parametrize("cause", _CAUSES)
@@ -176,7 +182,8 @@ async def test_a_traversal_path_in_the_index_degrades_per_item(svc, command):
 
     assert [r.item.id for r in found] == [good.id]
     assert len(unreadable) == 1
-    assert bad.id in unreadable[0] and "escapes the squad folder" in unreadable[0]
+    assert unreadable[0].source == bad.id
+    assert bad.id in unreadable[0].message and "escapes the squad folder" in unreadable[0].message
 
 
 async def test_an_unreadable_item_still_contributes_what_the_index_knows(svc, outside):
@@ -233,7 +240,7 @@ async def test_cli_search_prints_the_results_on_stdout_and_the_error_on_stderr(
     finally:
         undo()
 
-    assert result.exit_code == 1
+    assert result.exit_code == 4
     out = _flat(result.stdout)
     err = _flat(result.stderr)
     assert good.id in out  # the answer is still delivered
@@ -250,7 +257,7 @@ async def test_cli_inbox_prints_the_hits_on_stdout_and_the_error_on_stderr(svc, 
     finally:
         undo()
 
-    assert result.exit_code == 1
+    assert result.exit_code == 4
     out = _flat(result.stdout)
     err = _flat(result.stderr)
     assert good.id in out
@@ -270,7 +277,7 @@ async def test_cli_search_json_stays_a_parseable_array_with_the_error_on_stderr(
     finally:
         undo()
 
-    assert result.exit_code == 1
+    assert result.exit_code == 4
     payload = json.loads(result.stdout)
     assert [r["id"] for r in payload] == [good.id]
     assert "could not be read" in _flat(result.stderr)
@@ -286,7 +293,7 @@ async def test_cli_inbox_json_stays_a_parseable_array_with_the_error_on_stderr(
     finally:
         undo()
 
-    assert result.exit_code == 1
+    assert result.exit_code == 4
     payload = json.loads(result.stdout)
     assert [r["id"] for r in payload] == [good.id]
     assert "could not be read" in _flat(result.stderr)

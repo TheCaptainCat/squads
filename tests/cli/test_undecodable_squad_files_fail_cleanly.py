@@ -88,8 +88,9 @@ async def test_board_list_degrades_past_an_undecodable_notice(project, invoke):
     _insert_invalid_byte(notice_path)
 
     result = await invoke(["board", "list"])
-    # Exit 1: an `error:` line reached the terminal, so `$?` must say so too.
-    assert result.exit_code == 1, result.output
+    # Exit 4: an `error:` line reached the terminal, so `$?` must say so too — a
+    # usable-but-short result, not a clean `0` and not the old bare `1`.
+    assert result.exit_code == 4, result.output
     _assert_clean_failure(result.output, names=str(notice_path))
     assert "no current notices" in result.output
 
@@ -101,7 +102,8 @@ async def test_memory_list_degrades_past_an_undecodable_entry(project, invoke):
     _insert_invalid_byte(memory_path)
 
     result = await invoke(["memory", "manager", "list"])
-    assert result.exit_code == 0, result.output
+    # Exit 4, not the old (defective) bare 0: a degraded read must not read as a clean one.
+    assert result.exit_code == 4, result.output
     _assert_clean_failure(result.output, names=str(memory_path))
     assert "no memories for manager" in result.output
 

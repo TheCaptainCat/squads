@@ -11,6 +11,7 @@ from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._omission import Omission
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import (
@@ -59,16 +60,17 @@ async def _read_or_report(paths: SquadPaths, item: Item, unreadable: UnreadableI
     try:
         path = item_file(paths, item)
     except SquadsError as exc:
-        unreadable.append(f"{item.id}: {exc}")
+        unreadable.append(Omission(source=item.id, message=f"{item.id}: {exc}"))
         return None
     try:
         return await _aio.read_text(path)
     except FileNotFoundError:
         if await _aio.path_is_symlink(path):
-            unreadable.append(f"{path} is a broken symlink (its target does not exist)")
+            message = f"{path} is a broken symlink (its target does not exist)"
+            unreadable.append(Omission(source=item.id, message=message))
         return None
     except SquadsError as exc:
-        unreadable.append(str(exc))
+        unreadable.append(Omission(source=item.id, message=str(exc)))
         return None
 
 

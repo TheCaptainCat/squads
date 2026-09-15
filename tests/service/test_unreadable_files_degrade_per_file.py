@@ -391,7 +391,8 @@ async def test_board_list_degrades_past_a_corrupt_notice(svc, corrupt):
     notices, unreadable = await svc.board_list()
 
     assert [n.id for n in notices] == [good.id]
-    assert any(bad_path.name in msg for msg in unreadable), unreadable
+    assert any(bad_path.name in o.message for o in unreadable), unreadable
+    assert any(o.source == str(bad_path.relative_to(svc.paths.squad_dir)) for o in unreadable)
 
 
 @pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
@@ -404,7 +405,8 @@ async def test_memory_list_degrades_past_a_corrupt_entry(svc, corrupt):
     entries, unreadable = await svc.memory_list("python-dev")
 
     assert [e.slug for e in entries] == [good.slug]
-    assert any(bad_path.name in msg for msg in unreadable), unreadable
+    assert any(bad_path.name in o.message for o in unreadable), unreadable
+    assert any(o.source == str(bad_path.relative_to(svc.paths.squad_dir)) for o in unreadable)
 
 
 @pytest.mark.parametrize("corrupt", _SHAPE_PARAMS)
@@ -417,7 +419,7 @@ async def test_memory_search_degrades_past_a_corrupt_entry(svc, corrupt):
     hits, unreadable = await svc.memory_search("python-dev", "xylophone")
 
     assert [e.slug for e, _lines in hits] == [good.slug]
-    assert any(bad_path.name in msg for msg in unreadable), unreadable
+    assert any(bad_path.name in o.message for o in unreadable), unreadable
 
 
 async def test_board_and_memory_ordering_is_unchanged_by_a_skipped_entry(svc, monkeypatch):
@@ -499,9 +501,9 @@ async def test_board_and_memory_list_report_a_broken_symlink_as_unreadable(svc):
     entries, memory_unreadable = await svc.memory_list("python-dev")
 
     assert [n.id for n in notices] == [good_notice.id]
-    assert any("ghost.md" in msg for msg in board_unreadable), board_unreadable
+    assert any("ghost.md" in o.message for o in board_unreadable), board_unreadable
     assert [e.slug for e in entries] == [good_memory.slug]
-    assert any("ghost.md" in msg for msg in memory_unreadable), memory_unreadable
+    assert any("ghost.md" in o.message for o in memory_unreadable), memory_unreadable
 
 
 async def test_every_command_gives_a_broken_symlink_the_same_diagnosis(svc):

@@ -23,9 +23,9 @@ from squads._cli._common import (
     command,
     console,
     e,
-    err_console,
     get_service,
     print_json_clean,
+    report_omissions,
     require_as,
     resolve_body,
     resolve_slug_or_raise,
@@ -63,9 +63,10 @@ async def post_notice(
 async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
     """List current (unexpired) notices with their positional ordinal.
 
-    Exit codes: 0 = a clean listing, 1 = one or more notices could not be read (named on
-    stderr, whether or not ``--json`` is given — the JSON array shape stays a bare array, so
-    a degraded read is signalled out-of-band rather than by an added key).
+    Exit codes: 0 = a clean listing, 4 = one or more notices could not be read (the readable
+    notices are still listed). The skipped notices are named on stderr: one
+    ``error: <message>`` line each in human mode, or one ``{"omitted": [...]}`` JSON line under
+    ``--json``. The JSON array shape is unchanged either way.
     """
     svc = get_service()
     notices, unreadable = await svc.board_list()
@@ -85,13 +86,8 @@ async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
                 ]
             )
         )
-        for msg in unreadable:
-            err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
-        if unreadable:
-            raise typer.Exit(1)
+        report_omissions(unreadable, json_out=True)
         return
-    for msg in unreadable:
-        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
     if not notices:
         console.print("[dim]no current notices[/dim]")
     else:
@@ -101,8 +97,7 @@ async def list_notices(json_out: bool = typer.Option(False, "--json")) -> None:
                 f"[bold]{i}.[/bold] {e(n.body)}  [dim]({e(n.author)} @ {e(n.posted_at)})[/dim]"
                 f"{until_part}"
             )
-    if unreadable:
-        raise typer.Exit(1)
+    report_omissions(unreadable, json_out=False)
 
 
 @board_app.command("clear")

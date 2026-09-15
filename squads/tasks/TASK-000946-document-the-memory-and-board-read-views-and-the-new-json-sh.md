@@ -3,7 +3,7 @@ id: TASK-946
 sequence_id: 946
 type: task
 title: Document the memory and board read views and the new --json shapes
-status: Draft
+status: Done
 parent: FEAT-690
 author: tech-lead
 assignee: tech-writer
@@ -14,15 +14,15 @@ refs:
 subentities:
 - local_id: ST1
   title: Name the new json shapes and the partial-listing contract
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Write the 0.15.0 changelog entry for the memory and board views
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Say what each client shows in the README descriptions
-  status: Todo
+  status: Done
 created_at: '2026-09-14T13:55:18Z'
-updated_at: '2026-09-14T13:58:37Z'
+updated_at: '2026-09-15T12:41:43Z'
 ---
 <!-- sq:body -->
 Nothing adopter-facing records that either client can now show a role's memory notebook or the
@@ -149,4 +149,22 @@ Done when:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-15T12:39:15Z] Theo Writer:
+  - Docs pass landed; all three subtasks Done. @manager to verify — I have not touched TASK-946's own status.
+    
+    **ST1 — `docs/stability.md`** (+ `docs/faq.md`, corrected in the same pass)
+    - Exit-code table grows the fifth row (`4`), plus a new `#### Partial results and code 4` subsection: the class membership test, precedence under 1/2/3, mode-independence, and what stays outside (`check` → 3, `repair`/`migrate up` → 1). Written as a behaviour change: the five commands are named, with 1→4 separated from 0→4 and the memory pair called out as the one that flips a passing script.
+    - Tier 3: `memory show --json` named with its field set `{slug, summary, created_at, tags, body}`; `created_at` on `memory list --json` named as a field addition; a new bullet for the omissions report — the stderr line, the four keys, the "do not branch on `code`", "`source` is a display token", the one-line-of-stderr-that-parses-as-JSON consumer rule, and that the payload shapes are untouched.
+    - `docs/faq.md`'s table row `1` no longer claims a degraded `board list` exits 1 (it keeps `repair`, which still does); new row `4`; the "a degraded read is a non-zero exit" paragraph rewritten and given an upgrade note.
+    - The closing "every shape above is covered by a regression test" claim now stands over the two new shapes — verified before leaving it: `tests/cli/test_memory_cli.py` covers `show --json` and `created_at`, `tests/cli/test_partial_read_degrades_across_the_five_listings.py` covers the report and exit 4.
+    
+    **ST2 — `CHANGELOG.md` `## [0.15.0]`**: two Added bullets (the clients' memory/board read views incl. the partial-pool signal; the two `--json` additions) and a new `### Changed` bullet for exit `4`, carrying the same upgrade warning. Authored from the code and my own probe, not spliced from the handbacks.
+    
+    **ST3 — `README.md`**: both client one-liners now name the memory notebooks and the board; the extension's read-only framing preserved.
+    
+    **Verified rather than taken on trust** — scratch squad, permissions-denied files, exit codes read bare (not through a pipe): clean 0; degraded `memory list`/`memory search`/`board list`/`inbox`/`search` all 4 in both modes; `source` is an unpadded item ID for items (`TASK-21`) and a squad-relative path for memory/board files; `check` 3, `repair` 1.
+    
+    **One judgment call for the record.** `docs/stability.md` freezes `search`/`graph`/`tree` without enumerating their fields. I did **not** add the enumeration — that is the `--help` surface REV-958 owns for 0.16, and a field table for every Tier 3 shape is a bigger pass than this one. Instead the doc now says plainly where each shape's fields are written down: tabulated here for the catalogs/views/override/reflog/omissions report, and otherwise read from the command's `--json` output plus `--help` — noting that `search`/`tree`/`graph` document theirs there in full while `list`/`blocked`/`workload`/`mine` document theirs nowhere but the output. Honest about the gap without pre-empting the fix.
+    
+    Gates: `uv run --all-extras pytest tests/meta` 303 passed; `sq check` clean. Full suite left to @manager.
 <!-- sq:discussion:end -->

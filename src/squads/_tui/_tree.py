@@ -19,6 +19,7 @@ from squads import _clock as clock
 from squads._memory._model import MemoryEntry
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
+from squads._models._omission import Omission
 from squads._services._results import TREE_ANCHOR_MARKER, TreeNode
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, WorkflowSpec
 
@@ -69,15 +70,29 @@ type NodeData = str | MemoryNodeData
 #: One role/operator identity's eagerly-fetched memory pool: its entries plus any per-file
 #: read failures, keyed by the identity's own roster slug (`Item.extra[X.SLUG]`, not
 #: `Item.id`) — `role_slug` here matches what `Service.memory_list`/`memory_show` expect.
-type MemoryBySlug = Mapping[str, tuple[list[MemoryEntry], list[str]]]
+type MemoryBySlug = Mapping[str, tuple[list[MemoryEntry], list[Omission]]]
+
+
+def _memory_eligible(item_type: str) -> bool:
+    """Whether *item_type* carries a memory notebook — Role and Operator only.
+
+    The one reserved-type check the whole memory-attachment engine keys eligibility off of.
+    `roster_identity_slugs` (sizing the eager fetch) and `_attach` (deciding what the render
+    side actually shows) both call this rather than each keeping — and risking drifting from —
+    its own notion of "eligible": a Skill carries the identical `extra[X.SLUG]` key a Role or
+    Operator does (`_services._roster.add_skill`), so a render-side lookup keyed on the slug
+    alone, with no type gate, picks up another identity's notebook the moment a skill happens
+    to share its slug.
+    """
+    return item_type in (ROSTER_ROLE, ROSTER_OPERATOR)
 
 
 def roster_identity_slugs(nodes: list[TreeNode]) -> list[str]:
     """Every Role/Operator node's own roster slug anywhere in *nodes*, recursively.
 
-    Skill nodes carry no notebook and are excluded — reuses the same reserved-type check
-    (`ROSTER_ROLE`/`ROSTER_OPERATOR`) the rest of the engine keys memory-eligibility off of,
-    rather than a fresh literal list. Used to size the eager `memory_list()` fetch in
+    Skill nodes carry no notebook and are excluded — reuses `_memory_eligible`, the same
+    reserved-type check the render side (`_attach`) keys memory-eligibility off of, rather than
+    a fresh literal list. Used to size the eager `memory_list()` fetch in
     `BrowseScreen.refresh_tree` to exactly the identities this tree is about to render.
     """
     out: list[str] = []
@@ -85,7 +100,7 @@ def roster_identity_slugs(nodes: list[TreeNode]) -> list[str]:
     while stack:
         node = stack.pop()
         stack.extend(node.children)
-        if node.item.type not in (ROSTER_ROLE, ROSTER_OPERATOR):
+        if not _memory_eligible(node.item.type):
             continue
         slug = node.item.extra.get(X.SLUG)
         if isinstance(slug, str) and slug:
@@ -176,7 +191,10 @@ def _label(item: Item, *, path_only: bool, anchor: bool, spec: WorkflowSpec) -> 
 
 
 def _attach_memory_children(
-    branch: UiTreeNode[NodeData], role_slug: str, entries: list[MemoryEntry], unreadable: list[str]
+    branch: UiTreeNode[NodeData],
+    role_slug: str,
+    entries: list[MemoryEntry],
+    unreadable: list[Omission],
 ) -> None:
     for entry in _sorted_memory_entries(entries):
         branch.add_leaf(
@@ -189,21 +207,43 @@ def _attach_memory_children(
 def _attach(
     parent: UiTreeNode[NodeData], node: TreeNode, spec: WorkflowSpec, memory: MemoryBySlug
 ) -> None:
+    """Attach *node* (and its subtree) under *parent*, layering a Role/Operator's memory pool
+    onto its own label and children — **independent** of whether the node also carries real
+    item children (gating this on `not node.children` would silently drop the memory signal
+    the moment an identity has any).
+
+    Eligibility is `_memory_eligible(node.item.type)` alone, reusing the exact reserved-type
+    check `roster_identity_slugs` used to size the fetch — never a slug-only lookup, which
+    would let a same-slugged Skill pick up a Role's notebook.
+
+    A branch (rather than a leaf) is created whenever there is something to disclose: real item
+    children, at least one memory entry, or at least one unreadable memory file. A pool that
+    fetched clean and empty — no entries, nothing unreadable — collapses to a leaf instead: a
+    `memory: 0` you could nonetheless expand invites a click that answers nothing. A pool that
+    is empty *because* every file in it was unreadable is not that case and keeps its branch,
+    so the "listing partial" child stays reachable rather than hidden behind a `(0)` that
+    misreports why the count reads zero.
+    """
     label = _label(node.item, path_only=node.path_only, anchor=node.anchor, spec=spec)
-    if node.children:
-        branch = parent.add(label, node.item.id, expand=True)
+    role_slug: str | None = None
+    entries: list[MemoryEntry] = []
+    unreadable: list[Omission] = []
+    if _memory_eligible(node.item.type):
+        candidate = node.item.extra.get(X.SLUG)
+        if isinstance(candidate, str):
+            pool = memory.get(candidate)
+            if pool is not None:
+                role_slug = candidate
+                entries, unreadable = pool
+                label.append_text(_memory_glance_suffix(entries))
+
+    if node.children or entries or unreadable:
+        branch = parent.add(label, node.item.id, expand=bool(node.children))
         for child in node.children:
             _attach(branch, child, spec, memory)
-        return
-    role_slug = node.item.extra.get(X.SLUG)
-    if isinstance(role_slug, str):
-        pool = memory.get(role_slug)
-        if pool is not None:
-            entries, unreadable = pool
-            label.append_text(_memory_glance_suffix(entries))
-            branch = parent.add(label, node.item.id, expand=False)
+        if role_slug is not None:
             _attach_memory_children(branch, role_slug, entries, unreadable)
-            return
+        return
     parent.add_leaf(label, node.item.id)
 
 

@@ -3,41 +3,41 @@ id: REV-943
 sequence_id: 943
 type: review
 title: FEAT-690 memory and board read views across sq ui and the VS Code extension
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-690:addresses
 subentities:
 - local_id: F1
   title: sq ui attaches memory by slug, not item type
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: Extension memory count silently under-reports a degraded pool
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: Extension board panel goes blank when one notice is unreadable
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Memory panel title drops the role once the fetch succeeds
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: 'sq ui: a zero-memory identity renders as an empty expandable branch'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: New memory show --json surface is undocumented
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F7
   title: Memory bracket-safety is correct but untested
-  status: Open
+  status: Fixed
   severity: info
 created_at: '2026-09-14T13:29:22Z'
-updated_at: '2026-09-14T14:09:44Z'
+updated_at: '2026-09-15T12:42:19Z'
 ---
 <!-- sq:body -->
 One batch review across the whole of FEAT-690 — both delivered halves together: the Python
@@ -452,4 +452,14 @@ the same one-line addition.
     `sq check` and `sq repair`/`migrate up` are explicitly outside the class, with the membership test in the body. `docs/stability.md` and `docs/faq.md` must carry this as a **behaviour change**, not merely describe the new state — that is on TASK-946, and TASK-944's acceptance needs the `source`/`message` split (the memory and board stores hand back one pre-composed string today).
     
     `sq check` clean.
+- [2026-09-15T12:42:18Z] Catherine Manager:
+  - All seven findings fixed across TASK-944 (sq ui memory gate + the CLI contract), TASK-945 (the
+    extension consuming it) and TASK-946 (the docs). Verified as the authoritative gate: full suite
+    5099 passed / 0 failed, pyright 0 errors, ruff clean, extension typecheck/eslint/prettier clean
+    with 688 vitest tests, sq check clean.
+    
+    F2/F3 grew well past the original two-command framing on op-pierre's ruling to fix the CLI
+    contract in 0.15: they became ADR-947, a fifth exit code across five commands, and a documented
+    behaviour change. The degraded path was driven end to end rather than read -- clean exits 0,
+    degraded exits 4, one compact omissions line on stderr, stdout still a bare array.
 <!-- sq:discussion:end -->

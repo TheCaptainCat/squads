@@ -824,27 +824,6 @@ async def renumber(
         console.print(f"  {e(old)} -> {e(new)}")
 
 
-def _report_unreadable(unreadable: UnreadableItems, *, json_out: bool) -> None:
-    """Name each item file a corpus walk had to skip, then exit non-zero — after the results
-    have already been printed.
-
-    The per-file degradation posture ``check``/``repair``/``board list``/``memory list``
-    established, applied to the corpus-walking read commands: the answer is emitted first and
-    stays complete for every file that *could* be read, and the skipped ones are reported
-    out-of-band. Out-of-band matters in both output modes, not just ``--json``: stdout carries
-    only the command's actual output — the JSON array or the human-readable results/empty-result
-    note — while every per-file error goes to stderr regardless of ``json_out``, and the non-zero
-    exit is what tells a script (or a person splitting the streams) the answer was partial.
-    Nothing here is ever the *only* output — a command that printed nothing but an error would
-    be the failure mode this replaces.
-    """
-    if not unreadable:
-        return
-    for msg in unreadable:
-        err_console.print(f"[red]error[/red]: {e(msg)}", soft_wrap=True)
-    raise typer.Exit(1)
-
-
 def _empty_result_note(empty: str, unreadable: UnreadableItems) -> str:
     """The human-mode line for an empty result — *empty* when the corpus was fully read, an
     explicitly partial one when it was not.
@@ -868,11 +847,11 @@ async def inbox(
 ):
     """Open items whose discussion mentions @role.
 
-    Exit codes: 0 = a clean listing, 1 = it listed everything it could read but one or more
-    item files could not be read (named on stderr, whether or not ``--json`` is given — the
-    JSON array shape stays a bare array, so a degraded read is signalled out-of-band rather
-    than by an added key). The hits that *were* found are always printed first: one unreadable
-    file must never cost the whole answer.
+    Exit codes: 0 = a clean listing, 4 = some item files could not be read (the hits that
+    *were* found are still printed — one unreadable file never costs the whole answer). The
+    skipped files are named on stderr: one ``error: <message>`` line each in human mode, or one
+    ``{"omitted": [...]}`` JSON line under ``--json``. The JSON array shape is unchanged either
+    way.
     """
     svc = get_service()
     # A read/filter, not authoring a new participant — a retired role's past @mentions
@@ -893,7 +872,7 @@ async def inbox(
                 ]
             )
         )
-        _report_unreadable(unreadable, json_out=True)
+        common.report_omissions(unreadable, json_out=True)
         return
     if not hits:
         console.print(f"[dim]{e(_empty_result_note(f'nothing for @{slug}', unreadable))}[/dim]")
@@ -903,7 +882,7 @@ async def inbox(
         for ln in hit.lines:
             suffix = f" [dim]({e(ln.region)})[/dim]" if ln.region else ""
             console.print(f"    {e(ln.text)}{suffix}")
-    _report_unreadable(unreadable, json_out=False)
+    common.report_omissions(unreadable, json_out=False)
 
 
 @app.command()
@@ -937,11 +916,11 @@ async def search(
           }
         ]
 
-    Exit codes: 0 = a clean search, 1 = it searched everything it could read but one or more
-    item files could not be read (named on stderr, whether or not ``--json`` is given — the
-    JSON array shape stays a bare array, so a degraded read is signalled out-of-band rather
-    than by an added key). The matches that *were* found are always printed first, and an item
-    whose file is unreadable still contributes a title or description match.
+    Exit codes: 0 = a clean search, 4 = some item files could not be read (the matches that
+    *were* found are still printed, and an unreadable item still contributes a title or
+    description match). The skipped files are named on stderr: one ``error: <message>`` line
+    each in human mode, or one ``{"omitted": [...]}`` JSON line under ``--json``. The JSON array
+    shape is unchanged either way.
     """
     svc = get_service()
     results, unreadable = await svc.search(
@@ -967,7 +946,7 @@ async def search(
                 ]
             )
         )
-        _report_unreadable(unreadable, json_out=True)
+        common.report_omissions(unreadable, json_out=True)
         return
     if not results:
         note = _empty_result_note(f"no matches for {text}", unreadable)
@@ -977,7 +956,7 @@ async def search(
         console.print(f"[bold]{e(r.item.id)}[/bold] {e(r.item.title)} {status_part}")
         for h in r.hits[:3]:
             console.print(f"    [dim]{e(h.region)}:[/dim] {e(h.snippet)}")
-    _report_unreadable(unreadable, json_out=False)
+    common.report_omissions(unreadable, json_out=False)
 
 
 @app.command()

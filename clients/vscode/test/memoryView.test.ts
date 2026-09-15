@@ -13,6 +13,7 @@ import {
   memoryTooltipLine,
   NO_MEMORY_CONTEXT,
   renderMemoryEntryHtml,
+  resolveMemoryEntryPanelTitle,
   sortMemoryEntries,
 } from '../src/domain/memoryView';
 import type { SqListItem, SqMemoryDetail, SqMemoryListRow } from '../src/types';
@@ -103,6 +104,25 @@ describe('memoryGlanceText', () => {
     const pool: MemoryFetchResult = { kind: 'failed', message: 'boom' };
     expect(memoryGlanceText(pool, NOW)).toBe('error');
   });
+
+  it('marks a partial pool as partial rather than reading its short count as the whole notebook', () => {
+    const pool: MemoryFetchResult = {
+      kind: 'loaded',
+      entries: [row('a', 'a', '2026-01-09T00:00:00Z')],
+      omissions: [{ code: 'unreadable', source: 'ROLE-1/x.md', message: 'could not be read' }],
+    };
+    expect(memoryGlanceText(pool, NOW)).toBe('1 · 1d ago (partial)');
+  });
+
+  it('still marks partial when the omissions report itself is missing or malformed (empty array)', () => {
+    const pool: MemoryFetchResult = { kind: 'loaded', entries: [row('a', 'a')], omissions: [] };
+    expect(memoryGlanceText(pool, NOW)).toBe('1 (partial)');
+  });
+
+  it('a genuinely empty pool (no omissions key at all) is not marked partial', () => {
+    const pool: MemoryFetchResult = { kind: 'loaded', entries: [] };
+    expect(memoryGlanceText(pool, NOW)).toBe('0');
+  });
 });
 
 describe('memoryLabelSuffix and memoryTooltipLine', () => {
@@ -115,6 +135,17 @@ describe('memoryLabelSuffix and memoryTooltipLine', () => {
   it("the tooltip line names a failed fetch's reason, escaped for markdown", () => {
     const pool: MemoryFetchResult = { kind: 'failed', message: 'boom *loud*' };
     expect(memoryTooltipLine(pool, NOW)).toBe('  \nMemory: error (boom \\*loud\\*)');
+  });
+
+  it('the tooltip line names how many entries a partial pool left out', () => {
+    const pool: MemoryFetchResult = {
+      kind: 'loaded',
+      entries: [row('a', 'a')],
+      omissions: [{ code: 'unreadable', source: 'ROLE-1/x.md', message: 'x' }],
+    };
+    expect(memoryTooltipLine(pool, NOW)).toBe(
+      '  \nMemory: 1 (partial) (1 entry could not be read — listing partial.)',
+    );
   });
 });
 
@@ -137,6 +168,16 @@ describe('memoryChildren', () => {
 
   it('is empty (not an error node) for a pool that failed to load — the identity still renders, just childless', () => {
     expect(memoryChildren('manager', { kind: 'failed', message: 'boom' }, NOW)).toEqual([]);
+  });
+
+  it('still renders the entries that were read for a partial pool — never treated as failed', () => {
+    const pool: MemoryFetchResult = {
+      kind: 'loaded',
+      entries: [row('a', 'a summary', '2026-01-01T00:00:00Z')],
+      omissions: [{ code: 'unreadable', source: 'ROLE-1/x.md', message: 'x' }],
+    };
+
+    expect(memoryChildren('manager', pool, NOW).map((c) => c.id)).toEqual(['memory:manager:a']);
   });
 
   it('produces one leaf per entry, oldest-first, each carrying a memoryRef and no itemId', () => {
@@ -215,9 +256,10 @@ describe('renderMemoryEntryHtml', () => {
     body: 'The **full** body.',
   };
 
-  it('renders the summary, timestamp, and tags in the header, plus the body', () => {
-    const html = renderMemoryEntryHtml({ kind: 'success', data: detail });
+  it('renders the role, summary, timestamp, and tags in the header, plus the body', () => {
+    const html = renderMemoryEntryHtml('manager', { kind: 'success', data: detail });
 
+    expect(html).toContain('manager');
     expect(html).toContain('a-fact');
     expect(html).toContain('A short punchline.');
     expect(html).toContain('2026-01-01T00:00:00Z');
@@ -226,7 +268,7 @@ describe('renderMemoryEntryHtml', () => {
   });
 
   it('escapes HTML-significant characters in the body rather than injecting them', () => {
-    const html = renderMemoryEntryHtml({
+    const html = renderMemoryEntryHtml('manager', {
       kind: 'success',
       data: { ...detail, body: '<script>alert(1)</script>' },
     });
@@ -235,8 +277,18 @@ describe('renderMemoryEntryHtml', () => {
     expect(html).toContain('&lt;script&gt;');
   });
 
+  it('escapes HTML-significant characters in the summary rather than injecting them', () => {
+    const html = renderMemoryEntryHtml('manager', {
+      kind: 'success',
+      data: { ...detail, summary: '<script>alert(2)</script>' },
+    });
+
+    expect(html).not.toContain('<script>alert(2)</script>');
+    expect(html).toContain('&lt;script&gt;');
+  });
+
   it('renders the failure message as the whole document on a failed fetch', () => {
-    const html = renderMemoryEntryHtml({
+    const html = renderMemoryEntryHtml('manager', {
       kind: 'runtime-error',
       message: 'not found',
       exitCode: 1,
@@ -249,6 +301,45 @@ describe('renderMemoryEntryHtml', () => {
 describe('memoryEntryPanelTitle', () => {
   it('combines the role slug and entry slug', () => {
     expect(memoryEntryPanelTitle('manager', 'a-fact')).toBe('manager: a-fact');
+  });
+});
+
+describe('resolveMemoryEntryPanelTitle', () => {
+  const detail: SqMemoryDetail = {
+    slug: 'a-fact',
+    summary: 's',
+    created_at: '2026-01-01T00:00:00Z',
+    tags: [],
+    body: 'b',
+  };
+
+  it('keeps naming the role on a successful fetch, rather than dropping to the bare entry slug', () => {
+    const title = resolveMemoryEntryPanelTitle('tech-lead', 'tech-lead: a-fact', {
+      kind: 'success',
+      data: detail,
+    });
+
+    expect(title).toBe('tech-lead: a-fact');
+    expect(title).toContain('tech-lead');
+  });
+
+  it('keeps the fallback title on a failed fetch, unchanged', () => {
+    const title = resolveMemoryEntryPanelTitle('tech-lead', 'tech-lead: a-fact', {
+      kind: 'runtime-error',
+      message: 'not found',
+      exitCode: 1,
+    });
+
+    expect(title).toBe('tech-lead: a-fact');
+  });
+
+  it('names the role for the entry actually returned, not the one requested (e.g. after a rename)', () => {
+    const title = resolveMemoryEntryPanelTitle('tech-lead', 'tech-lead: old-slug', {
+      kind: 'success',
+      data: { ...detail, slug: 'new-slug' },
+    });
+
+    expect(title).toBe('tech-lead: new-slug');
   });
 });
 
