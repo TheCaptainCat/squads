@@ -74,6 +74,9 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             # resolves the same effective set the validator engine runs, so it is defined here
             "VIEW_BASE_FIELDS_BY_SOURCE",  # fixed per-source-kind base-attribute-name table a
             # view's fields may project without naming a declared badge field
+            "DEFAULT_VALIDATOR_LEVEL",  # fixed catalog-member -> bundled default level table
+            "VALIDATOR_LEVEL_FLOOR",  # fixed catalog-member -> floor level table
+            "_LEVEL_RANK",  # fixed level -> rank lookup (warn < error) for the floor comparison
         }
     ),
     "src/squads/_rendering/_engine.py": frozenset(
@@ -97,6 +100,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "_PLAYBOOK_SPEC",  # loaded playbook singleton
             "PLAYBOOK",  # derived from _PLAYBOOK_SPEC
             "SKILL_DESCRIPTIONS",  # fixed bundled-skill description table
+            "SYSTEM_SKILL_VIEW_NAMES",  # fixed slug -> placement-tag-view-name table for the
+            # three always-on skills, shared between the two writers that seed/backfill it
         }
     ),
     "src/squads/_cli/_create.py": frozenset(
@@ -142,6 +147,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "_BASE_RESOLVERS",  # fixed base-attribute-name -> resolver-callable lookup table,
             # the resolving-end counterpart of VIEW_BASE_FIELDS_BY_SOURCE
+            "_SOURCE_APPLICABILITY",  # fixed source-kind -> applicability-predicate lookup
+            # table, one entry per declared ViewSource.kind, definition-time
         }
     ),
     "src/squads/_services/_validators.py": frozenset(

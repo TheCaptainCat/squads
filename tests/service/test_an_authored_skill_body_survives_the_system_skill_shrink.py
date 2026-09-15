@@ -17,8 +17,10 @@ from pathlib import Path
 
 import pytest
 
+from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._interactions import is_system_skill
+from squads._models import _markers as markers
 from squads._services import _service as service
 from squads._workflow._loader import load_workflow_spec
 
@@ -124,13 +126,18 @@ async def test_a_body_write_is_refused_on_the_declared_types_thin_system_skill(s
         await svc.set_body(incident.id, "free-form body")
 
 
-async def test_the_resolver_refuses_a_custom_slug_and_renders_the_declared_types_thin_skill(squad):
-    svc, _runbook, _onboarding = squad
+async def test_a_custom_slugs_body_reads_as_authored_and_the_declared_types_skill_reads_thin(
+    squad,
+):
+    svc, _runbook, onboarding = squad
 
-    with pytest.raises(SquadsError, match="not a template-owned skill"):
-        await svc.skill_definition_text("sq-onboarding")
+    # A custom skill's body is its own authored content, never a template render — the same
+    # read boundary every item's body goes through (`read_body`), not a resolver that refuses it.
+    assert await svc.read_body(onboarding.id) == _AUTHORED_SQ
 
-    thin = await svc.skill_definition_text("sq-incident")
+    incident = await svc.roster_item("skill", "sq-incident")
+    assert incident is not None
+    thin = await svc.read_body(incident.id)
     assert "Open → Done" in thin
     assert "## For " not in thin  # no playbook entry -> no role sections
 
@@ -153,5 +160,8 @@ async def test_show_prints_the_authored_text_for_one_and_the_rendered_text_for_t
     assert rendered.exit_code == 0, rendered.output
     assert "system (template-owned)" in rendered.output
     assert "Open → Done" in rendered.output
-    # ...while nothing is stored for it.
-    assert await svc.read_body(incident.id) == ""
+    # ...while nothing AUTHORED is stored for it — the file's own sq:body region carries only
+    # the placement tag the render above expanded, never the rendered text itself.
+    stored = svc.paths.abspath(incident.path).read_text(encoding="utf-8")
+    region = (sections.get_section(stored, markers.BODY) or "").strip("\n")
+    assert region == markers.open_marker(markers.view_tag("item_skill"))

@@ -73,7 +73,7 @@ def test_no_bundled_template_names_one_of_this_squads_operators() -> None:
     )
 
 
-@pytest.mark.parametrize("rel", ["agents/greeting_skill.md.j2"])
+@pytest.mark.parametrize("rel", ["views/greeting_skill.md.j2"])
 def test_a_worked_example_does_not_use_squads_itself_as_the_example_project(rel: str) -> None:
     """The blockquote example describes the project the adopter's agents work on. Naming our
     own product there tells them their repo is squads."""

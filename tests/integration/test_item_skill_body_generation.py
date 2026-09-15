@@ -1,5 +1,6 @@
 """Per-item skill definition (``sq-<type>``) through the REAL service resolver
-(``svc.skill_definition_text``, reading this squad's own live roster and active spec) — not the
+(the same source-resolution + presentation dispatch a read expands a skill's own placement tag
+through, reading this squad's own live roster and active spec) — not the
 render-mirror that tests/unit/test_item_skill_dev_gate.py uses to pin the golden: active-role
 sections
 reflect only actually-active roles; actor guidance is structured, not free prose; the dev
@@ -17,6 +18,7 @@ guidance teaches "handle, not full description" consistently across story/subtas
 
 import pytest
 
+from _helpers import resolved_skill_definition
 from squads import _interactions as interactions
 
 pytestmark = pytest.mark.anyio
@@ -25,7 +27,7 @@ pytestmark = pytest.mark.anyio
 async def _item_skill_body(svc, item_type: str) -> str:
     """The type's skill definition as this squad resolves it — the text ``sq skill sq-<type>
     show`` prints. Rendered on read, so *svc* must carry the spec/playbook under test."""
-    return await svc.skill_definition_text(interactions.item_skill_name(item_type))
+    return await resolved_skill_definition(svc, interactions.item_skill_name(item_type))
 
 
 async def test_item_skills_are_generated_with_a_thin_claude_pointer_and_a_resolved_definition(

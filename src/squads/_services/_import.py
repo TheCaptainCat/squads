@@ -581,7 +581,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         if isinstance(event, BodyEvent):
             target = handles.resolve_item(event.target)
             mutate = self._body_mutate(target, event.body, append=event.append, force=event.force)
-            item = await self._section_edit_core(db, target, mutate)
+            item, _changed = await self._section_edit_core(db, target, mutate)
             return {item.id}
         if isinstance(event, CommentEvent):
             return {await self._apply_comment(db, handles, event, ev.actor)}
@@ -605,7 +605,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             mutate = self._block_body_mutate(
                 event.kind, local_id, event.body, append=event.append, force=event.force
             )
-            item = await self._section_edit_core(db, target, mutate)
+            item, _changed = await self._section_edit_core(db, target, mutate)
             return {item.id}
         if isinstance(event, AssignEvent):
             return {await self._apply_assign(db, handles, event)}

@@ -264,6 +264,8 @@ Optional:
   item types** (below) for details.
 - `parents` — list of allowed parent item types; empty or omitted means no hierarchy constraint
 - `aliases` — list of short command aliases (e.g., `["inc"]` allows `sq inc <n>` as shorthand)
+- `validators` — checks this type runs beyond the set its category already turns on, each with an
+  optional parameter and level. See **Validators** (below).
 
 #### Custom records-category item types
 
@@ -312,6 +314,264 @@ sq list -t postmortem    # list all postmortems (shown at all times)
 ```
 
 **Records never appear in `sq inbox` by default;** they're indexed for reference, not active work tracking.
+
+#### Validators: the checks a type runs, and how loud they are
+
+Every item type runs a set of checks. `sq check` reports what they find, and the create/update
+gate refuses a write on the `error`-level ones. You do not compose that set from scratch: each
+type gets a cross-cutting core plus a bundle its `category` implies, and a type's own
+`validators` list is where you **add** to it and say how much you mean each addition.
+
+```toml
+[items.task]
+validators = ["parent_present@warn"]
+```
+
+Two checks are not selected for you anywhere in the bundled spec, so naming them here is the only
+way they ever run: `parent_present` (every item of this type must have a parent) and
+`ref_rule_target_present` (a delivered item of this type must carry a typed ref — see
+[workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current"). The set of
+names is fixed by the version you are running, and one it does not hold is refused at load, naming
+your entry:
+
+```
+item 'task': validators entry 'nonesuch' names an unknown validator
+```
+
+**The four shapes of an entry** — a parameter, a level, both, or neither:
+
+| Shape | Example | What it says |
+|---|---|---|
+| `name` | `parent_present` | Run this check at its bundled level. |
+| `name:param` | `subentity_title_max:80` | Run it with your parameter instead of the bundled one. |
+| `name@level` | `parent_present@warn` | Run it at the level you name. |
+| `name:param@level` | `subentity_title_max:80@error` | Both. |
+
+**The param always comes first, and the separator for the level is `@`, not a second `:`.** `:`
+already means "here is the parameter", so `name:param:level` would not say which half is which.
+The level is cut off at the first `@` and the parameter off the first `:` of what remains, so a
+reversed spelling does not quietly mean something else — it fails at load with the whole tail read
+as a level:
+
+```
+item 'task': validators entry 'subentity_title_max@warn:40' names an unknown level 'warn:40'
+(must be one of ['error', 'warn'])
+```
+
+The one place `@` is not ruled out is a parameter that names an item type, and item-type names are
+not character-restricted. A type declared with `@` in its own name and then selected as a
+`ref_rule_target_present` target mis-splits — the piece after the `@` is read as the level and
+refused as an unknown one, so it fails closed while naming the wrong half of your entry.
+
+**Levels: `error` and `warn`** — only those two, and a third is refused by name:
+
+```
+item 'task': validators entry 'parent_present@fatal' names an unknown level 'fatal'
+(must be one of ['error', 'warn'])
+```
+
+- **`warn`** — reported and nothing more. `sq check` prints it and still exits `0`; every create,
+  update and transition goes through.
+- **`error`** — `sq check` exits `3`. Whether the create/update gate *also* refuses the write
+  depends on the check, not on the level — read the next paragraph before choosing this.
+
+**`error` does not always give you a write gate, and this is the thing to get right before you
+pick a level.** The gate runs against the item it is about to write and the index. It deliberately
+holds neither the item's own file on disk (on a create there is not one yet) nor a scan of which
+types the corpus contains (a full walk on every write). So:
+
+> **A check that reads only frontmatter and the index takes part in the gate. A check that reads
+> the item's file text, or which types exist, is reported by `sq check` and sits the gate out
+> whatever level you give it.**
+
+`no_status_banner@error` is the clearest case of the second kind: `sq check` exits `3` on a body
+that opens with a status banner, and the write that put it there — plus every write after —
+succeeds. Same for `ref_rule_target_present@error`: a feature reaches a delivered status with no
+`implements` ref, the transition is allowed, and the finding is in the report. Select either of
+those at `error` expecting a blocked write and you get a red pipeline over an unchanged workflow.
+
+So `@error` always makes `sq check` a hard gate for a rule, which is what you want it for in CI.
+Only for a check of the first kind does it also refuse writes.
+
+**And when it does refuse writes, it refuses more than you asked for.** A gating check raised to
+`error` turns *ordinary edits* on the items already failing it into refusals, not just the edits
+that caused the state. A task type carrying `subentity_title_max:40@error` with an over-length
+sub-entity title already on disk refuses a plain retitle of the item until that sub-entity title
+is shortened. Raising a level on a corpus you have not cleaned first is how a board seizes up —
+see "Adopting `parent_present` without the cliff" below for the way through.
+
+**The floor: two checks you may raise but never lower.** Most accept either level. Two refuse to
+go below `error`:
+
+```
+item 'task': validator 'parent_acyclic' cannot be selected below its floor level 'error'
+(got 'warn')
+```
+
+The floor is deliberately tiny, and the reasoning is more useful than the list, because it tells
+you where the next one would come from. **A check has a floor when lowering it would leave a real
+breakage with nothing left that reports it.**
+
+- **`parent_acyclic`** — a parent chain that closes on itself. This is the check behind that
+  refusal: an update closing a loop is rejected with
+  `BUG-<n>'s parent chain forms a cycle: BUG-<n> -> BUG-<m> -> BUG-<n>`, followed by the
+  `--no-parent` command that breaks it. `warn`-level findings never gate anything, so at `warn`
+  nothing would stand between a loop and your corpus.
+- **`subentity_container_marker`** — the item's file has no container section for the sub-entity
+  plural its kind now declares, which is what a `[subentity_kinds.<kind>] plural` rename over
+  existing items produces. `sq check` is the only place this is visible: `sq workflow lint` reports
+  the spec `OK`, ordinary updates keep succeeding, and `add-<kind>` fails with a bare
+  `no <plural> section in <ID>` that does not say why. Silence the report and the only explanation
+  of the failure goes with it.
+
+Every other check that ships at `error` may be dialled down, and each for its own reason rather
+than a blanket one:
+
+- **`item_status_valid`, `subentity_status_valid`** — an item resting at a status its type no
+  longer declares. There is a designed way out that does not involve the check: `--force` on a
+  status update skips the transition lookup and only requires the *target* status to be one the
+  type declares, so `sq <type> <n> status <declared-status> --force` recovers an item from off the
+  graph whatever the level.
+- **`parent_in`, `no_parent`** — a parent of the wrong type, or a parent on a type that should
+  have none. These state a hierarchy policy; nothing downstream needs the constraint to already
+  hold in order to work, and a team may want a looser shape than the bundled one on purpose.
+- **`subtask_story_mapping`** — a sub-entity mapped to a parent story that does not resolve. It
+  affects the roll-up display, and it is visible in that display.
+
+`parent_present` is deliberately outside the floor, which is the whole point of the level suffix —
+see below.
+
+**A threshold is yours to set.** `subentity_title_max` is the worked example: it warns on a
+sub-entity title longer than a threshold, and the threshold is its parameter — a positive integer,
+refused otherwise:
+
+```
+item 'task': validators entry 'subentity_title_max:0' names a non-positive-integer
+subentity_title_max threshold '0'
+```
+
+Declare no parameter and the type gets the bundled default. Declare one and it applies to **both**
+places the number surfaces, which is what stops the two from disagreeing: the `sq check` finding
+and the advisory printed at `sq <type> <n> add-<kind>` time. With `validators =
+["subentity_title_max:40"]` on `task`, a 49-character subtask title produces the advisory at
+`add-subtask` and this at check time:
+
+```
+warn TASK-<n>: advisory: subtask ST<k> title is 49 chars (threshold: 40) — a sub-entity title is
+a one-line handle; put the detail in the body
+```
+
+`ref_rule_target_present`'s parameter is the item type the ref must reach, and it is required —
+without one the check can never fire, so the loader refuses it rather than let it sit there doing
+nothing:
+
+```
+item 'feature': validators entry 'ref_rule_target_present' is missing its required target type
+parameter — name it as 'ref_rule_target_present:<type>', or drop the validator; without a
+parameter it never fires
+```
+
+The target you name must also be one this type declares a `ref_rules` entry for, and the message
+says so with the line to add.
+
+**When a repeat is legal, and when it is refused.** This is the rule to get right: the same shape
+means "one selection" for one check and "two selections" for another, and the difference is whether
+that check reads *every* matching entry or only the first. You do not have to work out which is
+which — the loader knows, and it refuses any repeat that would leave an entry doing nothing rather
+than accepting it.
+
+**`ref_rule_target_present` accepts several entries with different parameters.** It reads all of
+them and treats them as one obligation over several target types, so two entries are two
+selections rather than a repeat, and this loads clean:
+
+```toml
+[items.feature]
+ref_rules = [
+  { kind = "implements", target = "contract" },
+  { kind = "addresses", target = "milestone" },
+]
+validators = [
+  "ref_rule_target_present:contract",
+  "ref_rule_target_present:milestone",
+]
+```
+
+**`subentity_title_max` does not.** It resolves the first matching entry and stops, so a second
+one could only ever be inert. Rather than let you write a line that silently never takes effect,
+the loader refuses it, names both entries, and says which one would have resolved:
+
+```
+item 'task': validator 'subentity_title_max' is selected more than once
+('subentity_title_max:40' and 'subentity_title_max:80') — 'subentity_title_max' resolves only its
+first matching entry, so the second would be silently ignored rather than take effect — refused
+here instead; keep one entry
+```
+
+Two more cases, so the whole rule is in one place:
+
+- **The identical entry twice** is always refused, for any check:
+  `validator 'no_status_banner' is selected more than once ('no_status_banner' repeated) — keep
+  one entry`. So is the same parameter twice on `ref_rule_target_present`.
+- **A differing `@level` never makes two entries independent**, for any check:
+  `no_status_banner@warn` alongside `no_status_banner@error` is refused with `an '@<level>' suffix
+  alone does not make two entries independent selections`. A level is a property of the one
+  selection, not a second one.
+
+**Adopting `parent_present` without the cliff.** `parent_present` requires every item of the type
+to have a parent. Nothing bundled selects it, and its level is why: at `error` it does not just
+refuse new parentless items, it refuses the next ordinary edit to every parentless item already on
+your board. On a corpus that has been running without the convention, turning it on that way is a
+wall.
+
+`parent_present` carries no floor, so you can adopt the convention as a warning:
+
+```toml
+[items.task]
+validators = ["parent_present@warn"]
+```
+
+The spec loads with parentless tasks already on disk, `sq check` reports each one
+(`warn TASK-<n>: task requires a parent of type feature`) and still exits `0`, new parentless tasks
+are still created, and editing an existing one is not refused. Work through the backlog, then
+tighten to `parent_present` — bare, or `@error`, which mean the same thing — when the report is
+clean.
+
+**What the list cannot do — there is no deselection surface.** `[selected]` has no `validators`
+section, and neither the cross-cutting core nor a category bundle can be subtracted from. The
+quietest a bundled check can be made is `warn`, which still reports.
+
+**But a type's own list is an ordinary array, and arrays are leaves** (see § "Plain arrays are
+leaves — replaced whole"). Some bundled types ship a `validators` entry of their own, and writing
+the key in your override replaces the whole list rather than adding to it. `epic` ships
+`validators = ["no_parent"]`; this drops it, with no warning, and epics start accepting a parent:
+
+```toml
+[items.epic]
+validators = ["subentity_body_written"]      # no_parent is gone
+```
+
+Splat the bundled list to keep it:
+
+```toml
+[items.epic]
+validators = ["$(*items.epic.validators)", "subentity_body_written"]
+```
+
+**Reading it back.** `sq workflow lint` is what validates the entries — every problem at once,
+each naming the type and the entry. A malformed one is a load-time hard stop like any other
+override error, so until it is fixed every `sq` command refuses rather than running against a
+half-applied spec.
+
+There is no command that lists a type's effective validator set. What a selection actually does is
+visible in `sq check`:
+
+```bash
+sq workflow lint     # are my entries well-formed?
+sq check             # what do they find?
+```
+
+`sq check` exits `0` when it is clean or found warnings only, and `3` when it found anything at
+`error` — so a raised level is testable in a script without reading the output.
 
 #### Statuses: custom state labels
 
@@ -838,9 +1098,16 @@ items = ["epic", "feature", "task", "bug", "decision", "review", "role", "skill"
 ```
 
 That squad has no `guide` type: it is absent from the list, so it is dropped. The accepted section
-keys are `items`, `statuses`, `lifecycles`, `collections`, `subentity_kinds`, `roles` and
-`ref_kinds` — the same set the top level accepts; anything else under `[selected]` is refused by
-name.
+keys are `items`, `statuses`, `lifecycles`, `collections`, `subentity_kinds`, `roles`, `ref_kinds`
+and `views` — the sections the top level accepts, less `[selected]` itself. Anything else under
+`[selected]` is refused by name, and the refusal prints the accepted set for the version you are
+running, which is the list to trust rather than this one:
+
+```
+selected.bogus: unknown [selected] section 'bogus' — use one of the accepted [selected] sections
+in v<version>: ['collections', 'items', 'lifecycles', 'ref_kinds', 'roles', 'statuses',
+'subentity_kinds', 'views']
+```
 
 Two things follow from `[selected]` being the surviving set of the *merged* spec:
 
@@ -880,6 +1147,7 @@ it. The failure is always at load, never partway through a command. These are th
 | A prefix or folder change against a live corpus | `type 'task' prefix changed to 'JOB' … but 1 live item(s) are still filed under the old prefix` |
 | A badge code removed from a collection live items still carry | `… live item(s) still carry it: ['TASK-<n>'] — add 'urgent' back to the collection, revert the override, or update the affected item(s)` |
 | A roster type key dropped or re-categorised | `workflow override may not drop roster type 'operator'` |
+| A malformed or repeated `validators` entry | `item 'task': validators entry 'parent_present@fatal' names an unknown level 'fatal' (must be one of ['error', 'warn'])` — see § "Validators" for every shape the loader refuses |
 | A declared behaviour whose category checks nothing | `item 'decision': declares a 'supersedes' ref rule, but category 'work' turns on no validator for it …` — same for a type hosting a sub-entity kind, or a kind declaring `maps_parent_story`, under a category that validates neither |
 
 That last one is worth stating as a rule, because it is the one you can reach without a typo: **a
@@ -895,10 +1163,11 @@ category = "work"
 validators = ["supersedes_incoming"]   # keep the check the category no longer turns on
 ```
 
-The same list is also how you turn on a check nothing bundled selects. `ref_rule_target_present` is
-the one that ships that way: squads types the `implements` edge from a feature to a contract but
-never requires it, and a squad that wants the obligation opts in here — see
-[workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current".
+The same list is also how you turn on a check nothing bundled selects, and how you set the level
+and the parameter it runs with — see § "Validators" above for the full grammar. Two checks ship
+unselected: `ref_rule_target_present` (squads types the `implements` edge from a feature to a
+contract but never requires it — see [workflow.md](workflow.md#keeping-a-contract-current) §
+"Keeping a contract current") and `parent_present`.
 
 `sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
 fix hint, where a plain `sq` command stops at the first:

@@ -1,5 +1,29 @@
 [
   {
+    "view": "greeting_skill",
+    "source_kind": "self",
+    "source_name": null,
+    "fields": [],
+    "group_by": null,
+    "order_by": []
+  },
+  {
+    "view": "item_skill",
+    "source_kind": "playbook",
+    "source_name": null,
+    "fields": [],
+    "group_by": null,
+    "order_by": []
+  },
+  {
+    "view": "memory_skill",
+    "source_kind": "self",
+    "source_name": null,
+    "fields": [],
+    "group_by": null,
+    "order_by": []
+  },
+  {
     "view": "milestone_rollup",
     "source_kind": "ref",
     "source_name": "targets",
@@ -42,5 +66,21 @@
       "type",
       "id"
     ]
+  },
+  {
+    "view": "role_definition",
+    "source_kind": "role",
+    "source_name": null,
+    "fields": [],
+    "group_by": null,
+    "order_by": []
+  },
+  {
+    "view": "squads_skill",
+    "source_kind": "playbook",
+    "source_name": null,
+    "fields": [],
+    "group_by": null,
+    "order_by": []
   }
 ]

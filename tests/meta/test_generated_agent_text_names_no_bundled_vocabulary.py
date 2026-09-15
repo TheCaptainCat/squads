@@ -18,15 +18,34 @@ kind declares its own ``local_prefix``; ``sq init --squad-dir team`` moves the s
 """
 
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from squads._backends._agents_md._backend import _also_creatable_types
-from squads._interactions import cheatsheet_anchor_context
+from squads._backends._base import RoleView
+from squads._interactions import cheatsheet_anchor_context, get_playbook_spec
+from squads._models._item import Item
 from squads._rendering._engine import render
+from squads._views import PlaybookSource
 from squads._workflow import bundled_spec
 from squads._workflow._models import Lifecycle, WorkflowSpec
+
+#: A well-formed but otherwise inert host item for the two view-sourced templates below
+#: (``views/squads_skill.md.j2``, ``views/memory_skill.md.j2``) — neither reads any `item.*`
+#: field, so its content is arbitrary; it exists only because `render_source_view`'s context
+#: always carries one.
+_PROBE_SKILL_ITEM = Item(
+    sequence_id=1,
+    type="skill",
+    title="squads",
+    slug="squads",
+    status="Active",
+    path="agents/skills/SKILL-000001-squads.md",
+    created_at=datetime.now(UTC),
+    updated_at=datetime.now(UTC),
+)
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TEMPLATES_DIR = _REPO_ROOT / "src" / "squads" / "_rendering" / "templates"
@@ -36,7 +55,7 @@ _TEMPLATES_DIR = _REPO_ROOT / "src" / "squads" / "_rendering" / "templates"
 #: tree belongs here: a per-type item body template (`items/task.md.j2`) legitimately names its
 #: own type.
 _GUARDED_TEMPLATES: tuple[str, ...] = (
-    "agents/squads_skill.md.j2",
+    "views/squads_skill.md.j2",
     "agents_md/agents_section.md.j2",
     "claude/claude_section.md.j2",
     "workflow.md.j2",
@@ -132,11 +151,28 @@ def _probe_spec() -> WorkflowSpec:
 def _probe_renders(roles: list[dict[str, str]]) -> dict[str, str]:
     spec = _probe_spec()
     anchor_ctx = cheatsheet_anchor_context(spec)
+    roster_views = [
+        RoleView(slug=r["slug"], full_name=r["full_name"], title=r["title"], is_default=False)
+        for r in roles
+    ]
+    playbook_source = PlaybookSource(
+        item_type="skill", lane=None, roster=roster_views, playbook=get_playbook_spec()
+    )
     return {
-        "agents/squads_skill.md.j2": render(
-            "agents/squads_skill.md.j2", squad_dir="team", spec=spec, roles=roles
+        "views/squads_skill.md.j2": render(
+            "views/squads_skill.md.j2",
+            source=playbook_source,
+            item=_PROBE_SKILL_ITEM,
+            spec=spec,
+            squad_dir="team",
         ),
-        "agents/memory_skill.md.j2": render("agents/memory_skill.md.j2", squad_dir="team"),
+        "views/memory_skill.md.j2": render(
+            "views/memory_skill.md.j2",
+            source=_PROBE_SKILL_ITEM,
+            item=_PROBE_SKILL_ITEM,
+            spec=spec,
+            squad_dir="team",
+        ),
         "claude/claude_section.md.j2": render(
             "claude/claude_section.md.j2",
             squad_dir="team",
@@ -180,8 +216,8 @@ def test_the_probe_squad_actually_renders_its_own_vocabulary() -> None:
     assert "status Abandoned" in renders["workflow.md.j2"]
     assert "--story SRn" in renders["claude/claude_section.md.j2"]
     assert "--story SRn" in renders["workflow.md.j2"]
-    assert "--assignee rust-dev" in renders["agents/squads_skill.md.j2"]
-    assert "team/agents/memory" in renders["agents/memory_skill.md.j2"]
+    assert "--assignee rust-dev" in renders["views/squads_skill.md.j2"]
+    assert "team/agents/memory" in renders["views/memory_skill.md.j2"]
     assert "Retired" in renders["workflow.md.j2"]
 
 

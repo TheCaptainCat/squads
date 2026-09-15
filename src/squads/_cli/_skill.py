@@ -1,4 +1,4 @@
-"""`sq skill …` — manage agent skills (add/show/regen/rm/refs).
+"""`sq skill …` — manage agent skills (add/show/regen/rm/refs/view).
 
 Grammar:
   sq skill add <name> [options]        — create a skill item + pointer
@@ -11,6 +11,8 @@ Grammar:
   sq skill <slug|id|n> unlink-role <role> — remove that scope (+ resync that role)
   sq skill <slug|id|n> regen            — regenerate the Claude pointer
   sq skill <slug|id|n> status <S>       — transition the skill's status
+  sq skill <slug|id|n> view add <name>  — place a view tag in sq:body
+  sq skill <slug|id|n> view rm <name>   — remove a view tag from sq:body
   sq skill <slug|id|n> rm [--purge]     — remove the skill item
 
 Address resolution order (exact match, no fuzzy):
@@ -20,11 +22,14 @@ Address resolution order (exact match, no fuzzy):
 # pyright: reportUnusedFunction=false
 
 import json
+from typing import ClassVar
 
 import typer
 from rich.panel import Panel
 
 import squads._cli._common as common
+from squads import __version__
+from squads import _views as views
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
@@ -37,21 +42,33 @@ from squads._cli._common import (
     resolve_body,
     resolve_item_id_any,
 )
-from squads._interactions import is_system_skill
+from squads._interactions import (
+    ITEM_SKILL_VIEW_NAME,
+    SYSTEM_SKILL_VIEW_NAMES,
+    is_system_skill,
+    orphaned_skill_item_type,
+)
 from squads._models._extras import ExtraKey as X
 from squads._models._item import split_ref
+from squads._models._schema import version_drifted
+
+
+class _SkillDispatchGroup(AddressDispatchGroup):
+    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status|view"
+
 
 skill_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent skills.",
     epilog=(
-        "Address a skill:  sq skill <slug|id|n> show|regen|rm|status\n"
+        "Address a skill:  sq skill <slug|id|n> show|regen|rm|status|view\n"
         "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm\n"
         "           sq skill squads status Archived\n"
+        "           sq skill squads view rm squads_skill   — clear a tag naming a dropped view\n"
         "Note: a slug matching a group verb (add) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
-    cls=AddressDispatchGroup,
+    cls=_SkillDispatchGroup,
 )
 
 # --------------------------------------------------------------------------- add
@@ -135,29 +152,58 @@ async def skill_show(
     if it.extra.get(X.WHEN_TO_USE):
         rows.append(f"[bold]when to use:[/bold] {e(it.extra[X.WHEN_TO_USE])}")
     console.print(Panel("\n".join(rows), expand=False))
-    # Where the body comes from is decided by `system` — the value the `kind:` row above
-    # already computed from `is_system_skill` — and by nothing else. A system skill's
-    # definition is template-owned and renders fresh on this call; a custom skill's body is
-    # authored storage and is read from the file. Neither the folder, the item type, nor the
-    # `sq-` prefix separates the two, and each of those picks the wrong set.
-    if system:
-        # Empty only for a system skill whose item type the active spec no longer declares:
-        # there is no definition to render and no sync that would produce one, so the hint
-        # says that rather than pointing at a command with no such effect.
-        render_body_text(
-            await svc.skill_definition_text(slug),
-            raw=raw,
-            empty_hint=(
-                "(no definition — the item type this skill described is no longer declared; "
-                "restore the type, or retire this skill)"
-            ),
+    # Every skill's body reads through the same shared boundary (`read_body`, tag-expanded for
+    # a system-owned body off its seeded `sq:view:<name>` tag; authored content unchanged for a
+    # custom one — there is no branch on `system` here any more). Five reasons a system skill's
+    # body can read empty, and they are not the same fact: its item type (or, for a per-item-type
+    # skill, the type its slug documents) is no longer declared (`orphaned_skill_item_type` — the
+    # same predicate `sq check`/`sync` already use for this exact question, so this hint can
+    # never disagree with them about which case applies); or the type is live but the *view* this
+    # slug would render — `SYSTEM_SKILL_VIEW_NAMES[slug]` for one of the three permanent slugs,
+    # `ITEM_SKILL_VIEW_NAME` for every other per-type skill — is itself not declared in
+    # `self.spec.views` (`views.empty_body_hint_state`'s first question, matching the same
+    # condition `MaintenanceMixin._repair_body_tag`'s classifier gates the backfill on); or the
+    # view is declared and a version drift is still outstanding, the one state `sq sync`
+    # actually fixes; or the view is declared with no drift outstanding — `sq sync`'s trigger
+    # has nothing to run, so it is a no-op against this body and the hint must name a remedy
+    # that actually is one (`views.empty_body_hint_state`'s second question). A custom skill's
+    # body reads empty for a sixth reason entirely — nobody has written it yet.
+    dropped_type = orphaned_skill_item_type(slug, svc.spec) if system else None
+    view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug) or (ITEM_SKILL_VIEW_NAME if system else None)
+    if dropped_type is not None:
+        empty_hint = (
+            f"(no definition — the item type {dropped_type!r} this skill described is no "
+            "longer declared; restore the type, or retire this skill)"
         )
+    elif system and view_name is not None:
+        hint_state = views.empty_body_hint_state(
+            view_name,
+            svc.spec,
+            drift_outstanding=version_drifted(__version__, svc.paths.config.squads_version),
+        )
+        if hint_state == "view_undeclared":
+            empty_hint = (
+                f"(empty — the view {view_name!r} this skill renders is not declared in this "
+                "project's spec, so `sq sync` cannot populate it; declare it to restore the "
+                "generated definition — or, if this skill's body still carries this tag from "
+                f"before it was dropped, clear it with `sq skill {slug} view rm {view_name}`)"
+            )
+        elif hint_state == "declared_drift_outstanding":
+            empty_hint = "(empty — run `sq sync` to populate it)"
+        else:
+            empty_hint = (
+                "(empty — `sq sync` cannot populate it: the version-drift backfill it relies "
+                "on has nothing outstanding to run. Try `sq repair`, which converges an "
+                "already-tagged or plain-legacy body regardless of drift — or, if this body "
+                f"is genuinely untagged, `sq skill {slug} view add {view_name}`)"
+            )
     else:
-        render_body_text(
-            await svc.read_body(it.id),
-            raw=raw,
-            empty_hint=f'(empty — write it with `sq skill {slug} body -m "…"`)',
-        )
+        empty_hint = f'(empty — write it with `sq skill {slug} body -m "…"`)'
+    render_body_text(
+        await svc.read_body(it.id),
+        raw=raw,
+        empty_hint=empty_hint,
+    )
 
 
 @_addr.command("body")
@@ -311,5 +357,51 @@ async def skill_rm(
 
 
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])
+
+
+# --------------------------------------------------------------------------- view add/rm
+
+# The ``sq skill <addr> view add|rm <name>`` group: place or remove an unpaired
+# ``sq:view:<name>`` tag in the skill's ``sq:body`` region. Mirrors ``_cli._items._cmd_view``'s
+# shape (the generic per-type group's own view verb) over ``ServiceCore.insert_view``/
+# ``remove_view`` — the same item-type-agnostic mutation, addressed here through the skill
+# group's own slug/ID/number resolution rather than the generic group. Covers a system skill and
+# a per-item-type skill alike (``insert_view``/``remove_view`` take a bare item id and do not
+# distinguish); this is the recovery for a body that already carries a tag naming a view the
+# active spec no longer declares — `rm` removes it unconditionally, no ``spec.views`` check,
+# deliberately, because a tag once placed must stay removable even for a view that no longer
+# exists — and only an operator invoking it ever clears one.
+_view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag in sq:body.")
+
+
+@_view_app.command("add")
+@common.command
+async def skill_view_add(
+    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+) -> None:
+    """Insert the sq:view:NAME tag at the end of sq:body (idempotent)."""
+    item_id: str = ctx.obj["id"]
+    inserted = await get_service().insert_view(item_id, name)
+    if inserted:
+        console.print(f"{item_id}: view {e(name)} placed in sq:body")
+    else:
+        console.print(f"{item_id}: view {e(name)} already present, unchanged")
+
+
+@_view_app.command("rm")
+@common.command
+async def skill_view_rm(
+    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+) -> None:
+    """Remove the sq:view:NAME tag from sq:body (safe no-op if absent)."""
+    item_id: str = ctx.obj["id"]
+    removed = await get_service().remove_view(item_id, name)
+    if removed:
+        console.print(f"{item_id}: view {e(name)} removed from sq:body")
+    else:
+        console.print(f"{item_id}: view {e(name)} was not present, nothing to do")
+
+
+_addr.add_typer(_view_app, name="view")
 
 skill_app.add_typer(_addr, name="_addr", hidden=True)

@@ -14,4 +14,5 @@ description: 'Working with decision items in this squad: lifecycle, commands, an
   role-specific guidance.'
 ---
 <!-- sq:body -->
+<!-- sq:view:item_skill -->
 <!-- sq:body:end -->

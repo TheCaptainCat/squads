@@ -120,9 +120,15 @@ const TREE_NODE_KEYS = [
   'children',
 ] as const;
 
-/** Sorted on both sides: key ORDER is not part of the JSON contract, only the key set is. */
+/** Sorted on both sides: key ORDER is not part of the JSON contract, only the key set is.
+ * Shared by every exact-key-set assertion below (tree/graph/list) so the three surfaces stay
+ * symmetric by construction rather than by three hand-copied `expect` calls drifting apart. */
+function assertExactKeys(node: object, expectedKeys: readonly string[]): void {
+  expect([...Object.keys(node)].sort()).toEqual([...expectedKeys].sort());
+}
+
 function assertExactTreeNodeKeys(node: object): void {
-  expect([...Object.keys(node)].sort()).toEqual([...TREE_NODE_KEYS].sort());
+  assertExactKeys(node, TREE_NODE_KEYS);
 }
 
 /** Same idea as `flattenTree`, for the single-root `sq graph --json` shape. */
@@ -134,6 +140,78 @@ function flattenGraph(root: SqGraphNode): SqGraphNode[] {
     queue.push(...node.children);
   }
   return out;
+}
+
+/**
+ * Every key one `sq graph --json` node carries, as an exact set rather than a floor — same
+ * rationale as `TREE_NODE_KEYS` above (a superset assertion cannot fail on an added key, which
+ * is the one thing this suite exists to notice).
+ *
+ * `badges` is genuinely emitted (`GraphNode` gained it as an additive field alongside the other
+ * generic-badge-axis surfaces) but is **not** modelled on the client's own `SqGraphNode` — a
+ * documented, deliberate choice (`types.ts`'s file-level policy: hand-trimmed to the fields the
+ * client actually reads, extra keys ignored rather than rejected), because `domain/graphDiagrams.ts`
+ * renders `status`/`priority` for colour and never reads a badge. It is included here anyway,
+ * same as `edge_semantic`, so its removal still reddens this canary even though the shape guard
+ * does not check its type.
+ */
+const GRAPH_NODE_KEYS = [
+  'id',
+  'type',
+  'status',
+  'priority',
+  'assignee',
+  'edge_kind',
+  'edge_semantic',
+  'direction',
+  'seen',
+  'badges',
+  'children',
+] as const;
+
+function assertExactGraphNodeKeys(node: object): void {
+  assertExactKeys(node, GRAPH_NODE_KEYS);
+}
+
+/**
+ * Every key one `sq list --json` row carries, as an exact set rather than a floor — same
+ * rationale as `TREE_NODE_KEYS` above.
+ *
+ * `sq list --json` dumps the full `Item` model (`i.model_dump(mode="json")`) plus the resolved
+ * `badges` map, not a hand-trimmed row — so four of these (`created_session`, `modified_session`,
+ * `extra`, `subentities`) are genuinely emitted but are **not** modelled on the client's own
+ * `SqListItem`, per the same `types.ts` hand-trim policy noted on `GRAPH_NODE_KEYS`: nothing in
+ * `domain/listView.ts` or the list-driven views reads them. They stay in this set anyway, so
+ * `sq` dropping one of them still reddens this canary even though the shape guard does not
+ * check them.
+ */
+const LIST_ROW_KEYS = [
+  'id',
+  'sequence_id',
+  'type',
+  'title',
+  'slug',
+  'status',
+  'description',
+  'parent',
+  'author',
+  'assignee',
+  'priority',
+  'severity',
+  'labels',
+  'refs',
+  'path',
+  'created_at',
+  'updated_at',
+  'badges',
+  'created_session',
+  'modified_session',
+  'extra',
+  'subentities',
+] as const;
+
+function assertExactListRowKeys(row: object): void {
+  assertExactKeys(row, LIST_ROW_KEYS);
 }
 
 /** The ADR-427 #2/US2 contract for `sq show --raw`: an H1 title, then a metadata block of
@@ -195,6 +273,117 @@ describe('the tree-node key assertion', () => {
     const reordered = Object.fromEntries([...Object.entries(modelled)].reverse());
     expect(() => {
       assertExactTreeNodeKeys(reordered);
+    }).not.toThrow();
+  });
+});
+
+/** Same drift-detector self-test as `the tree-node key assertion` above, for the `sq graph
+ * --json` surface. */
+describe('the graph-node key assertion', () => {
+  const modelled: Record<string, unknown> = {
+    id: 'TASK-1',
+    type: 'task',
+    status: 'Ready',
+    priority: null,
+    assignee: null,
+    edge_kind: 'related',
+    edge_semantic: null,
+    direction: 'out',
+    seen: false,
+    badges: {},
+    children: [],
+  };
+
+  it('accepts exactly the key set the client models', () => {
+    expect(isSqGraphNode(modelled)).toBe(true);
+    expect(() => {
+      assertExactGraphNodeKeys(modelled);
+    }).not.toThrow();
+  });
+
+  it('fails on a key the client does not model — the drift it exists to catch', () => {
+    const withUnmodelledKey = { ...modelled, path_only: false };
+    // The shape guard is happy: unknown keys are ignored, not rejected. Nothing else in the
+    // client would notice this field either, which is the whole problem.
+    expect(isSqGraphNode(withUnmodelledKey)).toBe(true);
+    expect(() => {
+      assertExactGraphNodeKeys(withUnmodelledKey);
+    }).toThrow();
+  });
+
+  it('fails when a modelled key stops being emitted, including badges', () => {
+    const { badges: _badges, ...withoutBadges } = modelled;
+    expect(isSqGraphNode(withoutBadges)).toBe(true);
+    expect(() => {
+      assertExactGraphNodeKeys(withoutBadges);
+    }).toThrow();
+  });
+
+  it('does not care about key order', () => {
+    const reordered = Object.fromEntries([...Object.entries(modelled)].reverse());
+    expect(() => {
+      assertExactGraphNodeKeys(reordered);
+    }).not.toThrow();
+  });
+});
+
+/** Same drift-detector self-test as `the tree-node key assertion` above, for the `sq list
+ * --json` surface. */
+describe('the list-row key assertion', () => {
+  const modelled: Record<string, unknown> = {
+    id: 'TASK-1',
+    sequence_id: 1,
+    type: 'task',
+    title: 'A task',
+    slug: 'a-task',
+    status: 'Ready',
+    description: '',
+    parent: null,
+    author: 'manager',
+    assignee: null,
+    priority: null,
+    severity: null,
+    labels: [],
+    refs: [],
+    path: 'tasks/TASK-000001-a-task.md',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    badges: {},
+    created_session: null,
+    modified_session: null,
+    extra: {},
+    subentities: [],
+  };
+
+  it('accepts exactly the key set the client models', () => {
+    expect(isSqListItem(modelled)).toBe(true);
+    expect(() => {
+      assertExactListRowKeys(modelled);
+    }).not.toThrow();
+  });
+
+  it('fails on a key the client does not model — the drift it exists to catch', () => {
+    const withUnmodelledKey = { ...modelled, path_only: false };
+    // The shape guard is happy: unknown keys are ignored, not rejected. Nothing else in the
+    // client would notice this field either, which is the whole problem.
+    expect(isSqListItem(withUnmodelledKey)).toBe(true);
+    expect(() => {
+      assertExactListRowKeys(withUnmodelledKey);
+    }).toThrow();
+  });
+
+  it('fails when a modelled key stops being emitted, including subentities', () => {
+    const { subentities: _subentities, ...withoutSubentities } = modelled;
+    expect(isSqListItem(withoutSubentities)).toBe(true);
+    expect(() => {
+      assertExactListRowKeys(withoutSubentities);
+    }).toThrow();
+  });
+
+  it('does not care about key order', () => {
+    const reordered = Object.fromEntries([...Object.entries(modelled)].reverse());
+    expect(() => {
+      assertExactListRowKeys(reordered);
     }).not.toThrow();
   });
 });
@@ -284,19 +473,7 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
 
       for (const node of nodes) {
         expect(isSqGraphNode(node)).toBe(true);
-        expect(Object.keys(node)).toEqual(
-          expect.arrayContaining([
-            'id',
-            'type',
-            'status',
-            'priority',
-            'assignee',
-            'edge_kind',
-            'direction',
-            'seen',
-            'children',
-          ]),
-        );
+        assertExactGraphNodeKeys(node);
       }
     });
 
@@ -318,17 +495,7 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       expect(rows.length).toBeGreaterThan(0);
       for (const row of rows) {
         expect(isSqListItem(row)).toBe(true);
-        expect(Object.keys(row)).toEqual(
-          expect.arrayContaining([
-            'id',
-            'labels',
-            'refs',
-            'path',
-            'created_at',
-            'updated_at',
-            'badges',
-          ]),
-        );
+        assertExactListRowKeys(row);
         // See the `sq tree --json` case above — same removal, same reason.
         expect(row).not.toHaveProperty('is_open');
       }
@@ -383,6 +550,14 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       ).toBe(true);
       // The bug type's `fields` binds both its priority and severity codes to a collection
       // (F19/F20's field->collection join) — a real, non-empty example, not just an empty array.
+      //
+      // `arrayContaining` here is a deliberate floor, not the same hole the key-set assertions
+      // above close: `fields` is a project's own declared field->collection bindings, an
+      // array whose LENGTH is genuinely open (a custom axis adds another entry) — unlike an
+      // object's key set, which is fixed by the schema the payload was built from. Each named
+      // entry is still checked for its exact three-key shape (`{code, label, collection}`,
+      // `FIELD_ENTRY_FIELDS` on the core side) via `toEqual`'s own equality, so this is a floor
+      // on which entries exist, never on what one entry itself carries.
       const bug = entries.find((entry) => entry.type === 'bug');
       expect(bug?.fields).toEqual(
         expect.arrayContaining([
@@ -484,6 +659,10 @@ describe.skipIf(!SQ_AVAILABLE)('integration skew canary: live sq vs committed fi
       // The finding kind's declared axis, a real non-empty example of the entry shape the
       // client reads — and the same `{code, label, collection}` shape a type row's own
       // `fields` carries, which is what lets one resolver serve both levels.
+      //
+      // Same deliberate floor as the type catalog's `bug.fields` check above, for the same
+      // reason: a sub-entity kind's `fields` array length is open by declaration, not a fixed
+      // object key set.
       const finding = entries.find((entry) => entry.subentity_kind === 'finding');
       expect(finding?.fields).toEqual(
         expect.arrayContaining([{ code: 'severity', label: 'Severity', collection: 'severity' }]),

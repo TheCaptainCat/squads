@@ -14,4 +14,5 @@ description: 'Working with guide items in this squad: lifecycle, commands, and r
   guidance.'
 ---
 <!-- sq:body -->
+<!-- sq:view:item_skill -->
 <!-- sq:body:end -->

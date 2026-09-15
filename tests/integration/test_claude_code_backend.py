@@ -14,6 +14,7 @@ import json
 import pytest
 import yaml
 
+from _helpers import resolved_skill_definition
 from squads._sections import split_frontmatter
 from squads._services import _service as service
 
@@ -121,7 +122,7 @@ async def test_retiring_the_default_role_drops_it_from_the_claude_md_default_lin
 async def _sq_task_skill_body(svc) -> str:
     """The ``sq-task`` skill definition — resolved on read from the live roster, which is what
     the ``has_dev`` gate below reads. The ``.claude/`` file is only a thin pointer."""
-    return await svc.skill_definition_text("sq-task")
+    return await resolved_skill_definition(svc, "sq-task")
 
 
 async def test_retiring_the_only_developer_drops_the_developer_gated_skill_text(

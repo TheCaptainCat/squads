@@ -28,6 +28,7 @@ from squads import _discussion as discussion
 from squads._cli._common import (
     build_item_json,
     build_subentity_json,
+    build_subentity_row_json,
     console,
     e,
     get_active_spec,
@@ -280,6 +281,7 @@ def build_item_app(
     _cmd_comment(item)
     _cmd_comments(item)
     _cmd_refs(item)
+    _cmd_view(item)
 
     # Sub-entity surface: entirely spec-driven — a type hosts a kind (built-in or a
     # project-declared custom one) or it doesn't; item_subentity_kind() already degrades to
@@ -652,6 +654,43 @@ def _cmd_refs(item: typer.Typer) -> None:
     item.add_typer(ref_app, name="ref")
 
 
+def _cmd_view(item: typer.Typer) -> None:
+    """The ``sq <type> <n> view add|rm <name>`` group: place or remove an unpaired
+    ``sq:view:<name>`` tag in the item's ``sq:body`` region.
+
+    A distinct verb group, not a flag on ``body`` — placement and body editing stay visibly
+    separate surfaces, and ``reject_markers`` keeps refusing a hand-typed tag in ``body -m``/
+    ``--file`` unchanged (this is the only door a tag enters or leaves through).
+    """
+    view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag in sq:body.")
+
+    @view_app.command("add")
+    @common.command
+    async def view_add(
+        ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+    ):
+        """Insert the sq:view:NAME tag at the end of sq:body (idempotent)."""
+        inserted = await get_service().insert_view(_id(ctx), name)
+        if inserted:
+            console.print(f"{_id(ctx)}: view {e(name)} placed in sq:body")
+        else:
+            console.print(f"{_id(ctx)}: view {e(name)} already present, unchanged")
+
+    @view_app.command("rm")
+    @common.command
+    async def view_rm(
+        ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+    ):
+        """Remove the sq:view:NAME tag from sq:body (safe no-op if absent)."""
+        removed = await get_service().remove_view(_id(ctx), name)
+        if removed:
+            console.print(f"{_id(ctx)}: view {e(name)} removed from sq:body")
+        else:
+            console.print(f"{_id(ctx)}: view {e(name)} was not present, nothing to do")
+
+    item.add_typer(view_app, name="view")
+
+
 # --------------------------------------------------------------------------- sub-entities
 #
 # Everything below is built from the resolved SubentityKindSpec (spec.subentity_kinds[kind]) —
@@ -697,14 +736,14 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
             print_json_clean(
                 json.dumps(
                     [
-                        {
-                            "local_id": b.local_id,
-                            "title": b.title,
-                            "status": b.status,
-                            "assignee": b.assignee,
-                            "severity": b.severity,
-                            "story": b.story,
-                        }
+                        build_subentity_row_json(
+                            local_id=b.local_id,
+                            title=b.title,
+                            status=b.status,
+                            assignee=b.assignee,
+                            severity=b.severity,
+                            story=b.story,
+                        )
                         for b in blocks
                     ]
                 )

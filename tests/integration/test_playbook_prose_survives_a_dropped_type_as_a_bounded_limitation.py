@@ -20,6 +20,7 @@ preloaded pointer set, because that is what decides which guidance an agent actu
 
 import pytest
 
+from _helpers import resolved_skill_definition
 from squads import __version__
 
 pytestmark = pytest.mark.anyio
@@ -94,7 +95,7 @@ async def _preloaded_skill_bodies(paths, invoke) -> dict[str, str]:
 
     pointers = {p.name for p in (paths.root / ".claude" / "skills").iterdir() if p.is_dir()}
     svc = service.open_service()
-    bodies = {slug: await svc.skill_definition_text(slug) for slug in sorted(pointers)}
+    bodies = {slug: await resolved_skill_definition(svc, slug) for slug in sorted(pointers)}
     empty = sorted(slug for slug, body in bodies.items() if not body)
     assert not empty, empty  # every preloaded pointer resolved to a real definition
     return bodies

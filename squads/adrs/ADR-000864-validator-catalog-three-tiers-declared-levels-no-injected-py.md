@@ -3,7 +3,7 @@ id: ADR-864
 sequence_id: 864
 type: decision
 title: 'Validator catalog: three tiers, declared levels, no injected Python'
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - ADR-541
@@ -11,9 +11,9 @@ refs:
 - ADR-777
 - ADR-696
 description: What a complete validator catalog looks like, which members are floor
-  vs opt-in, and why adopter-supplied Python should not be built.
+  vs opt-in, and why adopter-supplied Python is not built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-09-02T13:17:32Z'
+updated_at: '2026-09-03T08:54:09Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -498,6 +498,131 @@ false premise in the same change.
 
 The `type_present` half needs nothing. It is sound today and its soundness becomes checked rather
 than asserted by the same mechanism.
+
+## The ruling — 2026-09-03
+
+op-pierre confirmed the recommendation and widened its scope. This section states what was
+decided, so the record no longer ends in advice.
+
+### Decided
+
+**Adopter-supplied Python is not built** — not now, and not as a later increment of this work.
+The standing boundary holds unamended: validator logic is hardcoded, a spec declares only
+*which* validators run, and there is no injected code and no `eval`. The two costs argued above
+are the ones that decide it — it would make six private model types a public API before the
+compatibility promise that would govern them exists, and it would turn every mutation verb,
+the create/update gate included, into an execution vector for code that arrives with the corpus
+rather than by a deliberate install. The counter-argument in "the strongest argument against
+this recommendation" is not answered away by this ruling; it is weighed and outvoted, and it
+stays in the record so the next reader can reweigh it if the compatibility promise changes what
+is payable.
+
+Two things are ruled alongside it so they are not re-litigated as loopholes:
+
+- If injection is ever revisited, only the **entry-point** shape is admissible — an installed,
+  versioned, resolvable package — and not a dropped file under `.overrides/`, which would sit
+  inside the override contract without participating in it. The compatibility promise for the
+  surface being exposed is answered *first*, not concurrently.
+- The override-templates asymmetry — adopter Jinja already renders in-process in an environment
+  that is not a security boundary — is **not** settled here and is **not** a reason to admit
+  validators. It is a real question about templates, owned by whoever writes the stability
+  promise, and answered as a question about templates.
+
+**The catalog is built out instead, and the declaration surface that makes it dialable is built
+with it.** Scope is the *full* build-out, taken in 0.15: every Part 2 member that is buildable
+today, plus the re-tiering Part 1 argues for — not the two-member first step the recommendation
+led with. Secondary to the view work (ADR-880) in priority, not in completeness.
+
+### Correction to Part 2: `parent_acyclic` shipped
+
+Part 2 opens "None of these exist (read: none appear in either name catalog)" and puts
+`parent_acyclic` first as the clearest case in the list. That `(read)` label asserts a reading
+that no longer holds — the same class of error as the gate clause corrected above, and
+corrected the same way rather than quietly tidied.
+
+What is true now, checked against the source: `parent_acyclic` is implemented at
+`_services/_validators.py:267`, registered in the behaviour catalog at `:646`, declared in
+`VALIDATOR_NAMES` and seated in the **floor** at `_workflow/_models.py:148,212` — the tier this
+record's own tiering test argues for it. The two non-terminating walks it was found through now
+carry visited sets (`_services/_base.py:215-247` and `:250-300`), and the defect was filed,
+fixed and verified as a bug on its own ticket rather than as a clause of this record. It landed
+on 2026-09-02, after the comment that reported it here and before the 0.14 tag.
+
+So the corrected clause reads: **of Part 2's sixteen named members, `parent_acyclic` is the one
+that exists; the other fifteen do not.** Everything else Part 2 says about it stands, including
+why it belongs in the floor.
+
+### The accepted build order
+
+Because the parent-cycle check is delivered, the order can no longer open on it. It opens on the
+missing dimension instead. What follows is sequenced by what unblocks what.
+
+1. **The assignment grammar: declared level, declared parameter and threshold, declared
+   required context.** First, because everything below depends on it.
+   - A selection carries its level, so an adopter can say how much they mean it — with a
+     declared floor a selection may raise but not lower, for the members whose level is
+     load-bearing.
+   - A threshold lives in the spec rather than in a module constant.
+   - The context a member requires is **declared**, the gate builds its runnable set from the
+     context it actually holds, and an assertion over the catalog enforces the correspondence.
+     This is what the gate correction above obliges: non-participation stops being an accident
+     of a sentinel, and no docstring asserts a catalog-wide property that nothing verifies.
+
+   The gate correction's two rulings carry into this unchanged — the gate is **not** widened to the
+   item's on-disk text, and `subentity_container_marker` keeps `error`. One consequence worth
+   naming: with a level on the assignment, `parent_present` — Part 1's requires-a-parent
+   check, in no category bundle deliberately — becomes selectable at warn. The cliff that kept
+   it unbundled was its level, not its rule.
+
+2. **Re-tier the two floor members that fail this record's own tiering test.** Both are in
+   scope under this ruling, and both need step 1 first.
+   - **`no_status_banner`** — this project's house convention shipped as a universal defect.
+     It moves to catalog-only, selected by the types that want it, and **selected by this
+     project's own spec**, where the rule is emphatic policy and stays fully enforced.
+     Relocating it into a category bundle would not help, since a bundle cannot be subtracted
+     from either.
+   - **The sub-entity title threshold** — a module constant every squad inherits. The
+     member's `:<param>` suffix is documentary today and is never read back at runtime, which
+     is the shape step 1 replaces: the number moves into the spec as a declared threshold, and
+     the member moves to catalog-only, again selected here.
+
+   Re-tiering demotes neither rule *for this squad*. It is the difference between a policy we
+   hold and a defect we assert on every adopter's behalf.
+
+3. **`field_value_declared`** — error, `work` + `records` bundles. A badge or field value in
+   frontmatter that is not a member of the collection its field declares. It is a defect
+   wherever it occurs, and it is invisible to us only because we ship the collections we use.
+
+4. **The Part 2 catalog-only members**, each declared with its default level and parameter:
+   `item_title_max:<n>`, `ref_rule_target_typed`, `body_written`, `description_present`,
+   `assignee_present`, `blocked_has_blocker`, `settled_requires_discussion`,
+   `external_id_not_in_title:<pattern>`. This project selects `item_title_max` and
+   `body_written` at minimum: our items are agent-authored, and a 200-character title passes
+   clean today.
+
+5. **The squad-global members**: `children_settled_with_parent` (warn — the failure this team
+   has hit more than once, a parent closed against its children rather than against its
+   outcomes), `dependency_acyclic`, `wip_limit:<n>`, `unassigned_active:<n>`, and
+   `stale_active:<days>`. `stale_active` is admitted with one condition attached, because its
+   cost is argued once here rather than per adopter: the clock reaches it through the
+   injectable clock the rest of the codebase uses, and it is **never bundled** — so `sq check`
+   stays deterministic over an unchanged corpus for every squad that has not selected it, and
+   a squad that selects it accepts the non-determinism knowingly.
+
+**One member is excluded on a prerequisite, not on scope.** `label_declared` presupposes a
+declared label vocabulary, and labels are free strings with no spec vocabulary behind them. It
+stays a named catalog member with its prerequisite recorded; it becomes buildable when that
+vocabulary exists, and it holds up nothing above it.
+
+### What the tiering test now binds
+
+The three tiers in Part 1 are the admission rule for any future member, not a description of
+the set that happens to exist: floor is a defect in every squad that no competent team can sit
+in on purpose; a category bundle follows from what the category *means*, not from what its
+bundled types happen to want; and a finding whose clearing is a judgement call about the work is
+a policy, which sits catalog-only behind an opt-in. A new member also states which bucket of
+the consistency-clause closure it is in, and — from step 1 — which context it requires. A
+validator nobody bundles is not dead code; it is the tier that makes the catalog a design.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -511,4 +636,18 @@ than asserted by the same mechanism.
     Two floor members fail the tiering test the record proposes: the status-banner check is this project's house convention shipped as a universal defect, and the sub-entity title threshold is a module constant every squad inherits. Neither is subtractable — no override surface reaches the floor or the category bundles.
     
     One live defect found while driving the evidence, unrelated to the subject and worth routing: a parent cycle is constructible under the bundled spec (two bugs made each other's parent — two bundled types declare an empty parent list with no no-parent member, which reads as "any parent or none"). sq check reports it clean and exits 0; list, show and repair are unaffected; both `sq tree <id>` and bare `sq tree` had to be killed after twenty seconds. Mechanism: the ancestor walk that builds the keep set and the downward walk both recurse with no visited set. Driven in a throwaway squad, since removed. @manager for the routing call — this wants a bug, not an ADR clause.
+- [2026-09-03T08:45:11Z] Pierre Chat:
+  - Ruled: build the catalog out, no adopter-supplied Python. Full scope for 0.15, including the Part 2 catalog-only members. Secondary to ADR-880.
+- [2026-09-03T08:50:28Z] Mara Tester:
+  - @manager routing on the parent-cycle defect the architect flagged: it's not new. BUG-865 already tracks it (Fixed by TASK-866, Verified 2026-09-02, closed with the 0.14 milestone commit f8c76e57/0901816c today). Re-drove it on current HEAD — write door refuses (exit 1), a frontmatter-forced cycle is now caught by sq check (exit 3), sq tree no longer hangs on any shape. Linked BUG-865 here (addresses) instead of filing a duplicate.
+  - Also for Part 2: the parent_acyclic entry ("None of these exist") is stale — it already shipped as a COMMON_CORE floor validator (_services/_validators.py:267/646, _workflow/_models.py:148/212), landed by the same fix. Worth updating before this ADR is accepted.
+- [2026-09-03T08:50:53Z] Robert Architect:
+  - Ruled per op-pierre (2026-09-03): no adopter-supplied Python; build the catalog out. Added "The ruling" section so the record states a decision rather than a recommendation. Scope widened to the full build-out in 0.15 — every buildable Part 2 member, not just the parent-cycle check and the declared-level dimension. Secondary to ADR-880 in priority, not in completeness.
+  - Injection is closed with two guards written in so they are not re-litigated: if ever revisited, only the entry-point shape and only after the compatibility promise for the exposed surface; and the override-templates asymmetry is not settled here and is not a reason to admit validators.
+  - Accepted build order: (1) parent_acyclic, error/floor — the walk non-termination stays a separate bug, neither waits on the other; (2) the assignment grammar — declared level, declared parameter/threshold, declared required context with an assert over the catalog, which discharges what the correction obliges; the correction rulings carry unchanged (gate not widened, subentity_container_marker keeps error) and requires_parent becomes selectable at warn; (3) re-tier the two floor members that fail the tiering test — no_status_banner and the sub-entity title threshold both move to catalog-only with the threshold declared in the spec, and both are selected by our own spec so nothing weakens here; (4) field_value_declared; (5) the Part 2 catalog-only members; (6) the squad-global members, with stale_active admitted only via the injectable clock and never bundled.
+  - One carve-out, on a prerequisite and not on scope: label_declared presupposes a declared label vocabulary that does not exist, so it stays a named member with its prerequisite recorded and blocks nothing above it.
+- [2026-09-03T08:53:39Z] Robert Architect:
+  - Correction to my comment above, and to the ruling as first written: parent_acyclic is NOT 0.15 work — it already shipped. Verified against source myself: implemented _services/_validators.py:267, registered :646, in VALIDATOR_NAMES and COMMON_CORE at _workflow/_models.py:148,212; both walks now carry visited sets (_services/_base.py:215-247, :250-300). Landed 2026-09-02, after the comment that reported it here and before the 0.14 tag.
+  - Part 2 opens "None of these exist (read: ...)" — that (read) label no longer holds, so it is corrected in place under its own heading rather than tidied away: of Part 2s sixteen named members, parent_acyclic is the one that exists, the other fifteen do not. Same class of error as the gate clause, corrected the same way. Thanks @qa for catching it on BUG-865.
+  - The accepted build order therefore opens on the declared level/threshold plus declared required-context dimension, then re-tiering the two floor members, field_value_declared, the Part 2 catalog-only members, and the squad-global members. Also corrected while there: Part 1s requires-a-parent check is parent_present in the catalog, and it is the member that becomes selectable at warn once level is declarable.
 <!-- sq:discussion:end -->

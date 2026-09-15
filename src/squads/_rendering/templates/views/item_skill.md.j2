@@ -1,0 +1,64 @@
+{% set item_type = source.item_type %}
+{% if not spec.item_is_roster(item_type) %}
+{% filter trim %}
+# {{ item_type | label_for("singular", spec) }} items
+
+{{ source.lane.overview if source.lane else "" }}
+
+**Lifecycle:** {{ spec.machine_for(item_type) | linearize_lifecycle }}
+
+## Commands
+
+```bash
+{% for c in (source.lane.commands if source.lane else (item_type | custom_item_skill_commands)) %}
+{{ c }}
+{% endfor %}
+```
+{% for sec in source.lane | item_skill_role_sections(source.roster) %}
+
+## For {{ sec.title }}
+{% if sec.enter %}
+
+**Enter** — before you act:
+- Read the full item dossier: `sq {{ item_type }} <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
+{% for x in sec.enter %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if sec.do %}
+
+**Do:**
+{% for x in sec.do %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if sec.handoff %}
+
+**Hand off:**
+{% for x in sec.handoff %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if sec.watch %}
+
+**Watch for:**
+{% for x in sec.watch %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+---
+The `.md` files are sq-managed — never edit them by hand, and read them through
+`sq {{ item_type }} <n> show`, never by opening the file. Items are addressed as
+`sq {{ item_type }} <n> <verb>`. Set this item's body with `sq {{ item_type }} <n> body
+-m "…"` (or `--file`); `--desc` sets only the short summary. {% set subentity_kind = spec.item_subentity_kind(item_type) %}{% if subentity_kind %}Its {{ spec.subentity_plural(subentity_kind) }}
+get their bodies from `sq {{ item_type }} <n> {{ subentity_kind }} <k> body -m "…"`. Read anything back with
+`sq {{ item_type }} <n> show --full --comments` (full dossier, including discussion) /
+`sq {{ item_type }} <n> {{ subentity_kind }} <k> show`.
+{% else %}Read anything back with `sq {{ item_type }} <n> show --full --comments` (full dossier, including discussion).
+{% endif %}
+{% endfilter %}
+{% endif %}

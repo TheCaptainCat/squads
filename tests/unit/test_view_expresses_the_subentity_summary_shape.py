@@ -24,6 +24,7 @@ from squads import __version__
 from squads import _badges as badges
 from squads import _discussion as discussion
 from squads import _views as views
+from squads._interactions import get_playbook_spec
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -95,7 +96,10 @@ def test_the_projection_produces_the_same_records_summary_row_derives(tmp_path: 
 
     review = _review_with_findings()
     db = SquadsDB(items={review.sequence_id: review})
-    records = views.resolve_records(view, "finding_full_shape", review, db, spec)
+    records = views.resolve_source(
+        view, "finding_full_shape", review, db, spec, get_playbook_spec(), lambda: [], None
+    )
+    assert isinstance(records, list)
     projection = views.project(view, records, spec)
 
     (group,) = projection.groups

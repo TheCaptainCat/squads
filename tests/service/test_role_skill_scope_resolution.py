@@ -9,7 +9,6 @@ import pytest
 
 from squads import _interactions as interactions
 from squads._itemfile import read_frontmatter
-from squads._roles._resolver import resolve_role_for_item
 
 pytestmark = pytest.mark.anyio
 
@@ -89,8 +88,7 @@ async def test_a_full_sync_never_materialises_the_resolved_list_into_the_role(sv
     fm = read_frontmatter(text=path.read_text(encoding="utf-8"))
     assert "skills" not in fm["extra"]
 
-    reloaded = await svc.get(role.id)
-    definition = svc.role_definition_text(resolve_role_for_item(reloaded, svc.paths.squad_dir))
+    definition = await svc.read_body(role.id)
     assert "## Skills" not in definition
 
     resolved = await svc.resolved_skills_for_role("tech-writer")

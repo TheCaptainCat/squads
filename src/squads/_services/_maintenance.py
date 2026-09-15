@@ -12,22 +12,28 @@ from squads import __version__, _aio
 from squads import _actor as actor
 from squads import _clock as clock
 from squads import _sections as sections
+from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
 from squads._interactions import (
+    ITEM_SKILL_VIEW_NAME,
+    ROLE_DEFINITION_VIEW_NAME,
+    SYSTEM_SKILL_VIEW_NAMES,
     bundled_skill_slugs,
     custom_item_skill_description,
     custom_skill_slugs,
     is_live_roster_entry,
+    item_type_for_skill_slug,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
     orphaned_skill_item_type,
     skill_description,
 )
 from squads._interactions._loader import playbook_override_guide_pairs
+from squads._interactions._models import PlaybookSpec
 from squads._itemfile import (
     INVENTED_WHEN_ABSENT,
     SkewKey,
@@ -53,7 +59,7 @@ from squads._models._item import (
     prefix_from_id,
 )
 from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
-from squads._models._schema import SCHEMA_VERSION, schema_tuple
+from squads._models._schema import SCHEMA_VERSION, schema_tuple, version_drifted
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
 from squads._roles._catalog import RoleDef
@@ -66,6 +72,7 @@ from squads._services._results import (
     ReflogEntry,
     RenumberResult,
     RepairResult,
+    SyncSkips,
 )
 from squads._services._validators import (
     SQUAD_GLOBAL_CATALOG,
@@ -253,26 +260,92 @@ def _retired_region_tags(text: str) -> list[str]:
     return seen
 
 
-def _strip_retired_regions(text: str, *, empty_body: bool) -> str:
-    """*text* with every retired region removed, and its ``sq:body`` region emptied when
-    *empty_body* — the sweep's whole content transformation, as one pure function of the
-    file's bytes.
+def _converge_body_tag(text: str, view_name: str, *, strict_empty: bool = False) -> str:
+    """*text* with its ``sq:body`` region converged onto the placement tag naming *view_name*
+    — the mutation half of :meth:`MaintenanceMixin._repair_body_tag`'s license, shared by a
+    role, a permanently-system skill, and a per-item-type skill alike, under two different
+    strengths of the same license.
+
+    **Two licenses, not one, and why.** ``set_body`` refuses a role's and a permanently-system
+    skill's body unconditionally *in current code* — a role by ``item.type == ROSTER_ROLE``, a
+    system skill by ``is_system_skill``, which is always true for the three fixed slugs
+    :meth:`MaintenanceMixin._repair_body_tag` reaches this for regardless of the active spec
+    (see :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES`) — so no code path *today* can
+    have authored either region. That is not the same claim as "no past release ever wrote
+    one": before this tag mechanism existed, and before 0.14 retired the stored-region model,
+    both writers rendered the resolved definition straight into ``sq:body`` at write time. What
+    a migrating corpus can carry is therefore one of three shapes for either — genuinely empty,
+    already carrying this tag, or a plain-prose rendering left by a release that predates both
+    refusals — and the third is precisely the class 0.14's retired-region sweep already
+    established may be stripped: a derived rendering superseded by a computed one, never
+    author-editable prose. *strict_empty* stays ``False`` for these two, its default.
+
+    A per-item-type skill's slug has no such guarantee, and passes *strict_empty=True*: unlike
+    a role or a permanently-system skill, its slug can be genuinely **custom** at one point (an
+    author writes a real body under a ``sq-`` slug matching no declared type — the prefix is
+    not reserved) and become template-owned later, the moment a project declares a matching
+    item type. A per-item-type skill's definition has also never been stored at any past
+    release (it renders on read in every version this mechanism has existed for), so there is
+    no "legacy rendering" shape to reclaim here — only genuinely empty, or already tagged, may
+    ever converge; anything else is left **untouched**, silently, because it is exactly as
+    likely to be someone's authored runbook as it is to be anything this sweep understands, and
+    guessing wrong deletes real work.
+
+    **What stays loud, when it isn't strict.** A plain-prose legacy rendering does not itself
+    contain marker-shaped text — it is bytes a template produced, not a document with its own
+    regions. Content that *does* contain a well-formed ``<!-- sq:... -->`` tag is not that
+    shape: it is something this sweep has no model for (another tag, a nested region,
+    corruption), and converging over it would risk silently destroying something structured
+    rather than a stale render. That case raises rather than being assumed away — but only
+    under the non-strict license; *strict_empty* already leaves any non-empty content alone
+    before this check is ever reached, so it never raises.
+
+    Idempotent: a region already carrying exactly the tag is left byte-for-byte unchanged, so a
+    second sweep over an already-backfilled corpus writes nothing.
+
+    Raises :class:`~squads._errors.SquadsError`, never a bare exception, for the marker-shaped
+    case above — this is the ordinary user-facing-error convention every other refusal in this
+    codebase follows (see ``CLAUDE.md``), and it is what lets the sweep loop that calls this
+    (:func:`_record_pending_rewrite`) catch it per file and skip-and-report rather than letting
+    one damaged file abort the whole corpus-wide pass mid-transaction — see that function."""
+    tag_line = markers.open_marker(markers.view_tag(view_name))
+    current = (sections.get_section(text, markers.BODY) or "").strip()
+    if current == tag_line:
+        return text
+    if not current:
+        return sections.replace_section(text, markers.BODY, tag_line)
+    if strict_empty:
+        return text  # authored, or of a shape this narrower license has no license to touch
+    if not sections.find_markers(current):
+        return sections.replace_section(text, markers.BODY, tag_line)
+    raise SquadsError(
+        f"repair backfill: expected an empty, already-tagged, or plain legacy-rendered sq:body "
+        f"for {view_name!r}, found marker-shaped content {current!r} — this sweep has no model "
+        "for what that is and refuses to overwrite it"
+    )
+
+
+def _strip_retired_regions(text: str, *, body_tag: str | None) -> tuple[str, str | None]:
+    """``(text, skip_message)`` — *text* with every retired region removed and its ``sq:body``
+    region converged onto *body_tag*'s named placement tag when given, plus a message when the
+    convergence half declined rather than aborting — the sweep's whole content transformation,
+    as one pure function of the file's bytes.
 
     Cuts are marker-safe: each region is excised from its own open marker through its own
     close marker by :func:`~squads._sections.remove_section`, which also absorbs the blank
     separator line the region was inserted with, so a stripped file matches what the live
     write path produces today rather than leaving a doubled blank line behind.
 
-    Emptying is not deletion: a body region loses its contents and keeps its marker pair. The
-    reason is shape, not behaviour — the pair is what every item file carries, and what
-    ``_create_core``'s scaffold renders for every type (:meth:`ServiceCore._create_core` empties
-    a role's the same way, for the same reason). **Nothing observable depends on it**, and that
-    was checked rather than assumed: with the pair deleted outright from a role file,
-    ``sq role <slug> show`` still renders the resolved definition, ``sq check`` reports nothing,
-    and ``sync``/``repair``/``regen`` neither fault nor restore it. An earlier version of this
-    docstring claimed a removed region reads as "no item for this slug"; no read path branches
-    on the region at all, and that sentence had been copied into the release note before it was
-    caught.
+    Converging is not deletion: a body region's content changes and it keeps its marker pair.
+    The reason is shape, not behaviour — the pair is what every item file carries, and what
+    ``_create_core``'s scaffold renders for every type (:meth:`ServiceCore._create_core` seeds
+    a role's tag the same way, for the same reason). **Nothing observable depends on the pair
+    itself**, and that was checked rather than assumed: with the pair deleted outright from a
+    role file, ``sq role <slug> show`` still renders the resolved definition, ``sq check``
+    reports nothing, and ``sync``/``repair``/``regen`` neither fault nor restore it. An earlier
+    version of this docstring claimed a removed region reads as "no item for this slug"; no
+    read path branches on the region at all, and that sentence had been copied into the
+    release note before it was caught.
 
     The one mechanical consequence, for whoever changes this next:
     :func:`~squads._sections.replace_section` raises ``KeyError`` on an absent region, so a
@@ -282,13 +355,31 @@ def _strip_retired_regions(text: str, *, empty_body: bool) -> str:
     surprised, not a behaviour anything currently relies on.
 
     Idempotent by construction: a file with none of these regions, a region already absent and
-    a body already empty are each a no-op, so the returned text is the input text unchanged.
-    """
+    a body already converged are each a no-op, so the returned text is the input text
+    unchanged.
+
+    **The convergence half is caught here, per file, so it cannot abort the whole pass.**
+    :func:`_converge_body_tag` raises :class:`~squads._errors.SquadsError` for a body region
+    holding marker-shaped content it has no model for — content this sweep must not guess at.
+    Catching it here means only *this* file's body-tag convergence is skipped — the
+    retired-region strip above it already ran and still applies — and *skip_message* names the
+    guard's own message for the caller to report, never silently, so the rest of the corpus
+    still converges normally through :meth:`MaintenanceMixin._rebuild_index_from_disk`'s loop.
+    The guard itself is unweakened: it still refuses to overwrite what it does not understand;
+    only its blast radius is one region, never the whole sweep."""
     for tag in _retired_region_tags(text):
         text = sections.remove_section(text, tag)
-    if empty_body and (sections.get_section(text, markers.BODY) or "").strip():
-        text = sections.replace_section(text, markers.BODY, "")
-    return text
+    skip_message: str | None = None
+    if body_tag is not None:
+        # A per-item-type skill's slug can have been genuinely custom before a matching type
+        # was declared — unlike a role or a permanently-system skill, whose bodies `set_body`
+        # has always refused unconditionally — so its convergence license is the narrower one:
+        # only empty or already-tagged, never a guess at "this must be a stale rendering".
+        try:
+            text = _converge_body_tag(text, body_tag, strict_empty=body_tag == ITEM_SKILL_VIEW_NAME)
+        except SquadsError as exc:
+            skip_message = str(exc)
+    return text, skip_message
 
 
 def _retired_role_extra_keys(item: Item) -> frozenset[str]:
@@ -343,11 +434,17 @@ class _PendingRewrites:
     ``canonicalized`` and ``stripped`` name the items each transformation actually applied to,
     kept apart because they are different facts about a corpus and are reported separately.
     An item can appear in both.
+
+    ``skipped`` holds one message per item whose body-tag convergence declined rather than
+    aborting the pass (:func:`_strip_retired_regions`'s *skip_message*) — the file's other
+    transformations, if any, still queue normally; only its own body-tag region is left
+    untouched. Empty on a corpus with no marker-shaped body regions this sweep cannot model.
     """
 
     files: list[tuple[Path, str]] = dataclasses.field(default_factory=list[tuple[Path, str]])
     canonicalized: list[str] = dataclasses.field(default_factory=list[str])
     stripped: list[str] = dataclasses.field(default_factory=list[str])
+    skipped: list[str] = dataclasses.field(default_factory=list[str])
 
 
 def _frontmatter_without(data: dict[str, Any], keys: frozenset[str]) -> dict[str, Any]:
@@ -388,17 +485,23 @@ def _record_pending_rewrite(
     data: dict[str, Any],
     item: Item,
     *,
-    empty_body: bool,
+    body_tag: str | None,
 ) -> None:
-    """Queue *item*'s write-back onto *pending* when its file needs one; a no-op otherwise.
+    """Queue *item*'s write-back onto *pending* when its file needs one, and record a
+    body-tag-convergence skip onto ``pending.skipped`` when one occurred — independently of
+    each other, since a skip can be the only thing this call has to report.
 
     Two independent reasons a file is rewritten, composed here into **one** replacement text
     and **one** queued entry (see :class:`_PendingRewrites`):
 
     - its on-disk ref encoding is stale (:func:`_ref_encoding_is_stale`), so the frontmatter is
       rewritten to the canonical encoding the fold already produced;
-    - it carries a retired region, or a body this sweep empties
-      (:func:`_strip_retired_regions`);
+    - it carries a retired region, or a body this sweep converges onto a placement tag
+      (:func:`_strip_retired_regions`, licensed per-item by *body_tag* — see
+      :meth:`MaintenanceMixin._repair_body_tag`; a body-tag convergence that declines rather
+      than aborting is recorded onto ``pending.skipped`` regardless of whether anything else
+      about the file needed rewriting, since a declined region is reported on its own terms,
+      never only when it happens to ride along with an unrelated rewrite);
     - it is a role item whose ``extra`` still carries retired mirror keys
       (:func:`_retired_role_extra_keys`).
 
@@ -428,7 +531,9 @@ def _record_pending_rewrite(
     Split out of the per-file loop purely to keep that already-long method under the
     complexity ceiling; the writes themselves are the caller's, after the refusal check.
     """
-    new_text = _strip_retired_regions(text, empty_body=empty_body)
+    new_text, skip_message = _strip_retired_regions(text, body_tag=body_tag)
+    if skip_message is not None:
+        pending.skipped.append(f"{item.id}: {skip_message}")
     stripped = new_text != text
     retired_keys = _retired_role_extra_keys(item)
     for key in retired_keys:
@@ -453,7 +558,16 @@ def _record_pending_rewrite(
 
 
 def _marker_issues(text: str) -> list[str]:
-    """Detect unbalanced or duplicated sq markers in a file."""
+    """Detect unbalanced or duplicated sq markers in a file.
+
+    The declared unpaired view-tag family (:func:`~squads._models._markers.view_tag_name`)
+    is exempt from the open/close **pairing** count only — by design it has no
+    ``close_marker`` counterpart (see :data:`~squads._models._markers.VIEW`), so demanding one
+    would flag a correctly placed tag as broken. The exemption is narrow and shape-driven,
+    never a name list: a **duplicate** of the same named view tag in one file is still
+    reported below, exactly like any other tag, because that is a distinct signal (a doubled
+    tag renders the view twice) from pairing.
+    """
     opens: Counter[str] = Counter()
     closes: Counter[str] = Counter()
     for raw in sections.find_markers(text):  # e.g. "sq:body", "sq:body:end"
@@ -466,11 +580,53 @@ def _marker_issues(text: str) -> list[str]:
     for tag, n in opens.items():
         if n > 1:
             problems.append(f"duplicate marker <!-- sq:{tag} -->")
-        if closes[tag] < n:
+        if markers.view_tag_name(tag) is None and closes[tag] < n:
             problems.append(f"unclosed marker <!-- sq:{tag} -->")
     for tag, n in closes.items():
         if opens[tag] < n:
             problems.append(f"close without open <!-- sq:{tag}:end -->")
+    return problems
+
+
+def _view_target_issues(
+    text: str, item_type: str, spec: WorkflowSpec, playbook: PlaybookSpec
+) -> list[str]:
+    """Every ``sq:view:<name>`` tag in *text* that cannot resolve when read on a host of
+    *item_type*, as report strings — **two** reasons: *name* is
+    undeclared or its presentation template is missing, or *name* is declared and templated
+    but its source cannot apply to *item_type* — a tag valid when placed can reach this state
+    through ``retype``, a spec/override edit narrowing what a type hosts, or a creation
+    template later changed; nothing here rewrites it, only reports it.
+
+    This finding is unconditional and error-level — the binding invariant a document carrying
+    such a tag must satisfy, not a member of the per-item validator catalog — so it sits beside
+    :func:`_marker_issues` in the same always-on file-level marker scan rather than behind a
+    catalog clause or a level knob. Resolved through
+    :func:`~squads._views.resolve_view_target`, the one predicate a placement insert already
+    refuses an unresolvable tag through: this is the read-time reporting half of that same
+    question, never a second implementation of it. *item_type* is bound by the caller from the
+    file's own type folder and filename (:meth:`MaintenanceMixin._iter_item_files`), **before**
+    ``read_frontmatter`` ever runs — the predicate is type-scoped by construction (never reads
+    a resolved item's content), so this needs no ``Item`` and keeps firing on a file too broken
+    to parse, which is exactly where a finding about an unreadable document earns its keep.
+    *playbook* is the caller's active, merged playbook — only a ``playbook``-sourced view's
+    applicability actually reads it, but it is threaded through regardless so this scan agrees
+    with every other consumer of :func:`~squads._views.resolve_view_target` on a project that
+    overrides its playbook, not just the bundled one.
+
+    A name is reported once per file even if its tag repeats — a *duplicate* of the same tag
+    is a separate signal :func:`_marker_issues` already reports.
+    """
+    problems: list[str] = []
+    seen: set[str] = set()
+    for raw in sections.find_markers(text):
+        name = markers.view_tag_name(raw)
+        if name is None or name in seen:
+            continue
+        seen.add(name)
+        reason = views.resolve_view_target(name, item_type, spec, playbook)
+        if reason is not None:
+            problems.append(f"{reason} (<!-- {raw} -->)")
     return problems
 
 
@@ -734,8 +890,11 @@ def _fold_stem_into_floor(
 
 class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
-    async def sync(self) -> list[str]:
-        """Regenerate all tool-owned managed files to the current version; stamp the config.
+    async def sync(self) -> SyncSkips:
+        """Regenerate all tool-owned managed files to the current version; stamp the config —
+        **except** when this run's own version-drift backfill declined at least one body, in
+        which case the stamp is withheld so the next ``sync`` retries it (see the comment at
+        the stamp call below); every other regenerated file still lands normally on that run.
 
         **Deduplicated by exact text before returning.** A generic safety net over the
         per-writer skip-report messages below, not tied to any one of them — collapsing exact
@@ -743,8 +902,20 @@ class MaintenanceMixin(ServiceCore):
         second, genuinely different message about the *same* item — a different field set, a
         different reason — passing through untouched.
 
-        Returns one skip-report message per drifted roster role whose frontmatter was left
-        untouched (see :meth:`_detect_roster_item_skew`, and :meth:`_refresh_catalog_extra`
+        Returns a :class:`~squads._services._results.SyncSkips` — every existing caller can
+        keep treating it as the plain ``list[str]`` of skip/notice messages below, and the CLI
+        additionally reads its ``.backfill_skipped`` to tell a withheld-stamp run apart from
+        every other skip channel without string-matching this list (see that class's own
+        docstring).
+
+        Returns one ``"skipped <item id>: ..."`` message per role/skill body-tag convergence
+        the version-drift backfill declined to overwrite (:meth:`_backfill_roster_body_tags`;
+        empty when this run's own squads_version already matches, or when every body converged
+        cleanly — and reported again, unchanged, on every subsequent ``sync`` until the body is
+        fixed or the guard's refusal no longer applies, since a non-empty result here is exactly
+        what withholds the stamp), one skip-report message per drifted roster role whose
+        frontmatter was left untouched (see :meth:`_detect_roster_item_skew`, and
+        :meth:`_refresh_catalog_extra`
         for the narrower catalog-merge case that can raise the same way), one notice per live
         ``SKILL`` item this run just withdrew because its type is no
         longer declared (:func:`~squads._interactions.orphaned_skill_item_type`), and one per
@@ -770,6 +941,12 @@ class MaintenanceMixin(ServiceCore):
         the squad still syncs (exit stays 0 — ``sq check`` is the dedicated reporter that
         gates).
         """
+        # Read before anything below can change it (nothing does — `_stamp_version` at the end
+        # writes a *copy* of `self.paths.config`, never mutates the live one — but capturing it
+        # here, once, up front is what makes that fact irrelevant to reason about instead of
+        # relied upon). This is the squads_version *this sync run itself* is upgrading from.
+        recorded_version = self.paths.config.squads_version
+
         # Idempotent: a squad initialised before this pattern existed picks it up here
         # instead of carrying the hole for the rest of its life.
         await ensure_root_tmp_ignored(self.paths.root)
@@ -800,8 +977,10 @@ class MaintenanceMixin(ServiceCore):
         # sq-managed state (the catalog-extra merge) refreshes unconditionally regardless of
         # liveness: only the *backend* projection — via ``_project_roster_item``, the same
         # helper the single-item transition path uses — is gated. The role's own definition
-        # renders at read time (``ServiceCore.role_definition_text``) and is not part of this
-        # sweep at all — nothing here writes a role's ``sq:body`` region.
+        # renders at read time off the ``sq:view:role_definition`` tag its ``sq:body`` carries
+        # (``squads._views.expand_view_tags``, via ``ItemsMixin.read_body``); the roster loops
+        # below don't write that tag either — the version-drift backfill just below does, once,
+        # ahead of them (see ``_backfill_roster_body_tags``).
         # Copied out of the snapshot before any mutation: ``list_items`` returns the read
         # scope's own aliases with no copy, and ``_refresh_catalog_extra`` below mutates
         # ``item.extra`` in place and then grafts that same object into a fresh
@@ -814,6 +993,53 @@ class MaintenanceMixin(ServiceCore):
             item.model_copy(deep=True) for item in await self.list_items(item_type=ROSTER_ROLE)
         ]
         roster_skills = await self.list_items(item_type=ROSTER_SKILL)
+
+        # This is the reachable trigger for the role/system-skill/per-item-type-skill body-tag
+        # convergence step (:meth:`_repair_body_tag`/:func:`_converge_body_tag`, the mechanism
+        # ``sq repair``'s corpus sweep also carries), on the ordinary upgrade path rather than
+        # only a manually run ``sq repair``. ``run_pending_migrations`` reaches that sweep only
+        # when a schema migration actually applies, so a squads release that bumps
+        # ``squads_version`` without also bumping ``schema_version`` leaves ``sq migrate up``
+        # with nothing to run and the sweep unreached; ``sync()``'s own end-of-run
+        # ``_stamp_version`` writes only the config's ``squads_version`` field, never a body. A
+        # role's or a permanently-system skill's ``sq:body`` region left empty by a release that
+        # rendered the definition on read rather than storing it (the shape a pre-tag-mechanism
+        # corpus carries) is not itself an error condition — an empty, untagged body is
+        # unremarkable to ``sq check`` — so nothing short of this call converges it once such a
+        # corpus reaches a build that has the tag mechanism.
+        #
+        # Keyed on ``squads_version`` drift, not ``schema_version`` drift: this is content
+        # convergence, not a schema change, so it rides the version this squad is stamped at
+        # rather than a schema bump for a release that introduces no new on-disk shape (see
+        # ``_models._schema``'s own doctrine on what a schema bump means). A squad already at
+        # the current version costs nothing beyond the comparison itself — no corpus walk runs
+        # — so this stays cheap on every ordinary, no-drift sync.
+        #
+        # Compared with :func:`~squads._models._schema.version_drifted`, not the tolerant
+        # :func:`~squads._util.version_tuple` this trigger used to share with the CLI's purely
+        # cosmetic drift notice: ``squads_version``/``__version__`` is the installed *package*
+        # version, which can carry a pre-release/dev/local segment (``"0.15.0rc1"``) the strict
+        # per-segment parse has no model for. The tolerant comparator strips non-digits per
+        # segment and concatenates the survivors instead of raising — which orders a prerelease
+        # *above* its own release and *equal to* the next patch (``"0.15.0rc1"`` ->
+        # ``(0, 15, 1)``, same as ``"0.15.1"``), so a squad stamped by a prerelease build would
+        # read as never-drifted against every release that follows. That is the one comparator
+        # this trigger must not inherit: this convergence step is exactly the mechanism a squad
+        # recovers through, so under-triggering it silently is worse than over-triggering it —
+        # see :func:`~squads._models._schema.version_drifted`'s own docstring for the fail-safe
+        # reasoning. ``version_notice()`` (``_cli/_common.py``) keeps the tolerant comparator —
+        # a wrong cosmetic notice on a prerelease stamp costs nothing this trigger's own
+        # correctness depends on, and the two are not required to agree on that field.
+        #
+        # Scoped to exactly the convergence step, not :meth:`repair` wholesale: no index
+        # rebuild, no retired-region strip, no ref-encoding canonicalisation. Folding the whole
+        # of ``repair()`` in here would make every version-drift sync an index-reordering event
+        # too — this reuses only :func:`_converge_body_tag` through
+        # :meth:`_backfill_roster_body_tags`, which touches a body region and nothing else.
+        backfill_skipped: list[str] = []
+        if version_drifted(__version__, recorded_version):
+            backfill_skipped = await self._backfill_roster_body_tags(roster_roles, roster_skills)
+            skipped += backfill_skipped
 
         # The roster-scoped set of per-entry pointers that *should* exist after this run —
         # the same live predicate and the same backend declaration `sq check`'s
@@ -943,10 +1169,25 @@ class MaintenanceMixin(ServiceCore):
         # disk that no `SKILL` item indexes — at the one moment the answer is unambiguous,
         # right after this run both wrote the bodies and seeded them.
         skipped += self._unindexed_skill_bodies()
-        await self._stamp_version(__version__)
+        # Stamped unconditionally *except* when this run's own backfill just declined a body:
+        # stamping would read back as "converged" on the very next sync (the drift comparison
+        # above goes false the moment ``recorded_version`` reads the current release), so the
+        # region would never be revisited and the skip reported just above would be the last
+        # anyone ever heard of it. Leaving the stamp behind is what makes the drift trigger
+        # true again on the next ``sync`` — the skip is retried, and reported again, on every
+        # subsequent run until the body is fixed by hand or the guard's refusal is overridden
+        # some other way. Every other part of this run (roster projection, backend pointers,
+        # skill seeding) is idempotent, so re-running the rest of the sweep on a withheld stamp
+        # costs nothing beyond the comparison itself.
+        if not backfill_skipped:
+            await self._stamp_version(__version__)
         # Collapse exact duplicates only (order-preserving) — see the docstring above. A
         # second, textually different message about the same item is never touched by this.
-        return list(dict.fromkeys(skipped))
+        # backfill_skipped is carried separately, deduplicated the same way, as its own
+        # channel — see SyncSkips.
+        return SyncSkips(
+            dict.fromkeys(skipped), backfill_skipped=list(dict.fromkeys(backfill_skipped))
+        )
 
     async def _entry_content_snapshot(
         self,
@@ -1684,56 +1925,131 @@ class MaintenanceMixin(ServiceCore):
                     f"running `sq repair`"
                 )
 
-    def _sweep_empties_body(self, item: Item) -> bool:
-        """Whether the repair sweep empties *item*'s ``sq:body`` region.
+    async def _backfill_roster_body_tags(
+        self, roster_roles: list[Item], roster_skills: list[Item]
+    ) -> list[str]:
+        """Converge every role's and skill's ``sq:body`` region onto its placement tag, in
+        place — the one piece of :meth:`repair`'s corpus sweep :meth:`sync` needs on the
+        ordinary upgrade path (see the version-drift call site in :meth:`sync`), without
+        :meth:`repair`'s index rebuild, retired-region strip, or ref-encoding
+        canonicalisation.
 
-        True for a role and **false for everything else, a template-owned skill included**.
+        Reuses :meth:`_repair_body_tag` for the classification (which tag, if any, a given
+        item's body converges onto — the same question ``sq repair`` asks, so the two callers
+        can never disagree about what "the tag this item should carry" means) and
+        :func:`_converge_body_tag` for the mutation, directly — not through
+        :func:`_strip_retired_regions`/:func:`_record_pending_rewrite`, which also compose in
+        the retired-region strip and the ref-encoding rewrite that are :meth:`repair`'s job,
+        not this call's. A file this call writes gets **only** its ``sq:body`` region touched;
+        nothing else in it changes.
 
-        A role's definition is rendered at read time (``role_definition_text`` on every ``sq
-        role <slug> show``), so a stored copy is a derived duplicate and the only copy that can
-        go stale, since nothing refreshes it. What makes emptying it safe is not that it is
-        derived but that no supported write path has ever put authored prose there: ``set_body``
-        and the importer's body event both refuse on ``item.type == ROSTER_ROLE`` outright, and
-        the scaffold ``_create_core`` renders for a new role already empties the region. That
-        refusal keys on the **item type** — a fixed roster type, not a vocabulary that grows or
-        shrinks — so it held under every past release and every project's spec alike. A stored
-        role body is therefore residue from a release that rendered one, never someone's work.
+        No index rebuild: nothing about an item's *indexed* fields (title, status, and so on)
+        changes here, only body content the index has never stored, so there is nothing for a
+        rebuild to reconcile. That is also why this needs no reflog entry of its own — the same
+        posture ``sync``'s other file writes already have.
 
-        **A skill body has no such proof, which is why the sweep no longer touches it.** Whether
-        a skill is template-owned is :func:`~squads._interactions.is_system_skill` — the right
-        discriminator, and still the one ``set_body``, ``skill_definition_text`` and ``sq skill
-        show`` all key on. It is not the folder, the item type or the ``sq-`` prefix, each of
-        which is cheaper and each of which would classify an authored skill as generated. But it
-        is a function of *today's* vocabulary in both of its halves, and a stored body was
-        written under an earlier one:
+        Returns one ``"skipped <item id>: <reason>"`` message per body :func:`_converge_body_tag`
+        declined to touch (the same guard :meth:`repair` reports through
+        :attr:`~squads._services._results.RepairResult.skipped`, worded here with the
+        ``"skipped "`` prefix inline since this list feeds directly into :meth:`sync`'s own
+        flat ``skipped`` return rather than a dedicated field) — empty when every convergence
+        this call attempted went through cleanly, which is what a healthy corpus does."""
+        messages: list[str] = []
+        for item in (*roster_roles, *roster_skills):
+            view_name = self._repair_body_tag(item)
+            if view_name is None:
+                continue
+            md = item_file(self.paths, item)
+            try:
+                text = await _aio.read_text(md)
+            except FileNotFoundError:
+                # Indexed but the file is gone — not this call's problem to report; the next
+                # `sq check`/`sq repair` surfaces a missing file its own, dedicated way.
+                continue
+            try:
+                new_text = _converge_body_tag(
+                    text, view_name, strict_empty=view_name == ITEM_SKILL_VIEW_NAME
+                )
+            except SquadsError as exc:
+                messages.append(f"skipped {item.id}: {exc}")
+                continue
+            if new_text != text:
+                await write_text(md, new_text)
+        return messages
 
-        - ``custom_skill_slugs(spec)`` moves with the **project**: declaring an item type
-          ``onboarding`` makes an already-authored ``sq-onboarding`` skill read as
-          template-owned from that moment on;
-        - ``bundled_skill_slugs()`` moves with the **release**: a type added to the bundled
-          playbook makes its ``sq-<type>`` slug template-owned on upgrade, for every squad at
-          once and with no override in sight.
+    def _repair_body_tag(self, item: Item) -> str | None:
+        """The placement tag name the repair sweep converges/backfills *item*'s ``sq:body``
+        onto, or ``None`` when this sweep leaves the region alone. Naming a tag here is only
+        the classification half — :func:`_converge_body_tag` decides, per its own
+        ``strict_empty`` flag, how much of a license that classification actually buys.
 
-        Either way the answer flips *after* the body was written, on a slug ``sq skill add``
-        accepts and ``sq skill body`` accepted at the time — so at the moment of the sweep an
-        authored body and a generated one are the same bytes on the same shape of item, and
-        nothing stored on the item says which writer produced it. Comparing the stored text to
-        what the template renders today does not separate them either: the rendering is
-        version-dependent, so a genuine residue from an older release matches no better than
-        authored prose does. The corpus cannot tell, and the two errors are not symmetric —
-        leaving a derived duplicate on disk is untidy and reversible, deleting the only copy of
-        authored prose is neither.
+        **A role and a permanently-system skill (squads/greeting/sq-memory,
+        :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES`) share the wide, unconditional
+        license.** ``set_body`` refuses both bodies unconditionally *today* — a role by
+        ``item.type == ROSTER_ROLE``, a system skill by ``is_system_skill``, which is
+        bundled-blind and so stays true for these three fixed slugs regardless of the active
+        spec — so no code path today can have authored either region. "Refused today" is not
+        "refused every past release": before this tag mechanism, and before 0.14 retired the
+        stored-region model, every write path rendered the definition straight into the
+        region, so a migrating corpus can carry that legacy rendering instead of empty or the
+        tag. Converging over it is the same class of removal 0.14's sweep already established
+        is safe for a derived, superseded rendering; what still stops the sweep is content
+        shaped like something it does not understand (see :func:`_converge_body_tag`'s
+        marker-shape check).
 
-        So the skill half is contained rather than guessed at. What is left on disk is inert: a
-        stored system-skill body is never read (both ``show`` paths render the definition), the
-        backend leaves it byte-untouched by design, and ``set_body`` still refuses to add to it.
+        **A per-item-type ``sq-<type>`` skill gets the narrower, ``strict_empty`` license
+        instead, because it genuinely can have been authored.** Unlike the three permanently-
+        system slugs, its template-owned status moves with the active spec
+        (:func:`~squads._interactions.item_type_for_skill_slug`): a slug can be a real, custom
+        skill at one point and become template-owned later, the moment a matching type is
+        declared. Its definition has also never been stored at any past release, so there is no
+        legacy-rendering shape for it to reclaim. This method still names
+        :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME` whenever the slug currently
+        documents a declared type — the safety against overwriting real authored content lives
+        entirely in ``strict_empty``'s narrower convergence rule, not in a refusal here.
 
-        A role's region is *emptied* rather than removed for shape alone — see
-        :func:`_strip_retired_regions`, which records what was driven: no read path branches on
-        the region, so deleting it changes nothing anyone can observe. It is the marker pair
-        every item file carries, and keeping it is the cheaper of two harmless choices.
-        """
-        return item.type == ROSTER_ROLE
+        **A per-item-type skill whose slug names no *currently* declared type is left alone
+        here too, one level earlier.** A dropped or renamed type's stale ``sq-<type>`` skill is
+        already withdrawn from generated output elsewhere
+        (``is_live_roster_entry``/``orphaned_skill_item_type``); naming a tag for it would only
+        make a read resolve the emptiness fallback (``squads._views._playbook_subject``) rather
+        than raise, which buys nothing this sweep needs and costs a rewrite of a file it cannot
+        prove is safe to touch — the inversion that decides "does this slug still document a
+        type" is the same one the read-time subject derivation uses, so the two never disagree
+        about which slugs are live.
+
+        A role's region converging is not deletion — see :func:`_strip_retired_regions`, which
+        records what was driven: no read path branches on the region's own bytes, so rewriting
+        it changes nothing any read surface observes beyond what the tag itself now resolves
+        to. It is the marker pair every item file carries, and keeping it is the cheaper of two
+        harmless choices.
+
+        **Every branch also gates on the view still being declared in** ``self.spec.views``,
+        **the same condition the per-item-type branch above already checks for its own
+        declared-type precondition.** Dropping ``role_definition`` (or one of the three
+        system-skill views) via a ``.overrides/workflow.toml`` ``[selected]`` block is ordinary,
+        supported customisation, not a defect — but naming a tag for an undeclared view here
+        would seed exactly the shape ``sq check``'s dangling-tag rule then has to flag: a file
+        whose ``sq:view:<name>`` names a view the active spec does not carry. Left ungated, this
+        method and that check would disagree about what "the view is live" means, and every
+        empty or freshly-created body under a dropped view would be a fresh instance of that
+        disagreement rather than a one-time cost. Gating here — the same condition the per-type
+        branch already checks — keeps the two in agreement: a dropped view's region is left
+        alone (genuinely empty or plain, never dangling), matching the standard "empty —
+        activate/sync" guidance rather than needing a repair of its own."""
+        if item.type == ROSTER_ROLE:
+            if ROLE_DEFINITION_VIEW_NAME not in self.spec.views:
+                return None
+            return ROLE_DEFINITION_VIEW_NAME
+        if item.type == ROSTER_SKILL:
+            slug = item.extra.get(X.SLUG, item.slug)
+            view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug)
+            if view_name is not None:
+                return view_name if view_name in self.spec.views else None
+            if item_type_for_skill_slug(slug, self.spec) is not None:
+                return ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in self.spec.views else None
+            return None
+        return None
 
     async def _rebuild_index_from_disk(
         self,
@@ -1741,7 +2057,7 @@ class MaintenanceMixin(ServiceCore):
         previous_counter: int,
         previous_padding: int,
         known_corpus: SquadsDB | None = None,
-    ) -> tuple[SquadsDB, list[str], list[str], list[str]]:
+    ) -> tuple[SquadsDB, list[str], list[str], list[str], list[str]]:
         """Scan every item file fresh and commit a rebuilt index — the core of :meth:`repair`,
         factored out so :meth:`renumber` can reuse it *without* repair's previous-snapshot /
         missing-file / reflog bookkeeping, which is specific to the ``sq repair`` verb (a
@@ -1765,8 +2081,9 @@ class MaintenanceMixin(ServiceCore):
         only when something a previous index actually knew about truly stopped resolving —
         never on a merely-reconstructed metadata quirk that doesn't affect where the file is.
 
-        Returns ``(db, unreadable, canonicalized, stripped)`` — ``unreadable`` names every file
-        whose content could not be read or parsed, **or** that parsed but cannot become an item
+        Returns ``(db, unreadable, canonicalized, stripped, skipped)`` — ``unreadable`` names
+        every file whose content could not be read or parsed, **or** that parsed but cannot
+        become an item
         (no ``id``, or a type-invalid field — :meth:`Item.from_frontmatter` is the load boundary
         for the latter, raising :class:`SquadsError` for both). Each is reported, never silently
         dropped: caught here per file so one bad file never aborts the rebuild for the rest of
@@ -1824,11 +2141,12 @@ class MaintenanceMixin(ServiceCore):
         **frozen list** of named regions and keys, each satisfying three conditions in this
         same build: no live write path produces it, no read path consumes it as authoritative
         because its computed replacement has already shipped, and its content is derived
-        rather than authored. A role's stored body leaves on the same terms and in the same
-        write (:meth:`_sweep_empties_body`); a template-owned skill's does not, because being
-        *derived* is not on its own enough — the sweep also has to be able to prove that
-        nothing authored what it is about to delete, and only the role half can. Adding a name
-        is a
+        rather than authored. A role's stored body converges onto its placement tag on the same
+        terms and in the same write (:meth:`_repair_body_tag`); a general template-owned
+        skill's does not, because being *derived* is not on its own enough — the sweep also has
+        to be able to prove that nothing authored what it is about to overwrite, and only the
+        role case (and, on the same license, the three permanently-system skills — see
+        :meth:`_repair_body_tag`) can. Adding a name is a
         decision, not a developer's choice, and a name added before its writer retires puts
         this sweep and that writer into a loop where each undoes the other on alternate
         commands. ``tests/service/test_repair_strips_only_retired_regions.py`` is the
@@ -1840,6 +2158,12 @@ class MaintenanceMixin(ServiceCore):
         byte-identical to the first, since the strip's own output is what the next scan reads.
         Every transformation composes into **one** queued entry per path
         (:func:`_record_pending_rewrite`), so none of them can discard another's edit.
+
+        **A body-tag convergence that declines is reported, not fatal.** When
+        :func:`_strip_retired_regions` catches a marker-shaped ``sq:body`` its convergence has no
+        model for, that one file's region is left untouched and its message is collected into
+        ``skipped`` — every other file in the same corpus still converges normally, since the
+        decline is caught per file inside the loop below rather than propagating out of it.
         """
         db = SquadsDB(squads_version=__version__, counter=0)
         max_n = 0
@@ -1886,7 +2210,7 @@ class MaintenanceMixin(ServiceCore):
             _carry_forward_indexed_timestamps(item, data, known_corpus)
             self._raise_unless_vocab_valid(item, md)
             _record_pending_rewrite(
-                pending, md, text, data, item, empty_body=self._sweep_empties_body(item)
+                pending, md, text, data, item, body_tag=self._repair_body_tag(item)
             )
             db.add(item)
             max_n = max(max_n, number_for_id(item.id))
@@ -1927,7 +2251,7 @@ class MaintenanceMixin(ServiceCore):
             await write_text(md, new_text)
 
         await self.store.overwrite(db)
-        return db, unreadable, pending.canonicalized, pending.stripped
+        return db, unreadable, pending.canonicalized, pending.stripped, pending.skipped
 
     async def repair(self, *, renumber: bool = False) -> RepairResult:
         """Rebuild the index from the markdown frontmatter, and sweep the corpus while walking
@@ -1988,7 +2312,7 @@ class MaintenanceMixin(ServiceCore):
         if renumber:
             await self._renumber()
 
-        db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
+        db, unreadable, canonicalized, stripped, skipped = await self._rebuild_index_from_disk(
             previous_counter=previous_counter,
             previous_padding=previous_padding,
             known_corpus=known_corpus,
@@ -2014,6 +2338,7 @@ class MaintenanceMixin(ServiceCore):
                 "unreadable": unreadable,
                 "canonicalized": canonicalized,
                 "stripped": stripped,
+                "skipped": skipped,
             },
             session_id=sid,
             parent_session_id=psid,
@@ -2025,6 +2350,7 @@ class MaintenanceMixin(ServiceCore):
             unreadable=unreadable,
             canonicalized=canonicalized,
             stripped=stripped,
+            skipped=skipped,
         )
 
     # ------------------------------------------------------------------ repad
@@ -2360,7 +2686,13 @@ class MaintenanceMixin(ServiceCore):
             # _scan_records() above already read every file's frontmatter unguarded, so an
             # unreadable file would have aborted this verb before any rename ever ran —
             # nothing unreadable survives to reach the rebuild below.
-            db, _unreadable, _canonicalized, stripped = await self._rebuild_index_from_disk(
+            (
+                db,
+                _unreadable,
+                _canonicalized,
+                stripped,
+                _skipped,
+            ) = await self._rebuild_index_from_disk(
                 previous_counter=counter, previous_padding=padding
             )
             # Reflog: appended after the index commit above (never in-place rewriting a
@@ -2878,6 +3210,15 @@ class MaintenanceMixin(ServiceCore):
     ]:
         """Scan every item file for marker issues, frontmatter, and raw body text.
 
+        **Tier 1 of ``sq check``'s two finding tiers** — the other is the per-item validator
+        catalog (``_services/_validators.py``'s ``CATALOG``/``VALIDATOR_NAMES``, dispatched by
+        ``ValidatorEngine``). This tier runs first, unconditionally, on raw file text before a
+        file's frontmatter even parses: :func:`_marker_issues` and :func:`_view_target_issues`
+        below are its two members, both error-level and neither ever selectable or a catalog
+        member — see :mod:`~squads._services._validators`'s module docstring for why a per-file,
+        unconditional finding belongs here and not there, which is the matching back-reference
+        this paragraph completes.
+
         Returns ``(issues, on_disk, bodies, unparseable_seqs, suppress_missing)``.
         ``on_disk``/``bodies`` are keyed by the item's **sequence number** (int) so
         reconciliation comparisons are width-tolerant — frontmatter ``id`` fields keep their
@@ -2943,6 +3284,10 @@ class MaintenanceMixin(ServiceCore):
                 )
                 continue
             issues += [CheckIssue("error", md.name, msg) for msg in _marker_issues(text)]
+            issues += [
+                CheckIssue("error", md.name, msg)
+                for msg in _view_target_issues(text, item_type, self.spec, self.playbook)
+            ]
             try:
                 data = read_frontmatter(text=text, source=str(md))
             except SquadsError as exc:

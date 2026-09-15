@@ -7,8 +7,9 @@ objects, owning only the ``category`` field itself, the closed validator-NAME re
 (``VALIDATOR_NAMES``/``SQUAD_GLOBAL_VALIDATOR_NAMES``), and the Plane-1 load-time spec-validity
 checks that read them.
 
-This engine is the **sole** source of both ``sq check``'s per-item/squad-global issues and the
-create/update fail-closed gate. A type's effective set is ``COMMON_CORE`` plus its category's
+This engine is the sole source of both ``sq check``'s **per-item and squad-global** issues and
+the create/update fail-closed gate — not, despite an earlier version of this sentence, of
+``sq check``'s issues as a whole. A type's effective set is ``COMMON_CORE`` plus its category's
 ``CATEGORY_BUNDLES`` entry plus its own ``validators`` list — both tables live in
 ``_workflow/_models.py``, so the Plane-1 spec-validity pass resolves the same effective set this
 engine runs. ``no_parent`` shows both routes: a ``records`` type gets it from the category
@@ -18,6 +19,25 @@ bundle, and ``epic`` — a ``work`` type — declares it itself. One catalog mem
 ``gate()`` only aborts on an **error**-level issue — a warn-level one (``agent_registered``,
 ``no_status_banner``, …) is advisory everywhere, mirroring ``sq check``'s own error-only exit
 code; it is never a create/update blocker.
+
+**A second, always-on tier sits below this catalog and is not part of it.**
+``MaintenanceMixin._scan_for_check`` (``_services/_maintenance.py``) runs a raw-text file-level
+scan *before* this catalog is ever reached — before a file's frontmatter parses, keyed on the
+type folder and filename alone — and produces two of its own error-level findings:
+``_marker_issues`` (unbalanced/duplicated sq markers) and ``_view_target_issues`` (a
+``sq:view:<name>`` tag that cannot resolve when read against its host: undeclared, an
+unresolvable template, or a declared source that cannot apply to the host's own type — the name
+reflects all of those reasons, not only the first it originally asked about). Neither is a
+member of ``CATALOG``/``VALIDATOR_NAMES``, and neither ever will be: the catalog is per-item (a
+member takes a resolved ``Item`` from a ``ValidatorContext``) while both tier-1 findings are
+per-*file*, running before a file becomes an item — so a file too broken to parse still gets its
+marker/view findings reported, where catalog membership would lose them; and the catalog is
+*selectable* per type while both tier-1 findings are unconditional across every type, which is
+the whole point of a binding invariant a document must satisfy regardless of which validators a
+project has chosen. A caller that needs ``sq check``'s complete finding surface — every future
+consumer that closes a correspondence over ``CATALOG`` and its declared context — must read both
+tiers, not mistake this one for the whole; see ``_scan_for_check``'s own docstring for the
+matching back-reference into this module.
 
 ``ItemSpec`` carries only the bare ``category`` name — the effective per-item validator set
 (common core + category default bundle + the type's own additions) is resolved here, at call
@@ -36,8 +56,9 @@ from squads import _sections as sections
 from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
 from squads._interactions import (
-    TITLE_ADVISORY_MAX,
+    ITEM_SKILL_VIEW_NAME,
     is_live_roster_entry,
+    item_type_for_skill_slug,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
 )
@@ -52,12 +73,14 @@ from squads._roles._resolver import holds_default_designation, resolve_role_for_
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
+    DEFAULT_VALIDATOR_LEVEL,
     ROSTER_ROLE,
     ROSTER_SKILL,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
     VALIDATOR_NAMES,
     WorkflowSpec,
     effective_validator_names,
+    parse_validator_entry,
 )
 
 #: The on-disk scan map ``_scan_for_check`` builds: sequence number -> (frontmatter id, file
@@ -206,6 +229,28 @@ class SquadGlobalValidator(Protocol):
     def __call__(self, ctx: SquadGlobalContext) -> list[CheckIssue]: ...
 
 
+def _resolved_level(ctx: ValidatorContext, name: str) -> str:
+    """The effective level a catalog member *name* reports for ``ctx.item``'s type: the
+    type's own ``@<level>`` override when its ``validators`` list names *name* with one
+    (already Plane-1-checked to be no lower than any declared floor), else the bundled
+    :data:`~squads._workflow._models.DEFAULT_VALIDATOR_LEVEL`.
+
+    Every catalog member calls this instead of writing ``"error"``/``"warn"`` into its own
+    ``CheckIssue(...)`` — the level lives in exactly one place, the declared table, so a
+    member's bundled behaviour and its declared default cannot say two different things.
+    Mirrors ``_ref_rule_target_present``'s own pattern of reading its parameter straight off
+    the type's ``validators`` entries rather than through a value threaded from the dispatch
+    engine.
+    """
+    item_spec = ctx.spec.items.get(ctx.item.type)
+    if item_spec is not None:
+        for entry in item_spec.validators:
+            bare, _param, level = parse_validator_entry(entry)
+            if bare == name and level is not None:
+                return level
+    return DEFAULT_VALIDATOR_LEVEL[name]
+
+
 # --------------------------------------------------------------------------- per-item catalog
 
 
@@ -218,12 +263,13 @@ def _parent_in(ctx: ValidatorContext) -> list[CheckIssue]:
     item = ctx.item
     if not item.parent:
         return []
+    level = _resolved_level(ctx, "parent_in")
     parent = ctx.index.get(item.parent) if ctx.index is not None else None
     if parent is None:
-        return [CheckIssue("error", item.id, f"dangling parent {item.parent}")]
+        return [CheckIssue(level, item.id, f"dangling parent {item.parent}")]
     if not ctx.spec.parent_allowed(item.type, parent.type):
         msg = f"{ctx.spec.parent_hint(item.type)} (got {parent.type})"
-        return [CheckIssue("error", item.id, msg)]
+        return [CheckIssue(level, item.id, msg)]
     return []
 
 
@@ -232,7 +278,8 @@ def _no_parent(ctx: ValidatorContext) -> list[CheckIssue]:
     deliberately does not imply. Selected by the ``records`` bundle and by ``epic``."""
     item = ctx.item
     if item.parent:
-        return [CheckIssue("error", item.id, f"{item.type} takes no parent (got {item.parent})")]
+        level = _resolved_level(ctx, "no_parent")
+        return [CheckIssue(level, item.id, f"{item.type} takes no parent (got {item.parent})")]
     return []
 
 
@@ -261,7 +308,8 @@ def _parent_present(ctx: ValidatorContext) -> list[CheckIssue]:
         return []
     required = ctx.spec.item_parent_required(item.type)
     of_type = f" of type {required}" if required else ""
-    return [CheckIssue("error", item.id, f"{item.type} requires a parent{of_type}")]
+    level = _resolved_level(ctx, "parent_present")
+    return [CheckIssue(level, item.id, f"{item.type} requires a parent{of_type}")]
 
 
 def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
@@ -312,8 +360,9 @@ def _parent_acyclic(ctx: ValidatorContext) -> list[CheckIssue]:
             # prospective id heads the chain and its stored id closes it. Both ends are the
             # same item; left unsaid, one loop reads as two.
             restyled = node.sequence_id == item.sequence_id and node.id != item.id
+            level = _resolved_level(ctx, "parent_acyclic")
             return [
-                CheckIssue("error", item.id, _parent_cycle_message(chain, ctx, restyled=restyled))
+                CheckIssue(level, item.id, _parent_cycle_message(chain, ctx, restyled=restyled))
             ]
         seen.add(node.sequence_id)
         parent_id = node.parent
@@ -353,7 +402,8 @@ def _item_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     it was an unnamed inline check in the hardcoded set)."""
     item = ctx.item
     if item.status not in ctx.spec.workflow_for(item.type).states:
-        return [CheckIssue("error", item.id, f"status {item.status!r} invalid for {item.type}")]
+        level = _resolved_level(ctx, "item_status_valid")
+        return [CheckIssue(level, item.id, f"status {item.status!r} invalid for {item.type}")]
     return []
 
 
@@ -361,11 +411,12 @@ def _dangling_ref(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_items``'s ref loop, dangling-target half."""
     if ctx.index is None:
         return []
+    level = _resolved_level(ctx, "dangling_ref")
     issues: list[CheckIssue] = []
     for r in ctx.item.refs:
         rid, _kind = split_ref(r)
         if ctx.index.get(rid) is None:
-            issues.append(CheckIssue("warn", ctx.item.id, f"dangling ref {rid}"))
+            issues.append(CheckIssue(level, ctx.item.id, f"dangling ref {rid}"))
     return issues
 
 
@@ -375,12 +426,13 @@ def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     A bare/unspelled kind (``""``) is always valid by construction — it names whichever
     declared entry carries ``role = "default"`` — so only a *spelled* kind is checked against
     the merged spec's declared set."""
+    level = _resolved_level(ctx, "ref_kind_valid")
     issues: list[CheckIssue] = []
     for r in ctx.item.refs:
         rid, kind = split_ref(r)
         if kind and kind not in ctx.spec.ref_kinds:
             issues.append(
-                CheckIssue("warn", ctx.item.id, f"unknown ref kind {kind!r} on edge → {rid}")
+                CheckIssue(level, ctx.item.id, f"unknown ref kind {kind!r} on edge → {rid}")
             )
     return issues
 
@@ -388,13 +440,14 @@ def _ref_kind_valid(ctx: ValidatorContext) -> list[CheckIssue]:
 def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_items``'s author/assignee branch: both must resolve to a registered
     roster slug (``ctx.registered_slugs``, precomputed by the engine)."""
+    level = _resolved_level(ctx, "agent_registered")
     issues: list[CheckIssue] = []
     for attr in ("author", "assignee"):
         slug = getattr(ctx.item, attr)
         if slug and slug not in ctx.registered_slugs:
             issues.append(
                 CheckIssue(
-                    "warn", ctx.item.id, f"{attr} {slug!r} is not a registered agent or operator"
+                    level, ctx.item.id, f"{attr} {slug!r} is not a registered agent or operator"
                 )
             )
     return issues
@@ -414,17 +467,18 @@ def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
     required_parent = ctx.spec.item_parent_required(item.type)
     host = required_parent or "parent"
     story_kind = ctx.spec.item_subentity_kind(host) or "story"
+    level = _resolved_level(ctx, "subtask_story_mapping")
     if parent is None or (required_parent is not None and parent.type != required_parent):
         return [
             CheckIssue(
-                "error",
+                level,
                 item.id,
                 f"{kind} maps to a {story_kind} but the {item.type} has no {host} parent",
             )
         ]
     known = {s.local_id for s in parent.subentities}
     return [
-        CheckIssue("error", item.id, f"{kind} {stn} → {us} missing from {parent.id}")
+        CheckIssue(level, item.id, f"{kind} {stn} → {us} missing from {parent.id}")
         for stn, us in refs
         if us not in known
     ]
@@ -437,8 +491,9 @@ def _subentity_status_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     if kind is None:
         return []
     valid = ctx.spec.subentity_workflow(kind).states
+    level = _resolved_level(ctx, "subentity_status_valid")
     return [
-        CheckIssue("error", item.id, f"{kind} {s.local_id} has invalid status {s.status!r}")
+        CheckIssue(level, item.id, f"{kind} {s.local_id} has invalid status {s.status!r}")
         for s in item.subentities
         if s.status not in valid
     ]
@@ -481,9 +536,10 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     }
     stale = sorted(tag for tag in tags if ":" not in tag and tag not in structural)
     found = f"; the file carries {stale[0]!r}" if stale else ""
+    level = _resolved_level(ctx, "subentity_container_marker")
     return [
         CheckIssue(
-            "error",
+            level,
             item.id,
             f"no {plural!r} container section{found} — {kind!r} declares plural {plural!r}, "
             f"so `sq {item.type} {item.sequence_id} add-{kind}` cannot write here. Revert "
@@ -501,13 +557,14 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
     if kind is None or not item.subentities or ctx.raw_text is None:
         return []
     placeholder = discussion.body_placeholder(kind, ctx.spec)
+    level = _resolved_level(ctx, "subentity_body_written")
     issues: list[CheckIssue] = []
     for sub in item.subentities:
         body = sections.get_section(ctx.raw_text, discussion.body_tag(kind, sub.local_id))
         if body is not None and body.strip() == placeholder:
             issues.append(
                 CheckIssue(
-                    "warn",
+                    level,
                     item.id,
                     f"{sub.local_id} body is unwritten (still the placeholder stub)",
                 )
@@ -516,23 +573,26 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
-    """← ``_check_subentity_title_lengths``. The one seed validator with a genuine param: the
-    ``TITLE_ADVISORY_MAX`` threshold is a module constant, not a structured spec field."""
+    """← ``_check_subentity_title_lengths``. The threshold is resolved from the spec —
+    ``WorkflowSpec.item_subentity_title_max`` — never a module constant, so a type's own
+    ``subentity_title_max:<n>`` selection actually changes what fires."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     if kind is None:
         return []
+    threshold = ctx.spec.item_subentity_title_max(item.type)
+    level = _resolved_level(ctx, "subentity_title_max")
     return [
         CheckIssue(
-            "warn",
+            level,
             item.id,
             f"advisory: {kind} {sub.local_id} title is {len(sub.title)} chars"
-            f" (threshold: {TITLE_ADVISORY_MAX})"
+            f" (threshold: {threshold})"
             " — a sub-entity title is a one-line handle;"
             " put the detail in the body",
         )
         for sub in item.subentities
-        if len(sub.title) > TITLE_ADVISORY_MAX
+        if len(sub.title) > threshold
     ]
 
 
@@ -541,11 +601,12 @@ def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
     description comes straight from the item."""
     item = ctx.item
+    level = _resolved_level(ctx, "no_status_banner")
     body = sections.get_section(ctx.raw_text, markers.BODY) if ctx.raw_text is not None else None
     if _opens_with_status_banner(body):
         return [
             CheckIssue(
-                "warn",
+                level,
                 item.id,
                 "body opens with a status/lifecycle banner"
                 " — move state to frontmatter or a dated discussion comment",
@@ -554,7 +615,7 @@ def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     if _opens_with_status_banner(item.description):
         return [
             CheckIssue(
-                "warn",
+                level,
                 item.id,
                 "description opens with a status/lifecycle banner"
                 " — move state to frontmatter or a dated discussion comment",
@@ -576,9 +637,10 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
         ctx.spec.status_role(item.status) == "superseded"
         and item.sequence_id not in ctx.supersedes_incoming
     ):
+        level = _resolved_level(ctx, "supersedes_incoming")
         return [
             CheckIssue(
-                "warn", item.id, f"status is {item.status} but no incoming supersedes edge found"
+                level, item.id, f"status is {item.status} but no incoming supersedes edge found"
             )
         ]
     return []
@@ -609,8 +671,8 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
     targets = {
         param
         for entry in item_spec.validators
-        for bare, sep, param in (entry.partition(":"),)
-        if bare == "ref_rule_target_present" and sep
+        for bare, param, _level in (parse_validator_entry(entry),)
+        if bare == "ref_rule_target_present" and param is not None
     }
     active = targets & ctx.type_present
     if not active:
@@ -626,12 +688,57 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
         if target_item is not None and (kind, target_item.type) in accepted:
             return []
     kinds = sorted({k for k, _ in accepted})
+    level = _resolved_level(ctx, "ref_rule_target_present")
     return [
         CheckIssue(
-            "warn",
+            level,
             item.id,
             f"settled with no {'/'.join(kinds)} ref to a {'/'.join(sorted(active))} — its "
             "functional contract slice may be stale",
+        )
+    ]
+
+
+def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
+    """A live ``sq-<slug>`` skill item whose ``sq:body`` is authored (non-empty, and not just
+    the ``item_skill`` placement tag) while its own slug still names a **currently declared**
+    item type (:func:`~squads._interactions.item_type_for_skill_slug`).
+
+    Reports a real, correct precedence choice rather than a defect in it:
+    ``_services._maintenance._converge_body_tag``'s ``strict_empty`` license is right to
+    refuse overwriting authored content once a later declaration turns a previously ordinary
+    skill slug template-owned — destroying an author's real runbook would be worse.
+    What that refusal does not do on its own is *say* that the declared type's generated
+    guidance (lifecycle, verbs, sub-entity footer) consequently has nowhere left to render:
+    ``_write_managed_skill`` leaves the region untouched, ``_repair_body_tag`` declines the
+    same convergence, and nothing else in ``sq check`` speaks to this state — this member is
+    that report. Only ``item.type == 'skill'`` reaches this function at all (declared directly
+    in ``[items.skill].validators``, not a category bundle — see
+    :data:`~squads._workflow._models.UNGUARDED_VALIDATOR_NAMES`), so the resolved slug's type
+    is always the roster skill's own.
+
+    ``item_type_for_skill_slug`` returning ``None`` (one of the three permanently-system
+    slugs, an author's genuinely custom ``sq-`` skill matching no declared type, or a
+    dropped/renamed type's now-stale slug) is not this finding — there is no declared type
+    whose guidance could be shadowed."""
+    item = ctx.item
+    slug = item.extra.get(X.SLUG, item.slug)
+    doc_type = item_type_for_skill_slug(slug, ctx.spec)
+    if doc_type is None:
+        return []
+    tag_line = markers.open_marker(markers.view_tag(ITEM_SKILL_VIEW_NAME))
+    body = sections.get_section(ctx.raw_text, markers.BODY) if ctx.raw_text is not None else None
+    region = (body or "").strip()
+    if not region or region == tag_line:
+        return []
+    level = _resolved_level(ctx, "item_skill_shadowed")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"documents declared type {doc_type!r} but carries authored content of its own — "
+            f"{doc_type!r}'s generated skill guidance has nowhere to render; rename this skill "
+            "or drop the type to resolve",
         )
     ]
 
@@ -656,6 +763,7 @@ CATALOG: dict[str, Validator] = {
     "no_status_banner": _no_status_banner,
     "supersedes_incoming": _supersedes_incoming,
     "ref_rule_target_present": _ref_rule_target_present,
+    "item_skill_shadowed": _item_skill_shadowed,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
@@ -681,6 +789,7 @@ VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "subentity_body_written": frozenset({ContextRequirement.RAW_TEXT}),
     "no_status_banner": frozenset({ContextRequirement.RAW_TEXT}),
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
+    "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),
 }
 assert set(VALIDATOR_CONTEXT) <= set(CATALOG), (
     "VALIDATOR_CONTEXT must only declare requirements for members CATALOG implements"
@@ -1178,10 +1287,23 @@ class ValidatorEngine:
         )
         held = ctx.held_context()
         issues: list[CheckIssue] = []
+        run: set[str] = set()
         for name in names:
-            # Strip a documentary `:<param>` suffix before the catalog lookup — every CATALOG
-            # key is bare (Plane-1 already rejected a param on a name that doesn't take one).
-            bare = name.partition(":")[0]
+            # Strip a `:<param>`/`@<level>` suffix before the catalog lookup — every CATALOG
+            # key is bare (Plane-1 already validated both suffixes on entry, and each member
+            # resolves its own effective level/param straight off `ctx.spec`, not off `name`).
+            bare = parse_validator_entry(name)[0]
+            # `names` can hold more than one entry for the same bare member — a
+            # `MULTI_SELECTION_VALIDATOR_NAMES` member selected with two different params, e.g.
+            # `ref_rule_target_present:contract` and `ref_rule_target_present:milestone`, both
+            # survive `effective_validator_names`' de-duplication as independent selections. The
+            # member's own function reads every one of its type's matching entries back off
+            # `ctx.spec`/`item_spec.validators` itself (never off `name`), so calling it more
+            # than once per bare name would only repeat the same issue(s) — run each bare member
+            # at most once regardless of how many selections of it survived.
+            if bare in run:
+                continue
+            run.add(bare)
             # A member runs only where this caller carries what it declared it needs. Skipping
             # it by name is the same outcome as running it against a context it cannot read —
             # each such member returns nothing — but it is the outcome by decision instead of

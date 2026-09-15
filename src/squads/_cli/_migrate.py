@@ -31,7 +31,16 @@ migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and 
 @migrate_app.command("up")
 @common.command
 async def migrate_up():
-    """Run the automatic migration(s) to bring this squad to the current schema version."""
+    """Run the automatic migration(s) to bring this squad to the current schema version.
+
+    Exit codes: 0 = nothing to migrate, or migrated with the trailing repair fully clean;
+    1 = migrated, but that repair had to carry an unreadable file's previous entry forward
+    rather than refresh it, or had to leave a marker-shaped ``sq:body`` region untouched rather
+    than guess at what it is — the identical partial-completion condition ``sq repair`` itself
+    exits 1 for (``_cli/_main.py``'s own ``repair`` command), since this command runs that same
+    rebuild as its trailing step. A caller gating on ``$?`` must see the same answer from
+    either route to the same corpus state.
+    """
     svc = get_service()
     disk = svc.paths.config.schema_version
     if schema_tuple(disk) > schema_tuple(SCHEMA_VERSION):
@@ -57,12 +66,43 @@ async def migrate_up():
     notice = run.repair.strip_notice() if run.repair else None
     if notice:
         console.print(notice, soft_wrap=True)
+    # The same sweep's third channel: a file that could not be read or parsed during the
+    # rebuild. `sq repair` reports this at error level and exits 1 for the identical input
+    # (`_cli/_main.py`'s `repair` command); the exit check just below already includes
+    # `unreadable`, so printing nothing here would leave an operator with a failing exit
+    # code and no stated cause — the one combination this route must not produce.
+    for msg in run.repair.unreadable if run.repair else []:
+        console.print(
+            f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
+            "forward as-is; fix the file and repair again",
+            soft_wrap=True,
+        )
+    # The same sweep's other channel: a role/system-skill/per-item-type-skill `sq:body`
+    # region the body-tag convergence declined to touch (marker-shaped content it has no
+    # model for). `sq repair` reports this at error level and exits 1 for the identical
+    # input; this route runs the same rebuild without an operator ever typing `repair`, so
+    # printing nothing here would be the one place the refusal is least likely to be
+    # noticed.
+    for msg in run.repair.skipped if run.repair else []:
+        console.print(
+            f"[red]error[/red]: skipped {e(msg)} — this region was left untouched; "
+            "fix the file by hand and repair again",
+            soft_wrap=True,
+        )
     if any(m.manual for m in applied):
         span = f"v{svc.paths.config.squads_version}..v{__version__}"
         console.print(
             f"[yellow]manual steps remain[/yellow] — read them with `sq migrate chlog {span}`",
             soft_wrap=True,
         )
+    # Same condition `sq repair` itself exits 1 for (`_cli/_main.py`'s `repair` command,
+    # `if result.unreadable or result.skipped`) — this command's trailing repair is the same
+    # rebuild over the same corpus, so a caller gating on `$?` must see the same partial-vs-
+    # clean answer whichever of the two verbs it ran. Never true when `applied` is empty
+    # (this function already returned above); both loops above already report every
+    # `unreadable`/`skipped` message this condition can fire on.
+    if run.repair and (run.repair.unreadable or run.repair.skipped):
+        raise typer.Exit(1)
 
 
 @migrate_app.command("help")

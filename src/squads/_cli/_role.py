@@ -1,4 +1,4 @@
-"""`sq role …` — manage agent roles (catalog/activate/show/regen/rm/status/set-default).
+"""`sq role …` — manage agent roles (catalog/activate/show/regen/rm/status/set-default/view).
 
 Grammar:
   sq role catalog                    — show the role catalog for the active squad
@@ -7,6 +7,8 @@ Grammar:
   sq role <slug|id|n> regen          — regenerate the Claude pointer
   sq role <slug|id|n> status <S>     — transition the role's status
   sq role <slug|id|n> set-default    — move the default-role designation here
+  sq role <slug|id|n> view add <n>   — place a view tag in sq:body
+  sq role <slug|id|n> view rm <n>    — remove a view tag from sq:body
   sq role <slug|id|n> rm [--purge]   — remove the role item
 
 Address resolution order (exact match, no fuzzy):
@@ -24,6 +26,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 import squads._cli._common as common
+from squads import __version__
+from squads import _views as views
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
@@ -37,20 +41,15 @@ from squads._cli._common import (
 )
 from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._interactions import allowed_create_types, is_dev_slug
+from squads._interactions import ROLE_DEFINITION_VIEW_NAME, allowed_create_types
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
+from squads._models._schema import version_drifted
 from squads._paths import resolve as resolve_squad_paths
 from squads._roles._catalog import PREDEFINED, RoleDef
 from squads._roles._loader import load_role_catalog
 from squads._roles._models import RoleSpec
-from squads._roles._resolver import (
-    dev_base_for_slug,
-    resolve_role_for_item,
-    resolve_role_with_base,
-    role_base_from_item,
-)
-from squads._services._service import Service
+from squads._roles._resolver import resolve_role_for_item, resolve_role_with_base
 from squads._workflow import ROSTER_ROLE
 
 #: The bundled catalog's own slugs — used by ``sq role catalog`` to tell a project-declared or
@@ -59,16 +58,17 @@ _BUNDLED_SLUGS: frozenset[str] = frozenset(r.slug for r in PREDEFINED)
 
 
 class _RoleDispatchGroup(AddressDispatchGroup):
-    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status|set-default"
+    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status|set-default|view"
 
 
 role_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent roles.",
     epilog=(
-        "Address a role:  sq role <slug|id|n> show|regen|rm|status|set-default\n"
+        "Address a role:  sq role <slug|id|n> show|regen|rm|status|set-default|view\n"
         "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm\n"
         "           sq role manager status Archived   sq role qa set-default\n"
+        "           sq role qa view rm role_definition   — clear a tag naming a dropped view\n"
         "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
@@ -306,100 +306,6 @@ def _require_id(ctx: typer.Context) -> str:
     return item_id
 
 
-def _role_base_for_show(
-    slug: str, it: Item | None, squad_dir: Path | None = None
-) -> RoleDef | None:
-    """The merge base for ``show``: an item in hand's own operator-settable fields
-    (:func:`role_base_from_item` — a bundled role's ``full_name``, a developer role's
-    tech/name/model, plus this squad's own catalog-document override merged into a bundled
-    role's base) first, the ``-dev`` naming convention's generated preview only when there
-    is no item to ask.
-    """
-    if it is not None:
-        return role_base_from_item(it, squad_dir)
-    return dev_base_for_slug(slug, squad_dir) if is_dev_slug(slug) else None
-
-
-def _dev_preview_full_name(r: RoleDef, base_role: RoleDef | None, it: Item | None) -> str | None:
-    """The full name to report for a role card — ``None`` when it is a fabricated preview
-    rather than a real fact.
-
-    A ``-dev``-shaped slug with no roster entry previews against the generated developer
-    template (``dev_base_for_slug``), and that template's ``full_name`` is a pool pick ``sq dev
-    add`` is not bound to honour (the pool position it will actually land on depends on how many
-    developers exist *at that later point*, not now) — reporting it as the developer's name
-    would state a fact activation can immediately contradict. Only the un-declared case is
-    blanked: a file that itself sets ``full_name`` is the adopter's own declaration and is
-    reported as-is, matching every other role.
-    """
-    if it is None and base_role is not None and r.full_name == base_role.full_name:
-        return None
-    return r.full_name
-
-
-async def _role_json_payload(
-    svc: Service,
-    slug: str,
-    item_id: str | None,
-    it: Item | None,
-    base_role: RoleDef | None,
-    addr: str,
-) -> dict[str, object]:
-    """The ``--json`` payload for ``show``: the full resolved definition, or an item-field
-    fallback for a slug with no bundled catalog entry, no dev base, and no override file.
-
-    ``skills`` is resolved once, ahead of the branch below, and carried into both outcomes:
-    it is a computed projection over the index (:meth:`Service.resolved_skills_for_role`),
-    never a field of the resolved ``RoleDef`` or the stored item, so neither branch's own
-    resolution touches it. Live-only by the same method's own design — an activated role
-    resolves its full preload set (system membership plus every ``preload``-scoped skill), a
-    bundled-only or retired slug resolves to the system-only fallback.
-    """
-    data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
-    skills = await svc.resolved_skills_for_role(slug)
-    try:
-        r = resolve_role_with_base(slug, svc.paths.squad_dir, base=base_role)
-        data.update(
-            {
-                "full_name": _dev_preview_full_name(r, base_role, it),
-                "title": r.title,
-                "mission": r.mission,
-                "model": r.model,
-                "is_default": r.is_default,
-                "can_spawn": r.can_spawn,
-                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
-                "responsibilities": list(r.responsibilities),
-                "skills": skills,
-            }
-        )
-    except RoleNotFoundError:
-        # Narrow deliberately: this fallback exists for a slug with no bundled catalog entry,
-        # no dev base, and no override file — and only that. A broader catch also swallowed an
-        # *invalid* project role override — the refusal disappeared and the card rendered from
-        # the stored item, so a squad answered as though the broken override were not there.
-        # Nothing resolves for this shape, so what can be rebuilt comes from the uniform
-        # record (`item.title`/`item.description`) where one exists, and from whatever the
-        # item's own `extra` still carries for the rest — a corpus written before the
-        # definition stopped being mirrored there answers these; one written since reports the
-        # absence honestly rather than inventing a catalog answer there is none of.
-        if it is None:
-            raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
-        data.update(
-            {
-                "full_name": it.title,
-                "title": it.extra.get(X.TITLE, ""),
-                "mission": it.description,
-                "model": it.extra.get(X.MODEL),
-                "is_default": it.extra.get(X.IS_DEFAULT, False),
-                "can_spawn": it.extra.get(X.CAN_SPAWN, False),
-                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
-                "responsibilities": it.extra.get(X.RESPONSIBILITIES, []),
-                "skills": skills,
-            }
-        )
-    return data
-
-
 @_addr.command("show")
 @common.command
 async def show_role(
@@ -430,10 +336,10 @@ async def show_role(
     # (`role_base_from_item`); an unactivated developer slug falls back to the generated pool
     # name. Every other unactivated slug keeps `resolve_role`'s ordinary bundled/new-slug base
     # (``None`` here).
-    base_role = _role_base_for_show(slug, it, svc.paths.squad_dir)
+    base_role = common.role_base_for_show(slug, it, svc.paths.squad_dir)
 
     if json_out:
-        data = await _role_json_payload(svc, slug, item_id, it, base_role, addr)
+        data = await common.build_role_json_payload(svc, slug, item_id, it, base_role, addr)
         print_json_clean(json.dumps(data))
         return
 
@@ -450,7 +356,7 @@ async def show_role(
         # `Service.resolved_skills_for_role`).
         skills = await svc.resolved_skills_for_role(slug)
         skills_display = ", ".join(skills) if skills else "—"
-        preview_name = _dev_preview_full_name(r, base_role, it)
+        preview_name = common.dev_preview_full_name(r, base_role, it)
         display_name = (
             preview_name
             if preview_name is not None
@@ -481,29 +387,66 @@ async def show_role(
             raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
     console.print(Panel("\n".join(rows), expand=False))
 
-    # The definition — styled markdown on a TTY, plain with --raw or when piped — rendered
-    # fresh from `r` on this call, never read from any stored region. Keyed on the item's own
-    # existence (`it`), not on a stored region's presence or on `r` alone: every activated
-    # role's `sq:body` region is present-but-empty now that nothing writes it, so a branch
-    # keyed on the region would misreport an active role as unactivated — and a bundled-only
-    # slug with no item resolves `r` just fine (the catalog needs no item), so a branch keyed
-    # on `r` alone would show the definition for a role nobody has activated.
-    if it is not None and r is not None:
-        render_body_text(svc.role_definition_text(r), raw=raw)
-    elif it is None:
+    # The definition — styled markdown on a TTY, plain with --raw or when piped — read the
+    # same way any other item's body is (`read_body`, tag-expanded), not rendered from `r`
+    # directly: the item's own `sq:body` carries the `sq:view:role_definition` tag seeded at
+    # activation, and reading it resolves and renders fresh on every call.
+    # Keyed on the item's own existence (`it`) alone, not on `r`: `resolve_role_for_item` (the
+    # seam the tag's own source resolves through) degrades a broken project override to
+    # `RoleDef.from_extra_or_item` rather than raising, so the definition still renders even
+    # on the one path where the catalog card above could not resolve `r` — the same graceful
+    # degrade every other consumer of a live role item already gets. That degrade is a feature,
+    # not a bug to undo — but it must not be a *silent* one: `r is None` here means the catalog
+    # card above already fell back to the item's own fields, and the definition pane rendering
+    # something plausible-looking must not be the only signal, or an operator has no way to
+    # tell a genuinely resolved role from a broken `.overrides/roles.toml` degrading quietly.
+    if it is not None:
+        if r is None:
+            console.print()
+            console.print(
+                f"[dim](the definition for {e(slug)} could not be resolved — "
+                "run `sq check` to see why)[/dim]",
+                soft_wrap=True,
+            )
+        # There is no `body` verb in the `sq role` addressing group and `set_body` refuses a
+        # role body unconditionally, so the default "set it with `body`" hint names an action
+        # this group cannot take. `sq sync` is a real remedy for one of the three states
+        # `empty_body_hint_state` distinguishes — it converges an empty role body onto its
+        # placement tag, but only on an outstanding version drift, and only when the view is
+        # declared; naming it in either of the other two states would send an operator in a
+        # circle, so this reads the shared predicate rather than guessing.
+        hint_state = views.empty_body_hint_state(
+            ROLE_DEFINITION_VIEW_NAME,
+            svc.spec,
+            drift_outstanding=version_drifted(__version__, svc.paths.config.squads_version),
+        )
+        if hint_state == "declared_no_drift":
+            empty_hint = (
+                "(empty — `sq sync` cannot populate it: the version-drift backfill it relies "
+                "on has nothing outstanding to run. Try `sq repair`, which converges an "
+                "already-tagged or plain-legacy body regardless of drift — or, if this body "
+                f"is genuinely untagged, `sq role <slug> view add {ROLE_DEFINITION_VIEW_NAME}`)"
+            )
+        elif hint_state == "declared_drift_outstanding":
+            empty_hint = "(empty — run `sq sync` to populate it)"
+        else:
+            empty_hint = (
+                f"(empty — the view {ROLE_DEFINITION_VIEW_NAME!r} is not declared in this "
+                "project's spec, so `sq sync` cannot populate it; declare it in "
+                "`.overrides/workflow.toml` to restore the generated definition — or, if a "
+                f"role's body still carries this tag from before it was dropped, clear it "
+                f"with `sq role <slug> view rm {ROLE_DEFINITION_VIEW_NAME}`)"
+            )
+        render_body_text(
+            await svc.read_body(it.id),
+            raw=raw,
+            empty_hint=empty_hint,
+        )
+    else:
         console.print()
         console.print(
             f"[dim](no active item for {e(slug)} — run `sq role activate {e(slug)}`"
             " then `sq sync` to populate the full definition)[/dim]",
-            soft_wrap=True,
-        )
-    else:
-        # An activated role whose resolution itself failed (e.g. an invalid project
-        # override) — nothing to render; `sq check` is where that failure is reported.
-        console.print()
-        console.print(
-            f"[dim](the definition for {e(slug)} could not be resolved — "
-            "run `sq check` to see why)[/dim]",
             soft_wrap=True,
         )
 
@@ -556,5 +499,50 @@ async def set_default_role(ctx: typer.Context) -> None:
 
 
 register_status_verb(_addr, _require_id)
+
+
+# --------------------------------------------------------------------------- view add/rm
+
+# The ``sq role <addr> view add|rm <name>`` group: place or remove an unpaired
+# ``sq:view:<name>`` tag in the role's ``sq:body`` region. Mirrors ``_cli._items._cmd_view``'s
+# shape (the generic per-type group's own view verb) over ``ServiceCore.insert_view``/
+# ``remove_view`` — the same item-type-agnostic mutation, addressed here through the role
+# group's own slug/ID/number resolution rather than the generic group. This is the recovery for
+# a role whose body already carries a tag naming a view the active spec no longer declares:
+# `rm` removes it unconditionally — no ``spec.views`` check, deliberately, because a tag once
+# placed must stay removable even for a view that no longer exists — and only an operator
+# invoking it ever clears one; nothing in this codebase does it automatically.
+_view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag in sq:body.")
+
+
+@_view_app.command("add")
+@common.command
+async def role_view_add(
+    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+) -> None:
+    """Insert the sq:view:NAME tag at the end of sq:body (idempotent)."""
+    item_id = _require_id(ctx)
+    inserted = await get_service().insert_view(item_id, name)
+    if inserted:
+        console.print(f"{item_id}: view {e(name)} placed in sq:body")
+    else:
+        console.print(f"{item_id}: view {e(name)} already present, unchanged")
+
+
+@_view_app.command("rm")
+@common.command
+async def role_view_rm(
+    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+) -> None:
+    """Remove the sq:view:NAME tag from sq:body (safe no-op if absent)."""
+    item_id = _require_id(ctx)
+    removed = await get_service().remove_view(item_id, name)
+    if removed:
+        console.print(f"{item_id}: view {e(name)} removed from sq:body")
+    else:
+        console.print(f"{item_id}: view {e(name)} was not present, nothing to do")
+
+
+_addr.add_typer(_view_app, name="view")
 
 role_app.add_typer(_addr, name="_addr", hidden=True)

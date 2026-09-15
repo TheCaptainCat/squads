@@ -1,13 +1,18 @@
-"""``sq skill <slug> show``: where the body comes from is decided by the same ``kind:`` the panel
-prints, and by nothing else.
+"""``sq skill <slug> show``: every skill's body reads through the same call
+(``read_body``, tag-expanded for a system-owned body, authored content unchanged for a custom
+one), and where the body comes FROM is decided by the same ``kind:`` the panel prints, by nothing
+else.
 
-A **system** skill's definition is rendered on this call, so it prints in full even though the
-item file stores nothing; a **custom** skill's body is read from the item, because that is the
-only place it lives. The panel above the body, ``--raw``, and ``--json`` are unchanged either way.
+A **system** skill's item file carries only its own ``sq:view:<name>`` placement tag; the
+definition it names renders in full on this call, off that tag. A **custom** skill's body is its
+own authored content, and reads back unchanged. The panel above the body, ``--raw``, and
+``--json`` are unchanged either way.
 
-The empty case is the one that had to change meaning: for a system skill an empty answer no
-longer means "unwritten, run a sync", it means the item type this skill described is no longer
-declared — and the hint has to say what it means rather than name a command with no such effect.
+The empty case carries two different meanings for a system skill, and the hint has to tell them
+apart rather than assume one: the type this skill's slug documents may no longer be declared (no
+``sq sync`` can fix that), or the type may be perfectly live with nothing having backfilled the
+tag onto this body yet (``sq sync`` is exactly the fix there). A custom skill's empty case is a
+third fact again — nobody has written it.
 """
 
 import json
@@ -47,13 +52,18 @@ def _write_workflow_override(squad_dir, content: str) -> None:
     )
 
 
-async def test_show_prints_a_system_definition_although_the_item_stores_nothing(
+async def test_show_prints_a_system_definition_although_the_item_stores_only_its_own_tag(
     seeded, invoke
 ) -> None:
+    from squads import _sections as sections
+    from squads._models import _markers as markers
+
     svc = service.Service(seeded)
     item = await svc.roster_item("skill", "sq-task")
     assert item is not None
-    assert await svc.read_body(item.id) == ""  # nothing stored
+    stored = svc.paths.abspath(item.path).read_text(encoding="utf-8")
+    region = (sections.get_section(stored, markers.BODY) or "").strip("\n")
+    assert region == markers.open_marker(markers.view_tag("item_skill"))  # only the tag, ever
 
     r = await invoke(["skill", "sq-task", "show", "--raw"])
     assert r.exit_code == 0, r.output
@@ -94,7 +104,11 @@ async def test_a_system_skill_for_an_undeclared_type_says_so_instead_of_naming_a
     r = await invoke(["skill", "sq-guide", "show", "--raw"])
     assert r.exit_code == 0, r.output
     assert "system (template-owned)" in r.output
-    assert "no longer declared" in r.output
+    # Two separate substring checks, not one combined phrase: the hint now names the dropped
+    # type inline (`'guide'`), which is long enough to push a console-width line wrap between
+    # "no longer" and "declared" — a single combined-phrase match is fragile to exactly that.
+    assert "no longer" in r.output
+    assert "declared" in r.output
     assert "sq sync" not in r.output
 
 

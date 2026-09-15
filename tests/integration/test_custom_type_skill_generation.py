@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import resolved_skill_definition
 from squads._interactions import bundled_skill_slugs
 from squads._sections import split_frontmatter
 from squads._services import _service as service
@@ -66,7 +67,7 @@ def _spec_with_incident() -> WorkflowSpec:
 
 async def _skill_text(svc) -> str:
     """The thin skill's definition as this squad resolves it (rendered on read)."""
-    return await svc.skill_definition_text("sq-incident")
+    return await resolved_skill_definition(svc, "sq-incident")
 
 
 async def test_sync_generates_a_thin_skill_with_lifecycle_and_standard_verbs(

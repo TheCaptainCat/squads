@@ -3,16 +3,17 @@ id: EPIC-540
 sequence_id: 540
 type: epic
 title: Pluggable item validators (declarative sq check)
-status: Done
+status: InProgress
 author: product-owner
 priority: medium
 refs:
 - EPIC-538
+- ADR-864
 description: Turn sq check + create/update gating into a declarative, pluggable validator
   catalog; parent_required becomes one validator; category defaults are validator
   bundles.
 created_at: '2026-07-21T15:56:09Z'
-updated_at: '2026-07-24T07:55:03Z'
+updated_at: '2026-09-03T09:02:19Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -48,9 +49,9 @@ A named validator catalog makes the constraint set data-driven and per-type comp
   (fail-closed on the first violation) run the same validators — the report-vs-abort split
   mirrors the existing workflow-lint pattern.
 
-## Seed catalog (from today's checks)
+## Seed catalog (delivered by FEAT-568)
 
-The existing `_check_*` methods become the initial named validators, e.g.:
+The existing `_check_*` methods became the initial named validators, e.g.:
 
 - `parent_required` / `parent_in:<types>` / `no_parent` — parent eligibility
 - `subtask_story_mapping` — subtask maps to a parent story
@@ -58,14 +59,22 @@ The existing `_check_*` methods become the initial named validators, e.g.:
 - `subentity_title_max:<n>` — over-long finding/story titles
 - `no_status_banner` — no lifecycle/status prose in bodies
 - `subentity_status_valid`, dangling parent, dangling ref, backend reconciliation
+- `parent_acyclic` — a parent chain that closes on itself (landed after this epic first
+  closed, as a bug fix; folded into the floor)
 
-## Outcomes grouped under this epic
+## Reopened for ADR-864's full catalog build-out
 
-- A validator catalog (hard-coded, closed) plus a per-type `validators` declaration (spec).
-- `sq check` re-expressed over the catalog; create/update gating shares the same engine.
-- Category default validator bundles (records `no_parent`, work `parent_in`, …).
-- No regression: the current check set is fully represented as validators, byte-identical
-  behaviour for the bundled spec.
+Closing this epic against the seed catalog was closing it against FEAT-568's children, not its
+outcome. ADR-864 (accepted 2026-09-03) found the outcome incomplete: the catalog had no
+**declared level, parameter/threshold, or required-context** dimension — an adopter can select
+a validator but not say how much they mean it, which is why several real checks (the
+contract-currency rule, the requires-a-parent check) either shipped bundled-and-noisy or stayed
+unbundled entirely. It also names sixteen validators the corpus needs that were never built,
+and two floor members (`no_status_banner`, the sub-entity title threshold) that fail this
+framework's own floor-vs-catalog-only test.
+
+This epic reopens to deliver that: the full ADR-864 build-out is now in scope, sequenced by
+its accepted build order (see the features grouped under this epic).
 
 ## Acceptance (epic-level)
 
@@ -77,14 +86,20 @@ The existing `_check_*` methods become the initial named validators, e.g.:
   the gate and the report.
 - Adopter-supplied validator *code* is rejected; only catalog validators, referenced by name
   and params, are allowed.
+- A selection can declare its level (subject to a declared floor a selection may raise but not
+  lower), and a threshold/parameter lives in the spec rather than a module constant.
+- Every ADR-864 Part 2 member that is buildable today exists in the catalog, correctly tiered
+  (floor / category bundle / catalog-only) per the ADR's tiering test.
 
 ## Dependencies / relationships
 
-- **Sibling of EPIC-538** (spec customization). 538's "records take no parent, enforced" is
-  this framework's first customer — implemented as the `no_parent` validator rather than a
+- **Sibling of EPIC-538** (spec customization, Done). 538's "records take no parent, enforced"
+  was this framework's first customer — implemented as the `no_parent` validator rather than a
   hardcoded check.
-- **Shares the foundational ADR** (architect): the category axis and the validator model are
-  decided together — they compose — before either epic's features are built.
+- **Shares the foundational ADR-541** (architect): the category axis and the validator model
+  were decided together — they compose.
+- **ADR-864** rules the reopened scope: three tiers, declared levels, no injected Python. Its
+  accepted build order is the sequencing for the features under this epic.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -94,4 +109,8 @@ The existing `_check_*` methods become the initial named validators, e.g.:
   - Split out from the EPIC-538 discussion: generalize parent_required into a pluggable, closed-catalog validator framework powering sq check + create/update gating. Sibling to EPIC-538 (its records-no-parent enforcement is the first customer, built as the no_parent validator). Category axis + validator model to be pinned together in one foundational ADR before features are cut.
 - [2026-07-24T07:55:02Z] Catherine Manager:
   - Reconciled to Done — the pluggable-validator model shipped: FEAT-567 (ValidatorEngine dispatch) + FEAT-568 (named-validator catalog). Every sq check rule is a named catalog validator (same issues as before), effective set = category defaults + per-type additions with a closed catalog failing closed, create/update + sq check share one engine (no duplicated rule logic), and adopter-supplied validator code is rejected (catalog-by-name only). Acceptance met.
+- [2026-09-03T09:01:43Z] Nina Product:
+  - Epic-parentage call: reopened this epic (Done -> InProgress) rather than opening a new one, for ADR-864's full catalog build-out.
+  - Its outcome statement -- turn sq check + create/update gating from hardcoded checks into a declarative, pluggable validator catalog, composable per type -- was closed on FEAT-568's seed catalog, but that seed never delivered the declared-level/parameter/required-context dimension ADR-864 identifies as the missing piece, and never built the Part 2 members. The outcome was not actually complete; closing it against FEAT-568's children rather than the outcome is the exact failure this team has been burned by before. Reopening says so honestly instead of inventing a second epic for the same outcome.
+  - Contrast with EPIC-897 (new epic for ADR-880): that case has no existing epic whose stated outcome matches, so a new epic is the honest move there. Here one already exists and matches precisely.
 <!-- sq:discussion:end -->

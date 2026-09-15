@@ -1,6 +1,6 @@
 [project]
 name = "squads"
-version = "0.14.0"
+version = "0.15.0"
 description = "The coordination layer for a team of AI agents working on one codebase: stable JIRA-like IDs, roles & skills, a status lifecycle, and handoffs in predictable markdown."
 readme = "PYPI.md"
 requires-python = ">=3.14"
@@ -76,6 +76,7 @@ addopts = "-q -n auto"
 anyio_mode = "auto"
 markers = [
     "slow: marks tests that generate large data sets or have wall-clock bounds (skipped by default, opt in with --run-slow)",
+    "gate_for(site): declares that this test's own falsification proves a gated view-tag writer site (module-relative-path::function); collected by tests/meta's writer-scan citation check instead of a hand-maintained dict",
 ]
 
 [tool.ruff]

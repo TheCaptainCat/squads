@@ -7,7 +7,7 @@ override reached what ``sq dev add`` creates and not what a not-yet-added slug p
 
 Three surfaces:
 
-- ``sq role <tech>-dev show`` on an un-added slug (``_cli/_role.py``'s ``_role_base_for_show``)
+- ``sq role <tech>-dev show`` on an un-added slug (``_cli/_common.py``'s ``role_base_for_show``)
   — the directly observable case, proven end to end against ``sq dev add``'s own result.
 - ``_check_role_override_resolves`` (``_overrides/_service.py``) — the merge base a per-slug
   dev override is validated against when there is no roster item yet.

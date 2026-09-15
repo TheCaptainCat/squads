@@ -15,7 +15,7 @@ from typer.testing import CliRunner
 
 from squads._cli import app
 from squads._index._resolver import item_file
-from squads._interactions import is_system_skill
+from squads._interactions import SYSTEM_SKILL_VIEW_NAMES, is_system_skill
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
 from squads._models._config import SquadsConfig
@@ -219,15 +219,25 @@ async def test_corpus_carries_no_retired_region_after_migrating(
 
 
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
-async def test_a_system_skill_body_survives_the_migration_unchanged(
+async def test_a_system_skill_body_converges_and_a_per_type_skill_body_survives(
     schema_label: str, corpus_name: str, tmp_path: Path
 ) -> None:
-    """A system skill's stored body comes out of the migration byte-for-byte as it went in.
+    """Two different template-owned skill shapes, two different outcomes across the migration.
 
-    The sweep does not empty it, because on a real corpus it cannot tell a definition an older
-    release stored from prose an author wrote: the slug's template-ownership is read off
-    today's vocabulary and the body was written under an earlier one, and a release adding a
-    bundled type flips that answer for every squad at once.
+    ``is_system_skill`` covers two families, and only one of them is reachable here
+    (``MaintenanceMixin._repair_body_tag``, keyed on
+    :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES`, the three permanently-system slugs
+    squads/greeting/sq-memory):
+
+    - **one of the three**: its stored body is a rendering an older release wrote before this
+      tag mechanism existed (or before 0.14 retired the stored-region model) — never author-
+      editable prose, since ``set_body`` refuses this body unconditionally in current code the
+      same way it refuses a role's. The sweep converges it onto the ``sq:view:<name>``
+      placement tag the same way it converges a role.
+    - **any other template-owned (per-item-type, ``sq-<type>``) skill**: whether *this* slug is
+      template-owned is read off today's vocabulary and the body was written under an earlier
+      one, so a stored body here still cannot be told apart from prose an author wrote before
+      the slug became template-owned — the sweep leaves it exactly where it is.
 
     **The precondition is the point of the parametrisation**, and it is the one the sibling
     role test below already carries. Without it a fixture that stores no skill body at all
@@ -252,16 +262,33 @@ async def test_a_system_skill_body_survives_the_migration_unchanged(
     system = [it for it in skills if is_system_skill(it.extra.get(X.SLUG, it.slug), svc.spec)]
     assert system, f"{corpus_name!r} carries no system skill to assert on"
     stored = {
-        it.id: (item_file(paths, it), before[item_file(paths, it).name])
+        it.id: (it, item_file(paths, it), before[item_file(paths, it).name])
         for it in system
         if (before.get(item_file(paths, it).name) or "").strip()
     }
     if not stored:
         pytest.skip(f"{corpus_name!r} stores no system skill body for the sweep to reach")
-    for item_id, (path, was) in stored.items():
+    converged = 0
+    for it, path, was in stored.values():
         text = path.read_text(encoding="utf-8")
-        assert has_section(text, markers.BODY), f"{item_id}: the body markers were deleted"
-        assert _body_region(text) == was, f"{item_id}: the stored body was rewritten"
+        assert has_section(text, markers.BODY), f"{it.id}: the body markers were deleted"
+        slug = it.extra.get(X.SLUG, it.slug)
+        view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug)
+        region = (_body_region(text) or "").strip()
+        if view_name is not None:
+            assert region == markers.open_marker(markers.view_tag(view_name)), (
+                f"{it.id}: the {slug!r} system skill body did not converge onto its tag"
+            )
+            converged += 1
+        else:
+            assert region == (was or "").strip(), f"{it.id}: the stored body was rewritten"
+    # Every fixture's parametrisation stores at least one of the three fixed system-skill
+    # slugs (squads/greeting), so this branch is always exercised; a per-type skill (e.g.
+    # sq-contract) only appears on a fixture already at the current stamp, which is skipped
+    # above before reaching this loop — that survives-unchanged branch is covered instead by
+    # ``test_a_system_skill_body_survives_the_sweep`` in
+    # ``tests/service/test_repair_strips_only_retired_regions.py``.
+    assert converged, f"{corpus_name!r} carries no fixed system skill to assert converges"
 
 
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
@@ -269,7 +296,8 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
     schema_label: str, corpus_name: str, tmp_path: Path
 ) -> None:
     """Every migrated role keeps the record other surfaces read and loses the definition it
-    used to store twice.
+    used to store twice — replaced by the ``sq:view:role_definition`` placement tag its body
+    now converges onto, the same tag a freshly-created role seeds at creation.
 
     Both halves are asserted per fixture rather than spot-checked, because they fail in
     opposite directions: the top-level ``title``/``description`` are the uniform record and
@@ -311,7 +339,9 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
             continue
         assert set(stored) & _RETIRED_MIRROR_KEYS == set(), f"{item.id}: the mirror survived"
         assert stored.get(X.SLUG), f"{item.id}: the dispatch identity was stripped with it"
-        assert not (get_section(text, markers.BODY) or "").strip()
+        assert (get_section(text, markers.BODY) or "").strip() == markers.open_marker(
+            markers.view_tag("role_definition")
+        ), f"{item.id}: the body converged onto something other than its placement tag"
         assert item.title == was["title"]
         assert item.description == was.get("description", "")
         assert item.extra == stored, f"{item.id}: the index and the file disagree"
@@ -389,7 +419,9 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
         text = item_file(paths, item).read_text(encoding="utf-8")
         stored = read_frontmatter(text=text, source=str(item_file(paths, item))).get("extra", {})
         assert set(stored) & _RETIRED_MIRROR_KEYS == set()
-        assert not (get_section(text, markers.BODY) or "").strip()
+        assert (get_section(text, markers.BODY) or "").strip() == markers.open_marker(
+            markers.view_tag("role_definition")
+        )
 
     corpus = {p: p.read_bytes() for p in _md_files(paths.squad_dir)}
     second = await svc.repair()

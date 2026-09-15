@@ -7,11 +7,13 @@ status: Verified
 author: qa
 priority: high
 severity: high
+refs:
+- ADR-864:addresses
 description: update --parent accepts a self- or mutual-parent edge with exit 0; every
   sq tree call in the squad then spins forever while every other read surface stays
   fine.
 created_at: '2026-09-01T15:41:07Z'
-updated_at: '2026-09-02T08:50:34Z'
+updated_at: '2026-09-03T08:50:21Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -273,4 +275,9 @@ is a `RecursionError`, not a hang.
     The remaining two residues — the `status` verb bypassing the catalog gate, and the retype refusal printing a chain that reads as unclosed — are not filed here; the coordinator reopened TASK-866 on them, since the first is that task's own acceptance clause not being met.
     
     BUG-865 itself stays Verified: nothing above changes the verification result. All three are follow-ups to what the fix left unsettled, not defects in what it fixed.
+- [2026-09-03T08:50:21Z] Mara Tester:
+  - ADR-864 (Part 2, driving evidence for the validator-catalog decision) independently re-surfaced this exact defect on 2026-09-01, before this bug's fix had landed on main.
+  - Re-verified against current HEAD (f8c76e57 / 0901816c, 0.14 close): update --parent BUG-9 on a self-parent now exits 1 with the cycle message; a cycle forced in via frontmatter + sq repair is now caught by sq check (exit 3, both endpoints named); sq tree/-a/--json/rooted-elsewhere all return immediately (exit 0) rendering a [cycle anchor] annotation, no hang. Driven in a throwaway scratch squad, removed after.
+  - parent_acyclic is not separately-scoped 0.15 work — it already shipped as a COMMON_CORE floor validator (_services/_validators.py:267 _parent_acyclic, registered _services/_validators.py:646, listed _workflow/_models.py:148,212 COMMON_CORE). ADR-864 Part 2's line for parent_acyclic ("None of these exist") is stale against current main; worth a pass on that entry before the ADR is accepted.
+  - No new bug filed — this is the same defect, already Fixed and Verified here, not a duplicate. Linked ADR-864 (addresses) so the ADR's evidence trail points at the resolved record instead of an open gap.
 <!-- sq:discussion:end -->

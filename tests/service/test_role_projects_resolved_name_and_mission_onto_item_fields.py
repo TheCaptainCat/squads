@@ -17,7 +17,6 @@ from squads import _itemfile as itemfile
 from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
-from squads._roles._resolver import resolve_role_for_item
 from squads._services import _maintenance as maintenance
 from squads._workflow import ROSTER_ROLE
 
@@ -120,7 +119,7 @@ async def test_bundled_role_declared_mission_reaches_description_and_the_mission
     reloaded = await svc.get(role.id)
     assert reloaded.description == "Secure the whole system."
 
-    definition = svc.role_definition_text(resolve_role_for_item(reloaded, svc.paths.squad_dir))
+    definition = await svc.read_body(reloaded.id)
     assert "Secure the whole system." in definition
     assert _BUNDLED_ARCHITECT.mission not in definition  # the stale bundled mission is gone
 
@@ -137,7 +136,7 @@ async def test_dev_role_declared_mission_reaches_description_and_the_mission_def
     reloaded = await svc.get(dev.id)
     assert reloaded.description == "Own the whole backend."
 
-    definition = svc.role_definition_text(resolve_role_for_item(reloaded, svc.paths.squad_dir))
+    definition = await svc.read_body(reloaded.id)
     assert "Own the whole backend." in definition
 
 

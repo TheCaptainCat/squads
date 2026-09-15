@@ -3,15 +3,16 @@ id: BUG-895
 sequence_id: 895
 type: bug
 title: Command-guidance guard reports a broken corpus as missing guidance
-status: Open
+status: Verified
 author: qa
+assignee: python-dev
 priority: medium
 severity: medium
 refs:
 - BUG-894
 - MILE-867:targets
 created_at: '2026-09-03T07:08:03Z'
-updated_at: '2026-09-03T07:08:58Z'
+updated_at: '2026-09-09T14:43:37Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -131,4 +132,43 @@ failing run.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-08T14:47:52Z] Elias Python:
+  - Fixed, in `tests/meta/test_every_cli_command_is_named_in_agent_guidance.py`. Scope stayed inside that one file — this is a guard-quality defect, not a live corpus-builder bug.
+    
+    **Recalibration.** `_MIN_CARRIER_CHARS` 200 → 1000. 200 was calibrated against an empty carrier, which no real corpus builder produces; the shape that occurs is frontmatter-only. Driven both ways in-process (substituting `_generated_skill_bodies` with a reading of the real on-disk skill `.md` files):
+    
+    | corpus reading | carrier sizes (this repo) | at floor=200 | at floor=1000 |
+    |---|---|---|---|
+    | whole-file (frontmatter incl.) | 377–611 chars | builds, 13,757 chars — passes | **12 carriers refused as stubs** |
+    | genuine render (`_generated_skill_bodies` as shipped) | smallest 1,836 chars (`sq-decision`) | n/a | passes clean, no stub |
+    
+    1000 sits with headroom both sides: 1.6× above the worst measured stub, 1.8× below the smallest measured genuine render (this repo's numbers have drifted up since filing — was 2,448 at filing time, now 1,836 — the floor still clears it with margin).
+    
+    **Frontmatter-only case, before/after, through the real shipped `_agent_facing_corpus()`** (not a reimplementation — monkeypatched `_generated_skill_bodies`, called the real function):
+    - Before (floor=200): no assertion fires; corpus builds; `test_every_top_level_command_is_named_in_the_agent_facing_corpus`'s old logic (no controls) reports `['graph', 'import', 'override', 'reflog', 'renumber', 'repair', 'search', 'workload']` as unguided — reproduces the bug exactly, all 8 are real guided commands.
+    - After (floor=1000): `_agent_facing_corpus()` raises `AssertionError: carrier(s) rendered under 1000 characters: [...12 skill carriers...] — the corpus is broken, not the guidance` before the guidance assertion ever runs.
+    - Healthy corpus, both before and after: green (`uv run --all-extras pytest tests/meta/test_every_cli_command_is_named_in_agent_guidance.py` → 6 passed).
+    
+    **Falsification of the new check, both directions**, same session, same real functions:
+    1. Shipped fix (floor=1000) + frontmatter-only corpus → integrity assertion fires. Good.
+    2. Broke it: reverted `_MIN_CARRIER_CHARS` to 200 in-process → integrity assertion no longer fires; **also drove the proposed controls layer against this exact corpus and it does NOT catch it either** — `create`/`comment`/`tree`/`check`/`discussion` are all present, masked by the genuine `CLAUDE.md` region's 8,449 chars — so it falls through to the same false `unguided` list as before. This proves the floor, not the controls, is load-bearing for this specific shape.
+    3. Restored floor=1000 → fires again.
+    
+    So the fix has two layers and they are not redundant: the recalibrated floor catches *this* shape; the new controls on the broad assertion (added regardless, mirroring what `test_the_mutation_audit_command_is_named_as_an_invocation` already does for `reflog`) are a second line of defense for whatever broken-corpus shape the floor's specific threshold doesn't happen to catch — which per (2) above is not decorative, it's just not what stops this particular shape.
+    
+    **Corrected credit note.** The fix-note on BUG-894 credited the character floor (at 200) with catching the frontmatter-only shape; it did not, and per (2) above the controls-alone wouldn't have either — masked by `CLAUDE.md`. What actually closes the gap here is recalibrating the floor itself to sit above the measured stub range. The module docstring (lines ~65-86) is rewritten to state this precisely: body-only stubs (0-1 char) were always caught by even the old floor; frontmatter-only stubs (327-611 char) needed the raise to 1000; and the controls addition is documented as an independent second layer, not as the mechanism for this shape.
+    
+    **Selection.** Diff touches one file only, no src/ change (no `_specs/`, `_rendering/templates/`, `_cli/` floor triggered). Grep + whitespace-collapsed scan (`identifier_wrap_scan.py`, validated against a known positive in the same file first) for the names I introduced/changed — `_MIN_CARRIER_CHARS`, `_KNOWN_POSITIVE_TERMS`, `_agent_facing_corpus` — across all of `tests/`: only this one file references them, no wrapped hits elsewhere. Ran `tests/meta` (282 passed) and `tests/integration` (709 passed, 6 skipped) per the standing floor — both 0 `FAILED`. Gates clean: pyright 0 errors, ruff check all passed, ruff format 654 files already formatted. `sq check` clean. Did not run the full suite.
+    
+    **On the dossier itself:** nothing wrong in the analysis. Numbers have drifted with the repo (stub sizes now 377-611 vs the 327-579/349-377 measured at filing; genuine minimum now 1,836 vs 2,448) but that's time, not error — the shape and the conclusion both hold.
+    
+    @qa for verification.
+- [2026-09-08T14:50:25Z] Catherine Manager:
+  - Full suite green as the authoritative gate: 4976 passed, 12 skipped. The fix is the recalibration, and the falsification is what makes it trustworthy: the dev proved the floor -- not the known-positive controls -- is what catches this shape, because the controls are masked by the genuine CLAUDE.md region which alone carries all five control terms. So the controls are documented as an honest second layer for a different broken-corpus shape rather than taking credit here. That is the same false-credit error this bug was partly about, caught one level down.
+- [2026-09-09T14:42:16Z] Mara Tester:
+  - Verified independently, not just re-run. Drove the frontmatter-only corpus myself (whole-file read of the 12 on-disk skill .md files, monkeypatching _generated_skill_bodies in-process against the real, shipped _agent_facing_corpus()): all 12 stubs land at 377-611 chars, and the integrity floor fires first — AssertionError naming all 12 as under-1000-char carriers, "the corpus is broken, not the guidance" — before the guidance assertion ever runs. tests/meta/test_every_cli_command_is_named_in_agent_guidance.py: 6 passed, independently re-run.
+  - Floor-vs-controls claim, independently reproduced (not read off the transcript): with the floor forced back to 200 over the same frontmatter-only corpus, it builds clean at 13,757 chars; the controls layer (_KNOWN_POSITIVE_TERMS) reports all 5 present — masked, as claimed, by the genuine CLAUDE.md managed region alone (8,449 chars) carrying all 5 on its own (the 12 stubs together carry only 3 of 5). The broad assertion then misreports exactly [graph, import, override, reflog, renumber, repair, search, workload] as unguided — matches the dev handback number-for-number. So: the floor is load-bearing for this shape, the controls are an honest second layer for a different one, and the corrected module docstring/credit note holds.
+  - Headroom verdict on the 1000 magic number: independently measured current genuine-render floor at 1,836 chars (sq-decision) — 1.8x margin above 1000, 1.6x above the worst stub (611). That is real headroom against today shape, but it is a snapshot constant with no structural link to render content, and the min has been shrinking (2,448 -> 1,836 over this project). Nothing currently watches the gap narrowing — if a future terse rewrite of a skill body pushed a genuine render under 1000, this guard would misreport a real, guided skill as "the corpus is broken" (a false-fire, the inverse defect of the one this bug fixed, not caught by anything today). Worth a periodic re-measure, not a blocker.
+- [2026-09-09T14:43:37Z] Catherine Manager:
+  - Verified. Carrying one known-open rather than calling it resolved: the 1000-char floor is a point-in-time constant with no structural link to content and no drift alarm, and the minimum genuine render has been shrinking (2,448 at filing, 1,836 now). If a future terse rewrite pushed a real skill under 1000 the guard would misreport it as a broken corpus -- the false-fire inverse of the bug it just fixed, uncaught by anything today. QA flagged it; recording it here so a periodic re-measure has a home.
 <!-- sq:discussion:end -->

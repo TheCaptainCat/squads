@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import resolved_skill_definition
 from squads._backends._managed_region import END, START
 from squads._paths import SquadPaths
 from squads._roles._catalog import PREDEFINED
@@ -70,7 +71,7 @@ def _flat(text: str) -> str:
 async def _squads_skill_body(paths: SquadPaths) -> str:
     """The ``squads`` skill definition this squad resolves — rendered on read from the live
     roster and the active catalog, never from a stored region."""
-    return await service.Service(paths).skill_definition_text("squads")
+    return await resolved_skill_definition(service.Service(paths), "squads")
 
 
 async def _initialized_squad(tmp_path: Path) -> SquadPaths:

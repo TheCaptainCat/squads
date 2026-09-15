@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0]
+
+### Added
+
+- **View tags: place a view directly in an item's body, and it renders in place on every read.** `sq <type> <n> view add <name>` inserts a `sq:view:<name>` marker into the item's body (`view rm` takes it back out); wherever the body is read — `show`, `--raw`, and the TUI reader alike — the tag expands to that view's rendered output, so there is nothing to regenerate and nothing that can fall out of sync with the data it renders. `sq check` validates a placed tag by name: one naming a view your spec doesn't declare, or whose template file is missing, is reported as an error. Typing the tag directly into a body edit stays refused — `view add`/`view rm` are the only way to place or remove one.
+
+- **Views can now source from a role, the team playbook, or the item itself, not only from other items' links.** A view's `source.kind` in `[views.<name>]` can be `role` (the item's own resolved role definition), `playbook` (a type's playbook lane plus the live roster), or `self` (the host item and the active spec), alongside the existing `ref`, `subtree`, and `subentity` kinds. `sq workflow view <name> <id> --json` emits each source kind in the shape it already has: `ref`/`subtree` match `sq tree --json`, `subentity` matches the per-kind sub-entity list, `role` matches a role's own `show --json`, and `self` is the host item's `show --json` payload plus a small block naming the active spec — there is no separate envelope to learn per source.
+
 ## [0.14.0]
 
 ### Added

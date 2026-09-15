@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import resolved_skill_definition
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -118,7 +119,7 @@ async def test_the_generated_skill_and_the_lane_check_agree(project) -> None:
     await svc.activate_role("devops")
     await svc.refresh_managed()
 
-    body = await svc.skill_definition_text("sq-bug")
+    body = await resolved_skill_definition(svc, "sq-bug")
     assert "file the incident as a bug" in body  # the generated instruction
 
     res = await svc.create("bug", "Deploy wedges on rollback", author="devops")

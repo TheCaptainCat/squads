@@ -14,4 +14,5 @@ description: 'Working with feature items in this squad: lifecycle, commands, and
   guidance.'
 ---
 <!-- sq:body -->
+<!-- sq:view:item_skill -->
 <!-- sq:body:end -->

@@ -173,6 +173,83 @@ async def create_item(svc: Any, item_type: str, title: str, **kwargs: Any) -> An
     return await svc.create(item_type, title, **kwargs)
 
 
+def throwaway_skill_item(slug: str, spec: Any) -> Any:
+    """A well-formed, never-persisted ``skill`` item standing in for *slug* when no such item
+    is (yet) on a service's live index — :func:`resolved_skill_definition`'s fallback when the
+    caller has not seeded one.
+
+    Test-only: production code has exactly one path to a skill's definition now
+    (``ItemsMixin.read_body`` off a real, seeded item's own placement tag), and never needs a
+    stand-in — a real skill item is seeded before a real read ever reaches one. This mirrors
+    what production's own throwaway once did (the ``playbook``/``self`` source kinds a
+    system-skill view declares constrain nothing beyond the host's *type*, and no bundled skill
+    template ever reads an ``item.*`` field), so a test that wants "what would this skill's
+    definition render as" without paying for a full seed still can.
+    """
+    from squads import _clock as clock
+    from squads._models._item import Item
+    from squads._workflow._models import ROSTER_SKILL
+
+    now = clock.now()
+    return Item(
+        sequence_id=0,
+        type=ROSTER_SKILL,
+        title=slug,
+        slug=slug,
+        status=spec.live_initial(ROSTER_SKILL),
+        path=f"agents/skills/{slug}.md",
+        created_at=now,
+        updated_at=now,
+    )
+
+
+async def resolved_skill_definition(svc: Any, slug: str) -> str:
+    """The definition text a read would resolve for the template-owned skill named *slug*,
+    against *svc*'s active spec/playbook/roster — the same source-resolution + presentation
+    dispatch a real read expands a placement tag through (``squads._views.resolve_source`` /
+    ``render_resolved_source``), against a real seeded item when one is on *svc*'s index and a
+    :func:`throwaway_skill_item` otherwise.
+
+    Test-only convenience: production never constructs this pair itself (:meth:`read_body`
+    always has a real item), so there is no method on ``Service`` this wraps — see
+    :func:`throwaway_skill_item` for why a stand-in is still test-legitimate.
+    """
+    from squads import _interactions as interactions
+    from squads._models._extras import ExtraKey as X
+    from squads._views import render_resolved_source, resolve_source
+    from squads._workflow._models import ROSTER_SKILL
+
+    # A permanently-system slug names its own view; every other template-owned slug is a
+    # per-item-type skill and shares ITEM_SKILL_VIEW_NAME — whether or not *slug* still names a
+    # declared type is resolved inside `resolve_source` itself (the emptiness case), never
+    # pre-checked here.
+    view_name = interactions.SYSTEM_SKILL_VIEW_NAMES.get(slug, interactions.ITEM_SKILL_VIEW_NAME)
+    db = await svc.store.load()
+    item = next(
+        (
+            it
+            for it in db.items.values()
+            if it.type == ROSTER_SKILL and it.extra.get(X.SLUG, it.slug) == slug
+        ),
+        None,
+    ) or throwaway_skill_item(slug, svc.spec)
+    view = svc.spec.views[view_name]
+    result = resolve_source(
+        view,
+        view_name,
+        item,
+        db,
+        svc.spec,
+        svc.playbook,
+        lambda: svc.roster_from_db(db),
+        svc.paths.squad_dir,
+    )
+    rendered = render_resolved_source(
+        view_name, view, result, item, svc.spec, svc.paths.config.squad_dir
+    )
+    return rendered.strip("\n")
+
+
 def make_unreadable_by_the_os(path: Path) -> Callable[[], None]:
     """Make every read of *path* fail at the OS layer, on any platform, and return an undo.
 

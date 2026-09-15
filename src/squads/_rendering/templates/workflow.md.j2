@@ -38,7 +38,7 @@
 {% endif %}
 {% endfor %}
 {% if subhost_types %}
-- **Sub-entities are tracked too:** {% for item_type in subhost_types %}{% set subkind = spec.item_subentity_kind(item_type) %}`{{ item_type }}` → `{{ subkind }}` (`{{ linearize_lifecycle(spec.lifecycles[spec.subentity_kinds[subkind].lifecycle]) }}`){% if not loop.last %}; {% endif %}{% endfor %}.
+- **Sub-entities are tracked too:** {% for item_type in subhost_types %}{% set subkind = spec.item_subentity_kind(item_type) %}`{{ item_type }}` → `{{ subkind }}` (`{{ spec.lifecycles[spec.subentity_kinds[subkind].lifecycle] | linearize_lifecycle }}`){% if not loop.last %}; {% endif %}{% endfor %}.
   `update` is the one metadata entry point for a sub-entity (`--title`/`--status`/`--assignee`,
   plus any declared field flag). Each parent shows an sq-managed summary table.
 {% endif %}
@@ -108,7 +108,7 @@ statuses and transitions.
 |---|---|---|
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
-| `{{ item_spec.prefix }}` | `{{ item_type }}` | `{{ linearize_lifecycle(spec.machine_for(item_type)) }}` |
+| `{{ item_spec.prefix }}` | `{{ item_type }}` | `{{ spec.machine_for(item_type) | linearize_lifecycle }}` |
 {% endif %}
 {% endfor %}
 
