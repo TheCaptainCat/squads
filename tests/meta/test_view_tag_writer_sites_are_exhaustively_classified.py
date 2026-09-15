@@ -13,9 +13,10 @@ The declaration site names its own writers two lines above the constants themsel
 (``_interactions/__init__.py``'s ``SYSTEM_SKILL_VIEW_NAMES``/``ITEM_SKILL_VIEW_NAME``
 docstrings) — this test is the sweep that makes sure every writer that comment points at is
 actually accounted for, so a future seventh site fails outright instead of surviving three
-review rounds unnoticed the way one of the six below did. Matching only the attribute-style call
-was itself one more instance of that same shape — driven by the reviewer, who added a bare-name
-seventh writer in an isolated worktree and found all six tests here passing regardless (see
+review rounds unnoticed the way one of the seven below did. Matching only the
+attribute-style call was itself one more instance of that same shape — driven by the
+reviewer, who added a bare-name seventh writer in an isolated worktree and found all six
+tests here passing regardless at the time (see
 ``test_a_bare_name_view_tag_call_is_discovered_too`` below).
 """
 
@@ -40,7 +41,7 @@ def _view_tag_call_sites(src_root: Path) -> list[tuple[str, str, int]]:
     rather than grepping raw text, which is what keeps this immune to a call the formatter has
     line-wrapped mid-expression (a plain line grep can return a false zero on that shape — see
     ``test_the_ast_scan_finds_a_call_a_raw_substring_grep_would_miss`` below, which proves the
-    mechanism against a constructed positive before this function's count of six is trusted)."""
+    mechanism against a constructed positive before this function's count of seven is trusted)."""
     sites: list[tuple[str, str, int]] = []
     for path in sorted(src_root.rglob("*.py")):
         source = path.read_text(encoding="utf-8")
@@ -75,7 +76,7 @@ def _collect_view_tag_calls(
 
 def test_the_ast_scan_finds_a_call_a_raw_substring_grep_would_miss() -> None:
     """Validates the discovery mechanism itself against a known positive before its count of
-    six sites (below) is trusted — the false-zero rule: a formatter can wrap a call across a
+    seven sites (below) is trusted — the false-zero rule: a formatter can wrap a call across a
     line break inside the dotted attribute access itself (splitting on the dot, not just on an
     argument list), which a raw substring/line grep for ``"markers.view_tag("`` does not match
     but the AST walk still resolves correctly, because it parses structure, not lines."""
@@ -96,10 +97,11 @@ def test_a_bare_name_view_tag_call_is_discovered_too() -> None:
     """The discovery filter originally matched only attribute-style calls (``markers.view_tag(
     ...)``, ``child.func`` an ``ast.Attribute``). A bare-name call reached the same way through
     a direct import — ``from squads._models._markers import view_tag`` then ``view_tag(name)``,
-    an ``ast.Name`` — is a different shape the six real sites happen never to use, but nothing
-    stops a seventh writer from using it: driven by the reviewer, who added exactly this shape
-    to an isolated worktree and found all six tests here still passing, because the writer was
-    never discovered in the first place. Uses the real production scanner
+    an ``ast.Name`` — is a different shape the seven real sites happen never to use, but
+    nothing stops a seventh writer from using it: driven by the reviewer, who added exactly
+    this shape to an isolated worktree and found all six tests here still passing at the
+    time, because the writer was never discovered in the first place. Uses the real
+    production scanner
     (:func:`_collect_view_tag_calls`), not a reimplementation, so this only passes once the
     scanner itself is widened."""
     synthetic = "def h() -> None:\n    return markers.open_marker(view_tag(name))\n"
@@ -119,7 +121,7 @@ def test_a_bare_name_view_tag_call_is_discovered_too() -> None:
 
 # --------------------------------------------------------------------------- classification
 
-#: (relative path, enclosing function) -> (classification, reason). Exactly the six sites this
+#: (relative path, enclosing function) -> (classification, reason). Exactly the seven sites this
 #: codebase has today — an ``AssertionError`` below for any discovered site not a key here, or
 #: any key here no longer discovered, is the whole point: this dict is a completeness claim,
 #: not a convenience cache.
@@ -144,6 +146,13 @@ CLASSIFICATIONS: dict[tuple[str, str], tuple[str, str]] = {
         "refuses through resolve_view_target before ever writing (see that function's own "
         "docstring)",
     ),
+    ("squads/_migrations/_v0_14_to_v0_15.py", "migrate"): (
+        "self-gated",
+        "asks resolve_view_target once per (type, name) pair before the write loop ever opens "
+        "a transaction, the same predicate insert_view itself gates on, and skips-and-reports "
+        "the pair rather than seeding anything when it cannot resolve — never a whole-run "
+        "refusal",
+    ),
     ("squads/_services/_views.py", "remove_view"): (
         "deliberately-ungated",
         "the recovery path for a tag whose view was dropped out from under it; must keep "
@@ -166,7 +175,7 @@ def test_every_classification_label_is_one_of_the_four_known_shapes() -> None:
         assert label in _VALID_CLASSIFICATIONS, f"{site}: unknown classification {label!r}"
 
 
-def test_the_discovered_sites_are_exactly_the_classified_six() -> None:
+def test_the_discovered_sites_are_exactly_the_classified_seven() -> None:
     src_root = _repo_root() / "src" / "squads"
     discovered = {(rel, qualname) for rel, qualname, _line in _view_tag_call_sites(src_root)}
     expected = set(CLASSIFICATIONS)
@@ -185,11 +194,12 @@ def test_the_discovered_sites_are_exactly_the_classified_six() -> None:
 #
 # What used to live here was a source-text proxy: `\bin\s+(?:self\s*\.\s*)?spec\s*\.\s*views\b`
 # searched for a `spec.views` mention somewhere in a gated site's declared target, and called
-# that "the gate exists". It proved a mention existed, not that it guarded the seed — driven by
-# the reviewer: with the three real gates removed and one *unused* `in spec.views` mention added
-# to each target instead, all six tests in this module still passed. That shape is not
-# adversarial; a function computing a declared-views list for one purpose while seeding a tag
-# for another is ordinary growth in this file, and the proxy could not tell the two apart.
+# that "the gate exists". It proved a mention existed, not that it guarded the seed —
+# driven by the reviewer: with the three real gates removed and one *unused* `in
+# spec.views` mention added to each target instead, all six tests in this module (as it
+# stood then) still passed. That shape is not adversarial; a function computing a
+# declared-views list for one purpose while seeding a tag for another is ordinary growth in
+# this file, and the proxy could not tell the two apart.
 #
 # The replacement was a hand-maintained dict citing, per gated site, the exact behavioural test
 # whose own falsification proves that gate — and that dict was itself gameable one level out,
@@ -433,11 +443,13 @@ def test_a_skip_marked_citation_is_refused() -> None:
 
 #: The Python scan above globs ``*.py``, so a literal ``sq:view:<name>`` tag written directly
 #: into a Jinja template — not through :func:`~squads._models._markers.view_tag` at all — is
-#: invisible to it by construction. One such writer exists today:
-#: ``templates/agents/role.md.j2``, the creation scaffold's static tag —
-#: ``ROLE_DEFINITION_VIEW_NAME``'s own docstring points at it. Whitespace-tolerant between each
-#: token boundary (``sq``/``:``/``view``/``:``/name), the same false-zero defence the Python
-#: scan gets from walking the AST rather than grepping lines — see
+#: invisible to it by construction. Two such writers exist today:
+#: ``templates/agents/role.md.j2`` (the creation scaffold's static tag —
+#: ``ROLE_DEFINITION_VIEW_NAME``'s own docstring points at it) and
+#: ``templates/items/milestone.md.j2`` (the milestone roll-up's own tag, seeded the same
+#: static way). Whitespace-tolerant between each token boundary
+#: (``sq``/``:``/``view``/``:``/name), the same false-zero defence the Python scan gets from
+#: walking the AST rather than grepping lines — see
 #: ``test_the_template_scan_finds_a_tag_a_raw_substring_grep_would_miss`` below.
 _TEMPLATE_VIEW_TAG_RE = re.compile(r"sq\s*:\s*view\s*:\s*([A-Za-z0-9_]+)")
 
@@ -486,9 +498,19 @@ TEMPLATE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "never survive on disk as a value — pristine_body, _template_for's only other "
         "consumer, is unreachable for a role because set_body raises first",
     ),
+    "items/milestone.md.j2": (
+        "unconditional-seed",
+        "the creation scaffold's static tag, alongside real authored-prose scaffolding "
+        "_create_core never overwrites (unlike a role's tag-only body) — a milestone created "
+        "while milestone_rollup is deselected still receives the tag naming an undeclared "
+        "view, caught by sq check's dangling-name finding rather than refused or neutralized "
+        "at creation, and the same for a milestone the 0.14->0.15 migration meets and skips "
+        "rather than seeds for the identical reason; accepted, not gated the way a role's tag "
+        "is, at either site",
+    ),
 }
 
-_VALID_TEMPLATE_CLASSIFICATIONS = frozenset({"neutralized-by-overwrite"})
+_VALID_TEMPLATE_CLASSIFICATIONS = frozenset({"neutralized-by-overwrite", "unconditional-seed"})
 
 
 def test_every_template_classification_label_is_a_known_shape() -> None:
@@ -496,7 +518,7 @@ def test_every_template_classification_label_is_a_known_shape() -> None:
         assert label in _VALID_TEMPLATE_CLASSIFICATIONS, f"{site}: unknown classification {label!r}"
 
 
-def test_the_discovered_template_tags_are_exactly_the_classified_one() -> None:
+def test_the_discovered_template_tags_are_exactly_the_classified_two() -> None:
     discovered = set(_template_view_tag_sites(_templates_root()))
     expected = set(TEMPLATE_CLASSIFICATIONS)
 

@@ -16,6 +16,7 @@ import pytest
 from squads import __version__
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
+from squads._models._schema import SCHEMA_VERSION
 from squads._paths import resolve as resolve_squad_paths
 from squads._sections import get_section, replace_section
 from squads._services import _service as service
@@ -37,7 +38,7 @@ async def _build_pre_tag_role_corpus(tmp_path: Path, *, squads_version_stamp: st
 
     (result.paths.root / ".squads.toml").write_text(
         "# squads project configuration\n"
-        'schema_version = "0.14"\n'
+        f'schema_version = "{SCHEMA_VERSION}"\n'
         'squad_dir = "squads"\n'
         'active_backends = ["claude_code"]\n'
         f'squads_version = "{squads_version_stamp}"\n',

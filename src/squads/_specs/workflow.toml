@@ -496,7 +496,10 @@ category = "records"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 extra_fields = ["target_date"]
-views = ["milestone_rollup"]
+# The roll-up is placed by a `sq:view:milestone_rollup` tag seeded into
+# `templates/items/milestone.md.j2`'s `sq:body` region, the same mechanism `role_definition`/
+# `squads_skill`/`greeting_skill`/`memory_skill`/`item_skill` already use — not a `views`
+# attachment. No bundled type declares one any more; see the `[views]` block below.
 # subentity_kind absent → None (membership rides `targets` refs on the work item, not sub-entities)
 # parent_required absent → None (a milestone relates to work through refs, never hierarchy)
 
@@ -611,18 +614,18 @@ fields = [
 # template path). Every view is computed fresh on every request; none is ever materialized
 # into a body region.
 #
-# `milestone_rollup` is the one bundled view, and the only reason it's here rather than left
-# for a project's own `.overrides/workflow.toml` is that something in this document actually
-# consumes it: `items.milestone.views` (above) attaches it to `sq milestone <n> show`. Naming
-# a bundled ref kind or item type as a source otherwise couples every project that later
-# drops or renames it to keeping the view too — the right trade only for a view something
-# reads, not for a demonstration nothing does. The attachment is what keeps this one honest
-# under `[selected]`: dropping `milestone` from `selected.items` drops `items.milestone.views`
-# with it, and the loader (`_prune_orphaned_type_owned_views`) then prunes `milestone_rollup`
-# itself from the merged spec — no view left declared over a type that no longer exists, and
-# no second `selected.views` line for an adopter to remember. A project's own view follows the
-# same shape under `.overrides/workflow.toml`; `sq override scaffold workflow` has a worked
-# example.
+# `milestone_rollup` is the one bundled, *relation*-sourced view, and the only reason it's
+# here rather than left for a project's own `.overrides/workflow.toml` is that something in
+# this document actually consumes it: `templates/items/milestone.md.j2` seeds its
+# `sq:view:milestone_rollup` tag at creation, the same way the five non-relation views above
+# are each seeded by their own host's creation template. Naming a bundled ref kind or item
+# type as a source otherwise couples every project that later drops or renames it to keeping
+# the view too — the right trade only for a view something reads, not for a demonstration
+# nothing does. No bundled view carries a `items.<type>.views` type attachment any more (that
+# axis is a project's own, resolved by `_prune_orphaned_type_owned_views` when it declares
+# one); a project's own view follows the same tag-in-template shape under
+# `.overrides/workflow.toml` plus a template override; `sq override scaffold workflow` has a
+# worked example.
 # ---------------------------------------------------------------------------
 
 [views.milestone_rollup]

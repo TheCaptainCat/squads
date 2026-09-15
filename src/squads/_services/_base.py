@@ -488,23 +488,15 @@ class ServiceCore:
         return subentity_container_map(self.spec)
 
     def _template_for(self, item_type: str) -> str:
-        """Return the Jinja2 template path for ``item_type``.
-
-        Built-in types have a dedicated ``items/<type>.md.j2`` and are returned
-        directly.  Custom types (no per-type template) fall back to the generic
-        ``items/_default.md.j2`` so ``svc.create('incident', …)`` does not raise
-        ``TemplateNotFound``.  The fallback is resolved via the Jinja2 environment's
-        ``has_template`` check so user-supplied overrides in
-        ``.overrides/templates/items/<type>.md.j2`` are still honoured.
+        """Return the Jinja2 template path for ``item_type`` — a thin wrapper over
+        :func:`~squads._rendering._engine.creation_template_name`, which does the actual
+        resolution. Shared rather than reimplemented here so the create path and the
+        template-seeded-view derivation (:func:`~squads._views.template_seeded_view_names`,
+        the migration/``sq check`` seam) can never resolve a type to two different templates.
         """
-        if self.spec.item_is_roster(item_type):
-            return f"agents/{item_type}.md.j2"
-        per_type = f"items/{item_type}.md.j2"
-        from squads._rendering._engine import has_template
+        from squads._rendering._engine import creation_template_name
 
-        if has_template(per_type):
-            return per_type
-        return "items/_default.md.j2"
+        return creation_template_name(item_type, self.spec)
 
     def pristine_body(self, item: Item) -> str | None:
         """The ``:body`` region a freshly-created *item* of this type would carry — i.e. the

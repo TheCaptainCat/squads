@@ -95,12 +95,12 @@ def _declare_finding_view(squad_dir: Path, name: str) -> None:
 
 
 async def test_the_default_catalog_carries_only_the_bundled_views(project, invoke) -> None:
-    """``milestone_rollup`` is the one *relation*-sourced, type-attached bundled view (attached
-    to ``items.milestone.views``); ``role_definition``/``squads_skill``/``greeting_skill``/
-    ``memory_skill``/``item_skill`` are the five non-relation ones, placed by a seeded
-    ``sq:view:<name>`` tag rather than a type attachment — every other bundled type declares no
-    attached view, and an override-declared one is proven separately below rather than by
-    asserting the catalog stays at six entries forever."""
+    """``milestone_rollup`` is the one *relation*-sourced bundled view; ``role_definition``/
+    ``squads_skill``/``greeting_skill``/``memory_skill``/``item_skill`` are the five
+    non-relation ones. All six are placed by a seeded ``sq:view:<name>`` tag in their host's
+    creation template — no bundled type declares an ``items.<type>.views`` attachment any
+    more — and an override-declared view is proven separately below rather than by asserting
+    the catalog stays at six entries forever."""
     result = await invoke(["workflow", "views", "--json"])
     assert result.exit_code == 0
     rows = json.loads(result.output)

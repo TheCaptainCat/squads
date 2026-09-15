@@ -304,7 +304,7 @@
     "_rendering/templates/items/epic.md.j2": "c511dc1bdb4420648b020de82606f6e121b2017e6f9d78cae5688fe62435f7b6",
     "_rendering/templates/items/feature.md.j2": "6e374ab9e1f27437da12cc09644cdca156624befd8776c101172ca26a2ecc3cc",
     "_rendering/templates/items/guide.md.j2": "afdd02fe38f564723d38b324ab4ef51a3b0980078073d75e861e04e38f6c6397",
-    "_rendering/templates/items/milestone.md.j2": "30d9f6da4ce1bb60f4b0db5ec693507cda925631148f92ba097eb1850e042b27",
+    "_rendering/templates/items/milestone.md.j2": "a50389e4b32eff68ef1c3bbe683abef530ce578ae83e7df2a4756219e244df1a",
     "_rendering/templates/items/review.md.j2": "d233da72d7cbef2889125ee98756a62371e30a70d232d173fb937509c5b8a69e",
     "_rendering/templates/items/task.md.j2": "3bc9cf9a975472dbef620340998b5c7f6091fcc90b151481838f1a47670ce3b8",
     "_rendering/templates/subentities/block.md.j2": "d11fbbed7b754e9201d0a8d38366894b4d34eb3d362587c57826e3fd30fbd29a",
@@ -320,7 +320,7 @@
     "_rendering/templates/workflow_static.md.j2": "42a6707b57c79ee25fad1539167089e6f3deeeb6183fcb2c01e14b5f7f859708",
     "_specs/playbook.toml": "7a932cb755738a8de3855b24f2a392ad8778db0a24b6c0b995d44bdfa57acbf0",
     "_specs/roles.toml": "4a9ea074f72a67d5f2070932e7973497edd84c6ffb0bdc3ab4b6b5ecd7f33adf",
-    "_specs/workflow.toml": "00ac447260561cb0313412bb120d590924eb1349ff2709e2d3be0b9f410f415f"
+    "_specs/workflow.toml": "23168aaf9227adab419ed712acf0fa526a123be5c930e76859d4ba7a892f3a3f"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",

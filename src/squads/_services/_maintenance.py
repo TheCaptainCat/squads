@@ -1469,8 +1469,13 @@ class MaintenanceMixin(ServiceCore):
         """
         disk = self.paths.config.schema_version
         applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
+        changed: dict[str, int] = {}
+        skipped: dict[str, list[str]] = {}
         for m in applied:
-            await m.run(self.paths)
+            outcome = await m.run(self.paths)
+            changed[m.to_schema] = outcome.count
+            if outcome.skipped:
+                skipped[m.to_schema] = list(outcome.skipped)
         repaired: RepairResult | None = None
         if applied:
             repaired = await self.repair()
@@ -1491,7 +1496,7 @@ class MaintenanceMixin(ServiceCore):
                 session_id=sid,
                 parent_session_id=psid,
             )
-        return MigrationRun(applied=applied, repair=repaired)
+        return MigrationRun(applied=applied, changed=changed, skipped=skipped, repair=repaired)
 
     # ------------------------------------------------------------------ skill seeding
     async def seed_bundled_skills(self) -> list[Item]:

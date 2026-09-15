@@ -7,8 +7,12 @@ on), a one-line ``summary``, the deterministic ``run`` step, and any ``manual`` 
 steps that ``up`` can't do. Adding a step = drop a ``_vNtoM.py`` runner, append it here, and bump
 ``_models._schema.SCHEMA_VERSION``.
 
-Runner functions are async — ``Callable[[SquadPaths], Awaitable[int]]``.  Sync runners that need
-no IO can be wrapped with :func:`_wrap_sync`.
+Runner functions are async — ``Callable[[SquadPaths], Awaitable[MigrationOutcome]]``. Sync
+runners that need no IO can be wrapped with :func:`_wrap_sync`; an async runner whose own
+function still speaks the pre-existing plain ``int`` contract (every one shipped before this
+comment) is wrapped with :func:`_wrap_async` at its ``MIGRATIONS`` entry instead of widening its
+own return type — see :class:`~squads._migrations._outcome.MigrationOutcome` for why keeping
+those two untouched is the point, not an oversight.
 """
 
 from collections.abc import Awaitable, Callable
@@ -24,15 +28,35 @@ from squads._migrations import (
     _v0_8_to_v0_10,
     _v0_10_to_v0_11,
     _v0_11_to_v0_14,
+    _v0_14_to_v0_15,
 )
+from squads._migrations._outcome import MigrationOutcome
 from squads._paths import SquadPaths
 
 
-def _wrap_sync(fn: Callable[[SquadPaths], int]) -> Callable[[SquadPaths], Awaitable[int]]:
+def _wrap_sync(
+    fn: Callable[[SquadPaths], int],
+) -> Callable[[SquadPaths], Awaitable[MigrationOutcome]]:
     """Lift a synchronous migration runner into an async one (no IO needed)."""
 
-    async def _async(paths: SquadPaths) -> int:
-        return fn(paths)
+    async def _async(paths: SquadPaths) -> MigrationOutcome:
+        return MigrationOutcome(count=fn(paths))
+
+    return _async
+
+
+def _wrap_async(
+    fn: Callable[[SquadPaths], Awaitable[int]],
+) -> Callable[[SquadPaths], Awaitable[MigrationOutcome]]:
+    """Adapt an async runner that still returns a bare ``int`` (the shape every runner had
+    before :class:`MigrationOutcome` existed) to the current ``Migration.run`` contract,
+    without touching the runner's own function — its return type, and every existing test that
+    calls it directly and compares the plain count, are untouched by this feature. Only a
+    runner that has something to report beyond a count (currently: none of these three) needs
+    its own function to speak :class:`MigrationOutcome` natively."""
+
+    async def _async(paths: SquadPaths) -> MigrationOutcome:
+        return MigrationOutcome(count=await fn(paths))
 
     return _async
 
@@ -43,7 +67,9 @@ class Migration:
     from_schema: str  # dotted alpha schema version, e.g. "0.1"
     to_schema: str
     summary: str  # one line, for `sq migrate help`
-    run: Callable[[SquadPaths], Awaitable[int]]  # the deterministic step (`sq migrate up`)
+    # The deterministic step (`sq migrate up`) — see the module docstring for why most runners
+    # reach this contract through _wrap_sync/_wrap_async rather than speaking it natively.
+    run: Callable[[SquadPaths], Awaitable[MigrationOutcome]]
     manual: str = ""  # markdown manual steps (LLM runbook); "" if fully automatic
 
 
@@ -84,7 +110,7 @@ MIGRATIONS: list[Migration] = [
             "SKILL ids for bundled skills: stamp SKILL-… frontmatter onto every existing "
             "agents/skills/*.md body file in lexical-by-slug order."
         ),
-        run=_v0_4_to_v0_5.migrate,
+        run=_wrap_async(_v0_4_to_v0_5.migrate),
         manual=_v0_4_to_v0_5.MANUAL,
     ),
     Migration(
@@ -118,7 +144,7 @@ MIGRATIONS: list[Migration] = [
             "agents/skills/sq-memory.md and move it to the SKILL-<NNNNNN>-sq-memory.md "
             "convention filename, like every other bundled skill."
         ),
-        run=_v0_8_to_v0_10.migrate,
+        run=_wrap_async(_v0_8_to_v0_10.migrate),
         manual=_v0_8_to_v0_10.MANUAL,
     ),
     Migration(
@@ -141,7 +167,19 @@ MIGRATIONS: list[Migration] = [
             "folders on an existing squad and regenerate the managed skills, pointers and "
             "compiled CLAUDE.md/AGENTS.md regions so both appear."
         ),
-        run=_v0_11_to_v0_14.migrate,
+        run=_wrap_async(_v0_11_to_v0_14.migrate),
         manual=_v0_11_to_v0_14.MANUAL,
+    ),
+    Migration(
+        version="0.15.0",
+        from_schema="0.14",
+        to_schema="0.15",
+        summary=(
+            "The milestone roll-up moves off its type attachment onto a sq:view:milestone_rollup "
+            "body tag: seed the tag on every existing milestone lacking one, through the tool's "
+            "own marker-safe placement primitive."
+        ),
+        run=_v0_14_to_v0_15.migrate,
+        manual=_v0_14_to_v0_15.MANUAL,
     ),
 ]

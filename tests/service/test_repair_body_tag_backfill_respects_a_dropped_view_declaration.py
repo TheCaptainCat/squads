@@ -24,10 +24,9 @@ from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
 
-#: Drops `role_definition` from the declared view set. Every other bundled view stays selected,
-#: including `milestone_rollup` — a type-owned view still attached via `items.milestone.views`,
-#: which would otherwise be refused at load as a dangling attachment (a different failure mode
-#: this test does not want to exercise).
+#: Drops `role_definition` from the declared view set. Every other bundled view stays selected
+#: (including the freestanding `milestone_rollup`, which no bundled type attaches, so nothing
+#: about dropping a different view could ever orphan it).
 _DROP_ROLE_DEFINITION = """\
 [selected]
 views = ["milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
