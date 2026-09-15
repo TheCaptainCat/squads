@@ -103,18 +103,17 @@ class ClaudeCodeBackend(AgentBackend):
         squad_dir = ctx.paths.config.squad_dir
         artifacts: list[Artifact] = []
         # The three always-on cross-role skills: a thin pointer in .claude/, and a body file
-        # under squads/ whose sq:body region this backend leaves for the service to render at
-        # read time (ServiceCore.skill_definition_text) — see _write_managed_skill.
+        # under squads/ whose sq:body region this writer seeds with that skill's own placement
+        # tag (interactions.SYSTEM_SKILL_VIEW_NAMES) — see _write_managed_skill.
         from squads._workflow import bundled_spec
 
         spec = ctx.spec if ctx.spec is not None else bundled_spec()
-        for slug in (
-            interactions.SQUADS_SKILL,
-            interactions.GREETING_SKILL,
-            interactions.MEMORY_SKILL,
-        ):
+        for slug, view_name in interactions.SYSTEM_SKILL_VIEW_NAMES.items():
             artifacts += await self._write_managed_skill(
-                ctx, name=slug, description=interactions.skill_description(slug)
+                ctx,
+                name=slug,
+                description=interactions.skill_description(slug),
+                body_tag=view_name if view_name in spec.views else None,
             )
         # CLAUDE.md managed section
         default = next((r for r in roster if r.is_default), None)
@@ -147,15 +146,20 @@ class ClaudeCodeBackend(AgentBackend):
         return artifacts
 
     async def _write_managed_skill(
-        self, ctx: BackendContext, *, name: str, description: str
+        self, ctx: BackendContext, *, name: str, description: str, body_tag: str | None = None
     ) -> list[Artifact]:
         """Write a managed skill's thin pointer in .claude/, and make sure its body file under
-        squads/ exists with a well-formed, EMPTY ``sq:body`` region.
+        squads/ exists with a well-formed ``sq:body`` region — empty when *body_tag* is
+        ``None``, seeded with the ``sq:view:<body_tag>`` placement tag otherwise.
 
-        **This backend does not write a system skill's definition.** That text renders on read,
-        from the service (``ServiceCore.skill_definition_text``), so nothing here needs it and
-        the pointer never did: ``claude/pointer_skill.md.j2`` renders from *name* and
-        *description* alone.
+        **This backend does not write a skill's definition.** That text renders on read, off
+        the tag this writer seeds (``squads._views.expand_view_tags``, via
+        ``ItemsMixin.read_body``) — every caller resolves *body_tag* against ``spec.views``
+        before calling, the three permanently-system skills and every per-item-type skill
+        alike (``_write_item_skills`` resolves :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME`
+        the same way), passing ``None`` when the view is not declared so this writer never mints
+        a tag naming an undeclared view. Either way, the pointer never needed either shape:
+        ``claude/pointer_skill.md.j2`` renders from *name* and *description* alone.
 
         What is still owed is the file's *shape*. The seeding step
         (``Service.seed_bundled_skills``/``seed_custom_skills``) stamps a ``SKILL`` id onto the
@@ -173,7 +177,9 @@ class ClaudeCodeBackend(AgentBackend):
 
         A file that already carries a ``sq:body`` region is left byte-untouched, whatever that
         region holds — including a definition an older release stored there, which is a corpus
-        concern and not this writer's to rewrite. So a second run over a synced squad writes no
+        concern and not this writer's to rewrite (``sq repair``'s backfill sweep is what heals
+        an already-existing file that predates *body_tag*; see
+        ``MaintenanceMixin._repair_body_tag``). So a second run over a synced squad writes no
         skill body file at all, and produces no diff on one.
         """
         # Resolve the body path from the caller-supplied skill_paths map.
@@ -195,9 +201,16 @@ class ClaudeCodeBackend(AgentBackend):
             body_path = ctx.squad_dir / spec.items[ROSTER_SKILL].folder / f"{name}.md"
         await _aio.mkdir(body_path.parent, parents=True, exist_ok=True)
 
-        # An empty, marker-structured region: detectable on subsequent syncs regardless of
-        # whether frontmatter has been stamped yet, and the shape every item file shares.
-        empty_body = f"{markers.open_marker(markers.BODY)}\n{markers.close_marker(markers.BODY)}\n"
+        # A marker-structured region: detectable on subsequent syncs regardless of whether
+        # frontmatter has been stamped yet, and the shape every item file shares. Every caller
+        # gates body_tag on spec.views before calling this method, so the tag is seeded only
+        # for a declared view — an undeclared one reaches here as None and this writes an
+        # empty, untagged region instead (the same quiet state _repair_body_tag already
+        # produces for a dropped view).
+        inner = f"\n{markers.open_marker(markers.view_tag(body_tag))}\n" if body_tag else "\n"
+        seed_body = (
+            f"{markers.open_marker(markers.BODY)}{inner}{markers.close_marker(markers.BODY)}\n"
+        )
 
         if await _aio.path_exists(body_path):
             existing = await _aio.read_text(body_path)
@@ -208,10 +221,10 @@ class ClaudeCodeBackend(AgentBackend):
                 # This is squad data (a possibly-indexed SKILL item's .md) — atomic replace,
                 # not the plain truncating writer. No frontmatter is invented here when there
                 # is none: allocation is a separate step.
-                text = sections.join_frontmatter(fm, empty_body) if fm else empty_body
+                text = sections.join_frontmatter(fm, seed_body) if fm else seed_body
                 await _aio.atomic_write_text(body_path, text)
         else:
-            await _aio.atomic_write_text(body_path, empty_body)
+            await _aio.atomic_write_text(body_path, seed_body)
 
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / name / _SKILL_FILE
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
@@ -228,11 +241,13 @@ class ClaudeCodeBackend(AgentBackend):
     async def _write_item_skills(self, ctx: BackendContext) -> list[Artifact]:
         """One managed skill per item type: its ``.claude`` pointer, and its body file's shape.
 
-        The definitions themselves are not written here — they render on read, from the service
-        (``ServiceCore.skill_definition_text``), which is also where the rich/thin split and the
-        ``has_dev`` gate on the shared ``developers`` section now live. What survives in this
-        backend is the enumeration: which per-type skills a squad materialises at all — which
-        needs no roster, since a pointer is rendered from a slug and a description.
+        The definition itself is not written here — it renders on read, off the
+        ``sq:view:item_skill`` tag this writer seeds into every per-type skill's ``sq:body``
+        (``squads._views.expand_view_tags``, via ``ItemsMixin.read_body``), the same mechanism
+        the three permanently-system skills above already use. What survives in this backend is
+        the enumeration: which per-type skills a squad materialises at all — which needs no
+        roster, since a pointer is rendered from a slug and a description, and the tag needs no
+        roster either (it names a view, nothing else).
 
         A type with no entry in the active playbook — built-in or project-declared alike (there
         is no static built-in/custom split any more) — still gets its own skill, so the two
@@ -243,6 +258,15 @@ class ClaudeCodeBackend(AgentBackend):
         spec = ctx.spec if ctx.spec is not None else bundled_spec()
         playbook = ctx.playbook if ctx.playbook is not None else interactions.get_playbook_spec()
         out: list[Artifact] = []
+        # Gated the same way the three permanently-system skills' body_tag is gated in
+        # write_managed, and the same condition MaintenanceMixin._repair_body_tag already
+        # applies to its own per-type branch — a dropped `item_skill` view must never seed a
+        # fresh dangling tag on a newly-created skill body.
+        item_skill_body_tag = (
+            interactions.ITEM_SKILL_VIEW_NAME
+            if interactions.ITEM_SKILL_VIEW_NAME in spec.views
+            else None
+        )
 
         # Types with a playbook entry. The active, per-request playbook (ctx.playbook, merged
         # with any .overrides/playbook.toml) decides this set, not the bundled singleton. A type
@@ -254,7 +278,10 @@ class ClaudeCodeBackend(AgentBackend):
                 continue
             name = interactions.item_skill_name(item_type)
             out += await self._write_managed_skill(
-                ctx, name=name, description=interactions.skill_description(name)
+                ctx,
+                name=name,
+                description=interactions.skill_description(name),
+                body_tag=item_skill_body_tag,
             )
 
         # Types with no active-playbook entry. This is the sole "custom vs built-in" line now:
@@ -267,6 +294,7 @@ class ClaudeCodeBackend(AgentBackend):
                     ctx,
                     name=interactions.custom_item_skill_name(ctype),
                     description=interactions.custom_item_skill_description(ctype),
+                    body_tag=item_skill_body_tag,
                 )
         return out
 

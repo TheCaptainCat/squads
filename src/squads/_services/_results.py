@@ -1,6 +1,6 @@
 """Result dataclasses returned by the service layer."""
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -280,6 +280,13 @@ class RepairResult:
     is reported here (and in the reflog delta) to be stated rather than discovered. Empty on a
     corpus that carries none, which writes no file at all. An item can appear in both this
     list and ``canonicalized``: a file needing both corrections gets both, in one write.
+
+    ``skipped`` holds one message per item whose ``sq:body`` region held marker-shaped content
+    the body-tag-convergence sweep has no model for and declined to overwrite — named
+    ``"<item id>: <reason>"``. That one region is left exactly as it was; every other file's own
+    convergence and every other transformation on the *same* file still ran. Empty on a corpus
+    where nothing is marker-shaped in a body this sweep tries to converge, which is every
+    corpus this behaviour has ever seen in practice.
     """
 
     db: SquadsDB
@@ -287,10 +294,31 @@ class RepairResult:
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
+    skipped: list[str] = field(default_factory=list[str])
 
     def strip_notice(self) -> str | None:
         """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""
         return strip_notice(self.stripped)
+
+
+class SyncSkips(list[str]):
+    """``MaintenanceMixin.sync()``'s return value: every deduplicated skip/notice message the
+    run reports, in the same ``list[str]`` shape every existing caller already treats it as
+    (iterate, index, ``in``, ``len()``, equality with a plain list) — plus one additional
+    channel, :attr:`backfill_skipped`, that is *not* folded into that shape.
+
+    ``backfill_skipped`` is the subset of messages caused specifically by a version-drift
+    body-tag convergence this run declined to overwrite — the one condition that also withholds
+    the ``squads_version`` stamp (see the comment beside the stamp call in ``sync()``). Kept as
+    its own list rather than a prefix a caller would have to string-match out of the merged
+    list: the merged list also carries roster-skew and orphan-withdrawal messages that have
+    nothing to do with the stamp, and text-matching one out of the mix is exactly what this
+    channel exists to make unnecessary. Empty on any run that stamped cleanly.
+    """
+
+    def __init__(self, messages: Iterable[str], *, backfill_skipped: list[str]) -> None:
+        super().__init__(messages)
+        self.backfill_skipped = backfill_skipped
 
 
 @dataclass(frozen=True)

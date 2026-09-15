@@ -20,7 +20,7 @@ only the first is enforced.
 from collections.abc import Container, Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import TypedDict
+from typing import Any, Protocol, TypedDict
 
 from squads import _badges as badges
 from squads._errors import RoleNotFoundError
@@ -34,7 +34,13 @@ from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._roles._catalog import get_catalog, role_by_slug
 from squads._workflow import bundled_spec
-from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, Field, WorkflowSpec
+from squads._workflow._models import (
+    DEFAULT_SUBENTITY_TITLE_MAX,
+    ROSTER_ROLE,
+    ROSTER_SKILL,
+    Field,
+    WorkflowSpec,
+)
 
 #: Sentinel interacting "role" that expands to every developer role (slug ``<tech>-dev``).
 DEV = "*dev"
@@ -163,6 +169,40 @@ SKILL_DESCRIPTIONS: dict[str, str] = {
 }
 
 
+#: Slug -> the view name that renders each of the three always-on skills' definition, seeded
+#: as a ``sq:view:<name>`` placement tag into the skill item's ``sq:body`` at creation
+#: (``_write_managed_skill``) and backfilled onto an already-existing, still-empty one by
+#: ``sq repair`` (``MaintenanceMixin._repair_body_tag``) — the two writers this table is
+#: shared between, so the slug->view mapping is declared in exactly one place. A per-item-type
+#: ``sq-<type>`` skill has no entry here: every one of them shares the single
+#: :data:`ITEM_SKILL_VIEW_NAME` instead (see its own docstring for why one name, not N).
+SYSTEM_SKILL_VIEW_NAMES: dict[str, str] = {
+    SQUADS_SKILL: "squads_skill",
+    GREETING_SKILL: "greeting_skill",
+    MEMORY_SKILL: "memory_skill",
+}
+
+#: The one view name every per-item-type ``sq-<type>`` skill's placement tag names — bundled or
+#: project-declared alike, seeded at skill creation (``_write_managed_skill``, called from
+#: ``_write_item_skills``) and backfilled onto an already-existing body by ``sq repair``
+#: (``MaintenanceMixin._repair_body_tag``), the same two writers :data:`SYSTEM_SKILL_VIEW_NAMES`
+#: is shared between. One name for every type rather than one synthesized view per type: a view
+#: name that embedded a type name would put that type's name in corpus bytes, so a rename or a
+#: dropped type would dangle the tag on every skill body carrying it — the `playbook` source
+#: resolves the documented type from the *host's own slug* at read time instead
+#: (``squads._views._playbook_subject``), so one declared view and one template
+#: (``templates/views/item_skill.md.j2``) serve every declared type.
+ITEM_SKILL_VIEW_NAME = "item_skill"
+
+#: The view name a role's placement tag names, seeded into a role item's ``sq:body`` at
+#: activation (``templates/agents/role.md.j2``'s static tag, reasserted belt-and-suspenders by
+#: ``ServiceCore._create_core``) and backfilled onto an already-existing, still-empty one by
+#: ``sq repair`` (``MaintenanceMixin._repair_body_tag``) — the third writer this name must agree
+#: with, alongside the other two constants above. Declared as ``[views.role_definition]`` in
+#: ``_specs/workflow.toml``, the source of truth all three are checked against.
+ROLE_DEFINITION_VIEW_NAME = "role_definition"
+
+
 def skill_description(slug: str) -> str:
     """Return the canonical description for a bundled or ``sq-<type>`` skill slug.
 
@@ -184,9 +224,13 @@ def is_dev_slug(slug: str) -> bool:
     return slug.endswith("-dev")
 
 
-#: Advisory threshold (characters) for sub-entity titles on add-finding/add-subtask/add-story:
-#: above it, a warn-and-proceed message fires. Not .squads.toml-configurable; revisit on demand.
-TITLE_ADVISORY_MAX: int = 120
+#: Re-exported bundled default for the advisory threshold (characters) sub-entity titles are
+#: checked against — a convenience for callers that want "the bundled number" without touching
+#: validator machinery (e.g. a test building an over-threshold title). The threshold a type
+#: actually gets, on ``add-<kind>`` and on ``sq check`` alike, is spec-resolved and per-type
+#: (``WorkflowSpec.item_subentity_title_max`` — a type's own ``subentity_title_max:<n>``
+#: selection, else this default): nothing reads this constant as a live check threshold.
+TITLE_ADVISORY_MAX: int = DEFAULT_SUBENTITY_TITLE_MAX
 
 # The advisory create-lane is DERIVED from the playbook document, per role guide, from the
 # declared `authors` flag — never from a second table beside it, and never scanned out of the
@@ -293,6 +337,29 @@ def custom_item_skill_name(type_name: str) -> str:
     return f"sq-{type_name}"
 
 
+def item_type_for_skill_slug(slug: str, spec: WorkflowSpec) -> str | None:
+    """The non-roster item type whose per-item-type skill is named *slug* under *spec* —
+    the inverse of :func:`item_skill_name`, composed over the same declared-type
+    enumeration :func:`active_skill_slugs` builds from (``item_skill_name(t) == slug`` for a
+    non-roster ``t``). ``None`` when *slug* names no declared type's skill: one of the three
+    permanently-system slugs, an author-created skill sharing the ``sq-`` naming convention by
+    coincidence, or a dropped/renamed type's now-stale slug.
+
+    This is the emptiness case, not a failure — the one call site resolving a ``playbook``
+    source's subject from a skill host's own slug (``squads._views._playbook_subject``) falls
+    back to the host's own type rather than treating a miss as a refusal, and this function
+    makes no claim about which is which; it only answers the inversion.
+    """
+    return next(
+        (
+            t
+            for t, ts in spec.items.items()
+            if ts.category != "roster" and item_skill_name(t) == slug
+        ),
+        None,
+    )
+
+
 def cheatsheet_anchor_type(spec: WorkflowSpec) -> str | None:
     """The single non-roster type used to build a "Common commands" example block (the
     squads skill, AGENTS.md) — chosen generically from *spec* so a squad that drops or
@@ -394,6 +461,66 @@ def custom_item_skill_commands(type_name: str) -> list[str]:
         f"sq {type_name} <n> remove",
         f"sq {type_name} <n> retype <new-type>",
     ]
+
+
+class _RoleGuideBearing(Protocol):
+    """Structural stand-in for a live roster entry's ``slug``/``full_name`` fields — satisfied
+    by a real ``RoleView`` without importing it: ``squads._backends._base`` imports *from* this
+    package (``skills_for_role``), so the edge can only run one way (see :class:`_SlugBearing`,
+    the narrower sibling of this same shape, above). Declared as read-only properties, not plain
+    attributes: ``RoleView`` is a frozen dataclass, and a writable protocol attribute is
+    structurally incompatible with a frozen field under strict variance."""
+
+    @property
+    def slug(self) -> str: ...
+    @property
+    def full_name(self) -> str: ...
+
+
+def item_skill_role_sections(
+    pb: ItemPlaybookSpec | None, roster: Iterable[_RoleGuideBearing]
+) -> list[dict[str, Any]]:
+    """The ordered per-role section blocks a per-item-type skill's presentation template
+    renders for one item type — empty for a type the active playbook does not cover (the thin
+    skill's "no role sections" degradation).
+
+    Registered as a Jinja filter (``_rendering/_engine.py``) rather than reimplemented in a
+    template, per the source-widening decision's guard: a lookup over the roster stays pure
+    Python, exposed, never accreted into template logic.
+
+    Two filters, both roster-dependent, which is why a before/after diff of generated skill
+    text only means anything with the roster held constant:
+
+    - the shared ``developers`` section (the ``*dev`` sentinel guide) renders only when the
+      roster carries at least one ``<tech>-dev`` role, so a squad with no developer yet does
+      not carry guidance for an actor that cannot act;
+    - a named role's guide renders only while that role is in the live roster.
+    """
+    if pb is None:
+        return []
+    by_slug = {r.slug: r for r in roster}
+    has_dev = any(is_dev_slug(r.slug) for r in roster)
+    out: list[dict[str, Any]] = []
+    for guide in pb.roles:
+        if guide.slug == DEV:
+            if not has_dev:
+                continue
+            title = "developers"
+        elif guide.slug in by_slug:
+            r = by_slug[guide.slug]
+            title = f"{r.full_name} (`{r.slug}`)"
+        else:
+            continue
+        out.append(
+            {
+                "title": title,
+                "enter": guide.enter,
+                "do": guide.do,
+                "handoff": guide.handoff,
+                "watch": guide.watch,
+            }
+        )
+    return out
 
 
 def custom_item_skill_description(type_name: str) -> str:
@@ -803,7 +930,26 @@ def authoring_owner(
         return None
 
 
-def example_assignee_slug(roles: Iterable[Mapping[str, str]] | None = None) -> str:
+class _SlugBearing(Protocol):
+    """Structural stand-in for a live roster entry's slug field — satisfied by a plain
+    ``{"slug": ...}`` mapping (the shape a backend-composed context still hands most callers of
+    this function) equally with a real ``RoleView`` (the shape a ``playbook``-sourced view's
+    ``source.roster`` carries, unflattened — see ``squads._views.PlaybookSource``). Declared
+    here rather than importing ``RoleView`` itself: ``squads._backends._base`` imports *from*
+    this package (``skills_for_role``), so the edge can only run one way."""
+
+    slug: str
+
+
+def _role_slug(role: Mapping[str, str] | _SlugBearing) -> str:
+    if isinstance(role, Mapping):
+        return role.get("slug") or ""
+    return role.slug or ""
+
+
+def example_assignee_slug(
+    roles: Iterable[Mapping[str, str] | _SlugBearing] | None = None,
+) -> str:
     """A concrete ``--assignee`` value for a generated "common commands" example, taken from
     the **live** roster rather than named as a literal.
 
@@ -815,8 +961,14 @@ def example_assignee_slug(roles: Iterable[Mapping[str, str]] | None = None) -> s
     Prefers a ``<tech>-dev`` slug (implementation work is what gets assigned), then the first
     roster entry, and degrades to the ``<slug>`` placeholder the surrounding block already uses
     for the reader's own slug when the roster is empty or wasn't threaded in.
+
+    Accepts either shape a caller's roster comes in — a plain ``{"slug": ...}`` mapping
+    (``templates/agents_md/agents_section.md.j2``'s ``roles``) or a real ``RoleView``
+    (``templates/views/squads_skill.md.j2``'s ``source.roster``, unflattened rather than
+    converted to a dict for that call) — so neither of the two template call sites needs a
+    reshaping step of its own.
     """
-    slugs = [s for s in ((r.get("slug") or "") for r in roles or ()) if s]
+    slugs = [s for s in (_role_slug(r) for r in roles or ()) if s]
     return next((s for s in slugs if is_dev_slug(s)), None) or next(iter(slugs), "<slug>")
 
 

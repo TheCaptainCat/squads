@@ -17,6 +17,7 @@ extra:
   tech: typescript
 ---
 <!-- sq:body -->
+<!-- sq:view:role_definition -->
 <!-- sq:body:end -->
 
 ## Discussion

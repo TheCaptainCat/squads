@@ -20,7 +20,6 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
-from squads._interactions import TITLE_ADVISORY_MAX
 from squads._itemfile import ensure_no_skew, write_text
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
@@ -242,11 +241,13 @@ class SubentitiesMixin(ServiceCore):
         block = discussion.build_block(kind, local_id, title, body=body, spec=self.spec)
         text = sections.append_to_section(text, container, block)
         await self._write_block_file(item, path, text=text, sub=sub, base=base)
-        # Advisory title-length check.
-        # Fires when title length > TITLE_ADVISORY_MAX.  Service must NOT print;
-        # the warning rides back on the result to be rendered at the CLI edge.
+        # Advisory title-length check. Threshold is the same resolved, type-aware value
+        # `sq check`'s `subentity_title_max` reads (`WorkflowSpec.item_subentity_title_max`) —
+        # a type overriding it gets one number at both create time and check time, never two.
+        # Fires when title length exceeds that threshold.  Service must NOT print; the warning
+        # rides back on the result to be rendered at the CLI edge.
         title_advisory: str | None = None
-        if len(title) > TITLE_ADVISORY_MAX:
+        if len(title) > self.spec.item_subentity_title_max(item.type):
             body_cmd = f'sq {item.type} {item.sequence_id} {kind} {local_id} body -m "…"'
             title_advisory = (
                 f"Title is {len(title)} chars — a sub-entity title is a one-line handle,"
@@ -632,7 +633,7 @@ class SubentitiesMixin(ServiceCore):
 
     def _block_body_mutate(
         self, kind: str, local_id: str, body: str, *, append: bool, force: bool = False
-    ) -> Callable[[str, Item], str]:
+    ) -> Callable[[str, Item], tuple[str, bool]]:
         """Build the ``mutate(text, item)`` closure :meth:`set_block_body` applies via the
         shared section-edit core — factored out so the bulk importer's ``sub-body`` op can
         drive the exact same logic through
@@ -647,7 +648,7 @@ class SubentitiesMixin(ServiceCore):
         reject_markers(body)
         btag = discussion.body_tag(kind, local_id)
 
-        def mutate(text: str, item: Item) -> str:
+        def mutate(text: str, item: Item) -> tuple[str, bool]:
             self._check_type(item, kind)
             self._find(item, kind, local_id)  # ensure it exists
             current = (sections.get_section(text, btag) or "").strip("\n")
@@ -664,7 +665,7 @@ class SubentitiesMixin(ServiceCore):
             if authored and not append:
                 delta["replaced_lines"] = len(current.splitlines())
             self.store.log("subentity", item.id, delta)
-            return sections.replace_section(text, btag, new_body)
+            return sections.replace_section(text, btag, new_body), True
 
         return mutate
 

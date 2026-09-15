@@ -31,7 +31,7 @@ import pytest
 
 from _helpers import create_item
 from squads._index._resolver import item_file
-from squads._interactions import is_system_skill
+from squads._interactions import SYSTEM_SKILL_VIEW_NAMES, is_system_skill
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
@@ -330,13 +330,17 @@ async def test_a_custom_skill_body_survives_byte_identical(svc, slug: str):
     assert path.read_bytes() == before
 
 
-async def test_a_role_body_is_emptied_and_keeps_its_markers(svc):
-    """A role's definition is resolved and rendered on every ``sq role <slug> show``, so a
-    stored copy is derived — and the only copy that can go stale, since nothing refreshes it.
+async def test_a_role_body_converges_onto_the_placement_tag_and_keeps_its_markers(svc):
+    """A role's definition is resolved and rendered on every ``sq role <slug> show`` off the
+    ``sq:view:role_definition`` tag its own ``sq:body`` carries, so a stored region carrying
+    anything else — this legacy pre-tag stored definition included — is derived residue, the
+    only copy that can go stale, since nothing refreshes it.
 
-    Keeping the marker pair is the half that is not about content: a *removed* region is what
-    the show path reads as "no active item for this slug", a false and alarming answer for a
-    role that is live.
+    Keeping the marker pair is the half that is not about content: a *removed* region breaks
+    :func:`~squads._sections.replace_section`/``insert_unpaired_marker`` for a future writer
+    reaching this item's body, not merely reads as something misleading — see
+    :func:`~squads._services._maintenance._strip_retired_regions`'s own docstring for what was
+    actually driven here (nothing observable branches on the region's mere presence).
     """
     item, path = await _role_carrying_the_retired_shape(svc, "manager")
     assert (get_section(path.read_text(encoding="utf-8"), markers.BODY) or "").strip()
@@ -344,8 +348,9 @@ async def test_a_role_body_is_emptied_and_keeps_its_markers(svc):
     result = await svc.repair()
 
     text = path.read_text(encoding="utf-8")
-    assert has_section(text, markers.BODY), "the body markers were deleted, not emptied"
-    assert not (get_section(text, markers.BODY) or "").strip()
+    assert has_section(text, markers.BODY), "the body markers were deleted, not converged"
+    region = (get_section(text, markers.BODY) or "").strip()
+    assert region == markers.open_marker(markers.view_tag("role_definition"))
     assert item.id in result.stripped
 
 
@@ -530,7 +535,8 @@ async def test_a_file_needing_both_a_strip_and_canonicalization_gets_both(svc):
     assert set(role_extra) & _RETIRED_MIRROR_KEYS == set(), (
         "the canonicalisation rewrote the mirror back onto the role"
     )
-    assert not (get_section(role_after, markers.BODY) or "").strip()
+    role_region = (get_section(role_after, markers.BODY) or "").strip()
+    assert role_region == markers.open_marker(markers.view_tag("role_definition"))
     assert role.id in result.stripped
     assert role.id in result.canonicalized
 
@@ -561,6 +567,14 @@ async def test_the_live_write_path_produces_none_of_the_stripped_names(svc):
     a name whose writer is still live puts the sweep and that writer into a loop where each
     undoes the other on alternate commands. This is checked once, when a name joins the list;
     it is never a runtime gate on corpus state.
+
+    A role's and every template-owned skill's ``sq:body`` — permanently-system or per-item-type
+    alike — are the one exception to "produces none of it": each is *meant* to carry its own
+    ``sq:view:<name>`` placement tag from creation on — that tag is what the sweep converges an
+    out-of-date body onto, not something it ever removes (see
+    :func:`~squads._services._maintenance.MaintenanceMixin._repair_body_tag`). So this test
+    still drives every writer and still asserts the region — checking it carries *exactly* the
+    tag, and nothing a stale pre-tag release would have left there instead.
     """
     await svc.seed_bundled_skills()
     task = (await create_item(svc, "task", "Driven through the write path")).item
@@ -578,11 +592,21 @@ async def test_the_live_write_path_produces_none_of_the_stripped_names(svc):
         assert not has_section(text, markers.SUMMARY), f"{path.name} carries a summary region"
         assert ":head -->" not in text, f"{path.name} carries a badge region"
 
-    for slug in ("sq-task", "squads"):
+    sq_task_item = await svc.roster_item("skill", "sq-task")
+    assert sq_task_item is not None
+    sq_task_body = get_section(
+        item_file(svc.paths, sq_task_item).read_text(encoding="utf-8"), markers.BODY
+    )
+    assert (sq_task_body or "").strip() == markers.open_marker(markers.view_tag("item_skill")), (
+        "the sq-task skill body carries something other than its own placement tag"
+    )
+    for slug, view_name in SYSTEM_SKILL_VIEW_NAMES.items():
         item = await svc.roster_item("skill", slug)
         assert item is not None
         body = get_section(item_file(svc.paths, item).read_text(encoding="utf-8"), markers.BODY)
-        assert not (body or "").strip(), f"the {slug} skill body is stored again"
+        assert (body or "").strip() == markers.open_marker(markers.view_tag(view_name)), (
+            f"the {slug} skill body carries something other than its own placement tag"
+        )
 
     # The role half, driven through creation *and* a sync — the two commands whose retired
     # writers made this the loop the frozen list exists to prevent. Restore either and this
@@ -591,8 +615,9 @@ async def test_the_live_write_path_produces_none_of_the_stripped_names(svc):
         item = await svc.roster_item("role", slug)
         assert item is not None
         text = item_file(svc.paths, item).read_text(encoding="utf-8")
-        assert not (get_section(text, markers.BODY) or "").strip(), (
-            f"the {slug} role body is stored again"
+        region = (get_section(text, markers.BODY) or "").strip()
+        assert region == markers.open_marker(markers.view_tag("role_definition")), (
+            f"the {slug} role body carries something other than its own placement tag"
         )
         stored = set(_stored_extra(item_file(svc.paths, item)))
         assert stored & _RETIRED_MIRROR_KEYS <= (

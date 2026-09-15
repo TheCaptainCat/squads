@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from datetime import datetime
+from functools import cache
 from pathlib import Path
 
 from squads import _actor as actor
@@ -9,6 +10,7 @@ from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
+from squads import _views as views
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
 from squads._interactions import is_system_skill
@@ -501,13 +503,13 @@ class ItemsMixin(ServiceCore):
 
     def _body_mutate(
         self, item_id: str, body: str, *, append: bool, force: bool = False
-    ) -> Callable[[str, Item], str]:
+    ) -> Callable[[str, Item], tuple[str, bool]]:
         """Build the ``mutate(text, item)`` closure :meth:`set_body` applies via the shared
         section-edit core — factored out so the bulk importer's ``body`` op can drive the exact
         same logic through :meth:`~squads._services._base.ServiceCore._section_edit_core`."""
         reject_markers(body)
 
-        def mutate(text: str, item: Item) -> str:
+        def mutate(text: str, item: Item) -> tuple[str, bool]:
             if item.type == ROSTER_SKILL:
                 slug = item.extra.get(X.SLUG, item.slug)
                 if is_system_skill(slug, self.spec):
@@ -532,7 +534,7 @@ class ItemsMixin(ServiceCore):
                 # whatever is there is kept and the new prose follows it.
                 self.store.log("body", item.id, {})
                 new_body = f"{current}\n\n{body}" if current else body
-                return sections.replace_section(text, markers.BODY, new_body)
+                return sections.replace_section(text, markers.BODY, new_body), True
             # Replacing: authored iff there is prose and it is not the template scaffold the
             # item was created with — see ServiceCore.pristine_body for why that is derived
             # rather than pattern-matched.
@@ -544,7 +546,7 @@ class ItemsMixin(ServiceCore):
                 {"replaced_lines": len(current.splitlines())} if authored else {}
             )
             self.store.log("body", item.id, delta)
-            return sections.replace_section(text, markers.BODY, body)
+            return sections.replace_section(text, markers.BODY, body), True
 
         return mutate
 
@@ -554,25 +556,63 @@ class ItemsMixin(ServiceCore):
         """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
 
         The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
-        summary. A role's body is rejected here because its definition renders from the role
-        catalog on every read (``ServiceCore.role_definition_text``) and nothing would ever show
+        summary. A role's body is rejected here because its definition renders at read time off
+        the ``sq:view:role_definition`` tag its own ``sq:body`` carries (see
+        ``squads._views.expand_view_tags``, via :meth:`read_body`) and nothing would ever show
         what was written; a system (template-owned) skill's body is rejected for the same reason
-        one document over (``ServiceCore.skill_definition_text``). A *custom* (author-defined)
-        skill is the one roster-type exception: its body is authored content, and the only place
-        that content lives, so it's admitted.
+        one document over — its own ``sq:body`` carries a placement tag too (one of
+        :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES` for a permanently-system skill,
+        :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME` for a per-item-type one). A *custom*
+        (author-defined) skill is the one roster-type exception: its body is authored content,
+        and the only place that content lives, so it's admitted.
 
         Replacing an **authored** body is refused unless ``force`` — the write is destructive and
         there is no undo (see :func:`~squads._services._base.reject_body_overwrite`). Writing over
         the unwritten template scaffold, which is what a first write does, is not affected.
         """
         mutate = self._body_mutate(item_id, body, append=append, force=force)
-        return await self._locked_section_edit(item_id, mutate)
+        item, _changed = await self._locked_section_edit(item_id, mutate)
+        return item
 
     async def read_body(self, item_id: str) -> str:
-        """The item's top-level ``:body`` region content (for ``sq show``) — read on a thread."""
+        """The item's top-level ``:body`` region content (for ``sq show``), with any
+        ``sq:view:<name>`` tag it carries expanded to that view's rendered output.
+
+        **The one shared body-read boundary.** Every read surface — ``sq show``, ``--raw``,
+        the ``--json`` body field, the TUI reader, the operator pane, and the skill read —
+        resolves a body through this method and nothing else reads the ``sq:body`` region for
+        display, so expansion inherits from this single place rather than being reimplemented
+        per surface (see :func:`~squads._views.expand_view_tags`).
+
+        Read-only: the body-*write* path (:meth:`set_body`'s ``mutate`` closure) reads the
+        region directly and never through here, so expanded bytes never reach disk.
+
+        **No index load when the body carries no tag.** Tag spans are computable from the body
+        text alone (:func:`~squads._views.has_view_tag`), so the overwhelming majority of
+        reads — a body with no ``sq:view:<name>`` tag — return without an index load or an
+        :func:`~squads._views.expand_view_tags` call. Under the CLI a second index load is free
+        (one invocation-scoped read scope serves it), but ``sq ui`` deliberately opts out of
+        that scope, so every TUI reader-panel load would otherwise pay a fresh full index read
+        on every item selected, tag or no tag — this boundary is documented as a read on a
+        thread and should not silently acquire an index dependency for the common case.
+        """
         item = await self.get(item_id)
         text = await self._read_item_file(item, item_file(self.paths, item))
-        return (sections.get_section(text, markers.BODY) or "").strip("\n")
+        body = (sections.get_section(text, markers.BODY) or "").strip("\n")
+        if not views.has_view_tag(body):
+            return body
+        db = await self.store.load()
+        roster = cache(lambda: self.roster_from_db(db))
+        return views.expand_view_tags(
+            body,
+            item,
+            db,
+            self.spec,
+            self.playbook,
+            roster,
+            self.paths.squad_dir,
+            self.paths.config.squad_dir,
+        )
 
     async def read_discussion(self, item_id: str) -> str:
         """The item's top-level ``:discussion`` region content (for ``sq show --comments``)."""

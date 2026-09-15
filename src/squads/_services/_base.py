@@ -22,24 +22,17 @@ from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
 from squads._interactions import (
-    DEV,
-    GREETING_SKILL,
-    MEMORY_SKILL,
-    SQUADS_SKILL,
+    ROLE_DEFINITION_VIEW_NAME,
     active_skill_slugs,
     allowed_create_types,
-    custom_item_skill_commands,
     get_playbook_spec,
     in_lane_owner,
-    is_dev_slug,
     is_lane_exempt,
     is_live_roster_entry,
-    is_system_skill,
-    item_skill_name,
     laned_types,
     skills_for_role,
 )
-from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
+from squads._interactions._models import PlaybookSpec
 from squads._itemfile import (
     ensure_no_skew,
     read_item_text,
@@ -50,10 +43,9 @@ from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
-from squads._models._vocab import label_for, prefix_for
+from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, set_active_squad_dir
-from squads._roles._catalog import RoleDef
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_role,
@@ -68,7 +60,6 @@ from squads._workflow import (
     ROSTER_SKILL,
     bundled_spec,
     dropped_via_selected,
-    linearize_lifecycle,
 )
 from squads._workflow._models import Field, WorkflowSpec
 
@@ -455,48 +446,6 @@ def reject_body_overwrite(target: str, current: str) -> None:
     )
 
 
-def _item_skill_role_sections(
-    pb: ItemPlaybookSpec | None, roster: list[RoleView]
-) -> list[dict[str, Any]]:
-    """The ordered per-role section blocks ``agents/item_skill.md.j2`` renders for one item
-    type — empty for a type the active playbook does not cover (the thin skill's "no role
-    sections" degradation).
-
-    Two filters, both roster-dependent, which is why a before/after diff of generated skill
-    text only means anything with the roster held constant:
-
-    - the shared ``developers`` section (the ``*dev`` sentinel guide) renders only when the
-      roster carries at least one ``<tech>-dev`` role, so a squad with no developer yet does
-      not carry guidance for an actor that cannot act;
-    - a named role's guide renders only while that role is in the live roster.
-    """
-    if pb is None:
-        return []
-    by_slug = {r.slug: r for r in roster}
-    has_dev = any(is_dev_slug(r.slug) for r in roster)
-    out: list[dict[str, Any]] = []
-    for guide in pb.roles:
-        if guide.slug == DEV:
-            if not has_dev:
-                continue
-            title = "developers"
-        elif guide.slug in by_slug:
-            r = by_slug[guide.slug]
-            title = f"{r.full_name} (`{r.slug}`)"
-        else:
-            continue
-        out.append(
-            {
-                "title": title,
-                "enter": guide.enter,
-                "do": guide.do,
-                "handoff": guide.handoff,
-                "watch": guide.watch,
-            }
-        )
-    return out
-
-
 class ServiceCore:
     def __init__(
         self,
@@ -572,10 +521,10 @@ class ServiceCore:
 
         ``None`` when the scaffold cannot be reproduced (a template that no longer renders for
         this item).  Callers must read that as "assume authored" — refusing a first write is
-        recoverable, discarding a real body is not.
+        recoverable, discarding a real body is not. ``render`` (:mod:`squads._rendering._engine`)
+        translates the underlying ``jinja2.TemplateError`` into :class:`SquadsError`, which is
+        caught here and swallowed into that ``None``.
         """
-        from jinja2 import TemplateError
-
         try:
             rendered = render(
                 self._template_for(item.type),
@@ -584,7 +533,7 @@ class ServiceCore:
                 extra=item.extra,
                 spec=self.spec,
             )
-        except TemplateError:
+        except SquadsError:
             return None
         return (sections.get_section(rendered, markers.BODY) or "").strip("\n")
 
@@ -887,33 +836,18 @@ class ServiceCore:
             fields=fields,
         )
         item_type = item.type
-        # ``agents/role.md.j2`` is both this item type's file scaffold and the definition
-        # ``role_definition_text`` renders on read, so it reads ``role.<field>`` throughout and
-        # Jinja's ``StrictUndefined`` makes a missing or partial ``role`` fail loudly rather
-        # than degrade. The scaffold still has to render even though its body region is
-        # emptied below — what survives it is the file's frame (the markers, the ``##
-        # Discussion`` heading) — so a complete ``RoleDef`` is required here regardless.
-        # ``activate_role``/``add_dev`` pass their resolved role's ``to_extra()``, but
-        # ``create()`` is a lower-level, roster-type-agnostic entry point with no such
-        # guarantee (there is no CLI verb for ``sq create role`` — the guard is CLI-only — but
-        # the service layer itself does not refuse it), so ``from_extra_or_item`` falls back to
-        # the item's own ``title``/``slug``/``description`` field by field wherever ``extra``
-        # is silent. `None` for every other item type; an unreferenced context variable is
-        # harmless to a template that never reads it.
-        role_ctx = (
-            RoleDef.from_extra_or_item(
-                item.extra, title=item.title, slug=item.slug, description=item.description
-            )
-            if item_type == ROSTER_ROLE
-            else None
-        )
+        # ``agents/role.md.j2`` is this item type's file scaffold only — the frame (the
+        # panel-adjacent markers, the ``## Discussion`` heading) plus a `sq:body` that already
+        # seeds the ``sq:view:role_definition`` placement tag as static text. It reads no
+        # ``role.<field>`` at all: the resolved definition itself renders at read time, off
+        # this same tag, through the general view mechanism (`squads._views.expand_view_tags`,
+        # via `ItemsMixin.read_body`) — never from anything computed here.
         rendered = render(
             self._template_for(item_type),
             item=item,
             description=item.description,
             extra=item.extra,
             spec=self.spec,
-            role=role_ctx,
         )
         # Belt-and-suspenders: guarantee a working sub-entity container regardless of which
         # template rendered — a custom/renamed type falls back to `_default.md.j2` (no
@@ -922,14 +856,27 @@ class ServiceCore:
         # the current kind's container correctly.
         rendered = ensure_subentity_container_text(self.spec, item_type, rendered)
         if item_type == ROSTER_ROLE:
-            # A role's definition is rendered on every read (`role_definition_text`), from the
-            # same template that produced the scaffold above, so the stored region would be a
-            # second copy of a value the resolver already answers — and the only copy that can
-            # go stale, since no write path refreshes it. The region is emptied rather than
-            # removed: an absent one is a different fact about an item file, and the marker
-            # pair is the shape every item file shares. An explicit `body` still wins below —
-            # that is the caller stating a body, not this template producing one.
-            rendered = sections.replace_section(rendered, markers.BODY, "")
+            # Belt-and-suspenders, the same shape as the container guarantee above: the
+            # template's own `sq:body` already carries this tag as static content, so when the
+            # view is declared this is an idempotent no-op on the bundled template — but it is
+            # what makes a role's body provably seed the tag regardless of what the resolved
+            # template text turned out to be, rather than depending on the template file having
+            # gotten it right. Gated on `self.spec.views` the same way
+            # `MaintenanceMixin._repair_body_tag` already gates the sweep's own classification —
+            # a role activated under a dropped `role_definition` must not mint a fresh dangling
+            # tag, so this branch overrides the template's static tag with an empty body rather
+            # than reseeding it. The template itself cannot be made conditional (it is static
+            # text — see `agents/role.md.j2`), so this replace, not the template render above
+            # it, is what makes the created file agree with the live spec either way. An
+            # explicit `body` still wins below — that is the caller stating a body, not this
+            # template producing one.
+            rendered = sections.replace_section(
+                rendered,
+                markers.BODY,
+                markers.open_marker(markers.view_tag(ROLE_DEFINITION_VIEW_NAME))
+                if ROLE_DEFINITION_VIEW_NAME in self.spec.views
+                else "",
+            )
         if body is not None:
             rendered = sections.replace_section(rendered, markers.BODY, body)
         squad_rel = item.path
@@ -1189,7 +1136,9 @@ class ServiceCore:
         return self._parse_badge_code(field, raw)
 
     # ------------------------------------------------------------------ shared helpers
-    async def _locked_section_edit(self, item_id: str, mutate: Callable[[str, Item], str]) -> Item:
+    async def _locked_section_edit(
+        self, item_id: str, mutate: Callable[[str, Item], tuple[str, bool]]
+    ) -> tuple[Item, bool]:
         """Edit an item's prose under the index lock, atomically with the ``updated_at`` bump.
 
         Opens its own transaction, then delegates to :meth:`_section_edit_core` — the
@@ -1199,13 +1148,24 @@ class ServiceCore:
             return await self._section_edit_core(db, item_id, mutate)
 
     async def _section_edit_core(
-        self, db: SquadsDB, item_id: str, mutate: Callable[[str, Item], str]
-    ) -> Item:
+        self, db: SquadsDB, item_id: str, mutate: Callable[[str, Item], tuple[str, bool]]
+    ) -> tuple[Item, bool]:
         """The section-edit mutation core: takes an already-open transaction's ``db``.
 
-        ``mutate(text, item)`` returns the new file text (sync callable — may raise to abort
-        before any write). Shared by :meth:`_locked_section_edit` (body/comment/sub-body's
-        common core) and the bulk importer.
+        ``mutate(text, item)`` returns ``(new_text, changed)`` (sync callable — may raise to
+        abort before any write). When ``changed`` is ``False`` the file is never rewritten and
+        ``updated_at``/``modified_session`` never bump — a no-op call (an idempotent insert
+        already present, a removal of an absent marker) leaves the item file untouched. The
+        transaction still commits the index on exit regardless, so ``.squads.json`` may be
+        rewritten with identical content under a fresh mtime; only the markdown write is
+        conditional on ``changed``. Every body/comment/sub-body
+        ``mutate`` closure always has something to write and returns ``changed=True``; only a
+        marker-safe placement op (:meth:`~squads._services._views.ViewsMixin.insert_view`/
+        ``remove_view``) can turn out to be a no-op, which is exactly why this core takes the
+        decision from the callback instead of writing unconditionally.
+
+        Shared by :meth:`_locked_section_edit` (body/comment/sub-body/placement's common core)
+        and the bulk importer.
 
         This is the second of the two write seams that rewrite an item's frontmatter from an
         index-derived ``Item`` (the other is :func:`~squads._itemfile.update_frontmatter`) —
@@ -1217,11 +1177,13 @@ class ServiceCore:
         path = item_file(self.paths, it)
         text = await self._read_item_file(it, path)
         ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
-        new_text = mutate(text, it)
+        new_text, changed = mutate(text, it)
+        if not changed:
+            return it, False
         it.updated_at = clock.now()
         it.modified_session, _ = actor.current_session()
         await write_text(path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict()))
-        return it
+        return it, True
 
     # ------------------------------------------------------------------ role / skill lookups
     async def roster_item(self, item_type: str, slug: str) -> Item | None:
@@ -1240,112 +1202,6 @@ class ServiceCore:
             if it.extra.get(X.SLUG, default) == slug:
                 return it
         return None
-
-    def role_definition_text(self, role: RoleDef) -> str:
-        """Render *role*'s full definition — identity, mission, responsibilities, working
-        agreements — at call time, resolved fresh from *role* rather than read from any stored
-        copy.
-
-        Renders the same template a role's stored body used to be written from
-        (``agents/role.md.j2``), called here instead of at sync time. The caller supplies the
-        already-resolved definition (``resolve_role_with_base`` — the same resolution a role's
-        catalog card already computes) rather than this method resolving a second time on the
-        same call. No file is read or written.
-        """
-        rendered = render("agents/role.md.j2", role=role)
-        text = sections.get_section(rendered, markers.BODY)
-        assert text is not None, "agents/role.md.j2 must keep its sq:body markers"
-        return text.strip("\n")
-
-    async def skill_definition_text(self, slug: str) -> str:
-        """Render the definition of the **template-owned** skill named *slug* at call time,
-        from the same templates a system skill's stored body used to be written from.
-
-        Keyed on :func:`~squads._interactions.is_system_skill` and on nothing else. Neither the
-        folder, the item type, nor the ``sq-`` prefix separates a template-owned skill from an
-        authored one: they all sit in the skills folder, all carry the roster ``skill`` type,
-        and the ``sq-`` prefix is not reserved to squads. A **custom** skill's body is authored
-        storage and is read from the item instead (``read_body``); this method refuses that slug
-        rather than inventing a render for it.
-
-        Returns ``""`` for a system slug whose item type the active spec no longer declares —
-        a dropped or renamed type has no definition to render, and no sync regenerates one.
-        :func:`~squads._interactions.orphaned_skill_item_type` is what names that state for a
-        caller's message.
-
-        Lives on ``ServiceCore`` rather than in ``_interactions`` (the package that owns the
-        playbook document, and so the symmetric home) because ``_rendering/_engine`` imports
-        ``squads._interactions``: the rendering engine sits *above* that package and cannot be
-        imported back from it. ``_services`` sits below ``_rendering`` and already calls
-        ``render``. No backend takes part in either direction — a backend's skill pointer is
-        rendered from a slug and a description alone.
-        """
-        if not is_system_skill(slug, self.spec):
-            raise SquadsError(
-                f"{slug!r} is not a template-owned skill; its body is authored content, "
-                "read it from the item instead"
-            )
-        squad_dir = self.paths.config.squad_dir
-        if slug == GREETING_SKILL:
-            return render("agents/greeting_skill.md.j2", squad_dir=squad_dir).strip("\n")
-        if slug == MEMORY_SKILL:
-            return render("agents/memory_skill.md.j2", squad_dir=squad_dir).strip("\n")
-        roster = await self.roster()
-        if slug == SQUADS_SKILL:
-            return render(
-                "agents/squads_skill.md.j2",
-                squad_dir=squad_dir,
-                spec=self.spec,
-                # roles=... so the included workflow.md.j2 cheatsheet's authoring bullets
-                # (authoring_owner) filter by the LIVE roster, and so the example `--assignee`
-                # names a slug this squad actually carries.
-                roles=[
-                    {"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster
-                ],
-                # playbook=... so those same bullets resolve the create-lane through the ACTIVE
-                # (merged) playbook: an override-declared authoring role is named here instead
-                # of the type silently losing its authoring line.
-                playbook=self.playbook,
-            ).strip("\n")
-        return self._item_skill_definition_text(slug, roster)
-
-    def _item_skill_definition_text(self, slug: str, roster: list[RoleView]) -> str:
-        """The per-type half of :meth:`skill_definition_text`: one ``sq-<type>`` definition,
-        *rich* when the active merged playbook covers the type (full per-role
-        Enter/Do/Hand-off/Watch-for sections) and *thin* when it does not (auto-derived
-        lifecycle plus the standard command list, no role sections).
-
-        The active merged playbook decides that split — not the bundled singleton — so an
-        override's added or removed coverage is what moves a type between the two.
-
-        A type the active spec no longer declares resolves to no type at all here and renders
-        nothing, so a dropped or renamed type never produces a definition under its old name.
-        """
-        item_type = next(
-            (
-                t
-                for t, ts in self.spec.items.items()
-                if ts.category != "roster" and item_skill_name(t) == slug
-            ),
-            None,
-        )
-        if item_type is None:
-            return ""
-        pb = self.playbook.types.get(item_type)
-        # Lifecycle + sub-entity kind derive from the active spec (not the playbook's frozen
-        # prose), so an override on a covered built-in type stays correct.
-        subentity_kind = self.spec.item_subentity_kind(item_type)
-        return render(
-            "agents/item_skill.md.j2",
-            title=label_for(item_type, "singular", self.spec),
-            type=item_type,
-            overview=pb.overview if pb is not None else "",
-            lifecycle=linearize_lifecycle(self.spec.machine_for(item_type)),
-            commands=list(pb.commands) if pb is not None else custom_item_skill_commands(item_type),
-            sections=_item_skill_role_sections(pb, roster),
-            subentity_kind=subentity_kind,
-            subentity_plural=self.spec.subentity_plural(subentity_kind) if subentity_kind else None,
-        ).strip("\n")
 
     def _author_of(self, db: SquadsDB, slug: str) -> str:
         """Display (full) name for a participant slug, resolved against an already-loaded
@@ -1407,13 +1263,27 @@ class ServiceCore:
         config from and what skill-preload resolution (:meth:`_role_skills_map`) iterates;
         a retired role has no business in either. Use :meth:`roster_all` for a caller that
         needs every entry regardless of status (orphan detection, authorship display,
-        registration checks, the roster's own views)."""
+        registration checks, the roster's own views).
+
+        Loads its own index; a caller that already has one open (a service method mid-
+        transaction, or the view-rendering path that must not pay a second load for what
+        :meth:`~squads._services._items.ItemsMixin.read_body`'s own docstring already prices
+        as "under the CLI a second index load is free... but ``sq ui`` opts out of that
+        scope") should call :meth:`roster_from_db` against the ``db`` it already holds
+        instead."""
+        return self.roster_from_db(await self.store.load())
+
+    def roster_from_db(self, db: SquadsDB) -> list[RoleView]:
+        """:meth:`roster`, computed against an already-loaded *db* rather than loading one —
+        the seam a caller mid-transaction, or one that has already paid for a load for an
+        unrelated reason (:meth:`~squads._services._views.ViewsMixin.render_view` resolving a
+        ``playbook`` source, which needs both the index and the roster), reuses instead of
+        loading a second time. Filters and sorts exactly as :meth:`roster` does (live status,
+        ascending sequence number) — this is the one implementation, not a parallel one that
+        could drift from it."""
         live = self.spec.live_statuses(ROSTER_ROLE)
-        return [
-            self._role_view(it)
-            for it in await self.list_items(item_type=ROSTER_ROLE)
-            if it.status in live
-        ]
+        matching = [it for it in db.items.values() if it.type == ROSTER_ROLE and it.status in live]
+        return [self._role_view(it) for it in sorted(matching, key=lambda i: number_for_id(i.id))]
 
     async def roster_all(self) -> list[RoleView]:
         """Every role entry regardless of status — the full-vocabulary counterpart to

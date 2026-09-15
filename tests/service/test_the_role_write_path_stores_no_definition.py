@@ -63,13 +63,15 @@ async def test_no_role_file_stores_any_definition_key(svc):
 
 async def test_no_role_file_stores_its_rendered_definition(svc):
     """The other producer: activation used to render the whole definition into ``sq:body``.
-    The region stays (its markers are the shape every item file shares) and is empty."""
+    The region stays (its markers are the shape every item file shares) and carries only the
+    content-free ``sq:view:role_definition`` placement tag — never the rendered text itself."""
     await _drive_the_write_path(svc)
 
     for path in await _role_paths(svc):
         text = path.read_text(encoding="utf-8")
         assert sections.has_section(text, markers.BODY), path.name
-        assert not (sections.get_section(text, markers.BODY) or "").strip(), path.name
+        region = (sections.get_section(text, markers.BODY) or "").strip()
+        assert region == markers.open_marker(markers.view_tag("role_definition")), path.name
 
 
 async def test_the_definition_is_still_answerable_for_every_role(svc):

@@ -66,7 +66,9 @@ async def test_sync_writes_the_custom_type_into_claude_md_via_the_squads_skill(
     svc = service.Service(paths, spec=spec)
     await svc.sync()
 
-    text = await svc.skill_definition_text("squads")
+    item = await svc.roster_item("skill", "squads")
+    assert item is not None
+    text = await svc.read_body(item.id)
     assert "incident" in text and "`inc`" in text
 
 

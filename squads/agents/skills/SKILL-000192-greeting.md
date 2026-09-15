@@ -16,4 +16,5 @@ description: 'Start of a conversation with a human: detect & register the operat
   a job.'
 ---
 <!-- sq:body -->
+<!-- sq:view:greeting_skill -->
 <!-- sq:body:end -->

@@ -33,8 +33,14 @@ roles = [
 
 
 async def _skill_body(svc, item_type: str) -> str:
-    """The type's generated skill definition, as *svc* resolves it on read."""
-    return await svc.skill_definition_text(interactions.item_skill_name(item_type))
+    """The type's generated skill definition, as *svc* resolves it on read — through the same
+    shared body-read boundary (``read_body``) any other item's body goes through, off the
+    ``sq:view:item_skill`` tag the skill's own body carries."""
+    from squads._workflow._models import ROSTER_SKILL
+
+    item = await svc.roster_item(ROSTER_SKILL, interactions.item_skill_name(item_type))
+    assert item is not None, item_type
+    return await svc.read_body(item.id)
 
 
 async def test_generated_sq_task_skill_body_reflects_the_playbook_override(project) -> None:
@@ -42,6 +48,9 @@ async def test_generated_sq_task_skill_body_reflects_the_playbook_override(proje
     svc = service.open_service()
     await svc.activate_role("architect")
     await svc.refresh_managed()
+    # `project` skips skill seeding by design (see its own docstring); the definition now
+    # reads off a seeded skill item's own placement tag, so this test needs one on the index.
+    await svc.seed_bundled_skills()
 
     body = await _skill_body(svc, "task")
     assert "confirm the design" in body
@@ -54,6 +63,7 @@ async def test_with_no_override_the_generated_skill_body_is_unchanged(project, s
     activation, produces the SAME body as the bundled-only path (no "architect" section)."""
     await svc.activate_role("architect")
     await svc.refresh_managed()
+    await svc.seed_bundled_skills()
     body = await _skill_body(svc, "task")
     assert "confirm the design" not in body
     assert "Robert Architect" not in body  # architect has no bundled task guide

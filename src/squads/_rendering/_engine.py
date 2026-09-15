@@ -22,14 +22,18 @@ from pathlib import Path
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
 
 from squads import _badges as badges
+from squads._errors import SquadsError
 from squads._interactions import (
     authoring_owner,
     cheatsheet_anchor_context,
     cheatsheet_anchor_type,
+    custom_item_skill_commands,
     example_assignee_slug,
+    item_skill_role_sections,
     parent_chain,
 )
 from squads._models import _markers as markers
+from squads._models._vocab import label_for
 from squads._paths import number_for_id
 from squads._util import slugify
 from squads._workflow._models import linearize_lifecycle
@@ -84,8 +88,30 @@ def _make_env(squad_dir: Path | None) -> Environment:
     env.filters["open_marker"] = markers.open_marker
     env.filters["close_marker"] = markers.close_marker
     env.filters["idnum"] = _idnum  # "PREFIX-000007" | idnum → "7", for `sq task 7 …` hints
-    # workflow helper — callable as {{ linearize_lifecycle(spec.machine_for(type)) }} in templates
+    # "InProgress" | badge → "🟡 In Progress" — squads._badges.status_badge reused rather than
+    # reimplemented in Jinja (the source-widening decision's guard: a join/lookup arrives as a
+    # registered filter or a new source kind, never as logic accreting inside a template).
+    # Callable with a second arg for a project's own overridden spec ({{ status | badge(spec) }});
+    # with none it degrades to the bundled vocabulary, matching status_badge's own default.
+    env.filters["badge"] = badges.status_badge
+    # workflow helper — callable as {{ spec.machine_for(type) | linearize_lifecycle }} in
+    # templates. A filter, per the sanctioned extension point for render-time logic (a pure
+    # function of the spec, exposed to templates rather than reimplemented in Jinja) — not a
+    # global, so every registered playbook-derivation helper shares one calling convention.
+    env.filters["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
+    # DEPRECATED one-release compatibility alias for the global-callable form this filter
+    # replaced (0.15.0) — the same callable under both entry points, not a second
+    # implementation of anything. An adopter who scaffolded workflow.md.j2 on 0.14.x and
+    # changed nothing still calls it as {{ linearize_lifecycle(x) }}; removing the global
+    # outright breaks that override's render with no recovery but hand-editing the override.
+    # Drop this line (and only this line) once 0.15.x is no longer a supported upgrade source.
     env.globals["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
+    # per-item-type skill helpers — pure functions reachable from
+    # templates/views/item_skill.md.j2 (and any adopter override) as filters, never
+    # reimplemented in the template itself.
+    env.filters["item_skill_role_sections"] = item_skill_role_sections  # pyright: ignore[reportArgumentType]
+    env.filters["custom_item_skill_commands"] = custom_item_skill_commands  # pyright: ignore[reportArgumentType]
+    env.filters["label_for"] = label_for  # pyright: ignore[reportArgumentType]
     # playbook helpers — the role->type authoring narrative in workflow.md.j2 renders from the
     # playbook's declared create-lanes + the role catalog + the spec's parent chain, not
     # hardcoded prose.
@@ -171,4 +197,27 @@ def has_template(template_name: str) -> bool:
 
 
 def render(template_name: str, /, **context: object) -> str:
-    return _env().get_template(template_name).render(**context)
+    """Render *template_name* against *context* through the one Jinja2 environment every
+    rendering path in the codebase uses (item-file scaffolds, backend artifacts,
+    declared-view presentation, roster entries, …).
+
+    A ``jinja2.TemplateError`` — a missing template, a syntax error, or (the common case) an
+    undefined-variable failure under ``StrictUndefined`` — is translated into
+    :class:`~squads._errors.SquadsError` **here**, once, rather than at each consumer:
+    translating per-consumer instead lets two consumers disagree about the same failure, and
+    leaves every other renderer propagating the raw jinja2 exception. The adopter-visible
+    property this gives: a typo in an overridden item-creation template and the identical typo
+    in a view template surface identically — the same clean message, not one clean message and
+    one traceback. A consumer that wants a more specific message catches this
+    :class:`SquadsError` and re-raises with its own context (see
+    :func:`~squads._views._render_resolved_source_or_raise`); a consumer that wants to swallow
+    a rendering
+    failure entirely catches it and returns its own sentinel (see
+    :meth:`~squads._services._base.ServiceCore.pristine_body`).
+    """
+    from jinja2 import TemplateError
+
+    try:
+        return _env().get_template(template_name).render(**context)
+    except TemplateError as exc:
+        raise SquadsError(f"template {template_name!r} failed to render: {exc}") from exc

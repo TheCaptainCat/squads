@@ -548,6 +548,10 @@ parents = []
 aliases = []
 order = 90
 category = "roster"
+# a declared type's sq-<type> skill losing its generated guidance to an already-authored
+# body (the repair sweep's strict_empty license) is reported, not guarded against — see
+# item_skill_shadowed's own docstring.
+validators = ["item_skill_shadowed"]
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
@@ -664,3 +668,52 @@ label = "Title"
 [[views.milestone_rollup.fields]]
 code = "assignee"
 label = "Assignee"
+
+# ---------------------------------------------------------------------------
+# Four more bundled views, all non-relation sources (role/playbook/self) — no `fields`, no
+# `group_by`/`order_by`: those three kinds never reach the projection grammar at all (see the
+# module docstring on `squads._views`). None is attached via `items.<type>.views` (that
+# surface only accepts a relation-sourced view — `_check_item_views` refuses the other three
+# outright); each is placed instead by seeding a `sq:view:<name>` tag straight into the
+# creation template's `sq:body` region, so the item that carries the tag is the only place the
+# view is ever reached from.
+# ---------------------------------------------------------------------------
+
+[views.role_definition]
+# Source: the projecting item's own merged role definition (catalog + `.overrides/roles.toml`
+# + item fields) — the same resolution a role's catalog card already computes. `agents/
+# role.md.j2` (the role item's creation scaffold) seeds the tag naming this view into every
+# newly-activated role's `sq:body`; `sq repair`'s corpus sweep backfills it onto every
+# already-activated role from an earlier release.
+source = { kind = "role" }
+
+[views.squads_skill]
+# Source: the playbook lane of the projecting item's own type — `name` is deliberately unset,
+# so a `squads` skill item (roster type `skill`, no playbook lane of its own) resolves against
+# itself rather than against some other named type; `PlaybookSource.roster` is populated
+# unconditionally regardless of whether a lane exists, and that live roster (plus the whole
+# active playbook, also carried) is all this view's template actually reads.
+source = { kind = "playbook" }
+
+[views.greeting_skill]
+# Source: the projecting item itself, plus the active spec and squad dir — this skill's
+# content names no relation and needs no roster, only where the squad lives.
+source = { kind = "self" }
+
+[views.memory_skill]
+# Source: the projecting item itself, plus the active spec and squad dir — same shape as
+# `greeting_skill`.
+source = { kind = "self" }
+
+[views.item_skill]
+# Source: the playbook lane of the type a per-item-type skill item documents — `name` is
+# deliberately unset, the same shape `squads_skill` above already ships. A per-item-type skill
+# is always of the roster `skill` type, never of the type it describes, so "the host's own
+# type" (what `name` unset means for every other kind) is corrected for this one family: the
+# subject is the type the host's own slug names (`sq-<type>` -> `<type>`), and falls back to
+# the host's bare type when the slug names none — the emptiness case, not a refusal (see
+# `squads._views._playbook_subject`). One declaration, one template
+# (`templates/views/item_skill.md.j2`), for every declared non-roster type, built-in or a
+# project's own — never a per-type entry, the same "declares nothing derivable" rule that
+# already governs the skill slug list itself.
+source = { kind = "playbook" }

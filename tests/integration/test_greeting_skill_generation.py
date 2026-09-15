@@ -5,6 +5,7 @@
 
 import pytest
 
+from _helpers import resolved_skill_definition
 from squads import _sections as sections
 
 pytestmark = pytest.mark.anyio
@@ -15,7 +16,7 @@ async def test_greeting_skill_has_a_resolved_definition_and_a_thin_pointer(svc, 
         encoding="utf-8"
     )
     assert "sq skill greeting show" in pointer
-    body = await svc.skill_definition_text("greeting")
+    body = await resolved_skill_definition(svc, "greeting")
     assert "spawned as a subagent" in body  # subagents skip the greeting
     assert "sq list -t operator" in body and "git config user.name" in body
     assert "Match their tone" in body

@@ -5,6 +5,7 @@ import functools
 import json
 import sys
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -25,8 +26,9 @@ from squads import _badges as badges
 from squads import _discussion as discussion
 from squads import _views as views
 from squads._context import get_context, rebind
-from squads._errors import SquadsError
+from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
+from squads._interactions import allowed_create_types, is_dev_slug
 from squads._models._extras import ExtraKey as X
 from squads._models._item import (
     DISPLAY_ID_PADDING,
@@ -39,6 +41,8 @@ from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._rendering._engine import set_active_squad_dir
+from squads._roles._catalog import RoleDef
+from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
@@ -930,6 +934,75 @@ def resolve_comment_messages(messages: list[str] | None, file: str | None) -> li
     raise SquadsError("provide the comment via -m (repeatable) or --file PATH ('-' for stdin)")
 
 
+@dataclass(frozen=True)
+class ItemRowFields:
+    """The per-record inputs :func:`build_item_row_json` needs — taken generically off
+    whatever carries them (an ``Item``, or a view source's own resolved record) rather than a
+    literal ``Item`` type, so ``sq tree``'s own node builder and a ``ref``/``subtree`` view's
+    ``--json`` dispatch (``squads._cli._workflow_cmd``) can build one from either without
+    either needing the other's concrete type."""
+
+    id: str
+    type: str
+    title: str
+    status: str
+    priority: str | None
+    assignee: str | None
+    badge_value: Callable[[str], str | None]
+
+
+def build_item_row_json(
+    fields: ItemRowFields,
+    *,
+    spec: WorkflowSpec,
+    blocked_ids: set[str],
+    anchor: bool = False,
+    children: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """One row of ``sq tree --json``'s per-node shape: ``id``/``type``/``title``/``status``/
+    ``priority``/``assignee``/``blocked``/``badges``/``anchor``/``children`` — the one
+    definition ``sq tree``'s own node builder and a ``ref``/``subtree`` view's ``--json``
+    dispatch both build from, instead of two independently-typed field lists that could drift
+    apart. ``anchor``/``children`` default to the flat-record answer (no forced-root, no
+    nesting) — the right default for a source that resolved no hierarchy of its own."""
+    return {
+        "id": fields.id,
+        "type": fields.type,
+        "title": fields.title,
+        "status": fields.status,
+        "priority": fields.priority,
+        "assignee": fields.assignee,
+        "blocked": fields.id in blocked_ids,
+        "badges": badges.resolve_badges(spec, fields.type, fields.badge_value),
+        "anchor": anchor,
+        "children": children if children is not None else [],
+    }
+
+
+def build_subentity_row_json(
+    *,
+    local_id: str,
+    title: str,
+    status: str,
+    assignee: str | None,
+    severity: str | None,
+    story: str | None,
+) -> dict[str, Any]:
+    """One row of the per-kind ``sq <type> <n> <kind>s --json`` shape: ``local_id``/``title``/
+    ``status``/``assignee``/``severity``/``story``. Shared by that list command
+    (``squads._cli._items``) and a ``subentity`` view's ``--json`` dispatch
+    (``squads._cli._workflow_cmd``), the same way :func:`build_item_row_json` is shared for the
+    tree shape."""
+    return {
+        "local_id": local_id,
+        "title": title,
+        "status": status,
+        "assignee": assignee,
+        "severity": severity,
+        "story": story,
+    }
+
+
 def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail) -> dict[str, Any]:
     """The one sub-entity JSON object shape — shared by each ``subentities`` entry in
     :func:`build_item_json` and the standalone ``sq <type> <n> <kind> <k> show --json``
@@ -983,6 +1056,105 @@ async def build_item_json(svc: Service, it: Item) -> str:
             name: views.projection_json(await svc.resolve_view(name, it.id)) for name in attached
         }
     return json.dumps(payload)
+
+
+def role_base_for_show(slug: str, it: Item | None, squad_dir: Path | None = None) -> RoleDef | None:
+    """The merge base for a role card: an item in hand's own operator-settable fields
+    (:func:`~squads._roles._resolver.role_base_from_item` — a bundled role's ``full_name``, a
+    developer role's tech/name/model, plus this squad's own catalog-document override merged
+    into a bundled role's base) first, the ``-dev`` naming convention's generated preview only
+    when there is no item to ask.
+
+    Shared by ``sq role <slug> show`` (:func:`squads._cli._role.show_role`) and a ``role``
+    source's ``--json`` dispatch (:func:`squads._cli._workflow_cmd._view_json_payload`) — the
+    same base a role card is built from either way, never two independent resolutions."""
+    if it is not None:
+        return role_base_from_item(it, squad_dir)
+    return dev_base_for_slug(slug, squad_dir) if is_dev_slug(slug) else None
+
+
+def dev_preview_full_name(r: RoleDef, base_role: RoleDef | None, it: Item | None) -> str | None:
+    """The full name to report for a role card — ``None`` when it is a fabricated preview
+    rather than a real fact.
+
+    A ``-dev``-shaped slug with no roster entry previews against the generated developer
+    template (``dev_base_for_slug``), and that template's ``full_name`` is a pool pick ``sq dev
+    add`` is not bound to honour (the pool position it will actually land on depends on how many
+    developers exist *at that later point*, not now) — reporting it as the developer's name
+    would state a fact activation can immediately contradict. Only the un-declared case is
+    blanked: a file that itself sets ``full_name`` is the adopter's own declaration and is
+    reported as-is, matching every other role.
+    """
+    if it is None and base_role is not None and r.full_name == base_role.full_name:
+        return None
+    return r.full_name
+
+
+async def build_role_json_payload(
+    svc: Service,
+    slug: str,
+    item_id: str | None,
+    it: Item | None,
+    base_role: RoleDef | None,
+    addr: str,
+) -> dict[str, object]:
+    """The ``--json`` payload for a resolved role definition: the full catalog-plus-override
+    shape, or an item-field fallback for a slug with no bundled catalog entry, no dev base, and
+    no override file. The one builder both ``sq role <slug> show --json``
+    (:func:`squads._cli._role.show_role`) and a ``role`` source's ``--json`` dispatch
+    (:func:`squads._cli._workflow_cmd._view_json_payload`) call, so the two surfaces can never
+    describe one role definition two different ways.
+
+    ``skills`` is resolved once, ahead of the branch below, and carried into both outcomes:
+    it is a computed projection over the index (:meth:`Service.resolved_skills_for_role`),
+    never a field of the resolved ``RoleDef`` or the stored item, so neither branch's own
+    resolution touches it. Live-only by the same method's own design — an activated role
+    resolves its full preload set (system membership plus every ``preload``-scoped skill), a
+    bundled-only or retired slug resolves to the system-only fallback.
+    """
+    data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
+    skills = await svc.resolved_skills_for_role(slug)
+    try:
+        r = resolve_role_with_base(slug, svc.paths.squad_dir, base=base_role)
+        data.update(
+            {
+                "full_name": dev_preview_full_name(r, base_role, it),
+                "title": r.title,
+                "mission": r.mission,
+                "model": r.model,
+                "is_default": r.is_default,
+                "can_spawn": r.can_spawn,
+                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
+                "responsibilities": list(r.responsibilities),
+                "skills": skills,
+            }
+        )
+    except RoleNotFoundError:
+        # Narrow deliberately: this fallback exists for a slug with no bundled catalog entry,
+        # no dev base, and no override file — and only that. A broader catch also swallowed an
+        # *invalid* project role override — the refusal disappeared and the card rendered from
+        # the stored item, so a squad answered as though the broken override were not there.
+        # Nothing resolves for this shape, so what can be rebuilt comes from the uniform
+        # record (`item.title`/`item.description`) where one exists, and from whatever the
+        # item's own `extra` still carries for the rest — a corpus written before the
+        # definition stopped being mirrored there answers these; one written since reports the
+        # absence honestly rather than inventing a catalog answer there is none of.
+        if it is None:
+            raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
+        data.update(
+            {
+                "full_name": it.title,
+                "title": it.extra.get(X.TITLE, ""),
+                "mission": it.description,
+                "model": it.extra.get(X.MODEL),
+                "is_default": it.extra.get(X.IS_DEFAULT, False),
+                "can_spawn": it.extra.get(X.CAN_SPAWN, False),
+                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
+                "responsibilities": it.extra.get(X.RESPONSIBILITIES, []),
+                "skills": skills,
+            }
+        )
+    return data
 
 
 #: ``click.Context.meta`` key: presence means *this* CLI invocation's read scope was opened

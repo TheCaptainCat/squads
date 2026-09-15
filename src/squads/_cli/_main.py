@@ -24,7 +24,9 @@ from squads import _badges as badges
 from squads._badges import resolve_badges as resolve_item_badges
 from squads._cli import app
 from squads._cli._common import (
+    ItemRowFields,
     build_item_json,
+    build_item_row_json,
     console,
     e,
     err_console,
@@ -443,6 +445,30 @@ async def adopt(
     if notice:
         console.print(notice, soft_wrap=True)
     _print_scaffold_warnings(result.warnings)
+    # Same two channels `sq repair` reports at error level for the identical corpus state, in
+    # its own wording — an unreadable file whose previous index entry (if any) was carried
+    # forward unrefreshed, and an `sq:body` region the convergence guard declined to overwrite
+    # because it was marker-shaped. Reported here rather than left to `sq check`, which has no
+    # model for either state: this sweep is the only pass an adopted folder ever gets, so an
+    # operator who never runs `sq repair` by hand must still be told.
+    for msg in result.repair.unreadable:
+        console.print(
+            f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
+            "forward as-is; fix the file and repair again",
+            soft_wrap=True,
+        )
+    for msg in result.repair.skipped:
+        console.print(
+            f"[red]error[/red]: skipped {e(msg)} — this region was left untouched; "
+            "fix the file by hand and repair again",
+            soft_wrap=True,
+        )
+    if result.repair.unreadable or result.repair.skipped:
+        # Same partial-completion condition `sq repair` itself exits 1 for, over the same
+        # rebuild — a caller gating on `$?` must see the same answer from either route. Skip
+        # the generic closing hint below: the two loops above already name `sq repair` as the
+        # next step, and `sq check` cannot see this state to suggest it.
+        raise typer.Exit(1)
     console.print(
         "Migrate legacy docs with [cyan]sq --at <date> create …[/cyan] to preserve history; "
         "then [cyan]sq check[/cyan].",
@@ -653,22 +679,25 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 
         def node(tn: TreeNode) -> dict[str, Any]:
             it = tn.item
-            return {
-                "id": it.id,
-                "type": it.type,
-                "title": it.title,
-                "status": it.status,
-                "priority": it.priority,
-                "assignee": it.assignee,
-                "blocked": it.id in blocked_ids,
-                "badges": resolve_item_badges(spec, it.type, it.badge_value),
-                # Additive, and deliberately asymmetric with `path_only`, which is not on the
-                # wire and is not being put there as a rider. The disclosure a fabricated root
-                # needs stands on its own for a JSON consumer: without this field the consumer
-                # cannot tell an invented root from one somebody wrote.
-                "anchor": tn.anchor,
-                "children": [node(c) for c in _sort_children(tn.children)],
-            }
+            # `anchor` is additive, and deliberately asymmetric with `path_only`, which is not
+            # on the wire and is not being put there as a rider. The disclosure a fabricated
+            # root needs stands on its own for a JSON consumer: without this field the
+            # consumer cannot tell an invented root from one somebody wrote.
+            return build_item_row_json(
+                ItemRowFields(
+                    id=it.id,
+                    type=it.type,
+                    title=it.title,
+                    status=it.status,
+                    priority=it.priority,
+                    assignee=it.assignee,
+                    badge_value=it.badge_value,
+                ),
+                spec=spec,
+                blocked_ids=blocked_ids,
+                anchor=tn.anchor,
+                children=[node(c) for c in _sort_children(tn.children)],
+            )
 
         print_json_clean(json.dumps([node(n) for n in _sort_children(nodes)]))
         return
@@ -711,7 +740,8 @@ async def repair(
     an independently stale index) and, for that matter, one it did.
 
     Exit codes: 0 = a clean rebuild, 1 = it rebuilt but had to carry an unreadable file's
-    previous entry forward rather than refresh it — the same "reported degradation is not
+    previous entry forward rather than refresh it, or had to leave a marker-shaped `sq:body`
+    region untouched rather than guess at what it is — the same "reported degradation is not
     success" signal `sq check` gives at error level, so a caller gating on ``$?`` cannot
     mistake a board that still needs a file fixed for one that came back clean.
     """
@@ -736,7 +766,13 @@ async def repair(
             "forward as-is; fix the file and repair again",
             soft_wrap=True,
         )
-    if result.unreadable:
+    for msg in result.skipped:
+        console.print(
+            f"[red]error[/red]: skipped {e(msg)} — this region was left untouched; "
+            "fix the file by hand and repair again",
+            soft_wrap=True,
+        )
+    if result.unreadable or result.skipped:
         raise typer.Exit(1)
 
 
@@ -1204,7 +1240,17 @@ async def sync():
     svc = get_service()
     skipped = await svc.sync()
     _print_scaffold_warnings(skipped)
-    console.print("[green]synced[/green] managed files to this squads version")
+    if skipped.backfill_skipped:
+        # The version-drift backfill declined at least one body this run, so the stamp was
+        # deliberately withheld (MaintenanceMixin.sync()'s own docstring) — the green "synced"
+        # line below would assert the one thing this run did not do. Point at the skip(s)
+        # already printed above rather than repeating them.
+        console.print(
+            "managed files regenerated; the version stamp was withheld — see the skip(s) "
+            "reported above"
+        )
+    else:
+        console.print("[green]synced[/green] managed files to this squads version")
 
 
 @app.command()

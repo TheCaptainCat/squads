@@ -11,6 +11,7 @@ import pytest
 
 from squads import _views as views
 from squads._errors import SquadsError
+from squads._interactions import get_playbook_spec
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -18,7 +19,21 @@ from squads._workflow import bundled_spec
 from squads._workflow._models import ViewField, ViewSource, ViewSpec
 
 SPEC = bundled_spec()
+PLAYBOOK = get_playbook_spec()
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def _records(
+    view: ViewSpec, name: str, item: Item, db: SquadsDB, spec=SPEC
+) -> list[views._RawRecord]:
+    """``resolve_source`` narrowed to its relation-kind return shape — every source this
+    module tests (``ref``/``subtree``/``subentity``) always returns ``list[_RawRecord]``, so
+    every call site below reads that shape back directly rather than re-asserting it inline.
+    *playbook*/*roster*/*squad_dir* are irrelevant to all three (only ``role``/``playbook``/
+    ``self`` read them), so this fixes them at values a relation kind never touches."""
+    result = views.resolve_source(view, name, item, db, spec, PLAYBOOK, lambda: [], None)
+    assert isinstance(result, list)
+    return result
 
 
 def _item(
@@ -82,7 +97,7 @@ def test_subentity_source_projects_the_items_own_subentities() -> None:
             ViewField(code="severity", label="Severity"),
         ],
     )
-    records = views.resolve_records(view, "probe", review, _db(review), SPEC)
+    records = _records(view, "probe", review, _db(review), SPEC)
     projection = views.project(view, records, SPEC)
 
     (group,) = projection.groups
@@ -101,7 +116,7 @@ def test_subentity_source_refuses_when_the_item_hosts_a_different_kind() -> None
         fields=[ViewField(code="id", label="Finding")],
     )
     with pytest.raises(SquadsError, match="hosts"):
-        views.resolve_records(view, "probe", task, _db(task), SPEC)
+        _records(view, "probe", task, _db(task), SPEC)
 
 
 def test_subentity_source_with_no_subentities_projects_zero_records() -> None:
@@ -110,7 +125,7 @@ def test_subentity_source_with_no_subentities_projects_zero_records() -> None:
         source=ViewSource(kind="subentity", name="finding"),
         fields=[ViewField(code="id", label="Finding")],
     )
-    records = views.resolve_records(view, "probe", review, _db(review), SPEC)
+    records = _records(view, "probe", review, _db(review), SPEC)
     projection = views.project(view, records, SPEC)
     assert projection.records() == []
     assert projection.groups == [views.ViewGroup(key=None, records=[])]
@@ -131,7 +146,7 @@ def test_ref_source_resolves_bare_and_explicit_kind_refs_by_inversion() -> None:
         source=ViewSource(kind="ref", name="related"),
         fields=[ViewField(code="id", label="Item")],
     )
-    records = views.resolve_records(view, "probe", target, db, SPEC)
+    records = _records(view, "probe", target, db, SPEC)
     assert {r.identity for r in records} == {"TASK-2", "TASK-3"}
 
 
@@ -149,8 +164,8 @@ def test_ref_source_never_matches_across_a_shared_sequence_number() -> None:
         source=ViewSource(kind="ref", name="related"),
         fields=[ViewField(code="id", label="Item")],
     )
-    assert views.resolve_records(view, "probe", feat, db, SPEC) == []
-    (matched,) = views.resolve_records(view, "probe", bug, db, SPEC)
+    assert _records(view, "probe", feat, db, SPEC) == []
+    (matched,) = _records(view, "probe", bug, db, SPEC)
     assert matched.identity == "TASK-2"
 
 
@@ -169,7 +184,7 @@ def test_subtree_source_projects_descendants_of_the_declared_type_only() -> None
         fields=[ViewField(code="id", label="Item")],
         order_by=["id"],
     )
-    records = views.resolve_records(view, "probe", feat, db, SPEC)
+    records = _records(view, "probe", feat, db, SPEC)
     assert [r.identity for r in records] == ["TASK-2", "TASK-3"]
 
 
@@ -180,7 +195,7 @@ def test_subtree_source_finds_nothing_outside_the_subtree() -> None:
     view = ViewSpec(
         source=ViewSource(kind="subtree", name="task"), fields=[ViewField(code="id", label="Item")]
     )
-    assert views.resolve_records(view, "probe", feat, db, SPEC) == []
+    assert _records(view, "probe", feat, db, SPEC) == []
 
 
 # --------------------------------------------------------------------------- uniform record shape
@@ -208,7 +223,7 @@ def _consume_generic(projection: views.Projection) -> list[dict[str, object]]:
                         ViewField(code="status", label="Status"),
                     ],
                 ),
-                views.resolve_records(
+                _records(
                     ViewSpec(
                         source=ViewSource(kind="subentity", name="finding"),
                         fields=[],
@@ -240,7 +255,7 @@ def _consume_generic(projection: views.Projection) -> list[dict[str, object]]:
                         ViewField(code="status", label="Status"),
                     ],
                 ),
-                views.resolve_records(
+                _records(
                     ViewSpec(source=ViewSource(kind="ref", name="related"), fields=[]),
                     "probe",
                     (target := _item(1, "feature", "F", "Draft", prefix="FEAT")),
@@ -274,7 +289,7 @@ def test_group_by_buckets_by_the_declared_fields_resolved_value() -> None:
         order_by=["id"],
     )
     db = _db(root, t1, t2, t3)
-    records = views.resolve_records(view, "probe", root, db, SPEC)
+    records = _records(view, "probe", root, db, SPEC)
     projection = views.project(view, records, SPEC)
 
     by_key = {g.key: [r.values["id"].text for r in g.records] for g in projection.groups}
@@ -301,7 +316,7 @@ def test_order_by_sorts_within_group_and_is_stable_with_no_order_by() -> None:
         fields=[ViewField(code="id", label="Id"), ViewField(code="title", label="Title")],
         order_by=["title"],
     )
-    records = views.resolve_records(unordered, "probe", review, _db(review), SPEC)
+    records = _records(unordered, "probe", review, _db(review), SPEC)
 
     unordered_proj = views.project(unordered, records, SPEC)
     ordered_proj = views.project(ordered, records, SPEC)
@@ -323,7 +338,7 @@ def test_order_by_on_id_sorts_by_sequence_number_across_a_digit_boundary() -> No
         order_by=["id"],
     )
     db = _db(root, t9, t15, t100)
-    records = views.resolve_records(view, "probe", root, db, SPEC)
+    records = _records(view, "probe", root, db, SPEC)
     projection = views.project(view, records, SPEC)
     assert [r.values["id"].text for r in projection.records()] == ["TASK-9", "TASK-15", "TASK-100"]
 
@@ -341,7 +356,7 @@ def test_order_by_on_id_alone_interleaves_types_by_number_not_by_type() -> None:
         fields=[ViewField(code="id", label="Id")],
         order_by=["id"],
     )
-    # `resolve_records` isn't used here — a `ref` source's own records are `Item`s of any
+    # `resolve_source` isn't used here — a `ref` source's own records are `Item`s of any
     # declared type, but `project()` only ever needs the already-resolved records, so this
     # builds them directly rather than routing three items' forward refs through a `SquadsDB`
     # whose `items` dict is keyed by the very sequence number this test wants two records to
@@ -388,7 +403,7 @@ def test_order_by_on_a_badge_field_follows_the_declared_order_not_the_code() -> 
         order_by=["severity"],
     )
     db = _db(root, low, critical, medium, unset, stale)
-    records = views.resolve_records(view, "probe", root, db, SPEC)
+    records = _records(view, "probe", root, db, SPEC)
     projection = views.project(view, records, SPEC)
 
     assert [r.values["id"].text for r in projection.records()] == [
@@ -419,7 +434,7 @@ def test_projection_json_carries_field_metadata_grouping_and_records_only() -> N
             ViewField(code="severity", label="Severity"),
         ],
     )
-    records = views.resolve_records(view, "probe", review, _db(review), SPEC)
+    records = _records(view, "probe", review, _db(review), SPEC)
     projection = views.project(view, records, SPEC)
     payload = views.projection_json(projection)
 
@@ -453,7 +468,7 @@ def test_group_count_matches_the_records_it_was_computed_from() -> None:
         source=ViewSource(kind="subentity", name="finding"),
         fields=[ViewField(code="id", label="Id")],
     )
-    records = views.resolve_records(view, "probe", review, _db(review), SPEC)
+    records = _records(view, "probe", review, _db(review), SPEC)
     projection = views.project(view, records, SPEC)
     (group,) = projection.groups
 

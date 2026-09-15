@@ -24,16 +24,26 @@ trying to report.
 
 import json
 import math
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import typer
 from rich.markdown import Markdown
 from rich.table import Table
 
 import squads._cli._common as common
-from squads._cli._common import console, e, handle_errors, status_text
+from squads._cli._common import (
+    ItemRowFields,
+    build_item_row_json,
+    console,
+    e,
+    handle_errors,
+    status_text,
+)
 from squads._errors import SquadsError
+from squads._models._extras import ExtraKey as X
+from squads._models._schema import SCHEMA_VERSION
 from squads._models._vocab import labels_for
+from squads._paths import number_for_id
 from squads._workflow._models import (
     FALLBACK_ROLE_NAME,
     lifecycle_edges_in_order,
@@ -42,6 +52,9 @@ from squads._workflow._models import (
 
 if TYPE_CHECKING:
     from squads._interactions._models import PlaybookSpec
+    from squads._models._item import Item
+    from squads._services._service import Service
+    from squads._views import PlaybookSource
     from squads._workflow._models import WorkflowSpec
 
 workflow_app = typer.Typer(
@@ -789,27 +802,219 @@ def workflow_views(
     console.print(table)
 
 
+def _playbook_json_payload(source: PlaybookSource) -> dict[str, object]:
+    """A ``playbook`` source's ``--json`` payload — no pre-existing serializer to match (unlike
+    the other five kinds), so this is the shape reasoned out directly here: the resolved type,
+    its playbook lane's own declared fields (``overview``/``lifecycle``/``commands``/
+    ``roles``) when it has one, and the live roster — the raw ingredients
+    :class:`~squads._views.PlaybookSource` itself carries, unflattened. ``lane`` is ``None``
+    for a type genuinely declared but outside every guide's lane domain — that source's own
+    well-formed empty case (see :class:`~squads._views.PlaybookSource`), not a raise. No
+    ``fields``/``group_by``/``groups`` key anywhere in this shape: a client reading a
+    ``playbook`` payload sees only its own declared fields, never a projection envelope."""
+    lane = source.lane
+    return {
+        "type": source.item_type,
+        "lane": None
+        if lane is None
+        else {
+            "overview": lane.overview,
+            "lifecycle": lane.lifecycle,
+            "commands": list(lane.commands),
+            "roles": [
+                {
+                    "slug": rg.slug,
+                    "enter": list(rg.enter),
+                    "do": list(rg.do),
+                    "handoff": list(rg.handoff),
+                    "watch": list(rg.watch),
+                    "authors": rg.authors,
+                }
+                for rg in lane.roles
+            ],
+        },
+        "roster": [
+            {
+                "slug": rv.slug,
+                "full_name": rv.full_name,
+                "title": rv.title,
+                "is_default": rv.is_default,
+                "mission": rv.mission,
+                "responsibilities": list(rv.responsibilities),
+            }
+            for rv in source.roster
+        ],
+    }
+
+
+def _spec_identity_json(svc: Service) -> dict[str, object]:
+    """Enough of the active spec's identity for a ``self``-view client to tell which spec
+    resolved the payload — never the whole spec object, which is not item-shaped JSON.
+    ``override`` says whether a project ``.overrides/workflow.toml`` is in force; a client
+    that needs the resolved vocabulary itself reads the type/status/field catalogs (``sq
+    workflow types --json`` and its siblings) directly rather than through this source."""
+    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
+
+    override = (svc.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME).is_file()
+    return {"schema_version": SCHEMA_VERSION, "override": override}
+
+
+def _view_json_child_rows(
+    parent_id: str,
+    children_by_parent: dict[str, list[Item]],
+    spec: WorkflowSpec,
+    blocked_ids: set[str],
+    seen: set[str],
+) -> list[dict[str, Any]]:
+    """One matched record's real descendant subtree, recursively, in the same shape
+    ``sq tree --json`` builds ``children`` in for that same item — the equivalence
+    :func:`_view_json_payload`'s ``ref``/``subtree`` arm declares. Reuses
+    ``squads._views.children_by_parent``'s own resolution (no third implementation of "who
+    are this item's children") and, unconditionally, every descendant: ``sq workflow view
+    --json`` carries no flag equivalent to ``sq tree --all`` for closed-item visibility, so
+    closed descendants are included exactly like open ones. *seen* is one call's own set,
+    seeded with the matched record's id before the first call — the same cycle guard
+    ``_resolve_subtree_source`` already applies to the identical walk, so a genuine parent
+    cycle in the corpus terminates here instead of recursing forever."""
+    rows: list[dict[str, Any]] = []
+    for child in sorted(children_by_parent.get(parent_id, []), key=lambda i: number_for_id(i.id)):
+        if child.id in seen:
+            continue
+        seen.add(child.id)
+        rows.append(
+            build_item_row_json(
+                ItemRowFields(
+                    id=child.id,
+                    type=child.type,
+                    title=child.title,
+                    status=child.status,
+                    priority=child.badge_value("priority"),
+                    assignee=child.assignee,
+                    badge_value=child.badge_value,
+                ),
+                spec=spec,
+                blocked_ids=blocked_ids,
+                children=_view_json_child_rows(
+                    child.id, children_by_parent, spec, blocked_ids, seen
+                ),
+            )
+        )
+    return rows
+
+
+async def _view_json_payload(
+    svc: Service, spec: WorkflowSpec, view_name: str, item_id: str
+) -> object:
+    """The ``--json`` payload for ``sq workflow view <name> <id> --json`` — *view_name*
+    resolved against *item_id* once
+    (:meth:`~squads._services._views.ViewsMixin.resolve_view_source`), then serialized in the
+    shape its own declared source kind already has a serializer for — never a shared envelope:
+    ``ref``/``subtree`` reuse :func:`~squads._cli._common.build_item_row_json` (the
+    same builder ``sq tree --json`` renders its own nodes with, ``children`` populated the same
+    way — see :func:`_view_json_child_rows`), ``subentity`` reuses
+    :func:`~squads._cli._common.build_subentity_row_json` (the same builder ``sq <type> <n>
+    <kind>s --json`` uses), ``role`` reuses
+    :func:`~squads._cli._common.build_role_json_payload` (the same builder ``sq role <slug>
+    show --json`` uses), ``self`` reuses :func:`~squads._cli._common.build_item_json` (the
+    same builder an item's own ``show --json`` uses) plus :func:`_spec_identity_json`, and
+    ``playbook`` is :func:`_playbook_json_payload`. No kind's output carries a
+    ``fields``/``group_by``/``groups`` key: each shape is exactly what its own reused builder
+    already produces, nothing added."""
+    from squads._cli._common import (
+        build_item_json,
+        build_role_json_payload,
+        build_subentity_row_json,
+        role_base_for_show,
+    )
+    from squads._views import PlaybookSource, children_by_parent
+
+    view, item, result = await svc.resolve_view_source(view_name, item_id)
+    kind = view.source.kind
+
+    if kind in ("ref", "subtree"):
+        assert isinstance(result, list)
+        blocked_ids = {t.id for t, _ in await svc.blocked()}
+        db = await svc.store.load()
+        child_map = children_by_parent(db)
+        return [
+            build_item_row_json(
+                ItemRowFields(
+                    id=r.identity,
+                    type=r.kind,
+                    title=r.title,
+                    status=r.status,
+                    priority=r.badge_value("priority"),
+                    assignee=r.assignee,
+                    badge_value=r.badge_value,
+                ),
+                spec=spec,
+                blocked_ids=blocked_ids,
+                children=_view_json_child_rows(
+                    r.identity, child_map, spec, blocked_ids, {r.identity}
+                ),
+            )
+            for r in result
+        ]
+
+    if kind == "subentity":
+        assert isinstance(result, list)
+        return [
+            build_subentity_row_json(
+                local_id=r.identity,
+                title=r.title,
+                status=r.status,
+                assignee=r.assignee,
+                severity=r.badge_value("severity"),
+                story=r.story,
+            )
+            for r in result
+        ]
+
+    if kind == "role":
+        # The role source's own applicability already guarantees `item` IS the role item —
+        # `result` (the already-resolved `RoleDef`) is not reused here because
+        # `build_role_json_payload` resolves its own, the same way `show_role` itself does.
+        slug = item.extra.get(X.SLUG, item.slug)
+        base_role = role_base_for_show(slug, item, svc.paths.squad_dir)
+        return await build_role_json_payload(svc, slug, item.id, item, base_role, slug)
+
+    if kind == "playbook":
+        assert isinstance(result, PlaybookSource)
+        return _playbook_json_payload(result)
+
+    # "self" — the only remaining kind; resolves to the host item itself.
+    payload: dict[str, object] = json.loads(await build_item_json(svc, item))
+    payload["spec"] = _spec_identity_json(svc)
+    return payload
+
+
 @workflow_app.command("view")
 @common.command
 async def workflow_view(
     name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
     item_id: str = typer.Argument(..., metavar="ID", help="Item to resolve the view against."),
-    json_out: bool = typer.Option(False, "--json", help="Emit the projection, no presentation."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Emit the resolved source in its own shape, no presentation."
+    ),
 ) -> None:
     """Resolve one declared view against one item.
 
     Default: rendered through the view's declared presentation template
-    (``templates/views/<name>.md.j2``, adopter-overridable). ``--json`` emits the
-    projection instead — field metadata, grouping, and records — and skips presentation
-    entirely: the CLI rendering is one presentation over the records, never their source.
+    (``templates/views/<name>.md.j2``, adopter-overridable). ``--json`` skips presentation
+    and serializes the resolved source directly, per source kind: ``ref``/``subtree`` match
+    ``sq tree --json``'s per-node shape, ``subentity`` matches ``sq <type> <n> <kind>s
+    --json``, ``role`` matches ``sq role <slug> show --json``, ``self`` matches the host
+    item's own ``show --json`` plus enough of the active spec's identity to say which spec
+    resolved it, and ``playbook`` has no existing counterpart — see
+    :func:`_playbook_json_payload`. No source kind's ``--json`` carries a
+    ``fields``/``group_by``/``groups`` key.
     """
-    from squads._cli._common import get_service, print_json_clean
-    from squads._views import projection_json
+    from squads._cli._common import get_active_spec, get_service, print_json_clean
 
     svc = get_service()
     if json_out:
-        projection = await svc.resolve_view(name, item_id)
-        print_json_clean(json.dumps(projection_json(projection)))
+        payload = await _view_json_payload(svc, get_active_spec(), name, item_id)
+        print_json_clean(json.dumps(payload))
         return
     console.print(await svc.render_view(name, item_id))
 

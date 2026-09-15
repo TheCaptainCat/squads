@@ -8,7 +8,8 @@ that skill's ``.claude`` pointer, and the compiled ``CLAUDE.md``/``AGENTS.md`` r
 reference it) — every one of which ``sq init``/``sq adopt`` already write for a squad created
 after the declaration landed, and none of which a squad created *before* it ever gets on its
 own. The skill's definition text is not among them: a system skill's definition renders from
-its template on every read (``ServiceCore.skill_definition_text``), so nothing stores it and
+its template on every read, off the ``sq:view:item_skill`` tag its ``sq:body`` carries
+(``squads._views.expand_view_tags``, via ``ItemsMixin.read_body``), so nothing stores it and
 nothing here writes it.
 
 No existing item data is rewritten: every write this runner performs creates a path that did

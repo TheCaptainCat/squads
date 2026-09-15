@@ -137,6 +137,90 @@ async def test_the_gate_never_aborts_a_mutation_on_this_finding(project):
     assert got.status == "Done"
 
 
+# ------------------------------------------------------------- selecting more than one target
+
+# A type selecting the check twice, once per target type — the pattern its own runtime is
+# built to union (see `_ref_rule_target_present`'s docstring: "two rules targeting the same <T>
+# simply widen the accepted kinds", and its `targets` set comprehends every matching entry).
+_TWO_TARGET_OPT_IN = (
+    f"# squads:override-base:{__version__}\n"
+    "[items.feature]\n"
+    'validators = ["ref_rule_target_present:contract", "ref_rule_target_present:decision"]\n'
+    "ref_rules = [\n"
+    '    { kind = "implements", target = "contract" },\n'
+    '    { kind = "addresses", target = "decision" },\n'
+    "]\n"
+)
+
+
+def _two_target_service(squad_dir: Path) -> service.Service:
+    override_dir = squad_dir / ".overrides"
+    override_dir.mkdir(parents=True, exist_ok=True)
+    (override_dir / "workflow.toml").write_text(_TWO_TARGET_OPT_IN, encoding="utf-8")
+    svc = service.open_service()
+    assert svc.spec.items["feature"].validators == [
+        "ref_rule_target_present:contract",
+        "ref_rule_target_present:decision",
+    ]
+    return svc
+
+
+async def test_a_type_may_select_the_check_once_per_target_type(project):
+    """Loads clean: two entries of ``ref_rule_target_present`` naming different target types
+    are independent selections, not a repeated bare name."""
+    _two_target_service(project.squad_dir)
+
+
+async def test_neither_target_satisfied_produces_one_combined_warning_not_two(project):
+    """Both targets present and neither satisfied: the finding names both in one message
+    rather than firing once per selected target — the dispatch engine runs the member's
+    catalog function once per item regardless of how many target selections it carries."""
+    svc = _two_target_service(project.squad_dir)
+    await create_item(svc, "contract", "c")
+    await create_item(svc, "decision", "d")
+    feat = (await create_item(svc, "feature", "f")).item
+    for status in ("Ready", "InProgress", "Done"):
+        await svc.set_status(feat.id, status)
+
+    matching = [i for i in await svc.check() if i.item == feat.id]
+    assert len(matching) == 1
+    assert "contract" in matching[0].message
+    assert "decision" in matching[0].message
+
+
+@pytest.mark.parametrize(
+    ("kind", "target_type"), [("implements", "contract"), ("addresses", "decision")]
+)
+async def test_satisfying_either_selected_target_clears_the_finding(project, kind, target_type):
+    """Either target's own edge is sufficient — the two selections are independent
+    obligations, not a pair that both must clear."""
+    svc = _two_target_service(project.squad_dir)
+    contract = (await create_item(svc, "contract", "c")).item
+    decision = (await create_item(svc, "decision", "d")).item
+    target = contract if target_type == "contract" else decision
+    feat = (await create_item(svc, "feature", "f")).item
+    await svc.add_ref(feat.id, target.id, kind=kind)
+    for status in ("Ready", "InProgress", "Done"):
+        await svc.set_status(feat.id, status)
+
+    assert _messages(await svc.check(), feat.id) == []
+
+
+async def test_selecting_the_same_target_type_twice_fails_closed_at_load(project):
+    """Same bare name, same param — a genuine duplicate, distinct from the two-different-
+    targets case above."""
+    override_dir = project.squad_dir / ".overrides"
+    override_dir.mkdir(parents=True, exist_ok=True)
+    body = (
+        f"# squads:override-base:{__version__}\n"
+        "[items.feature]\n"
+        'validators = ["ref_rule_target_present:contract", "ref_rule_target_present:contract"]\n'
+    )
+    (override_dir / "workflow.toml").write_text(body, encoding="utf-8")
+    with pytest.raises(SquadsError, match="more than once"):
+        service.open_service()
+
+
 # --------------------------------------------------------------------- RefRule.target, at load
 
 

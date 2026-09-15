@@ -14,6 +14,7 @@ extra:
   is_default: false
 ---
 <!-- sq:body -->
+<!-- sq:view:role_definition -->
 <!-- sq:body:end -->
 
 ## Discussion

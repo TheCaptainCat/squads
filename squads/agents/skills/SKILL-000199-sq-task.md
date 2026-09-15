@@ -14,4 +14,5 @@ description: 'Working with task items in this squad: lifecycle, commands, and ro
   guidance.'
 ---
 <!-- sq:body -->
+<!-- sq:view:item_skill -->
 <!-- sq:body:end -->

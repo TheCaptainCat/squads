@@ -63,14 +63,32 @@ at invocation strength, so deleting that guidance cannot fall back onto the word
 That test is targeted rather than a general tightening, for the reason the paragraph above gives.
 
 **The corpus asserts its own size**, not only the matcher's behaviour. Validating the matcher
-against known positives is necessary and not sufficient: a corpus assembled from the on-disk
-skill stubs — whose bodies are empty, because a skill definition renders at read time — returns
-zero for most commands while still hitting the few that appear elsewhere, so the known-positive
-check passes and every zero is false anyway. ``_agent_facing_corpus`` therefore refuses a
-carrier that renders near-empty and refuses a corpus missing carriers outright.
+against known positives is necessary and not sufficient, and two distinct broken-corpus shapes
+have each defeated a weaker version of that check. A corpus assembled from the on-disk skill
+stubs' *body region only* is 0-1 characters per carrier — the shape a first, too-low floor caught.
+But a corpus assembled by reading those same stub files *whole* (frontmatter included, the way a
+naive "read the file" corpus builder does it) lands at 377-611 characters per carrier on this
+repository's own squad, and 327-579 on a fresh ``sq init --default-names`` scratch squad —
+comfortably above that first floor, and above
+``test_the_matcher_is_validated_against_known_positives``'s own ``len(corpus) > 10_000`` check too,
+since the genuine ``CLAUDE.md`` managed region alone clears that on its own and carries several of
+the known-positive terms. Neither check caught it; the smallest *genuine* rendered skill body
+measured well over 1,000 characters wherever the frontmatter-only stubs measured well under it,
+which is the gap ``_MIN_CARRIER_CHARS`` is now calibrated against — not "empty", but "no larger
+than a frontmatter-only stub". ``_agent_facing_corpus`` therefore refuses a carrier that renders
+anywhere near stub size and refuses a corpus missing carriers outright, catching both shapes
+rather than only the emptier one.
+
+As a second, independent layer — because a size floor can only ever be calibrated against shapes
+that have actually occurred, not against every shape that could — the broad assertion below also
+checks a handful of known-positive terms in the same run it checks for unnamed commands, exactly
+as ``test_the_mutation_audit_command_is_named_as_an_invocation`` already did for the reflog case.
+A broken corpus that somehow slipped past the size floor still can't be reported as "these commands
+lack guidance"; it reports as broken instead.
 """
 
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -88,10 +106,10 @@ from squads._interactions import (
     item_skill_name,
     managed_item_types,
 )
-from squads._models._vocab import label_for
+from squads._models._item import Item
 from squads._rendering._engine import render
-from squads._services._base import _item_skill_role_sections
-from squads._workflow import bundled_spec, linearize_lifecycle
+from squads._views import PlaybookSource
+from squads._workflow import bundled_spec
 
 #: Commands deliberately absent from agent guidance, each with the reason. Asserted in BOTH
 #: directions — an unexempted command missing from the corpus fails, and an entry here whose
@@ -134,6 +152,20 @@ _PINNED_ROSTER: list[RoleView] = [
     ),
 ]
 
+#: A well-formed but otherwise inert host item for ``views/squads_skill.md.j2``/
+#: ``views/memory_skill.md.j2`` — neither reads any ``item.*`` field, so its content is
+#: arbitrary; it exists only because ``render_source_view``'s context always carries one.
+_PROBE_SKILL_ITEM = Item(
+    sequence_id=1,
+    type="skill",
+    title="squads",
+    slug="squads",
+    status="Active",
+    path="agents/skills/SKILL-000001-squads.md",
+    created_at=datetime.now(UTC),
+    updated_at=datetime.now(UTC),
+)
+
 
 def _repo_root() -> Path:
     return Path(_docfiles.__file__).resolve().parents[2]
@@ -161,35 +193,47 @@ def _top_level_commands() -> frozenset[str]:
 
 
 def _generated_skill_bodies() -> dict[str, str]:
-    """The twelve generated skill definitions, rendered the way the service renders them at
-    read time (``ServiceCore.skill_definition_text``) against the pinned roster."""
+    """The twelve generated skill definitions, rendered the way a read expands each skill's own
+    ``sq:view:<name>`` placement tag, against the pinned roster."""
     spec = bundled_spec()
     playbook = get_playbook_spec()
-    roles = [{"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in _PINNED_ROSTER]
+    playbook_source = PlaybookSource(
+        item_type="skill", lane=None, roster=_PINNED_ROSTER, playbook=playbook
+    )
     bodies = {
         f"skill:{SQUADS_SKILL}": render(
-            "agents/squads_skill.md.j2",
-            squad_dir="squads",
+            "views/squads_skill.md.j2",
+            source=playbook_source,
+            item=_PROBE_SKILL_ITEM,
             spec=spec,
-            roles=roles,
-            playbook=playbook,
+            squad_dir="squads",
         ),
-        f"skill:{GREETING_SKILL}": render("agents/greeting_skill.md.j2", squad_dir="squads"),
-        f"skill:{MEMORY_SKILL}": render("agents/memory_skill.md.j2", squad_dir="squads"),
+        f"skill:{GREETING_SKILL}": render(
+            "views/greeting_skill.md.j2",
+            source=_PROBE_SKILL_ITEM,
+            item=_PROBE_SKILL_ITEM,
+            spec=spec,
+            squad_dir="squads",
+        ),
+        f"skill:{MEMORY_SKILL}": render(
+            "views/memory_skill.md.j2",
+            source=_PROBE_SKILL_ITEM,
+            item=_PROBE_SKILL_ITEM,
+            spec=spec,
+            squad_dir="squads",
+        ),
     }
     for item_type in managed_item_types(playbook):
         pb = playbook.types.get(item_type)
-        kind = spec.item_subentity_kind(item_type)
+        item_skill_source = PlaybookSource(
+            item_type=item_type, lane=pb, roster=_PINNED_ROSTER, playbook=playbook
+        )
         bodies[f"skill:{item_skill_name(item_type)}"] = render(
-            "agents/item_skill.md.j2",
-            title=label_for(item_type, "singular", spec),
-            type=item_type,
-            overview=pb.overview if pb is not None else "",
-            lifecycle=linearize_lifecycle(spec.machine_for(item_type)),
-            commands=list(pb.commands) if pb is not None else [],
-            sections=_item_skill_role_sections(pb, _PINNED_ROSTER),
-            subentity_kind=kind,
-            subentity_plural=spec.subentity_plural(kind) if kind else None,
+            "views/item_skill.md.j2",
+            source=item_skill_source,
+            item=_PROBE_SKILL_ITEM,
+            spec=spec,
+            squad_dir="squads",
         )
     return bodies
 
@@ -213,10 +257,14 @@ def _managed_claude_section() -> str:
     return section
 
 
-#: Below this many characters a carrier is a stub rather than a render — an order of magnitude
-#: under the smallest real one, so it fires on an empty or near-empty body and never on a short
-#: but genuine render.
-_MIN_CARRIER_CHARS = 200
+#: Below this many characters a carrier is a stub rather than a render. Calibrated against the
+#: shape that actually occurs — a frontmatter-only carrier (an on-disk skill ``.md`` file read
+#: whole, body empty because a skill definition renders at read time), measured at 327-611
+#: characters across this repository's own squad and a fresh scratch squad — not against an empty
+#: carrier, which no real corpus builder produces. The smallest genuine rendered skill body clears
+#: 1,000 characters with room to spare, so this sits with headroom on both sides: comfortably
+#: above every measured frontmatter-only stub, comfortably below every measured genuine render.
+_MIN_CARRIER_CHARS = 1000
 
 #: The three always-present skill bodies (``squads``, ``greeting``, ``sq-memory``) plus one
 #: ``sq-<type>`` per playbook-covered type, plus the managed section. Held as a floor rather than
@@ -247,6 +295,15 @@ def _names(term: str, corpus: str) -> bool:
     return re.search(rf"\b{re.escape(term)}\b", corpus, re.IGNORECASE) is not None
 
 
+#: Terms present in every genuine corpus this guard has measured, reused as controls in more than
+#: one assertion below. A zero on all of these alongside zeros on the assertion's own subject
+#: means the corpus is broken, not that guidance is missing — the same distinction
+#: ``test_the_mutation_audit_command_is_named_as_an_invocation`` already draws for ``reflog``,
+#: generalised here for the broad assertion, which has no single always-guided subject of its own
+#: to lean on.
+_KNOWN_POSITIVE_TERMS = ("create", "comment", "tree", "check", "discussion")
+
+
 @pytest.fixture(scope="module")
 def corpus() -> str:
     text = _agent_facing_corpus()
@@ -257,6 +314,15 @@ def corpus() -> str:
 
 
 def test_every_top_level_command_is_named_in_the_agent_facing_corpus(corpus: str) -> None:
+    """Controls run first, in the same assertion: a corpus missing even the terms every genuine
+    render carries is broken, and must be reported that way rather than as a list of real
+    commands with missing guidance — the misattribution ``_MIN_CARRIER_CHARS`` alone is not
+    guaranteed to catch, since a size floor is only ever calibrated against shapes already seen."""
+    controls = {term: _names(term, corpus) for term in _KNOWN_POSITIVE_TERMS}
+    assert all(controls.values()), (
+        f"known-positive term(s) absent — the corpus is broken, not the guidance: "
+        f"{sorted(t for t, present in controls.items() if not present)}"
+    )
     unnamed = sorted(
         c for c in _top_level_commands() if c not in _UNGUIDED_BY_DESIGN and not _names(c, corpus)
     )
@@ -305,7 +371,7 @@ def test_the_matcher_is_validated_against_known_positives(corpus: str) -> None:
     matcher on terms that must be present and one that must not, so a corpus that failed to
     build (or got mangled on the way in) fails here rather than passing everything above."""
     assert len(corpus) > 10_000
-    for present in ("create", "comment", "tree", "check", "discussion"):
+    for present in _KNOWN_POSITIVE_TERMS:
         assert _names(present, corpus), f"matcher found no {present!r} — the corpus is broken"
     assert not _names("zzz-not-a-squads-word", corpus)
 

@@ -294,7 +294,7 @@ class CollabMixin(ServiceCore):
             clock.iso(clock.now()), self._author_of(db, as_slug), messages
         )
 
-        def mutate(text: str, _item: Item) -> str:
+        def mutate(text: str, _item: Item) -> tuple[str, bool]:
             if not sections.has_section(text, tag):
                 raise SquadsError(
                     f"no discussion section {tag!r} in {item_id} (was it scaffolded?)"
@@ -304,9 +304,10 @@ class CollabMixin(ServiceCore):
                 _item.id,
                 {"author": as_slug},
             )
-            return sections.append_to_section(text, tag, entry)
+            return sections.append_to_section(text, tag, entry), True
 
-        return await self._section_edit_core(db, item_id, mutate)
+        item, _changed = await self._section_edit_core(db, item_id, mutate)
+        return item
 
     @staticmethod
     def _discussion_tag(

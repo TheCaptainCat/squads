@@ -32,20 +32,45 @@ def test_views_is_a_member_of_the_closed_top_level_section_set() -> None:
     assert "views" in WORKFLOW_TOP_LEVEL_SECTIONS
 
 
-def test_exactly_one_view_ships_bundled_and_it_is_type_attached() -> None:
+def test_exactly_one_relation_view_ships_bundled_and_it_is_type_attached() -> None:
     """Naming a bundled ref kind / sub-entity kind / item type as a source would ordinarily
     couple every project that later drops or renames it (an ordinary, already-tested
     customisation — see ``test_workflow_subentity_kinds_cli.py``'s dropped-kind cases) to
-    keeping a view nothing consumes — the reason the mechanism itself shipped with none. The
-    milestone roll-up is the one exception, and only because it's attached: something in the
-    document actually reads it (``items.milestone.views``), and dropping ``milestone`` from
-    ``[selected].items`` takes the attachment — and the loader then the view itself — with it
-    (``tests/unit/test_milestone_view_deselect_cascade.py``). Every OTHER bundled view stays
-    proven through test-only declarations instead (this module and
-    ``tests/unit/test_view_expresses_the_subentity_summary_shape.py``)."""
+    keeping a view nothing consumes — the reason the mechanism itself shipped with none
+    *relation*-sourced view beyond one. The milestone roll-up is that one exception, and only
+    because it's attached: something in the document actually reads it
+    (``items.milestone.views``), and dropping ``milestone`` from ``[selected].items`` takes the
+    attachment — and the loader then the view itself — with it
+    (``tests/unit/test_milestone_view_deselect_cascade.py``). Every OTHER bundled
+    *relation*-sourced view stays proven through test-only declarations instead (this module
+    and ``tests/unit/test_view_expresses_the_subentity_summary_shape.py``).
+
+    The other five bundled views (``role_definition``, ``squads_skill``, ``greeting_skill``,
+    ``memory_skill``, ``item_skill``) are non-relation-sourced and carry no
+    ``items.<type>.views`` attachment at all — each is placed by a ``sq:view:<name>`` tag
+    seeded straight into its host's creation template instead, so this test's own subject (the
+    type-attachment axis) does not apply to them; their own end-to-end content is covered by
+    ``tests/integration/test_role_body_content_generation.py``,
+    ``tests/service/test_a_system_skills_definition_is_never_stored_in_its_file.py`` and the
+    ``tests/integration/test_*_skill_content_generation.py``/``test_*_skill_generation.py``/
+    ``test_item_skill_body_generation.py`` modules — the generic ``role``/``playbook``/``self``
+    *mechanism* those five use is what
+    ``tests/service/test_role_playbook_self_views_end_to_end.py`` covers instead, against
+    test-declared probe views rather than these bundled names."""
     spec = bundled_spec()
-    assert set(spec.views) == {"milestone_rollup"}
+    non_relation_views = {
+        "role_definition",
+        "squads_skill",
+        "greeting_skill",
+        "memory_skill",
+        "item_skill",
+    }
+    relation_views = set(spec.views) - non_relation_views
+    assert relation_views == {"milestone_rollup"}
     assert spec.items["milestone"].views == ["milestone_rollup"]
+    for t, ts in spec.items.items():
+        if t != "milestone":
+            assert ts.views == [], f"{t}: unexpected attached views {ts.views}"
 
 
 # --------------------------------------------------------------------------- a valid declaration
@@ -77,6 +102,53 @@ fields = [
     spec = load_workflow_spec(squad_dir=tmp_path)
     view = spec.views["probe"]
     assert [f.code for f in view.fields] == ["id", field_code]
+
+
+# --------------------------------------------------------------------------- role / playbook /
+# self: no field grammar, and each kind's own name rule
+
+
+@pytest.mark.parametrize(
+    "source_toml",
+    [
+        pytest.param('{ kind = "role" }', id="role"),
+        pytest.param('{ kind = "self" }', id="self"),
+        pytest.param('{ kind = "playbook" }', id="playbook-no-name"),
+        pytest.param('{ kind = "playbook", name = "task" }', id="playbook-declared-name"),
+    ],
+)
+def test_a_non_relation_source_loads_with_no_fields_declared_at_all(
+    tmp_path: Path, source_toml: str
+) -> None:
+    """``role``/``playbook``/``self`` never reach the fields/``group_by``/``order_by``
+    grammar — unlike every relation kind (``test_a_view_with_no_fields_is_refused``), an
+    entirely field-less declaration is not an error for any of the three."""
+    _write_override(tmp_path, f"[views.probe]\nsource = {source_toml}\n")
+    spec = load_workflow_spec(squad_dir=tmp_path)
+    assert spec.views["probe"].fields == []
+
+
+@pytest.mark.parametrize("kind", ["role", "self"])
+def test_a_role_or_self_source_naming_a_name_is_refused(tmp_path: Path, kind: str) -> None:
+    _write_override(tmp_path, f'[views.probe]\nsource = {{ kind = "{kind}", name = "bogus" }}\n')
+    with pytest.raises(SquadsError, match=f"'{kind}' source takes no name"):
+        load_workflow_spec(squad_dir=tmp_path)
+
+
+def test_a_playbook_source_name_is_optional(tmp_path: Path) -> None:
+    """No name at all — resolved at read time against the host's own type — loads clean,
+    exactly like a declared one."""
+    _write_override(tmp_path, '[views.probe]\nsource = { kind = "playbook" }\n')
+    spec = load_workflow_spec(squad_dir=tmp_path)
+    assert spec.views["probe"].source.name is None
+
+
+def test_a_playbook_source_naming_an_undeclared_type_is_refused(tmp_path: Path) -> None:
+    _write_override(
+        tmp_path, '[views.probe]\nsource = { kind = "playbook", name = "no-such-type" }\n'
+    )
+    with pytest.raises(SquadsError, match=r"not declared in \[items\]"):
+        load_workflow_spec(squad_dir=tmp_path)
 
 
 # --------------------------------------------------------------------------- referential floor
@@ -455,6 +527,44 @@ views = ["story_summary"]
 """,
     )
     with pytest.raises(SquadsError, match=r"guide.*story_summary.*projects 'story'.*hosts"):
+        load_workflow_spec(squad_dir=tmp_path)
+
+
+def test_a_self_sourced_view_attached_to_a_type_is_refused_at_load(tmp_path: Path) -> None:
+    """``items.<type>.views`` may only attach a relation-sourced view — ``self`` resolves to
+    the bare host item, which ``squads._views.projection_json`` (the only serializer
+    ``build_item_json``'s type-attached ``views`` key calls) has no shape for. Refused here,
+    naming the source kind and the attaching type, rather than left to break ``show --json``
+    for every item of that type on a spec that loads clean."""
+    _write_override(
+        tmp_path,
+        """
+[views.self_card]
+source = { kind = "self" }
+
+[items.task]
+views = ["self_card"]
+""",
+    )
+    with pytest.raises(SquadsError, match=r"task.*self_card.*'self' source"):
+        load_workflow_spec(squad_dir=tmp_path)
+
+
+def test_a_role_sourced_view_attached_to_a_type_is_refused_at_load(tmp_path: Path) -> None:
+    """Same refusal, for a ``role``-sourced view attached to a type that is not even the role
+    type — a type-attachment ``resolve_view`` also has no serializer for, so this is refused
+    before ``show``/``show --raw`` can crash on it at read time."""
+    _write_override(
+        tmp_path,
+        """
+[views.role_card]
+source = { kind = "role" }
+
+[items.task]
+views = ["role_card"]
+""",
+    )
+    with pytest.raises(SquadsError, match=r"task.*role_card.*'role' source"):
         load_workflow_spec(squad_dir=tmp_path)
 
 

@@ -158,6 +158,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "no_status_banner",
         "supersedes_incoming",
         "ref_rule_target_present",
+        "item_skill_shadowed",
     }
 )
 
@@ -186,15 +187,238 @@ COLOR_INTENTS: frozenset[str] = frozenset(
     {"positive", "danger", "warning", "muted", "neutral", "info"}
 )
 
-#: Validator names that legitimately carry a ``:<param>`` suffix. ``subentity_title_max``'s is
-#: documentary/seed-catalog shorthand only — the threshold isn't a structured spec field
-#: (``TITLE_ADVISORY_MAX`` is a module constant) and the suffix is never read back at
-#: runtime. ``ref_rule_target_present``'s is a genuine parameter: the item type it selects an
-#: obligation for, read from the type's own ``validators`` entries by the validator itself
-#: (``_services/_validators.py::_ref_rule_target_present``) — the dispatch engine still strips
-#: it before the catalog lookup (``ValidatorEngine._run_per_item``), same as every other name.
+#: Validator names that legitimately carry a ``:<param>`` suffix, each read back by the
+#: validator itself from the type's own ``validators`` entries — the dispatch engine strips the
+#: suffix before the catalog lookup (``ValidatorEngine._run_per_item``), same as every other
+#: name. ``subentity_title_max``'s param is its title-length threshold
+#: (``WorkflowSpec.item_subentity_title_max``); ``ref_rule_target_present``'s is the item type
+#: it selects an obligation for (``_services/_validators.py::_ref_rule_target_present``).
 PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {"subentity_title_max", "ref_rule_target_present"}
+)
+
+#: The subset of :data:`PARAMETERIZED_VALIDATOR_NAMES` whose own runtime resolver **unions**
+#: every matching entry it finds in a type's own ``validators`` list — so two entries naming
+#: *different* params are independent, additive selections (one obligation per param), not a
+#: repeat. ``ref_rule_target_present`` is the only member with this property today: its
+#: ``targets`` set (``_services/_validators.py::_ref_rule_target_present``) is built from a
+#: comprehension over every matching entry.
+#:
+#: "Is parameterized" and "accepts multiple selections" are two different properties — a name
+#: can take a ``:<param>`` and still resolve to exactly one effective value (see
+#: :data:`SINGLE_SELECTION_VALIDATOR_NAMES`). Keying the duplicate-selection identity
+#: (:func:`validator_selection_key`) on parameterization alone conflates the two; this set is
+#: the declared answer to the question that conflation skipped.
+MULTI_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset({"ref_rule_target_present"})
+
+#: The complement within :data:`PARAMETERIZED_VALIDATOR_NAMES`: a member whose own resolver
+#: returns on the **first** matching entry it finds rather than unioning every one —
+#: ``subentity_title_max``'s is ``WorkflowSpec.item_subentity_title_max``, first match, single
+#: value. A second, differently-parameterised entry of one of these names is therefore not an
+#: independent selection: nothing decides which value the resolver would have picked instead,
+#: so it is refused at Plane-1 the same as a same-param repeat — the alternative is a second
+#: entry that loads clean and does nothing, forever, which is exactly what
+#: :func:`_check_ref_rule_targets` refuses on principle for its own member ("refused here rather
+#: than silently doing nothing forever").
+SINGLE_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset({"subentity_title_max"})
+
+assert (
+    MULTI_SELECTION_VALIDATOR_NAMES | SINGLE_SELECTION_VALIDATOR_NAMES
+) == PARAMETERIZED_VALIDATOR_NAMES, (
+    "every PARAMETERIZED_VALIDATOR_NAMES member must be classified into exactly one of "
+    "MULTI_SELECTION_VALIDATOR_NAMES or SINGLE_SELECTION_VALIDATOR_NAMES — a new parameterized "
+    "member added to one catalog without a place in the other fails this assert instead of "
+    "silently inheriting either behaviour"
+)
+assert MULTI_SELECTION_VALIDATOR_NAMES.isdisjoint(SINGLE_SELECTION_VALIDATOR_NAMES), (
+    "MULTI_SELECTION_VALIDATOR_NAMES and SINGLE_SELECTION_VALIDATOR_NAMES must not overlap — "
+    "a member cannot be both first-match and unioning"
+)
+
+#: The bundled default threshold for ``subentity_title_max``'s parameter — what a type
+#: inherits unless its own ``validators`` entry names a different one
+#: (``subentity_title_max:<n>``). ``_interactions.TITLE_ADVISORY_MAX`` re-exports this value
+#: for callers that want "the bundled number" without touching validator machinery (e.g. a
+#: test fixture building an over-threshold title); nothing reads that re-export as a live,
+#: type-aware threshold — :meth:`WorkflowSpec.item_subentity_title_max` is the only resolver
+#: ``sq check`` and the create-time advisory use.
+DEFAULT_SUBENTITY_TITLE_MAX: int = 120
+
+#: The two levels a validator finding may carry — matches :class:`~squads._services._results.
+#: CheckIssue`'s own closed ``level`` contract (``"error"`` aborts create/update at the gate;
+#: ``"warn"`` is advisory everywhere, mirroring ``sq check``'s error-only exit code). A
+#: selection's ``@<level>`` suffix (see :func:`parse_validator_entry`) is Plane-1-checked
+#: against this set, so an adopter cannot invent a third severity the rest of the engine has no
+#: meaning for.
+VALIDATOR_LEVELS: frozenset[str] = frozenset({"error", "warn"})
+
+#: Total order over :data:`VALIDATOR_LEVELS`, low to high — the comparison
+#: :data:`VALIDATOR_LEVEL_FLOOR` needs to tell "raise" from "lower". Not exposed beyond this
+#: module: every external caller asks a yes/no question (does this selection clear the floor),
+#: never a rank.
+_LEVEL_RANK: dict[str, int] = {"warn": 0, "error": 1}
+
+#: The separator between a validator name (with its optional ``:<param>``) and an optional
+#: declared level. ``@`` rather than a second ``:`` — ``:`` is already the param separator, and
+#: reusing it would make ``name:param:level`` ambiguous about which half is which. ``@`` cannot
+#: appear in a validator name (plain identifiers) or in ``subentity_title_max``'s param (an
+#: integer, enforced by :func:`_check_validator_param`), and it is a different namespace from
+#: the unrelated place a bare ``@`` already means something in this codebase (an ``@mention``
+#: inside discussion prose — comment text, never spec vocabulary).
+#:
+#: It is **not** ruled out of ``ref_rule_target_present``'s own param, an item-type name:
+#: unlike a ``[ref_kinds]`` key (:data:`_BARE_TOML_KEY_RE`), nothing restricts an
+#: ``[items.<type>]`` TOML key's character set. A type declared with ``@`` in its own name
+#: would mis-split when selected as a target — :func:`parse_validator_entry` cuts on the first
+#: ``@`` regardless of which half it came from, so the piece after it is read as the level and
+#: refused at Plane-1 as an unknown level rather than as the intended (but wrong) target type.
+#: Fails closed, with a message naming the wrong half of the entry.
+_LEVEL_SEP = "@"
+_PARAM_SEP = ":"
+
+
+def parse_validator_entry(entry: str) -> tuple[str, str | None, str | None]:
+    """Split one ``validators``-list *entry* into ``(bare name, param, level)`` — the single
+    parser every consumer of the assignment grammar (Plane-1 validation, the effective-set
+    composition, the dispatch engine's catalog lookup, and a parameterised validator reading
+    its own argument back) uses, so the grammar is defined once rather than re-partitioned at
+    each call site with room for the definitions to disagree.
+
+    Grammar, in the one order this parses: ``name``, ``name:param``, ``name@level``, or
+    ``name:param@level`` — a param, when present, always precedes a level. The level is split
+    off first (rightmost-meaningful cut, via the first ``@``), then a param is split off the
+    remainder. A reversed composition (``name@level:param``) does not parse as intended: the
+    ``:`` lands inside what this function treats as the level string, which is not a member of
+    :data:`VALIDATOR_LEVELS`, so it fails the Plane-1 level check with a clear message rather
+    than silently accepting an unintended parameter.
+    """
+    head, has_level, level_part = entry.partition(_LEVEL_SEP)
+    level = level_part if has_level else None
+    bare, has_param, param_part = head.partition(_PARAM_SEP)
+    param = param_part if has_param else None
+    return bare, param, level
+
+
+def validator_selection_key(entry: str) -> tuple[str, str | None]:
+    """The de-duplication identity of one ``validators``-list *entry* — what makes two entries
+    "the same selection" rather than two different ones. Used identically by
+    :func:`_check_validators_assignment`'s repeat-selection refusal and by
+    :func:`effective_validator_names`'s composition, so both agree on what counts as a
+    duplicate.
+
+    A member in :data:`MULTI_SELECTION_VALIDATOR_NAMES` is keyed on its bare name *and* its
+    param: its runtime (e.g. ``_ref_rule_target_present``) unions every matching entry it
+    finds in a type's own list, so two entries naming different params are independent,
+    additive selections — one target type each — not a repeat. Two entries naming the *same*
+    param are a genuine duplicate (nothing decides which one "wins").
+
+    Any other member — a non-parameterized name, a parameterized one selected with no param,
+    or a :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member (param or not) — is keyed on its bare
+    name alone: nothing besides the name distinguishes two entries of it, so a repeat is always
+    a duplicate regardless of a differing param or ``@<level>`` suffix. This is the property
+    that keeps ``subentity_title_max:50`` and ``subentity_title_max:80`` on one type a refused
+    duplicate rather than two selections whose second silently never resolves — see
+    :data:`SINGLE_SELECTION_VALIDATOR_NAMES`.
+    """
+    bare, param, _level = parse_validator_entry(entry)
+    if bare in MULTI_SELECTION_VALIDATOR_NAMES and param is not None:
+        return bare, param
+    return bare, None
+
+
+#: Each catalog member's bundled default level, read by ``_services/_validators.py`` instead of
+#: a level literal inline in the member's own ``CheckIssue(...)`` calls — the single place that
+#: number lives, so a member's default cannot say one thing here and do another at runtime.
+#: Lives in the spec layer for the same reason :data:`VALIDATOR_NAMES` does: a selection's
+#: ``@<level>`` override is Plane-1-validated against it (and against
+#: :data:`VALIDATOR_LEVEL_FLOOR` below) without ``_workflow`` importing up into ``_services``.
+DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
+    "parent_in": "error",
+    "no_parent": "error",
+    "parent_present": "error",
+    "parent_acyclic": "error",
+    "item_status_valid": "error",
+    "dangling_ref": "warn",
+    "ref_kind_valid": "warn",
+    "agent_registered": "warn",
+    "subtask_story_mapping": "error",
+    "subentity_status_valid": "error",
+    "subentity_container_marker": "error",
+    "subentity_body_written": "warn",
+    "subentity_title_max": "warn",
+    "no_status_banner": "warn",
+    "supersedes_incoming": "warn",
+    "ref_rule_target_present": "warn",
+    "item_skill_shadowed": "warn",
+}
+assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
+    "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
+)
+assert set(DEFAULT_VALIDATOR_LEVEL.values()) <= VALIDATOR_LEVELS, (
+    "DEFAULT_VALIDATOR_LEVEL values must each be a declared level"
+)
+
+#: The declared floor: a selection may raise a member's level but never lower it below this,
+#: for the members whose level is load-bearing for the *engine's own correctness* rather than a
+#: policy preference a project may reasonably decline. Applied with the same tiering test that
+#: decides catalog placement, one level down: can a competent squad sit in this state on
+#: purpose, indefinitely, with nothing else in the engine misbehaving because of it? A "yes"
+#: means the member is not floor, however undesirable the state is.
+#:
+#: Applying that test to every error-level member, only two hold a floor:
+#:
+#: - ``parent_acyclic``: a parent cycle makes every ancestor/descendant walk in the engine
+#:   non-terminating — a live hang reproduced and fixed on its own, not a house convention a
+#:   project could decline. Demoted to warn, a project's own choice would let a whole-squad hang
+#:   slip past ``sq check``'s exit code, which stays 0 on a warn-only finding.
+#: - ``subentity_container_marker``: the corpus/spec desync it reports leaves no witness the
+#:   loader, ``sq workflow lint``, or the index can see — its own docstring: ``sq check`` is the
+#:   only plane that can. Demoted to warn, ``add-<kind>`` keeps failing on every item of the
+#:   type while sub-entity body writes keep succeeding, and the one report able to say why is
+#:   silenced by the project's own choice.
+#:
+#: The rest are NOT load-bearing, each for a reason specific to it rather than a blanket
+#: "everything else is fine to dial down":
+#:
+#: - ``parent_in``/``no_parent``: nothing downstream assumes the constraint already holds in
+#:   order to function — no walk or transition depends on parent-type eligibility, only on the
+#:   parent existing and the chain terminating (:data:`parent_acyclic`'s own job). A team mid
+#:   reorganisation, or one that wants a looser hierarchy than the bundled default, can hold
+#:   this state on purpose without anything else in the engine misbehaving.
+#: - ``item_status_valid``: flags a status absent from the *type's own* lifecycle graph, not an
+#:   undeclared status altogether — badge/role resolution reads the global status catalog, not
+#:   the per-type graph, so rendering is unaffected. The engine already ships a designed
+#:   recovery for exactly this state: an ordinary status update's ``--force`` short-circuits the
+#:   transition-table lookup and only re-checks target-vocabulary membership, so an item outside
+#:   its lifecycle graph is one recognised, documented escape away rather than genuinely stuck —
+#:   unlike a parent cycle, which has no equivalent designed recovery short of clearing the
+#:   parent.
+#: - ``subtask_story_mapping``: an unresolved mapping affects grouping/rollup display only;
+#:   nothing gates or walks on it resolving, and it is visible wherever the mapping is rendered
+#:   rather than invisible the way the container-marker desync is.
+#: - ``subentity_status_valid``: the same shape and the same reasoning as
+#:   ``item_status_valid``, one level down — the sub-entity status-update path documents the
+#:   identical designed-recovery property in its own code: the vocabulary gate runs first and
+#:   unconditionally, so a sub-entity already carrying a non-member status stays recoverable
+#:   regardless of ``--force``.
+#:
+#: ``parent_present`` is deliberately absent and must stay absent: it sits in no
+#: :data:`CATEGORY_BUNDLES` entry at all, so the only way it is ever effective is a type naming
+#: it — its level, not its rule, is what a project dials, and a floor here would defeat the
+#: entire point of making it selectable at warn.
+VALIDATOR_LEVEL_FLOOR: dict[str, str] = {
+    "parent_acyclic": "error",
+    "subentity_container_marker": "error",
+}
+assert VALIDATOR_LEVEL_FLOOR.keys() <= VALIDATOR_NAMES, (
+    "VALIDATOR_LEVEL_FLOOR must only name declared VALIDATOR_NAMES members"
+)
+assert set(VALIDATOR_LEVEL_FLOOR.values()) <= VALIDATOR_LEVELS, (
+    "VALIDATOR_LEVEL_FLOOR values must each be a declared level"
+)
+assert "parent_present" not in VALIDATOR_LEVEL_FLOOR, (
+    "parent_present must carry no floor — its level, not its rule, is what makes it "
+    "selectable at warn"
 )
 
 #: Per-item validators every type runs regardless of category — cross-cutting item hygiene.
@@ -258,6 +482,29 @@ def effective_validator_names(
     *extra* is the per-type ``ItemSpec.validators`` field (the assignment surface) —
     ``_run_per_item`` passes the item's own list; every other caller defaults to none.
 
+    De-duplicated by :func:`validator_selection_key`, last occurrence of a given key winning —
+    the same "same selection, not same bare name" identity :func:`_check_validators_assignment`
+    refuses a repeat of. *common_core* and *category_bundles* entries are always bare (module
+    constants, never carrying a ``:<param>``/``@<level>`` suffix, so their key is always
+    ``(bare, None)``); the ordinary way a key recurs is a type naming an already-bundled member
+    in its own *extra* with a suffix and no param — e.g. ``subentity_title_max@warn`` overriding
+    the level of a category's bare ``subentity_title_max`` — and keeping only the last occurrence
+    makes that override the member's one authoritative entry instead of running it twice under
+    two spellings of the same name. A type's own *extra* naming a
+    :data:`MULTI_SELECTION_VALIDATOR_NAMES` member with two *different* params (e.g.
+    ``ref_rule_target_present:contract`` and ``ref_rule_target_present:milestone``) keys
+    differently for each and both survive as independent selections; the dispatch engine
+    (``ValidatorEngine._run_per_item``) still calls the member's catalog function only once per
+    bare name regardless, since this member's own resolver unions every one of its own entries
+    back off the spec itself rather than off what survived here. A
+    :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member (``subentity_title_max``) keys on its bare
+    name alone no matter the param, so it never reaches this function with two surviving
+    entries in the first place — :func:`_check_validators_assignment` refuses a second,
+    differently-parameterised entry outright, because that member's own resolver reads only its
+    first matching entry rather than unioning. Keeping the *first*-seen key's position is what
+    "extend-only" still means positionally — a type's own addition cannot reorder what the
+    bundle already turned on.
+
     Parameterised on *common_core*/*category_bundles* — not hardcoded to the module
     constants — so a caller (or a test) can exercise the composition against a stub bundle.
     *category_bundles* defaults to ``None`` (resolved to the module-level
@@ -265,7 +512,10 @@ def effective_validator_names(
     default.
     """
     bundles = category_bundles if category_bundles is not None else CATEGORY_BUNDLES
-    return common_core + bundles.get(category, ()) + extra
+    combined = common_core + bundles.get(category, ()) + extra
+    resolved = {validator_selection_key(name): name for name in combined}
+    key_order = dict.fromkeys(validator_selection_key(name) for name in combined)
+    return tuple(resolved[key] for key in key_order)
 
 
 # ---------------------------------------------------------------------------
@@ -607,10 +857,20 @@ class ItemSpec(BaseModel):
 
     validators: list[str] = []
     """Per-type additions to the category's default validator bundle (the pluggable-validator
-    decision's assignment surface) — bare catalog names, **extend-only** over the bundle: a
-    type may add a validator, never deselect a category default. Resolved at call time via
+    decision's assignment surface) — **extend-only** over the bundle: a type may add a
+    validator, never deselect a category default. Resolved at call time via
     ``_services._validators.effective_validator_names(category, extra=validators)``; every
-    entry must name a member of ``VALIDATOR_NAMES`` (Plane-1, enforced below)."""
+    entry's bare name must name a member of ``VALIDATOR_NAMES`` (Plane-1, enforced below).
+
+    Each entry is ``name``, ``name:param``, ``name@level``, or ``name:param@level``
+    (:func:`parse_validator_entry` is the one parser for this grammar). A ``:<param>`` suffix
+    is only well-formed on a name in ``PARAMETERIZED_VALIDATOR_NAMES``. An ``@<level>`` suffix
+    declares the member's level for this type — ``error`` or ``warn``
+    (:data:`VALIDATOR_LEVELS`), no lower than the member's declared floor if it has one
+    (:data:`VALIDATOR_LEVEL_FLOOR`) — and defaults to the bundled
+    :data:`DEFAULT_VALIDATOR_LEVEL` when omitted. Naming an already-bundled member here with a
+    suffix overrides its bundled entry rather than running it twice
+    (:func:`effective_validator_names`'s de-duplication)."""
 
     views: list[str] = []
     """Declared ``[views]`` entries rendered as part of this type's own ``show``/``--json``
@@ -644,7 +904,8 @@ CATEGORIES: tuple[str, ...] = get_args(ItemSpec.model_fields["category"].annotat
 
 
 class ViewSource(BaseModel):
-    """The relation a derived view projects — exactly one of three shapes, named by *kind*:
+    """What a derived view resolves against — six shapes, named by *kind*. The first three are
+    relations (a join over other items); the last three resolve without one:
 
     - ``"ref"`` — refs of the declared kind named by ``name`` pointing at the item the view is
       resolved against, recovered by inverting stored forward edges. ``name`` must be a
@@ -654,6 +915,13 @@ class ViewSource(BaseModel):
       view resolves against must itself host that kind.
     - ``"subtree"`` — the projecting item's descendants whose type is the one named by
       ``name``. ``name`` must be a declared entry of ``[items]``.
+    - ``"role"`` — the projecting item's own merged role definition (catalog + overrides +
+      item fields). Takes no ``name``: a role source always reads the host, never another
+      declared role.
+    - ``"playbook"`` — the playbook lane of the type named by ``name``, or the projecting
+      item's own type when ``name`` is absent. ``name``, when given, must be a declared entry
+      of ``[items]``.
+    - ``"self"`` — the projecting item itself, with no join at all. Takes no ``name``.
 
     ``name`` is checked against the merged spec by the same referential pass every other
     workflow-spec cross-reference goes through (see ``_check_views``); it is never a Python
@@ -663,8 +931,13 @@ class ViewSource(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    kind: Literal["ref", "subentity", "subtree"]
-    name: str
+    kind: Literal["ref", "subentity", "subtree", "role", "playbook", "self"]
+    name: str | None = None
+    """Required for ``ref``/``subentity``/``subtree`` (refused at load if absent — see
+    :func:`_resolve_view_source`); forbidden for ``role``/``self`` (refused at load if given);
+    optional for ``playbook``, where its absence means "the host's own type", resolved at read
+    time rather than at load — the one kind whose name is genuinely conditional rather than
+    strictly required or strictly forbidden."""
 
 
 class ViewField(BaseModel):
@@ -1143,23 +1416,112 @@ def _check_item_refs(
             seen_aliases[alias] = t
 
 
+def _check_validator_param(t: str, entry: str, bare: str, param: str, errors: list[str]) -> None:
+    """The one currently-meaningful param: ``subentity_title_max:<n>`` must parse as a
+    positive integer threshold — the same class of check :func:`_check_ref_rule_targets` runs
+    for ``ref_rule_target_present``'s own param, just resolvable without the whole ``[items.*]``
+    table (a threshold needs no cross-type lookup)."""
+    if bare != "subentity_title_max":
+        return
+    if not param.isdigit() or int(param) <= 0:
+        errors.append(
+            f"item {t!r}: validators entry {entry!r} names a non-positive-integer "
+            f"subentity_title_max threshold {param!r}"
+        )
+
+
+def _check_validator_level(t: str, entry: str, bare: str, level: str, errors: list[str]) -> None:
+    """A declared ``@<level>`` must be a member of :data:`VALIDATOR_LEVELS`, and — for a member
+    :data:`VALIDATOR_LEVEL_FLOOR` names — no lower ranked than its floor."""
+    if level not in VALIDATOR_LEVELS:
+        errors.append(
+            f"item {t!r}: validators entry {entry!r} names an unknown level {level!r} "
+            f"(must be one of {sorted(VALIDATOR_LEVELS)})"
+        )
+        return
+    floor = VALIDATOR_LEVEL_FLOOR.get(bare)
+    if floor is not None and _LEVEL_RANK[level] < _LEVEL_RANK[floor]:
+        errors.append(
+            f"item {t!r}: validator {bare!r} cannot be selected below its floor level "
+            f"{floor!r} (got {level!r})"
+        )
+
+
+def _repeat_selection_message(item_type: str, bare: str, prior: str, entry: str) -> str:
+    """The refusal message for two ``validators``-list entries that share one
+    :func:`validator_selection_key`. *prior* and *entry* can differ in text while still keying
+    equal (a differing param on a :data:`SINGLE_SELECTION_VALIDATOR_NAMES` member, or a
+    differing ``@<level>`` on any member), so simply asserting they are "the same selection"
+    reads as self-contradictory to a reader looking at two visibly different strings — name the
+    actual reason and the remedy instead.
+    """
+    if prior == entry:
+        return (
+            f"item {item_type!r}: validator {bare!r} is selected more than once "
+            f"({entry!r} repeated) — keep one entry"
+        )
+    _, prior_param, _ = parse_validator_entry(prior)
+    _, cur_param, _ = parse_validator_entry(entry)
+    if prior_param != cur_param:
+        # Only a SINGLE_SELECTION_VALIDATOR_NAMES member reaches this branch with differing
+        # params — a MULTI_SELECTION_VALIDATOR_NAMES member keys on (bare, param), so two
+        # differing params never collide for it in the first place.
+        reason = (
+            f"{bare!r} resolves only its first matching entry, so the second would be "
+            "silently ignored rather than take effect — refused here instead"
+        )
+    else:
+        reason = "an '@<level>' suffix alone does not make two entries independent selections"
+    return (
+        f"item {item_type!r}: validator {bare!r} is selected more than once "
+        f"({prior!r} and {entry!r}) — {reason}; keep one entry"
+    )
+
+
 def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) -> None:
-    """Plane-1 catalog-membership check for each type's ``validators`` list: an unknown name
-    fails closed. Param-aware — split on ``:``, the bare name must be a declared catalog
-    member, and a ``:<param>`` suffix is only well-formed on a name in
-    ``PARAMETERIZED_VALIDATOR_NAMES`` (``subentity_title_max``, ``ref_rule_target_present``;
-    every other name on the assignment surface, ``parent_in`` among them, is bare). A
-    ``ref_rule_target_present:<T>`` entry's own coherence — ``<T>`` naming a
-    declared item type, and this type declaring a rule targeting it — is a further check, run
-    once every ``[items.*]`` block is known: see :func:`_check_ref_rule_targets`.
+    """Plane-1 checks for each type's ``validators`` list, entry by entry: the bare name must
+    be a declared catalog member (fails closed on an unknown name); a ``:<param>`` suffix is
+    only well-formed on a name in ``PARAMETERIZED_VALIDATOR_NAMES`` (``subentity_title_max``,
+    ``ref_rule_target_present``; every other name on the assignment surface, ``parent_in``
+    among them, is bare) and, for ``subentity_title_max``, must itself parse as a positive
+    integer (:func:`_check_validator_param`); an ``@<level>`` suffix must name a declared level
+    at or above the member's declared floor, if it has one (:func:`_check_validator_level`); and
+    a type may not repeat the same *selection* in its own list (:func:`validator_selection_key`)
+    — for a member outside ``MULTI_SELECTION_VALIDATOR_NAMES`` (every non-parameterized name,
+    a parameterized name named with no param, and a :data:`SINGLE_SELECTION_VALIDATOR_NAMES`
+    member such as ``subentity_title_max`` regardless of param), that means its bare name
+    alone: nothing distinguishes two entries beyond the name, so a second one is ambiguous
+    (which value wins is not this loader's call to make, and letting a differently-parameterised
+    second entry load clean would make it silently, permanently inert instead — see
+    :data:`SINGLE_SELECTION_VALIDATOR_NAMES`) and refused here rather than silently letting the
+    last one win. For a member in ``MULTI_SELECTION_VALIDATOR_NAMES``, two entries naming
+    *different* params are independent selections and both are accepted — e.g.
+    ``ref_rule_target_present:contract`` and ``ref_rule_target_present:milestone`` on one type,
+    one obligation per target — only a repeat of the identical param is refused.
+
+    A ``ref_rule_target_present:<T>`` entry's own coherence — ``<T>`` naming a declared item
+    type, and this type declaring a rule targeting it — is a further check, run once every
+    ``[items.*]`` block is known: see :func:`_check_ref_rule_targets`.
     """
     for t, ts in items.items():
+        seen: dict[tuple[str, str | None], str] = {}
         for entry in ts.validators:
-            bare, sep, _param = entry.partition(":")
+            bare, param, level = parse_validator_entry(entry)
             if bare not in VALIDATOR_NAMES:
                 errors.append(f"item {t!r}: validators entry {entry!r} names an unknown validator")
-            elif sep and bare not in PARAMETERIZED_VALIDATOR_NAMES:
-                errors.append(f"item {t!r}: validator {bare!r} takes no param (got {entry!r})")
+                continue
+            if param is not None:
+                if bare not in PARAMETERIZED_VALIDATOR_NAMES:
+                    errors.append(f"item {t!r}: validator {bare!r} takes no param (got {entry!r})")
+                else:
+                    _check_validator_param(t, entry, bare, param, errors)
+            if level is not None:
+                _check_validator_level(t, entry, bare, level, errors)
+            key = validator_selection_key(entry)
+            if key in seen:
+                errors.append(_repeat_selection_message(t, bare, seen[key], entry))
+            else:
+                seen[key] = entry
 
 
 def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> None:
@@ -1174,7 +1536,9 @@ def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> No
     2. A ``ref_rule_target_present`` validator entry must carry a ``:<T>`` parameter at all.
        The bare name is accepted by :func:`_check_validators_assignment` (it *is* a declared
        catalog member) and then builds an empty target set at runtime
-       (``_services/_validators.py``'s own ``and sep`` guard), so it is permanently inert —
+       (``_services/_validators.py`` reads the entry's own param via
+       :func:`parse_validator_entry`, empty when the entry carries none), so it is permanently
+       inert —
        nothing ever fires, and nothing tells the adopter why. Refused here rather than
        silently doing nothing forever, the same reasoning as check 3.
     3. A type selecting ``ref_rule_target_present:<T>`` must itself declare at least one
@@ -1192,10 +1556,10 @@ def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> No
 
     for t, ts in items.items():
         for entry in ts.validators:
-            bare, sep, param = entry.partition(":")
+            bare, param, _level = parse_validator_entry(entry)
             if bare != "ref_rule_target_present":
                 continue
-            if not sep:
+            if param is None:
                 errors.append(
                     f"item {t!r}: validators entry {entry!r} is missing its required target "
                     "type parameter — name it as 'ref_rule_target_present:<type>', or drop "
@@ -1218,9 +1582,9 @@ def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> No
 
 
 def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
-    """A type's effective validator names, bare (a documentary ``:<param>`` suffix stripped)."""
+    """A type's effective validator names, bare (a ``:<param>``/``@<level>`` suffix stripped)."""
     names = effective_validator_names(ts.category, extra=tuple(ts.validators))
-    return frozenset(name.partition(":")[0] for name in names)
+    return frozenset(parse_validator_entry(name)[0] for name in names)
 
 
 #: One consistency clause: given a type, its spec, its effective (bare) validator names, the
@@ -1426,8 +1790,17 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   ``ref_rules`` must carry a rule targeting it — is a *referential*, not reachability, check
 #:   (:func:`_check_ref_rule_targets`), because it is about what the declaration *means*, not
 #:   about which category turns it on.
+#: - ``item_skill_shadowed`` is the same shape again, one level narrower: it sits in no
+#:   category bundle *and* the ``roster`` category's own bundle is empty (:data:`CATEGORY_
+#:   BUNDLES`), so the only place it is ever selected is ``[items.skill]``'s own
+#:   ``validators`` — a name you wrote yourself, per the ``parent_present`` reasoning above.
+#:   ``skill`` is also one of the three roster keys ``_workflow/_loader.py`` locks to
+#:   ``category = "roster"`` permanently (an override may not move it to ``work``/``records``),
+#:   so there is no category reassignment for this member to be silently lost to in the first
+#:   place — a stronger guarantee than the ordinary "nobody happened to reassign it" the other
+#:   two entries above rely on.
 UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"no_parent", "parent_present", "ref_rule_target_present"}
+    {"no_parent", "parent_present", "ref_rule_target_present", "item_skill_shadowed"}
 )
 
 _CLAUSE_GUARDED: frozenset[str] = frozenset(
@@ -1609,26 +1982,53 @@ def _resolve_view_source(
     ``null`` for the rest, the same ``null`` an
     unset declared field already renders anywhere. ``subtree``/``subentity`` are unaffected:
     each already yields records of exactly one type/kind, so their declared-field set was
-    already exactly right."""
+    already exactly right.
+
+    ``role``/``playbook``/``self`` never reach :func:`_check_view_fields` at all (see
+    :func:`_check_views`) — no field grammar applies to them, so the empty set returned for
+    each of the three below is never read as "no fields resolve", only as "not asked". What
+    *is* checked here for them is ``name`` itself: ``role``/``self`` must not carry one,
+    ``playbook``'s is optional but when given must resolve against ``[items]`` — the same
+    name-against-vocabulary shape every kind above already refuses on."""
     if src.kind == "ref":
-        if src.name not in ref_kinds:
+        if src.name is None or src.name not in ref_kinds:
             errors.append(f"{tag}: source names ref kind {src.name!r}, not declared in [ref_kinds]")
         return frozenset(f.code for ts in items.values() for f in ts.fields)
     if src.kind == "subentity":
-        ks = subentity_kinds.get(src.name)
-        if ks is None:
-            errors.append(
-                f"{tag}: source names sub-entity kind {src.name!r}, not declared in "
-                "[subentity_kinds]"
-            )
-            return frozenset()
-        return frozenset(f.code for f in ks.fields)
-    # "subtree"
-    ts = items.get(src.name)
-    if ts is None:
-        errors.append(f"{tag}: source names item type {src.name!r}, not declared in [items]")
+        return _resolve_named_vocab_source(
+            tag, src.name, subentity_kinds, "sub-entity kind", "[subentity_kinds]", errors
+        )
+    if src.kind == "subtree":
+        return _resolve_named_vocab_source(tag, src.name, items, "item type", "[items]", errors)
+    if src.kind in ("role", "self"):
+        if src.name is not None:
+            errors.append(f"{tag}: a {src.kind!r} source takes no name (got {src.name!r})")
         return frozenset()
-    return frozenset(f.code for f in ts.fields)
+    # "playbook" — name is optional; when given it must resolve like a subtree's does
+    if src.name is not None and src.name not in items:
+        errors.append(f"{tag}: source names item type {src.name!r}, not declared in [items]")
+    return frozenset()
+
+
+def _resolve_named_vocab_source(
+    tag: str,
+    name: str | None,
+    vocab: dict[str, SubentityKindSpec] | dict[str, ItemSpec],
+    noun: str,
+    where: str,
+    errors: list[str],
+) -> frozenset[str]:
+    """Shared lookup for the two source kinds whose ``name`` must resolve against a declared
+    mapping and whose declared field set, on success, is that entry's own ``fields`` —
+    ``subtree`` against ``[items]``, ``subentity`` against ``[subentity_kinds]``. Factored out
+    of :func:`_resolve_view_source` purely to keep that function's own branch count within the
+    project's complexity ceiling; both callers pass a mapping whose value type declares
+    ``fields: list[Field]``, so ``entry.fields`` below resolves for either."""
+    entry = vocab.get(name) if name is not None else None
+    if entry is None:
+        errors.append(f"{tag}: source names {noun} {name!r}, not declared in {where}")
+        return frozenset()
+    return frozenset(f.code for f in entry.fields)
 
 
 def _check_view_fields(
@@ -1686,23 +2086,33 @@ def _check_views(
     only the first).
 
     A view's ``source.name`` must name a declared entry of the vocabulary its ``source.kind``
-    points at (``[ref_kinds]``/``[subentity_kinds]``/``[items]``) — the same shape
-    ``_parse_ref_rules`` already refuses a rule naming an undeclared kind for, applied to the
-    view axis: a source that can never resolve is refused here rather than carried as an inert
-    declaration. Every declared field's ``code`` must be a base attribute
-    :data:`VIEW_BASE_FIELDS_BY_SOURCE` allows for that source kind, or a badge field the
-    resolved vocabulary actually declares — for ``subtree``/``subentity`` that vocabulary is
-    the one resolved type/kind; for ``ref`` (whose records can be items of any declared type)
-    it is the union of every declared item type's own fields — a code no declared type carries
-    anywhere is still refused as inert-by-construction. ``group_by``/``order_by`` must each
-    name one of the view's own declared field codes.
+    points at (``[ref_kinds]``/``[subentity_kinds]``/``[items]`` — ``role``/``self`` take
+    none, ``playbook``'s is optional against ``[items]``) — the same shape ``_parse_ref_rules``
+    already refuses a rule naming an undeclared kind for, applied to the view axis: a source
+    that can never resolve is refused here rather than carried as an inert declaration. Every
+    declared field's ``code`` must be a base attribute :data:`VIEW_BASE_FIELDS_BY_SOURCE`
+    allows for that source kind, or a badge field the resolved vocabulary actually declares —
+    for ``subtree``/``subentity`` that vocabulary is the one resolved type/kind; for ``ref``
+    (whose records can be items of any declared type) it is the union of every declared item
+    type's own fields — a code no declared type carries anywhere is still refused as inert-by-
+    construction. ``group_by``/``order_by`` must each name one of the view's own declared
+    field codes.
+
+    ``role``/``playbook``/``self`` skip the field/``group_by``/``order_by`` checks entirely —
+    :data:`VIEW_BASE_FIELDS_BY_SOURCE` has no entry for them (a resolved ``RoleDef``/playbook
+    lane/bare item is never a list of projectable records, so there is nothing for that grammar
+    to mean), and membership in that same dict is what tells the two families apart here rather
+    than a second, hand-duplicated kind list. Their ``name`` is still checked, by the
+    unconditional :func:`_resolve_view_source` call above the branch.
     """
     for name, v in sorted(views.items()):
         tag = f"view {name!r}"
-        base_allowed = VIEW_BASE_FIELDS_BY_SOURCE[v.source.kind]
         declared_fields = _resolve_view_source(
             tag, v.source, items, subentity_kinds, ref_kinds, errors
         )
+        if v.source.kind not in VIEW_BASE_FIELDS_BY_SOURCE:
+            continue
+        base_allowed = VIEW_BASE_FIELDS_BY_SOURCE[v.source.kind]
         seen_codes = _check_view_fields(tag, v, base_allowed, declared_fields, errors)
 
         if v.group_by is not None and v.group_by not in seen_codes:
@@ -1712,6 +2122,26 @@ def _check_views(
             for ob in v.order_by
             if ob not in seen_codes
         )
+
+
+def subentity_source_reason(
+    view_name: str, item_type: str, kind: str | None, items: dict[str, ItemSpec]
+) -> str | None:
+    """``None`` when *item_type*'s own declared sub-entity kind is *kind* — the type genuinely
+    hosts sub-entities of the projected kind — else the reason it doesn't. The one place this
+    question is composed: :func:`_check_item_views` (the attached-view load-time check, below)
+    and ``squads._views._subentity_source_applies`` (the read-time predicate, imported from
+    there — ``_views`` sits above this module in the layering, so the edge runs one way only)
+    both call this rather than each independently wording the same comparison."""
+    ts = items.get(item_type)
+    hosted = ts.subentity_kind if ts else None
+    if hosted == kind:
+        return None
+    hosted_desc = repr(hosted) if hosted else "none"
+    return (
+        f"view {view_name!r} projects {kind!r} sub-entities, but a {item_type!r} item hosts "
+        f"{hosted_desc}"
+    )
 
 
 def _check_item_views(
@@ -1729,7 +2159,7 @@ def _check_item_views(
     ``source``/``fields``/``group_by``/``order_by``); this one validates the reverse binding —
     the name an ``items.<type>.views`` list attaches.
 
-    Two axes, both fully determinable from the spec alone with no filesystem access (the one
+    Three axes, all fully determinable from the spec alone with no filesystem access (the one
     axis that needs the filesystem — a declared view with no presentation template on disk —
     is refused at the render boundary instead; see ``squads._views.render_view``):
 
@@ -1737,10 +2167,20 @@ def _check_item_views(
        through ``[selected].views``, mistyped, or never declared at all. Left unchecked, this
        turns ``show``/``show --json``/``show --raw`` into a hard failure for every item of the
        attaching type, on a spec ``sq workflow lint`` calls clean.
-    2. A view whose ``source.kind`` is ``"subentity"`` may attach only to a type whose own
-       ``subentity_kind`` is that same kind — a type that hosts no sub-entities, or a
-       different kind, can never satisfy it, the same way :func:`resolve_records` in
-       ``squads._views`` refuses it at first use today.
+    2. ``items.<type>.views`` may only attach a *relation*-sourced view
+       (:data:`VIEW_BASE_FIELDS_BY_SOURCE` membership is the family test, the same one
+       ``squads._views.RELATION_KINDS`` is built from) — ``build_item_json``'s type-attached
+       ``views`` key resolves through ``squads._views.projection_json``, which has no
+       serializer for ``role``/``playbook``/``self`` and never will (a resolved ``RoleDef``/
+       playbook lane/bare item is not a projectable record list). Left unchecked, attaching one
+       of those three turns ``show --json`` into a hard failure for every item of the attaching
+       type, on a spec ``sq workflow lint`` calls clean — the same failure shape axis 1 above
+       already guards for a dangling name, reachable here through a name that resolves but
+       names a source kind ``resolve_view``/``build_item_json`` cannot serialize.
+    3. A view whose ``source.kind`` is ``"subentity"`` may attach only to a type whose own
+       ``subentity_kind`` is that same kind (:func:`subentity_source_reason`) — a type that
+       hosts no sub-entities, or a different kind, can never satisfy it, the same way
+       ``squads._views.resolve_source`` refuses it at first use today.
     """
     for t, ts in items.items():
         for name in ts.views:
@@ -1750,15 +2190,18 @@ def _check_item_views(
                     f"item {t!r}: views entry {name!r} does not name a declared [views] entry"
                 )
                 continue
+            if v.source.kind not in VIEW_BASE_FIELDS_BY_SOURCE:
+                errors.append(
+                    f"item {t!r}: views entry {name!r} is a {v.source.kind!r} source; "
+                    "items.<type>.views may only attach a relation-sourced view "
+                    f"({sorted(VIEW_BASE_FIELDS_BY_SOURCE)}) — show --json has no serializer "
+                    "for the resolved value otherwise"
+                )
+                continue
             if v.source.kind == "subentity":
-                kind = v.source.name
-                hosted = ts.subentity_kind
-                if hosted != kind:
-                    hosted_desc = repr(hosted) if hosted else "none"
-                    errors.append(
-                        f"item {t!r}: view {name!r} projects {kind!r} sub-entities, but "
-                        f"{t!r} hosts {hosted_desc}"
-                    )
+                reason = subentity_source_reason(name, t, v.source.name, items)
+                if reason is not None:
+                    errors.append(f"item {t!r}: {reason}")
 
 
 #: A TOML bare key (``[A-Za-z0-9_-]+``) — what every ``[ref_kinds]`` entry's own key must
@@ -2140,6 +2583,21 @@ class WorkflowSpec(BaseModel):
         ts = self.items.get(item_type)
         return ts.parent_required if ts else None
 
+    def item_subentity_title_max(self, item_type: str) -> int:
+        """The resolved ``subentity_title_max`` advisory threshold for *item_type*: its own
+        ``subentity_title_max:<n>`` selection when its ``validators`` list carries one, else
+        :data:`DEFAULT_SUBENTITY_TITLE_MAX`. The single resolver both ``sq check``
+        (``_services/_validators.py::_subentity_title_max``) and the create-time advisory
+        (``_services/_subentities.py``) call, so a type that overrides the threshold gets the
+        same number at both."""
+        ts = self.items.get(item_type)
+        if ts is not None:
+            for entry in ts.validators:
+                bare, param, _level = parse_validator_entry(entry)
+                if bare == "subentity_title_max" and param is not None:
+                    return int(param)
+        return DEFAULT_SUBENTITY_TITLE_MAX
+
     def item_extra_fields(self, item_type: str) -> list[str]:
         """Declared generic ``extra``-metadata keys for this type (drives ``sq update --set``
         identity for a renamed/custom type, e.g. guide's ``tags``, review's ``target_ref``)."""
@@ -2313,6 +2771,28 @@ class WorkflowSpec(BaseModel):
         helper for generated prose, not a validator — it degrades rather than raises).
         """
         return self._first_status_matching(item_type, lambda r: r.settled)
+
+    def is_delivered(self, item_type: str, status: str) -> bool:
+        """Whether *status* is *item_type*'s own delivery target — the happy-path settled
+        terminal :meth:`first_settled_status` names, not merely a settled status. Tells a
+        genuinely finished record (``Done``, ``Accepted``, ``Verified`` — whatever a
+        lifecycle's own spine terminal is named) from one that settled some *other* way
+        (``Cancelled``, ``Superseded`` — off the spine): both are settled, only one is
+        delivered.
+
+        Takes a bare ``(item_type, status)`` pair — no resolved record required — so a
+        template can call it directly (``{{ spec.is_delivered(item.type, item.status) }}``)
+        the same way :meth:`first_settled_status` itself needs nothing but the two strings.
+        ``squads._views._is_delivered`` makes the identical comparison independently, against
+        a ``_RawRecord`` rather than a bare pair — not a delegation (a private module function
+        with no caller of its own would be dead code under pyright's strict mode) — and the two
+        are pinned to always agree by ``tests/unit/test_settled_versus_delivered_status.py``.
+
+        ``False`` (never a raise) when *item_type* isn't declared, or its lifecycle reaches no
+        settled status at all — the same total-degrade contract :meth:`first_settled_status`
+        already has, since neither case legitimately has a delivered record to report.
+        """
+        return status == self.first_settled_status(item_type)
 
     def first_dropped_status(self, item_type: str) -> str | None:
         """The first settled status of *item_type*'s lifecycle that is **off the spine** —

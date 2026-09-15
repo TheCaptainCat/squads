@@ -14,4 +14,5 @@ description: 'How to track work on this project with the squads (`sq`) CLI: crea
   items, comment, link context. Use whenever you start, hand off, or update work.'
 ---
 <!-- sq:body -->
+<!-- sq:view:squads_skill -->
 <!-- sq:body:end -->

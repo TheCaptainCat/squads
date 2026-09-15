@@ -439,18 +439,46 @@ warn FEAT-<n>: settled with no implements ref to a contract — its functional c
 ```
 
 It is the delivered role specifically, not the broader "settled" property: a `Cancelled` feature
-delivered nothing and is never asked about, and an `InReview` one has not landed yet. It warns and
-never blocks — the transition goes through, and `sq check` still exits `0` for a squad whose only
-findings are warnings. That is the shape of the check even when you have asked for it: the only way
-a team clears a hard gate here is by adding a link that isn't true, which corrupts exactly the edge
-the check reads.
+delivered nothing and is never asked about, and an `InReview` one has not landed yet.
 
-Two things to expect once you turn it on. The check is **inert while your squad holds no contract at
-all** — it evaluates nothing however many settled features you have, because the remedy it would
-name does not exist yet. And the first contract you author activates it across the whole corpus at
-once, features that settled long before that contract included. So the day you start, expect a batch
-of warnings: name the slice each of those features shaped, or leave the ones that genuinely shaped
-none.
+**It never blocks the transition.** At its default level it warns, so `sq check` still exits `0` for
+a squad whose only findings are warnings. Selecting it as `ref_rule_target_present:contract@error`
+makes `sq check` exit `3` on it — useful as a CI gate — and the transition to a delivered status
+still goes through, because this check needs a scan of the whole corpus that the create/update gate
+does not hold. That is the shape of the check however loudly you ask for it, and it is the right
+shape: the only way a team clears a hard write-gate here is by adding a link that isn't true, which
+corrupts exactly the edge the check reads. Levels, and which checks *do* block a write, are in
+[overrides.md](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are) § "Validators".
+
+**One target type per entry, and several entries are allowed.** Name it once for each target you
+want an obligation for. The check treats them as one obligation, not several: it reports a single
+finding naming every selected target, and a ref satisfying *any* of them clears it:
+
+```toml
+[items.feature]
+ref_rules = [
+  { kind = "implements", target = "contract" },
+  { kind = "addresses", target = "milestone" },
+]
+validators = [
+  "ref_rule_target_present:contract",
+  "ref_rule_target_present:milestone",
+]
+```
+
+A delivered feature carrying neither ref reports one line —
+`settled with no addresses/implements ref to a contract/milestone` — and adding either edge clears
+it. Each target you select must also be one this type declares a `ref_rules` entry for, or the spec
+is refused at load; otherwise the check would fault every delivered item with no way to clear it.
+
+Two things to expect once you turn it on. The check is **inert while your squad holds no item of a
+selected target type** — it evaluates nothing however many settled features you have, because the
+remedy it would name does not exist yet. And the first contract you author activates it across the
+whole corpus at once, features that settled long before that contract included. (With several
+targets selected it narrows to the ones present: select `contract` and `milestone` with only
+milestones on the board, and the finding reads `settled with no addresses ref to a milestone`.) So
+the day you start, expect a batch of warnings: name the slice each of those features shaped, or
+leave the ones that genuinely shaped none.
 
 ---
 
@@ -683,6 +711,10 @@ Optional:
   **Records-category item types** (below) for details.
 - `parents` — list of allowed parent item types (e.g. `["epic"]`); empty list means unconstrained
 - `aliases` — list of short command aliases (e.g. `["inc"]` allows `sq inc <n>` as shorthand for `sq incident <n>`)
+- `validators` — checks this type runs beyond the set its category already turns on, each entry
+  `name`, `name:param`, `name@level` or `name:param@level`. The grammar, the levels, and which
+  members take a parameter are in [overrides.md](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are)
+  § "Validators".
 
 ```toml
 [items.incident]

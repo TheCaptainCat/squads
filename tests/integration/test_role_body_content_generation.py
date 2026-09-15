@@ -1,13 +1,15 @@
-"""The rendered role definition — the text ``sq role <slug> show`` produces fresh on every
-call, and the only place that text exists: nothing stores it. It no longer lists the role's own
-skills, it carries the two-regime operating contract, a reviewer's definition carries the
-findings-agreement clause (and a non-reviewer's does not), a comment-scoping pointer names the
-convention by pointing at the squads skill rather than restating it, and the product-owner's
-cites a real (not illustrative-only) ``add-story`` command.
+"""The rendered role definition — the text ``sq role <slug> show`` produces on every read,
+computed fresh from a ``sq:view:role_definition`` tag on every call, never a stored copy. It no
+longer lists the role's own skills, it carries the two-regime operating contract, a reviewer's
+definition carries the findings-agreement clause (and a non-reviewer's does not), a
+comment-scoping pointer names the convention by pointing at the squads skill rather than
+restating it, and the product-owner's cites a real (not illustrative-only) ``add-story``
+command.
 
-Every assertion reads the *rendered* definition, never the item's file. Activation writes an
-empty ``sq:body`` region and no write path ever fills it, so reading the file would be
-answering a question about storage while claiming to answer one about content.
+Every assertion reads the *rendered* definition (``svc.read_body``, the same body-read boundary
+``sq role <slug> show`` goes through), never the item's file directly. Activation seeds the tag
+into ``sq:body``; no write path ever stores the definition text itself, so the file still holds
+nothing the resolver's answer could go stale against.
 """
 
 import pytest
@@ -16,11 +18,10 @@ pytestmark = pytest.mark.anyio
 
 
 async def _definition(svc, slug: str) -> str:
-    """The role's definition as an agent reads it: resolved on the call, rendered on the call."""
-    from squads._roles._resolver import resolve_role_for_item
-
+    """The role's definition as an agent reads it: resolved and rendered fresh on the call,
+    off the tag ``sq:body`` carries — the same read every other item's body goes through."""
     item = await svc.activate_role(slug)
-    return svc.role_definition_text(resolve_role_for_item(item, svc.paths.squad_dir))
+    return await svc.read_body(item.id)
 
 
 async def test_role_body_no_longer_lists_the_roles_own_skills(svc):
@@ -79,26 +80,31 @@ async def test_role_body_no_longer_carries_the_startup_command_set(svc):
     assert "Operate as **Mara Tester**" in definition
 
 
-async def test_activation_writes_an_empty_body_region_and_keeps_its_markers(svc):
-    """No write path stores the definition. The region is emptied rather than removed: an
-    absent one is a different fact about an item file, and the marker pair is the shape every
-    item file shares."""
+async def test_activation_seeds_the_placement_tag_and_keeps_the_bodys_markers(svc):
+    """No write path stores the definition itself. The region carries exactly the
+    ``sq:view:role_definition`` placement tag rather than being emptied — content-free by
+    design (see ``squads._models._markers.VIEW``), so there is still nothing here that can go
+    stale against the resolved definition."""
     from squads import _sections as sections
     from squads._models import _markers as markers
 
     item = await svc.activate_role("qa")
     text = svc.paths.abspath(item.path).read_text(encoding="utf-8")
     assert sections.has_section(text, markers.BODY)
-    assert not (sections.get_section(text, markers.BODY) or "").strip()
+    region = (sections.get_section(text, markers.BODY) or "").strip()
+    assert region == markers.open_marker(markers.view_tag("role_definition"))
 
 
-async def test_sync_no_longer_touches_a_corrupted_role_body(svc):
-    """The producer inverted to read time: nothing writes a role's ``sq:body`` region any
-    more, so a corrupted stored body is not a defect ``sq sync`` heals. ``sq role <slug>
-    show`` still renders the correct definition regardless — it never reads the region."""
+async def test_a_role_body_with_no_tag_at_all_reads_literally_not_as_the_definition(svc):
+    """A role's definition renders off the tag its own ``sq:body`` carries, made explicit
+    rather than left implicit: a body carrying no ``sq:view:<name>`` tag (corruption, or a
+    squad pre-dating this tag entirely) reads back literally — the same "leave it as-is, let
+    `sq check`/`sq repair` be the reporting and healing surfaces" contract every other item's
+    body already has. See ``tests/service/test_repair_strips_only_retired_regions.py``'s
+    ``test_a_role_body_converges_onto_the_placement_tag_and_keeps_its_markers`` for the healing
+    half — the repair sweep is what converges a body in this shape back onto the tag."""
     from squads import _sections as sections
     from squads._models import _markers as markers
-    from squads._roles._resolver import resolve_role_for_item
 
     item = await svc.activate_role("qa")
     path = svc.paths.abspath(item.path)
@@ -106,14 +112,11 @@ async def test_sync_no_longer_touches_a_corrupted_role_body(svc):
         path.read_text(encoding="utf-8"), markers.BODY, "\n_corrupted_\n"
     )
     path.write_text(corrupted, encoding="utf-8")
-    assert "Spawned as a subagent" not in path.read_text(encoding="utf-8")
 
     await svc.sync()
     on_disk = path.read_text(encoding="utf-8")
     assert "_corrupted_" in on_disk  # sync leaves the region untouched, corruption and all
-    assert "### Spawned as a subagent" not in on_disk
 
-    definition = svc.role_definition_text(resolve_role_for_item(item, svc.paths.squad_dir))
-    assert "### Spawned as a subagent" in definition
-    assert "### Live with the operator" in definition
-    assert "Record what the next reader needs, when it becomes true" in definition
+    definition = await svc.read_body(item.id)
+    assert definition == "_corrupted_"
+    assert "### Spawned as a subagent" not in definition

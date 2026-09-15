@@ -106,6 +106,18 @@ def find_markers(text: str) -> list[str]:
     return MARKER_RE.findall(text)
 
 
+def iter_marker_spans(text: str) -> list[tuple[str, int, int]]:
+    """Every well-formed marker tag in *text*, in file order, as ``(tag, start, end)`` —
+    the positional counterpart to :func:`find_markers`.
+
+    For a caller that must substitute matches without re-scanning the substituted text (e.g.
+    read-time view-tag expansion): the spans are computed once, against *text* exactly as
+    given, so building the result from these positions — rather than re-matching after each
+    replacement — is what keeps a substitution from ever being scanned a second time.
+    """
+    return [(m.group(1), m.start(), m.end()) for m in MARKER_RE.finditer(text)]
+
+
 def get_section(text: str, tag: str) -> str | None:
     """Return the inner content of a section, or None if the section is absent."""
     o, c = markers.open_marker(tag), markers.close_marker(tag)
@@ -179,3 +191,79 @@ def append_to_section(text: str, tag: str, snippet: str) -> str:
     if not snippet.endswith("\n"):
         snippet = snippet + "\n"
     return text[:ci] + snippet + text[ci:]
+
+
+# ------------------------------------------------------------------- unpaired markers
+
+
+def insert_unpaired_marker(text: str, region_tag: str, marker_tag: str) -> tuple[str, bool]:
+    """Insert the self-closing marker ``<!-- sq:<marker_tag> -->`` as the last line of
+    *region_tag*'s section, unless a marker for that exact tag already appears somewhere in
+    the section. Returns ``(new_text, inserted)`` — ``inserted`` is ``False``, and *text* is
+    returned unchanged (not merely unchanged in content — the identical object), when the
+    marker was already present: idempotent, never a duplicate.
+
+    Insert-only, and this is the whole of what makes it marker-safe for content that has no
+    closing counterpart to delimit a rewrite (an unpaired tag — see
+    :data:`~squads._models._markers.VIEW`): nothing else in the section is rewritten,
+    reordered or removed, and the position is anchored — immediately before the section's
+    close marker — the one deterministic anchor every caller shares.
+
+    Raises ``KeyError`` when *region_tag*'s section is not present in *text* (mirrors
+    :func:`get_section`/:func:`append_to_section`) — callers translate that into a
+    ``SquadsError`` naming the item and the region.
+    """
+    inner = get_section(text, region_tag)
+    if inner is None:
+        raise KeyError(f"section {region_tag!r} not found")
+    if markers.open_marker(marker_tag) in inner:
+        return text, False
+    return append_to_section(text, region_tag, markers.open_marker(marker_tag)), True
+
+
+def remove_unpaired_marker(text: str, region_tag: str, marker_tag: str) -> tuple[str, bool]:
+    """Remove **every** occurrence of the self-closing marker ``<!-- sq:<marker_tag> -->``
+    from *region_tag*'s section. Returns ``(new_text, removed)`` — ``removed`` is ``False``,
+    and *text* is returned unchanged, when the marker was absent entirely: a safe no-op, never
+    an error.
+
+    Removing every occurrence, not just the first, is the point: a caller reporting the marker
+    "removed" must mean it is actually gone, not that one of several duplicate copies was —
+    a duplicate is a state ``sq check`` reports and this is its repair path. Each occurrence
+    absorbs exactly the one adjacent newline it owns so no blank line is left behind; a
+    *different* marker of this same family (e.g. a second view tag under another name) and
+    every other byte of the section survive untouched.
+
+    **Splices directly into *text*, never through :func:`replace_section`.** That primitive's
+    newline-normalising rewrite (prepending/appending a ``\\n`` so replacement content is
+    delimited on its own lines) is right for a caller replacing a region's *content* wholesale,
+    but wrong here: this function's own promise is that every other byte of the section
+    survives verbatim, including a region whose inner content neither begins nor ends with a
+    newline — a shape squads itself never writes (every write path already goes through
+    :func:`replace_section` at least once) but an adopted corpus can carry.
+
+    Raises ``KeyError`` when *region_tag*'s section is not present in *text* (mirrors
+    :func:`get_section`/:func:`append_to_section`).
+    """
+    o, c = markers.open_marker(region_tag), markers.close_marker(region_tag)
+    oi = text.find(o)
+    start = oi + len(o) if oi != -1 else -1
+    ci = text.find(c, start) if start != -1 else -1
+    if oi == -1 or ci == -1:
+        raise KeyError(f"section {region_tag!r} not found")
+    inner = text[start:ci]
+    marker = markers.open_marker(marker_tag)
+    removed = False
+    idx = inner.find(marker)
+    while idx != -1:
+        end = idx + len(marker)
+        if inner[end : end + 1] == "\n":
+            end += 1
+        elif inner[:idx].endswith("\n"):
+            idx -= 1
+        inner = inner[:idx] + inner[end:]
+        removed = True
+        idx = inner.find(marker)
+    if not removed:
+        return text, False
+    return text[:start] + inner + text[ci:], True

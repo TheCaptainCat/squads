@@ -17,6 +17,7 @@ extra:
   tech: python
 ---
 <!-- sq:body -->
+<!-- sq:view:role_definition -->
 <!-- sq:body:end -->
 
 ## Discussion
