@@ -6,7 +6,7 @@ title: squads 0.15 - views, rebuilt
 status: InProgress
 author: product-owner
 created_at: '2026-09-02T08:03:36Z'
-updated_at: '2026-09-14T14:58:07Z'
+updated_at: '2026-09-15T12:59:01Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.14. It holds the engine and vocabulary work that was
@@ -111,4 +111,33 @@ follow-through on decisions taken during it.
   - Scope section corrected: the validator-catalog bullet now describes only FEAT-898 (Done, its own line) instead of the full five-feature build-out; the 'record no adopter promise' bullet now folds into FEAT-898 by name; added explicit bullets for FEAT-690 (parallel client-UI win) and BUG-895/896 (verified bugs), which were carried members but not previously named in Scope prose.
 - [2026-09-09T14:50:13Z] Catherine Manager:
   - Resolving the tension the product owner flagged rather than leaving it: the "does not belong here" exclusion on browser-client work is not in conflict with FEAT-690 sitting in scope. Browser-client means EPIC-29 (sq web, a local web view) and MILE-868 (the web release). FEAT-690 is the VS Code extension plus the sq ui TUI -- neither is a browser client. The exclusion stands as written and FEAT-690 stays; no edit needed.
+- [2026-09-15T12:59:01Z] Catherine Manager:
+  - **Where 0.15 stands, for whoever picks this up next.**
+    
+    Landed and closed this run: FEAT-690 (memory and board read views in both clients) with REV-943
+    approved, and FEAT-907 (milestone roll-up seeded at creation, corpus migrated to schema v0.15)
+    with REV-952 approved. The corpus has been migrated -- it is at schema v0.15 on disk. Branch
+    release/0.15 is squashed to four commits and is local only, not pushed.
+    
+    Both open reviews are cleared. REV-956 and REV-958 are 0.16 scoping items with nothing to find yet.
+    
+    **Outstanding for 0.15, in dependency order:**
+    
+    - **FEAT-904** -- delete the view projection layer. Unblocked now that FEAT-907 closed. The
+      bundled `views = ["milestone_rollup"]` declaration was already dropped early by ruling, so that
+      one line is gone from its scope.
+    - **FEAT-908** -- adopter upgrade path off the 0.14 grammar. Blocked by FEAT-904.
+    - **FEAT-948** -- required views (a declared `required` flag, refused on write regardless of
+      --force, a tier-1 check finding). Draft. TASK-942 is broken down and reparented under it, and
+      ADR-880's fifth and sixth amendments plus ADR-955 carry the rulings it must implement.
+    - **BUG-950** -- `sq migrate up` points at an empty chlog span. Ruled to run after the view
+      features, not blocking them.
+    
+    **Sequencing constraint:** FEAT-904 and TASK-942 both edit the ViewSpec model and the same
+    view-grammar doc sections. Textual collision, not a semantic dependency -- do not run them in one
+    tree.
+    
+    **Deferred to 0.16 (MILE-934):** BUG-935 + BUG-949 (both the VS Code skew canary, take as one
+    job), BUG-937 + BUG-950's twin mechanism, BUG-938, BUG-957 (out-of-region view tag invisible to
+    show/check/view rm), and the four validator followers.
 <!-- sq:discussion:end -->
