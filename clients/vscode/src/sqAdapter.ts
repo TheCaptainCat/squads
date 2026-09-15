@@ -12,11 +12,14 @@ import type { SqInvocation } from './discovery';
 import type { ProcessRunner } from './processRunner';
 import type {
   SqBadgeMap,
+  SqBoardNotice,
   SqCollectionBadge,
   SqCollectionCatalogEntry,
   SqDiscussionEntry,
   SqGraphNode,
   SqListItem,
+  SqMemoryDetail,
+  SqMemoryListRow,
   SqRoleCatalogEntry,
   SqSearchHit,
   SqSearchHitRegion,
@@ -438,6 +441,55 @@ export function isSqShowJson(value: unknown): value is SqShowJson {
   );
 }
 
+/** Shape guard for one `sq memory <role> list --json` row. `created_at` is optional (an older
+ * `sq` predates the field) — present-and-not-a-string is still a rejection, the same
+ * present-vs-absent-vs-wrong-type contract `badges`/`anchor` already get. */
+export function isSqMemoryListRow(value: unknown): value is SqMemoryListRow {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.slug === 'string' &&
+    typeof row.filename === 'string' &&
+    typeof row.description === 'string' &&
+    (row.created_at === undefined || typeof row.created_at === 'string')
+  );
+}
+
+/** Shape guard for `sq memory <role> show <slug> --json`'s single-object payload. Unlike the
+ * list row, every field here is required — `show` is a newer surface with no older-`sq` skew
+ * to tolerate yet. */
+export function isSqMemoryDetail(value: unknown): value is SqMemoryDetail {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const detail = value as Record<string, unknown>;
+  return (
+    typeof detail.slug === 'string' &&
+    typeof detail.summary === 'string' &&
+    typeof detail.created_at === 'string' &&
+    isStringArray(detail.tags) &&
+    typeof detail.body === 'string'
+  );
+}
+
+/** Shape guard for one `sq board list --json` row. */
+export function isSqBoardNotice(value: unknown): value is SqBoardNotice {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const notice = value as Record<string, unknown>;
+  return (
+    typeof notice.n === 'number' &&
+    typeof notice.id === 'string' &&
+    typeof notice.author === 'string' &&
+    typeof notice.posted_at === 'string' &&
+    (typeof notice.until === 'string' || notice.until === null) &&
+    typeof notice.body === 'string'
+  );
+}
+
 function parseJson(stdout: string): SqOutcome<unknown> {
   try {
     return { kind: 'success', data: JSON.parse(stdout) as unknown };
@@ -715,4 +767,59 @@ export function getGraph(
     ['graph', id, '--json', '--all'],
     isSqGraphNode,
   );
+}
+
+/** `sq memory <role> list --json` — one role/operator's notebook index, feeding the Roster
+ * tree's eager memory children (`metaTreeDataProvider.ts::refresh`). An unreadable individual
+ * entry is named on `sq`'s stderr and silently dropped from the array on an otherwise-zero
+ * exit — this adapter doesn't inspect stderr on success, so that per-entry skew is invisible
+ * here; only a genuine fetch failure (bad role slug, `sq` not found, malformed output) surfaces
+ * as a non-success outcome. */
+export function getMemoryList(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  roleSlug: string,
+): Promise<SqOutcome<SqMemoryListRow[]>> {
+  return runSqJson(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['memory', roleSlug, 'list', '--json'],
+    isSqMemoryListRow,
+  );
+}
+
+/** `sq memory <role> show <slug> --json` — one memory's full record, feeding the Roster tree's
+ * drill-to-body step. */
+export function getMemoryShow(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  roleSlug: string,
+  entrySlug: string,
+): Promise<SqOutcome<SqMemoryDetail>> {
+  return runSqJsonObject(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['memory', roleSlug, 'show', entrySlug, '--json'],
+    isSqMemoryDetail,
+  );
+}
+
+/** `sq board list --json` — the team bulletin board's current (unexpired) notices, feeding the
+ * `Squads: Open Team Board` panel. Note: the CLI itself exits 1 (a degraded-but-real listing,
+ * same convention as `sq search`/`sq memory list`'s unreadable-entry signal) when one or more
+ * notices could not be read, even though it already wrote the readable ones to stdout as valid
+ * JSON — this adapter's general non-zero-exit contract (`classifyNonZeroExit`) doesn't parse
+ * stdout on that path, so a degraded board read surfaces as a full failure here rather than a
+ * partial listing. Sequenced after the memory/board CLI work; not a regression this client
+ * introduces. */
+export function getBoardList(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+): Promise<SqOutcome<SqBoardNotice[]>> {
+  return runSqJson(runner, invocation, workspaceRoot, ['board', 'list', '--json'], isSqBoardNotice);
 }

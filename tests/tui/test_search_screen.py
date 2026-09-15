@@ -21,6 +21,7 @@ from squads._tui._search import (
     SearchScreen,
     _HitItem,
 )
+from squads._tui._tree import NodeData
 from squads._workflow import bundled_spec
 from squads._workflow._models import LabelSpec
 
@@ -29,7 +30,7 @@ from ._helpers import wait_until
 pytestmark = pytest.mark.anyio
 
 
-def _find(root: TreeNode[str], item_id: str) -> TreeNode[str]:
+def _find(root: TreeNode[NodeData], item_id: str) -> TreeNode[NodeData]:
     """Find *item_id* anywhere under *root* — items nest under the Work/Roster groups."""
     nodes = [root]
     while nodes:

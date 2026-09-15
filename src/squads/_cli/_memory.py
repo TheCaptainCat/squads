@@ -75,7 +75,12 @@ async def list_memories(ctx: typer.Context, json_out: bool = typer.Option(False,
         print_json_clean(
             json.dumps(
                 [
-                    {"slug": m.slug, "filename": f"{m.slug}.md", "description": m.summary}
+                    {
+                        "slug": m.slug,
+                        "filename": f"{m.slug}.md",
+                        "description": m.summary,
+                        "created_at": m.created_at,
+                    }
                     for m in entries
                 ]
             )
@@ -130,12 +135,27 @@ async def search_memories(
 @memory_app.command("show")
 @common.command
 async def show_memory(
-    ctx: typer.Context, slug: str = typer.Argument(..., help="Memory slug.")
+    ctx: typer.Context,
+    slug: str = typer.Argument(..., help="Memory slug."),
+    json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     """Print one memory's full body, addressed by slug (not index position)."""
     role_slug = _role(ctx)
     svc = get_service()
     entry = await svc.memory_show(role_slug, slug)
+    if json_out:
+        print_json_clean(
+            json.dumps(
+                {
+                    "slug": entry.slug,
+                    "summary": entry.summary,
+                    "created_at": entry.created_at,
+                    "tags": list(entry.tags),
+                    "body": entry.body,
+                }
+            )
+        )
+        return
     console.print(f"[bold]{e(entry.slug)}[/bold] [dim]({e(entry.created_at)})[/dim]")
     if entry.tags:
         console.print(f"[dim]tags: {e(', '.join(entry.tags))}[/dim]")

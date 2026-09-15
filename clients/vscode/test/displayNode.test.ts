@@ -15,6 +15,7 @@ function leaf(id: string): DisplayNode {
   return {
     id,
     itemId: id,
+    memoryRef: null,
     label: id,
     description: '',
     tooltip: '',

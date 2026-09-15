@@ -92,8 +92,56 @@ async def test_list_json_shape_matches_the_index_entry_schema(project, invoke):
             "slug": "a-fact-worth-remembering",
             "filename": "a-fact-worth-remembering.md",
             "description": "a fact worth remembering",
+            "created_at": "2026-06-07T10:00:00Z",
         }
     ]
+
+
+async def test_list_json_keeps_the_old_keys_byte_identical_alongside_created_at(project, invoke):
+    """A client reading only slug/filename/description must be unaffected by the new key."""
+    await invoke(["memory", "manager", "add", "old keys still work"])
+
+    result = await invoke(["memory", "manager", "list", "--json"])
+    row = json.loads(result.output)[0]
+    assert row["slug"] == "old-keys-still-work"
+    assert row["filename"] == "old-keys-still-work.md"
+    assert row["description"] == "old keys still work"
+    assert "created_at" in row
+
+
+async def test_show_json_emits_one_object_with_slug_summary_created_at_tags_and_body(
+    project, invoke, tmp_path
+):
+    body_path = tmp_path / "body.md"
+    body_path.write_text("Full body text here.\n", encoding="utf-8")
+    await invoke(["memory", "manager", "add", "a fact worth remembering", "--file", str(body_path)])
+
+    result = await invoke(["memory", "manager", "show", "a-fact-worth-remembering", "--json"])
+    assert result.exit_code == 0
+    row = json.loads(result.output)
+    assert row["slug"] == "a-fact-worth-remembering"
+    assert row["summary"] == "a fact worth remembering"
+    assert row["created_at"] == "2026-06-07T10:00:00Z"
+    assert row["tags"] == []
+    assert row["body"] == "Full body text here."
+
+
+async def test_show_json_non_json_output_stays_unchanged(project, invoke):
+    await invoke(["memory", "manager", "add", "a fact worth remembering"])
+
+    plain = await invoke(["memory", "manager", "show", "a-fact-worth-remembering"])
+    assert plain.exit_code == 0
+    assert "{" not in plain.output
+    assert "a fact worth remembering" in plain.output
+
+
+async def test_show_json_on_an_unknown_slug_fails_the_same_way_as_the_non_json_path(
+    project, invoke
+):
+    result = await invoke(["memory", "manager", "show", "never-existed", "--json"])
+    assert result.exit_code == 1
+    assert "no memory" in result.output
+    assert "Traceback" not in result.output
 
 
 async def test_search_finds_memories_matching_content_and_json_matches_human_output(

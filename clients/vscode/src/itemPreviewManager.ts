@@ -30,7 +30,13 @@
  *
  * Alongside the per-item panel pool, this also owns a single, separate panel for the workflow
  * cheatsheet (`sq workflow --raw`, `openWorkflow`) — tracked independently of
- * `activePanel`/`openPanels`, so opening one never steals the other's slot.
+ * `activePanel`/`openPanels`, so opening one never steals the other's slot. Two more single-slot
+ * panels follow the exact same shape: the team board (`openBoard`, `sq board list --json`, no
+ * CLI dependency) and one Roster memory entry's full body (`openMemoryEntry`,
+ * `sq memory <role> show <slug> --json`) — neither is an item, so neither belongs in the
+ * per-item `openPanels` pool, and unlike that pool (which supports many open tabs at once plus
+ * back/forward history) each of these three is a single reused slot: re-invoking reveals and
+ * re-fetches the existing panel rather than opening a second one.
  */
 import { randomUUID } from 'node:crypto';
 
@@ -39,6 +45,7 @@ import * as vscode from 'vscode';
 import { REFRESH_ALL_COMMAND } from './commandIds';
 import { describeTriedOrder, type SqDiscovery } from './discovery';
 import { buildSubEntityFieldBindings, NO_FIELD_BINDINGS } from './domain/badgeCatalog';
+import { renderBoardHtml } from './domain/boardView';
 import { ExpansionTracker } from './domain/expansionTracker';
 import { buildRefGraphMermaid, buildSubtreeMermaid } from './domain/graphDiagrams';
 import { buildItemDirectory, type ItemDirectory, NO_ITEM_DIRECTORY } from './domain/itemDirectory';
@@ -47,6 +54,7 @@ import {
   DEFAULT_ITEM_ID_MATCHER,
   type ItemIdMatcher,
 } from './domain/itemIdPattern';
+import { memoryEntryPanelTitle, renderMemoryEntryHtml } from './domain/memoryView';
 import {
   buildArticleHtml,
   buildDiscussionHtml,
@@ -88,8 +96,10 @@ import { buildRoleDirectory, NO_ROLE_DIRECTORY, type RoleDirectory } from './dom
 import type { ProcessRunner } from './processRunner';
 import {
   describeFailure,
+  getBoardList,
   getGraph,
   getList,
+  getMemoryShow,
   getRaw,
   getShowJson,
   getSubentityKindsCatalog,
@@ -110,6 +120,9 @@ import type {
 const VIEW_TYPE = 'squadsItemPreview';
 const WORKFLOW_VIEW_TYPE = 'squadsWorkflowPreview';
 const WORKFLOW_TITLE = 'Squads Workflow Cheatsheet';
+const BOARD_VIEW_TYPE = 'squadsBoardPreview';
+const BOARD_TITLE = 'Squads Team Board';
+const MEMORY_VIEW_TYPE = 'squadsMemoryPreview';
 
 /** Turns a fetch outcome into the graph section's content: the built mermaid source on
  * success, or the same human-readable failure message every other surface shows, on failure
@@ -197,6 +210,8 @@ function panelIconPath(extensionUri: vscode.Uri): {
 export class ItemPreviewManager {
   private activePanel: vscode.WebviewPanel | undefined;
   private activeWorkflowPanel: vscode.WebviewPanel | undefined;
+  private activeBoardPanel: vscode.WebviewPanel | undefined;
+  private activeMemoryPanel: vscode.WebviewPanel | undefined;
   // Every currently-open item-preview panel (there may be more than one — middle-click opens a
   // new tab alongside the reused `activePanel`), mapped to the item id it currently shows. Lets
   // the `.squads.json` watcher refresh every open preview, not just the reused one.
@@ -317,6 +332,68 @@ export class ItemPreviewManager {
     });
     this.activeWorkflowPanel = panel;
     await this.renderWorkflow(panel);
+  }
+
+  /** Entry point for the `squads.openBoard` command. Same reuse-or-create shape as
+   * `openWorkflow` against its own panel slot: re-invoking reveals and re-fetches the existing
+   * board panel rather than opening a second one. */
+  async openBoard(): Promise<void> {
+    if (this.activeBoardPanel !== undefined) {
+      const panel = this.activeBoardPanel;
+      await this.renderBoard(panel);
+      panel.reveal();
+      return;
+    }
+    const panel = vscode.window.createWebviewPanel(
+      BOARD_VIEW_TYPE,
+      BOARD_TITLE,
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
+      },
+    );
+    panel.iconPath = panelIconPath(this.extensionUri);
+    panel.onDidDispose(() => {
+      if (this.activeBoardPanel === panel) {
+        this.activeBoardPanel = undefined;
+      }
+    });
+    this.activeBoardPanel = panel;
+    await this.renderBoard(panel);
+  }
+
+  /** Entry point for a Roster memory-entry leaf's click (`squads.openMemoryEntry`, wired in
+   * `commands.ts`). Same single-slot reuse shape as `openWorkflow`/`openBoard`: selecting a
+   * *different* entry re-fetches into the same panel rather than opening a new tab per entry —
+   * a memory entry has no children/graph/history of its own, so there's nothing a per-entry tab
+   * would buy. */
+  async openMemoryEntry(roleSlug: string, entrySlug: string): Promise<void> {
+    if (this.activeMemoryPanel !== undefined) {
+      const panel = this.activeMemoryPanel;
+      await this.renderMemoryEntry(panel, roleSlug, entrySlug);
+      panel.reveal();
+      return;
+    }
+    const panel = vscode.window.createWebviewPanel(
+      MEMORY_VIEW_TYPE,
+      memoryEntryPanelTitle(roleSlug, entrySlug),
+      vscode.ViewColumn.Active,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')],
+      },
+    );
+    panel.iconPath = panelIconPath(this.extensionUri);
+    panel.onDidDispose(() => {
+      if (this.activeMemoryPanel === panel) {
+        this.activeMemoryPanel = undefined;
+      }
+    });
+    this.activeMemoryPanel = panel;
+    await this.renderMemoryEntry(panel, roleSlug, entrySlug);
   }
 
   private async openNewPanel(id: string): Promise<vscode.WebviewPanel> {
@@ -572,6 +649,97 @@ export class ItemPreviewManager {
       .toString();
     panel.webview.html = buildPreviewHtml({
       title: WORKFLOW_TITLE,
+      toolbarHtml: '',
+      headerHtml: '',
+      bodyHtml,
+      graphsHtml: '',
+      subEntitiesHtml: '',
+      discussionHtml: '',
+      nonce,
+      mermaidScriptUri,
+    });
+  }
+
+  /** Fetches and renders the team board into the owned board panel — same shape as
+   * `renderWorkflow` (no graphs/sub-entities/discussion sections; `renderBoardHtml` covers
+   * both the success and failure content). */
+  private async renderBoard(panel: vscode.WebviewPanel): Promise<void> {
+    const resolution = this.discovery.resolve();
+    let bodyHtml: string;
+    if (!resolution.ok) {
+      const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
+      this.notifyError(`Squads: ${message}`);
+      bodyHtml = renderBoardHtml({ kind: 'spawn-error', message });
+    } else {
+      const { invocation } = resolution;
+      const outcome = await getBoardList(this.runner, invocation, this.workspaceRoot);
+      if (outcome.kind !== 'success') {
+        if (outcome.kind === 'spawn-error') {
+          this.discovery.invalidate();
+        }
+        this.notifyError(`Squads: ${describeFailure(outcome)}`);
+      }
+      bodyHtml = renderBoardHtml(outcome);
+    }
+    const nonce = randomUUID();
+    const mermaidScriptUri = panel.webview
+      .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'mermaid.min.js'))
+      .toString();
+    panel.webview.html = buildPreviewHtml({
+      title: BOARD_TITLE,
+      toolbarHtml: '',
+      headerHtml: '',
+      bodyHtml,
+      graphsHtml: '',
+      subEntitiesHtml: '',
+      discussionHtml: '',
+      nonce,
+      mermaidScriptUri,
+    });
+  }
+
+  /** Fetches and renders one memory entry's full body into the owned memory panel — same shape
+   * as `renderWorkflow`/`renderBoard`. Sets `panel.title` from the fetched entry's own slug on
+   * success (the pre-fetch fallback title, `roleSlug: entrySlug`, covers the request itself and
+   * any failure). */
+  private async renderMemoryEntry(
+    panel: vscode.WebviewPanel,
+    roleSlug: string,
+    entrySlug: string,
+  ): Promise<void> {
+    const resolution = this.discovery.resolve();
+    let bodyHtml: string;
+    let title = memoryEntryPanelTitle(roleSlug, entrySlug);
+    if (!resolution.ok) {
+      const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
+      this.notifyError(`Squads: ${message}`);
+      bodyHtml = renderMemoryEntryHtml({ kind: 'spawn-error', message });
+    } else {
+      const { invocation } = resolution;
+      const outcome = await getMemoryShow(
+        this.runner,
+        invocation,
+        this.workspaceRoot,
+        roleSlug,
+        entrySlug,
+      );
+      if (outcome.kind === 'success') {
+        title = outcome.data.slug;
+      } else {
+        if (outcome.kind === 'spawn-error') {
+          this.discovery.invalidate();
+        }
+        this.notifyError(`Squads: ${describeFailure(outcome)}`);
+      }
+      bodyHtml = renderMemoryEntryHtml(outcome);
+    }
+    panel.title = title;
+    const nonce = randomUUID();
+    const mermaidScriptUri = panel.webview
+      .asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'media', 'mermaid.min.js'))
+      .toString();
+    panel.webview.html = buildPreviewHtml({
+      title,
       toolbarHtml: '',
       headerHtml: '',
       bodyHtml,

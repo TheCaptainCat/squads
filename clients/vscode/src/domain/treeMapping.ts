@@ -54,6 +54,7 @@ function mapNode(
   return {
     id: node.id,
     itemId: node.id,
+    memoryRef: null,
     label: `${node.id}  ${node.title}`,
     description: describeNode(node),
     tooltip: buildTooltip({

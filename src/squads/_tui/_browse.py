@@ -7,16 +7,18 @@ from textual.app import ComposeResult
 from textual.binding import BindingType
 from textual.containers import Horizontal
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static, Tree
+from textual.widgets import ContentSwitcher, Footer, Header, Static, Tree
 
 from squads._models._item import Item
 from squads._services._base import ItemFilter
 from squads._services._results import TreeNode
 from squads._services._service import Service
+from squads._tui._board import BoardScreen
 from squads._tui._filter import FilterScreen
+from squads._tui._memory_reader import MemoryReaderPanel
 from squads._tui._reader import ReaderPanel
 from squads._tui._search import SearchScreen
-from squads._tui._tree import populate_tree
+from squads._tui._tree import MemoryNodeData, NodeData, populate_tree, roster_identity_slugs
 
 
 @dataclass(frozen=True)
@@ -66,14 +68,16 @@ class BrowseScreen(Screen[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         ("f", "open_filter", "Filter"),
         ("/", "open_search", "Search"),
+        ("b", "open_board", "Board"),
     ]
 
     def __init__(self, svc: Service) -> None:
         super().__init__()
         self._svc = svc
         self.state = BrowseState()
-        self._tree: Tree[str] = Tree[str]("squad", id="item-tree")
+        self._tree: Tree[NodeData] = Tree[NodeData]("squad", id="item-tree")
         self._reader = ReaderPanel(svc, id="reader-panel")
+        self._memory_reader = MemoryReaderPanel(svc, id="memory-reader-panel")
         self._indicator = Static(id="filter-indicator")
 
     def compose(self) -> ComposeResult:
@@ -81,7 +85,9 @@ class BrowseScreen(Screen[None]):
         yield self._indicator
         with Horizontal():
             yield self._tree
-            yield self._reader
+            with ContentSwitcher(initial="reader-panel", id="reader-switcher"):
+                yield self._reader
+                yield self._memory_reader
         yield Footer()
 
     async def on_mount(self) -> None:
@@ -90,23 +96,36 @@ class BrowseScreen(Screen[None]):
 
     async def refresh_tree(self) -> None:
         """Re-run `tree_view()` under the active filter/closed toggle, reorder siblings per the
-        active sort, and repopulate the tree."""
+        active sort, eagerly fetch every visible Role/Operator's memory pool, and repopulate
+        the tree.
+
+        The memory fetch happens here, once per identity, rather than lazily on node
+        expansion — the whole point of the view is comparing hygiene across the roster at a
+        glance, and the roster is small enough that this is effectively free.
+        """
         nodes = await self._svc.tree_view(
             filter=self.state.filter, include_closed=self.state.include_closed
         )
         nodes = sort_siblings(nodes, self.state.sort)
+        memory = {slug: await self._svc.memory_list(slug) for slug in roster_identity_slugs(nodes)}
         self._tree.reset("squad")
-        populate_tree(self._tree, nodes, self._svc.spec)
+        populate_tree(self._tree, nodes, self._svc.spec, memory)
         self._update_indicator()
 
     def _update_indicator(self) -> None:
         self._indicator.update("" if self.state.is_default() else "[reverse] FILTERED [/reverse]")
 
-    async def on_tree_node_highlighted(self, event: Tree.NodeHighlighted[str]) -> None:
-        item_id = event.node.data
-        if item_id is None:
+    async def on_tree_node_highlighted(self, event: Tree.NodeHighlighted[NodeData]) -> None:
+        data = event.node.data
+        if data is None:
             return
-        await self._reader.load(item_id)
+        switcher = self.query_one("#reader-switcher", ContentSwitcher)
+        if isinstance(data, MemoryNodeData):
+            switcher.current = "memory-reader-panel"
+            await self._memory_reader.load(data.role_slug, data.entry_slug)
+            return
+        switcher.current = "reader-panel"
+        await self._reader.load(data)
 
     def action_open_filter(self) -> None:
         self.app.push_screen(  # pyright: ignore[reportUnknownMemberType]
@@ -121,3 +140,6 @@ class BrowseScreen(Screen[None]):
 
     def action_open_search(self) -> None:
         self.app.push_screen(SearchScreen(self._svc))  # pyright: ignore[reportUnknownMemberType]
+
+    def action_open_board(self) -> None:
+        self.app.push_screen(BoardScreen(self._svc))  # pyright: ignore[reportUnknownMemberType]

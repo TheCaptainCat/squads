@@ -200,6 +200,12 @@
         "icon": "$(book)"
       },
       {
+        "command": "squads.openBoard",
+        "title": "Open Team Board",
+        "category": "Squads",
+        "icon": "$(megaphone)"
+      },
+      {
         "command": "squads.previewBack",
         "title": "Back",
         "category": "Squads",
@@ -265,6 +271,11 @@
           "command": "squads.openWorkflow",
           "when": "view == squadsTree",
           "group": "navigation@4"
+        },
+        {
+          "command": "squads.openBoard",
+          "when": "view == squadsTree",
+          "group": "navigation@5"
         },
         {
           "command": "squads.filterByType",

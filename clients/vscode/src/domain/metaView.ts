@@ -12,6 +12,11 @@
  * the same one the Records and Work trees route through — falling back to the raw type string
  * when the catalog fetch failed, hasn't completed, or the connected `sq` predates the resolved
  * `labels` field.
+ *
+ * A Role/Operator leaf additionally carries its memory pool as eager children — a glance-level
+ * count+age suffix on the leaf's own label, each entry as a child — via `domain/memoryView.ts`,
+ * which owns the memory-specific shaping (sort order, age formatting, the failed-fetch
+ * rendering); this module only threads the already-fetched `MemoryRenderContext` through.
  */
 import type { SqListItem } from '../types';
 import {
@@ -23,6 +28,14 @@ import {
 } from './badgeCatalog';
 import { buildTooltip, type DisplayNode, groupDisplayNode, iconForMetaType } from './displayNode';
 import { compareIds } from './idOrder';
+import {
+  isMemoryEligibleType,
+  memoryChildren,
+  memoryLabelSuffix,
+  type MemoryRenderContext,
+  memoryTooltipLine,
+  NO_MEMORY_CONTEXT,
+} from './memoryView';
 import { DEFAULT_META_VIEW_STATE, matchesMetaFilter, type MetaViewState } from './metaFilter';
 import { META_BUCKETS } from './reservedTypes';
 import {
@@ -40,32 +53,41 @@ function itemToLeaf(
   badgeVocabulary: BadgeVocabulary,
   statusRoles: StatusRoleMap,
   roleCatalog: RoleCatalogMap,
+  memory: MemoryRenderContext,
 ): DisplayNode {
   const role = resolveRole(item.status, statusRoles, roleCatalog);
+  // Only Role/Operator identities are memory-eligible at all, and only when
+  // `metaTreeDataProvider.ts::refresh` actually fetched this one's pool (it fetches only for
+  // identities surviving the current filter) — everything else (Skills, and an eligible
+  // identity that was never asked for) renders exactly as it did before this feature: no
+  // suffix, no children.
+  const pool = isMemoryEligibleType(item.type) ? memory.pools.get(item.slug) : undefined;
   return {
     id: item.id,
     itemId: item.id,
-    label: `${item.id}  ${item.title}`,
+    memoryRef: null,
+    label: `${item.id}  ${item.title}${pool === undefined ? '' : memoryLabelSuffix(pool, memory.now)}`,
     // Status alone — assignee is meaningless for meta items (role/skill/operator), unlike the
     // work tree (`treeMapping`/`listView`), which keeps it.
     description: item.status,
-    tooltip: buildTooltip({
-      id: item.id,
-      type: item.type,
-      status: item.status,
-      assignee: item.assignee,
-      badges: resolveItemBadges(item.type, item.badges, fieldBindings, badgeVocabulary),
-      blocked: false,
-      // A flat row is not a tree root at all, so nothing here can be an invented one.
-      anchor: false,
-    }),
+    tooltip:
+      buildTooltip({
+        id: item.id,
+        type: item.type,
+        status: item.status,
+        assignee: item.assignee,
+        badges: resolveItemBadges(item.type, item.badges, fieldBindings, badgeVocabulary),
+        blocked: false,
+        // A flat row is not a tree root at all, so nothing here can be an invented one.
+        anchor: false,
+      }) + (pool === undefined ? '' : memoryTooltipLine(pool, memory.now)),
     iconId: iconForMetaType(item.type),
     blocked: false,
     closed: role?.settled ?? false,
     hidden: role?.hidden ?? false,
     colorIntent: role?.color ?? null,
     anchor: false,
-    children: [],
+    children: memoryChildren(item.slug, pool, memory.now),
   };
 }
 
@@ -75,10 +97,13 @@ function sortedLeaves(
   badgeVocabulary: BadgeVocabulary,
   statusRoles: StatusRoleMap,
   roleCatalog: RoleCatalogMap,
+  memory: MemoryRenderContext,
 ): DisplayNode[] {
   return [...items]
     .sort((a, b) => compareIds(a.id, b.id))
-    .map((item) => itemToLeaf(item, fieldBindings, badgeVocabulary, statusRoles, roleCatalog));
+    .map((item) =>
+      itemToLeaf(item, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory),
+    );
 }
 
 /** Builds the meta/roster view's roots: one group per `META_BUCKETS` entry, in that fixed
@@ -91,7 +116,10 @@ function sortedLeaves(
  * `labelMap` defaults to `NO_LABELS`, resolving each bucket's header via the shared `pluralLabel`
  * resolver rather than a hardcoded literal — falls back to the raw type string the same way
  * every other tree does. `state` defaults to `DEFAULT_META_VIEW_STATE` (archived hidden, no
- * status filter, grouped) — see `domain/metaFilter.ts` for the predicate. */
+ * status filter, grouped) — see `domain/metaFilter.ts` for the predicate. `memory` (the eagerly-
+ * fetched Role/Operator memory pools, plus the "now" the age text is computed against) defaults
+ * to `NO_MEMORY_CONTEXT` — an empty pool map degrades every leaf to its pre-feature rendering,
+ * same graceful-fallback shape as every other catalog here. */
 export function buildMetaView(
   items: readonly SqListItem[],
   fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
@@ -100,6 +128,7 @@ export function buildMetaView(
   roleCatalog: RoleCatalogMap = NO_ROLES,
   labelMap: TypeLabelMap = NO_LABELS,
   state: MetaViewState = DEFAULT_META_VIEW_STATE,
+  memory: MemoryRenderContext = NO_MEMORY_CONTEXT,
 ): DisplayNode[] {
   const bucketTypes = new Set(META_BUCKETS.map((bucket) => bucket.type));
   const visible = items.filter(
@@ -107,7 +136,7 @@ export function buildMetaView(
       bucketTypes.has(item.type) && matchesMetaFilter(item, state, statusRoles, roleCatalog),
   );
   if (!state.groupByType) {
-    return sortedLeaves(visible, fieldBindings, badgeVocabulary, statusRoles, roleCatalog);
+    return sortedLeaves(visible, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory);
   }
   return META_BUCKETS.map(({ type }) => {
     const bucketItems = visible.filter((item) => item.type === type);
@@ -115,7 +144,7 @@ export function buildMetaView(
       `meta:${type}`,
       pluralLabel(type, labelMap),
       bucketItems.length,
-      sortedLeaves(bucketItems, fieldBindings, badgeVocabulary, statusRoles, roleCatalog),
+      sortedLeaves(bucketItems, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory),
     );
   });
 }

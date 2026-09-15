@@ -8,12 +8,26 @@ import type { ResolvedBadge } from './badgeCatalog';
 import type { ColorIntent } from './statusRole';
 import { CYCLE_ANCHOR_TOOLTIP_LINE } from './treeAnchor';
 
+/** What a memory-entry leaf's `DisplayNode.memoryRef` carries: exactly what
+ * `Service.memory_show` (via `sq memory <role> show <slug> --json`) needs to fetch that one
+ * entry's full body — the role/operator's own roster slug plus the memory's own stable slug. */
+export interface MemoryEntryRef {
+  readonly roleSlug: string;
+  readonly entrySlug: string;
+}
+
 export interface DisplayNode {
   /** Stable identity vscode's TreeView keys on. Real items use their sq id; synthetic group/error
    * nodes use a `group:`/`__squads_error__` prefix so they can never collide with a real id. */
   readonly id: string;
-  /** The sq item id backing this node, or `null` for a synthetic group/error node. */
+  /** The sq item id backing this node, or `null` for a synthetic group/error node — and always
+   * `null` for a memory-entry leaf (`memoryRef`, below), which has no item id at all. */
   readonly itemId: string | null;
+  /** Non-`null` only for a Roster memory-entry leaf (`domain/metaView.ts`'s eager memory
+   * children). Kept as its own field, deliberately not folded into `itemId`, so tree-item
+   * rendering (`treeItemRendering.ts`) can route a click to opening the memory's body instead
+   * of the (nonexistent) item preview — never both, since `itemId` stays `null` here. */
+  readonly memoryRef: MemoryEntryRef | null;
   readonly label: string;
   readonly description: string;
   readonly tooltip: string;
@@ -133,8 +147,10 @@ export interface TooltipFields {
  * `escapeMermaidMarkdownLabel`, minus its HTML-escaping step: this string is handed straight to
  * VS Code's own markdown renderer, never through this client's HTML renderer. Applied to
  * `assignee`, the only user-derived line in the tooltip — id/type/status/badges are all
- * spec-controlled and safe as-is. */
-function escapeTooltipMarkdown(text: string): string {
+ * spec-controlled and safe as-is. Exported so `domain/memoryView.ts` can apply the same
+ * escaping to a memory summary shown in a Roster memory-entry leaf's tooltip — another
+ * free-form, user-authored string landing in a `vscode.MarkdownString`. */
+export function escapeTooltipMarkdown(text: string): string {
   return text.replace(/[`*_]/g, (char) => `\\${char}`);
 }
 
@@ -172,6 +188,7 @@ export function groupDisplayNode(
   return {
     id,
     itemId: null,
+    memoryRef: null,
     label,
     description: `${itemCount.toString()} item${itemCount === 1 ? '' : 's'}`,
     tooltip: label,
@@ -189,6 +206,7 @@ export function errorDisplayNode(message: string): DisplayNode {
   return {
     id: '__squads_error__',
     itemId: null,
+    memoryRef: null,
     label: 'Squads: unable to load items',
     description: message,
     tooltip: message,
@@ -209,6 +227,7 @@ export function emptyStateDisplayNode(message: string): DisplayNode {
   return {
     id: '__squads_empty__',
     itemId: null,
+    memoryRef: null,
     label: message,
     description: '',
     tooltip: message,

@@ -188,8 +188,25 @@ export function registerCommands(
       await previewManager.openFromTree(itemId);
     }),
 
+    // Never contributed to `package.json` — like `squads.openItemPreview` above, this is an
+    // internal command a Roster memory-entry leaf's `TreeItem.command` invokes on click
+    // (`treeItemRendering.ts`), not something a user picks from the Command Palette.
+    vscode.commands.registerCommand(
+      'squads.openMemoryEntry',
+      async (roleSlug: unknown, entrySlug: unknown) => {
+        if (typeof roleSlug !== 'string' || typeof entrySlug !== 'string') {
+          return;
+        }
+        await previewManager.openMemoryEntry(roleSlug, entrySlug);
+      },
+    ),
+
     vscode.commands.registerCommand('squads.openWorkflow', async () => {
       await previewManager.openWorkflow();
+    }),
+
+    vscode.commands.registerCommand('squads.openBoard', async () => {
+      await previewManager.openBoard();
     }),
 
     vscode.commands.registerCommand('squads.previewBack', async () => {
