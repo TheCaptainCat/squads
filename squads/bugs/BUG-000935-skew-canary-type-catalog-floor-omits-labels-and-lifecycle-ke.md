@@ -11,7 +11,7 @@ refs:
 - BUG-896:addresses
 - MILE-934:targets
 created_at: '2026-09-09T14:41:36Z'
-updated_at: '2026-09-29T14:13:24Z'
+updated_at: '2026-09-29T16:06:11Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -101,4 +101,6 @@ with zero canary protection, which is a step past BUG-896's fully-latent graph/l
   - TYPE_ENTRY_KEYS holds all 9 keys (labels, lifecycle included) and every live entry goes through assertExactKeys.
 - [2026-09-29T14:13:22Z] Catherine Manager:
   - Verified via REV-972 (Approved, F1-F7 Verified); canary 68/68.
+- [2026-09-29T16:06:11Z] Mara Tester:
+  - Re-verified by QA (REV-972 was a code review) at c5331f42: npm run test:canary 68 passed against the dev tree, resolved to .venv/bin/sq. Driven through fake pin wrappers in my scratchpad: dropping labels, dropping lifecycle, adding an extra key, and dropping labels from only the last entry each turn the types test red (9-key exact set on every entry); the unmodified wrapper is green.
 <!-- sq:discussion:end -->

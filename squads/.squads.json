@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 979,
+  "counter": 980,
   "padding": 6,
   "items": {
     "12": {
@@ -25937,7 +25937,7 @@
         {
           "local_id": "ST6",
           "title": "Report two files carrying the same id",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": null,
@@ -25946,7 +25946,7 @@
       ],
       "path": "tasks/TASK-000969-fix-the-0-16-engine-bugs-versions-skills-views-spec-id-slugs.md",
       "created_at": "2026-09-29T13:31:10Z",
-      "updated_at": "2026-09-29T14:38:00Z",
+      "updated_at": "2026-09-29T16:52:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28331,7 +28331,7 @@
       "subentities": [],
       "path": "bugs/BUG-000935-skew-canary-type-catalog-floor-omits-labels-and-lifecycle-ke.md",
       "created_at": "2026-09-09T14:41:36Z",
-      "updated_at": "2026-09-29T14:13:24Z",
+      "updated_at": "2026-09-29T16:06:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28342,7 +28342,7 @@
       "type": "bug",
       "title": "sq migrate chlog silently drops manual steps on a prerelease bound",
       "slug": "sq-migrate-chlog-silently-drops-manual-steps-on-a-prerelease",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -28357,7 +28357,7 @@
       "subentities": [],
       "path": "bugs/BUG-000937-sq-migrate-chlog-silently-drops-manual-steps-on-a-prerelease.md",
       "created_at": "2026-09-10T08:37:16Z",
-      "updated_at": "2026-09-29T14:36:12Z",
+      "updated_at": "2026-09-29T16:05:36Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28383,7 +28383,7 @@
       "subentities": [],
       "path": "bugs/BUG-000938-deleting-a-managed-skill-body-permanently-loses-its-frontmat.md",
       "created_at": "2026-09-10T08:37:34Z",
-      "updated_at": "2026-09-29T14:36:16Z",
+      "updated_at": "2026-09-29T16:23:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28410,7 +28410,7 @@
       "subentities": [],
       "path": "bugs/BUG-000949-vs-code-skew-canary-resolves-sq-off-bare-path-not-the-dev-tr.md",
       "created_at": "2026-09-15T08:00:34Z",
-      "updated_at": "2026-09-29T14:13:31Z",
+      "updated_at": "2026-09-29T16:06:17Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28473,7 +28473,7 @@
       "type": "bug",
       "title": "Out-of-region view tag is invisible to show/check/view rm",
       "slug": "out-of-region-view-tag-is-invisible-to-show-check-view-rm",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -28488,7 +28488,7 @@
       "subentities": [],
       "path": "bugs/BUG-000957-out-of-region-view-tag-is-invisible-to-show-check-view-rm.md",
       "created_at": "2026-09-15T09:34:39Z",
-      "updated_at": "2026-09-29T14:36:22Z",
+      "updated_at": "2026-09-29T16:05:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28499,7 +28499,7 @@
       "type": "bug",
       "title": "self --json spec identity can't distinguish two override documents",
       "slug": "self-json-spec-identity-can-t-distinguish-two-override-docum",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -28514,7 +28514,7 @@
       "subentities": [],
       "path": "bugs/BUG-000962-self-json-spec-identity-can-t-distinguish-two-override-docum.md",
       "created_at": "2026-09-24T09:57:16Z",
-      "updated_at": "2026-09-29T14:03:25Z",
+      "updated_at": "2026-09-29T16:05:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28525,7 +28525,7 @@
       "type": "bug",
       "title": "Slugs drop accented letters instead of transliterating them",
       "slug": "slugs-drop-accented-letters-instead-of-transliterating-them",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -28539,7 +28539,7 @@
       "subentities": [],
       "path": "bugs/BUG-000965-slugs-drop-accented-letters-instead-of-transliterating-them.md",
       "created_at": "2026-09-25T13:39:46Z",
-      "updated_at": "2026-09-29T14:36:27Z",
+      "updated_at": "2026-09-29T16:06:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -41987,7 +41987,7 @@
       "type": "review",
       "title": "Engine fixes: versions, skill restamp, view tags, spec digest, slugs",
       "slug": "engine-fixes-versions-skill-restamp-view-tags-spec-digest-sl",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -42086,7 +42086,7 @@
         {
           "local_id": "F10",
           "title": "Restamp leaves a timestamp drift warning in check",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42095,7 +42095,7 @@
         {
           "local_id": "F11",
           "title": "Restamp mints a second skill item from a stray copy",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42104,7 +42104,7 @@
         {
           "local_id": "F12",
           "title": "Sync now absorbs merge conflicts outside frontmatter",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42113,7 +42113,115 @@
         {
           "local_id": "F13",
           "title": "Check names sync where the restamp refuses",
-          "status": "Open",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Renumber keeps a misplaced copy, orphaning the id",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Renumber misses references inside the renumbered copy",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "Refused writes still change files first",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "Remove and retype referrer rewrites are unguarded",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F18",
+          "title": "Write guard's name scan disagrees with the detector",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F19",
+          "title": "Restamp re-reads the skill folder per damaged file",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F20",
+          "title": "Check names repair for a duplicate repair refuses",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F21",
+          "title": "Roster show gives no duplicate-id warning",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F22",
+          "title": "Duplicate-id and skill-file module cleanups",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F23",
+          "title": "Write guard reads the whole corpus on every write",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F24",
+          "title": "Scan caches live as mutable Service state",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F25",
+          "title": "Two strengthened tests prove less than they claim",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -42122,7 +42230,7 @@
       ],
       "path": "reviews/REV-000975-engine-fixes-versions-skill-restamp-view-tags-spec-digest-sl.md",
       "created_at": "2026-09-29T14:16:19Z",
-      "updated_at": "2026-09-29T14:45:58Z",
+      "updated_at": "2026-09-29T16:57:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42196,7 +42304,8 @@
       "labels": [],
       "refs": [
         "FEAT-976:depends-on",
-        "MILE-934:targets"
+        "MILE-934:targets",
+        "ADR-979"
       ],
       "subentities": [
         {
@@ -42238,7 +42347,7 @@
       ],
       "path": "features/FEAT-000977-verb-parity-for-skills-roles-and-operators.md",
       "created_at": "2026-09-29T14:19:16Z",
-      "updated_at": "2026-09-29T14:31:27Z",
+      "updated_at": "2026-09-29T14:59:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42249,7 +42358,7 @@
       "type": "bug",
       "title": "check and repair do not report two files with the same id",
       "slug": "check-and-repair-do-not-report-two-files-with-the-same-id",
-      "status": "Open",
+      "status": "Fixed",
       "description": "check and repair stay silent when two files carry one id",
       "parent": null,
       "author": "qa",
@@ -42264,7 +42373,7 @@
       "subentities": [],
       "path": "bugs/BUG-000978-check-and-repair-do-not-report-two-files-with-the-same-id.md",
       "created_at": "2026-09-29T14:25:57Z",
-      "updated_at": "2026-09-29T14:26:26Z",
+      "updated_at": "2026-09-29T16:52:00Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42296,6 +42405,80 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-979"
+    },
+    "980": {
+      "sequence_id": 980,
+      "type": "feature",
+      "title": "Comment headers carry the author's permanent slug",
+      "slug": "comment-headers-carry-the-author-s-permanent-slug",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-979:implements",
+        "ADR-971",
+        "FEAT-977",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a reader, I want comment headers that name the author's slug",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an operator, I want slugs permanent on every write path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, I want legacy headers migrated once, fail-loud",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As a tool author, I want author_slug in the discussion JSON",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an adopter, I want the header grammar documented",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000980-comment-headers-carry-the-author-s-permanent-slug.md",
+      "created_at": "2026-09-29T14:58:15Z",
+      "updated_at": "2026-09-29T14:59:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-980"
     }
   }
 }

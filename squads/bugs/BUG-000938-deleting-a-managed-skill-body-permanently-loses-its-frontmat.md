@@ -10,7 +10,7 @@ refs:
 - MILE-934:targets
 - REV-926:addresses
 created_at: '2026-09-10T08:37:34Z'
-updated_at: '2026-09-29T14:36:16Z'
+updated_at: '2026-09-29T16:23:09Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -114,4 +114,8 @@ currently no supported command that performs that fix.
   - Reopened for REV-975 findings.
 - [2026-09-29T14:36:16Z] Elias Python:
   - Review fixes: frontmatter rebuilt from file name plus catalog (no index needed), duplicate-id guard, invalid YAML rebuilt, single remedy in repair.
+- [2026-09-29T15:17:34Z] Elias Python:
+  - Review fixes: timestamps carried over, duplicate slug guard, conflict-only-in-frontmatter rebuild, check names the right remedy.
+- [2026-09-29T16:23:09Z] Elias Python:
+  - Review round 3: slug identity is one helper, unstamped rivals are left alone, the skill folder is read once per scan.
 <!-- sq:discussion:end -->

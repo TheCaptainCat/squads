@@ -43,7 +43,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-09-29T13:31:10Z'
-updated_at: '2026-09-29T15:41:36Z'
+updated_at: '2026-09-29T16:52:03Z'
 ---
 <!-- sq:body -->
 Six engine bugs targeted at 0.16, one dev pass. Each subtask is independent and touches a
@@ -500,4 +500,30 @@ restamp (ST2) can create exactly this state from a renamed file.
   - REV-975 F10-F13 and ST6 done, each with a falsified table-driven test. The restamp carries the index's timestamps, refuses on a duplicate id or slug, rebuilds only a conflict wholly inside the frontmatter, and check names the remedy that works. One shared detector (services/_duplicate_ids.py) serves check, repair and the restamp. check errors and names every file; repair refuses to pick a winner and exits 1; repair --renumber renumbers only groups whose slugs all differ (first path by byte order keeps the id), rewrites no reference and lists every one; show warns; writes refuse. A file's slug is extra.slug, else frontmatter slug, else the filename slug, so a work item copied to a differently named file counts as a different slug and is renumbered, while a skill copy or a copy in another type folder is refused. Two scan-wrapping test helpers gained a carriers argument. CHANGELOG via the writer.
 - [2026-09-29T15:41:36Z] Elias Python:
   - ST6 addition: repair --renumber also refuses a duplicate group whose files are byte-identical (a copy, not a collision); a whitespace-only difference counts as different, since a byte comparison cannot tell an edit from noise and renumbering keeps both files. Rows added; falsified (1 red).
+- [2026-09-29T15:58:40Z] Catherine Manager:
+  - REV-975 round 3: F11 reopened, F14-F22 new (F14 high). ST2/ST6 back to @python-dev as one consolidation pass: one identity definition shared by detector, write guard and restamp.
+- [2026-09-29T16:23:22Z] Elias Python:
+  - REV-975 round 3 (F11, F14-F22) done as one consolidation: file identity (id and slug) is defined once in _duplicate_ids.py and used by the detector, the write guard, the restamp and the renumber scan.
+    
+    Index parses and file reads, measured with the same probe on 48cf1444 and now (clean squad after an initial sync):
+    - sync clean: 7 parses, 7 max reads of one file (baseline 7 / 7, now 7 / 7)
+    - check clean: 1 parse, each file read once (baseline 1 / 1, now 1 / 1)
+    - check with three stripped skills: 2 parses, 1 file read twice (baseline 2 / 1, now 2 / 1; it was 3 parses and 13 re-read files before this pass)
+    - sync with three stripped skills: 8 parses at 48cf1444, 9 now (one extra parse, only when a file needs restamping)
+    
+    Writes: every write verb (comment, body, retitle, status, link/unlink, add/rm ref, sub-entity, remove, remove --force, retype, rename-status, set-default) checks before it touches a file; retype, rename-status and set-default refuse while any id is duplicated. The table proves a refused write leaves the squad tree byte-identical by hash.
+    Renumber: keeps the file the index points at, refuses a group with a file outside its type folder, lists references after all renames. CHANGELOG via the writer.
+- [2026-09-29T16:35:52Z] Catherine Manager:
+  - REV-975 round 4: F11, F14-F22 Verified; F23 (write-guard cost, ~2.3x on show/comment), F24, F25 back to @python-dev.
+- [2026-09-29T16:52:03Z] Elias Python:
+  - REV-975 round 4 (F23-F25) done.
+    
+    Timings, median of 5 runs each, on a copy of this repo's 1029-file squad (separate interpreter per run):
+    - task 969 show: c5331f42 0.79s, now 0.78s (round 3 build: 1.8s)
+    - task 969 show --json: c5331f42 0.74s, now 0.80s (that path runs no guard; run-to-run noise)
+    - task 969 comment: c5331f42 0.84s, now 0.86s (round 3 build: 1.9s)
+    
+    Guard rule: only files whose name carries the item's number, or no number at all, are read, then confirmed by frontmatter id. A copy with a well-formed name for a different number (for example TASK-000099-alpha.md carrying id TASK-22) is no longer seen by show or by writes; check and repair still find it (tested). Bulk-rewrite verbs (retype, status rename, set-default) still read every file, since they may touch any of them. A test bounds the files one write reads and shows it does not grow with the corpus.
+    
+    Scan state (skill texts, skill items, skill folder, id carriers) now lives in a ScanContext created by check, repair or the restamp and passed down; nothing is kept on the service. The misplaced comment in set_default_role is back on default_kind.
 <!-- sq:discussion:end -->

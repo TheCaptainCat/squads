@@ -3,14 +3,14 @@ id: BUG-957
 sequence_id: 957
 type: bug
 title: Out-of-region view tag is invisible to show/check/view rm
-status: Fixed
+status: Verified
 author: qa
 priority: low
 refs:
 - MILE-934:targets
 - REV-952
 created_at: '2026-09-15T09:34:39Z'
-updated_at: '2026-09-29T14:36:22Z'
+updated_at: '2026-09-29T16:05:43Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -91,4 +91,6 @@ for whoever picks this up, not decided here.
   - Reopened for REV-975 findings.
 - [2026-09-29T14:36:22Z] Elias Python:
   - Review fix: the duplicate-tag message names a remedy that works when a copy sits outside sq:body.
+- [2026-09-29T16:05:39Z] Mara Tester:
+  - Verified by QA against c5331f42 (src clean at the time of the drives), dev tree via uv run, scratch squads. Driven on a milestone, tag position x surface: in body (renders, check clean, disable/add work), before sq:body, after sq:body:end, inside the discussion region, two copies (one in, one out). Out-of-region rows: 0 renders, check warns naming the tag, disable and add exit 1 with a message that says where the tag is; the two-copy row is a check error (exit 3); tag count unchanged everywhere. Released 0.15.0 contrast: check silent, view add duplicated the tag (2). Routes driven: template override (check warns on the .j2), sq adopt, hand edit; the disabled-form tag is caught too. Note for the record: the remedy says to move the tag inside sq:body, and no sq verb can do that (report-only, as ruled).
 <!-- sq:discussion:end -->

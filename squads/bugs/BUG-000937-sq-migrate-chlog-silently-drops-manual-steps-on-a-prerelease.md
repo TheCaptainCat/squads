@@ -3,14 +3,14 @@ id: BUG-937
 sequence_id: 937
 type: bug
 title: sq migrate chlog silently drops manual steps on a prerelease bound
-status: Fixed
+status: Verified
 author: qa
 priority: medium
 refs:
 - MILE-934:targets
 - REV-926:addresses
 created_at: '2026-09-10T08:37:16Z'
-updated_at: '2026-09-29T14:36:12Z'
+updated_at: '2026-09-29T16:05:36Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -112,4 +112,6 @@ boolean. That one change closes the `chlog` filter and both `_overrides/_manifes
   - Reopened for REV-975 findings.
 - [2026-09-29T14:36:12Z] Elias Python:
   - Review fixes: PEP 440 ordering with release numbers as their own tuple; the fallback never joins digits.
+- [2026-09-29T16:05:35Z] Mara Tester:
+  - Verified by QA against c5331f42 (src clean at the time of the drives), dev tree via uv run, scratch squads. Driven: rc-stamped squad (schema 0.11, squads_version 0.14.0rc1) then migrate up; chlog v0.14.0rc1..v0.15.0 prints the 0.14.0 steps on the dev tree and drops them on released 0.15.0 (contrast). Ordering table driven on version_tuple: dev<a<b<rc<release, rc9<rc10, leading v, X.Y == X.Y.0, junk fails safe; chlog windows with an rc on either bound and a reversed window driven. One definition remains (rg def version_tuple).
 <!-- sq:discussion:end -->

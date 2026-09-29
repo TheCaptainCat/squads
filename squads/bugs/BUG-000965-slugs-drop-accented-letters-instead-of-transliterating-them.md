@@ -3,14 +3,14 @@ id: BUG-965
 sequence_id: 965
 type: bug
 title: Slugs drop accented letters instead of transliterating them
-status: Fixed
+status: Verified
 author: qa
 priority: medium
 severity: medium
 refs:
 - MILE-934:targets
 created_at: '2026-09-25T13:39:46Z'
-updated_at: '2026-09-29T14:36:27Z'
+updated_at: '2026-09-29T16:06:04Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -114,4 +114,6 @@ approach, not a defect to fix here.
   - Reopened for REV-975 findings.
 - [2026-09-29T14:36:27Z] Elias Python:
   - Review fixes: self-contained frozen legacy rule; map extended; the length cut never splits an expansion.
+- [2026-09-29T16:05:57Z] Mara Tester:
+  - Verified by QA against c5331f42 (src clean at the time of the drives), dev tree via uv run, scratch squads. Driven slugify table: Reduire la latence, Grosse prufen, Ca marche, Elodie Martin, AE/O/OE/L/D forms, sharp-s capital, NFD input, thorn/eth/h-stroke/dotless i, punctuation mix, max_len cuts next to a sharp-s expansion (never split), plain ASCII unchanged, CJK and empty fall back to untitled. ADR-971 consumers driven on a squad built by released 0.15.0 with mangled slugs (op-lodie, lixir-dev, r-duire-latence, a memory): sync, check, repair leave every file and pointer as is; show, --as, --author, --assignee all resolve the stored slug; re-adding the same operator, skill and dev is refused; new names get the clean slug. Not driven: the dev-role override TOML path (read only).
 <!-- sq:discussion:end -->

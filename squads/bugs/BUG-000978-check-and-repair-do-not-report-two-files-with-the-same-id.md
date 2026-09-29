@@ -3,7 +3,7 @@ id: BUG-978
 sequence_id: 978
 type: bug
 title: check and repair do not report two files with the same id
-status: Open
+status: Fixed
 author: qa
 priority: medium
 severity: medium
@@ -12,7 +12,7 @@ refs:
 - MILE-934:targets
 description: check and repair stay silent when two files carry one id
 created_at: '2026-09-29T14:25:57Z'
-updated_at: '2026-09-29T14:26:26Z'
+updated_at: '2026-09-29T16:52:00Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -46,4 +46,10 @@ Status transitions or writes against a duplicated item, and which file wins when
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-29T15:17:37Z] Elias Python:
+  - Fixed: one shared detector; check errors, repair refuses, --renumber renumbers different slugs and lists references, show warns, writes refuse.
+- [2026-09-29T16:23:17Z] Elias Python:
+  - Review round 3: one identity rule for detector and guard, renumber keeps the indexed file, every write checks before touching a file.
+- [2026-09-29T16:52:00Z] Elias Python:
+  - Review round 4: the write guard is proportional to one item; scan state is passed, not kept.
 <!-- sq:discussion:end -->
