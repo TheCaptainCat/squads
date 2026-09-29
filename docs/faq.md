@@ -55,7 +55,9 @@ and rewrites item files while it is there ([what it writes](#does-sq-repair-chan
   **and rewrite item files** on the same pass. See [Does `sq repair` change my
   files?](#does-sq-repair-change-my-files) below.
 - **`sync`** — regenerate the *tool-owned* managed files (skills, pointers, CLAUDE.md section) to the
-  current squads version.
+  current squads version. It also rebuilds the frontmatter of a managed skill file that lost it,
+  from the file name and the skill catalog, and keeps the body; `check` and `repair` name `sync`
+  as the fix for that file.
 
 ### Does `sq repair` change my files?
 Yes. Alongside the index rebuild, `sq repair` removes from your item files what squads now computes
@@ -124,17 +126,36 @@ If collisions slip through to the merge, use `sq repair --renumber` on the merge
 ```bash
 git merge <branch>
 # Resolve the .squads.json conflict by taking either side, then commit the merge
-sq repair --renumber     # detects duplicates, assigns fresh numbers, rewrites refs
+sq repair --renumber     # gives colliding files fresh numbers
 ```
 
 Commit the merge before running it: `sq repair --renumber` performs the same item-file rewrite as
 plain `sq repair` ([what it writes](#does-sq-repair-change-my-files)), and you want that diff on
 its own rather than mixed into an unresolved merge.
 
-This **guarantees uniqueness and no dangling refs**, but **cannot preserve intent** — when two
-files claim the same ID, the tool rewrites **all** references to that ID to point to the winner,
-even if some were meant for the loser. Use this only when duplicates already exist; the pre-merge
-path is safer when you have the chance.
+What it does depends on the collision:
+
+- **Distinct IDs that share a number** (say `TASK-21` and `BUG-21`): every file but one gets a
+  fresh number, and every reference to it is rewritten. The IDs differ, so each reference is
+  unambiguous.
+- **The same ID in two files** (both branches created `TASK-21`): when every file has a different
+  slug, one keeps the ID and the others get fresh numbers. The kept file is the one the index
+  already points at, otherwise the first by path. Only each renumbered file's own `id`,
+  `sequence_id` and filename change. **References are not rewritten.** A reference to `TASK-21`
+  could mean either copy, so the command lists every one it finds instead (file, frontmatter key
+  or body/comment line, and the text) and exits `1` while any remain. Check each one by hand.
+- **Refused:** two files with the same slug, byte-identical copies, or a file outside its type's
+  folder. Those are copies, not a merge collision. Nothing is renamed, and the files are reported
+  the way plain `sq repair` reports them (below).
+
+Use this only when collisions already exist. The pre-merge path is safer when you have the chance,
+because it keeps every reference meaning what it says.
+
+**Two files with the same ID.** `sq check` reports each such ID as an error, naming every file
+that carries it. Plain `sq repair` will not pick one: it keeps the previous index entry for that
+ID, names the files and exits `1`. `show` renders the indexed file with a warning, and every write
+to that ID is refused until it is resolved. Merge the content you want into one file, delete the
+other, and run `sq repair`, or use `sq repair --renumber` as above.
 
 ### What exit codes does `sq` use?
 

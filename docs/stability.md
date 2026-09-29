@@ -485,9 +485,18 @@ renamed or retyped within a major version. The frozen surface includes:
   serializer for — never a shared envelope. A `ref`/`subtree` source matches `sq tree --json`'s
   per-node rows; a `subentity` source matches the per-kind list `--json` (`sq <type> <n> <kind>s
   --json`); `role` matches `sq role <slug> show --json`; `self` matches the host item's own `show
-  --json` plus a `spec` key (`{schema_version, override}`); `playbook` has no existing
+  --json` plus a `spec` key, `{schema_version, override, digest}`; `playbook` has no existing
   counterpart, so its own shape is `{type, lane, roster}` (`lane` is `null` for a type outside
   every guide's lane domain). No shape carries a `fields`/`group_by`/`groups` key.
+
+  In the `self` `spec` key, `digest` identifies the merged workflow spec that resolved the
+  payload: the bundled spec with any project override applied. Compare it for **equality only**.
+  It is opaque, so never order it, parse it or compute it yourself. Two different merged specs
+  never share a digest, but the reverse is not promised: a squads release can change the digest
+  with no change in meaning. Treat a changed digest as "re-read the catalogs" (`sq workflow types
+  --json` and its siblings). `override` is `true` when a project `.overrides/workflow.toml` was
+  merged into that spec. It is for display, not for detecting change. `digest` is a field
+  addition to this shape, which this tier permits between majors.
 - **Override inspection:** `override list --json` (an array of `{name, kind, base_version, state}`)
   and `override diff --json` (`{name, kind, base_version, base_available, delta_mine,
   delta_upgrade}`)

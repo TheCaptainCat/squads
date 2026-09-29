@@ -43,7 +43,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-09-29T13:31:10Z'
-updated_at: '2026-09-29T16:52:03Z'
+updated_at: '2026-09-29T17:05:11Z'
 ---
 <!-- sq:body -->
 Six engine bugs targeted at 0.16, one dev pass. Each subtask is independent and touches a
@@ -526,4 +526,8 @@ restamp (ST2) can create exactly this state from a renamed file.
     Guard rule: only files whose name carries the item's number, or no number at all, are read, then confirmed by frontmatter id. A copy with a well-formed name for a different number (for example TASK-000099-alpha.md carrying id TASK-22) is no longer seen by show or by writes; check and repair still find it (tested). Bulk-rewrite verbs (retype, status rename, set-default) still read every file, since they may touch any of them. A test bounds the files one write reads and shows it does not grow with the corpus.
     
     Scan state (skill texts, skill items, skill folder, id carriers) now lives in a ScanContext created by check, repair or the restamp and passed down; nothing is kept on the service. The misplaced comment in set_default_role is back on default_kind.
+- [2026-09-29T17:05:11Z] Theo Writer:
+  - CHANGELOG 0.16.0 section added (new, with compare link): Added self-view spec digest; Changed repair --renumber on one id in several files; Fixed duplicate-id reporting, slug transliteration, dev add override filename, sync skill frontmatter restore, out-of-region view tags, migrate chlog prerelease bounds. Canary fixes left out (no earlier section lists test-harness changes).
+  - Docs: stability.md (self spec block + digest rules), faq.md (ID collisions rewritten for same-id vs shared-number, sync bullet), internals.md (renumber + check), workflow.md (out-of-region tags, migration skip note), migration.md (prerelease chlog bounds), roles.md (slug derivation, stored slugs never change), README.md (renumber link).
+  - Already wrong before this: workflow.md said check accepts an out-of-region tag and view add duplicates it; faq/internals said repair --renumber rewrites every reference for a same-id collision. Claims checked against the diff and a scratch squad. @manager for review; nothing committed.
 <!-- sq:discussion:end -->
