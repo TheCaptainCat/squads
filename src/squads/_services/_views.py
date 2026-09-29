@@ -14,6 +14,7 @@ from squads._index._resolver import require_item
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._services._base import ServiceCore
+from squads._workflow._models import ViewSpec
 
 
 class ViewsMixin(ServiceCore):
@@ -75,7 +76,7 @@ class ViewsMixin(ServiceCore):
 
     async def resolve_view_source(
         self, view_name: str, item_id: str
-    ) -> tuple[views.ViewSpec, Item, views.SourceResult]:
+    ) -> tuple[ViewSpec, Item, views.SourceResult]:
         """*view_name*'s declared source resolved against *item_id*, in its own native shape —
         the declared view, the host item, and whatever :func:`~squads._views.resolve_source`
         returns for it (a flat ``list[Item]``/``list[SubEntity]`` for a relation kind, or the

@@ -170,7 +170,7 @@ async def test_rename_type_mid_flight_failure_restores_disk_and_index(
     svc, monkeypatch, tmp_path
 ) -> None:
     from squads._services import _service as service
-    from squads._services._rename import apply_type_change
+    from squads._services._retype import apply_type_change
     from squads._workflow._loader import load_workflow_spec
     from squads._workflow._models import ItemSpec, WorkflowSpec
 

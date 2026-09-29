@@ -20,6 +20,7 @@ import pytest
 import squads._cli._common as common
 from squads._errors import SquadsError
 from squads._services._service import Service
+from squads._services._service import open_service as real_open_service
 
 pytestmark = pytest.mark.anyio
 
@@ -110,7 +111,6 @@ async def test_plain_and_bypass_memos_never_share_a_slot(project, one_invocation
     """Structural isolation, directly: populate the bypass slot while the cross-check is
     failing, then let it recover and confirm a plain call builds and files its own answer
     under its own key rather than ever reading the bypass one filed a moment earlier."""
-    real_open_service = common.open_service
     monkeypatch.setattr(
         common,
         "open_service",

@@ -24,6 +24,7 @@ import pytest
 from squads import __version__
 from squads._errors import SquadsError
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
+from squads._overrides._manifest import ROLES_KEY
 from squads._overrides._service import (
     STATE_BROKEN,
     STATE_CURRENT,
@@ -654,14 +655,14 @@ class TestDiffOverride:
 
         def _fake_changed(key: str, base_version: str) -> bool:
             seen_keys.append(key)
-            return key == override_service.ROLES_KEY
+            return key == ROLES_KEY
 
         monkeypatch.setattr(override_service, "artifact_changed_since", _fake_changed)
 
         squad_dir = project.squad_dir
         _place_role(squad_dir, "architect", '# squads:override-base:0.1.0\nfull_name = "Ada"\n')
         assert scan_overrides(squad_dir)[0].state == STATE_DRIFTED
-        assert seen_keys == [override_service.ROLES_KEY]
+        assert seen_keys == [ROLES_KEY]
 
 
 class TestUpdateStamp:

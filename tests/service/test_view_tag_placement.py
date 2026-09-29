@@ -168,8 +168,7 @@ async def test_insert_no_op_does_not_call_the_write_primitive(svc, monkeypatch) 
 
     calls = 0
     import squads._services._base as base_module
-
-    original = base_module.write_text
+    from squads._itemfile import write_text as original
 
     async def _counting_write(*args, **kwargs):
         nonlocal calls
@@ -368,8 +367,7 @@ async def test_remove_no_op_does_not_call_the_write_primitive(svc, monkeypatch) 
 
     calls = 0
     import squads._services._base as base_module
-
-    original = base_module.write_text
+    from squads._itemfile import write_text as original
 
     async def _counting_write(*args, **kwargs):
         nonlocal calls

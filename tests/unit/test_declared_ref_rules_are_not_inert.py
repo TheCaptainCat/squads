@@ -75,7 +75,8 @@ def test_the_supersedes_validator_runs_only_for_a_type_that_declares_the_rule() 
     """Second consumer: ``sq check``'s superseded-record warning is gated on the declaration,
     so a project that renames or drops the declaring type takes the check with it rather than
     keeping a bundled type name alive inside the validator."""
-    from squads._services._validators import CheckIssue, ValidatorContext, _supersedes_incoming
+    from squads._services._results import CheckIssue
+    from squads._services._validators import ValidatorContext, _supersedes_incoming
 
     spec = bundled_spec()
     assert any(r.kind == "supersedes" for r in spec.item_ref_rules("decision"))

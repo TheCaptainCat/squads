@@ -131,13 +131,14 @@ async def test_addressed_item_form_shares_one_store_identity_across_both_bridge_
     this goes red: each crossing would build its own ``Service`` again, and the recorded store
     ids would differ.
     """
+    import squads._cli._common as common_mod
     import squads._cli._items as items_mod
 
     created = await invoke(["create", "task", "Parent", "--author", "manager"])
     assert created.exit_code == 0, created.output
 
     store_ids: list[int] = []
-    original_get_service = items_mod.get_service
+    original_get_service = common_mod.get_service
 
     def spy():
         svc = original_get_service()

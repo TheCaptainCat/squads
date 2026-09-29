@@ -288,7 +288,8 @@ def test_the_broadened_canary_does_not_fire_on_a_review_named_validator() -> Non
     must still pass the anchored assertion above. Built as a local dict rather than mutating
     the live, process-shared ``CATALOG`` — this test carries no cleanup burden and cannot leak
     into another test."""
-    from squads._services._validators import CATALOG, CheckIssue, ValidatorContext
+    from squads._services._results import CheckIssue
+    from squads._services._validators import CATALOG, ValidatorContext
 
     def _review_findings_closed(ctx: ValidatorContext) -> list[CheckIssue]:
         return []
