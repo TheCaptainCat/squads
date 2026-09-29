@@ -1,19 +1,17 @@
 """What ``sync`` may do about a managed skill file that lost its frontmatter, decided from the
-skill folder alone, and the report lines that go with each outcome."""
+skill folder alone, and the remedy each outcome carries."""
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Literal
 
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._interactions import bundled_skill_slugs, custom_skill_slugs
+from squads._models._item import Item
 from squads._models._vocab import prefix_for
-from squads._services._duplicate_ids import (
-    RESTAMP_BLOCKED_REMEDY,
-    has_conflict_markers,
-    normalized_id,
-)
+from squads._services._duplicate_ids import file_slug, normalized_id
 from squads._workflow import ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
 
@@ -23,6 +21,16 @@ SYNC_RESTORES_SKILL_FRONTMATTER = "run `sq sync` to restore a managed skill's fr
 
 #: What a report line says about a managed skill file with an unresolved merge conflict.
 RESOLVE_CONFLICT_REMEDY = "resolve the merge conflict by hand; `sq sync` does not touch it"
+
+#: What the restamp reports when it declines to write over a duplicate.
+RESTAMP_BLOCKED_REMEDY = "remove or rename one of the two files"
+
+_CONFLICT_LINE = re.compile(r"^(<{7}|={7}|>{7})( .*)?$", re.MULTILINE)
+
+
+def has_conflict_markers(text: str) -> bool:
+    """True when *text* carries a line that starts a merge-conflict marker."""
+    return _CONFLICT_LINE.search(text) is not None
 
 
 def stamped_skill_parts(md: Path, spec: WorkflowSpec) -> tuple[int, str] | None:
@@ -38,9 +46,12 @@ def stamped_skill_slug(md: Path, spec: WorkflowSpec) -> str | None:
     return parts[1] if parts else None
 
 
-def is_managed_skill_slug(slug: str | None, spec: WorkflowSpec) -> bool:
-    """True when *slug* names a skill ``sync`` itself generates (bundled or custom)."""
-    return slug is not None and slug in {*bundled_skill_slugs(), *custom_skill_slugs(spec)}
+def managed_skill_slugs(spec: WorkflowSpec) -> frozenset[str]:
+    """Every skill slug ``sync`` itself generates (bundled or custom)."""
+    return frozenset((*bundled_skill_slugs(), *custom_skill_slugs(spec)))
+
+
+type VerdictKind = Literal["act", "blocked", "conflict"]
 
 
 @dataclass(frozen=True)
@@ -48,45 +59,58 @@ class Verdict:
     """What the restamp does with one file: ``act`` writes it, ``blocked`` leaves it with a
     reason, ``conflict`` refuses the whole sync."""
 
-    kind: str
+    kind: VerdictKind
     reason: str = ""
 
 
 @dataclass(frozen=True)
 class SkillFolder:
-    """The skill files by name, with who carries which id and which slug."""
+    """The skill files by name, with who carries which id and slug, and (once the index has
+    been consulted) the skill items it already holds."""
 
     texts: dict[str, str]
     ids: dict[str, list[str]]
     slugs: dict[str, list[str]]
-    indexed_slugs: dict[str, int]
+    pending: dict[str, list[str]]
+    managed: frozenset[str]
+    known: dict[int, Item] = field(default_factory=dict[int, Item])
 
     @classmethod
-    def build(
-        cls, texts: dict[str, str], spec: WorkflowSpec, indexed_slugs: dict[str, int]
-    ) -> SkillFolder:
+    def build(cls, texts: dict[str, str], spec: WorkflowSpec) -> SkillFolder:
+        managed = managed_skill_slugs(spec)
+        prefix = prefix_for(ROSTER_SKILL, spec)
         ids: dict[str, list[str]] = {}
         slugs: dict[str, list[str]] = {}
+        pending: dict[str, list[str]] = {}
         for name, text in texts.items():
             try:
                 fm = sections.split_frontmatter(text)[0]
             except SquadsError:
-                continue
+                fm = {}
+            slug = file_slug(Path(name), fm, prefix)
             key = normalized_id(fm.get("id"))
-            if key is None:
-                continue
-            ids.setdefault(key, []).append(name)
-            slug = fm.get("slug") or stamped_skill_slug(Path(name), spec)
-            if isinstance(slug, str):
+            if key is not None:
+                ids.setdefault(key, []).append(name)
                 slugs.setdefault(slug, []).append(name)
-        return cls(texts, ids, slugs, indexed_slugs)
+            elif slug in managed and stamped_skill_parts(Path(name), spec) is not None:
+                pending.setdefault(slug, []).append(name)
+        return cls(texts, ids, slugs, pending, managed)
+
+    def with_index(self, skills: list[Item]) -> SkillFolder:
+        """This folder plus the skill items the index holds, for the blocks that need them."""
+        return replace(self, known={it.sequence_id: it for it in skills})
+
+    @property
+    def needs_index(self) -> bool:
+        """True when some file could be restamped, so the index is worth consulting."""
+        return bool(self.pending)
 
     def verdict(self, name: str, spec: WorkflowSpec) -> Verdict | None:
         """The restamp's decision for *name*, or ``None`` when it has nothing to do (not a
         managed skill file, or it already carries an ``id``)."""
         parts = stamped_skill_parts(Path(name), spec)
         text = self.texts.get(name)
-        if parts is None or text is None or not is_managed_skill_slug(parts[1], spec):
+        if parts is None or text is None or parts[1] not in self.managed:
             return None
         try:
             if sections.split_frontmatter(text)[0].get("id"):
@@ -110,7 +134,8 @@ class SkillFolder:
         return None
 
     def _claimed(self, name: str, number: int, slug: str, spec: WorkflowSpec) -> Verdict | None:
-        """A block when another file or the index already holds this id or this slug."""
+        """A block when another file or the index already holds this id or this slug, or when
+        several unstamped files claim the slug and nothing decides between them."""
         key = f"{prefix_for(ROSTER_SKILL, spec)}-{number}"
         for other in self.ids.get(normalized_id(key) or key, []):
             if other != name:
@@ -118,9 +143,14 @@ class SkillFolder:
         for other in self.slugs.get(slug, []):
             if other != name:
                 return Verdict("blocked", f"{other} already holds skill slug {slug!r}")
-        indexed = self.indexed_slugs.get(slug)
-        if indexed is not None and indexed != number:
-            return Verdict("blocked", f"the index holds skill slug {slug!r} at number {indexed}")
+        holder = next((n for n, it in self.known.items() if it.extra.get("slug") == slug), None)
+        if holder is not None:
+            if holder != number:
+                return Verdict("blocked", f"the index holds skill slug {slug!r} at number {holder}")
+            return None
+        rivals = [n for n in self.pending.get(slug, []) if n != name]
+        if rivals:
+            return Verdict("blocked", f"{rivals[0]} also claims skill slug {slug!r}")
         return None
 
 

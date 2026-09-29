@@ -137,7 +137,7 @@ async def test_repair_refuses_to_pick_a_winner(svc, row):
 
 @pytest.mark.parametrize("row", _ROWS)
 async def test_renumber_refuses_same_slug_and_renumbers_different_slugs(svc, row):
-    _, files = await _group(svc, row)
+    item, files = await _group(svc, row)
     before = {md: md.read_bytes() for md in files}
 
     result = await svc.repair(renumber=True)
@@ -148,14 +148,14 @@ async def test_renumber_refuses_same_slug_and_renumbers_different_slugs(svc, row
         assert not result.renumber_report
     else:
         assert not result.unreadable, result.unreadable
-        kept = min(files, key=lambda p: _rel(svc, p).encode())
-        assert kept.read_bytes() == before[kept]
-        for md in files:
-            if md != kept:
-                assert not md.exists(), "the renumbered files are renamed"
-        ids = [split_frontmatter(p.read_text())[0]["id"] for p in kept.parent.glob("TASK-*.md")]
+        original = files[0]
+        assert original.read_bytes() == before[original], "the indexed file keeps the id"
+        for md in files[1:]:
+            assert not md.exists(), "the renumbered files are renamed"
+        ids = [split_frontmatter(p.read_text())[0]["id"] for p in original.parent.glob("TASK-*.md")]
         assert len(ids) == len(set(ids)) == len(files)
         assert not [i for i in await svc.check() if i.level == "error"]
+        assert item.sequence_id in (await svc.repair()).db.items
 
 
 @pytest.mark.parametrize("row", _ROWS)
@@ -165,7 +165,7 @@ async def test_list_shows_at_most_one_row_and_writes_refuse(svc, row):
 
     rows = [i for i in await svc.list_items(item_type="task") if i.sequence_id == item.sequence_id]
     assert len(rows) <= 1
-    assert svc.duplicate_id_error(item) is not None
+    assert await svc.duplicate_id_error(item) is not None
     with pytest.raises(SquadsError, match="carry this id"):
         await svc.comment(item.id, ["a write"], as_slug="manager")
     with pytest.raises(SquadsError, match="carry this id"):
@@ -265,15 +265,17 @@ async def test_renumber_with_no_references_reports_none_and_is_clean(svc):
     assert "no references" in "\n".join(result.renumber_report)
 
 
-async def test_the_kept_file_is_the_first_path_whatever_the_scan_order(svc, monkeypatch):
+async def test_with_no_index_the_first_name_is_kept_whatever_the_scan_order(svc, monkeypatch):
     _, alpha = await _task(svc)
     first = _copy(alpha, name=alpha.name.replace("alpha", "aaa"), slug="aaa", title="aaa")
-    original = svc._iter_item_files
-    monkeypatch.setattr(svc, "_iter_item_files", lambda: iter(reversed(list(original()))))
+    (svc.paths.squad_dir / ".squads.json").unlink()
+    fresh = service.Service(svc.paths)
+    original = fresh._iter_item_files
+    monkeypatch.setattr(fresh, "_iter_item_files", lambda: iter(reversed(list(original()))))
 
-    await svc.repair(renumber=True)
+    await fresh.repair(renumber=True)
 
-    assert first.exists(), "the first path by byte order keeps the id"
+    assert first.exists(), "the first name keeps the id when no index says otherwise"
     assert not alpha.exists()
 
 

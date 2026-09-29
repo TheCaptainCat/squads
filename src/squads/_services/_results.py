@@ -134,6 +134,11 @@ class CreateResult:
     lane_warning: str | None = None
 
 
+class SelfRemedied(str):
+    """A report line that already carries the one remedy that works, so a caller appends no
+    generic tail to it."""
+
+
 @dataclass
 class CheckIssue:
     level: str  # "error" | "warn"

@@ -324,13 +324,7 @@ def _cmd_show(item: typer.Typer) -> None:
         if json_out:
             print_json_clean(await build_item_json(svc, it))
             return
-        duplicate = svc.duplicate_id_error(it)
-        if duplicate is not None:
-            common.err_console.print(
-                f"[yellow]warning:[/yellow] {e(duplicate)} -- showing the indexed file; "
-                "run `sq check`",
-                soft_wrap=True,
-            )
+        await common.warn_duplicate_id(svc, it)
         await print_item(svc, it, raw=raw, comments=comments, full=full)
 
 

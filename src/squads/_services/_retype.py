@@ -126,6 +126,9 @@ class RetypeMixin(ServiceCore):
         new_type = str(new_type)  # coerce StrEnum members to plain str
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
+            # The rewrite below touches every file that mentions this id, so no duplicated id
+            # anywhere may be in play.
+            await self._refuse_any_duplicated_id()
             old_type = item.type
             old_id = item.id
             old_status = item.status
@@ -157,7 +160,6 @@ class RetypeMixin(ServiceCore):
             # old (skewed) frontmatter still inside: a strictly worse intermediate state than
             # refusing here, before anything on disk has moved.
             default_kind = self.spec.default_ref_kind()
-            self._refuse_duplicated_id(item)
             base = item.model_copy(deep=True)
             current_text = await self._read_item_file(item, item_file(self.paths, item))
             ensure_no_skew(current_text, base, default_kind=default_kind)

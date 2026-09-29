@@ -433,8 +433,8 @@ class RefsMixin(ServiceCore):
     ) -> Item:
         """The ref-add mutation core: takes an already-open transaction's ``db``."""
         default_kind = self.spec.default_ref_kind()
+        await self._refuse_duplicated_ids(require_item(db, from_id))
         src, base = self._add_ref_model(db, from_id, to_id, kind=kind)
-        self._refuse_duplicated_id(src)
         await update_frontmatter(item_file(self.paths, src), src, base, default_kind=default_kind)
         self.store.log(
             "ref",
@@ -455,6 +455,7 @@ class RefsMixin(ServiceCore):
         """
         async with self.store.transaction() as db:
             src = require_item(db, from_id)
+            await self._refuse_duplicated_ids(src)
             base = src.model_copy(deep=True)
             # Determine (prefix, seq) from the caller's to_id — width-tolerant: the stored
             # ref may carry an old width, the to_id may carry the new width.
@@ -477,7 +478,6 @@ class RefsMixin(ServiceCore):
             src.refs = [r for r in src.refs if not _matches(r)]
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
-            self._refuse_duplicated_id(src)
             await update_frontmatter(
                 item_file(self.paths, src), src, base, default_kind=self.spec.default_ref_kind()
             )

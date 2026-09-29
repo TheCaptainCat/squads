@@ -165,10 +165,10 @@ class ItemsMixin(ServiceCore):
         retiring item's frontmatter (status plus any severed refs) and reflogs one ``ref``
         removal entry per severance, before the ``status`` entry.
         """
+        await self._refuse_duplicated_ids(require_item(db, item_id))
         item, old_status, base, severed, warnings = self._set_status_model(
             db, item_id, status, force=force, unlink=unlink
         )
-        self._refuse_duplicated_id(item)
         await update_frontmatter(
             item_file(self.paths, item), item, base, default_kind=self.spec.default_ref_kind()
         )
@@ -348,6 +348,7 @@ class ItemsMixin(ServiceCore):
         between those two steps and why it is the expected, repairable outcome rather than a
         defect. A title-less update never renames, so it stays readable at one path throughout.
         """
+        await self._refuse_duplicated_ids(require_item(db, item_id))
         item, delta, rename_paths, base = self._update_model(
             db,
             item_id,
@@ -379,7 +380,6 @@ class ItemsMixin(ServiceCore):
                 old_text = await _aio.read_text(old_path)
                 ensure_no_skew(old_text, base, default_kind=default_kind)
                 await _aio.path_rename(old_path, new_path)
-        self._refuse_duplicated_id(item)
         await update_frontmatter(item_file(self.paths, item), item, base, default_kind=default_kind)
         self.store.log("update", item.id, delta)
         return item
@@ -451,6 +451,7 @@ class ItemsMixin(ServiceCore):
     async def link(self, child_id: str, parent_id: str) -> Item:
         async with self.store.transaction() as db:
             child = require_item(db, child_id)
+            await self._refuse_duplicated_ids(child)
             base = child.model_copy(deep=True)
             old_parent = child.parent
             self._check_parent(db, child.type, parent_id)
@@ -461,7 +462,6 @@ class ItemsMixin(ServiceCore):
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
-            self._refuse_duplicated_id(child)
             await update_frontmatter(
                 item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
             )
@@ -475,12 +475,12 @@ class ItemsMixin(ServiceCore):
     async def unlink(self, child_id: str) -> Item:
         async with self.store.transaction() as db:
             child = require_item(db, child_id)
+            await self._refuse_duplicated_ids(child)
             base = child.model_copy(deep=True)
             old_parent = child.parent
             child.parent = None
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
-            self._refuse_duplicated_id(child)
             await update_frontmatter(
                 item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
             )
@@ -751,6 +751,7 @@ class ItemsMixin(ServiceCore):
         """
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
+            await self._refuse_duplicated_ids(item)
 
             # ------------------------------------------------------------------
             # 1. Children check — refuse regardless of --force
@@ -779,6 +780,10 @@ class ItemsMixin(ServiceCore):
             # ------------------------------------------------------------------
             severed: list[str] = []
             if force and referrer_ids:
+                # Every file the severance will write is checked before the first is written.
+                await self._refuse_duplicated_ids(
+                    *(r for rid in referrer_ids if (r := db.get(rid)) is not None)
+                )
                 target_prefix = effective_prefix(item.prefix)
                 target_seq = item.sequence_id
                 # Resolved once for the whole severance loop, not per referrer.
@@ -794,7 +799,6 @@ class ItemsMixin(ServiceCore):
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
-                    self._refuse_duplicated_id(referrer)
                     await update_frontmatter(
                         item_file(self.paths, referrer), referrer, base, default_kind=default_kind
                     )

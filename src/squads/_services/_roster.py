@@ -223,6 +223,7 @@ class RosterMixin(ServiceCore):
 
             # Resolved once for the whole pass (may clear several other roles below) rather
             # than once per role touched.
+            await self._refuse_any_duplicated_id()
             default_kind = self.spec.default_ref_kind()
             cleared: list[str] = []
             for other in db.items.values():

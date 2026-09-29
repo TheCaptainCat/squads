@@ -66,10 +66,11 @@ from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._duplicate_ids import (
     DUPLICATE_ID_REMEDY,
-    RESTAMP_BLOCKED_REMEDY,
     CarrierLog,
+    RenumberScope,
     SameIdRenumber,
     duplicate_groups,
+    normalized_id,
     renumber_same_id_groups,
 )
 from squads._services._results import (
@@ -78,12 +79,14 @@ from squads._services._results import (
     ReflogEntry,
     RenumberResult,
     RepairResult,
+    SelfRemedied,
     SyncSkips,
 )
 from squads._services._skill_files import (
     RESOLVE_CONFLICT_REMEDY,
+    RESTAMP_BLOCKED_REMEDY,
     SkillFolder,
-    is_managed_skill_slug,
+    managed_skill_slugs,
     remedy_text,
     stamped_skill_parts,
     stamped_skill_slug,
@@ -954,6 +957,13 @@ def _fold_stem_into_floor(
 
 
 class MaintenanceMixin(ServiceCore):
+    #: The skill folder as one scan saw it; reset at the start of each scan and restamp pass.
+    _skill_state: SkillFolder | None = None
+    #: The skill files ``check`` read up front, so its scan and its remedies share one read.
+    _skill_texts: dict[Path, str] | None = None
+    #: The skill items ``check`` already loaded with the index, so its remedies load nothing.
+    _skill_items: list[Item] | None = None
+
     # ------------------------------------------------------------------ sync
     async def sync(self) -> SyncSkips:
         """Regenerate all tool-owned managed files to the current version, and stamp the
@@ -1268,24 +1278,39 @@ class MaintenanceMixin(ServiceCore):
         )
 
     async def _skill_folder_state(self) -> SkillFolder:
-        """The skill folder's files and who carries which id and slug, plus the slugs the index
-        already holds."""
+        """The skill folder's files and who carries which id and slug; built once per scan and
+        given the index's skill items only if some file could be restamped."""
+        if self._skill_state is not None:
+            return self._skill_state
+        texts = {md.name: text for md, text in (await self._read_skill_texts()).items()}
+        state = SkillFolder.build(texts, self.spec)
+        if state.needs_index:
+            state = state.with_index(await self._indexed_skills())
+        self._skill_state = state
+        return state
+
+    async def _read_skill_texts(self) -> dict[Path, str]:
+        """The stamped skill files' text: what ``check`` already read, else read now."""
+        if self._skill_texts is not None:
+            return self._skill_texts
         folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
-        texts: dict[str, str] = {}
+        texts: dict[Path, str] = {}
         if folder.is_dir():
             for md in sorted(folder.glob(f"{prefix_for(ROSTER_SKILL, self.spec)}-*.md")):
                 with contextlib.suppress(OSError):
-                    texts[md.name] = await _aio.read_text(md)
-        indexed = {
-            str(it.extra[X.SLUG]): it.sequence_id
-            for it in await self._indexed_skills()
-            if X.SLUG in it.extra
-        }
-        return SkillFolder.build(texts, self.spec, indexed)
+                    texts[md] = await _aio.read_text(md)
+        return texts
+
+    async def _scan_text(self, md: Path) -> str:
+        """A file's text for the ``check`` scan: the up-front skill read if it has one."""
+        cached = self._skill_texts.get(md) if self._skill_texts else None
+        return cached if cached is not None else await _aio.read_text(md)
 
     async def _indexed_skills(self) -> list[Item]:
         """The skill items the index holds, or none when there is no readable index -- the
         restamp treats the index as a hint and never needs it."""
+        if self._skill_items is not None:
+            return self._skill_items
         if not self.store.exists():
             return []
         with contextlib.suppress(SquadsError):
@@ -1294,8 +1319,8 @@ class MaintenanceMixin(ServiceCore):
 
     async def _skill_remedy(self, md: Path, item_type: str) -> str | None:
         """The remedy a report line gives for a stamped managed-skill file, else ``None``."""
-        if item_type != ROSTER_SKILL or not is_managed_skill_slug(
-            stamped_skill_slug(md, self.spec), self.spec
+        if item_type != ROSTER_SKILL or stamped_skill_slug(md, self.spec) not in (
+            managed_skill_slugs(self.spec)
         ):
             return None
         return remedy_text((await self._skill_folder_state()).verdict(md.name, self.spec))
@@ -1319,17 +1344,17 @@ class MaintenanceMixin(ServiceCore):
                         carriers.append((fid, md))
         return carriers
 
-    def _duplicate_id_message(self, key: str, files: list[Path]) -> str:
+    def _duplicate_id_message(self, files: list[Path]) -> SelfRemedied:
         """The report line for an id carried by several files, naming every one."""
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
-        return f"{key}: {len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}"
+        return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
 
     async def _missing_id_message(self, md: Path, item_type: str) -> str:
         """The "no ``id``" report line; a stamped managed-skill file also names the remedy that
         works for its state."""
         remedy = await self._skill_remedy(md, item_type)
         msg = "file has no `id` in frontmatter"
-        return f"{msg}; {remedy}" if remedy else msg
+        return SelfRemedied(f"{msg}; {remedy}") if remedy else msg
 
     async def _restore_skill_files_ahead_of_sync(self) -> list[str]:
         """Restamp managed skill files before anything reads them, and rebuild the index from
@@ -1348,9 +1373,11 @@ class MaintenanceMixin(ServiceCore):
         another file's id or slug already claims is reported, not written; a merge conflict
         that reaches past the frontmatter refuses the sync. Returns the numbers restamped and
         one report line per file left alone."""
+        self._skill_state = None
+        self._skill_texts = None
         state = await self._skill_folder_state()
+        self._skill_state = None
         folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
-        known = {it.sequence_id: it for it in await self._indexed_skills()}
         restamped: list[int] = []
         skipped: list[str] = []
         for name, text in state.texts.items():
@@ -1368,7 +1395,7 @@ class MaintenanceMixin(ServiceCore):
                 )
                 continue
             number, slug = stamped_skill_parts(folder / name, self.spec) or (0, "")
-            item = self._catalog_skill_item(slug, number, name, known.get(number))
+            item = self._catalog_skill_item(slug, number, name, state.known.get(number))
             body = sections.strip_frontmatter(text)
             await _aio.atomic_write_text(
                 folder / name, join_frontmatter(item.to_frontmatter_dict(), body)
@@ -1989,6 +2016,8 @@ class MaintenanceMixin(ServiceCore):
         md: Path,
         item_type: str,
         message: str,
+        *,
+        report: bool = True,
     ) -> tuple[int | None, str | None]:
         """One file's third-state handling, shared by every branch of
         :meth:`_rebuild_index_from_disk` that cannot produce an ``Item`` from *md* (unreadable
@@ -2001,7 +2030,9 @@ class MaintenanceMixin(ServiceCore):
         touches ``db``/``unreadable``, never the floor, which is a whole-rebuild value no
         single file owns.
         """
-        unreadable.append(f"{md.name}: {message}")
+        if report:
+            line = f"{md.name}: {message}"
+            unreadable.append(SelfRemedied(line) if isinstance(message, SelfRemedied) else line)
         digit_run = _stem_digit_run(md, item_type, self.spec)
         stem_seq = int(digit_run) if digit_run is not None else None
         carried = (
@@ -2012,6 +2043,38 @@ class MaintenanceMixin(ServiceCore):
         if carried is not None:
             db.add(carried)
         return stem_seq, digit_run
+
+    async def _duplicated_files(self) -> dict[Path, SelfRemedied]:
+        """Each file whose id another file also carries, with its group's report line."""
+        duplicated: dict[Path, SelfRemedied] = {}
+        for key, files in duplicate_groups(await self._id_carriers()).items():
+            note = SelfRemedied(f"{key}: {self._duplicate_id_message(files)}")
+            duplicated.update(dict.fromkeys(files, note))
+        return duplicated
+
+    def _carry_duplicate(
+        self,
+        db: SquadsDB,
+        unreadable: list[str],
+        known_corpus: SquadsDB | None,
+        md: Path,
+        item_type: str,
+        entry: SelfRemedied,
+        floor: tuple[int, int],
+    ) -> tuple[int, int]:
+        """Two truths for one id: neither file is taken. The previous entry (if any) is carried
+        forward, and the group is reported once, naming every file."""
+        note = entry
+        stem_seq, digit_run = self._carry_forward_unreadable(
+            db,
+            unreadable,
+            known_corpus,
+            md,
+            item_type,
+            note,
+            report=not any(line.endswith(note) for line in unreadable),
+        )
+        return _fold_stem_into_floor(floor[0], floor[1], stem_seq, digit_run)
 
     async def _report_third_state(
         self,
@@ -2317,24 +2380,18 @@ class MaintenanceMixin(ServiceCore):
         # default ref kinds must fail as one clean refusal naming the spec, never be
         # caught and mis-reported as N separate "unreadable file" issues.
         default_kind = self.spec.default_ref_kind()
-        duplicated = {
-            md: self._duplicate_id_message(key, files)
-            for key, files in duplicate_groups(await self._id_carriers()).items()
-            for md in files
-        }
+        self._skill_state = None
+        duplicated = await self._duplicated_files()
         for item_type, md in self._iter_item_files():
             if md in duplicated:
-                # Two truths for one id: neither file is taken; the previous entry (if any)
-                # is carried forward and every file is named.
-                max_n, max_filename_width = await self._report_third_state(
+                max_n, max_filename_width = self._carry_duplicate(
                     db,
                     unreadable,
                     known_corpus,
                     md,
                     item_type,
                     duplicated[md],
-                    max_n,
-                    max_filename_width,
+                    (max_n, max_filename_width),
                 )
                 continue
             try:
@@ -2467,7 +2524,9 @@ class MaintenanceMixin(ServiceCore):
 
         renumbered = SameIdRenumber()
         if renumber:
-            renumbered = await self._renumber_same_id(previous_counter, previous_padding)
+            renumbered = await self._renumber_same_id(
+                previous_counter, previous_padding, known_corpus
+            )
             await self._renumber()
 
         db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
@@ -2511,26 +2570,38 @@ class MaintenanceMixin(ServiceCore):
             references_left=renumbered.references_left,
         )
 
-    async def _renumber_same_id(self, previous_counter: int, padding: int) -> SameIdRenumber:
+    async def _renumber_same_id(
+        self, previous_counter: int, padding: int, known_corpus: SquadsDB | None
+    ) -> SameIdRenumber:
         """``repair --renumber`` for ids carried by several files: see
         :func:`~squads._services._duplicate_ids.renumber_same_id_groups`."""
         groups = duplicate_groups(await self._id_carriers())
         if not groups:
             return SameIdRenumber()
-        pairs = list(self._iter_item_files())
-        files = [md for _t, md in pairs]
         numbers = [previous_counter]
-        for item_type, md in pairs:
+        for item_type, md in self._iter_item_files():
             run = _stem_digit_run(md, item_type, self.spec)
             if run is not None:
                 numbers.append(int(run))
-        highest = max(numbers)
+        previous: list[Item] = list(known_corpus.items.values()) if known_corpus else []
+        indexed: dict[str, Path] = {}
+        for it in previous:
+            key = normalized_id(it.id)
+            if key is not None:
+                indexed[key] = self.paths.abspath(it.path)
+        scope = RenumberScope(
+            folder_for_prefix={
+                ts.prefix: self.paths.squad_dir / ts.folder for ts in self.spec.items.values()
+            },
+            indexed_paths=indexed,
+            list_files=self._all_item_files,
+        )
         return await renumber_same_id_groups(
             squad_dir=self.paths.squad_dir,
-            item_files=files,
             groups=groups,
+            scope=scope,
             padding=padding,
-            first_free=highest + 1,
+            first_free=max(numbers) + 1,
         )
 
     # ------------------------------------------------------------------ repad
@@ -2988,7 +3059,10 @@ class MaintenanceMixin(ServiceCore):
         from squads._overrides._service import check_override_issues
 
         index = await self.store.load()
+        self._skill_items = [it for it in index.items.values() if it.type == ROSTER_SKILL]
         carrier_log = CarrierLog()
+        self._skill_state = None
+        self._skill_texts = await self._read_skill_texts()
         issues, on_disk, bodies, unparseable_seqs, suppress_missing = await self._scan_for_check(
             carrier_log
         )
@@ -3005,10 +3079,12 @@ class MaintenanceMixin(ServiceCore):
             for level, item, msg in check_override_issues(self.paths.squad_dir, role_items_by_slug)
         ]
         issues += self._orphaned_skill_issues(index)
+        dup_groups = duplicate_groups(await self._id_carriers(carrier_log))
         issues += [
-            CheckIssue("error", key, self._duplicate_id_message(key, files))
-            for key, files in duplicate_groups(await self._id_carriers(carrier_log)).items()
+            CheckIssue("error", key, self._duplicate_id_message(files))
+            for key, files in dup_groups.items()
         ]
+
         # ``index_reconciled`` is excluded here — it is cross-source, so its two directions
         # are confirmed below instead of reported straight from the scan pair.
         squad_global = {k: v for k, v in SQUAD_GLOBAL_CATALOG.items() if k != "index_reconciled"}
@@ -3028,6 +3104,18 @@ class MaintenanceMixin(ServiceCore):
             backend_entry_candidates=backend_entry_candidates(g_ctx),
             backend_entry_drift_candidates=self._scan_backend_entry_drift(index, on_disk),
         )
+        # A repair that refuses a duplicated id is no remedy for its absence from the index.
+        issues = [
+            i
+            for i in issues
+            if not (
+                i.message.startswith("on disk but not in index")
+                and normalized_id(i.item) in dup_groups
+            )
+        ]
+        self._skill_texts = None
+        self._skill_state = None
+        self._skill_items = None
         return issues
 
     def _orphaned_skill_issues(self, index: SquadsDB) -> list[CheckIssue]:
@@ -3458,7 +3546,7 @@ class MaintenanceMixin(ServiceCore):
         default_kind = self.spec.default_ref_kind()
         for item_type, md in self._iter_item_files():
             try:
-                text = await _aio.read_text(md)
+                text = await self._scan_text(md)
             except FileNotFoundError:
                 if not await _aio.path_is_symlink(md):
                     continue  # vanished between glob and read -- genuinely absent
@@ -3510,7 +3598,7 @@ class MaintenanceMixin(ServiceCore):
                     md,
                     item_type,
                     self.spec,
-                    f"{exc}; {remedy}" if remedy else str(exc),
+                    SelfRemedied(f"{exc}; {remedy}") if remedy else str(exc),
                 )
                 continue
             fid = carriers.record(md, data.get("id"))
