@@ -13,7 +13,6 @@ from rich.markdown import Markdown
 from rich.table import Table
 
 import squads._cli._common as common
-from squads import __version__
 from squads._cli._common import (
     console,
     e,
@@ -22,7 +21,7 @@ from squads._cli._common import (
     version_tuple,
 )
 from squads._errors import SquadsError
-from squads._migrations._registry import MIGRATIONS
+from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
@@ -107,7 +106,7 @@ async def migrate_up():
             soft_wrap=True,
         )
     if any(m.manual for m in applied):
-        span = f"v{svc.paths.config.squads_version}..v{__version__}"
+        span = _manual_chlog_span(applied)
         console.print(
             f"[yellow]manual steps remain[/yellow] — read them with `sq migrate chlog {span}`",
             soft_wrap=True,
@@ -233,3 +232,27 @@ def _parse_span(span: str) -> tuple[str, str]:
     if not sep:
         raise SquadsError(f"expected a range like v0.1.1..v0.2.0, got {span!r}")
     return lo.strip().lstrip("vV"), hi.strip().lstrip("vV")
+
+
+def _manual_chlog_span(applied: list[Migration]) -> str:
+    """The release span guaranteed to hold every migration in ``applied`` under
+    ``migrate_chlog``'s ``lo < version <= hi`` filter.
+
+    Derived from ``applied`` and the ordered :data:`MIGRATIONS` registry — never from
+    ``svc.paths.config.squads_version``, which answers a different question (when this squad
+    last synced its managed files) and can already equal the running package's version before
+    the schema catches up, degenerating a naive ``lo..hi`` span to ``lo == hi`` (structurally
+    empty, since the filter is open at ``lo``).
+
+    ``hi`` is the last applied migration's own version — ``applied`` is a suffix of
+    ``MIGRATIONS`` in registry (chronological) order, per ``run_pending_migrations``. ``lo``
+    is the version of the registry entry immediately preceding the first applied one, so that
+    entry is the sole thing excluded and every applied entry lands inside ``(lo, hi]``. When
+    the first applied migration is ``MIGRATIONS[0]`` there is no preceding entry, so ``lo``
+    falls back to ``"0"`` — a sentinel ``_parse_span``/``version_tuple`` both accept and that
+    sorts below every real release version.
+    """
+    hi = applied[-1].version
+    first_index = MIGRATIONS.index(applied[0])
+    lo = MIGRATIONS[first_index - 1].version if first_index > 0 else "0"
+    return f"v{lo}..v{hi}"

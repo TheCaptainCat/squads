@@ -34,6 +34,10 @@ All notable changes to this project are documented here. The format follows
 
   **Commands outside that class are unchanged.** `sq check` still turns an unreadable file into an error-level issue and exits `3`, because a clean check over a partly-read corpus is a false clean; `sq repair` and `sq migrate up` report a mutation rather than a result and still exit `1`.
 
+### Fixed
+
+- **`sq migrate up`'s "manual steps remain" hint could name a `sq migrate chlog` range with nothing in it.** The range was built from the squad's last-sync version stamp, which is tracked independently of the schema and can already match the running release before the schema catches up — collapsing the suggested range to empty and leaving the real manual steps unreachable through the command the hint itself gave. The range is now built from the migrations the run actually applied, so it always covers their manual steps.
+
 ## [0.14.0]
 
 ### Added
