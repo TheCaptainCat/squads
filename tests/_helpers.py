@@ -207,7 +207,7 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
     """The definition text a read would resolve for the template-owned skill named *slug*,
     against *svc*'s active spec/playbook/roster — the same source-resolution + presentation
     dispatch a real read expands a placement tag through (``squads._views.resolve_source`` /
-    ``render_resolved_source``), against a real seeded item when one is on *svc*'s index and a
+    ``render_source_view``), against a real seeded item when one is on *svc*'s index and a
     :func:`throwaway_skill_item` otherwise.
 
     Test-only convenience: production never constructs this pair itself (:meth:`read_body`
@@ -216,7 +216,7 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
     """
     from squads import _interactions as interactions
     from squads._models._extras import ExtraKey as X
-    from squads._views import render_resolved_source, resolve_source
+    from squads._views import render_source_view, resolve_source
     from squads._workflow._models import ROSTER_SKILL
 
     # A permanently-system slug names its own view; every other template-owned slug is a
@@ -244,9 +244,7 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
         lambda: svc.roster_from_db(db),
         svc.paths.squad_dir,
     )
-    rendered = render_resolved_source(
-        view_name, view, result, item, svc.spec, svc.paths.config.squad_dir
-    )
+    rendered = render_source_view(view_name, result, item, svc.spec, svc.paths.config.squad_dir)
     return rendered.strip("\n")
 
 

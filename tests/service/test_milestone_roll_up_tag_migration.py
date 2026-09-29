@@ -339,8 +339,7 @@ async def test_a_name_the_template_still_seeds_with_no_resolvable_view_skips_tha
     override_dir.mkdir(parents=True, exist_ok=True)
     _write_override(
         project.squad_dir,
-        '[views.templateless]\nsource = { kind = "subentity", name = "finding" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        '[views.templateless]\nsource = { kind = "subentity", name = "finding" }\n',
     )
     (override_dir / "templates" / "items").mkdir(parents=True, exist_ok=True)
     (override_dir / "templates" / "items" / "milestone.md.j2").write_text(

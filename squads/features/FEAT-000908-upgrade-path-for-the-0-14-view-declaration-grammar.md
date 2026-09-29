@@ -25,7 +25,7 @@ subentities:
   title: 0.15 CHANGELOG names this as a breaking change
   status: Todo
 created_at: '2026-09-03T09:11:02Z'
-updated_at: '2026-09-03T09:44:44Z'
+updated_at: '2026-09-24T07:59:07Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -112,4 +112,6 @@ Acceptance: a CHANGELOG entry under the 0.15 unreleased section names the breaki
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-24T07:59:07Z] Theo Writer:
+  - US3 is partly covered already. The 0.15.0 CHANGELOG now has a "BREAKING — a view declares only its `source`…" entry under Changed (REV-960 F8). It names the removed keys, the load failure, the removed `--json` shapes and the roll-up order change. Still open for US3: a link to the upgrade guidance, once US2 writes it. Also still open: quoting or describing the dedicated retired-key message, if REV-960 F2 lands one.
 <!-- sq:discussion:end -->

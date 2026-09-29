@@ -53,6 +53,7 @@ from squads._workflow._models import (
 if TYPE_CHECKING:
     from squads._interactions._models import PlaybookSpec
     from squads._models._item import Item
+    from squads._models._subentity import SubEntity
     from squads._services._service import Service
     from squads._views import PlaybookSource
     from squads._workflow._models import WorkflowSpec
@@ -730,14 +731,7 @@ def workflow_ref_kinds(
 # ─── views ──────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow views --json`` catalog.
-VIEW_CATALOG_FIELDS: tuple[str, str, str, str, str, str] = (
-    "view",
-    "source_kind",
-    "source_name",
-    "fields",
-    "group_by",
-    "order_by",
-)
+VIEW_CATALOG_FIELDS: tuple[str, str, str] = ("view", "source_kind", "source_name")
 
 
 def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
@@ -745,22 +739,15 @@ def _view_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
 
     ``view`` is the identity key, named as the spec names it — also the presentation
     template's own identity (``templates/views/<view>.md.j2``; there is no separate
-    ``presentation`` key to carry). ``source_kind``/``source_name`` name the projected
-    relation (``"ref"``/``"subentity"``/``"subtree"`` + the declared kind/type it names —
-    join ``source_name`` into ``sq workflow ref-kinds``/``subentity-kinds``/``types --json``
-    depending on ``source_kind``). ``fields`` is the view's declared projection columns
-    (``[{code, label}]``); ``group_by``/``order_by`` name declared field codes, ``null``/
-    ``[]`` when the view declares neither — present on every row either way.
+    ``presentation`` key to carry). ``source_kind``/``source_name`` name the declared source
+    (``"ref"``/``"subentity"``/``"subtree"``/``"role"``/``"playbook"``/``"self"`` + the
+    declared kind/type it names, or ``null`` for the three kinds that take none — join
+    ``source_name`` into ``sq workflow ref-kinds``/``subentity-kinds``/``types --json``
+    depending on ``source_kind``). A view declares nothing else: no field/group-by/order-by
+    grammar survives to report.
     """
     return [
-        {
-            "view": name,
-            "source_kind": v.source.kind,
-            "source_name": v.source.name,
-            "fields": [{"code": f.code, "label": f.label} for f in v.fields],
-            "group_by": v.group_by,
-            "order_by": list(v.order_by),
-        }
+        {"view": name, "source_kind": v.source.kind, "source_name": v.source.name}
         for name, v in sorted(spec.views.items())
     ]
 
@@ -773,9 +760,8 @@ def workflow_views(
     """List every declared derived view in the active workflow spec.
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared view, ascending view name: ``{view, source_kind, source_name, fields,
-    group_by, order_by}``. Resolve one view against an item with
-    ``sq workflow view <name> <item-id>``.
+    declared view, ascending view name: ``{view, source_kind, source_name}``. Resolve one view
+    against an item with ``sq workflow view <name> <item-id>``.
     """
     from squads._cli._common import get_active_spec, print_json_clean
 
@@ -787,17 +773,13 @@ def workflow_views(
         return
 
     table = Table(box=None, pad_edge=False)
-    for col in ("View", "Source kind", "Source name", "Fields", "Group by"):
+    for col in ("View", "Source kind", "Source name"):
         table.add_column(col)
     for row in rows:
-        row_fields = cast("list[dict[str, str]]", row["fields"])
-        field_codes = ", ".join(f["code"] for f in row_fields)
         table.add_row(
             e(str(row["view"])),
             e(str(row["source_kind"])),
-            e(str(row["source_name"])),
-            e(field_codes),
-            e(str(row["group_by"])) if row["group_by"] else "",
+            e(str(row["source_name"])) if row["source_name"] else "",
         )
     console.print(table)
 
@@ -933,14 +915,15 @@ async def _view_json_payload(
 
     if kind in ("ref", "subtree"):
         assert isinstance(result, list)
+        items = cast("list[Item]", result)
         blocked_ids = {t.id for t, _ in await svc.blocked()}
         db = await svc.store.load()
         child_map = children_by_parent(db)
         return [
             build_item_row_json(
                 ItemRowFields(
-                    id=r.identity,
-                    type=r.kind,
+                    id=r.id,
+                    type=r.type,
                     title=r.title,
                     status=r.status,
                     priority=r.badge_value("priority"),
@@ -949,25 +932,24 @@ async def _view_json_payload(
                 ),
                 spec=spec,
                 blocked_ids=blocked_ids,
-                children=_view_json_child_rows(
-                    r.identity, child_map, spec, blocked_ids, {r.identity}
-                ),
+                children=_view_json_child_rows(r.id, child_map, spec, blocked_ids, {r.id}),
             )
-            for r in result
+            for r in items
         ]
 
     if kind == "subentity":
         assert isinstance(result, list)
+        subentities = cast("list[SubEntity]", result)
         return [
             build_subentity_row_json(
-                local_id=r.identity,
+                local_id=r.local_id,
                 title=r.title,
                 status=r.status,
                 assignee=r.assignee,
                 severity=r.badge_value("severity"),
                 story=r.story,
             )
-            for r in result
+            for r in subentities
         ]
 
     if kind == "role":

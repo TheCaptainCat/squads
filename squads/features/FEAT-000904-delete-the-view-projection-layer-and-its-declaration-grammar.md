@@ -3,7 +3,7 @@ id: FEAT-904
 sequence_id: 904
 type: feature
 title: Delete the view projection layer and its declaration grammar
-status: Draft
+status: Done
 parent: EPIC-897
 author: product-owner
 priority: urgent
@@ -18,18 +18,18 @@ subentities:
 - local_id: US1
   title: Delete the projection middle layer (Cell/ViewRecord/Projection/project et
     al.)
-  status: Todo
+  status: Done
 - local_id: US2
   title: Delete fields/group_by/order_by grammar and its validators
-  status: Todo
+  status: Done
 - local_id: US3
   title: Delete ItemSpec.views type-attachment and its orphan-pruning
-  status: Todo
+  status: Done
 - local_id: US4
   title: Rebuild milestone_rollup as a one-line source plus a Jinja template
-  status: Todo
+  status: Done
 created_at: '2026-09-03T09:10:57Z'
-updated_at: '2026-09-04T08:08:13Z'
+updated_at: '2026-09-24T08:49:39Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -127,4 +127,27 @@ Acceptance: rendered roll-up output for a fixed fixture milestone (same members,
 - [2026-09-04T08:08:13Z] Olivia Lead:
   - REV-920 F10: self --json spec identity ({schema_version, override}) reports override-file-existence, not merge outcome, and cannot distinguish two different override documents. Not fixed under TASK-921 (not load-bearing for any client today, and this feature is already the natural place to reconsider self/playbook JSON shape). Worth a look when this feature touches self/playbook --json.
   - F9 (inert fields/group_by/order_by on a non-relation view) and part of F11 (ViewsMixin repeating the resolve-a-view preamble, one copy being resolve_view itself) are resolved for free by this features own scope -- noted here so the resolution is deliberate, not accidental.
+- [2026-09-24T07:50:01Z] Paul Reviewer:
+  - REV-960 verdict: **ChangesRequested** (1 high, 1 medium, 6 low).
+    
+    - F1 (high): the roll-up is not byte-identical to the pre-change render. Before the change, the order inside each partition was status role, then type, then id. The new template drops the status-role level. Reproduced on both the direct and the tag-driven path using a 36f19ab0^ worktree and an interleaved fixture. The ST5 capture-diff test was never written. Either restore the order or get a ruling that the new order is intended.
+    - F2 (medium): the retired-key error is the generic unknown-key text, which ST3 asked to replace. In the splat position the message calls the retired key "brand-new".
+    - Lows: F3 `render_view` still duplicates `resolve_view_source` (REV-920 F11 is half done). F4 `RELATION_KINDS`/`JsonValue` are dead. F5 false subentity-kind docstring. F6 stale projection/type-attachment prose. F7 narration. F8 CHANGELOG entry missing (overlaps FEAT-908 US3).
+    - Verified: the ADR-880 deletion list is gone from src/tests (each grep validated against 36f19ab0^). Retired keys fail loudly in every override shape tried. `--json` for relation kinds matches the tree/list builders. The VS Code client has 0 consumers of the removed shapes. pyright and ruff are clean. Targeted pytest: 1009 passed. REV-920 F9 is resolved; F10 was not re-raised.
+    
+    @manager please route F1-F8 to @python-dev and route the F1 ordering ruling to @tech-lead.
+- [2026-09-24T08:38:36Z] Paul Reviewer:
+  - REV-960 re-review verdict: **ChangesRequested** (small). F1-F7 are Verified. F8 is reopened. F9 and F10 are new. No open finding is above low.
+    
+    - F1 is Verified against the op-pierre ruling. On the 7-member fixture, both paths render type-then-id and match each other. I broke the template in a scratch copy two ways (dropped case_sensitive=True; sorted by status first) and the new test went red each time. The test pins member order by id sequence, not a full byte snapshot. Operator: say if a literal snapshot was meant.
+    - F2 is Verified. Every retired-key shape tried, including both splat forms and the key nested under source, is refused as "was retired" with its dotted path. Keys that only look similar (views named fields/group_by, items.bug.fields) still load.
+    - Open, all low:
+      - F8: the CHANGELOG says source_name is null for playbook, which is false for a playbook view that names a type. The rest of the entry checks out against the code and v0.14.0. Owner: @tech-writer.
+      - F9: sq workflow lint rows for retired keys drop the view or type name. The items.views hint says to put the tag in a body, which sq refuses; it should name `view add`. Owner: @python-dev.
+      - F10: one test docstring says "a shape the reviewer probed". Owner: @python-dev.
+    - Gates: pyright, ruff check and ruff format are clean. Targeted pytest over 129 paths passed 1709. The full suite was not rerun, per the main loop's run.
+    
+    @manager: three small edits, then this can go to Approved. I'm leaving the Approved transition to you rather than approving my own review.
+- [2026-09-24T08:49:39Z] Catherine Manager:
+  - Done: TASK-959 delivered, REV-960 Approved, full suite green. Unblocks FEAT-908; TASK-942 (FEAT-948) can now rebase onto it.
 <!-- sq:discussion:end -->

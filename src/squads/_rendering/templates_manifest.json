@@ -313,14 +313,14 @@
     "_rendering/templates/views/greeting_skill.md.j2": "5012f985e7c26fd714b1f0e52e70955c32b2c5347efe61ef8d0fd25422eeaf7b",
     "_rendering/templates/views/item_skill.md.j2": "47dfa9d180f92817f354516768dee639ab3102be1a70610c8869070154e0b1f8",
     "_rendering/templates/views/memory_skill.md.j2": "81cc355cd14488002b3eaaf17be1f93c53bd15adf774acba1923f4a2bf888411",
-    "_rendering/templates/views/milestone_rollup.md.j2": "3396e93139c8301a4c3effe1f3a44d744a3795c1ab8be3f545e6748c6c05a271",
+    "_rendering/templates/views/milestone_rollup.md.j2": "a8e3ddc2468525e2fb4546b0f2c3f09c77b7c56ad94b135f425638d4d9b47428",
     "_rendering/templates/views/role_definition.md.j2": "500622ae0699dd407d8bb5002fb713b530d2deaa554f15ea4126a57b2ac40664",
     "_rendering/templates/views/squads_skill.md.j2": "23f45bc8fea4130c3d5f88d38ff32205661e8171d6b4078ffee77a34a825a4b1",
     "_rendering/templates/workflow.md.j2": "865c67d54415061393c4b754bc29fb80934b63b264ebf79133e9f37a9bf48d1c",
     "_rendering/templates/workflow_static.md.j2": "42a6707b57c79ee25fad1539167089e6f3deeeb6183fcb2c01e14b5f7f859708",
     "_specs/playbook.toml": "7a932cb755738a8de3855b24f2a392ad8778db0a24b6c0b995d44bdfa57acbf0",
     "_specs/roles.toml": "4a9ea074f72a67d5f2070932e7973497edd84c6ffb0bdc3ab4b6b5ecd7f33adf",
-    "_specs/workflow.toml": "23168aaf9227adab419ed712acf0fa526a123be5c930e76859d4ba7a892f3a3f"
+    "_specs/workflow.toml": "bd8e92c9c6dd76d3e17f83ad84b9bc8fa444d534346842b9cd454e7ae13f6e6b"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",

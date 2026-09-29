@@ -1,6 +1,6 @@
-"""``Service.resolve_view``/``render_view`` — the one seam that loads the index and hands it to
-``squads._views``. Only ``milestone_rollup`` ships bundled; every other view here — including
-the two named ``finding_summary``/``finding_summary_line``, chosen to read like real
+"""``Service.resolve_view_source``/``render_view`` — the one seam that loads the index and hands
+it to ``squads._views``. Only ``milestone_rollup`` ships bundled; every other view here —
+including the two named ``finding_summary``/``finding_summary_line``, chosen to read like real
 presentation names rather than to match a shipped file — is declared via a workflow override and
 rendered against a test-authored stand-in template placed at
 ``.overrides/templates/views/<name>.md.j2`` (:func:`_declare_finding_view`), then resolved
@@ -9,7 +9,7 @@ declared after ``svc`` was built needs a new instance).
 """
 
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -18,8 +18,11 @@ from squads import __version__
 from squads._errors import SquadsError
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services._service import Service
-from squads._views import projection_json
 from squads._workflow import load_workflow_spec
+
+if TYPE_CHECKING:
+    from squads._models._item import Item
+    from squads._models._subentity import SubEntity
 
 pytestmark = pytest.mark.anyio
 
@@ -33,14 +36,6 @@ def _write_workflow_override(squad_dir: Path, body: str) -> None:
     invalidate_squad_dir(squad_dir)
 
 
-_FINDING_FIELDS = (
-    '[[views.{name}.fields]]\ncode = "id"\nlabel = "Finding"\n\n'
-    '[[views.{name}.fields]]\ncode = "status"\nlabel = "Status"\n\n'
-    '[[views.{name}.fields]]\ncode = "assignee"\nlabel = "Assignee"\n\n'
-    '[[views.{name}.fields]]\ncode = "title"\nlabel = "Title"\n'
-)
-
-
 def _place_view_template_override(squad_dir: Path, name: str, content: str) -> None:
     target = squad_dir / ".overrides" / "templates" / "views" / f"{name}.md.j2"
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -49,17 +44,11 @@ def _place_view_template_override(squad_dir: Path, name: str, content: str) -> N
 
 
 #: Table / non-tabular stand-ins for the two scenarios below — neither ``finding_summary`` nor
-#: ``finding_summary_line`` ships bundled (only ``milestone_rollup`` does).
-_TABLE_TEMPLATE = (
-    "{% for group in groups %}{% for record in group.records %}"
-    "{{ record.values['id'].text }} — {{ record.values['title'].text }}\n"
-    "{% endfor %}{% endfor %}"
-)
-_LINE_TEMPLATE = (
-    "{% for group in groups %}{% for record in group.records %}"
-    "* {{ record.values['id'].text }}\n"
-    "{% endfor %}{% endfor %}"
-)
+#: ``finding_summary_line`` ships bundled (only ``milestone_rollup`` does). The template
+#: receives the resolved source directly under ``source`` — a flat ``list[SubEntity]`` for a
+#: ``subentity`` source — never a normalised record.
+_TABLE_TEMPLATE = "{% for r in source %}{{ r.local_id }} — {{ r.title }}\n{% endfor %}"
+_LINE_TEMPLATE = "{% for r in source %}* {{ r.local_id }}\n{% endfor %}"
 _STAND_IN_TEMPLATES = {"finding_summary": _TABLE_TEMPLATE, "finding_summary_line": _LINE_TEMPLATE}
 
 
@@ -68,9 +57,7 @@ def _declare_finding_view(squad_dir: Path, name: str) -> None:
     stand-in templates (:data:`_STAND_IN_TEMPLATES`), placed as a project override — no view
     ships bundled under either name, so resolving one always needs a template of its own."""
     _write_workflow_override(
-        squad_dir,
-        f'[views.{name}]\nsource = {{ kind = "subentity", name = "finding" }}\n\n'
-        + _FINDING_FIELDS.format(name=name),
+        squad_dir, f'[views.{name}]\nsource = {{ kind = "subentity", name = "finding" }}\n'
     )
     if name in _STAND_IN_TEMPLATES:
         _place_view_template_override(squad_dir, name, _STAND_IN_TEMPLATES[name])
@@ -89,15 +76,15 @@ def _reopen(project) -> Service:
     return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
-async def test_resolve_view_returns_the_declared_projection(project, svc) -> None:
+async def test_resolve_view_source_returns_the_declared_sub_entities(project, svc) -> None:
     review = await _review_with_findings(svc)
     _declare_finding_view(project.squad_dir, "finding_summary")
 
-    projection = await _reopen(project).resolve_view("finding_summary", review.id)
-    payload = projection_json(projection)
-    (group,) = cast("list[dict[str, object]]", payload["groups"])
-    records = cast("list[dict[str, object]]", group["records"])
-    assert [r["id"] for r in records] == ["F1", "F2"]
+    _view, item, result = await _reopen(project).resolve_view_source("finding_summary", review.id)
+    assert item.id == review.id
+    assert isinstance(result, list)
+    findings = cast("list[SubEntity]", result)
+    assert [r.local_id for r in findings] == ["F1", "F2"]
 
 
 async def test_render_view_renders_the_declared_presentation_template(project, svc) -> None:
@@ -109,14 +96,12 @@ async def test_render_view_renders_the_declared_presentation_template(project, s
     assert "First finding" in out
 
 
-async def test_two_presentations_of_the_same_projection_render_differently(project, svc) -> None:
+async def test_two_presentations_of_the_same_source_render_differently(project, svc) -> None:
     review = await _review_with_findings(svc)
     _write_workflow_override(
         project.squad_dir,
         '[views.finding_summary]\nsource = { kind = "subentity", name = "finding" }\n\n'
-        + _FINDING_FIELDS.format(name="finding_summary")
-        + '\n[views.finding_summary_line]\nsource = { kind = "subentity", name = "finding" }\n\n'
-        + _FINDING_FIELDS.format(name="finding_summary_line"),
+        '[views.finding_summary_line]\nsource = { kind = "subentity", name = "finding" }\n',
     )
     _place_view_template_override(project.squad_dir, "finding_summary", _TABLE_TEMPLATE)
     _place_view_template_override(project.squad_dir, "finding_summary_line", _LINE_TEMPLATE)
@@ -132,50 +117,41 @@ async def test_two_presentations_of_the_same_projection_render_differently(proje
 async def test_an_undeclared_view_name_is_refused(svc) -> None:
     review = await _review_with_findings(svc)
     with pytest.raises(SquadsError, match="no declared view"):
-        await svc.resolve_view("no-such-view", review.id)
+        await svc.resolve_view_source("no-such-view", review.id)
 
 
 async def test_a_view_over_the_wrong_source_item_type_is_refused(project, svc) -> None:
     task = (await create_item(svc, "task", "A task")).item
     _declare_finding_view(project.squad_dir, "finding_summary")
     with pytest.raises(SquadsError, match="hosts"):
-        await _reopen(project).resolve_view("finding_summary", task.id)
+        await _reopen(project).resolve_view_source("finding_summary", task.id)
 
 
 # --------------------------------------------------------------------------- a `ref` source
-# projecting a field only some declared item types carry
+# resolving to real items of different declared types
 
 
-async def test_a_ref_source_field_renders_identically_null_absent_or_unset(project, svc) -> None:
-    """The payload ruling this amendment turns on: a record of a type that cannot carry the
-    field, and a record of a type that carries it but has it unset, must be indistinguishable
-    — one absence, not two. Declares ``impact`` on ``task`` alone (``bug`` never declares it),
-    points one of each at a hub item via ``related``, and projects ``impact`` through a
-    ``ref``-source view over that hub."""
+async def test_a_ref_source_resolves_to_the_real_items_regardless_of_declared_type(
+    project, svc
+) -> None:
+    """A ``ref`` source's records can be items of any declared type — the template reads each
+    one's own fields directly, with no flattened, lowest-common-denominator field set to
+    force through first."""
     _write_workflow_override(
-        project.squad_dir,
-        '[collections.impact]\nlabel = "Impact"\nordered = true\n'
-        'badges = [ { code = "low", label = "Low" }, { code = "high", label = "High" } ]\n\n'
-        '[[items.task.fields]]\ncode = "impact"\nlabel = "Impact"\ncollection = "impact"\n\n'
-        '[views.by_related]\nsource = { kind = "ref", name = "related" }\n\n'
-        '[[views.by_related.fields]]\ncode = "id"\nlabel = "Id"\n\n'
-        '[[views.by_related.fields]]\ncode = "type"\nlabel = "Type"\n\n'
-        '[[views.by_related.fields]]\ncode = "impact"\nlabel = "Impact"\n',
+        project.squad_dir, '[views.by_related]\nsource = { kind = "ref", name = "related" }\n'
     )
     reopened = _reopen(project)
     hub = (await create_item(reopened, "guide", "Hub")).item
-    task = (await create_item(reopened, "task", "Has the field, unset")).item
-    bug = (await create_item(reopened, "bug", "Has no such field")).item
+    task = (await create_item(reopened, "task", "A task")).item
+    bug = (await create_item(reopened, "bug", "A bug")).item
     await reopened.add_ref(task.id, hub.id, kind="related")
     await reopened.add_ref(bug.id, hub.id, kind="related")
 
-    projection = await reopened.resolve_view("by_related", hub.id)
-    payload = projection_json(projection)
-    (group,) = cast("list[dict[str, object]]", payload["groups"])
-    records = {cast(str, r["id"]): r for r in cast("list[dict[str, object]]", group["records"])}
-
-    assert records[task.id]["impact"] is None
-    assert records[bug.id]["impact"] is None
+    _view, _item, result = await reopened.resolve_view_source("by_related", hub.id)
+    assert isinstance(result, list)
+    items = cast("list[Item]", result)
+    assert {r.id for r in items} == {task.id, bug.id}
+    assert {r.type for r in items} == {"task", "bug"}
 
 
 # --------------------------------------------------------------------------- override wins
@@ -193,10 +169,7 @@ async def test_a_project_override_template_wins_over_the_bundled_one_and_renders
     _place_view_template_override(
         project.squad_dir,
         "milestone_rollup",
-        "PROJECT OVERRIDE\n"
-        "{% for group in groups %}{% for record in group.records %}"
-        "{{ record.values['id'].text }}!\n"
-        "{% endfor %}{% endfor %}",
+        "PROJECT OVERRIDE\n{% for r in source %}{{ r.id }}!\n{% endfor %}",
     )
 
     out = await svc.render_view("milestone_rollup", milestone.id)
@@ -232,36 +205,29 @@ async def test_render_view_costs_one_index_load(project, svc, monkeypatch) -> No
 
 async def test_a_declared_ref_source_view_resolves_against_a_real_corpus(project, svc) -> None:
     _write_workflow_override(
-        project.squad_dir,
-        '[views.related_to]\nsource = { kind = "ref", name = "related" }\n'
-        'fields = [ { code = "id", label = "Id" }, { code = "title", label = "Title" } ]\n',
+        project.squad_dir, '[views.related_to]\nsource = { kind = "ref", name = "related" }\n'
     )
 
     feature = (await create_item(svc, "feature", "Umbrella feature")).item
     referencer = (await create_item(svc, "task", "Refers to the feature")).item
     await svc.add_ref(referencer.id, feature.id)
 
-    projection = await _reopen(project).resolve_view("related_to", feature.id)
-    payload = projection_json(projection)
-    (group,) = cast("list[dict[str, object]]", payload["groups"])
-    records = cast("list[dict[str, object]]", group["records"])
-    assert [r["id"] for r in records] == [referencer.id]
+    _view, _item, result = await _reopen(project).resolve_view_source("related_to", feature.id)
+    assert isinstance(result, list)
+    items = cast("list[Item]", result)
+    assert [r.id for r in items] == [referencer.id]
 
 
 async def test_a_declared_subtree_source_view_resolves_against_a_real_corpus(project, svc) -> None:
     _write_workflow_override(
-        project.squad_dir,
-        '[views.feature_tasks]\nsource = { kind = "subtree", name = "task" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n'
-        'order_by = ["id"]\n',
+        project.squad_dir, '[views.feature_tasks]\nsource = { kind = "subtree", name = "task" }\n'
     )
 
     feature = (await create_item(svc, "feature", "Umbrella feature")).item
     t1 = (await create_item(svc, "task", "Task A", parent=feature.id)).item
     t2 = (await create_item(svc, "task", "Task B", parent=feature.id)).item
 
-    projection = await _reopen(project).resolve_view("feature_tasks", feature.id)
-    payload = projection_json(projection)
-    (group,) = cast("list[dict[str, object]]", payload["groups"])
-    records = cast("list[dict[str, object]]", group["records"])
-    assert {r["id"] for r in records} == {t1.id, t2.id}
+    _view, _item, result = await _reopen(project).resolve_view_source("feature_tasks", feature.id)
+    assert isinstance(result, list)
+    items = cast("list[Item]", result)
+    assert {r.id for r in items} == {t1.id, t2.id}

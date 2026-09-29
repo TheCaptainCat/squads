@@ -1,7 +1,5 @@
 """Dropping a non-reserved bundled type through ``[selected].items`` must leave the squad
-usable with no second edit in another type's block — the same courtesy
-``_prune_orphaned_type_owned_views`` already gives a dropped type's own bundled view (see
-``test_milestone_view_deselect_cascade.py``), extended to the ``RefRule.target``/
+usable with no second edit in another type's block — the ``RefRule.target``/
 ``ref_rule_target_present:<T>`` coupling onto ``contract``.
 
 Both halves of that coupling are driven, from their two different sources: ``feature``'s

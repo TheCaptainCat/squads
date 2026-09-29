@@ -34,7 +34,7 @@ from squads._workflow import load_workflow_spec
 pytestmark = pytest.mark.anyio
 
 #: The one view that ships bundled with a resolvable template. Resolved against a plain task
-#: with no ``targets`` refs, its render is deterministic (three empty groups) and real
+#: with no ``targets`` refs, its render is deterministic (three empty sections) and real
 #: production output — not a test-authored stand-in — so the expected substitution text is
 #: always computed fresh via ``svc.render_view`` rather than hardcoded.
 _BUNDLED_VIEW = "milestone_rollup"
@@ -87,8 +87,7 @@ def _append_view_declaration(squad_dir: Path, name: str, kind: str = "subtask") 
         else (f"# squads:override-base:{__version__}\n")
     )
     path.write_text(
-        existing + f'\n[views.{name}]\nsource = {{ kind = "subentity", name = "{kind}" }}\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        existing + f'\n[views.{name}]\nsource = {{ kind = "subentity", name = "{kind}" }}\n',
         encoding="utf-8",
     )
     invalidate_squad_dir(squad_dir)
@@ -355,13 +354,12 @@ async def test_the_same_view_on_its_hosting_type_renders_normally_the_positive_c
 async def test_a_hosting_type_with_zero_members_renders_empty_not_a_failure(project) -> None:
     """The emptiness clause, at the read boundary: a review with no findings still hosts the
     kind, so the tag expands to whatever its template renders for zero records -- empty output
-    from an empty ``groups`` list, never the quiet-skip (still-literal) disposition, and never
+    from an empty ``source`` list, never the quiet-skip (still-literal) disposition, and never
     a raise."""
     _declare_static_view(
         project.squad_dir,
         "finding_count",
-        "{% for group in groups %}{% for r in group.records %}{{ r.values['id'].text }}"
-        "{% endfor %}{% endfor %}",
+        "{% for r in source %}{{ r.local_id }}{% endfor %}",
         kind="finding",
     )
     svc = _reopen(project)

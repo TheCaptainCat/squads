@@ -66,9 +66,9 @@ def _probe_skill_item(item_type: str) -> Item:
 
 
 def _render_item_skill(item_type: str, roster: list[RoleView]) -> str:
-    """Mirror the real read-time expansion (``resolve_source``/``render_resolved_source`` over
-    the ``item_skill`` view) without going through it, so this test is an independent
-    reproduction rather than a call to the code under test."""
+    """Mirror the real read-time expansion (``resolve_source``/``render_source_view`` over the
+    ``item_skill`` view) without going through it, so this test is an independent reproduction
+    rather than a call to the code under test."""
     spec = bundled_spec()
     playbook = get_playbook_spec()
     source = PlaybookSource(

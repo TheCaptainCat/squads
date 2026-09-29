@@ -1,8 +1,8 @@
 """The ``role``/``playbook``/``self`` source kinds through the real service seams — placement
 (``insert_view``), read-time tag expansion (``read_body``), and the direct question
 (``render_view``) — not just the module-level resolver/predicate functions in isolation. Also
-covers ``resolve_view``'s (``--json``) clean refusal for all three: they have no projectable
-record list, so they refuse rather than being forced through ``project()``.
+covers ``--json`` resolution for all three: each reuses the shape its own kind already has a
+serializer for (``_view_json_payload``), never a shared envelope.
 
 Also covers ``playbook``'s emptiness case end to end: a type genuinely declared in ``[items]``
 but outside every guide's lane domain is a real, supported case, not a defect — placement
@@ -16,6 +16,7 @@ than one ``playbook`` tag forces it once, not once per tag.
 """
 
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -23,7 +24,6 @@ import pytest
 from _helpers import create_item
 from squads import __version__
 from squads._cli._workflow_cmd import _view_json_payload
-from squads._errors import SquadsError
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services._service import Service
 from squads._workflow import load_workflow_spec
@@ -100,16 +100,22 @@ async def test_an_orphaned_project_role_under_a_placed_tag_still_reads(project, 
     assert "Role: sre" in degraded_body  # degraded, not RoleNotFoundError out of read_body
 
 
-async def test_a_role_sourced_view_refuses_json_resolution_rather_than_flattening(
+async def test_a_role_sourced_views_json_resolution_reuses_the_role_show_json_shape(
     project, svc
 ) -> None:
+    """No projection envelope survives for a ``role`` source's ``--json`` either — it joins
+    the per-source dispatch every other kind uses, reusing ``sq role <slug> show --json``'s own
+    builder rather than being refused or forced through a flattened record shape."""
     _write_workflow_override(project.squad_dir, '[views.role_card]\nsource = { kind = "role" }\n')
     _place_view_template(project.squad_dir, "role_card", "Role: {{ source.slug }}\n")
     reopened = _reopen(project)
     role_item = await reopened.activate_role("tech-writer")
 
-    with pytest.raises(SquadsError, match="no projectable record list"):
-        await reopened.resolve_view("role_card", role_item.id)
+    payload = cast(
+        "dict[str, object]",
+        await _view_json_payload(reopened, reopened.spec, "role_card", role_item.id),
+    )
+    assert payload["slug"] == "tech-writer"
 
 
 async def test_a_playbook_sourced_view_with_no_name_resolves_the_hosts_own_type(

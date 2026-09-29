@@ -498,8 +498,8 @@ fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 extra_fields = ["target_date"]
 # The roll-up is placed by a `sq:view:milestone_rollup` tag seeded into
 # `templates/items/milestone.md.j2`'s `sq:body` region, the same mechanism `role_definition`/
-# `squads_skill`/`greeting_skill`/`memory_skill`/`item_skill` already use — not a `views`
-# attachment. No bundled type declares one any more; see the `[views]` block below.
+# `squads_skill`/`greeting_skill`/`memory_skill`/`item_skill` use — see the `[views]` block
+# below for the view's own declaration.
 # subentity_kind absent → None (membership rides `targets` refs on the work item, not sub-entities)
 # parent_required absent → None (a milestone relates to work through refs, never hierarchy)
 
@@ -606,13 +606,16 @@ fields = [
 ]
 
 # ---------------------------------------------------------------------------
-# Views — declared derived-view projections. A view has three parts and no fourth: `source`
-# (the relation to project — a ref kind, a sub-entity collection, or a subtree), `fields`
-# (the projected columns — a base attribute or a badge field the source's own type/kind
-# declares), and its presentation, resolved by the view's own key at
+# Views — declared derived-view sources. A view declares one thing: `source` (the relation to
+# resolve — a ref kind, a sub-entity collection, or a subtree — or a non-relation kind:
+# `role`/`playbook`/`self`). Its presentation resolves by the view's own key at
 # `templates/views/<name>.md.j2` (no separate `presentation` key — the identity IS the
-# template path). Every view is computed fresh on every request; none is ever materialized
-# into a body region.
+# template path). The template receives the source's own resolved shape, unflattened (real
+# `Item`/`SubEntity` objects for a relation kind), plus the host item and the active spec, and
+# does its own grouping/ordering with Jinja's `groupby`/`sort`/`selectattr` under
+# `StrictUndefined` — there is no declared field/group-by/order-by grammar to prove resolves,
+# so a relation source has nothing more to declare than its own `source`. Every view is
+# computed fresh on every request; none is ever materialized into a body region.
 #
 # `milestone_rollup` is the one bundled, *relation*-sourced view, and the only reason it's
 # here rather than left for a project's own `.overrides/workflow.toml` is that something in
@@ -621,63 +624,29 @@ fields = [
 # are each seeded by their own host's creation template. Naming a bundled ref kind or item
 # type as a source otherwise couples every project that later drops or renames it to keeping
 # the view too — the right trade only for a view something reads, not for a demonstration
-# nothing does. No bundled view carries a `items.<type>.views` type attachment any more (that
-# axis is a project's own, resolved by `_prune_orphaned_type_owned_views` when it declares
-# one); a project's own view follows the same tag-in-template shape under
-# `.overrides/workflow.toml` plus a template override; `sq override scaffold workflow` has a
-# worked example.
+# nothing does. No bundled view attaches to a type by name — a view is reached only by placing
+# its own `sq:view:<name>` tag in a body; a project's own view follows the same tag-in-template
+# shape under `.overrides/workflow.toml` plus a template override; `sq override scaffold
+# workflow` has a worked example.
 # ---------------------------------------------------------------------------
 
 [views.milestone_rollup]
 # Source: every item carrying a forward `targets` ref to this milestone, recovered by
 # inverting stored forward edges — the milestone file itself is never touched. The
-# presentation template splits members on the declared `settled`/`delivered` axes, never a
-# literal status name: `delivered` is a member's own kind reaching its happy-path terminal
-# (whatever a lifecycle calls it — "Done", "Accepted", "Verified"); `settled` alone (without
-# `delivered`) is a member that stopped for some other reason (Cancelled, Superseded) —
-# neither outstanding nor something this milestone can claim credit for.
+# presentation template (`templates/views/milestone_rollup.md.j2`) partitions members on the
+# declared `is_delivered`/`role_for(...).settled` axes, never a literal status name:
+# "delivered" is a member's own kind reaching its happy-path terminal (whatever a lifecycle
+# calls it — "Done", "Accepted", "Verified"); "settled" alone (without "delivered") is a
+# member that stopped for some other reason (Cancelled, Superseded) — neither outstanding nor
+# something this milestone can claim credit for. Each partition orders by type, then sequence
+# id, case-sensitively — the template's own job too, via Jinja's `sort` — nothing declared here
+# beyond the source. The status is rendered as plain text, not the `badge` filter's emoji form;
+# a project's own override template is free to route it through `badge` instead.
 source = { kind = "ref", name = "targets" }
-group_by = "status_role"
-order_by = ["type", "id"]
-
-[[views.milestone_rollup.fields]]
-code = "id"
-label = "Id"
-
-[[views.milestone_rollup.fields]]
-code = "type"
-label = "Type"
-
-[[views.milestone_rollup.fields]]
-code = "status"
-label = "Status"
-
-[[views.milestone_rollup.fields]]
-code = "status_role"
-label = "Status role"
-
-[[views.milestone_rollup.fields]]
-code = "settled"
-label = "Settled"
-
-[[views.milestone_rollup.fields]]
-code = "delivered"
-label = "Delivered"
-
-[[views.milestone_rollup.fields]]
-code = "title"
-label = "Title"
-
-[[views.milestone_rollup.fields]]
-code = "assignee"
-label = "Assignee"
 
 # ---------------------------------------------------------------------------
-# Four more bundled views, all non-relation sources (role/playbook/self) — no `fields`, no
-# `group_by`/`order_by`: those three kinds never reach the projection grammar at all (see the
-# module docstring on `squads._views`). None is attached via `items.<type>.views` (that
-# surface only accepts a relation-sourced view — `_check_item_views` refuses the other three
-# outright); each is placed instead by seeding a `sq:view:<name>` tag straight into the
+# Four more bundled views, all non-relation sources (role/playbook/self) — declaring only
+# `source`, like every view. Each is placed by seeding a `sq:view:<name>` tag straight into the
 # creation template's `sq:body` region, so the item that carries the tag is the only place the
 # view is ever reached from.
 # ---------------------------------------------------------------------------

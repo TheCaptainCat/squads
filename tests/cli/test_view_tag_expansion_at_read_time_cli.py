@@ -100,8 +100,7 @@ async def test_a_source_incompatible_view_tag_stays_literal_and_show_still_exits
     (templates_dir / "story_board.md.j2").write_text("story board\n", encoding="utf-8")
     (override_dir / "workflow.toml").write_text(
         f"# squads:override-base:{__version__}\n"
-        '[views.story_board]\nsource = { kind = "subentity", name = "story" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        '[views.story_board]\nsource = { kind = "subentity", name = "story" }\n',
         encoding="utf-8",
     )
 
@@ -128,8 +127,7 @@ async def test_a_declared_views_template_failure_exits_nonzero_with_a_clean_mess
     (override_dir / "templates" / "views").mkdir(parents=True, exist_ok=True)
     (override_dir / "workflow.toml").write_text(
         f"# squads:override-base:{__version__}\n"
-        '[views.broken_view]\nsource = { kind = "subentity", name = "subtask" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        '[views.broken_view]\nsource = { kind = "subentity", name = "subtask" }\n',
         encoding="utf-8",
     )
     (override_dir / "templates" / "views" / "broken_view.md.j2").write_text(
