@@ -38,6 +38,7 @@ from squads._interactions._loader import (
     bundled_playbook_toml_text,
     playbook_stamp_finding,
 )
+from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._overrides._manifest import (
     PLAYBOOK_KEY,
@@ -123,8 +124,16 @@ def _is_item_or_role_template(name: str) -> bool:
 def _required_markers_from_bundled(template_name: str) -> set[str]:
     """Return the set of ``sq:*`` open-marker tags that the bundled template requires.
 
-    Only matches opening markers (not ``:end`` closers).  Empty set for templates we
-    cannot read or that carry no markers.
+    Only matches opening markers (not ``:end`` closers), and never a view-tag family member
+    (:func:`~squads._models._markers.view_tag_parts`) — a seeded view's tag is binding on a
+    *document*, never on the template that scaffolds one: overriding the creation template to
+    drop the tag is one of the sanctioned, spec-level escapes from that binding, so an override
+    that omits it is a deliberate choice, not a structural break. Unlike
+    ``sq:body``/``sq:discussion``, a view tag is unpaired and carries no region of its own, so
+    its absence cannot "break marker-safe editing" the way this check's message warns of —
+    nothing here relies on it being present.
+
+    Empty set for templates we cannot read or that carry no markers.
 
     Goes through :func:`~squads._sections.find_markers` — the one marker-recognition
     primitive — rather than a second regex of its own: the copy that used to live here was a
@@ -135,7 +144,11 @@ def _required_markers_from_bundled(template_name: str) -> set[str]:
     content = bundled_template_content(template_name)
     if content is None:
         return set()
-    return {tag for tag in find_markers(content) if not tag.endswith(":end")}
+    return {
+        tag
+        for tag in find_markers(content)
+        if not tag.endswith(":end") and markers.view_tag_parts(tag) is None
+    }
 
 
 def _missing_required_markers(template_name: str, override_text: str) -> list[str]:
@@ -1340,7 +1353,9 @@ def _check_template_override_issues(squad_dir: Path) -> list[tuple[str, str, str
         if _is_item_or_role_template(rel):
             missing = _missing_required_markers(rel, text)
             if missing:
-                tags = ", ".join(f"<!-- sq:{t} -->" for t in missing)
+                # *missing* entries already carry the `sq:` prefix (`find_markers`'s own
+                # return shape), so the marker delimiters wrap them as-is.
+                tags = ", ".join(f"<!-- {t} -->" for t in missing)
                 issues.append(
                     (
                         "error",

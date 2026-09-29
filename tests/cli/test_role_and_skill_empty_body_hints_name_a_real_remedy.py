@@ -1,11 +1,5 @@
-"""An empty role/skill body's hint must name an action that can actually be taken, not the
-generic ``body`` verb (roles have none, and ``set_body`` refuses a role body unconditionally),
-and must not diagnose something false of the item in front of it — a system skill's type can be
-perfectly declared, with nothing having backfilled the tag yet, which is a different fact from
-"the type is no longer declared", and is also a different fact from "the *view* this body would
-render is not declared" — an empty body under a dropped view is a state ``sq sync`` provably
-cannot fix, so the hint must not send an operator to run it.
-"""
+"""An empty role/skill body's hint names an action that can actually be taken, and never
+misdiagnoses which of type-dropped, view-dropped, or merely-unbackfilled state applies."""
 
 from pathlib import Path
 
@@ -20,15 +14,11 @@ pytestmark = pytest.mark.anyio
 
 
 def _collapsed(text: str) -> str:
-    """*text* with all whitespace runs collapsed to a single space — console output can wrap
-    a multi-word phrase across a line boundary, so a raw substring check on it is unsound; this
-    is the same fix the project's own line-wrap lesson prescribes, applied to assertion text."""
+    """Collapse whitespace so a wrapped multi-word phrase still matches a substring check."""
     return " ".join(text.split())
 
 
-#: Drops `role_definition` from the declared view set. Every other bundled view stays selected
-#: (including the freestanding `milestone_rollup`, which no bundled type attaches, so nothing
-#: about dropping a different view could ever orphan it).
+#: Drops `role_definition` from the declared view set.
 _DROP_ROLE_DEFINITION = """\
 [selected]
 views = ["milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
@@ -71,15 +61,14 @@ async def test_an_empty_role_body_does_not_name_the_nonexistent_body_verb(svc, i
 
     assert r.exit_code == 0, r.output
     assert "set it with" not in r.output
-    assert "sq sync" in r.output
+    assert "roles.toml" in r.output
+    assert "sq sync" not in r.output
 
 
 async def test_an_empty_system_skill_body_under_a_live_type_points_at_sync_not_the_type(
     svc, invoke
 ) -> None:
-    """The type ``squads`` documents is perfectly declared — nothing dropped it. Only the
-    backfill has not run yet (an empty body simulates exactly that pre-convergence moment), so
-    the hint must not claim the type is gone."""
+    """A declared type with just no backfill yet must not be reported as gone."""
     await svc.seed_bundled_skills()
     skill = await svc.roster_item("skill", "squads")
     assert skill is not None
@@ -88,11 +77,12 @@ async def test_an_empty_system_skill_body_under_a_live_type_points_at_sync_not_t
     r = await invoke(["skill", "squads", "show", "--raw"])
 
     assert r.exit_code == 0, r.output
-    assert "sq sync" in r.output
+    assert "`.overrides/playbook.toml`" in r.output
+    assert "sq sync" not in r.output
     assert "no longer" not in r.output
 
 
-async def test_an_empty_per_type_skill_body_under_a_live_type_also_points_at_sync(
+async def test_an_empty_per_type_skill_body_under_a_live_type_also_points_at_the_overrides(
     svc, invoke
 ) -> None:
     await svc.seed_bundled_skills()
@@ -103,14 +93,12 @@ async def test_an_empty_per_type_skill_body_under_a_live_type_also_points_at_syn
     r = await invoke(["skill", "sq-task", "show", "--raw"])
 
     assert r.exit_code == 0, r.output
-    assert "sq sync" in r.output
+    assert "the `[types.task]` lane in `.overrides/playbook.toml`" in _collapsed(r.output)
+    assert "sq sync" not in r.output
     assert "no longer" not in r.output
 
 
 # --------------------------------------------------------------------------- dropped view
-# The companion state: the view itself, not the item type, is undeclared — `sq sync` provably
-# cannot populate the body, so the hint must not name it, and must say why in a way that names
-# the actual view rather than repeating the same generic text as the sync-pending case.
 
 
 async def test_an_empty_role_body_under_a_dropped_view_does_not_point_at_sync(svc, invoke) -> None:
@@ -165,9 +153,7 @@ async def test_an_empty_per_type_skill_body_under_a_dropped_view_does_not_point_
 
 
 async def test_a_dropped_item_type_hint_still_wins_over_a_dropped_view_hint(svc, invoke) -> None:
-    """Precedence, driven: when a per-type skill's own item type is gone (not merely its
-    view), the more specific "type is gone" message still fires — dropping `item_skill` too
-    must not change which branch answers for `sq-guide` once `guide` itself is undeclared."""
+    """A skill whose item type is gone gets the type-gone message even with its view dropped."""
     await svc.seed_bundled_skills()
     kept_items = ", ".join(
         f'"{t}"' for t in ("epic", "feature", "task", "bug", "decision", "contract", "milestone")
@@ -188,12 +174,11 @@ async def test_a_dropped_item_type_hint_still_wins_over_a_dropped_view_hint(svc,
 
 
 # --------------------------------------------------------------------------- recovery mention
-# Once `view rm` exists it is the honest remedy for a body that already carries the dangling
-# tag; the empty-body hint names it as general guidance without claiming the item in front of
-# it currently carries one (its body is, after all, empty — there is nothing to remove yet).
 
 
-async def test_the_dropped_view_hint_names_view_rm_as_the_tag_clearing_remedy(svc, invoke) -> None:
+async def test_the_dropped_view_hint_names_view_disable_as_the_tag_clearing_remedy(
+    svc, invoke
+) -> None:
     _write_override(svc.paths.squad_dir, _DROP_ROLE_DEFINITION)
     spec = load_workflow_spec(squad_dir=svc.paths.squad_dir)
     from squads._services import _service as service
@@ -205,4 +190,5 @@ async def test_the_dropped_view_hint_names_view_rm_as_the_tag_clearing_remedy(sv
     r = await invoke(["role", "reviewer", "show", "--raw"])
 
     assert r.exit_code == 0, r.output
-    assert "view rm role_definition" in _collapsed(r.output)
+    assert "view disable role_definition" in _collapsed(r.output)
+    assert "view rm" not in r.output

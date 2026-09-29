@@ -6,7 +6,7 @@ title: squads 0.15 - views, rebuilt
 status: InProgress
 author: product-owner
 created_at: '2026-09-02T08:03:36Z'
-updated_at: '2026-09-24T09:59:59Z'
+updated_at: '2026-09-25T16:06:27Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.14. It holds the engine and vocabulary work that was
@@ -148,4 +148,8 @@ follow-through on decisions taken during it.
       **Outstanding for 0.15:** FEAT-948 / TASK-942 (required views) only. TASK-942 is Draft; it now builds on the reduced view grammar, so its breakdown needs a rebase check against the deleted ViewSpec keys before dispatch.
     
       **Parked, not scheduled:** FEAT-961 (pronouns on agent and operator identity), Draft, no epic.
+- [2026-09-24T18:42:16Z] Pierre Chat:
+  - Ruling (team-wide, on the board): while 0.15 is unreleased the 0.14 to 0.15 migration may change, and the dogfood squad must be brought up to date with it, through a dedicated temporary migration if that is what it takes.
+- [2026-09-25T16:06:27Z] Catherine Manager:
+  - Where 0.15 stands: only FEAT-948 / TASK-942 remains. The core is checkpointed (1e317941, local, suite red on second-leg tests only). ST15 is reopened for one after(regex) off-by-one. The second leg waits on op-pierre. The full handoff is the latest manager comment on TASK-942.
 <!-- sq:discussion:end -->

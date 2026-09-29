@@ -1,27 +1,7 @@
-"""The schema 0.14 -> 0.15 migration: seeds ``sq:view:milestone_rollup`` onto every existing
-milestone body lacking it, through the same marker-safe primitive the placement verb is built
-from (``squads._sections.insert_unpaired_marker`` + ``squads._views.resolve_view_target`` —
-see ``tests/service/test_view_tag_placement.py`` for that primitive's own exhaustive coverage,
-which this module does not re-derive).
-
-Driven exclusively through ``Service.run_pending_migrations()`` — the sanctioned entry point
-``sq migrate up`` itself calls — on a squad whose on-disk ``schema_version`` is hand-downgraded
-to ``"0.14"``, mirroring ``tests/service/test_v0_3_migration_chain_reaches_current_schema.py``'s
-own technique. Never imports the private runner module for its own sake.
-
-Table-driven over body *shape* (empty, prose-only, already tagged, a different tag, other
-marker pairs) rather than one test per implemented branch, plus the run-level properties: the
-returned count matches files actually changed, only milestone is touched, and an override that
-drops the tag from the template is respected.
-
-A second table drives the corpus/spec/filesystem axis this shape table cannot reach: an
-unresolvable ``(type, name)`` pair (a deselected view, a declared-but-templateless one) skips
-the pair and the run still completes; a skewed item, a missing indexed file, a body with no
-``sq:body`` region, or a tag already present outside it skips that one item and the run still
-completes, reports it by id, and leaves the operator with a working command afterwards — never
-a raise, and (the assertion that actually catches the ``moved_tag`` shape) never a duplicate
-marker for ``sq check`` to report.
-"""
+"""The migration that seeds ``sq:view:milestone_rollup`` onto every existing milestone body
+lacking it, table-driven over body shape, run-level properties, unresolvable-pair skipping,
+and item-level damage (missing file, no body region, moved tag), each skipped and reported by
+id without aborting the run."""
 
 import tomllib
 from pathlib import Path
@@ -36,18 +16,19 @@ from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services._service import Service
+from squads._views import place_view_tags
+from squads._workflow import load_workflow_spec
 
 pytestmark = pytest.mark.anyio
 
-_TAG = markers.view_tag("milestone_rollup")  # bare form, for remove/insert_unpaired_marker
-_TAG_MARKER = markers.open_marker(_TAG)  # on-disk form, e.g. "<!-- sq:view:milestone_rollup -->"
+_TAG = markers.view_tag("milestone_rollup")
+_TAG_MARKER = markers.open_marker(_TAG)
 _FROM_SCHEMA = "0.14"
 
 
 async def _downgraded(project) -> Service:
-    """A fresh ``Service`` bound to the same squad, with its on-disk ``schema_version``
-    hand-rewritten to :data:`_FROM_SCHEMA` — simulates a squad created before this migration,
-    without touching any migration runner directly."""
+    """A fresh ``Service`` bound to the same squad, its on-disk ``schema_version`` rewritten
+    to simulate a squad created before this migration."""
     cfg_path = project.config_path
     text = await _aio.read_text(cfg_path)
     current = project.config.schema_version
@@ -74,13 +55,32 @@ def _write_override(squad_dir: Path, content: str) -> None:
     )
 
 
-async def _strip_tag(svc: Service, item) -> None:
-    """Remove the tag a freshly-created milestone's body already carries by default, so the
-    file reads like one written before this migration ever existed."""
+async def _strip_tag(svc: Service, item, name: str = "milestone_rollup") -> None:
+    """Remove *name*'s tag from *item*'s body, as if written before this migration existed."""
     text = await _text(svc.paths, item)
-    stripped, removed = sections.remove_unpaired_marker(text, markers.BODY, _TAG)
-    assert removed, "fixture setup: the milestone body carried no tag to strip"
-    await _write_text(svc.paths, item, stripped)
+    region = sections.get_section(text, markers.BODY) or ""
+    stripped_region, removed = sections.strip_marker_lines(
+        region, lambda raw: raw != f"sq:{markers.view_tag(name)}"
+    )
+    assert removed, f"fixture setup: the item body carried no {name!r} tag to strip"
+    await _write_text(
+        svc.paths, item, sections.replace_section(text, markers.BODY, stripped_region)
+    )
+
+
+async def _seed_tag_directly(svc: Service, item, name: str) -> None:
+    """Place *name*'s tag through the real placement routine, bypassing ``add_view``'s gate."""
+    text = await _text(svc.paths, item)
+    region = sections.get_section(text, markers.BODY) or ""
+    new_inner = place_view_tags(
+        region,
+        None,
+        seeded=frozenset({name}),
+        spec=svc.spec,
+        item_type=item.type,
+        addr=item.sequence_id,
+    )
+    await _write_text(svc.paths, item, sections.replace_section(text, markers.BODY, new_inner))
 
 
 # --------------------------------------------------------------------------- shape coverage
@@ -106,7 +106,7 @@ async def test_places_the_tag_after_existing_prose_preserving_it_verbatim(projec
     await _strip_tag(svc, m)
     before = sections.get_section(await _text(svc.paths, m), markers.BODY)
     assert before is not None
-    assert "Objective" in before  # the template's own prose, still there pre-migration
+    assert "Objective" in before
 
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
@@ -114,12 +114,12 @@ async def test_places_the_tag_after_existing_prose_preserving_it_verbatim(projec
     assert run.changed.get("0.15") == 1
     after = sections.get_section(await _text(svc.paths, m), markers.BODY)
     assert after is not None
-    assert after.startswith(before)  # every prior byte preserved verbatim, at the front
+    assert after.startswith(before)
     assert after.strip().endswith(_TAG_MARKER)
 
 
 async def test_a_body_already_carrying_the_tag_is_left_untouched(project, svc) -> None:
-    m = (await create_item(svc, "milestone", "M")).item  # tag already seeded by the template
+    m = (await create_item(svc, "milestone", "M")).item
     before = await _text(svc.paths, m)
     before_mtime = svc.paths.abspath(m.path).stat().st_mtime_ns
 
@@ -134,9 +134,7 @@ async def test_a_body_already_carrying_the_tag_is_left_untouched(project, svc) -
 async def test_a_body_carrying_a_different_view_tag_gets_a_second_tag_added(project, svc) -> None:
     m = (await create_item(svc, "milestone", "M")).item
     await _strip_tag(svc, m)
-    text = await _text(svc.paths, m)
-    seeded, _ = sections.insert_unpaired_marker(text, markers.BODY, markers.view_tag("other"))
-    await _write_text(svc.paths, m, seeded)
+    await _seed_tag_directly(svc, m, "other")
 
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
@@ -207,46 +205,26 @@ async def test_only_milestone_files_are_written_every_other_type_stays_byte_iden
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
 
-    assert run.changed.get("0.15") == 1  # the milestone alone
+    assert run.changed.get("0.15") == 1
     for o in others:
         assert await _text(svc.paths, o) == before[o.id], f"{o.id} was written by the run"
 
 
-async def test_a_roster_type_is_out_of_scope_even_with_its_own_tag_stripped(project, svc) -> None:
-    """The negative above is a weak proof for the roster exclusion on its own: a role's body
-    already carries its own ``role_definition`` tag from creation, so a scope bug that let a
-    roster type through would still be masked by the placement primitive's own idempotent-skip
-    — no write, same as a correctly-scoped run. Strip the tag first so a roster type actually
-    left in scope would show up as a real, counted write."""
+async def test_an_emptied_roster_body_is_out_of_scope_for_the_non_roster_step(project, svc) -> None:
+    """A role, a roster type, is never reached by this step, empty body or not."""
     role = await svc.roster_item("role", "manager")
     assert role is not None
-    text = await _text(svc.paths, role)
-    stripped, removed = sections.remove_unpaired_marker(
-        text, markers.BODY, markers.view_tag("role_definition")
-    )
-    assert removed, "fixture setup: the manager role carried no role_definition tag to strip"
-    await _write_text(svc.paths, role, stripped)
+    await _strip_tag(svc, role, "role_definition")
 
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
 
-    # Not a body-content assertion: `run_pending_migrations`'s own trailing repair sweep
-    # (`MaintenanceMixin._backfill_roster_body_tags`) re-seeds an emptied role's tag through
-    # its own, unrelated mechanism regardless of this migration's scope, so the file ends up
-    # tagged again either way. `changed` is this migration's own count, untouched by that
-    # later step — the one assertion that actually isolates whether *this* migration reached
-    # a roster-type item.
     assert run.changed.get("0.15", 0) == 0
 
 
 async def test_a_rerun_after_the_first_reports_zero_and_writes_nothing(project, svc) -> None:
-    """The squad-level idempotency property the CLI relies on: once a squad has already
-    reached the target schema, ``sq migrate up`` never re-invokes this (or any) runner —
-    covered end-to-end via ``tests/cli/test_milestone_roll_up_tag_migration_cli.py``'s
-    ``nothing to migrate`` assertion. This test instead pins the underlying primitive's own
-    idempotent-skip through the run: a squad whose milestone already carries the tag before
-    the migration is even due reports zero changed once it is."""
-    m = (await create_item(svc, "milestone", "M")).item  # tag already present
+    """A squad whose milestone already carries the tag reports zero changed once migrated."""
+    m = (await create_item(svc, "milestone", "M")).item
     before = await _text(svc.paths, m)
 
     down = await _downgraded(project)
@@ -254,6 +232,47 @@ async def test_a_rerun_after_the_first_reports_zero_and_writes_nothing(project, 
 
     assert run.changed.get("0.15", 0) == 0
     assert await _text(svc.paths, m) == before
+
+
+async def test_a_second_direct_call_after_seeding_reports_zero_and_writes_nothing(
+    project, svc
+) -> None:
+    """Calling the runner itself a second time, directly, reports zero and writes nothing."""
+    m = (await create_item(svc, "milestone", "M")).item
+    await _strip_tag(svc, m)
+
+    down = await _downgraded(project)
+    await down.run_pending_migrations()
+    seeded = await _text(svc.paths, m)
+
+    from squads._migrations._v0_14_to_v0_15 import migrate
+    from squads._paths import resolve as resolve_squad_paths
+
+    fresh_paths = resolve_squad_paths(client_cwd=project.root)
+    outcome = await migrate(fresh_paths)
+
+    assert outcome.count == 0
+    assert await _text(svc.paths, m) == seeded
+
+
+async def test_a_milestone_carrying_the_tag_twice_collapses_to_one_and_is_counted(
+    project, svc
+) -> None:
+    """A duplicate copy of the tag already inside ``sq:body`` collapses to one, and is counted
+    as a change."""
+    m = (await create_item(svc, "milestone", "M")).item
+    text = await _text(svc.paths, m)
+    doubled = sections.replace_section(text, markers.BODY, f"{_TAG_MARKER}\n\n{_TAG_MARKER}")
+    assert doubled.count(_TAG_MARKER) == 2, "fixture setup: expected two copies of the tag"
+    await _write_text(svc.paths, m, doubled)
+
+    down = await _downgraded(project)
+    run = await down.run_pending_migrations()
+
+    assert run.changed.get("0.15") == 1
+    body = sections.get_section(await _text(svc.paths, m), markers.BODY)
+    assert body is not None
+    assert body.count(_TAG_MARKER) == 1
 
 
 # --------------------------------------------------------------------------- override-awareness
@@ -273,7 +292,7 @@ async def test_an_override_template_seeding_no_tag_leaves_untagged_milestones_un
     m = (await create_item(svc, "milestone", "M")).item
     body = sections.get_section(await _text(svc.paths, m), markers.BODY)
     assert body is not None
-    assert _TAG_MARKER not in body  # precondition: the override really did drop the tag
+    assert _TAG_MARKER not in body
     before = await _text(svc.paths, m)
 
     down = await _downgraded(project)
@@ -290,10 +309,7 @@ async def test_an_override_template_seeding_no_tag_leaves_untagged_milestones_un
 async def test_a_deselected_view_over_a_corpus_with_milestones_still_reaches_current(
     project, svc
 ) -> None:
-    """The spec-side direction: the template still seeds the tag unconditionally, but the
-    active spec no longer declares the view at all (``[selected].views = []``). The pair
-    cannot resolve, so it is skipped -- the run still completes and stamps the squad current,
-    rather than refusing the whole upgrade over an adopter's own customisation."""
+    """A deselected view cannot resolve, so it is skipped, and the run still stamps current."""
     m1 = (await create_item(svc, "milestone", "One")).item
     await _strip_tag(svc, m1)
     m2 = (await create_item(svc, "milestone", "Two")).item
@@ -304,20 +320,18 @@ async def test_a_deselected_view_over_a_corpus_with_milestones_still_reaches_cur
     run = await down.run_pending_migrations()
 
     assert run.changed.get("0.15", 0) == 0
-    assert run.skipped.get("0.15", []) == []  # nothing to name -- the pair skipped, not an item
+    assert run.skipped.get("0.15", []) == []
     for m in (m1, m2):
         body = sections.get_section(await _text(svc.paths, m), markers.BODY)
         assert body is not None
         assert _TAG_MARKER not in body
-    # What the operator can do next: the squad is current, and check is reachable again.
     with project.config_path.open("rb") as fh:
         assert tomllib.load(fh)["schema_version"] == "0.15"
-    await down.check()  # must not raise the schema hard-stop this deadlocked on before
+    await down.check()
 
 
 async def test_a_deselected_view_over_zero_milestones_still_reaches_current(project, svc) -> None:
-    """The sharper case: the run would not have written a single byte even on the old
-    behaviour, and still used to refuse before ever reaching the item loop."""
+    """A deselected view over zero milestones still reaches current."""
     await create_item(svc, "task", "unrelated")
     _write_override(project.squad_dir, "[selected]\nviews = []\n")
 
@@ -333,8 +347,7 @@ async def test_a_deselected_view_over_zero_milestones_still_reaches_current(proj
 async def test_a_name_the_template_still_seeds_with_no_resolvable_view_skips_that_pair(
     project, svc
 ) -> None:
-    """The declared-but-templateless half of the same axis: the view stays declared (unlike
-    the deselect above) but has no presentation template, so it still cannot resolve."""
+    """A declared view with no presentation template also cannot resolve, and is skipped."""
     override_dir = project.squad_dir / ".overrides"
     override_dir.mkdir(parents=True, exist_ok=True)
     _write_override(
@@ -348,10 +361,11 @@ async def test_a_name_the_template_still_seeds_with_no_resolvable_view_skips_tha
         encoding="utf-8",
     )
     invalidate_squad_dir(project.squad_dir)
-    m = (await create_item(svc, "milestone", "M")).item
+    declared = Service(svc.paths, spec=load_workflow_spec(squad_dir=svc.paths.squad_dir))
+    m = (await create_item(declared, "milestone", "M")).item
     body = sections.get_section(await _text(svc.paths, m), markers.BODY)
     assert body is not None
-    assert "sq:view:templateless" in body  # precondition: the override template seeds it
+    assert "sq:view:templateless" in body
 
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
@@ -383,9 +397,7 @@ async def _make_no_body_region(svc: Service, item) -> None:
 
 
 async def _make_moved_tag(svc: Service, item) -> None:
-    """Assumes the in-region tag was already stripped (every parametrized case's shared setup
-    does this before calling *damage*) and places it elsewhere in the file instead -- the shape
-    an author produces by hand-moving the tag out of ``sq:body``."""
+    """Place the tag outside ``sq:body``, as if an author hand-moved it there."""
     text = await _text(svc.paths, item)
     assert _TAG_MARKER not in text, "fixture setup: expected the tag already stripped"
     moved = text.replace("## Discussion", f"{_TAG_MARKER}\n\n## Discussion", 1)
@@ -395,26 +407,19 @@ async def _make_moved_tag(svc: Service, item) -> None:
 
 @pytest.mark.parametrize(
     "damage",
-    [_make_skewed, _make_missing_file, _make_no_body_region, _make_moved_tag],
-    ids=["skewed", "missing_file", "no_body_region", "moved_tag"],
+    [_make_missing_file, _make_no_body_region, _make_moved_tag],
+    ids=["missing_file", "no_body_region", "moved_tag"],
 )
 async def test_a_damaged_item_at_the_lower_sequence_id_is_skipped_the_healthy_one_still_lands(
     project, svc, damage
 ) -> None:
-    """Table-driven over the four item-level failure shapes, each asserting three things: what
-    happened to the damaged item (skipped, named, left off the count), what happened to the
-    healthy one (tagged and counted, proving it was processed *after* the skip rather than
-    before it -- the damaged item is created first, so it gets the lower ``sequence_id``), and
-    what the operator can do next -- the stamp still lands and, the assertion that actually
-    matters for the ``moved_tag`` shape, ``sq check`` reports no error afterwards. A byte-count
-    or occurrence-count assertion would not catch a regression here: it is ``sq check``'s own
-    duplicate-marker finding that proves whether a second, in-region copy was seeded alongside
-    one already live outside the region, not what the file looks like on its own."""
+    """A damaged item at the lower sequence id is skipped and named; the healthy one, processed
+    after it, is still tagged and counted, and the stamp still lands."""
     damaged = (await create_item(svc, "milestone", "A damaged one")).item
     await _strip_tag(svc, damaged)
     healthy = (await create_item(svc, "milestone", "A healthy one")).item
     await _strip_tag(svc, healthy)
-    assert damaged.sequence_id < healthy.sequence_id  # precondition: processed first
+    assert damaged.sequence_id < healthy.sequence_id
 
     await damage(svc, damaged)
     damaged_before = await _text(svc.paths, damaged) if damage is not _make_missing_file else None
@@ -422,24 +427,45 @@ async def test_a_damaged_item_at_the_lower_sequence_id_is_skipped_the_healthy_on
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
 
-    # 1. the damaged item: skipped, named by id, not counted as changed, and untouched on disk
-    # wherever a file still exists to compare.
     assert damaged.id in run.skipped.get("0.15", [])
     if damaged_before is not None:
         assert await _text(svc.paths, damaged) == damaged_before
-    # 2. the healthy item: tagged and counted -- proves the pass kept going past the skip.
     assert run.changed.get("0.15") == 1
     healthy_body = sections.get_section(await _text(svc.paths, healthy), markers.BODY)
     assert healthy_body is not None
     assert _TAG_MARKER in healthy_body
-    # 3. what the operator can do next: the stamp landed, and sq check reports no error --
-    # the deadlock (raise before the stamp, then every command refusing) is gone, and so is
-    # any error the run's own write could otherwise have introduced.
     with project.config_path.open("rb") as fh:
         assert tomllib.load(fh)["schema_version"] == "0.15"
     errors = [i for i in await down.check() if i.level == "error"]
-    assert not errors, [i.message for i in errors]
-    await down.repair()  # the specific remedy the runbook now points a skewed item at
+    if damage is _make_no_body_region:
+        assert [i.message for i in errors] == [
+            "missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with "
+            f"`sq milestone {damaged.sequence_id} view add milestone_rollup`, or disable it "
+            f"with `sq milestone {damaged.sequence_id} view disable milestone_rollup`"
+        ]
+        assert errors[0].item == Path(damaged.path).name
+    else:
+        assert not errors, [i.message for i in errors]
+
+
+async def test_a_skewed_milestone_is_tagged_from_its_own_on_disk_frontmatter(project, svc) -> None:
+    """A milestone whose on-disk frontmatter has diverged from the indexed copy is still
+    tagged from its own on-disk frontmatter, not skipped."""
+    m = (await create_item(svc, "milestone", "A skewed one")).item
+    await _strip_tag(svc, m)
+    await _make_skewed(svc, m)
+
+    down = await _downgraded(project)
+    run = await down.run_pending_migrations()
+
+    assert run.changed.get("0.15") == 1
+    assert m.id not in run.skipped.get("0.15", [])
+    text = await _text(svc.paths, m)
+    fm, _body = sections.split_frontmatter(text)
+    assert fm["title"] == "Hand-edited on disk"
+    body = sections.get_section(text, markers.BODY)
+    assert body is not None
+    assert _TAG_MARKER in body
 
 
 async def test_a_run_that_skips_nothing_reports_no_skipped_ids(project, svc) -> None:

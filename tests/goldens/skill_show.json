@@ -7,5 +7,6 @@
   "when_to_use": "",
   "allowed_tools": "",
   "path": "agents/skills/SKILL-000008-golden-skill.md",
-  "system": false
+  "system": false,
+  "body": "# golden-skill\n\nTest skill for golden snapshots\n\n## Instructions"
 }

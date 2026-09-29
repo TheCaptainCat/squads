@@ -1,13 +1,5 @@
-"""``sq <type> <n> view add|rm <name>`` — the CLI surface over the marker-safe view-tag
-placement verb. A distinct verb group from ``body``, exercised end to end through the CLI:
-insert, idempotent re-insert, remove, no-op remove, and the dangling-name refusal.
-
-Placement is asserted against the item's **stored file** rather than ``show --raw``'s
-console output: read-time expansion (see
-``tests/cli/test_view_tag_expansion_at_read_time_cli.py``) renders a tag in ``show --raw``
-to its view's output, so the file is the one place a literal, not-yet-expanded tag is
-assertable against.
-"""
+"""``sq <type> <n> view add|disable <name>`` through the CLI: place, idempotent re-place,
+disable, no-op disable, and the dangling-name refusal — asserted against the stored file."""
 
 from pathlib import Path
 
@@ -26,8 +18,7 @@ def _task_file(project) -> Path:
 
 
 def _declare_resolvable_subentity_view(squad_dir: Path, name: str, kind: str) -> None:
-    """A declared, templated ``subentity``-source view over sub-entity *kind* — resolvable, so
-    placing it exercises the source-applicability question rather than the "undeclared" one."""
+    """Declare a resolvable, templated ``subentity``-source view over sub-entity *kind*."""
     override_dir = squad_dir / ".overrides"
     override_dir.mkdir(parents=True, exist_ok=True)
     templates_dir = override_dir / "templates" / "views"
@@ -65,25 +56,48 @@ async def test_view_add_twice_is_idempotent_and_says_so(project, invoke) -> None
     assert text.count(f"<!-- sq:view:{_BUNDLED_VIEW} -->") == 1
 
 
-async def test_view_rm_removes_the_tag(project, invoke) -> None:
+async def test_view_disable_turns_the_tag_disabled_not_removed(project, invoke) -> None:
     await invoke(["create", "task", "T", "--author", "manager"])
     await invoke(["task", "2", "view", "add", _BUNDLED_VIEW])
 
-    r = await invoke(["task", "2", "view", "rm", _BUNDLED_VIEW])
+    r = await invoke(["task", "2", "view", "disable", _BUNDLED_VIEW])
 
     assert r.exit_code == 0, r.output
-    assert "removed" in r.output
+    assert "disabled" in r.output
     text = _task_file(project).read_text(encoding="utf-8")
-    assert f"sq:view:{_BUNDLED_VIEW}" not in text
+    assert f"<!-- sq:view:{_BUNDLED_VIEW}:disabled -->" in text
+    assert f"<!-- sq:view:{_BUNDLED_VIEW} -->" not in text
 
 
-async def test_view_rm_of_an_absent_tag_is_a_safe_no_op_not_an_error(project, invoke) -> None:
+async def test_view_disable_of_an_absent_tag_places_it_disabled(project, invoke) -> None:
+    """Disabling an absent tag places a fresh disabled one and says "placed", not "disabled"."""
+    await invoke(["create", "task", "T", "--author", "manager"])
+
+    r = await invoke(["task", "2", "view", "disable", _BUNDLED_VIEW])
+
+    assert r.exit_code == 0, r.output
+    assert "had no existing tag — placed disabled" in r.output
+    text = _task_file(project).read_text(encoding="utf-8")
+    assert f"<!-- sq:view:{_BUNDLED_VIEW}:disabled -->" in text
+
+
+async def test_view_disable_twice_is_a_safe_no_op(project, invoke) -> None:
+    await invoke(["create", "task", "T", "--author", "manager"])
+    await invoke(["task", "2", "view", "disable", _BUNDLED_VIEW])
+
+    r = await invoke(["task", "2", "view", "disable", _BUNDLED_VIEW])
+
+    assert r.exit_code == 0, r.output
+    assert "already disabled" in r.output
+
+
+async def test_view_rm_is_not_a_command(project, invoke) -> None:
+    """Retired outright, with no alias — a tag is disabled, never deleted."""
     await invoke(["create", "task", "T", "--author", "manager"])
 
     r = await invoke(["task", "2", "view", "rm", _BUNDLED_VIEW])
 
-    assert r.exit_code == 0, r.output
-    assert "not present" in r.output
+    assert r.exit_code != 0
 
 
 async def test_view_add_an_undeclared_name_exits_nonzero_with_a_clear_message(
@@ -100,9 +114,8 @@ async def test_view_add_an_undeclared_name_exits_nonzero_with_a_clear_message(
 async def test_view_add_a_source_incompatible_host_exits_nonzero_with_a_clear_message(
     project, invoke
 ) -> None:
-    """Driven end to end through the CLI: a declared, templated ``subentity``-source view over
-    ``story`` placed on an ``epic`` (which hosts no sub-entity kind at all) is refused at the
-    door, before any write."""
+    """A subentity-source view placed on a host with no matching sub-entity kind is refused
+    before any write."""
     _declare_resolvable_subentity_view(project.squad_dir, "story_board", "story")
     await invoke(["create", "epic", "An epic", "--author", "manager"])
     epic_file = next(iter((project.squad_dir / "epics").glob("EPIC-*.md")))
@@ -112,7 +125,7 @@ async def test_view_add_a_source_incompatible_host_exits_nonzero_with_a_clear_me
 
     assert r.exit_code == 1
     assert "hosts" in r.output
-    assert epic_file.read_text(encoding="utf-8") == text_before  # refused before any write
+    assert epic_file.read_text(encoding="utf-8") == text_before
 
 
 async def test_view_is_not_a_flag_on_body(project, invoke) -> None:

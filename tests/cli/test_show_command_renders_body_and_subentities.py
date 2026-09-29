@@ -1,16 +1,5 @@
-"""`sq show` rendering: on a TTY the body renders as styled markdown (Rich strips the leading
-`##`), `--raw` opts back out, piped output is plain and byte-stable, `--json` is unaffected
-by any render flag; root `sq show` resolves by full id/bare number/any type and errors
-cleanly on an unknown id or a wrong type prefix; the default view includes each sub-entity's
-roll-up summary table and (with `--comments`) the discussion; `--full` adds one pane per
-sub-entity with its body, omits comments unless `--comments` is also given (which then
-orders sub-entity comments before the main discussion), and degrades gracefully with no
-sub-entities; a bracket-bearing title/comment-author never leaks a Rich-escape backslash on
-either the plain or the styled path. `sq role|skill|operator show` share the same body-render
-path. This is the one home for `sq show`'s rendered (non-JSON) output — the raw item/
-sub-entity *template* render path (markers, findings legend, scaffold hints) is proven
-independently in tests/unit/test_item_and_subentity_templates_render_structurally.py.
-"""
+"""`sq show`'s rendered (non-JSON) output: styled vs. raw vs. piped rendering, id resolution
+and its error cases, sub-entity panes/comments, and Rich-markup escaping of dynamic text."""
 
 import json
 
@@ -104,8 +93,7 @@ async def test_root_show_errors_cleanly_on_unknown_id_and_wrong_type_prefix(
 async def test_a_typed_command_rejects_a_full_id_with_the_wrong_type_prefix(
     project, invoke
 ) -> None:
-    """``sq <type> <n> show`` resolves ``<n>`` via ``resolve_item_id_typed`` — distinct from
-    root ``sq show``'s type-less ``resolve_item_id_any`` (tested just above)."""
+    """A typed show command refuses an id whose full-id prefix names a different type."""
     await invoke(["create", "feature", "F", "--author", "manager"])
     r = await invoke(["task", "FEAT-000002", "show"])
     assert r.exit_code != 0
@@ -253,6 +241,29 @@ async def test_bracket_bearing_titles_and_comment_headers_never_leak_an_escape_b
     assert "Comment text." in r.output
     if not styled_render:
         assert r"\[" not in r.output
+
+
+async def test_a_bracket_bearing_empty_body_hint_is_not_swallowed_as_markup(
+    project, invoke
+) -> None:
+    """A dynamic empty-body hint containing its own `[...]` is escaped, not swallowed by Rich."""
+    from squads._index._resolver import item_file
+    from squads._sections import get_section, replace_section
+    from squads._services._service import Service
+
+    svc = Service(project)
+    await svc.seed_bundled_skills()
+    skill = await svc.roster_item("skill", "sq-bug")
+    assert skill is not None
+    path = item_file(svc.paths, skill)
+    text = replace_section(path.read_text(encoding="utf-8"), "body", "")
+    path.write_text(text, encoding="utf-8")
+
+    r = await invoke(["skill", "sq-bug", "show", "--raw"])
+
+    assert r.exit_code == 0, r.output
+    assert "[types.bug]" in r.output
+    assert not (get_section(path.read_text(encoding="utf-8"), "body") or "").strip()
 
 
 async def test_role_skill_and_operator_show_render_body_as_styled_markdown_and_raw_preserves_it(

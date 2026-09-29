@@ -49,6 +49,7 @@ from squads._cli._common import (
     resolve_item_id_typed,
     resolve_local_id,
     resolve_slug_or_raise,
+    view_disable_result_message,
 )
 from squads._errors import SquadsError
 from squads._models._item import split_ref
@@ -655,38 +656,41 @@ def _cmd_refs(item: typer.Typer) -> None:
 
 
 def _cmd_view(item: typer.Typer) -> None:
-    """The ``sq <type> <n> view add|rm <name>`` group: place or remove an unpaired
-    ``sq:view:<name>`` tag in the item's ``sq:body`` region.
+    """The ``sq <type> <n> view add|disable <name>`` group: place, re-enable or disable an
+    unpaired ``sq:view:<name>`` tag in the item's ``sq:body`` region. ``view rm`` is retired
+    outright, with no alias — a tag is disabled, never deleted.
 
     A distinct verb group, not a flag on ``body`` — placement and body editing stay visibly
     separate surfaces, and ``reject_markers`` keeps refusing a hand-typed tag in ``body -m``/
     ``--file`` unchanged (this is the only door a tag enters or leaves through).
     """
-    view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag in sq:body.")
+    view_app = typer.Typer(
+        no_args_is_help=True, help="Place, re-enable or disable a view tag in sq:body."
+    )
 
     @view_app.command("add")
     @common.command
     async def view_add(
         ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
     ):
-        """Insert the sq:view:NAME tag at the end of sq:body (idempotent)."""
-        inserted = await get_service().insert_view(_id(ctx), name)
-        if inserted:
+        """Place the sq:view:NAME tag enabled, or re-enable it if disabled (idempotent)."""
+        placed = await get_service().add_view(_id(ctx), name)
+        if placed:
             console.print(f"{_id(ctx)}: view {e(name)} placed in sq:body")
         else:
             console.print(f"{_id(ctx)}: view {e(name)} already present, unchanged")
 
-    @view_app.command("rm")
+    @view_app.command("disable")
     @common.command
-    async def view_rm(
-        ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
-    ):
-        """Remove the sq:view:NAME tag from sq:body (safe no-op if absent)."""
-        removed = await get_service().remove_view(_id(ctx), name)
-        if removed:
-            console.print(f"{_id(ctx)}: view {e(name)} removed from sq:body")
-        else:
-            console.print(f"{_id(ctx)}: view {e(name)} was not present, nothing to do")
+    async def view_disable(ctx: typer.Context, name: str = typer.Argument(..., help="View name.")):
+        """Disable the sq:view:NAME tag (placed disabled if absent) — never removed."""
+        svc = get_service()
+        item_id = _id(ctx)
+        was_present = await svc.view_tag_present(item_id, name)
+        disabled = await svc.disable_view(item_id, name)
+        console.print(
+            view_disable_result_message(item_id, name, was_present=was_present, changed=disabled)
+        )
 
     item.add_typer(view_app, name="view")
 

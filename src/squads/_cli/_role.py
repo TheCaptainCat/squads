@@ -7,8 +7,8 @@ Grammar:
   sq role <slug|id|n> regen          — regenerate the Claude pointer
   sq role <slug|id|n> status <S>     — transition the role's status
   sq role <slug|id|n> set-default    — move the default-role designation here
-  sq role <slug|id|n> view add <n>   — place a view tag in sq:body
-  sq role <slug|id|n> view rm <n>    — remove a view tag from sq:body
+  sq role <slug|id|n> view add <n>       — place or re-enable a view tag in sq:body
+  sq role <slug|id|n> view disable <n>   — disable a view tag in sq:body (kept, not removed)
   sq role <slug|id|n> rm [--purge]   — remove the role item
 
 Address resolution order (exact match, no fuzzy):
@@ -38,6 +38,7 @@ from squads._cli._common import (
     register_status_verb,
     render_body_text,
     resolve_agent_addr,
+    view_disable_result_message,
 )
 from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
@@ -47,7 +48,7 @@ from squads._models._item import Item
 from squads._models._schema import version_drifted
 from squads._paths import resolve as resolve_squad_paths
 from squads._roles._catalog import PREDEFINED, RoleDef
-from squads._roles._loader import load_role_catalog
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._models import RoleSpec
 from squads._roles._resolver import resolve_role_for_item, resolve_role_with_base
 from squads._workflow import ROSTER_ROLE
@@ -68,7 +69,7 @@ role_app = typer.Typer(
         "Address a role:  sq role <slug|id|n> show|regen|rm|status|set-default|view\n"
         "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm\n"
         "           sq role manager status Archived   sq role qa set-default\n"
-        "           sq role qa view rm role_definition   — clear a tag naming a dropped view\n"
+        "           sq role qa view disable role_definition   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
@@ -307,6 +308,38 @@ def _require_id(ctx: typer.Context) -> str:
     return item_id
 
 
+def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> str:
+    """The ``sq role <slug> show`` empty-body hint for *hint_state* — split out of
+    :func:`show_role` purely to keep that function under the complexity ceiling. There is no
+    ``body`` verb in the ``sq role`` addressing group, and ``set_body`` refuses a role body
+    outright (replace and append alike), so the default "set it
+    with `body`" hint names an action this group cannot take, and neither can ``--force``,
+    ``sq import``, or anything short of the role's real authoring surface. ``sq sync`` is a real
+    remedy for one of the four states :func:`~squads._views.empty_body_hint_state` distinguishes
+    — it converges an empty role body onto its placement tag, but only on an outstanding
+    version drift, and only when the view is declared; naming it in any other state would send
+    an operator in a circle, so this reads the shared predicate rather than guessing. *slug*
+    fills in the real command the operator would actually run — ``<slug>`` names a file-naming
+    convention below, never a copy-pasteable command, so that one stays a placeholder."""
+    name = ROLE_DEFINITION_VIEW_NAME
+    if hint_state == "disabled":
+        return f"(disabled — `sq role {slug} view add {name}` re-enables it)"
+    if hint_state == "declared_no_drift":
+        return (
+            f"(empty — declare the definition in `{ROLES_OVERRIDE_FILENAME}`, or "
+            "`.overrides/roles/<slug>.toml` for a project-defined role, to author one instead "
+            f"— or run `sq role {slug} view add {name}` directly)"
+        )
+    if hint_state == "declared_drift_outstanding":
+        return "(empty — run `sq sync` to populate it)"
+    return (
+        f"(empty — the view {name!r} is not declared in this project's spec, so `sq sync` "
+        "cannot populate it; declare it in `.overrides/workflow.toml` to restore the "
+        "generated definition — or, if a role's body still carries this tag from before it "
+        f"was dropped, disable it with `sq role {slug} view disable {name}`)"
+    )
+
+
 @_addr.command("show")
 @common.command
 async def show_role(
@@ -409,35 +442,22 @@ async def show_role(
                 "run `sq check` to see why)[/dim]",
                 soft_wrap=True,
             )
-        # There is no `body` verb in the `sq role` addressing group and `set_body` refuses a
-        # role body unconditionally, so the default "set it with `body`" hint names an action
-        # this group cannot take. `sq sync` is a real remedy for one of the three states
-        # `empty_body_hint_state` distinguishes — it converges an empty role body onto its
-        # placement tag, but only on an outstanding version drift, and only when the view is
-        # declared; naming it in either of the other two states would send an operator in a
-        # circle, so this reads the shared predicate rather than guessing.
+        # There is no `body` verb in the `sq role` addressing group, and `set_body` refuses a
+        # role body outright (replace and append alike), so the
+        # default "set it with `body`" hint names an action this group cannot take, and neither
+        # can `--force`, `sq import`, or anything short of the role's real authoring surface.
+        # `sq sync` is a real remedy for one of the four states `empty_body_hint_state`
+        # distinguishes — it converges an empty role body onto its placement tag, but only on
+        # an outstanding version drift, and only when the view is declared; naming it in any
+        # other state would send an operator in a circle, so this reads the shared predicate
+        # rather than guessing.
         hint_state = views.empty_body_hint_state(
             ROLE_DEFINITION_VIEW_NAME,
             svc.spec,
             drift_outstanding=version_drifted(__version__, svc.paths.config.squads_version),
+            disabled=await svc.view_tag_state(it.id, ROLE_DEFINITION_VIEW_NAME) is True,
         )
-        if hint_state == "declared_no_drift":
-            empty_hint = (
-                "(empty — `sq sync` cannot populate it: the version-drift backfill it relies "
-                "on has nothing outstanding to run. Try `sq repair`, which converges an "
-                "already-tagged or plain-legacy body regardless of drift — or, if this body "
-                f"is genuinely untagged, `sq role <slug> view add {ROLE_DEFINITION_VIEW_NAME}`)"
-            )
-        elif hint_state == "declared_drift_outstanding":
-            empty_hint = "(empty — run `sq sync` to populate it)"
-        else:
-            empty_hint = (
-                f"(empty — the view {ROLE_DEFINITION_VIEW_NAME!r} is not declared in this "
-                "project's spec, so `sq sync` cannot populate it; declare it in "
-                "`.overrides/workflow.toml` to restore the generated definition — or, if a "
-                f"role's body still carries this tag from before it was dropped, clear it "
-                f"with `sq role <slug> view rm {ROLE_DEFINITION_VIEW_NAME}`)"
-            )
+        empty_hint = _role_empty_body_hint(hint_state, slug)
         render_body_text(
             await svc.read_body(it.id),
             raw=raw,
@@ -502,18 +522,21 @@ async def set_default_role(ctx: typer.Context) -> None:
 register_status_verb(_addr, _require_id)
 
 
-# --------------------------------------------------------------------------- view add/rm
+# --------------------------------------------------------------------------- view add/disable
 
-# The ``sq role <addr> view add|rm <name>`` group: place or remove an unpaired
-# ``sq:view:<name>`` tag in the role's ``sq:body`` region. Mirrors ``_cli._items._cmd_view``'s
-# shape (the generic per-type group's own view verb) over ``ServiceCore.insert_view``/
-# ``remove_view`` — the same item-type-agnostic mutation, addressed here through the role
-# group's own slug/ID/number resolution rather than the generic group. This is the recovery for
-# a role whose body already carries a tag naming a view the active spec no longer declares:
-# `rm` removes it unconditionally — no ``spec.views`` check, deliberately, because a tag once
-# placed must stay removable even for a view that no longer exists — and only an operator
-# invoking it ever clears one; nothing in this codebase does it automatically.
-_view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag in sq:body.")
+# The ``sq role <addr> view add|disable <name>`` group: place, re-enable or disable an unpaired
+# ``sq:view:<name>`` tag in the role's ``sq:body`` region.
+# Mirrors ``_cli._items._cmd_view``'s shape (the generic per-type group's own view verb) over
+# ``ServiceCore.add_view``/``disable_view`` — the same item-type-agnostic mutation, addressed
+# here through the role group's own slug/ID/number resolution rather than the generic group.
+# ``view disable`` is the recovery for a role whose body already carries a tag naming a view
+# the active spec no longer declares: it is ungated — no ``spec.views`` check, deliberately,
+# because a tag once placed must stay recoverable even for a view that no longer exists — and
+# only an operator invoking it ever clears one; nothing in this codebase does it automatically.
+# ``view rm`` is retired outright, with no alias: a tag is disabled, never deleted.
+_view_app = typer.Typer(
+    no_args_is_help=True, help="Place, re-enable or disable a view tag in sq:body."
+)
 
 
 @_view_app.command("add")
@@ -521,27 +544,28 @@ _view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag i
 async def role_view_add(
     ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
 ) -> None:
-    """Insert the sq:view:NAME tag at the end of sq:body (idempotent)."""
+    """Place the sq:view:NAME tag enabled, or re-enable it if disabled (idempotent)."""
     item_id = _require_id(ctx)
-    inserted = await get_service().insert_view(item_id, name)
-    if inserted:
+    placed = await get_service().add_view(item_id, name)
+    if placed:
         console.print(f"{item_id}: view {e(name)} placed in sq:body")
     else:
         console.print(f"{item_id}: view {e(name)} already present, unchanged")
 
 
-@_view_app.command("rm")
+@_view_app.command("disable")
 @common.command
-async def role_view_rm(
-    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+async def role_view_disable(
+    ctx: typer.Context, name: str = typer.Argument(..., help="View name.")
 ) -> None:
-    """Remove the sq:view:NAME tag from sq:body (safe no-op if absent)."""
+    """Disable the sq:view:NAME tag (placed disabled if absent) — never removed."""
     item_id = _require_id(ctx)
-    removed = await get_service().remove_view(item_id, name)
-    if removed:
-        console.print(f"{item_id}: view {e(name)} removed from sq:body")
-    else:
-        console.print(f"{item_id}: view {e(name)} was not present, nothing to do")
+    svc = get_service()
+    was_present = await svc.view_tag_present(item_id, name)
+    disabled = await svc.disable_view(item_id, name)
+    console.print(
+        view_disable_result_message(item_id, name, was_present=was_present, changed=disabled)
+    )
 
 
 _addr.add_typer(_view_app, name="view")

@@ -19,9 +19,6 @@ from squads._errors import RoleNotFoundError, SquadsError
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
 from squads._interactions import (
-    ITEM_SKILL_VIEW_NAME,
-    ROLE_DEFINITION_VIEW_NAME,
-    SYSTEM_SKILL_VIEW_NAMES,
     bundled_skill_slugs,
     custom_item_skill_description,
     custom_skill_slugs,
@@ -57,6 +54,7 @@ from squads._models._item import (
     Item,
     format_item_id,
     prefix_from_id,
+    slug_from_stem,
 )
 from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple, version_drifted
@@ -260,126 +258,46 @@ def _retired_region_tags(text: str) -> list[str]:
     return seen
 
 
-def _converge_body_tag(text: str, view_name: str, *, strict_empty: bool = False) -> str:
-    """*text* with its ``sq:body`` region converged onto the placement tag naming *view_name*
-    — the mutation half of :meth:`MaintenanceMixin._repair_body_tag`'s license, shared by a
-    role, a permanently-system skill, and a per-item-type skill alike, under two different
-    strengths of the same license.
-
-    **Two licenses, not one, and why.** ``set_body`` refuses a role's and a permanently-system
-    skill's body unconditionally *in current code* — a role by ``item.type == ROSTER_ROLE``, a
-    system skill by ``is_system_skill``, which is always true for the three fixed slugs
-    :meth:`MaintenanceMixin._repair_body_tag` reaches this for regardless of the active spec
-    (see :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES`) — so no code path *today* can
-    have authored either region. That is not the same claim as "no past release ever wrote
-    one": before this tag mechanism existed, and before 0.14 retired the stored-region model,
-    both writers rendered the resolved definition straight into ``sq:body`` at write time. What
-    a migrating corpus can carry is therefore one of three shapes for either — genuinely empty,
-    already carrying this tag, or a plain-prose rendering left by a release that predates both
-    refusals — and the third is precisely the class 0.14's retired-region sweep already
-    established may be stripped: a derived rendering superseded by a computed one, never
-    author-editable prose. *strict_empty* stays ``False`` for these two, its default.
-
-    A per-item-type skill's slug has no such guarantee, and passes *strict_empty=True*: unlike
-    a role or a permanently-system skill, its slug can be genuinely **custom** at one point (an
-    author writes a real body under a ``sq-`` slug matching no declared type — the prefix is
-    not reserved) and become template-owned later, the moment a project declares a matching
-    item type. A per-item-type skill's definition has also never been stored at any past
-    release (it renders on read in every version this mechanism has existed for), so there is
-    no "legacy rendering" shape to reclaim here — only genuinely empty, or already tagged, may
-    ever converge; anything else is left **untouched**, silently, because it is exactly as
-    likely to be someone's authored runbook as it is to be anything this sweep understands, and
-    guessing wrong deletes real work.
-
-    **What stays loud, when it isn't strict.** A plain-prose legacy rendering does not itself
-    contain marker-shaped text — it is bytes a template produced, not a document with its own
-    regions. Content that *does* contain a well-formed ``<!-- sq:... -->`` tag is not that
-    shape: it is something this sweep has no model for (another tag, a nested region,
-    corruption), and converging over it would risk silently destroying something structured
-    rather than a stale render. That case raises rather than being assumed away — but only
-    under the non-strict license; *strict_empty* already leaves any non-empty content alone
-    before this check is ever reached, so it never raises.
-
-    Idempotent: a region already carrying exactly the tag is left byte-for-byte unchanged, so a
-    second sweep over an already-backfilled corpus writes nothing.
-
-    Raises :class:`~squads._errors.SquadsError`, never a bare exception, for the marker-shaped
-    case above — this is the ordinary user-facing-error convention every other refusal in this
-    codebase follows (see ``CLAUDE.md``), and it is what lets the sweep loop that calls this
-    (:func:`_record_pending_rewrite`) catch it per file and skip-and-report rather than letting
-    one damaged file abort the whole corpus-wide pass mid-transaction — see that function."""
-    tag_line = markers.open_marker(markers.view_tag(view_name))
+def _converge_body_tag(
+    text: str, view_name: str, spec: WorkflowSpec, item_type: str, addr: int | str
+) -> str:
+    """Converge *text*'s ``sq:body`` region onto *view_name*'s placement tag only when the
+    region is empty or already just that tag — anything else is left untouched, since it might
+    be an author's real prose rather than a stale rendering. A missing region is reinstated
+    first when that is safe; otherwise *text* comes back unchanged, never raising."""
+    if sections.get_section(text, markers.BODY) is None:
+        reinstated = views.reinstate_absent_body_region(text)
+        if reinstated is None:
+            return text
+        text = reinstated
     current = (sections.get_section(text, markers.BODY) or "").strip()
-    if current == tag_line:
+    tag_line = markers.open_marker(markers.view_tag(view_name))
+    if current not in ("", tag_line):
         return text
-    if not current:
-        return sections.replace_section(text, markers.BODY, tag_line)
-    if strict_empty:
-        return text  # authored, or of a shape this narrower license has no license to touch
-    if not sections.find_markers(current):
-        return sections.replace_section(text, markers.BODY, tag_line)
-    raise SquadsError(
-        f"repair backfill: expected an empty, already-tagged, or plain legacy-rendered sq:body "
-        f"for {view_name!r}, found marker-shaped content {current!r} — this sweep has no model "
-        "for what that is and refuses to overwrite it"
+    new_inner = views.place_view_tags(
+        sections.get_section(text, markers.BODY) or "",
+        None,
+        seeded=frozenset({view_name}),
+        spec=spec,
+        item_type=item_type,
+        addr=addr,
     )
+    return sections.replace_section(text, markers.BODY, new_inner)
 
 
-def _strip_retired_regions(text: str, *, body_tag: str | None) -> tuple[str, str | None]:
-    """``(text, skip_message)`` — *text* with every retired region removed and its ``sq:body``
-    region converged onto *body_tag*'s named placement tag when given, plus a message when the
-    convergence half declined rather than aborting — the sweep's whole content transformation,
-    as one pure function of the file's bytes.
-
-    Cuts are marker-safe: each region is excised from its own open marker through its own
-    close marker by :func:`~squads._sections.remove_section`, which also absorbs the blank
-    separator line the region was inserted with, so a stripped file matches what the live
-    write path produces today rather than leaving a doubled blank line behind.
-
-    Converging is not deletion: a body region's content changes and it keeps its marker pair.
-    The reason is shape, not behaviour — the pair is what every item file carries, and what
-    ``_create_core``'s scaffold renders for every type (:meth:`ServiceCore._create_core` seeds
-    a role's tag the same way, for the same reason). **Nothing observable depends on the pair
-    itself**, and that was checked rather than assumed: with the pair deleted outright from a
-    role file, ``sq role <slug> show`` still renders the resolved definition, ``sq check``
-    reports nothing, and ``sync``/``repair``/``regen`` neither fault nor restore it. An earlier
-    version of this docstring claimed a removed region reads as "no item for this slug"; no
-    read path branches on the region at all, and that sentence had been copied into the
-    release note before it was caught.
-
-    The one mechanical consequence, for whoever changes this next:
-    :func:`~squads._sections.replace_section` raises ``KeyError`` on an absent region, so a
-    future writer reaching a role's body would fault instead of refusing. None exists today —
-    :meth:`set_body` refuses a role before it gets there, and the role addressing group has no
-    ``body`` verb — so keeping the pair buys shape consistency and a writer that cannot be
-    surprised, not a behaviour anything currently relies on.
-
-    Idempotent by construction: a file with none of these regions, a region already absent and
-    a body already converged are each a no-op, so the returned text is the input text
-    unchanged.
-
-    **The convergence half is caught here, per file, so it cannot abort the whole pass.**
-    :func:`_converge_body_tag` raises :class:`~squads._errors.SquadsError` for a body region
-    holding marker-shaped content it has no model for — content this sweep must not guess at.
-    Catching it here means only *this* file's body-tag convergence is skipped — the
-    retired-region strip above it already ran and still applies — and *skip_message* names the
-    guard's own message for the caller to report, never silently, so the rest of the corpus
-    still converges normally through :meth:`MaintenanceMixin._rebuild_index_from_disk`'s loop.
-    The guard itself is unweakened: it still refuses to overwrite what it does not understand;
-    only its blast radius is one region, never the whole sweep."""
+def _strip_retired_regions(
+    text: str, *, body_tag: str | None, spec: WorkflowSpec, item_type: str, addr: int | str
+) -> str:
+    """*text* with every retired region removed (marker-safe, via
+    :func:`~squads._sections.remove_section`) and its ``sq:body`` region converged onto
+    *body_tag*'s placement tag when given. A file with none of these regions, or an
+    already-converged body, is a no-op; :func:`_converge_body_tag` never raises, so this
+    function has no skip channel of its own."""
     for tag in _retired_region_tags(text):
         text = sections.remove_section(text, tag)
-    skip_message: str | None = None
     if body_tag is not None:
-        # A per-item-type skill's slug can have been genuinely custom before a matching type
-        # was declared — unlike a role or a permanently-system skill, whose bodies `set_body`
-        # has always refused unconditionally — so its convergence license is the narrower one:
-        # only empty or already-tagged, never a guess at "this must be a stale rendering".
-        try:
-            text = _converge_body_tag(text, body_tag, strict_empty=body_tag == ITEM_SKILL_VIEW_NAME)
-        except SquadsError as exc:
-            skip_message = str(exc)
-    return text, skip_message
+        text = _converge_body_tag(text, body_tag, spec, item_type, addr)
+    return text
 
 
 def _retired_role_extra_keys(item: Item) -> frozenset[str]:
@@ -434,17 +352,11 @@ class _PendingRewrites:
     ``canonicalized`` and ``stripped`` name the items each transformation actually applied to,
     kept apart because they are different facts about a corpus and are reported separately.
     An item can appear in both.
-
-    ``skipped`` holds one message per item whose body-tag convergence declined rather than
-    aborting the pass (:func:`_strip_retired_regions`'s *skip_message*) — the file's other
-    transformations, if any, still queue normally; only its own body-tag region is left
-    untouched. Empty on a corpus with no marker-shaped body regions this sweep cannot model.
     """
 
     files: list[tuple[Path, str]] = dataclasses.field(default_factory=list[tuple[Path, str]])
     canonicalized: list[str] = dataclasses.field(default_factory=list[str])
     stripped: list[str] = dataclasses.field(default_factory=list[str])
-    skipped: list[str] = dataclasses.field(default_factory=list[str])
 
 
 def _frontmatter_without(data: dict[str, Any], keys: frozenset[str]) -> dict[str, Any]:
@@ -486,10 +398,9 @@ def _record_pending_rewrite(
     item: Item,
     *,
     body_tag: str | None,
+    spec: WorkflowSpec,
 ) -> None:
-    """Queue *item*'s write-back onto *pending* when its file needs one, and record a
-    body-tag-convergence skip onto ``pending.skipped`` when one occurred — independently of
-    each other, since a skip can be the only thing this call has to report.
+    """Queue *item*'s write-back onto *pending* when its file needs one.
 
     Two independent reasons a file is rewritten, composed here into **one** replacement text
     and **one** queued entry (see :class:`_PendingRewrites`):
@@ -498,10 +409,7 @@ def _record_pending_rewrite(
       rewritten to the canonical encoding the fold already produced;
     - it carries a retired region, or a body this sweep converges onto a placement tag
       (:func:`_strip_retired_regions`, licensed per-item by *body_tag* — see
-      :meth:`MaintenanceMixin._repair_body_tag`; a body-tag convergence that declines rather
-      than aborting is recorded onto ``pending.skipped`` regardless of whether anything else
-      about the file needed rewriting, since a declined region is reported on its own terms,
-      never only when it happens to ride along with an unrelated rewrite);
+      :meth:`MaintenanceMixin._repair_body_tag`);
     - it is a role item whose ``extra`` still carries retired mirror keys
       (:func:`_retired_role_extra_keys`).
 
@@ -531,9 +439,11 @@ def _record_pending_rewrite(
     Split out of the per-file loop purely to keep that already-long method under the
     complexity ceiling; the writes themselves are the caller's, after the refusal check.
     """
-    new_text, skip_message = _strip_retired_regions(text, body_tag=body_tag)
-    if skip_message is not None:
-        pending.skipped.append(f"{item.id}: {skip_message}")
+    slug = views.roster_slug(item.type, item.slug, item.extra)
+    addr: int | str = slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
+    new_text = _strip_retired_regions(
+        text, body_tag=body_tag, spec=spec, item_type=item.type, addr=addr
+    )
     stripped = new_text != text
     retired_keys = _retired_role_extra_keys(item)
     for key in retired_keys:
@@ -560,13 +470,17 @@ def _record_pending_rewrite(
 def _marker_issues(text: str) -> list[str]:
     """Detect unbalanced or duplicated sq markers in a file.
 
-    The declared unpaired view-tag family (:func:`~squads._models._markers.view_tag_name`)
-    is exempt from the open/close **pairing** count only — by design it has no
+    The declared unpaired view-tag family (:func:`~squads._models._markers.view_tag_parts`)
+    is exempt from the open/close **pairing** count entirely — by design it has no
     ``close_marker`` counterpart (see :data:`~squads._models._markers.VIEW`), so demanding one
-    would flag a correctly placed tag as broken. The exemption is narrow and shape-driven,
-    never a name list: a **duplicate** of the same named view tag in one file is still
-    reported below, exactly like any other tag, because that is a distinct signal (a doubled
-    tag renders the view twice) from pairing.
+    would flag a correctly placed tag as broken, in either state (enabled or disabled — a
+    close-marker spelling never matches either form), and a **duplicate** of one — same state
+    or cross-state (``x`` and ``x:disabled``, a different raw tag to this Counter, so never
+    caught as a duplicate here regardless) — is deferred whole to
+    :func:`_seeded_view_issues`'s own "duplicate by name" condition, the one place that can
+    name the real ``view add``/``view disable`` remedy alongside it. Every other tag family
+    (``sq:body`` and the rest) has no such richer report to defer to, so its own duplicate is
+    still reported here, exactly like unbalanced pairing.
     """
     opens: Counter[str] = Counter()
     closes: Counter[str] = Counter()
@@ -578,9 +492,14 @@ def _marker_issues(text: str) -> list[str]:
             opens[tag] += 1
     problems: list[str] = []
     for tag, n in opens.items():
-        if n > 1:
+        # A same-state view-tag duplicate is deferred to `_seeded_view_issues`'s own
+        # "duplicate by name" report — the one place that can name the real `view
+        # add`/`view disable` remedy (it alone carries item_type/slug/spec); reporting it
+        # again here, with no remedy, would be the exact double report neither of the two
+        # docstrings wants.
+        if n > 1 and markers.view_tag_parts(tag) is None:
             problems.append(f"duplicate marker <!-- sq:{tag} -->")
-        if markers.view_tag_name(tag) is None and closes[tag] < n:
+        if markers.view_tag_parts(tag) is None and closes[tag] < n:
             problems.append(f"unclosed marker <!-- sq:{tag} -->")
     for tag, n in closes.items():
         if opens[tag] < n:
@@ -591,43 +510,159 @@ def _marker_issues(text: str) -> list[str]:
 def _view_target_issues(
     text: str, item_type: str, spec: WorkflowSpec, playbook: PlaybookSpec
 ) -> list[str]:
-    """Every ``sq:view:<name>`` tag in *text* that cannot resolve when read on a host of
-    *item_type*, as report strings — **two** reasons: *name* is
-    undeclared or its presentation template is missing, or *name* is declared and templated
-    but its source cannot apply to *item_type* — a tag valid when placed can reach this state
-    through ``retype``, a spec/override edit narrowing what a type hosts, or a creation
-    template later changed; nothing here rewrites it, only reports it.
-
-    This finding is unconditional and error-level — the binding invariant a document carrying
-    such a tag must satisfy, not a member of the per-item validator catalog — so it sits beside
-    :func:`_marker_issues` in the same always-on file-level marker scan rather than behind a
-    catalog clause or a level knob. Resolved through
-    :func:`~squads._views.resolve_view_target`, the one predicate a placement insert already
-    refuses an unresolvable tag through: this is the read-time reporting half of that same
-    question, never a second implementation of it. *item_type* is bound by the caller from the
-    file's own type folder and filename (:meth:`MaintenanceMixin._iter_item_files`), **before**
-    ``read_frontmatter`` ever runs — the predicate is type-scoped by construction (never reads
-    a resolved item's content), so this needs no ``Item`` and keeps firing on a file too broken
-    to parse, which is exactly where a finding about an unreadable document earns its keep.
-    *playbook* is the caller's active, merged playbook — only a ``playbook``-sourced view's
-    applicability actually reads it, but it is threaded through regardless so this scan agrees
-    with every other consumer of :func:`~squads._views.resolve_view_target` on a project that
-    overrides its playbook, not just the bundled one.
-
-    A name is reported once per file even if its tag repeats — a *duplicate* of the same tag
-    is a separate signal :func:`_marker_issues` already reports.
-    """
+    """Every **enabled** ``sq:view:<name>`` tag in *text* that cannot resolve for *item_type* —
+    undeclared, template missing, or a source that cannot apply to this type — as report
+    strings, once per name even if its tag repeats (a duplicate is :func:`_marker_issues`'s own
+    signal). Reports only, through :func:`~squads._views.resolve_view_target`; never
+    rewrites."""
     problems: list[str] = []
     seen: set[str] = set()
     for raw in sections.find_markers(text):
-        name = markers.view_tag_name(raw)
-        if name is None or name in seen:
+        parts = markers.view_tag_parts(raw)
+        if parts is None or parts.disabled or parts.name in seen:
             continue
-        seen.add(name)
-        reason = views.resolve_view_target(name, item_type, spec, playbook)
+        seen.add(parts.name)
+        reason = views.resolve_view_target(parts.name, item_type, spec, playbook)
         if reason is not None:
             problems.append(f"{reason} (<!-- {raw} -->)")
     return problems
+
+
+def _stem_slug(md: Path, item_type: str, spec: WorkflowSpec) -> str:
+    """The filename's slug segment (``PREFIX-NNNNNN-<slug>.md`` -> ``<slug>``), resolved from
+    *item_type*'s declared prefix. The fallback :func:`_check_slug` uses only when frontmatter
+    cannot be read at all."""
+    return slug_from_stem(md.stem, spec.items[item_type].prefix)
+
+
+def _check_slug(md: Path, item_type: str, text: str, spec: WorkflowSpec) -> str:
+    """The slug this check pass classifies *md* by (:func:`~squads._views.roster_slug`'s
+    identity), read from frontmatter whenever *text* parses, falling back to the filename
+    segment (:func:`_stem_slug`) only when frontmatter can't be reached — matching the write
+    path's own classification even for a hand-renamed skill file."""
+    try:
+        data = read_frontmatter(text=text, source=str(md))
+    except SquadsError:
+        return _stem_slug(md, item_type, spec)
+    raw_extra = data.get("extra")
+    extra: dict[str, Any] = cast("dict[str, Any]", raw_extra) if isinstance(raw_extra, dict) else {}
+    raw_slug = data.get("slug")
+    slug = raw_slug if isinstance(raw_slug, str) and raw_slug else _stem_slug(md, item_type, spec)
+    return views.roster_slug(item_type, slug, extra)
+
+
+def _seeded_view_issues(
+    text: str, item_type: str, slug: str, n: int | None, spec: WorkflowSpec
+) -> list[str]:
+    """Every seeded view (:func:`~squads._views.seeded_view_names`) present exactly once and no
+    view name duplicated, checked directly against *text* on disk — each violation reported
+    with its real, runnable remedy. A roster host with prose beside a missing tag names moving
+    the prose to a new skill before clearing it, never clearing outright, since it may be an
+    author's real runbook; an entirely absent region defers to
+    :func:`_absent_body_region_issues` instead, since neither ``view add`` nor ``view disable``
+    can act on one. Reports only, never repairs."""
+    seeded = views.seeded_view_names(item_type, slug, spec)
+    counts: Counter[str] = Counter()
+    for raw in sections.find_markers(text):
+        parts = markers.view_tag_parts(raw)
+        if parts is not None:
+            counts[parts.name] += 1
+    is_roster = item_type in (ROSTER_ROLE, ROSTER_SKILL)
+    addr: int | str = slug if is_roster else (n if n is not None else "<n>")
+    # A roster host's body can carry non-empty prose alongside a missing tag — legacy text a
+    # migration skip or an adopted pre-0.14 corpus left, or an author's own runbook a later
+    # type declaration classified. `view add` would place a second, live rendering beside that
+    # prose rather than replacing it (the roster write refusal gives this guard no way to clear
+    # prose on its own), so the full four-step remedy is named instead: drop
+    # the view from `[selected]` (making the host briefly not roster-classified, so its body
+    # write refusal lifts), clear the text, restore the view, then `view add` — the only
+    # sequence that converges to a single live rendering, never `view disable` alone (which
+    # leaves the legacy prose stranded, unclearable, forever). An ordinary, non-roster host's
+    # seeded view has no such second surface, so `view add` stays offered unconditionally.
+    region = sections.get_section(text, markers.BODY) if is_roster else None
+    # A roster host whose `sq:body` marker pair is entirely absent is a different, narrower
+    # shape than a present-but-tagless region (`_absent_body_region_issues`, immediately below,
+    # is the one that reports it) — `view add`/`view disable` both need an existing region to
+    # place a tag into, so neither remedy this loop would otherwise name can work on such a
+    # file. Deferring to that finding here, rather than also naming a remedy that fails, is what
+    # keeps one broken file from ever carrying two findings that disagree on what to run.
+    region_absent = is_roster and region is None
+    prose_beside_missing_tag = is_roster and bool(views.strip_view_tags(region or "").strip())
+    problems: list[str] = []
+    for name in sorted(seeded - set(counts)):
+        if region_absent:
+            continue
+        tag = markers.open_marker(markers.view_tag(name))
+        if prose_beside_missing_tag:
+            clear_cmd = views.clear_roster_body_cmd(item_type, slug, n, spec)
+            add_cmd = views.view_placement_invocation(item_type, addr, "add", name)
+            doc_type = item_type_for_skill_slug(slug, spec) if item_type == ROSTER_SKILL else None
+            if doc_type is not None:
+                # The same shape `_item_skill_shadowed` also reports: this prose may be an
+                # author's own runbook (the reclaim never ran against it, e.g. an `sq adopt`
+                # or a type declared later), so the remedy preserves it, never deletes outright.
+                problems.append(
+                    f"missing seeded view tag {tag} — the body already carries prose, and "
+                    f"{slug!r} still documents the declared type {doc_type!r}, so this may be "
+                    f"an author's own runbook rather than stale legacy text; the remedy that "
+                    f"preserves it: (1) `sq skill add <new-slug>` and move the prose there; "
+                    f"(2) drop {name!r} from [selected] in .overrides/workflow.toml; (3) clear "
+                    f"{slug}'s own text with `{clear_cmd}`; (4) restore {name!r} to [selected]; "
+                    f"(5) `{add_cmd}`"
+                )
+            else:
+                problems.append(
+                    f"missing seeded view tag {tag} — the body already carries "
+                    f"prose; the remedy that converges to a single live rendering: (1) drop "
+                    f"{name!r} from [selected] in .overrides/workflow.toml; (2) clear the text "
+                    f"with `{clear_cmd}`; (3) restore {name!r} to [selected]; (4) `{add_cmd}`"
+                )
+        else:
+            add_cmd = views.view_placement_invocation(item_type, addr, "add", name)
+            disable_cmd = views.view_placement_invocation(item_type, addr, "disable", name)
+            problems.append(
+                f"missing seeded view tag {tag} — restore it with `{add_cmd}`, "
+                f"or disable it with `{disable_cmd}`"
+            )
+    problems.extend(
+        f"duplicate {markers.PREFIX}{markers.view_tag(name)} tag "
+        f"({counts[name]} copies, counting both states) — "
+        f"collapse to one with "
+        f"`{views.view_placement_invocation(item_type, addr, 'add', name)}` or "
+        f"`{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
+        for name in sorted(n for n, c in counts.items() if c > 1)
+    )
+    return problems
+
+
+def _absent_body_region_issues(
+    text: str, item_type: str, slug: str, spec: WorkflowSpec
+) -> list[str]:
+    """One error when a role's or skill's ``sq:body`` marker pair is entirely absent (both
+    markers missing, not just one — that's :func:`_marker_issues`'s job). Names ``view
+    add``/``view disable`` when :func:`~squads._views.reinstate_absent_body_region` says the
+    region can be safely reinstated, or manual recovery when real prose is in the way and
+    neither verb can help without guessing."""
+    if item_type not in (ROSTER_ROLE, ROSTER_SKILL):
+        return []
+    if markers.open_marker(markers.BODY) in text or markers.close_marker(markers.BODY) in text:
+        return []
+    view_name = views.roster_body_view_name(item_type, slug, spec)
+    if view_name is None:
+        return []
+    if views.reinstate_absent_body_region(text) is None:
+        return [
+            "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at "
+            "all) with something other than the seeded view tag in the way — no `view "
+            "add`/`view disable` can restore this without guessing which lines are authored; "
+            "recover the file by hand or from a backup"
+        ]
+    add_cmd = views.view_placement_invocation(item_type, slug, "add", view_name)
+    disable_cmd = views.view_placement_invocation(item_type, slug, "disable", view_name)
+    return [
+        "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — "
+        f"restore it with `{add_cmd}`, or disable the view with `{disable_cmd}`"
+    ]
 
 
 def _drift_direction(item: Item, fdata: dict[str, Any]) -> str | None:
@@ -891,10 +926,10 @@ def _fold_stem_into_floor(
 class MaintenanceMixin(ServiceCore):
     # ------------------------------------------------------------------ sync
     async def sync(self) -> SyncSkips:
-        """Regenerate all tool-owned managed files to the current version; stamp the config —
-        **except** when this run's own version-drift backfill declined at least one body, in
-        which case the stamp is withheld so the next ``sync`` retries it (see the comment at
-        the stamp call below); every other regenerated file still lands normally on that run.
+        """Regenerate all tool-owned managed files to the current version, and stamp the
+        config. The version-drift body-tag backfill (:meth:`_backfill_roster_body_tags`) never
+        declines (convergence is strict, so it either fills a genuinely empty region or leaves
+        a non-empty one untouched, silently), so the stamp is never withheld on its account.
 
         **Deduplicated by exact text before returning.** A generic safety net over the
         per-writer skip-report messages below, not tied to any one of them — collapsing exact
@@ -903,17 +938,9 @@ class MaintenanceMixin(ServiceCore):
         different reason — passing through untouched.
 
         Returns a :class:`~squads._services._results.SyncSkips` — every existing caller can
-        keep treating it as the plain ``list[str]`` of skip/notice messages below, and the CLI
-        additionally reads its ``.backfill_skipped`` to tell a withheld-stamp run apart from
-        every other skip channel without string-matching this list (see that class's own
-        docstring).
+        keep treating it as the plain ``list[str]`` of skip/notice messages below.
 
-        Returns one ``"skipped <item id>: ..."`` message per role/skill body-tag convergence
-        the version-drift backfill declined to overwrite (:meth:`_backfill_roster_body_tags`;
-        empty when this run's own squads_version already matches, or when every body converged
-        cleanly — and reported again, unchanged, on every subsequent ``sync`` until the body is
-        fixed or the guard's refusal no longer applies, since a non-empty result here is exactly
-        what withholds the stamp), one skip-report message per drifted roster role whose
+        Returns one skip-report message per drifted roster role whose
         frontmatter was left untouched (see :meth:`_detect_roster_item_skew`, and
         :meth:`_refresh_catalog_extra`
         for the narrower catalog-merge case that can raise the same way), one notice per live
@@ -986,9 +1013,9 @@ class MaintenanceMixin(ServiceCore):
         # ``item.extra`` in place and then grafts that same object into a fresh
         # ``transaction()`` db via ``db.add`` — a pre-transaction object landing in a db it
         # did not come from. The commit path is safe regardless (``ensure_no_skew`` gates the
-        # graft, and the excluded-key set is exactly what the graft reasserts — see the extra
-        # amendment on the read-scope decision), but a private copy here makes that local to
-        # this loop rather than something a reader has to trace across three files.
+        # graft, and the excluded-key set is exactly what the graft reasserts), but a private
+        # copy here makes that local to this loop rather than something a reader has to trace
+        # across three files.
         roster_roles = [
             item.model_copy(deep=True) for item in await self.list_items(item_type=ROSTER_ROLE)
         ]
@@ -1036,10 +1063,8 @@ class MaintenanceMixin(ServiceCore):
         # of ``repair()`` in here would make every version-drift sync an index-reordering event
         # too — this reuses only :func:`_converge_body_tag` through
         # :meth:`_backfill_roster_body_tags`, which touches a body region and nothing else.
-        backfill_skipped: list[str] = []
         if version_drifted(__version__, recorded_version):
-            backfill_skipped = await self._backfill_roster_body_tags(roster_roles, roster_skills)
-            skipped += backfill_skipped
+            await self._backfill_roster_body_tags(roster_roles, roster_skills)
 
         # The roster-scoped set of per-entry pointers that *should* exist after this run —
         # the same live predicate and the same backend declaration `sq check`'s
@@ -1169,25 +1194,12 @@ class MaintenanceMixin(ServiceCore):
         # disk that no `SKILL` item indexes — at the one moment the answer is unambiguous,
         # right after this run both wrote the bodies and seeded them.
         skipped += self._unindexed_skill_bodies()
-        # Stamped unconditionally *except* when this run's own backfill just declined a body:
-        # stamping would read back as "converged" on the very next sync (the drift comparison
-        # above goes false the moment ``recorded_version`` reads the current release), so the
-        # region would never be revisited and the skip reported just above would be the last
-        # anyone ever heard of it. Leaving the stamp behind is what makes the drift trigger
-        # true again on the next ``sync`` — the skip is retried, and reported again, on every
-        # subsequent run until the body is fixed by hand or the guard's refusal is overridden
-        # some other way. Every other part of this run (roster projection, backend pointers,
-        # skill seeding) is idempotent, so re-running the rest of the sweep on a withheld stamp
-        # costs nothing beyond the comparison itself.
-        if not backfill_skipped:
-            await self._stamp_version(__version__)
+        # Stamped unconditionally: the version-drift backfill above never declines, so there
+        # is nothing that would make withholding the stamp meaningful.
+        await self._stamp_version(__version__)
         # Collapse exact duplicates only (order-preserving) — see the docstring above. A
         # second, textually different message about the same item is never touched by this.
-        # backfill_skipped is carried separately, deduplicated the same way, as its own
-        # channel — see SyncSkips.
-        return SyncSkips(
-            dict.fromkeys(skipped), backfill_skipped=list(dict.fromkeys(backfill_skipped))
-        )
+        return SyncSkips(dict.fromkeys(skipped))
 
     async def _entry_content_snapshot(
         self,
@@ -1932,7 +1944,7 @@ class MaintenanceMixin(ServiceCore):
 
     async def _backfill_roster_body_tags(
         self, roster_roles: list[Item], roster_skills: list[Item]
-    ) -> list[str]:
+    ) -> None:
         """Converge every role's and skill's ``sq:body`` region onto its placement tag, in
         place — the one piece of :meth:`repair`'s corpus sweep :meth:`sync` needs on the
         ordinary upgrade path (see the version-drift call site in :meth:`sync`), without
@@ -1953,13 +1965,9 @@ class MaintenanceMixin(ServiceCore):
         rebuild to reconcile. That is also why this needs no reflog entry of its own — the same
         posture ``sync``'s other file writes already have.
 
-        Returns one ``"skipped <item id>: <reason>"`` message per body :func:`_converge_body_tag`
-        declined to touch (the same guard :meth:`repair` reports through
-        :attr:`~squads._services._results.RepairResult.skipped`, worded here with the
-        ``"skipped "`` prefix inline since this list feeds directly into :meth:`sync`'s own
-        flat ``skipped`` return rather than a dedicated field) — empty when every convergence
-        this call attempted went through cleanly, which is what a healthy corpus does."""
-        messages: list[str] = []
+        Never declines: :func:`_converge_body_tag` is strict unconditionally, so it either
+        converges a genuinely empty region or leaves a non-empty one untouched, silently —
+        this function has no channel to report either outcome on."""
         for item in (*roster_roles, *roster_skills):
             view_name = self._repair_body_tag(item)
             if view_name is None:
@@ -1971,90 +1979,39 @@ class MaintenanceMixin(ServiceCore):
                 # Indexed but the file is gone — not this call's problem to report; the next
                 # `sq check`/`sq repair` surfaces a missing file its own, dedicated way.
                 continue
-            try:
-                new_text = _converge_body_tag(
-                    text, view_name, strict_empty=view_name == ITEM_SKILL_VIEW_NAME
-                )
-            except SquadsError as exc:
-                messages.append(f"skipped {item.id}: {exc}")
-                continue
+            slug = views.roster_slug(item.type, item.slug, item.extra)
+            new_text = _converge_body_tag(text, view_name, self.spec, item.type, slug)
             if new_text != text:
                 await write_text(md, new_text)
-        return messages
 
     def _repair_body_tag(self, item: Item) -> str | None:
         """The placement tag name the repair sweep converges/backfills *item*'s ``sq:body``
         onto, or ``None`` when this sweep leaves the region alone. Naming a tag here is only
-        the classification half — :func:`_converge_body_tag` decides, per its own
-        ``strict_empty`` flag, how much of a license that classification actually buys.
+        the classification half — :func:`_converge_body_tag` decides, strictly and
+        unconditionally, how much of that classification it actually acts on: a genuinely
+        empty region only.
 
-        **A role and a permanently-system skill (squads/greeting/sq-memory,
-        :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES`) share the wide, unconditional
-        license.** ``set_body`` refuses both bodies unconditionally *today* — a role by
-        ``item.type == ROSTER_ROLE``, a system skill by ``is_system_skill``, which is
-        bundled-blind and so stays true for these three fixed slugs regardless of the active
-        spec — so no code path today can have authored either region. "Refused today" is not
-        "refused every past release": before this tag mechanism, and before 0.14 retired the
-        stored-region model, every write path rendered the definition straight into the
-        region, so a migrating corpus can carry that legacy rendering instead of empty or the
-        tag. Converging over it is the same class of removal 0.14's sweep already established
-        is safe for a derived, superseded rendering; what still stops the sweep is content
-        shaped like something it does not understand (see :func:`_converge_body_tag`'s
-        marker-shape check).
-
-        **A per-item-type ``sq-<type>`` skill gets the narrower, ``strict_empty`` license
-        instead, because it genuinely can have been authored.** Unlike the three permanently-
-        system slugs, its template-owned status moves with the active spec
-        (:func:`~squads._interactions.item_type_for_skill_slug`): a slug can be a real, custom
-        skill at one point and become template-owned later, the moment a matching type is
-        declared. Its definition has also never been stored at any past release, so there is no
-        legacy-rendering shape for it to reclaim. This method still names
-        :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME` whenever the slug currently
-        documents a declared type — the safety against overwriting real authored content lives
-        entirely in ``strict_empty``'s narrower convergence rule, not in a refusal here.
-
-        **A per-item-type skill whose slug names no *currently* declared type is left alone
-        here too, one level earlier.** A dropped or renamed type's stale ``sq-<type>`` skill is
-        already withdrawn from generated output elsewhere
-        (``is_live_roster_entry``/``orphaned_skill_item_type``); naming a tag for it would only
-        make a read resolve the emptiness fallback (``squads._views._playbook_subject``) rather
-        than raise, which buys nothing this sweep needs and costs a rewrite of a file it cannot
-        prove is safe to touch — the inversion that decides "does this slug still document a
-        type" is the same one the read-time subject derivation uses, so the two never disagree
-        about which slugs are live.
+        The classification itself is :func:`~squads._views.roster_body_view_name` — the same
+        pure function of a role's/skill's item type and slug that the roster write refusal and
+        the ``sq check`` finding both read (:func:`~squads._views.seeded_view_names`), so this
+        sweep can never disagree with either about which view a
+        document carries. See that function's own docstring for the three shapes it names (a
+        role, a permanently-system skill, a per-item-type ``sq-<type>`` skill) and the
+        declared-view gate every one of them shares — dropping a view via a
+        ``.overrides/workflow.toml`` ``[selected]`` block is ordinary, supported customisation,
+        so a dropped view's region is left alone here (genuinely empty or plain, never
+        dangling), matching the standard "empty — activate/sync" guidance rather than needing a
+        repair of its own.
 
         A role's region converging is not deletion — see :func:`_strip_retired_regions`, which
         records what was driven: no read path branches on the region's own bytes, so rewriting
         it changes nothing any read surface observes beyond what the tag itself now resolves
         to. It is the marker pair every item file carries, and keeping it is the cheaper of two
-        harmless choices.
-
-        **Every branch also gates on the view still being declared in** ``self.spec.views``,
-        **the same condition the per-item-type branch above already checks for its own
-        declared-type precondition.** Dropping ``role_definition`` (or one of the three
-        system-skill views) via a ``.overrides/workflow.toml`` ``[selected]`` block is ordinary,
-        supported customisation, not a defect — but naming a tag for an undeclared view here
-        would seed exactly the shape ``sq check``'s dangling-tag rule then has to flag: a file
-        whose ``sq:view:<name>`` names a view the active spec does not carry. Left ungated, this
-        method and that check would disagree about what "the view is live" means, and every
-        empty or freshly-created body under a dropped view would be a fresh instance of that
-        disagreement rather than a one-time cost. Gating here — the same condition the per-type
-        branch already checks — keeps the two in agreement: a dropped view's region is left
-        alone (genuinely empty or plain, never dangling), matching the standard "empty —
-        activate/sync" guidance rather than needing a repair of its own."""
-        if item.type == ROSTER_ROLE:
-            if ROLE_DEFINITION_VIEW_NAME not in self.spec.views:
-                return None
-            return ROLE_DEFINITION_VIEW_NAME
-        if item.type == ROSTER_SKILL:
-            slug = item.extra.get(X.SLUG, item.slug)
-            view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug)
-            if view_name is not None:
-                return view_name if view_name in self.spec.views else None
-            if item_type_for_skill_slug(slug, self.spec) is not None:
-                return ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in self.spec.views else None
+        harmless choices."""
+        slug = views.roster_slug(item.type, item.slug, item.extra)
+        if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
             return None
-        return None
+        return views.roster_body_view_name(item.type, slug, self.spec)
 
     async def _rebuild_index_from_disk(
         self,
@@ -2062,7 +2019,7 @@ class MaintenanceMixin(ServiceCore):
         previous_counter: int,
         previous_padding: int,
         known_corpus: SquadsDB | None = None,
-    ) -> tuple[SquadsDB, list[str], list[str], list[str], list[str]]:
+    ) -> tuple[SquadsDB, list[str], list[str], list[str]]:
         """Scan every item file fresh and commit a rebuilt index — the core of :meth:`repair`,
         factored out so :meth:`renumber` can reuse it *without* repair's previous-snapshot /
         missing-file / reflog bookkeeping, which is specific to the ``sq repair`` verb (a
@@ -2086,7 +2043,7 @@ class MaintenanceMixin(ServiceCore):
         only when something a previous index actually knew about truly stopped resolving —
         never on a merely-reconstructed metadata quirk that doesn't affect where the file is.
 
-        Returns ``(db, unreadable, canonicalized, stripped, skipped)`` — ``unreadable`` names
+        Returns ``(db, unreadable, canonicalized, stripped)`` — ``unreadable`` names
         every file whose content could not be read or parsed, **or** that parsed but cannot
         become an item
         (no ``id``, or a type-invalid field — :meth:`Item.from_frontmatter` is the load boundary
@@ -2215,7 +2172,7 @@ class MaintenanceMixin(ServiceCore):
             _carry_forward_indexed_timestamps(item, data, known_corpus)
             self._raise_unless_vocab_valid(item, md)
             _record_pending_rewrite(
-                pending, md, text, data, item, body_tag=self._repair_body_tag(item)
+                pending, md, text, data, item, body_tag=self._repair_body_tag(item), spec=self.spec
             )
             db.add(item)
             max_n = max(max_n, number_for_id(item.id))
@@ -2256,7 +2213,7 @@ class MaintenanceMixin(ServiceCore):
             await write_text(md, new_text)
 
         await self.store.overwrite(db)
-        return db, unreadable, pending.canonicalized, pending.stripped, pending.skipped
+        return db, unreadable, pending.canonicalized, pending.stripped
 
     async def repair(self, *, renumber: bool = False) -> RepairResult:
         """Rebuild the index from the markdown frontmatter, and sweep the corpus while walking
@@ -2317,7 +2274,7 @@ class MaintenanceMixin(ServiceCore):
         if renumber:
             await self._renumber()
 
-        db, unreadable, canonicalized, stripped, skipped = await self._rebuild_index_from_disk(
+        db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
             previous_counter=previous_counter,
             previous_padding=previous_padding,
             known_corpus=known_corpus,
@@ -2343,7 +2300,6 @@ class MaintenanceMixin(ServiceCore):
                 "unreadable": unreadable,
                 "canonicalized": canonicalized,
                 "stripped": stripped,
-                "skipped": skipped,
             },
             session_id=sid,
             parent_session_id=psid,
@@ -2355,7 +2311,6 @@ class MaintenanceMixin(ServiceCore):
             unreadable=unreadable,
             canonicalized=canonicalized,
             stripped=stripped,
-            skipped=skipped,
         )
 
     # ------------------------------------------------------------------ repad
@@ -2696,7 +2651,6 @@ class MaintenanceMixin(ServiceCore):
                 _unreadable,
                 _canonicalized,
                 stripped,
-                _skipped,
             ) = await self._rebuild_index_from_disk(
                 previous_counter=counter, previous_padding=padding
             )
@@ -3218,11 +3172,12 @@ class MaintenanceMixin(ServiceCore):
         **Tier 1 of ``sq check``'s two finding tiers** — the other is the per-item validator
         catalog (``_services/_validators.py``'s ``CATALOG``/``VALIDATOR_NAMES``, dispatched by
         ``ValidatorEngine``). This tier runs first, unconditionally, on raw file text before a
-        file's frontmatter even parses: :func:`_marker_issues` and :func:`_view_target_issues`
-        below are its two members, both error-level and neither ever selectable or a catalog
-        member — see :mod:`~squads._services._validators`'s module docstring for why a per-file,
-        unconditional finding belongs here and not there, which is the matching back-reference
-        this paragraph completes.
+        file's frontmatter even parses: :func:`_marker_issues`, :func:`_view_target_issues`,
+        :func:`_seeded_view_issues` and :func:`_absent_body_region_issues` below are its four
+        members, all error-level and none
+        ever selectable or a catalog member — see :mod:`~squads._services._validators`'s module
+        docstring for why a per-file, unconditional finding belongs here and not there, which is
+        the matching back-reference this paragraph completes.
 
         Returns ``(issues, on_disk, bodies, unparseable_seqs, suppress_missing)``.
         ``on_disk``/``bodies`` are keyed by the item's **sequence number** (int) so
@@ -3292,6 +3247,21 @@ class MaintenanceMixin(ServiceCore):
             issues += [
                 CheckIssue("error", md.name, msg)
                 for msg in _view_target_issues(text, item_type, self.spec, self.playbook)
+            ]
+            check_slug = _check_slug(md, item_type, text, self.spec)
+            issues += [
+                CheckIssue("error", md.name, msg)
+                for msg in _seeded_view_issues(
+                    text,
+                    item_type,
+                    check_slug,
+                    _stem_seq(md, item_type, self.spec),
+                    self.spec,
+                )
+            ]
+            issues += [
+                CheckIssue("error", md.name, msg)
+                for msg in _absent_body_region_issues(text, item_type, check_slug, self.spec)
             ]
             try:
                 data = read_frontmatter(text=text, source=str(md))

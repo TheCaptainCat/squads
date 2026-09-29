@@ -1,24 +1,7 @@
-"""Every call to ``view_tag(...)`` under ``src/squads`` — attribute-style (``markers.view_tag(
-...)``) or bare-name (``view_tag(...)``, reached through a direct ``from squads._models._markers
-import view_tag``) — must be one of a small, fully-enumerated set of known sites, each classified
-as exactly one of four things — a site that seeds a ``sq:view:<name>`` placement tag with no
-check that *name* is actually declared (``gated``, the wrong shape unless its own source proves a
-spec.views gate protects it), a site that refuses through the shared resolver before ever seeding
-anything of its own (``self-gated``), a site that must keep working precisely for an undeclared
-name because it is the recovery path for one (``deliberately-ungated``), or a site that builds
-the tag string only to compare it against on-disk content and writes nothing at all
-(``not-a-writer``).
-
-The declaration site names its own writers two lines above the constants themselves
-(``_interactions/__init__.py``'s ``SYSTEM_SKILL_VIEW_NAMES``/``ITEM_SKILL_VIEW_NAME``
-docstrings) — this test is the sweep that makes sure every writer that comment points at is
-actually accounted for, so a future seventh site fails outright instead of surviving three
-review rounds unnoticed the way one of the seven below did. Matching only the
-attribute-style call was itself one more instance of that same shape — driven by the
-reviewer, who added a bare-name seventh writer in an isolated worktree and found all six
-tests here passing regardless at the time (see
-``test_a_bare_name_view_tag_call_is_discovered_too`` below).
-"""
+"""Every call to ``view_tag(...)`` under ``src/squads``, attribute-style or bare-name, must be
+one of a fully-enumerated set of known sites, each classified as gated, self-gated,
+deliberately-ungated, or not actually a writer. A separate section does the same for the
+literal ``sq:view:<name>`` tags a Jinja template writes directly."""
 
 import ast
 import re
@@ -37,11 +20,7 @@ def _enclosing_function_qualname(stack: list[str]) -> str:
 
 def _view_tag_call_sites(src_root: Path) -> list[tuple[str, str, int]]:
     """``(module-relative-posix-path, enclosing function's name, line number)`` for every call to
-    ``view_tag(...)`` under *src_root*, attribute-style or bare-name — walks the parsed AST
-    rather than grepping raw text, which is what keeps this immune to a call the formatter has
-    line-wrapped mid-expression (a plain line grep can return a false zero on that shape — see
-    ``test_the_ast_scan_finds_a_call_a_raw_substring_grep_would_miss`` below, which proves the
-    mechanism against a constructed positive before this function's count of seven is trusted)."""
+    ``view_tag(...)`` under *src_root*, attribute-style or bare-name."""
     sites: list[tuple[str, str, int]] = []
     for path in sorted(src_root.rglob("*.py")):
         source = path.read_text(encoding="utf-8")
@@ -57,11 +36,7 @@ def _view_tag_call_sites(src_root: Path) -> list[tuple[str, str, int]]:
 def _collect_view_tag_calls(
     node: ast.AST, rel: str, stack: list[str], sites: list[tuple[str, str, int]]
 ) -> None:
-    """Recursive tree walk, factored out of :func:`_view_tag_call_sites` so *rel* is an
-    explicit parameter rather than a variable a nested closure would capture from its
-    enclosing loop (every recursive call is made synchronously within the same iteration, so
-    capturing would in fact be safe here, but an explicit parameter is what makes that true by
-    construction instead of by argument)."""
+    """Recursive tree walk, factored out of :func:`_view_tag_call_sites`."""
     for child in ast.iter_child_nodes(node):
         child_stack = stack
         if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
@@ -75,11 +50,8 @@ def _collect_view_tag_calls(
 
 
 def test_the_ast_scan_finds_a_call_a_raw_substring_grep_would_miss() -> None:
-    """Validates the discovery mechanism itself against a known positive before its count of
-    seven sites (below) is trusted — the false-zero rule: a formatter can wrap a call across a
-    line break inside the dotted attribute access itself (splitting on the dot, not just on an
-    argument list), which a raw substring/line grep for ``"markers.view_tag("`` does not match
-    but the AST walk still resolves correctly, because it parses structure, not lines."""
+    """An AST walk finds a call wrapped across a line break, which a raw substring grep would
+    miss."""
     adversarial = "def g() -> None:\n    tag = (markers\n        .view_tag(name))\n"
     assert "markers.view_tag(" not in adversarial, (
         "fixture no longer demonstrates a raw substring false zero"
@@ -94,16 +66,8 @@ def test_the_ast_scan_finds_a_call_a_raw_substring_grep_would_miss() -> None:
 
 
 def test_a_bare_name_view_tag_call_is_discovered_too() -> None:
-    """The discovery filter originally matched only attribute-style calls (``markers.view_tag(
-    ...)``, ``child.func`` an ``ast.Attribute``). A bare-name call reached the same way through
-    a direct import — ``from squads._models._markers import view_tag`` then ``view_tag(name)``,
-    an ``ast.Name`` — is a different shape the seven real sites happen never to use, but
-    nothing stops a seventh writer from using it: driven by the reviewer, who added exactly
-    this shape to an isolated worktree and found all six tests here still passing at the
-    time, because the writer was never discovered in the first place. Uses the real
-    production scanner
-    (:func:`_collect_view_tag_calls`), not a reimplementation, so this only passes once the
-    scanner itself is widened."""
+    """A bare-name call reached through a direct import is discovered the same as an
+    attribute-style one."""
     synthetic = "def h() -> None:\n    return markers.open_marker(view_tag(name))\n"
     assert "markers.view_tag(" not in synthetic, (
         "fixture no longer demonstrates the bare-name shape"
@@ -121,47 +85,46 @@ def test_a_bare_name_view_tag_call_is_discovered_too() -> None:
 
 # --------------------------------------------------------------------------- classification
 
-#: (relative path, enclosing function) -> (classification, reason). Exactly the seven sites this
-#: codebase has today — an ``AssertionError`` below for any discovered site not a key here, or
-#: any key here no longer discovered, is the whole point: this dict is a completeness claim,
-#: not a convenience cache.
+#: (relative path, enclosing function) -> (classification, reason). Exactly the sites this
+#: codebase has today — a mismatch below is the whole point: this dict is a completeness
+#: claim, not a convenience cache.
 CLASSIFICATIONS: dict[tuple[str, str], tuple[str, str]] = {
-    ("squads/_services/_base.py", "_create_core"): (
-        "gated",
-        "role-definition tag seeded only under self.spec.views (the template's own static tag "
-        "is overridden with an empty region otherwise)",
-    ),
     ("squads/_services/_maintenance.py", "_converge_body_tag"): (
         "gated",
         "gated at its caller, _repair_body_tag's own classifier — never invoked with a view "
         "name the active spec does not declare",
     ),
-    ("squads/_backends/_claude_code/_backend.py", "_write_managed_skill"): (
+    ("squads/_migrations/_v0_14_to_v0_15.py", "_reclaim_legacy_roster_bodies"): (
         "gated",
-        "every caller resolves body_tag against spec.views before calling, passing None when "
-        "the view is undeclared",
+        "view_name comes from roster_body_view_name, which already returns None for a view "
+        "not currently declared in spec.views — the loop continues before ever reaching the "
+        "write for an undeclared name",
     ),
-    ("squads/_services/_views.py", "insert_view"): (
-        "self-gated",
-        "refuses through resolve_view_target before ever writing (see that function's own "
-        "docstring)",
-    ),
-    ("squads/_migrations/_v0_14_to_v0_15.py", "migrate"): (
-        "self-gated",
-        "asks resolve_view_target once per (type, name) pair before the write loop ever opens "
-        "a transaction, the same predicate insert_view itself gates on, and skips-and-reports "
-        "the pair rather than seeding anything when it cannot resolve — never a whole-run "
-        "refusal",
-    ),
-    ("squads/_services/_views.py", "remove_view"): (
-        "deliberately-ungated",
-        "the recovery path for a tag whose view was dropped out from under it; must keep "
-        "working precisely when the name is no longer declared",
-    ),
-    ("squads/_services/_validators.py", "_item_skill_shadowed"): (
+    ("squads/_migrations/_v0_14_to_v0_15.py", "_tag_present_outside_region"): (
         "not-a-writer",
-        "builds tag_line only to compare against on-disk content for a check finding; writes "
-        "nothing",
+        "builds both the enabled and disabled tag strings only to check for their presence in "
+        "the file's text; writes nothing",
+    ),
+    ("squads/_views.py", "place_view_tags"): (
+        "deliberately-ungated",
+        "the one re-placement routine every writer of a sq:body region drives — it must be "
+        "able to write ANY name, declared or not: an "
+        "undeclared tag already present is carried forward verbatim (the recovery path "
+        "inherited by `view disable`'s `force=` argument), and a gated caller "
+        "(`view add`, via resolve_view_target) applies its own gate before ever calling this, "
+        "never inside it",
+    ),
+    ("squads/_services/_items.py", "_reject_unwritable_body"): (
+        "not-a-writer",
+        "composes the bare tag for the roster refusal's own error message only; writes nothing",
+    ),
+    ("squads/_views.py", "_resolve_final_states"): (
+        "not-a-writer",
+        "composes the bare tag for ConflictingViewStateError's own message only; writes nothing",
+    ),
+    ("squads/_services/_maintenance.py", "_seeded_view_issues"): (
+        "not-a-writer",
+        "composes the bare or full tag for its own check-finding messages only; writes nothing",
     ),
 }
 
@@ -169,13 +132,12 @@ _VALID_CLASSIFICATIONS = frozenset({"gated", "self-gated", "deliberately-ungated
 
 
 def test_every_classification_label_is_one_of_the_four_known_shapes() -> None:
-    """Cheap self-check on the table above, independent of the discovery scan: catches a typo'd
-    label before it could ever silently pass the completeness check below."""
+    """A typo'd classification label in the table above is caught before the check below."""
     for site, (label, _reason) in CLASSIFICATIONS.items():
         assert label in _VALID_CLASSIFICATIONS, f"{site}: unknown classification {label!r}"
 
 
-def test_the_discovered_sites_are_exactly_the_classified_seven() -> None:
+def test_the_discovered_sites_are_exactly_the_classified_set() -> None:
     src_root = _repo_root() / "src" / "squads"
     discovered = {(rel, qualname) for rel, qualname, _line in _view_tag_call_sites(src_root)}
     expected = set(CLASSIFICATIONS)
@@ -192,45 +154,14 @@ def test_the_discovered_sites_are_exactly_the_classified_seven() -> None:
 
 # --------------------------------------------------------------------------- gate verification
 #
-# What used to live here was a source-text proxy: `\bin\s+(?:self\s*\.\s*)?spec\s*\.\s*views\b`
-# searched for a `spec.views` mention somewhere in a gated site's declared target, and called
-# that "the gate exists". It proved a mention existed, not that it guarded the seed —
-# driven by the reviewer: with the three real gates removed and one *unused* `in
-# spec.views` mention added to each target instead, all six tests in this module (as it
-# stood then) still passed. That shape is not adversarial; a function computing a
-# declared-views list for one purpose while seeding a tag for another is ordinary growth in
-# this file, and the proxy could not tell the two apart.
+# Each ``gated`` site's protecting behavioural test declares itself via
+# ``@pytest.mark.gate_for("<module-relative-path>::<function>")`` (registered in
+# ``pyproject.toml``'s ``markers``), so a citation cannot exist without a test claiming the job.
+# A citation is refused when its own test is skip/skipif/xfail/slow-marked (not collected by
+# default) or when more than one test claims the same site (ambiguous ownership).
 #
-# The replacement was a hand-maintained dict citing, per gated site, the exact behavioural test
-# whose own falsification proves that gate — and that dict was itself gameable one level out,
-# because it pointed *at* a test rather than being declared *by* one: re-pointing a citation to
-# a real, currently-passing, uninvolved sibling test cost one line here and no edit to that
-# test's own source, and the resolution check (does the name exist?) could not tell the
-# difference. A `@pytest.mark.skip` on the real cited test was the same gap in its accidental
-# form — the citation still "resolved" because a decorator is invisible to a bare
-# `ast.FunctionDef` name lookup.
-#
-# So the citation is inverted: the behavioural test declares the site it proves, on itself, via
-# `@pytest.mark.gate_for("<module-relative-path>::<function>")` (registered in
-# `pyproject.toml`'s `markers`). The map below is *collected* from those markers rather than
-# hand-maintained, so a citation cannot exist without a test claiming the job, and this module
-# additionally refuses a citation whose own test is `skip`/`skipif`/`xfail`-marked or carries
-# `@pytest.mark.slow` (this repo's one default-collection exclusion — see
-# `tests/conftest.py::pytest_collection_modifyitems`) — "collected and live" is checkable
-# without executing anything.
-#
-# What this deliberately does *not* close, and must not be read as closing: whether the cited
-# test's *assertions* actually falsify the gate is only knowable by mutating the gate and
-# running it — mutation testing, not a static check. Each of the three citations below was
-# driven that way once, by hand, when it was written (revert the site's `spec.views` gate,
-# watch the named test redden, restore it) — the marker keeps the citation attached to that
-# recorded event; it does not repeat the proof. And a determined edit that removes a marker
-# from its true owner and relabels an uninvolved-but-genuinely-unrelated test with the same
-# site name is not caught here either — nothing static can tell a moved, false claim from a
-# moved, true one. What *is* caught: two tests both claiming the same site (ambiguous
-# ownership — the surviving, purely-structural equivalent of "re-pointing" once there is no
-# external map left to silently overwrite), and a citation whose test is not collected by
-# default.
+# This does not prove the cited test's assertions actually falsify the gate — that is a
+# mutation-testing question, not a static one.
 
 
 def _gated_sites() -> set[tuple[str, str]]:
@@ -245,9 +176,7 @@ _EXCLUDED_MARK_NAMES = frozenset({"skip", "skipif", "xfail", "slow"})
 
 
 def _pytest_mark_name(deco: ast.expr) -> str | None:
-    """The bare mark name of *deco* (e.g. ``"gate_for"``, ``"skip"``) if it is a
-    ``pytest.mark.<name>`` decorator, called (``@pytest.mark.skip(reason=...)``) or bare
-    (``@pytest.mark.slow``); ``None`` for any other decorator shape."""
+    """The bare mark name of *deco* if it is a ``pytest.mark.<name>`` decorator, else None."""
     target = deco.func if isinstance(deco, ast.Call) else deco
     if (
         isinstance(target, ast.Attribute)
@@ -261,17 +190,12 @@ def _pytest_mark_name(deco: ast.expr) -> str | None:
 
 
 def _is_excluded_from_default_collection(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-    """Whether *node* carries a mark that keeps it from running in a bare, default collection —
-    ``skip``/``skipif``/``xfail`` (never runs, or is expected not to) or this repo's one
-    opt-in-only mark, ``slow`` (see ``tests/conftest.py``'s collection hook)."""
+    """Whether *node* carries a mark that keeps it from running in a bare, default collection."""
     return any(_pytest_mark_name(d) in _EXCLUDED_MARK_NAMES for d in node.decorator_list)
 
 
 def _gate_for_args(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
-    """Every site string named by a ``@pytest.mark.gate_for("...")`` decorator on *node*
-    (ordinarily zero or one, never enforced here — a function decorated twice is caught the
-    same way two different functions citing the same site are, by the ownership-uniqueness
-    check below)."""
+    """Every site string named by a ``@pytest.mark.gate_for("...")`` decorator on *node*."""
     sites = []
     for deco in node.decorator_list:
         if _pytest_mark_name(deco) != "gate_for" or not isinstance(deco, ast.Call):
@@ -284,10 +208,8 @@ def _gate_for_args(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
     return sites
 
 
-#: site-citation-string -> every (test-relative-path, test-function-name, excluded-from-
-#: default-collection) that decorates itself with ``@pytest.mark.gate_for(site)`` — built from
-#: *source*, a full test-module's text, so the discovery mechanism can be driven against a
-#: constructed fixture (below) exactly the way the writer scan's own discovery is.
+#: site-citation-string -> every (test-relative-path, test-function-name,
+#: excluded-from-default-collection) that decorates itself with ``@pytest.mark.gate_for(site)``.
 def _gate_for_sites_in_module(source: str, rel: str) -> dict[str, list[tuple[str, str, bool]]]:
     try:
         tree = ast.parse(source, filename=rel)
@@ -304,8 +226,7 @@ def _gate_for_sites_in_module(source: str, rel: str) -> dict[str, list[tuple[str
 
 
 def _gate_for_sites(tests_root: Path) -> dict[str, list[tuple[str, str, bool]]]:
-    """The same mapping as :func:`_gate_for_sites_in_module`, collected across every ``.py``
-    file under *tests_root* — the map this module's checks are actually built from."""
+    """The same mapping as :func:`_gate_for_sites_in_module`, collected across *tests_root*."""
     mapping: dict[str, list[tuple[str, str, bool]]] = {}
     for path in sorted(tests_root.rglob("*.py")):
         rel = path.relative_to(tests_root.parent).as_posix()
@@ -319,8 +240,7 @@ def _gate_for_sites(tests_root: Path) -> dict[str, list[tuple[str, str, bool]]]:
 def _owners_by_site_tuple(
     owners: dict[str, list[tuple[str, str, bool]]],
 ) -> dict[tuple[str, str], list[tuple[str, str, bool]]]:
-    """Re-key a ``_gate_for_sites`` result from the citation string to the ``CLASSIFICATIONS``
-    tuple shape, so it can be compared against ``_gated_sites()`` directly."""
+    """Re-key a ``_gate_for_sites`` result to the ``CLASSIFICATIONS`` tuple shape."""
     out: dict[tuple[str, str], list[tuple[str, str, bool]]] = {}
     for site, tests in owners.items():
         rel, _sep, func = site.partition("::")
@@ -329,8 +249,7 @@ def _owners_by_site_tuple(
 
 
 def test_the_marker_scan_finds_a_bare_gate_for_citation() -> None:
-    """Validates the discovery mechanism against a known positive before the real corpus's
-    citations are trusted, the same false-zero discipline every scan in this module follows."""
+    """A bare ``@pytest.mark.gate_for`` citation is discovered against a known positive."""
     source = (
         "import pytest\n\n"
         "@pytest.mark.gate_for('squads/_x.py::_y')\n"
@@ -341,13 +260,8 @@ def test_the_marker_scan_finds_a_bare_gate_for_citation() -> None:
 
 
 def test_every_gated_site_has_exactly_one_behavioural_test_citation() -> None:
-    """The citation requirement itself, independent of whether the citing test is collected and
-    live (the next test) — every ``gated`` site has exactly one test declaring
-    ``@pytest.mark.gate_for`` for it: not zero (uncited), not more than one (ambiguous — the
-    surviving, structural form of "re-pointing" a citation once there is no external map left
-    to silently overwrite: adding the marker to a second, uninvolved test does not remove it
-    from the true owner, so both now claim the site, and that ambiguity is what this refuses),
-    and nothing cites a site that is not (or is no longer) ``gated``."""
+    """Every ``gated`` site has exactly one ``@pytest.mark.gate_for`` citation, no more, no
+    fewer, and nothing cites a site that is not ``gated``."""
     gated = _gated_sites()
     owners = _owners_by_site_tuple(_gate_for_sites(_tests_root()))
 
@@ -369,16 +283,8 @@ def test_every_gated_site_has_exactly_one_behavioural_test_citation() -> None:
 
 
 def test_a_repointed_citation_is_refused_as_ambiguous_ownership() -> None:
-    """Refuses a re-pointed citation, in the shape that survives once there is no hand-maintained
-    dict to silently overwrite. The reviewer's original drive re-pointed a citation at
-    ``test_a_newly_created_per_type_skill_under_a_declared_view_still_seeds_the_tag`` — a real,
-    uninvolved, currently-passing sibling in the very file the true citation already named —
-    with no edit to that sibling's own source and the meta module stayed green. Under the
-    marker scheme a citation only exists where a test decorates itself, so the same act —
-    naming an uninvolved test as a second owner of a site already claimed — leaves *two*
-    declared owners rather than a silent substitution, which
-    ``test_every_gated_site_has_exactly_one_behavioural_test_citation`` refuses outright.
-    Constructed directly against the scanner (never against real source under ``tests/``):"""
+    """A second test decorating itself for an already-claimed site leaves two declared owners,
+    refused as ambiguous ownership rather than a silent substitution."""
     source = (
         "import pytest\n\n"
         "@pytest.mark.gate_for('squads/_x.py::_y')\n"
@@ -398,15 +304,7 @@ def test_a_repointed_citation_is_refused_as_ambiguous_ownership() -> None:
 
 
 def test_every_gate_for_citation_is_collected_and_live() -> None:
-    """Refuses a skip-marked citation — the accidental form, and the one that will actually
-    happen: a real cited test goes flaky in CI, someone reaches for ``@pytest.mark.skip``, and
-    a decorator is
-    invisible to a bare ``ast.FunctionDef`` name lookup, so the old resolution check kept
-    passing while the gate's backing quietly vanished. Checked here instead: none of the real
-    corpus's citations are ``skip``/``skipif``/``xfail``/``slow``-marked — "collected and live"
-    is checkable without executing anything, and this is the whole of what it checks (see the
-    module note above: whether a live test's assertions actually falsify is a mutation-testing
-    question, not this one)."""
+    """None of the real corpus's citations are skip/skipif/xfail/slow-marked."""
     owners = _gate_for_sites(_tests_root())
     excluded = {
         site: [f"{rel}::{name}" for rel, name, is_excluded in tests if is_excluded]
@@ -420,11 +318,7 @@ def test_every_gate_for_citation_is_collected_and_live() -> None:
 
 
 def test_a_skip_marked_citation_is_refused() -> None:
-    """Drives the exclusion check above against the reviewer's own reproduction: the real cited
-    test, unmodified except for an added ``@pytest.mark.skip``, still carries its
-    ``gate_for`` marker (the citation still "exists") but is flagged excluded — exactly what
-    ``test_every_gate_for_citation_is_collected_and_live`` refuses. Constructed directly
-    against the scanner, not against real source under ``tests/``:"""
+    """A skip-marked citation still carries its `gate_for` marker but is flagged excluded."""
     source = (
         "import pytest\n\n"
         "@pytest.mark.gate_for('squads/_x.py::_y')\n"
@@ -441,16 +335,8 @@ def test_a_skip_marked_citation_is_refused() -> None:
 
 # --------------------------------------------------------------------------- template literals
 
-#: The Python scan above globs ``*.py``, so a literal ``sq:view:<name>`` tag written directly
-#: into a Jinja template — not through :func:`~squads._models._markers.view_tag` at all — is
-#: invisible to it by construction. Two such writers exist today:
-#: ``templates/agents/role.md.j2`` (the creation scaffold's static tag —
-#: ``ROLE_DEFINITION_VIEW_NAME``'s own docstring points at it) and
-#: ``templates/items/milestone.md.j2`` (the milestone roll-up's own tag, seeded the same
-#: static way). Whitespace-tolerant between each token boundary
-#: (``sq``/``:``/``view``/``:``/name), the same false-zero defence the Python scan gets from
-#: walking the AST rather than grepping lines — see
-#: ``test_the_template_scan_finds_a_tag_a_raw_substring_grep_would_miss`` below.
+#: A literal ``sq:view:<name>`` tag written directly into a Jinja template, invisible to the
+#: Python scan above. Whitespace-tolerant between each token boundary.
 _TEMPLATE_VIEW_TAG_RE = re.compile(r"sq\s*:\s*view\s*:\s*([A-Za-z0-9_]+)")
 
 
@@ -471,10 +357,8 @@ def _template_view_tag_sites(templates_root: Path) -> dict[str, list[str]]:
 
 
 def test_the_template_scan_finds_a_tag_a_raw_substring_grep_would_miss() -> None:
-    """Same false-zero rule as the Python scan's own validation, applied to the template scan: a
-    formatter can wrap a tag's HTML comment across a line, splitting whitespace between
-    ``sq:view:`` and the name it carries, which a raw ``"sq:view:role_definition"`` substring
-    search does not match but the whitespace-tolerant regex still resolves."""
+    """The whitespace-tolerant regex finds a tag wrapped across a line, unlike a raw substring
+    search."""
     adversarial = "<!-- sq:view:\n    role_definition -->\n"
     assert "sq:view:role_definition" not in adversarial, (
         "fixture no longer demonstrates a raw substring false zero"
@@ -487,9 +371,7 @@ def test_the_template_scan_finds_a_tag_a_raw_substring_grep_would_miss() -> None
 
 
 #: template-relative-path -> (classification, reason). Same completeness contract as
-#: ``CLASSIFICATIONS`` above, over the second writer class the Python-only scan cannot see: an
-#: ``AssertionError`` below for any discovered template tag not a key here, or any key here no
-#: longer discovered, means a template writer exists with no accounted-for reason.
+#: ``CLASSIFICATIONS`` above, over the template writer class the Python-only scan cannot see.
 TEMPLATE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
     "agents/role.md.j2": (
         "neutralized-by-overwrite",
@@ -499,14 +381,10 @@ TEMPLATE_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
         "consumer, is unreachable for a role because set_body raises first",
     ),
     "items/milestone.md.j2": (
-        "unconditional-seed",
-        "the creation scaffold's static tag, alongside real authored-prose scaffolding "
-        "_create_core never overwrites (unlike a role's tag-only body) — a milestone created "
-        "while milestone_rollup is deselected still receives the tag naming an undeclared "
-        "view, caught by sq check's dangling-name finding rather than refused or neutralized "
-        "at creation, and the same for a milestone the 0.14->0.15 migration meets and skips "
-        "rather than seeds for the identical reason; accepted, not gated the way a role's tag "
-        "is, at either site",
+        "neutralized-by-overwrite",
+        "the creation scaffold's static tag: _create_core strips every template tag before "
+        "placement and re-seeds only from seeded_view_names, so it never survives on disk "
+        "when milestone_rollup is deselected",
     ),
 }
 
@@ -533,12 +411,8 @@ def test_the_discovered_template_tags_are_exactly_the_classified_two() -> None:
 
 
 def test_a_second_template_writer_is_caught_unclassified(tmp_path: Path) -> None:
-    """Driven by the reviewer: a static tag added inside ``agents/skill.md.j2``'s ``sq:body``
-    region left every pre-existing test green, and then survives into every skill ``sq skill
-    add`` creates afterward — nothing overwrites a skill's body region the way ``_create_core``
-    does a role's. Constructed here as a copied fixture tree, never against the real bundled
-    template (which must stay untouched — see the regression check below): confirms the
-    extended scan catches the second writer as unclassified."""
+    """A static tag added inside a skill template's ``sq:body`` region, unclassified, is
+    caught by the extended scan against a copied fixture tree, never the real template."""
     import shutil
 
     copy_root = tmp_path / "templates"
@@ -557,6 +431,4 @@ def test_a_second_template_writer_is_caught_unclassified(tmp_path: Path) -> None
         f"the constructed second writer must be discovered as unclassified: {extra}"
     )
 
-    # Regression control: the fixture copy is the only tree that changed — the real bundled
-    # template corpus must still pass with just its one classified hit.
     assert set(_template_view_tag_sites(_templates_root())) == set(TEMPLATE_CLASSIFICATIONS)

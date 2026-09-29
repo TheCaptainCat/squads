@@ -8,8 +8,9 @@ objects, owning only the ``category`` field itself, the closed validator-NAME re
 checks that read them.
 
 This engine is the sole source of both ``sq check``'s **per-item and squad-global** issues and
-the create/update fail-closed gate — not, despite an earlier version of this sentence, of
-``sq check``'s issues as a whole. A type's effective set is ``COMMON_CORE`` plus its category's
+the create/update fail-closed gate — never of ``sq check``'s issues as a whole (the always-on
+file-level tier described below sits outside it). A type's effective set is ``COMMON_CORE`` plus
+its category's
 ``CATEGORY_BUNDLES`` entry plus its own ``validators`` list — both tables live in
 ``_workflow/_models.py``, so the Plane-1 spec-validity pass resolves the same effective set this
 engine runs. ``no_parent`` shows both routes: a ``records`` type gets it from the category
@@ -23,21 +24,25 @@ code; it is never a create/update blocker.
 **A second, always-on tier sits below this catalog and is not part of it.**
 ``MaintenanceMixin._scan_for_check`` (``_services/_maintenance.py``) runs a raw-text file-level
 scan *before* this catalog is ever reached — before a file's frontmatter parses, keyed on the
-type folder and filename alone — and produces two of its own error-level findings:
-``_marker_issues`` (unbalanced/duplicated sq markers) and ``_view_target_issues`` (a
+type folder and filename alone — and produces four of its own error-level findings:
+``_marker_issues`` (unbalanced/duplicated sq markers), ``_view_target_issues`` (a
 ``sq:view:<name>`` tag that cannot resolve when read against its host: undeclared, an
 unresolvable template, or a declared source that cannot apply to the host's own type — the name
-reflects all of those reasons, not only the first it originally asked about). Neither is a
-member of ``CATALOG``/``VALIDATOR_NAMES``, and neither ever will be: the catalog is per-item (a
-member takes a resolved ``Item`` from a ``ValidatorContext``) while both tier-1 findings are
-per-*file*, running before a file becomes an item — so a file too broken to parse still gets its
-marker/view findings reported, where catalog membership would lose them; and the catalog is
-*selectable* per type while both tier-1 findings are unconditional across every type, which is
-the whole point of a binding invariant a document must satisfy regardless of which validators a
-project has chosen. A caller that needs ``sq check``'s complete finding surface — every future
-consumer that closes a correspondence over ``CATALOG`` and its declared context — must read both
-tiers, not mistake this one for the whole; see ``_scan_for_check``'s own docstring for the
-matching back-reference into this module.
+covers all three reasons, not only one of them),
+``_seeded_view_issues`` (a host missing the placement tag a seeded view derives it must
+carry — every seeded view is unconditional, with no ``required`` flag to filter on), and
+``_absent_body_region_issues`` (a
+role or skill file whose ``sq:body`` marker pair is missing outright). None is a member of
+``CATALOG``/``VALIDATOR_NAMES``, and none ever will be: the
+catalog is per-item (a member takes a resolved ``Item`` from a ``ValidatorContext``) while every
+tier-1 finding is per-*file*, running before a file becomes an item — so a file too broken to
+parse still gets its marker/view findings reported, where catalog membership would lose them;
+and the catalog is *selectable* per type while every tier-1 finding is unconditional across
+every type, which is the whole point of a binding invariant a document must satisfy regardless
+of which validators a project has chosen. A caller that needs ``sq check``'s complete finding
+surface — every future consumer that closes a correspondence over ``CATALOG`` and its declared
+context — must read both tiers, not mistake this one for the whole; see ``_scan_for_check``'s
+own docstring for the matching back-reference into this module.
 
 ``ItemSpec`` carries only the bare ``category`` name — the effective per-item validator set
 (common core + category default bundle + the type's own additions) is resolved here, at call
@@ -53,6 +58,7 @@ from typing import Any, Protocol
 
 from squads import _discussion as discussion
 from squads import _sections as sections
+from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
 from squads._interactions import (
@@ -700,47 +706,46 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
-    """A live ``sq-<slug>`` skill item whose ``sq:body`` is authored (non-empty, and not just
-    the ``item_skill`` placement tag) while its own slug still names a **currently declared**
-    item type (:func:`~squads._interactions.item_type_for_skill_slug`).
-
-    Reports a real, correct precedence choice rather than a defect in it:
-    ``_services._maintenance._converge_body_tag``'s ``strict_empty`` license is right to
-    refuse overwriting authored content once a later declaration turns a previously ordinary
-    skill slug template-owned — destroying an author's real runbook would be worse.
-    What that refusal does not do on its own is *say* that the declared type's generated
-    guidance (lifecycle, verbs, sub-entity footer) consequently has nowhere left to render:
-    ``_write_managed_skill`` leaves the region untouched, ``_repair_body_tag`` declines the
-    same convergence, and nothing else in ``sq check`` speaks to this state — this member is
-    that report. Only ``item.type == 'skill'`` reaches this function at all (declared directly
-    in ``[items.skill].validators``, not a category bundle — see
-    :data:`~squads._workflow._models.UNGUARDED_VALIDATOR_NAMES`), so the resolved slug's type
-    is always the roster skill's own.
-
-    ``item_type_for_skill_slug`` returning ``None`` (one of the three permanently-system
-    slugs, an author's genuinely custom ``sq-`` skill matching no declared type, or a
-    dropped/renamed type's now-stale slug) is not this finding — there is no declared type
-    whose guidance could be shadowed."""
+    """A live ``sq-<slug>`` skill whose body carries authored prose while its slug still names a
+    declared item type. Reports it rather than guessing whether the prose is a stale rendering
+    or an author's real runbook — either way the type's generated guidance has nowhere
+    supported to render, and the named remedy moves the prose to a new skill before clearing
+    anything, never a clear-first sequence that could destroy it."""
     item = ctx.item
     slug = item.extra.get(X.SLUG, item.slug)
     doc_type = item_type_for_skill_slug(slug, ctx.spec)
     if doc_type is None:
         return []
-    tag_line = markers.open_marker(markers.view_tag(ITEM_SKILL_VIEW_NAME))
     body = sections.get_section(ctx.raw_text, markers.BODY) if ctx.raw_text is not None else None
-    region = (body or "").strip()
-    if not region or region == tag_line:
+    region = body or ""
+    tag_present = any(
+        (parts := markers.view_tag_parts(raw)) is not None and parts.name == ITEM_SKILL_VIEW_NAME
+        for raw in sections.find_markers(region)
+    )
+    prose = views.strip_view_tags(region).strip()
+    if not prose:
         return []
     level = _resolved_level(ctx, "item_skill_shadowed")
-    return [
-        CheckIssue(
-            level,
-            item.id,
-            f"documents declared type {doc_type!r} but carries authored content of its own — "
-            f"{doc_type!r}'s generated skill guidance has nowhere to render; rename this skill "
-            "or drop the type to resolve",
+    clear_cmd = views.clear_roster_body_cmd(ROSTER_SKILL, slug, None, ctx.spec)
+    remedy = (
+        f"move the prose first (`sq skill add <new-slug>`); take the type out of the active "
+        f"spec (drop it from `[selected]`, or remove a project type's own declaration); clear "
+        f"{slug} with `{clear_cmd}`; then restore the type"
+    )
+    if tag_present:
+        detail = (
+            f"documents declared type {doc_type!r} and carries prose beside its item_skill "
+            f"tag — {doc_type}'s generated guidance renders through the tag, but the prose "
+            f"beside it has no supported way to be removed once this slug documents a "
+            f"declared type; {remedy}"
         )
-    ]
+    else:
+        detail = (
+            f"documents declared type {doc_type!r} but carries authored content of its own "
+            f"with no item_skill tag — {doc_type}'s generated skill guidance has nowhere to "
+            f"render; {remedy}"
+        )
+    return [CheckIssue(level, item.id, detail)]
 
 
 #: The closed per-item validator catalog — a CODE/definition constant, immutable and shared

@@ -38,6 +38,11 @@ from squads._paths import number_for_id
 from squads._util import slugify
 from squads._workflow._models import WorkflowSpec, linearize_lifecycle
 
+#: Where a project's own template overrides live, relative to the squad dir — the one place
+#: this path is spelled, so a message naming where to author a view template override (e.g.
+#: :func:`~squads._views.skill_authoring_surface`) never hand-spells it differently.
+TEMPLATES_OVERRIDE_DIR = ".overrides/templates"
+
 # The active squad directory for this logical call stack. None means bundled-only.
 _active_squad_dir: ContextVar[Path | None] = ContextVar("_active_squad_dir", default=None)
 
@@ -65,7 +70,7 @@ def _make_env(squad_dir: Path | None) -> Environment:
     """Build a Jinja2 Environment for *squad_dir* (or bundled-only when ``None``)."""
     bundled = PackageLoader("squads._rendering", "templates")
     if squad_dir is not None:
-        overrides_dir = squad_dir / ".overrides" / "templates"
+        overrides_dir = squad_dir / TEMPLATES_OVERRIDE_DIR
         if overrides_dir.is_dir():
             loader = ChoiceLoader([FileSystemLoader(str(overrides_dir)), bundled])
         else:

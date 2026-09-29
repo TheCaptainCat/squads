@@ -25,10 +25,6 @@ Review of the JWT authentication implementation.
 <!-- sq:findings -->
 <!-- sq:finding:F1 -->
 
-<!-- sq:finding:F1:head -->
-**Status:** 🔴 Open  **Severity:** 🟠 High
-<!-- sq:finding:F1:head:end -->
-
 ### F1 — Missing token expiry check
 
 <!-- sq:finding:F1:body -->
@@ -40,12 +36,6 @@ The token expiry (`exp` claim) is not validated on every endpoint.
 
 <!-- sq:finding:F1:end -->
 <!-- sq:findings:end -->
-
-<!-- sq:summary -->
-| Finding | Title | Severity | Status |
-|---|---|---|---|
-| F1 | Missing token expiry check | 🟠 High | 🔴 Open |
-<!-- sq:summary:end -->
 
 ## Discussion
 

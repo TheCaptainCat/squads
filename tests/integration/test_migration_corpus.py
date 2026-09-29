@@ -1,10 +1,5 @@
 """Migration corpus: one frozen squad per released schema version, migrated to current and
-checked clean via both the service call `sq migrate up` uses and the real CLI.
-
-**Standing rule** (see `tests/fixtures/corpus/README.md`): every future schema bump must add a
-new `vN_M` fixture here. This module — not the frozen fixtures themselves — is where that rule
-is enforced; never hand-edit anything under `tests/fixtures/corpus/`.
-"""
+checked clean via both the service call and the real CLI. Never hand-edit the fixtures."""
 
 import re
 import shutil
@@ -15,7 +10,7 @@ from typer.testing import CliRunner
 
 from squads._cli import app
 from squads._index._resolver import item_file
-from squads._interactions import SYSTEM_SKILL_VIEW_NAMES, is_system_skill
+from squads._interactions import is_system_skill
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
 from squads._models._config import SquadsConfig
@@ -23,9 +18,10 @@ from squads._models._extras import ExtraKey as X
 from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
-from squads._sections import get_section, has_section
+from squads._sections import find_markers, get_section, has_section, replace_section
 from squads._services._service import Service
-from squads._workflow import ROSTER_ROLE, ROSTER_SKILL
+from squads._views import place_view_tags, roster_body_view_name
+from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, load_workflow_spec
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
 
@@ -59,6 +55,31 @@ def _load_paths(squad_dir: Path) -> SquadPaths:
     return SquadPaths(root=squad_dir, squad_dir=resolved, config=cfg)
 
 
+async def _expected_seeded_view_gap_files(svc: Service, skipped_ids: set[str]) -> set[str]:
+    """Filenames a fixture's own reclaim skip set (*skipped_ids*) is known to still lack its
+    required view tag on after migrating, verified against the file's actual on-disk body."""
+    skipped_seqs = {int(sid.rsplit("-", 1)[-1]) for sid in skipped_ids}
+    db = await svc.store.load()
+    expected: set[str] = set()
+    for it in db.items.values():
+        if it.type not in (ROSTER_ROLE, ROSTER_SKILL):
+            continue
+        if it.sequence_id not in skipped_seqs:
+            continue
+        slug = it.extra.get(X.SLUG, it.slug) if it.type == ROSTER_SKILL else it.slug
+        view_name = roster_body_view_name(it.type, slug, svc.spec)
+        if view_name is None:
+            continue
+        path = item_file(svc.paths, it)
+        text = path.read_text(encoding="utf-8")
+        tag_names = {
+            parts.name for raw in find_markers(text) if (parts := markers.view_tag_parts(raw))
+        }
+        if view_name not in tag_names:
+            expected.add(path.name)
+    return expected
+
+
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
 async def test_corpus_migrates_to_current_schema_and_passes_check(
     schema_label: str, corpus_name: str, tmp_path: Path
@@ -70,7 +91,8 @@ async def test_corpus_migrates_to_current_schema_and_passes_check(
 
     paths = _load_paths(dst)
     svc = Service(paths)
-    applied = (await svc.run_pending_migrations()).applied
+    run = await svc.run_pending_migrations()
+    applied = run.applied
 
     import tomllib
 
@@ -83,9 +105,15 @@ async def test_corpus_migrates_to_current_schema_and_passes_check(
 
     issues = await svc.check()
     errors = [i for i in issues if i.level == "error"]
-    assert not errors, (
+    expected_gaps = await _expected_seeded_view_gap_files(svc, set(run.skipped.get("0.15", [])))
+    unexpected = [
+        i
+        for i in errors
+        if not ("missing seeded view tag" in i.message and i.item in expected_gaps)
+    ]
+    assert not unexpected, (
         f"sq check produced errors after migrating {corpus_name!r} from {schema_label!r}:\n"
-        + "\n".join(f"  [{i.level}] {i.item}: {i.message}" for i in errors)
+        + "\n".join(f"  [{i.level}] {i.item}: {i.message}" for i in unexpected)
     )
 
 
@@ -94,6 +122,20 @@ def test_corpus_cli_migrate_up_and_check_both_exit_clean(
     schema_label: str, corpus_name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     src = _CORPUS_DIR / corpus_name
+
+    import asyncio
+
+    async def _probe() -> set[str]:
+        probe_dst = tmp_path / f"{corpus_name}-probe"
+        shutil.copytree(src, probe_dst)
+        probe_svc = Service(_load_paths(probe_dst))
+        probe_run = await probe_svc.run_pending_migrations()
+        return await _expected_seeded_view_gap_files(
+            probe_svc, set(probe_run.skipped.get("0.15", []))
+        )
+
+    expected_gaps = asyncio.run(_probe())
+
     dst = tmp_path / corpus_name
     shutil.copytree(src, dst)
     monkeypatch.chdir(dst)
@@ -104,28 +146,31 @@ def test_corpus_cli_migrate_up_and_check_both_exit_clean(
         f"sq migrate up failed on {corpus_name!r} ({schema_label!r}):\n{migrate_result.output}"
     )
 
-    check_result = runner.invoke(app, ["check"])
-    assert check_result.exit_code == 0, (
-        f"sq check failed after migrating {corpus_name!r} ({schema_label!r}):\n"
-        f"{check_result.output}"
+    check_result = runner.invoke(app, ["check", "--json"])
+    import json
+
+    json_start = check_result.output.index("[")
+    check_payload = json.loads(check_result.output[json_start:])
+    unexpected = [
+        i
+        for i in check_payload
+        if i["level"] == "error"
+        and not ("missing seeded view tag" in i["message"] and i["item"] in expected_gaps)
+    ]
+    assert not unexpected, (
+        f"sq check reported unexpected error(s) after migrating {corpus_name!r} "
+        f"({schema_label!r}):\n" + "\n".join(f"  {i}" for i in unexpected)
     )
+    if expected_gaps:
+        assert check_result.exit_code == 3, check_result.output
+    else:
+        assert check_result.exit_code == 0, check_result.output
 
 
 def test_migrate_up_announces_the_content_it_rewrote(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """``sq migrate up`` says a byte of content moved, in the same sentence ``sq repair`` uses.
-
-    The rebuild at the tail of the migration is also the corpus sweep, and the migration is the
-    only route a squad behind the current schema takes: on that path "index rebuilt" is the
-    whole of what the console said, while item files were being rewritten underneath it. The
-    diff is meant to be stated rather than discovered, and an unannounced rewrite is exactly
-    the thing an operator reads as a bug in the tool.
-
-    Asserted against a real rewrite, not against the string alone: the fixture's own files are
-    compared before and after, so a run that announced a strip it did not perform — or stopped
-    performing one — fails here too.
-    """
+    """``sq migrate up`` announces a stripped-region rewrite, verified against real file diffs."""
     dst = tmp_path / "v0_11"
     shutil.copytree(_CORPUS_DIR / "v0_11", dst)
     squad_dir = _load_paths(dst).squad_dir
@@ -149,8 +194,7 @@ def test_migrate_up_announces_the_content_it_rewrote(
 
 
 async def test_v0_2_migration_rewrites_the_legacy_backend_key(tmp_path: Path) -> None:
-    """A v0.2 squad's `.squads.toml` ends with `active_backends` (the canonical shape), never
-    the legacy `default_backend` — via the schema-stamp step, not an explicit toml rewrite."""
+    """The legacy `default_backend` key migrates to `active_backends`."""
     import tomllib
 
     src = _CORPUS_DIR / "v0_2"
@@ -174,16 +218,7 @@ async def test_v0_2_migration_rewrites_the_legacy_backend_key(tmp_path: Path) ->
 async def test_the_v0_14_fixtures_milestone_gains_its_roll_up_tag_across_the_chain(
     tmp_path: Path,
 ) -> None:
-    """The one corpus fixture that carries the write end to end: `v0_14` holds a milestone
-    with no `sq:view:milestone_rollup` tag, and the 0.14->0.15 runner is the only step in the
-    chain that can place one. Every other corpus case's own milestone (`v0_15`, already
-    current) or absence of one (`v0_1`..`v0_11`) means this is the sole fixture that can fail
-    if the runner stops writing.
-
-    **Falsification**: with the runner's own write disabled, this test alone reddens, with no
-    other test's help — `sq check` does not flag a *missing* tag (only a dangling one), so
-    every other corpus assertion (schema reached, check clean) stays green regardless.
-    """
+    """A milestone predating the roll-up tag gains it across the migration chain."""
     dst = tmp_path / "v0_14"
     shutil.copytree(_CORPUS_DIR / "v0_14", dst)
     paths = _load_paths(dst)
@@ -211,25 +246,13 @@ def _body_region(text: str) -> str | None:
 async def test_corpus_carries_no_retired_region_after_migrating(
     schema_label: str, corpus_name: str, tmp_path: Path
 ) -> None:
-    """Migrating a frozen corpus to current leaves none of the retired regions behind.
-
-    The removal is not any runner's: `run_pending_migrations` applies the ordered runners and
-    then rebuilds the index, and the sweep rides that rebuild. `v0_1` proves the pipeline in
-    both directions at once — its own files carry no summary region, the `0.1 -> 0.2` runner
-    materialises one for every sub-entity host on the way up, and the rebuild at the end takes
-    them out again.
-
-    `v0_15` is the exception this asserts rather than exempts: a corpus already at the current
-    stamp applies no runner, so `repair()` is never called, and it still carries its regions
-    afterwards. That tolerance is the point — it is what an un-migrated adopter file needs from
-    the read path, and it is why `markers.SUMMARY` stays in the validator's structural tag set.
-    """
+    """Migrating a frozen corpus to current leaves none of the retired regions behind."""
     dst = tmp_path / corpus_name
     shutil.copytree(_CORPUS_DIR / corpus_name, dst)
     paths = _load_paths(dst)
     svc = Service(paths)
 
-    applied = (await svc.run_pending_migrations()).applied
+    await svc.run_pending_migrations()
 
     carried = [
         path
@@ -237,10 +260,6 @@ async def test_corpus_carries_no_retired_region_after_migrating(
         if has_section(path.read_text(encoding="utf-8"), markers.SUMMARY)
         or ":head -->" in path.read_text(encoding="utf-8")
     ]
-    if not applied:
-        assert corpus_name == "v0_15", f"{corpus_name!r} applied no runner unexpectedly"
-        assert carried, "the frozen current-stamp fixture must keep carrying its regions"
-        return
     assert not carried, (
         f"retired regions survived migrating {corpus_name!r} from {schema_label!r}: "
         + ", ".join(p.name for p in carried)
@@ -248,32 +267,11 @@ async def test_corpus_carries_no_retired_region_after_migrating(
 
 
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
-async def test_a_system_skill_body_converges_and_a_per_type_skill_body_survives(
+async def test_every_template_owned_skills_stored_body_converges_onto_its_tag(
     schema_label: str, corpus_name: str, tmp_path: Path
 ) -> None:
-    """Two different template-owned skill shapes, two different outcomes across the migration.
-
-    ``is_system_skill`` covers two families, and only one of them is reachable here
-    (``MaintenanceMixin._repair_body_tag``, keyed on
-    :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES`, the three permanently-system slugs
-    squads/greeting/sq-memory):
-
-    - **one of the three**: its stored body is a rendering an older release wrote before this
-      tag mechanism existed (or before 0.14 retired the stored-region model) — never author-
-      editable prose, since ``set_body`` refuses this body unconditionally in current code the
-      same way it refuses a role's. The sweep converges it onto the ``sq:view:<name>``
-      placement tag the same way it converges a role.
-    - **any other template-owned (per-item-type, ``sq-<type>``) skill**: whether *this* slug is
-      template-owned is read off today's vocabulary and the body was written under an earlier
-      one, so a stored body here still cannot be told apart from prose an author wrote before
-      the slug became template-owned — the sweep leaves it exactly where it is.
-
-    **The precondition is the point of the parametrisation**, and it is the one the sibling
-    role test below already carries. Without it a fixture that stores no skill body at all
-    still passes here — the skills it then asserts on are ones the runners created empty, so
-    the assertion confirms that a file just written empty is empty. Ten parameters that read
-    as ten proofs and are five. A fixture with nothing to prove now says so.
-    """
+    """Every template-owned skill's stored body converges onto its own placement tag, unless
+    the reclaim step's own skip condition left it unchanged instead."""
     dst = tmp_path / corpus_name
     shutil.copytree(_CORPUS_DIR / corpus_name, dst)
     paths = _load_paths(dst)
@@ -283,73 +281,67 @@ async def test_a_system_skill_body_converges_and_a_per_type_skill_body_survives(
         for path in _md_files(paths.squad_dir)
     }
 
-    applied = (await svc.run_pending_migrations()).applied
+    run = await svc.run_pending_migrations()
+    applied = run.applied
     if not applied:
         pytest.skip(f"{corpus_name!r} is already at the current stamp; no rebuild runs")
+    skipped_seqs = {int(sid.rsplit("-", 1)[-1]) for sid in run.skipped.get("0.15", [])}
 
     skills = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_SKILL]
-    system = [it for it in skills if is_system_skill(it.extra.get(X.SLUG, it.slug), svc.spec)]
-    assert system, f"{corpus_name!r} carries no system skill to assert on"
+    template_owned = [
+        it for it in skills if is_system_skill(it.extra.get(X.SLUG, it.slug), svc.spec)
+    ]
+    assert template_owned, f"{corpus_name!r} carries no template-owned skill to assert on"
     stored = {
         it.id: (it, item_file(paths, it), before[item_file(paths, it).name])
-        for it in system
+        for it in template_owned
         if (before.get(item_file(paths, it).name) or "").strip()
     }
     if not stored:
-        pytest.skip(f"{corpus_name!r} stores no system skill body for the sweep to reach")
+        pytest.skip(f"{corpus_name!r} stores no template-owned skill body for the sweep to reach")
     converged = 0
+    skew_skipped = 0
     for it, path, was in stored.values():
         text = path.read_text(encoding="utf-8")
         assert has_section(text, markers.BODY), f"{it.id}: the body markers were deleted"
         slug = it.extra.get(X.SLUG, it.slug)
-        view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug)
+        view_name = roster_body_view_name(it.type, slug, svc.spec)
         region = (_body_region(text) or "").strip()
-        if view_name is not None:
+        if view_name is not None and it.sequence_id not in skipped_seqs:
             assert region == markers.open_marker(markers.view_tag(view_name)), (
-                f"{it.id}: the {slug!r} system skill body did not converge onto its tag"
+                f"{it.id}: the {slug!r} skill body did not converge onto its tag"
             )
             converged += 1
         else:
             assert region == (was or "").strip(), f"{it.id}: the stored body was rewritten"
-    # Every fixture's parametrisation stores at least one of the three fixed system-skill
-    # slugs (squads/greeting), so this branch is always exercised; a per-type skill (e.g.
-    # sq-contract) only appears on a fixture already at the current stamp, which is skipped
-    # above before reaching this loop — that survives-unchanged branch is covered instead by
-    # ``test_a_system_skill_body_survives_the_sweep`` in
-    # ``tests/service/test_repair_strips_only_retired_regions.py``.
-    assert converged, f"{corpus_name!r} carries no fixed system skill to assert converges"
+            if view_name is not None:
+                skew_skipped += 1
+    assert converged or skew_skipped, (
+        f"{corpus_name!r} carries no template-owned skill to assert on"
+    )
 
 
 @pytest.mark.parametrize("schema_label,corpus_name", _CORPUS_CASES)
 async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration(
     schema_label: str, corpus_name: str, tmp_path: Path
 ) -> None:
-    """Every migrated role keeps the record other surfaces read and loses the definition it
-    used to store twice — replaced by the ``sq:view:role_definition`` placement tag its body
-    now converges onto, the same tag a freshly-created role seeds at creation.
-
-    Both halves are asserted per fixture rather than spot-checked, because they fail in
-    opposite directions: the top-level ``title``/``description`` are the uniform record and
-    are no part of any mirror, while the ``extra`` mirror and the stored body are derived
-    copies of a definition that is now resolved on every read.
-
-    The file is the subject and the index is compared to it, not the other way round: the
-    rebuild builds each index entry from the very frontmatter it rewrites, so the two agreeing
-    is a claim about the sweep and not a restatement of one value read twice.
-
-    ``v0_15`` is stamped current, applies no runner and so is never rebuilt — it keeps its
-    mirror here, and the bare verb is what reaches it further down.
-    """
+    """Every migrated role keeps its title/description record and loses the ``extra`` mirror
+    of its definition, replaced by the ``role_definition`` placement tag its body converges
+    onto (unless the reclaim step's own skip condition left the body untouched)."""
     dst = tmp_path / corpus_name
     shutil.copytree(_CORPUS_DIR / corpus_name, dst)
     paths = _load_paths(dst)
     svc = Service(paths)
-    before = {
-        path.name: read_frontmatter(text=path.read_text(encoding="utf-8"), source=str(path))
-        for path in _md_files(paths.squad_dir)
+    before_text = {
+        path.name: path.read_text(encoding="utf-8") for path in _md_files(paths.squad_dir)
     }
+    before = {name: read_frontmatter(text=text, source=name) for name, text in before_text.items()}
 
-    applied = (await svc.run_pending_migrations()).applied
+    run = await svc.run_pending_migrations()
+    applied = run.applied
+    if not applied:
+        pytest.skip(f"{corpus_name!r} is already at the current stamp; no migration runs")
+    skipped_seqs = {int(sid.rsplit("-", 1)[-1]) for sid in run.skipped.get("0.15", [])}
 
     roles = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_ROLE]
     assert roles, f"{corpus_name!r} carries no role item to assert on"
@@ -358,19 +350,18 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
         text = path.read_text(encoding="utf-8")
         stored = read_frontmatter(text=text, source=str(path)).get("extra", {})
         was = before[path.name]
-        # Precondition: this fixture really did store part of the definition, so the absence
-        # asserted below cannot pass against a role that never carried any of it.
         assert set(was.get("extra", {})) & _RETIRED_MIRROR_KEYS
         assert has_section(text, markers.BODY), f"{item.id}: the body markers were deleted"
-        if not applied:
-            assert corpus_name == "v0_15", f"{corpus_name!r} applied no runner unexpectedly"
-            assert set(stored) & _RETIRED_MIRROR_KEYS
-            continue
         assert set(stored) & _RETIRED_MIRROR_KEYS == set(), f"{item.id}: the mirror survived"
         assert stored.get(X.SLUG), f"{item.id}: the dispatch identity was stripped with it"
-        assert (get_section(text, markers.BODY) or "").strip() == markers.open_marker(
-            markers.view_tag("role_definition")
-        ), f"{item.id}: the body converged onto something other than its placement tag"
+        body = (get_section(text, markers.BODY) or "").strip()
+        if item.sequence_id in skipped_seqs:
+            was_body = (get_section(before_text[path.name], markers.BODY) or "").strip()
+            assert body == was_body, f"{item.id}: a skew-skipped role body should stay untouched"
+        else:
+            assert body == markers.open_marker(markers.view_tag("role_definition")), (
+                f"{item.id}: the body converged onto something other than its placement tag"
+            )
         assert item.title == was["title"]
         assert item.description == was.get("description", "")
         assert item.extra == stored, f"{item.id}: the index and the file disagree"
@@ -379,21 +370,8 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
 async def test_the_sweep_regenerates_no_surface_and_leaves_every_compiled_region_identical(
     tmp_path: Path,
 ) -> None:
-    """A strip must never run ahead of a surface regeneration that reads what it removes, and
-    must regenerate nothing itself.
-
-    On this vehicle the first half holds by construction rather than by an ordered pair of
-    calls: ``require_current_schema`` refuses every subcommand but ``migrate`` on a mismatched
-    stamp, so ``sq repair`` only ever runs against a corpus already at the current schema, and
-    the single call on a behind-schema corpus is the tail of ``run_pending_migrations`` —
-    after every runner, ``_regenerate_surface`` included. Reordering two adjacent lines cannot
-    break it.
-
-    The second half is what this asserts, and it is asserted by outcome rather than by call
-    order: the compiled managed regions and the per-entry backend pointers are byte-identical
-    across the sweep. An assertion about which call ran first would pass on a sweep that
-    quietly rewrote them.
-    """
+    """The migration sweep leaves every compiled managed region and backend pointer
+    byte-identical, regenerating no surface itself."""
     dst = tmp_path / "v0_11"
     shutil.copytree(_CORPUS_DIR / "v0_11", dst)
     paths = _load_paths(dst)
@@ -416,27 +394,56 @@ async def test_the_sweep_regenerates_no_surface_and_leaves_every_compiled_region
     assert {p: p.read_bytes() for p in generated} == before
 
 
-async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_path: Path) -> None:
-    """The case the migration path structurally cannot reach, and the whole reason the vehicle
-    is ``repair`` rather than a runner.
+def _v0_14_copy_stamped_schema_current(tmp_path: Path) -> Path:
+    """Build a corpus whose config already stamps the current schema while its content is
+    still pre-migration content — a state only the bare ``repair`` verb can sweep."""
+    dst = tmp_path / "v0_14_stamped_current"
+    shutil.copytree(_CORPUS_DIR / "v0_14", dst)
+    cfg_path = dst / ".squads.toml"
+    original = cfg_path.read_text(encoding="utf-8")
+    stamped = original.replace('schema_version = "0.14"', f'schema_version = "{SCHEMA_VERSION}"')
+    assert stamped != original, "v0_14's schema_version line did not match the expected shape"
+    cfg_path.write_text(stamped, encoding="utf-8")
 
-    ``v0_15`` is stamped current, so ``sq migrate up`` answers "nothing to migrate" and no
-    runner — and therefore no rebuild — ever visits it. The population is not an artefact of
-    this release's staging either: ``adopt`` over a folder with no config stamps the build's
-    own schema and rebuilds, manufacturing the same corpus with no release doing anything.
-    """
-    dst = tmp_path / "v0_15"
-    shutil.copytree(_CORPUS_DIR / "v0_15", dst)
+    mile_files = sorted((dst / "milestones").glob("*.md"))
+    assert mile_files, "v0_14 carries no milestone for this scenario to pre-tag"
+    spec = load_workflow_spec(dst)
+    for addr, path in enumerate(mile_files):
+        text = path.read_text(encoding="utf-8")
+        region = get_section(text, markers.BODY) or ""
+        new_region = place_view_tags(
+            region,
+            None,
+            seeded=frozenset({"milestone_rollup"}),
+            spec=spec,
+            item_type="milestone",
+            addr=addr,
+        )
+        new_text = replace_section(text, markers.BODY, new_region)
+        path.write_text(new_text, encoding="utf-8")
+    return dst
+
+
+async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_path: Path) -> None:
+    """The bare ``repair`` verb strips retired regions and the role mirror from a corpus
+    already stamped current, but preserves plain-prose bodies no migration ever touched."""
+    dst = _v0_14_copy_stamped_schema_current(tmp_path)
     paths = _load_paths(dst)
     svc = Service(paths)
     run = await svc.run_pending_migrations()
-    assert run.applied == [] and run.repair is None  # nothing declared for it
+    assert run.applied == [] and run.repair is None
 
     roles = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_ROLE]
     assert roles and all(
         set(read_frontmatter(path=item_file(paths, it)).get("extra", {})) & _RETIRED_MIRROR_KEYS
         for it in roles
     ), "this fixture carries no role mirror for the bare verb to reach"
+    role_bodies_before = {
+        item_file(paths, it).name: (
+            get_section(item_file(paths, it).read_text(encoding="utf-8"), markers.BODY) or ""
+        ).strip()
+        for it in roles
+    }
 
     first = await svc.repair()
     assert first.stripped, "the bare verb reached none of the regions this fixture carries"
@@ -445,15 +452,30 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
         assert not has_section(text, markers.SUMMARY)
         assert ":head -->" not in text
     for item in roles:
-        text = item_file(paths, item).read_text(encoding="utf-8")
-        stored = read_frontmatter(text=text, source=str(item_file(paths, item))).get("extra", {})
+        path = item_file(paths, item)
+        text = path.read_text(encoding="utf-8")
+        stored = read_frontmatter(text=text, source=str(path)).get("extra", {})
         assert set(stored) & _RETIRED_MIRROR_KEYS == set()
-        assert (get_section(text, markers.BODY) or "").strip() == markers.open_marker(
-            markers.view_tag("role_definition")
+        body = (get_section(text, markers.BODY) or "").strip()
+        assert body == role_bodies_before[path.name], (
+            f"{item.id}: the bare verb converged an authored body it has no licence to touch"
         )
 
     corpus = {p: p.read_bytes() for p in _md_files(paths.squad_dir)}
     second = await svc.repair()
     assert second.stripped == []
     assert {p: p.read_bytes() for p in corpus} == corpus
-    assert not [i for i in await svc.check() if i.level == "error"]
+    system_skills = [
+        it
+        for it in (await svc.store.load()).items.values()
+        if it.type == ROSTER_SKILL and is_system_skill(it.extra.get(X.SLUG, it.slug), svc.spec)
+    ]
+    expected_gaps = await _expected_seeded_view_gap_files(svc, set())
+    expected_gaps |= {item_file(paths, it).name for it in (*roles, *system_skills)}
+    unexpected = [
+        i
+        for i in await svc.check()
+        if i.level == "error"
+        and not ("missing seeded view tag" in i.message and i.item in expected_gaps)
+    ]
+    assert not unexpected, unexpected

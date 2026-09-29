@@ -29,10 +29,6 @@ Implement JWT-based authentication.
 <!-- sq:subtasks -->
 <!-- sq:subtask:ST1 -->
 
-<!-- sq:subtask:ST1:head -->
-**Status:** ⚪ Todo  **Implements:** US1 — Authenticate with email and password
-<!-- sq:subtask:ST1:head:end -->
-
 ### ST1 — Validate tokens
 
 <!-- sq:subtask:ST1:body -->
@@ -44,12 +40,6 @@ Validate JWT tokens on each request.
 
 <!-- sq:subtask:ST1:end -->
 <!-- sq:subtasks:end -->
-
-<!-- sq:summary -->
-| Subtask | Title | Status | Story |
-|---|---|---|---|
-| ST1 | Validate tokens | ⚪ Todo | US1 |
-<!-- sq:summary:end -->
 
 ## Discussion
 

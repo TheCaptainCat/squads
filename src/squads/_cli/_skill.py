@@ -11,8 +11,8 @@ Grammar:
   sq skill <slug|id|n> unlink-role <role> — remove that scope (+ resync that role)
   sq skill <slug|id|n> regen            — regenerate the Claude pointer
   sq skill <slug|id|n> status <S>       — transition the skill's status
-  sq skill <slug|id|n> view add <name>  — place a view tag in sq:body
-  sq skill <slug|id|n> view rm <name>   — remove a view tag from sq:body
+  sq skill <slug|id|n> view add <name>       — place or re-enable a view tag in sq:body
+  sq skill <slug|id|n> view disable <name>   — disable a view tag in sq:body (kept, not removed)
   sq skill <slug|id|n> rm [--purge]     — remove the skill item
 
 Address resolution order (exact match, no fuzzy):
@@ -41,6 +41,7 @@ from squads._cli._common import (
     resolve_agent_addr,
     resolve_body,
     resolve_item_id_any,
+    view_disable_result_message,
 )
 from squads._interactions import (
     ITEM_SKILL_VIEW_NAME,
@@ -64,7 +65,7 @@ skill_app = typer.Typer(
         "Address a skill:  sq skill <slug|id|n> show|regen|rm|status|view\n"
         "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm\n"
         "           sq skill squads status Archived\n"
-        "           sq skill squads view rm squads_skill   — clear a tag naming a dropped view\n"
+        "           sq skill squads view disable squads_skill   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (add) is unaddressable by slug; "
         "use the full ID or bare number instead."
     ),
@@ -137,11 +138,17 @@ async def skill_show(
                     "allowed_tools": it.extra.get(X.ALLOWED_TOOLS, ""),
                     "path": it.path,
                     "system": system,
+                    # Tag-expanded, same as an ordinary item's `show --json` body field.
+                    "body": await svc.read_body(it.id),
                 }
             )
         )
         return
-    kind_label = "system (template-owned)" if system else "custom (authored)"
+    # This row means "currently refused as template-rendered", not `system`'s bundled-blind
+    # allocation question — a stale dropped-type skill reads "custom" once its body is
+    # writable again, even though `system` still counts it template-owned for seeding.
+    currently_roster = views.roster_body_view_name(it.type, slug, svc.spec) is not None
+    kind_label = "system (template-owned)" if currently_roster else "custom (authored)"
     rows = [
         f"[bold]{it.id}[/bold] {e(it.title)}",
         f"[bold]slug:[/bold] {slug}",
@@ -180,22 +187,25 @@ async def skill_show(
             view_name,
             svc.spec,
             drift_outstanding=version_drifted(__version__, svc.paths.config.squads_version),
+            disabled=await svc.view_tag_state(it.id, view_name) is True,
         )
-        if hint_state == "view_undeclared":
+        if hint_state == "disabled":
+            empty_hint = f"(disabled — `sq skill {slug} view add {view_name}` re-enables it)"
+        elif hint_state == "view_undeclared":
             empty_hint = (
                 f"(empty — the view {view_name!r} this skill renders is not declared in this "
                 "project's spec, so `sq sync` cannot populate it; declare it to restore the "
                 "generated definition — or, if this skill's body still carries this tag from "
-                f"before it was dropped, clear it with `sq skill {slug} view rm {view_name}`)"
+                f"before it was dropped, disable it with `sq skill {slug} view disable "
+                f"{view_name}`)"
             )
         elif hint_state == "declared_drift_outstanding":
             empty_hint = "(empty — run `sq sync` to populate it)"
         else:
+            surface = views.skill_authoring_surface(view_name, slug, svc.spec, svc.playbook)
             empty_hint = (
-                "(empty — `sq sync` cannot populate it: the version-drift backfill it relies "
-                "on has nothing outstanding to run. Try `sq repair`, which converges an "
-                "already-tagged or plain-legacy body regardless of drift — or, if this body "
-                f"is genuinely untagged, `sq skill {slug} view add {view_name}`)"
+                f"(empty — its content's real authoring surface is {surface}; author it "
+                f"there instead — or run `sq skill {slug} view add {view_name}` directly)"
             )
     else:
         empty_hint = f'(empty — write it with `sq skill {slug} body -m "…"`)'
@@ -359,19 +369,13 @@ async def skill_rm(
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])
 
 
-# --------------------------------------------------------------------------- view add/rm
+# --------------------------------------------------------------------------- view add/disable
 
-# The ``sq skill <addr> view add|rm <name>`` group: place or remove an unpaired
-# ``sq:view:<name>`` tag in the skill's ``sq:body`` region. Mirrors ``_cli._items._cmd_view``'s
-# shape (the generic per-type group's own view verb) over ``ServiceCore.insert_view``/
-# ``remove_view`` — the same item-type-agnostic mutation, addressed here through the skill
-# group's own slug/ID/number resolution rather than the generic group. Covers a system skill and
-# a per-item-type skill alike (``insert_view``/``remove_view`` take a bare item id and do not
-# distinguish); this is the recovery for a body that already carries a tag naming a view the
-# active spec no longer declares — `rm` removes it unconditionally, no ``spec.views`` check,
-# deliberately, because a tag once placed must stay removable even for a view that no longer
-# exists — and only an operator invoking it ever clears one.
-_view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag in sq:body.")
+# Place, re-enable or disable an unpaired sq:view:<name> tag in the skill's sq:body region, via
+# ServiceCore.add_view/disable_view. `view rm` is retired: a tag is disabled, never deleted.
+_view_app = typer.Typer(
+    no_args_is_help=True, help="Place, re-enable or disable a view tag in sq:body."
+)
 
 
 @_view_app.command("add")
@@ -379,27 +383,28 @@ _view_app = typer.Typer(no_args_is_help=True, help="Place or remove a view tag i
 async def skill_view_add(
     ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
 ) -> None:
-    """Insert the sq:view:NAME tag at the end of sq:body (idempotent)."""
+    """Place the sq:view:NAME tag enabled, or re-enable it if disabled (idempotent)."""
     item_id: str = ctx.obj["id"]
-    inserted = await get_service().insert_view(item_id, name)
-    if inserted:
+    placed = await get_service().add_view(item_id, name)
+    if placed:
         console.print(f"{item_id}: view {e(name)} placed in sq:body")
     else:
         console.print(f"{item_id}: view {e(name)} already present, unchanged")
 
 
-@_view_app.command("rm")
+@_view_app.command("disable")
 @common.command
-async def skill_view_rm(
-    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+async def skill_view_disable(
+    ctx: typer.Context, name: str = typer.Argument(..., help="View name.")
 ) -> None:
-    """Remove the sq:view:NAME tag from sq:body (safe no-op if absent)."""
+    """Disable the sq:view:NAME tag (placed disabled if absent) — never removed."""
     item_id: str = ctx.obj["id"]
-    removed = await get_service().remove_view(item_id, name)
-    if removed:
-        console.print(f"{item_id}: view {e(name)} removed from sq:body")
-    else:
-        console.print(f"{item_id}: view {e(name)} was not present, nothing to do")
+    svc = get_service()
+    was_present = await svc.view_tag_present(item_id, name)
+    disabled = await svc.disable_view(item_id, name)
+    console.print(
+        view_disable_result_message(item_id, name, was_present=was_present, changed=disabled)
+    )
 
 
 _addr.add_typer(_view_app, name="view")

@@ -504,10 +504,11 @@ def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
 def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
     """Parse one ``[views.<name>]`` table into a ``ViewSpec``.
 
-    ``source`` is required and itself a table (``{kind, name}``); it is the only key a view
-    declares. Anything else in *data* — including the retired ``fields``/``group_by``/
-    ``order_by`` grammar — reaches ``ViewSpec.model_validate`` verbatim via ``**data`` below and
-    is refused by its ``extra="forbid"``, naming the offending key
+    ``source`` is required and itself a table (``{kind, name}``); ``required`` is an optional
+    bool, defaulting false, flowing through in *data* verbatim like every other key. Anything
+    else in *data* — including the retired ``fields``/``group_by``/``order_by`` grammar —
+    reaches ``ViewSpec.model_validate`` verbatim via ``**data`` below and is refused by its
+    ``extra="forbid"``, naming the offending key
     (:func:`~squads._specmerge.describe_spec_error`). ``source.name`` is cross-referenced
     against the merged spec once every vocabulary section has been parsed (``_check_views``,
     run from ``WorkflowSpec._validate``) — this function only builds the typed value.

@@ -1,6 +1,5 @@
 """`ReaderScreen`: the standalone item reader, pushed wherever an item must open outside
-the browse tree (reused for search hits in the follow-up increment).
-"""
+the browse tree."""
 
 import pytest
 
@@ -36,12 +35,9 @@ async def test_reader_screen_loads_the_item_and_pops_on_escape(svc):
 
 
 async def test_reader_screen_shows_a_view_tags_rendered_output_not_the_literal_tag(svc):
-    """The TUI reader is one of the read surfaces that must inherit expansion from
-    ``Service.read_body`` with no reimplementation of its own — it calls that method
-    directly (see ``ReaderPanel.load``), so a body carrying a ``sq:view:<name>`` tag renders
-    the view in place here too."""
+    """The TUI reader inherits view-tag expansion from ``Service.read_body`` directly."""
     task = (await create_item(svc, "task", "T")).item
-    await svc.insert_view(task.id, "milestone_rollup")
+    await svc.add_view(task.id, "milestone_rollup")
     expected = (await svc.render_view("milestone_rollup", task.id)).strip()
 
     app = App[None]()
@@ -56,14 +52,8 @@ async def test_reader_screen_shows_a_view_tags_rendered_output_not_the_literal_t
 async def test_reader_screen_expands_no_tag_and_no_index_load_for_an_untagged_body(
     svc, monkeypatch
 ):
-    """``sq ui`` is the surface that pays for the boundary's index load — it opts out of the
-    CLI's invocation-scoped read (see ``Service.read_body``'s own docstring), so every
-    ``ReaderPanel.load`` here is a fresh, unscoped call. Structural proof that a browse-tree
-    selection with no view tag never reaches expansion at all, driven through the real
-    component rather than ``Service.read_body`` called directly (see the service-level
-    call-count assertion in
-    ``tests/service/test_read_body_skips_the_index_load_without_a_view_tag.py`` for the
-    ``store.load`` half of the same claim)."""
+    """A browse-tree selection with no view tag never reaches expansion at all, driven
+    through the real component."""
     from squads import _views as views
 
     feat = (await create_item(svc, "feature", "Standalone", body="Hello world")).item

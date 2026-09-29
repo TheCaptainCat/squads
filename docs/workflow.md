@@ -423,17 +423,22 @@ places it with a verb instead:
 sq milestone <n> view add milestone_rollup
 ```
 
-which inserts the `sq:view:milestone_rollup` tag at the end of the milestone's body.
+which inserts the `sq:view:milestone_rollup` tag into the milestone's body at the view's declared
+`position` — the end of the body unless you set one (see
+["Derived views: field reference"](#derived-views-field-reference)).
 `templates/items/milestone.md.j2` already seeds this tag on every *new* milestone, and upgrading
-(`sq migrate up`) places it on every milestone that predates the upgrade, so `view add` is mainly
-needed for a view you declared yourself, on a type whose creation template doesn't seed its tag.
-Typing the tag into a body by hand is refused, deliberately:
+(`sq migrate up`) places it on the milestones that predate the upgrade (the exceptions are in
+[the next subsection](#after-sq-migrate-up-seeded-views)), so `view add` is mainly needed for a
+view you declared yourself, on a type whose creation template doesn't seed its tag. Typing the tag
+into a body by hand is refused, deliberately:
 
 ```
 error: body must not contain sq marker comments (<!-- sq:… -->). Write the tag without its HTML-comment wrapper (e.g. sq:body rather than the comment form) — backtick-wrapping does not neutralize a well-formed tag.
 ```
 
-`sq milestone <n> view rm milestone_rollup` takes the tag back out.
+A tag is never taken back out. `sq <type> <n> view disable <name>` turns it off instead: the tag
+stays in the body as `sq:view:<name>:disabled` and renders nothing, and `view add` turns it back
+on.
 
 ### The result
 
@@ -445,6 +450,80 @@ milestone with one linked feature:
 - **FEAT-<n>** ⚪ Draft — Ship the widget
 Outstanding: 1
 ```
+
+### After `sq migrate up`: seeded views
+
+Every document is **seeded** with the views its type calls for: a milestone with
+`milestone_rollup`, a role with `role_definition`, the three permanently-system skills
+(`squads`, `greeting`, `sq-memory`) each with its own view, and each per-item-type `sq-<type>`
+skill with `item_skill`. A seeded view's tag stays in the document for good — enabled or
+disabled — and `sq check` reports a document that is missing one (see
+["Derived views: field reference"](#derived-views-field-reference)).
+
+`sq migrate up` places those tags for you. It adds the roll-up tag to each existing milestone,
+and it replaces the text in every role, permanently-system skill and `sq-<type>` skill body with
+that document's tag. That includes an `sq-<type>` skill whose text you wrote yourself: copy such
+a runbook into a skill of its own before upgrading. The run reports how many files it changed. An
+empty body, a body that already carries its tag, and a custom skill are left as they are.
+
+A document the migration cannot safely rewrite is skipped rather than aborting the run, and named
+by id in its output:
+
+- a milestone whose file is missing, or whose body has no `sq:body` region;
+- a milestone whose tag you had already moved outside `sq:body` by hand. `sq check` accepts it
+  there, but the next body write or `view add` places a second copy inside the body, and
+  `sq check` then reports a duplicate. Delete the out-of-region line from the file by hand, then
+  run `sq milestone <n> view add milestone_rollup`;
+- a role or skill body holding marker-shaped content the migration does not recognise.
+
+`sq check` then reports each skipped document that still lacks its tag, at error level. For a
+milestone, the error names two single-command remedies — restore the file or its `sq:body`
+region first if that is what is missing:
+
+```
+error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
+```
+
+**A role or skill that still holds old generated text.** A role or skill body refuses prose, so
+its old text cannot be edited away in place, and `view add` alone would render the old text and the live
+definition together. `sq check` names the remedy in full, filled in for the document:
+
+```
+error ROLE-000001-dev-agent.md: missing seeded view tag <!-- sq:view:role_definition --> — the body already carries prose; the remedy that converges to a single live rendering: (1) drop 'role_definition' from [selected] in .overrides/workflow.toml; (2) clear the text with `echo '{"op": "body", "target": "ROLE-1", "body": "", "force": true, "as": "dev-agent"}' | sq import -`; (3) restore 'role_definition' to [selected]; (4) `sq role dev-agent view add role_definition`
+```
+
+1. Drop the view from `[selected]` in `.overrides/workflow.toml`, listing every view you keep:
+
+   ```toml
+   [selected]
+   views = ["milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
+   ```
+
+2. Clear the body. A skill takes `sq skill greeting body -m "" --force`. A role has no `body`
+   verb, so pipe a one-event import to `sq import -`, as the error shows. Marker-shaped content
+   is cleared along with the rest.
+3. Put the view back in `[selected]` (or delete the `[selected]` table if it lists every view).
+4. Run `sq role dev-agent view add role_definition`, or `sq skill <slug> view add <name>` for a
+   skill.
+
+The document then renders only its live definition, and `sq check` is clean for it.
+`view disable` is not a substitute: the document would then render the old text alone, and
+only these four steps remove it.
+
+**An `sq-<type>` skill you wrote yourself.** A custom skill whose slug a type declared later
+now names, such as `sq-widget` once you declare `widget`, keeps its text, and `sq check` names
+five steps:
+
+```
+error SKILL-000021-sq-widget.md: missing seeded view tag <!-- sq:view:item_skill --> — the body already carries prose, and 'sq-widget' still documents the declared type 'widget', so this may be an author's own runbook rather than stale legacy text; the remedy that preserves it: (1) `sq skill add <new-slug>` and move the prose there; (2) drop 'item_skill' from [selected] in .overrides/workflow.toml; (3) clear sq-widget's own text with `sq skill sq-widget body -m "" --force`; (4) restore 'item_skill' to [selected]; (5) `sq skill sq-widget view add item_skill`
+```
+
+For example, `sq skill add widget-runbook --desc "…"` and `sq skill widget-runbook body -m "…"`
+with the runbook's text, then steps 2–5. `sq check` is then clean for both skills. A squad
+brought in with `sq adopt` from a folder older than 0.14 skips the migration, so `sq check`
+reports the same states on its roles and skills, with the same remedies.
+
+`sq migrate chlog v0.14.0..v0.15.0` prints the migration's own manual steps.
 
 ---
 
@@ -984,7 +1063,8 @@ through `[selected]`.
 source = { kind = "ref", name = "escalates" }
 ```
 
-A view declares one thing: `source` — required; an inline table of `kind` and `name`.
+A view declares two things: `source`, which every view carries, and an optional `position`.
+`source` is an inline table of `kind` and `name`:
 
 - `kind = "ref"` — every item carrying a forward ref of kind `name` to the item the view is
   resolved against, recovered by inverting stored edges. `name` must be a declared entry of
@@ -998,8 +1078,39 @@ A view declares one thing: `source` — required; an inline table of `kind` and 
   `name` is absent.
 - `kind = "self"` — the resolved item itself, with no join at all. Takes no `name`.
 
+`position` says where the view's tag sits inside a document's `sq:body` region:
+
+- `"bottom"` — the default: the last line of the region.
+- `"top"` — the first line of the region.
+- `"after(<regex>)"` — its own line, after the line where the pattern's **first** match ends. The
+  pattern is a Python regular expression, compiled in multiline mode (`^` and `$` match at each
+  line), and matched against the body's prose with every view tag taken out. When nothing
+  matches, the tag goes at the bottom.
+
+```toml
+[views.milestone_rollup]
+position = "after(^## Scope)"
+```
+
+An unrecognised value, or an `after(...)` pattern that does not compile, fails the spec load, and
+`sq workflow lint` lists it with every other problem:
+
+```
+view 'milestone_rollup': invalid position 'middle': position 'middle': not one of 'top', 'bottom', 'after(<regex>)'
+view 'bad_one': invalid position 'after([)': position 'after([)': pattern does not compile: unterminated character set at position 0
+```
+
 The table key is the view's name, and it is also where its presentation lives — there is no
 `presentation` field, because the template path *is* the identity (below).
+
+**View names.** A view's name must be a bare TOML key — letters, digits, `_` and `-` only — and
+must not be `end`. The tag's disabled state is written after a colon (`sq:view:<name>:disabled`),
+and `sq:view:end` would read as a closing marker, so a name outside that alphabet is refused at
+load:
+
+```
+view 'a:b': not a bare TOML key other than 'end' — a view name must match [A-Za-z0-9_-]+ and must not be 'end' (the disabled-state suffix is colon-delimited, and `sq:view:end` would spell a close marker)
+```
 
 **Presentation: `templates/views/<name>.md.j2`.** A view's rendering is an ordinary bundled
 template, resolved by the view's own name, and it is overridden the way every other template is —
@@ -1036,14 +1147,109 @@ double digits sorts lexically ahead of one in the single digits of the same type
 **A view you declare needs a template of its own at that path** before it can be rendered; until
 you write one, resolve it with `--json`, which does not render at all.
 
-**Dropping a view.** `[selected].views` names the views that survive, like every other section —
-a view is reached only by placing its own `sq:view:<name>` tag in a document body, never by a type
-attachment, so dropping the declaration needs no companion edit anywhere else:
+**Seeded views.** A document's seeded views follow from its type (and, for a skill, its slug):
+the tags its type's creation template writes into the body — `milestone_rollup` on a milestone —
+or, for the roster, `role_definition` on every role, `squads_skill`, `greeting_skill` and
+`memory_skill` on the three permanently-system skills, and `item_skill` on the `sq-<type>` skill
+of each declared type. A custom skill has none, and a view dropped from `[selected]` seeds
+nothing: a document created while its view is dropped gets no tag, and once the view is back,
+`sq check` names the remedy that places it. A seeded view's tag is never removed: a body
+write puts it back if it is missing.
+
+**Where tags go on a body write.** Every body write — `sq <type> <n> body`, replace and
+`--append` alike, and a `sq import` body event — takes the view tags out of the body, applies the
+prose edit, and puts each tag back at its view's `position`, in the state it had. Several views
+that land in the same place follow their order in the merged `[views]` table, and a tag naming a
+view the spec does not declare goes after all of them. So `--append` writes above a `bottom`
+view, a changed `position` takes effect on a document's next body write, and creating an item
+places its seeded tags at their positions from the start. A tag takes the spacing of the spot it
+lands in — on its own line between two lines of one paragraph, with a blank line on each side
+between paragraphs — and when it moves away, the prose closes up exactly as it was. The usual rule
+for authored prose is unchanged: replacing a body that already holds prose needs `--force`. On
+read, a rendered view always gets a blank line on each side, so it never runs into the prose
+around it.
+
+**Disabled, not removed.** `sq <type> <n> view disable <name>` (and `sq role <slug> …` /
+`sq skill <slug> …` for the roster) turns a tag into `sq:view:<name>:disabled`, or places it
+disabled if it is absent. A disabled tag renders nothing and keeps its place through every body
+write. `view add <name>` places the tag enabled, or re-enables a disabled one; there is no
+separate `enable`. `view add` refuses a name the spec does not declare, or whose template is
+missing, or whose source cannot apply to the document; `view disable` takes any name, which makes
+it the way to quiet a tag left behind by a dropped view. Because it takes any name, it says when
+it placed a new tag rather than disabling one, so a mistyped name shows up:
+
+```
+MILE-21: view nope had no existing tag — placed disabled in sq:body
+```
+
+Either verb also collapses duplicate copies of its view into one tag in the state it names.
+
+**What `sq check` holds.** Each seeded view is present exactly once, enabled or disabled, and no
+view name appears twice in a body, counting both states together. Each is an error, reported once:
+
+```
+error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
+error MILE-000021-ship-1-0.md: duplicate sq:view:milestone_rollup tag (2 copies, counting both states) — collapse to one with `sq milestone 21 view add milestone_rollup` or `sq milestone 21 view disable milestone_rollup`
+```
+
+The duplicate error is the same whether both copies share a state or an enabled copy sits beside
+a disabled one, and either named command collapses them to one tag. A body write refuses to run on a body that
+holds a view in both states, and names the same two commands. A disabled tag naming an undeclared
+view is not an error; an enabled one is.
+
+A role or skill file whose `sq:body` markers were deleted by hand is reported too, with the
+command that restores the region:
+
+```
+error ROLE-000005-qa.md: missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — restore it with `sq role qa view add role_definition`, or disable the view with `sq role qa view disable role_definition`
+```
+
+Either command puts the region back, and `sq repair` does the same for every such file — but only
+when the file holds nothing but the seeded tag where the region was. If other text sits there,
+putting the region back would mean guessing which lines are yours, so every command leaves the
+file unchanged and `sq check` asks you to fix it by hand:
+
+```
+error ROLE-000005-qa.md: missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) with something other than the seeded view tag in the way — no `view add`/`view disable` can restore this without guessing which lines are authored; recover the file by hand or from a backup
+```
+
+Restore the `<!-- sq:body -->` / `<!-- sq:body:end -->` pair around the body from version control
+or by hand, then run `sq check` again.
+
+**Which bodies take prose.** A milestone's body is ordinary prose around its roll-up tag:
+`sq milestone <n> body -m` and `body --append` both work, and the tag stays where its `position`
+puts it. A role's body, a permanently-system skill's body and a per-item-type `sq-<type>` skill's
+body take no prose at all while their view is declared — replace and append are both refused,
+and `--force` does not lift it. Their content is authored elsewhere:
+
+- a role: `.overrides/roles.toml`, or `.overrides/roles/<slug>.toml` for a project-defined role;
+- a per-item-type skill: that type's `[types.<type>]` lane in `.overrides/playbook.toml`;
+- `squads`: `.overrides/playbook.toml`;
+- `greeting` and `sq-memory`: the view's template override,
+  `.overrides/templates/views/<name>.md.j2` (`sq override scaffold views/greeting_skill.md.j2`
+  starts one).
+
+The refusal names the surface for the document at hand:
+
+```
+error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this body directly instead.
+```
+
+To write such a body by hand, drop its view from `[selected]` — see
+[overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
+`view disable` stays available on these documents; the document then renders an empty definition.
+
+**Dropping a view.** `[selected].views` names the views that survive, like every other section. A
+view is reached only through its `sq:view:<name>` tag in a document body, never by a type
+attachment:
 
 ```toml
 [selected]
 views = []          # drop the declaration
 ```
+
+A tag already placed for a dropped view no longer resolves, and `sq check` reports each one at
+error level; `sq <type> <n> view disable <name>` quiets it.
 
 **Referential checks.** A view naming a ref kind, sub-entity kind or item type the merged spec does
 not declare is refused at load with the rest of the spec's cross-references. `sq workflow lint`
