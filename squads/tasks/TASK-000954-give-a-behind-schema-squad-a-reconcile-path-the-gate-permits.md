@@ -5,7 +5,7 @@ type: task
 title: Give a behind-schema squad a reconcile path the gate permits
 status: Draft
 author: tech-lead
-priority: high
+priority: medium
 refs:
 - REV-952:fixes
 description: require_current_schema exempts only migrate, so every remedy naming sq
@@ -22,7 +22,7 @@ subentities:
   title: Drive the escape end to end on a behind-schema squad
   status: Todo
 created_at: '2026-09-15T08:41:13Z'
-updated_at: '2026-09-15T09:00:25Z'
+updated_at: '2026-09-29T13:24:12Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -187,4 +187,6 @@ Falsify each: break the narrowing, watch the test go red, restore, watch it go g
     Left open in the ADR: no deliberate verb for a licensed reconcile; a runner whose own refusal is the wall is not fixed by this; whether the licence should also govern reads.
     
     @manager ADR-955 is in its initial status for op-pierre. ST2/ST3 land against the licence, not against a chosen command.
+- [2026-09-29T13:24:12Z] Pierre Chat:
+  - Not high priority.
 <!-- sq:discussion:end -->

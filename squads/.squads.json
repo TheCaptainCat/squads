@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 967,
+  "counter": 969,
   "padding": 6,
   "items": {
     "12": {
@@ -29849,7 +29849,7 @@
       "type": "milestone",
       "title": "squads 0.15 - views, rebuilt",
       "slug": "squads-0-15-views-rebuilt",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -29861,7 +29861,7 @@
       "subentities": [],
       "path": "milestones/MILE-000867-squads-0-15-views-rebuilt.md",
       "created_at": "2026-09-02T08:03:36Z",
-      "updated_at": "2026-09-25T16:06:27Z",
+      "updated_at": "2026-09-29T13:24:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40790,7 +40790,7 @@
       "parent": null,
       "author": "tech-lead",
       "assignee": null,
-      "priority": "high",
+      "priority": "medium",
       "severity": null,
       "labels": [],
       "refs": [
@@ -40827,7 +40827,7 @@
       ],
       "path": "tasks/TASK-000954-give-a-behind-schema-squad-a-reconcile-path-the-gate-permits.md",
       "created_at": "2026-09-15T08:41:13Z",
-      "updated_at": "2026-09-15T09:00:25Z",
+      "updated_at": "2026-09-29T13:24:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -41671,6 +41671,128 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-967"
+    },
+    "968": {
+      "sequence_id": 968,
+      "type": "task",
+      "title": "Harden the VS Code skew canary: sq resolution and type-catalog keys",
+      "slug": "harden-the-vs-code-skew-canary-sq-resolution-and-type-catalo",
+      "status": "Draft",
+      "description": "The canary resolves sq off bare PATH and floor-checks 7 of 9 type-catalog keys; resolve like discovery.ts and assert the exact key set",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-949:fixes",
+        "BUG-935:fixes",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Resolve sq like discovery.ts, not bare PATH",
+          "status": "Todo",
+          "assignee": "typescript-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Assert the exact type-catalog key set",
+          "status": "Todo",
+          "assignee": "typescript-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000968-harden-the-vs-code-skew-canary-sq-resolution-and-type-catalo.md",
+      "created_at": "2026-09-29T13:29:18Z",
+      "updated_at": "2026-09-29T13:32:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-968"
+    },
+    "969": {
+      "sequence_id": 969,
+      "type": "task",
+      "title": "Fix the 0.16 engine bugs: versions, skills, views, spec id, slugs",
+      "slug": "fix-the-0-16-engine-bugs-versions-skills-views-spec-id-slugs",
+      "status": "Draft",
+      "description": "Five independent engine fixes for MILE-934; the spec-identity and slug subtasks wait on architect rulings",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-937:fixes",
+        "BUG-938:fixes",
+        "BUG-957:fixes",
+        "BUG-962:fixes",
+        "BUG-965:fixes",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Order prereleases below their release in version_tuple",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restore frontmatter on a stripped managed skill file",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Report view tags outside the body region",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Make the self-view spec identity track the merged spec",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Transliterate accented letters in slugify",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000969-fix-the-0-16-engine-bugs-versions-skills-views-spec-id-slugs.md",
+      "created_at": "2026-09-29T13:31:10Z",
+      "updated_at": "2026-09-29T13:32:21Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-969"
     }
   }
 }
