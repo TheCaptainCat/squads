@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 958,
+  "counter": 967,
   "padding": 6,
   "items": {
     "12": {
@@ -396,7 +396,7 @@
       "type": "epic",
       "title": "Views as a source plus a template, rendered at a tag",
       "slug": "views-as-a-source-plus-a-template-rendered-at-a-tag",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Rebuild the view mechanism per ADR-880: source + template, a tag marks where it renders; the projection layer and its grammar are deleted",
       "parent": null,
       "author": "product-owner",
@@ -410,7 +410,7 @@
       "subentities": [],
       "path": "epics/EPIC-000897-views-as-a-source-plus-a-template-rendered-at-a-tag.md",
       "created_at": "2026-09-03T09:00:54Z",
-      "updated_at": "2026-09-03T09:59:56Z",
+      "updated_at": "2026-09-29T09:34:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6572,7 +6572,7 @@
       "type": "feature",
       "title": "Delete the view projection layer and its declaration grammar",
       "slug": "delete-the-view-projection-layer-and-its-declaration-grammar",
-      "status": "Draft",
+      "status": "Done",
       "description": "Remove the flattened-record middle layer, fields/group_by/order_by, and type-attachment; rebuild milestone_rollup as source + Jinja template",
       "parent": "EPIC-897",
       "author": "product-owner",
@@ -6590,7 +6590,7 @@
         {
           "local_id": "US1",
           "title": "Delete the projection middle layer (Cell/ViewRecord/Projection/project et al.)",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -6599,7 +6599,7 @@
         {
           "local_id": "US2",
           "title": "Delete fields/group_by/order_by grammar and its validators",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -6608,7 +6608,7 @@
         {
           "local_id": "US3",
           "title": "Delete ItemSpec.views type-attachment and its orphan-pruning",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -6617,7 +6617,7 @@
         {
           "local_id": "US4",
           "title": "Rebuild milestone_rollup as a one-line source plus a Jinja template",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -6626,7 +6626,7 @@
       ],
       "path": "features/FEAT-000904-delete-the-view-projection-layer-and-its-declaration-grammar.md",
       "created_at": "2026-09-03T09:10:57Z",
-      "updated_at": "2026-09-04T08:08:13Z",
+      "updated_at": "2026-09-24T08:49:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6874,7 +6874,7 @@
       "type": "feature",
       "title": "Upgrade path for the 0.14 view declaration grammar",
       "slug": "upgrade-path-for-the-0-14-view-declaration-grammar",
-      "status": "Draft",
+      "status": "Done",
       "description": "Adopter-facing side of retiring fields/group_by/order_by and type-attached views, which shipped one release ago",
       "parent": "EPIC-897",
       "author": "product-owner",
@@ -6892,7 +6892,7 @@
         {
           "local_id": "US1",
           "title": "Spec load names the removed key and points at the replacement grammar",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -6901,7 +6901,7 @@
         {
           "local_id": "US2",
           "title": "Upgrade guidance covers declaration, template, and placement",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -6910,7 +6910,7 @@
         {
           "local_id": "US3",
           "title": "0.15 CHANGELOG names this as a breaking change",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -6919,7 +6919,7 @@
       ],
       "path": "features/FEAT-000908-upgrade-path-for-the-0-14-view-declaration-grammar.md",
       "created_at": "2026-09-03T09:11:02Z",
-      "updated_at": "2026-09-03T09:44:44Z",
+      "updated_at": "2026-09-24T09:00:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -24929,13 +24929,13 @@
     "942": {
       "sequence_id": 942,
       "type": "task",
-      "title": "Required views: the declared flag, the write refusal, the check",
-      "slug": "required-views-the-declared-flag-the-write-refusal-the-check",
-      "status": "Draft",
-      "description": "A required key on the view declaration, a derived host set, an unforceable replace refusal, a tier-1 check finding, and the convergence licence that narrows with them",
+      "title": "View placement: position, disable, re-place on every body write",
+      "slug": "view-placement-position-disable-re-place-on-every-body-write",
+      "status": "Done",
+      "description": "Positioned views, disabled-not-deleted tags, one re-placement routine for every body write, the roster refusal, the widened migration reclaim, and the dead skip channel removed",
       "parent": "FEAT-948",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": "medium",
       "severity": null,
       "labels": [],
@@ -24948,7 +24948,7 @@
         {
           "local_id": "ST1",
           "title": "The required key on the view declaration, and its grammar docs",
-          "status": "Todo",
+          "status": "Cancelled",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -24956,9 +24956,9 @@
         },
         {
           "local_id": "ST2",
-          "title": "The derived host-set helper: one predicate over type and slug",
-          "status": "Todo",
-          "assignee": null,
+          "title": "Seeded-view helper: required retired, one slug source",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US1",
           "extra": {}
@@ -24975,7 +24975,7 @@
         {
           "local_id": "ST4",
           "title": "Replace refused on a required host, in the shared body closure",
-          "status": "Todo",
+          "status": "Cancelled",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -24983,27 +24983,27 @@
         },
         {
           "local_id": "ST5",
-          "title": "The append refusal survives as its own sweep-keyed rule",
-          "status": "Todo",
-          "assignee": null,
+          "title": "Roster bodies refuse prose, naming the authoring surface",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
-          "story": "US3",
+          "story": "US7",
           "extra": {}
         },
         {
           "local_id": "ST6",
-          "title": "view rm refuses on a declared, required host",
-          "status": "Todo",
-          "assignee": null,
+          "title": "view add places or re-enables; view disable; view rm retired",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US3",
           "extra": {}
         },
         {
           "local_id": "ST7",
-          "title": "Tier-1 check finding: a host missing its required view tag",
-          "status": "Todo",
-          "assignee": null,
+          "title": "Exactly-once seeded views: post-write check and sq check",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US4",
           "extra": {}
@@ -25011,7 +25011,7 @@
         {
           "local_id": "ST8",
           "title": "All six bundled views declare required",
-          "status": "Todo",
+          "status": "Cancelled",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -25019,44 +25019,89 @@
         },
         {
           "local_id": "ST9",
-          "title": "Retire set_body's per-type branches; move the role remedy",
-          "status": "Todo",
-          "assignee": null,
+          "title": "Remedy text: role/skill show hints and the shadowed warning",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
-          "story": "US5",
+          "story": "US7",
           "extra": {}
         },
         {
           "local_id": "ST10",
-          "title": "Regression shapes, falsification, and the gate",
-          "status": "Todo",
-          "assignee": null,
+          "title": "Regression matrix: position x body shape, host x verb",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": null,
           "extra": {}
         },
         {
           "local_id": "ST11",
-          "title": "Role and system-skill convergence narrows to strict_empty",
-          "status": "Todo",
-          "assignee": null,
+          "title": "Delete the dead body-tag skip channel",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US6",
           "extra": {}
         },
         {
           "local_id": "ST12",
-          "title": "The pre-0.14 roster-body reclaim moves into a migration step",
-          "status": "Todo",
-          "assignee": null,
+          "title": "Migration reclaims sq-<type> skills and survives mid-chain skew",
+          "status": "Done",
+          "assignee": "python-dev",
           "severity": null,
           "story": "US6",
           "extra": {}
+        },
+        {
+          "local_id": "ST13",
+          "title": "View position key and view-name alphabet, checked at load",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST14",
+          "title": "Disabled tag state; view_tag_name returns name and state",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST15",
+          "title": "One re-placement routine for every body write",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST16",
+          "title": "Regenerate the v0_15 corpus fixture; README check step",
+          "status": "Done",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST17",
+          "title": "Docs and CHANGELOG for positioned, disableable views",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": null,
+          "extra": {}
         }
       ],
-      "path": "tasks/TASK-000942-required-views-the-declared-flag-the-write-refusal-the-check.md",
+      "path": "tasks/TASK-000942-view-placement-position-disable-re-place-on-every-body-write.md",
       "created_at": "2026-09-14T12:15:27Z",
-      "updated_at": "2026-09-15T08:26:32Z",
+      "updated_at": "2026-09-29T09:28:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29582,7 +29627,7 @@
       "subentities": [],
       "path": "adrs/ADR-000880-views-as-a-source-plus-a-template-rendered-at-a-document-tag.md",
       "created_at": "2026-09-02T12:23:01Z",
-      "updated_at": "2026-09-15T08:59:42Z",
+      "updated_at": "2026-09-29T08:21:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29816,7 +29861,7 @@
       "subentities": [],
       "path": "milestones/MILE-000867-squads-0-15-views-rebuilt.md",
       "created_at": "2026-09-02T08:03:36Z",
-      "updated_at": "2026-09-15T12:59:01Z",
+      "updated_at": "2026-09-25T16:06:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -39224,7 +39269,7 @@
         {
           "local_id": "F9",
           "title": "Field grammar on a non-relation view is silently accepted and inert",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -39242,7 +39287,7 @@
         {
           "local_id": "F11",
           "title": "ViewsMixin repeats the resolve-a-view block three times",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -39251,7 +39296,7 @@
       ],
       "path": "reviews/REV-000920-view-source-layer-role-playbook-self-resolvers-and-per-sourc.md",
       "created_at": "2026-09-04T07:52:32Z",
-      "updated_at": "2026-09-04T08:58:06Z",
+      "updated_at": "2026-09-24T09:57:43Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40353,9 +40398,9 @@
     "948": {
       "sequence_id": 948,
       "type": "feature",
-      "title": "Required views: a declared, enforced document invariant",
-      "slug": "required-views-a-declared-enforced-document-invariant",
-      "status": "Draft",
+      "title": "View placement: position, disable, re-place on write",
+      "slug": "view-placement-position-disable-re-place-on-write",
+      "status": "Done",
       "description": "",
       "parent": "EPIC-897",
       "author": "product-owner",
@@ -40370,8 +40415,8 @@
       "subentities": [
         {
           "local_id": "US1",
-          "title": "A view can require its tag, with hosts derived not declared",
-          "status": "Todo",
+          "title": "Every document's seeded views are derived, never declared",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -40379,8 +40424,8 @@
         },
         {
           "local_id": "US2",
-          "title": "A body replace cannot silently drop a required host's tag",
-          "status": "Todo",
+          "title": "Every body write re-places view tags at their position",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -40388,8 +40433,8 @@
         },
         {
           "local_id": "US3",
-          "title": "The append guard and view rm stay scoped to what they protect",
-          "status": "Todo",
+          "title": "Views are disabled, never deleted",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -40397,8 +40442,8 @@
         },
         {
           "local_id": "US4",
-          "title": "sq check reports a document that has lost its required tag",
-          "status": "Todo",
+          "title": "sq check and writes enforce one tag per seeded view",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -40406,8 +40451,8 @@
         },
         {
           "local_id": "US5",
-          "title": "Bundled views declare required; hardcoded write refusals retire",
-          "status": "Todo",
+          "title": "Required flag retired: superseded by US1 and US7",
+          "status": "Cancelled",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -40415,17 +40460,35 @@
         },
         {
           "local_id": "US6",
-          "title": "Convergence licence narrows; legacy reclaim moves to a migration",
-          "status": "Todo",
+          "title": "Migration reclaims legacy roster prose; dead skip channel removed",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "Roster bodies hold no prose",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "A view declares where its tag renders",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
           "extra": {}
         }
       ],
-      "path": "features/FEAT-000948-required-views-a-declared-enforced-document-invariant.md",
+      "path": "features/FEAT-000948-view-placement-position-disable-re-place-on-write.md",
       "created_at": "2026-09-15T07:18:30Z",
-      "updated_at": "2026-09-15T08:25:54Z",
+      "updated_at": "2026-09-29T09:29:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40463,7 +40526,7 @@
       "type": "bug",
       "title": "sq migrate up can point to a chlog span with no manual steps in it",
       "slug": "sq-migrate-up-can-point-to-a-chlog-span-with-no-manual-steps",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -40478,7 +40541,7 @@
       "subentities": [],
       "path": "bugs/BUG-000950-sq-migrate-up-can-point-to-a-chlog-span-with-no-manual-steps.md",
       "created_at": "2026-09-15T08:00:35Z",
-      "updated_at": "2026-09-15T08:03:37Z",
+      "updated_at": "2026-09-24T09:59:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40815,7 +40878,7 @@
       "subentities": [],
       "path": "reviews/REV-000956-structural-review-of-the-engine-layering-and-cohesion.md",
       "created_at": "2026-09-15T09:01:18Z",
-      "updated_at": "2026-09-15T09:06:25Z",
+      "updated_at": "2026-09-29T08:44:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40872,6 +40935,742 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-958"
+    },
+    "959": {
+      "sequence_id": 959,
+      "type": "task",
+      "title": "Delete the view projection layer, its grammar, and type-attachment",
+      "slug": "delete-the-view-projection-layer-its-grammar-and-type-attach",
+      "status": "Done",
+      "description": "Rip out the projection middle layer, fields/group_by/order_by, its validators and ItemSpec.views; rebuild milestone_rollup as source plus template",
+      "parent": "FEAT-904",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "urgent",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-880:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Relation sources resolve to real items; delete the record layer",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Collapse the render and --json seams onto one source shape",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Delete fields/group_by/order_by and the validators that proved them",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Delete ItemSpec.views type-attachment and its orphan pruning",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Rebuild milestone_rollup as a one-line source plus a Jinja template",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Update the view reference docs to the reduced declaration",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000959-delete-the-view-projection-layer-its-grammar-and-type-attach.md",
+      "created_at": "2026-09-21T16:48:35Z",
+      "updated_at": "2026-09-24T08:49:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-959"
+    },
+    "960": {
+      "sequence_id": 960,
+      "type": "review",
+      "title": "Review FEAT-904: delete the view projection layer",
+      "slug": "review-feat-904-delete-the-view-projection-layer",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-904",
+        "TASK-959",
+        "ADR-880"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Roll-up member order diverges when statuses span status roles",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Retired-key load error is generic; splat form calls it brand-new",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "render_view still duplicates resolve_view_source's preamble",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "RELATION_KINDS and JsonValue are dead after the deletion",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Subentity resolver docstring points templates at a view they lack",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Projection and type-attachment prose survives in docs and spec",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Build-process narration in comments, docstrings and tests",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "CHANGELOG entry for removed keys and --json shapes is missing",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Lint drops the retired key's location; views hint names no verb",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Retired-key test docstring narrates the review",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000960-review-feat-904-delete-the-view-projection-layer.md",
+      "created_at": "2026-09-24T07:47:28Z",
+      "updated_at": "2026-09-24T08:49:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-960"
+    },
+    "961": {
+      "sequence_id": 961,
+      "type": "feature",
+      "title": "Pronouns on agent and operator identity, with a generic display-settings config",
+      "slug": "pronouns-on-agent-and-operator-identity-with-a-generic-displ",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Pronouns as data on roles and operators",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Bulk default pronouns at init and for the existing roster",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Pronouns in --json output",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Render pronouns next to names, dimmed, in the UIs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Generic display-settings mechanism in config",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000961-pronouns-on-agent-and-operator-identity-with-a-generic-displ.md",
+      "created_at": "2026-09-24T09:30:03Z",
+      "updated_at": "2026-09-24T09:53:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-961"
+    },
+    "962": {
+      "sequence_id": 962,
+      "type": "bug",
+      "title": "self --json spec identity can't distinguish two override documents",
+      "slug": "self-json-spec-identity-can-t-distinguish-two-override-docum",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": "low",
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "REV-920"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000962-self-json-spec-identity-can-t-distinguish-two-override-docum.md",
+      "created_at": "2026-09-24T09:57:16Z",
+      "updated_at": "2026-09-24T09:57:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-962"
+    },
+    "963": {
+      "sequence_id": 963,
+      "type": "task",
+      "title": "Fix private re-export imports flagged by Pylance",
+      "slug": "fix-private-re-export-imports-flagged-by-pylance",
+      "status": "Done",
+      "description": "Read names from their defining module, not a re-exporter",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "tasks/TASK-000963-fix-private-re-export-imports-flagged-by-pylance.md",
+      "created_at": "2026-09-24T11:53:08Z",
+      "updated_at": "2026-09-24T12:35:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-963"
+    },
+    "964": {
+      "sequence_id": 964,
+      "type": "review",
+      "title": "Required views: flag, refusal, check",
+      "slug": "required-views-flag-refusal-check",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-942:addresses",
+        "FEAT-948"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Milestone body replace always refused; TODO scaffold unfillable",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Per-type skill legacy bodies: premise false, every pre-0.14 squad",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Reclaim skipped by the migration chain's own mid-chain skew",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Role-authoring remedy not moved to sq role show (ST9 unmet)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Repair skip corridor is dead code; delete it",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Skip-report test file no longer tests its subject",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Append refusal rationale also describes the admitted milestone case",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Refusal, hint and warning messages name wrong or no-op remedies",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Docs overclaim append and the shadowed-warning remedy",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Build-process narration in standing docstrings and tests",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Single derivation holds; slug input and side lists diverge",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Narrowing shape table (ST10) not written; only role case",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000964-required-views-flag-refusal-check.md",
+      "created_at": "2026-09-24T19:53:36Z",
+      "updated_at": "2026-09-29T00:38:19Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-964"
+    },
+    "965": {
+      "sequence_id": 965,
+      "type": "bug",
+      "title": "Slugs drop accented letters instead of transliterating them",
+      "slug": "slugs-drop-accented-letters-instead-of-transliterating-them",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "MILE-934:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000965-slugs-drop-accented-letters-instead-of-transliterating-them.md",
+      "created_at": "2026-09-25T13:39:46Z",
+      "updated_at": "2026-09-25T13:40:13Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-965"
+    },
+    "966": {
+      "sequence_id": 966,
+      "type": "feature",
+      "title": "Declare skill user-invocability; hide reference skills",
+      "slug": "declare-skill-user-invocability-hide-reference-skills",
+      "status": "Draft",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an adopter, I want type-bound skills hidden from the slash menu",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As squads, I want the Claude Code backend to render the user-invocable flag",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, I want to override a skill's user-invocable default per project so my own conventions win",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an AGENTS.md adopter, I want this change to have no effect on my output",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an existing squad, I want the new flag to reach me through sq sync alone, with no migration required",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000966-declare-skill-user-invocability-hide-reference-skills.md",
+      "created_at": "2026-09-28T17:54:53Z",
+      "updated_at": "2026-09-28T18:09:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-966"
+    },
+    "967": {
+      "sequence_id": 967,
+      "type": "review",
+      "title": "View placement range: positions, roster, migration",
+      "slug": "view-placement-range-positions-roster-migration",
+      "status": "Approved",
+      "description": "Independent review of TASK-942's committed range under FEAT-948",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-948",
+        "TASK-942"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Migration reclaim wipes a later-declared type's authored skill",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Routine-inserted blank lines become prose on the next write",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Region-less roster file crashes repair, sync and migrate",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Roster refusal names no concrete type, file or path",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Migration manual and workflow.md give opposite remedies",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "View-name and position validators accept a trailing newline",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Four messages hand-spell the sq:view: shape",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Verb and guard messages misstate what happened",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Duplicate-tag remedy is a no-op; duplicate reported twice",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Creation under a dropped view mints a dangling tag",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Named remedy strands legacy prose beside a roster tag",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Mirrored spacing departs from ADR-880's ruled blank line",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Whitespace-only lines defeat invertibility; fuzz never draws them",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Region recovery orphans heading-led prose outside sq:body",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Four-step remedy deletes a runbook the migration preserved",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "Shadowed-skill save command captures the rendered guidance",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "Disabled tag mid-paragraph renders as a paragraph break",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F18",
+          "title": "Remedy comment says the reclaim skips authored skills",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000967-view-placement-range-positions-roster-migration.md",
+      "created_at": "2026-09-28T18:33:55Z",
+      "updated_at": "2026-09-29T09:28:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-967"
     }
   }
 }

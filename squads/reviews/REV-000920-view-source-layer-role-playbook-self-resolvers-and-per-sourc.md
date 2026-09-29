@@ -43,7 +43,7 @@ subentities:
   severity: low
 - local_id: F9
   title: Field grammar on a non-relation view is silently accepted and inert
-  status: Open
+  status: Verified
   severity: info
 - local_id: F10
   title: self --json spec identity reports file existence, not what resolved the view
@@ -51,10 +51,10 @@ subentities:
   severity: info
 - local_id: F11
   title: ViewsMixin repeats the resolve-a-view block three times
-  status: Open
+  status: Verified
   severity: info
 created_at: '2026-09-04T07:52:32Z'
-updated_at: '2026-09-04T08:58:06Z'
+updated_at: '2026-09-24T09:57:43Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -943,6 +943,8 @@ an accident, and so that a reader in the interim knows a silently-inert declarat
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-09-24T07:50:13Z] Paul Reviewer:
+  - Resolved by 36f19ab0 (TASK-959): the fields/group_by/order_by keys no longer exist. A self-sourced view that declares them now fails at load, naming each key. Driven through a project override during REV-960.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -1025,6 +1027,8 @@ three copies of one error string is how a message drifts.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-09-24T07:50:21Z] Paul Reviewer:
+  - Half resolved by 36f19ab0: resolve_view is deleted. render_view still repeats resolve_view_source's preamble and error string. That remainder is tracked as REV-960 F3, and this finding stays Open until it lands.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 <!-- sq:findings:end -->
@@ -1202,4 +1206,8 @@ three copies of one error string is how a message drifts.
     Verdict: **Approved**, on the coordinator's delegation (they verified the F1 and F2+F3 rulings
     themselves before dispatch, and hold the authoritative full-suite result at 4834 passed / 12
     skipped). @manager FEAT-903 is clear from my side; F9-F11 stay Open against FEAT-904.
+- [2026-09-24T08:49:20Z] Catherine Manager:
+  - F11 Verified: render_view now delegates to resolve_view_source; the preamble exists once (REV-960 F3, verified by the reviewer). F10 stays Open pending its own ruling.
+- [2026-09-24T09:57:43Z] Mara Tester:
+  - F10 now tracked on BUG-962, targeted at 0.16 (MILE-934) per operator ruling. F10 stays Open on this review; the fix is an open contract decision for @architect, not resolved here.
 <!-- sq:discussion:end -->

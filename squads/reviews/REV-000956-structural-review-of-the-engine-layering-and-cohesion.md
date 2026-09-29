@@ -10,7 +10,7 @@ refs:
 description: Module boundaries, layering and cohesion across the sq engine, including
   whether DI answers the construction tensions.
 created_at: '2026-09-15T09:01:18Z'
-updated_at: '2026-09-15T09:06:25Z'
+updated_at: '2026-09-29T08:44:07Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -306,4 +306,8 @@ _Add with `sq review 956 add-finding "…" --severity medium`; track with `sq re
 - [2026-09-15T09:06:25Z] Pierre Chat:
   - Run this review on Fable, whatever agent ends up carrying it. The model choice is part of the
     review's setup, not left to whoever picks it up.
+- [2026-09-24T20:29:25Z] Pierre Chat:
+  - Add to scope: every atomic service method must work on in-memory buffers and write each file at most once, at the end of the method (before the index commit). Audit for methods that write the same file several times in one transaction, and propose a test-level guard (e.g. a write-count spy per path per transaction).
+- [2026-09-29T08:44:07Z] Pierre Chat:
+  - Add to scope: a comment pass over ALL of src and tests against the short-comments board rule. Docstrings are 1-2 sentences of what and why, test docstrings one line, comments that restate the code are deleted, and there are no release versions, ticket IDs or history outside migration runners. Each file that fails is a finding.
 <!-- sq:discussion:end -->
