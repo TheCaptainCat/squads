@@ -16,7 +16,6 @@ import pytest
 from _helpers import create_item
 from squads._errors import SquadsError
 from squads._models._extras import ExtraKey as X
-from squads._views import projection_json
 
 pytestmark = pytest.mark.anyio
 
@@ -111,8 +110,9 @@ async def test_membership_is_recovered_by_inverting_stored_forward_refs(project,
     await svc.add_ref(a.id, m.id, kind="targets")
     await svc.add_ref(b.id, m.id, kind="targets")
 
-    projection = await svc.resolve_view("milestone_rollup", m.id)
-    ids = {r.values["id"].text for r in projection.records()}
+    _view, _item, result = await svc.resolve_view_source("milestone_rollup", m.id)
+    assert isinstance(result, list)
+    ids = {r.id for r in result}
     assert ids == {a.id, b.id}
     assert unrelated.id not in ids
 
@@ -197,19 +197,17 @@ async def test_the_rollup_is_never_written_to_the_milestone_file_and_is_computed
 
 
 async def test_json_emits_the_same_records_as_records_with_no_presentation_output(svc) -> None:
+    """``sq workflow view milestone_rollup <id> --json`` reuses ``sq tree --json``'s own
+    per-node shape for a ``ref`` source — no ``{fields, group_by, groups}`` envelope."""
+    from squads._cli._workflow_cmd import _view_json_payload
+
     m = await _milestone(svc)
     task = (await create_item(svc, "task", "Counted work")).item
     await svc.add_ref(task.id, m.id, kind="targets")
 
-    projection = await svc.resolve_view("milestone_rollup", m.id)
-    payload = projection_json(projection)
-    groups = cast("list[dict[str, object]]", payload["groups"])
-    all_ids = {
-        cast("dict[str, object]", rec)["id"]
-        for g in groups
-        for rec in cast("list[object]", g["records"])
-    }
-    assert all_ids == {task.id}
+    payload = await _view_json_payload(svc, svc.spec, "milestone_rollup", m.id)
+    rows = cast("list[dict[str, object]]", payload)
+    assert {row["id"] for row in rows} == {task.id}
     assert "## Outstanding" not in str(payload)
 
 
@@ -230,10 +228,7 @@ async def test_a_project_template_override_of_the_rollup_wins_on_milestone_show(
     )
     override_path.parent.mkdir(parents=True, exist_ok=True)
     override_path.write_text(
-        "PROJECT ROLLUP\n"
-        "{% for group in groups %}{% for record in group.records %}"
-        "{{ record.values['id'].text }}!\n{% endfor %}{% endfor %}",
-        encoding="utf-8",
+        "PROJECT ROLLUP\n{% for r in source %}{{ r.id }}!\n{% endfor %}", encoding="utf-8"
     )
     invalidate_squad_dir(project.squad_dir)
 

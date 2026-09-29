@@ -66,14 +66,17 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "TERMINAL",
         }
     ),
+    "src/squads/_workflow/_loader.py": frozenset(
+        # fixed retired-view-grammar-key -> refusal-reason lookup table, read by the
+        # retired-key load/lint check; never mutated after module import
+        {"_RETIRED_VIEW_KEY_REASONS"}
+    ),
     "src/squads/_workflow/_models.py": frozenset(
         {
             "_SIDE_PRIORITY",  # fixed side-status sort-priority lookup table
             "_BUNDLED_CONTAINER_HEADINGS",  # fixed bundled sub-entity container heading table
             "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the Plane-1 pass
             # resolves the same effective set the validator engine runs, so it is defined here
-            "VIEW_BASE_FIELDS_BY_SOURCE",  # fixed per-source-kind base-attribute-name table a
-            # view's fields may project without naming a declared badge field
             "DEFAULT_VALIDATOR_LEVEL",  # fixed catalog-member -> bundled default level table
             "VALIDATOR_LEVEL_FLOOR",  # fixed catalog-member -> floor level table
             "_LEVEL_RANK",  # fixed level -> rank lookup (warn < error) for the floor comparison
@@ -145,8 +148,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
     ),
     "src/squads/_views.py": frozenset(
         {
-            "_BASE_RESOLVERS",  # fixed base-attribute-name -> resolver-callable lookup table,
-            # the resolving-end counterpart of VIEW_BASE_FIELDS_BY_SOURCE
             "_SOURCE_APPLICABILITY",  # fixed source-kind -> applicability-predicate lookup
             # table, one entry per declared ViewSource.kind, definition-time
         }

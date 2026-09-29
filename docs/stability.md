@@ -460,7 +460,7 @@ renamed or retyped within a major version. The frozen surface includes:
   | `sq workflow statuses --json` | status | `status`, `role`, `badge` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
-  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `fields`, `group_by`, `order_by` |
+  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name` |
 
   Each emits a bare JSON array, one row per declared entry in a documented order, with **every key
   present on every row** — `null` for absent, never omitted. They are designed to be **joined**, and
@@ -480,15 +480,14 @@ renamed or retyped within a major version. The frozen surface includes:
   A `views` row's own `source_name` keys into whichever catalog its `source_kind` names —
   `ref-kinds`, `subentity-kinds` or `types` — the one join whose destination is decided by a
   sibling field rather than fixed.
-- **Derived views resolved against an item:** `sq workflow view <name> <id> --json` emits the
-  projection and skips presentation entirely — `{fields, group_by, groups}`, where each group is
-  `{key, count, records}` and a record maps each declared field code to its value (a scalar for a
-  text field, a `{code, label, emoji}` object for a badge field, `null` for an absent value). The
-  shape is identical for every view and every source kind, which is what lets a client lay out a
-  view it has never seen. An ungrouped view still emits one group, keyed `null`, so there is no
-  grouped/ungrouped variant to branch on. The same object appears under a `views` key in
-  `sq <type> <n> show --json`, keyed by view name, for a type that declares one; a type that
-  declares none omits the key.
+- **Derived views resolved against an item:** `sq workflow view <name> <id> --json` skips
+  presentation entirely and emits the resolved source in the shape its own kind already has a
+  serializer for — never a shared envelope. A `ref`/`subtree` source matches `sq tree --json`'s
+  per-node rows; a `subentity` source matches the per-kind list `--json` (`sq <type> <n> <kind>s
+  --json`); `role` matches `sq role <slug> show --json`; `self` matches the host item's own `show
+  --json` plus a `spec` key (`{schema_version, override}`); `playbook` has no existing
+  counterpart, so its own shape is `{type, lane, roster}` (`lane` is `null` for a type outside
+  every guide's lane domain). No shape carries a `fields`/`group_by`/`groups` key.
 - **Override inspection:** `override list --json` (an array of `{name, kind, base_version, state}`)
   and `override diff --json` (`{name, kind, base_version, base_available, delta_mine,
   delta_upgrade}`)

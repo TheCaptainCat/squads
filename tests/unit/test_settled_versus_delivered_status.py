@@ -1,47 +1,18 @@
-"""``WorkflowSpec.is_delivered`` (a bare ``(kind, status)`` pair, for a template with no
-resolved record to hand it) pinned against ``squads._views._is_delivered`` (the record-shaped
-comparison the untouched ``ref``/``subtree``/``subentity`` projection path still uses) — the
-same "did this record reach its lifecycle's happy-path terminal, not merely settle some other
-way" question, asked by two call shapes that must never quietly disagree.
+"""``WorkflowSpec.is_delivered`` — "did this status reach its lifecycle's happy-path terminal,
+not merely settle some other way" — the bare ``(kind, status)`` comparison a template calls
+directly (e.g. ``templates/views/milestone_rollup.md.j2``), with no resolved record needed.
+"""
 
-Swept over every status of every declared kind on the bundled spec — both namespaces
-``is_delivered`` resolves against: item types and sub-entity kinds."""
-
-from squads import _views as views
 from squads._workflow import bundled_spec
 from squads._workflow._models import Lifecycle
 
 SPEC = bundled_spec()
 
 
-def _record(kind: str, status: str) -> views._RawRecord:
-    return views._RawRecord(
-        identity="X-1",
-        kind=kind,
-        status=status,
-        assignee=None,
-        title="a record",
-        story=None,
-        badge_value=lambda _field: None,
-    )
-
-
 def _kinds_and_machines() -> list[tuple[str, Lifecycle]]:
     item_kinds = [(t, SPEC.machine_for(t)) for t in SPEC.items]
     subentity_kinds = [(k, SPEC.lifecycles[ks.lifecycle]) for k, ks in SPEC.subentity_kinds.items()]
     return item_kinds + subentity_kinds
-
-
-def test_is_delivered_agrees_with_the_record_shaped_comparison_for_every_status_of_every_kind() -> (
-    None
-):
-    kinds_and_machines = _kinds_and_machines()
-    assert kinds_and_machines, "precondition: the bundled spec declares at least one kind"
-    for kind, machine in kinds_and_machines:
-        for status in machine.states:
-            record_shaped = views._is_delivered(_record(kind, status), SPEC)
-            bare_pair = SPEC.is_delivered(kind, status)
-            assert bare_pair == record_shaped, (kind, status)
 
 
 def test_is_delivered_is_true_for_exactly_the_settled_terminal_not_every_settled_status() -> None:
@@ -59,3 +30,15 @@ def test_is_delivered_is_true_for_exactly_the_settled_terminal_not_every_settled
 
 def test_is_delivered_degrades_to_false_for_an_undeclared_kind_rather_than_raising() -> None:
     assert SPEC.is_delivered("no-such-kind", "Done") is False
+
+
+def test_is_delivered_is_true_only_for_the_settled_status_of_every_declared_kind() -> None:
+    """Swept over every declared item type and sub-entity kind on the bundled spec — both
+    namespaces ``is_delivered`` resolves against: exactly the kind's own
+    ``first_settled_status`` is delivered — every other status, settled or not, is not."""
+    kinds_and_machines = _kinds_and_machines()
+    assert kinds_and_machines, "precondition: the bundled spec declares at least one kind"
+    for kind, machine in kinds_and_machines:
+        settled_status = SPEC.first_settled_status(kind)
+        for status in machine.states:
+            assert SPEC.is_delivered(kind, status) == (status == settled_status), (kind, status)

@@ -1,12 +1,12 @@
 """``sq workflow views`` (the catalog) and ``sq workflow view <name> <id>`` (resolve one).
 
-Default prints a human Rich table; ``--json`` emits the catalog / the projection. The
+Default prints a human Rich table; ``--json`` emits the catalog / the resolved source. The
 byte-identical golden for the catalog (the five bundled rows — ``milestone_rollup`` plus the
 four non-relation views placed by a seeded tag rather than a type attachment:
 ``role_definition``, ``squads_skill``, ``greeting_skill``, ``memory_skill``) is pinned in
 ``tests/cli/test_json_output_shape.py`` (``tests/goldens/workflow_views.json``); this module
-covers the field-set contract, the human table, and every declared-view/resolve/override path
-via an override-declared view.
+covers the reduced field-set contract, the human table, and every declared-view/resolve/override
+path via an override-declared view.
 """
 
 import json
@@ -41,40 +41,19 @@ def _write_workflow_override(squad_dir: Path, body: str) -> None:
     invalidate_squad_dir(squad_dir)
 
 
-_FINDING_FIELDS = (
-    '[[views.{name}.fields]]\ncode = "id"\nlabel = "Finding"\n\n'
-    '[[views.{name}.fields]]\ncode = "status"\nlabel = "Status"\n\n'
-    '[[views.{name}.fields]]\ncode = "assignee"\nlabel = "Assignee"\n\n'
-    '[[views.{name}.fields]]\ncode = "title"\nlabel = "Title"\n'
-)
-
 #: Neither ships bundled — no declared view names either, so nothing shipped can reach them
 #: (see ``squads._views``' module docstring). Table/non-tabular stand-ins authored here, placed
 #: as a project override template, so a test can still exercise two different presentations of
-#: one projection.
+#: one resolved source. The template receives the source's own records directly under
+#: ``source`` — a flat ``list[SubEntity]`` for a ``subentity`` source.
 _TABLE_TEMPLATE = (
-    "{% for group in groups %}\n"
-    "{% if group.key is not none %}\n"
-    "### {{ group.key }}\n\n"
-    "{% endif %}\n"
-    '| {{ fields | map(attribute="label") | join(" | ") }} |\n'
-    "| {% for f in fields %}---{% if not loop.last %} | {% endif %}{% endfor %} |\n"
-    "{% for record in group.records %}\n"
-    "| {% for f in fields %}{{ record.values[f.code].text }}"
-    "{% if not loop.last %} | {% endif %}{% endfor %} |\n"
-    "{% endfor %}\n"
-    "{% endfor %}\n"
+    "| Finding | Status | Assignee | Title |\n"
+    "| --- | --- | --- | --- |\n"
+    "{% for r in source %}"
+    "| {{ r.local_id }} | {{ r.status }} | {{ r.assignee or '' }} | {{ r.title }} |\n"
+    "{% endfor %}"
 )
-_LINE_TEMPLATE = (
-    "{% for group in groups %}\n"
-    "{% if group.key is not none %}**{{ group.key }}** ({{ group.records | length }})\n"
-    "{% endif %}\n"
-    "{% for record in group.records %}\n"
-    "- {% for f in fields %}{{ record.values[f.code].text }}"
-    "{% if not loop.last %} — {% endif %}{% endfor %}\n\n"
-    "{% endfor %}\n"
-    "{% endfor %}\n"
-)
+_LINE_TEMPLATE = "{% for r in source %}- {{ r.local_id }} — {{ r.status }}\n{% endfor %}"
 _STAND_IN_TEMPLATES = {"finding_summary": _TABLE_TEMPLATE, "finding_summary_line": _LINE_TEMPLATE}
 
 
@@ -83,9 +62,7 @@ def _declare_finding_view(squad_dir: Path, name: str) -> None:
     stand-in presentation templates (:data:`_STAND_IN_TEMPLATES`) placed as a project override —
     no view ships bundled, so resolving one always needs an override template of its own."""
     _write_workflow_override(
-        squad_dir,
-        f'[views.{name}]\nsource = {{ kind = "subentity", name = "finding" }}\n\n'
-        + _FINDING_FIELDS.format(name=name),
+        squad_dir, f'[views.{name}]\nsource = {{ kind = "subentity", name = "finding" }}\n'
     )
     if name in _STAND_IN_TEMPLATES:
         _place_view_template_override(squad_dir, name, _STAND_IN_TEMPLATES[name])
@@ -98,9 +75,9 @@ async def test_the_default_catalog_carries_only_the_bundled_views(project, invok
     """``milestone_rollup`` is the one *relation*-sourced bundled view; ``role_definition``/
     ``squads_skill``/``greeting_skill``/``memory_skill``/``item_skill`` are the five
     non-relation ones. All six are placed by a seeded ``sq:view:<name>`` tag in their host's
-    creation template — no bundled type declares an ``items.<type>.views`` attachment any
-    more — and an override-declared view is proven separately below rather than by asserting
-    the catalog stays at six entries forever."""
+    creation template, never by declaring an ``items.<type>.views`` entry — and an
+    override-declared view is proven separately below rather than by asserting the catalog
+    stays at six entries forever."""
     result = await invoke(["workflow", "views", "--json"])
     assert result.exit_code == 0
     rows = json.loads(result.output)
@@ -118,19 +95,16 @@ async def test_default_output_is_a_human_table_with_every_declared_view(project,
     _declare_finding_view(project.squad_dir, "finding_summary")
     result = await invoke(["workflow", "views"])
     assert result.exit_code == 0
-    for col in ("View", "Source kind", "Source name", "Fields", "Group by"):
+    for col in ("View", "Source kind", "Source name"):
         assert col in result.output
     assert "finding_summary" in result.output
 
 
 async def test_json_emits_a_bare_array_in_ascending_view_name_order(project, invoke) -> None:
-    _declare_finding_view(project.squad_dir, "finding_summary")
     _write_workflow_override(
         project.squad_dir,
         '[views.finding_summary]\nsource = { kind = "subentity", name = "finding" }\n\n'
-        + _FINDING_FIELDS.format(name="finding_summary")
-        + '\n[views.abc_first]\nsource = { kind = "ref", name = "related" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        '[views.abc_first]\nsource = { kind = "ref", name = "related" }\n',
     )
     result = await invoke(["workflow", "views", "--json"])
     assert result.exit_code == 0
@@ -149,15 +123,10 @@ async def test_json_every_row_carries_the_frozen_field_set(project, invoke) -> N
         assert set(row.keys()) == set(VIEW_CATALOG_FIELDS)
 
 
-def test_frozen_field_set_is_exactly_the_declared_shape() -> None:
-    assert VIEW_CATALOG_FIELDS == (
-        "view",
-        "source_kind",
-        "source_name",
-        "fields",
-        "group_by",
-        "order_by",
-    )
+def test_frozen_field_set_is_exactly_the_reduced_shape() -> None:
+    """No ``fields``/``group_by``/``order_by`` column survives — a view declares only its
+    source."""
+    assert VIEW_CATALOG_FIELDS == ("view", "source_kind", "source_name")
 
 
 def test_every_catalog_row_has_exactly_the_frozen_field_set() -> None:
@@ -168,10 +137,7 @@ def test_every_catalog_row_has_exactly_the_frozen_field_set() -> None:
 
 async def test_an_override_declared_view_joins_the_catalog(project, invoke) -> None:
     _write_workflow_override(
-        project.squad_dir,
-        "[views.by_related]\n"
-        'source = { kind = "ref", name = "related" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        project.squad_dir, '[views.by_related]\nsource = { kind = "ref", name = "related" }\n'
     )
 
     result = await invoke(["workflow", "views", "--json"])
@@ -195,38 +161,6 @@ async def test_default_renders_the_declared_presentation_template(project, invok
     assert "A finding" in result.output
 
 
-async def test_group_count_renders_in_a_template_and_matches_the_json_value(
-    project, invoke
-) -> None:
-    """``docs/workflow.md`` documents ``group.count`` as part of the template context;
-    ``StrictUndefined`` used to turn that into an ``UndefinedError`` the moment a template
-    actually read it."""
-    item_id = await _review_with_a_finding(invoke)
-    _write_workflow_override(
-        project.squad_dir,
-        '[views.by_status]\nsource = { kind = "subentity", name = "finding" }\n'
-        'group_by = "status"\n'
-        'fields = [ { code = "id", label = "Id" }, { code = "status", label = "Status" } ]\n',
-    )
-    _place_view_template_override(
-        project.squad_dir,
-        "by_status",
-        "{% for group in groups %}{{ group.key }}: {{ group.count }}\n{% endfor %}",
-    )
-
-    result = await invoke(["workflow", "view", "by_status", item_id])
-    assert result.exit_code == 0
-    assert "Open: 1" in result.output
-
-    # ``group.count`` is a template-side concept over a source's own resolved records — a
-    # ``subentity`` view's ``--json`` is a bare array with no group in it at all (see
-    # test_a_subentity_views_json_matches_the_per_kind_list_shape below), so the record count
-    # the template renders is checked against the one record the equivalent list command
-    # itself reports.
-    findings_result = await invoke(["review", item_id, "findings", "--json"])
-    assert len(json.loads(findings_result.output)) == 1
-
-
 async def test_a_subentity_views_json_matches_the_per_kind_list_shape(project, invoke) -> None:
     """A ``subentity`` source's ``--json`` is a bare array, never a ``{fields, group_by,
     groups}`` envelope — the same shape ``sq <type> <n> <kind>s --json`` already emits for
@@ -247,16 +181,12 @@ async def test_a_subentity_views_json_matches_the_per_kind_list_shape(project, i
         assert not any(key in row for row in payload)  # no projection-envelope key on any row
 
 
-async def test_two_declared_presentations_of_one_projection_render_differently(
-    project, invoke
-) -> None:
+async def test_two_declared_presentations_of_one_source_render_differently(project, invoke) -> None:
     item_id = await _review_with_a_finding(invoke)
     _write_workflow_override(
         project.squad_dir,
         '[views.finding_summary]\nsource = { kind = "subentity", name = "finding" }\n\n'
-        + _FINDING_FIELDS.format(name="finding_summary")
-        + '\n[views.finding_summary_line]\nsource = { kind = "subentity", name = "finding" }\n\n'
-        + _FINDING_FIELDS.format(name="finding_summary_line"),
+        '[views.finding_summary_line]\nsource = { kind = "subentity", name = "finding" }\n',
     )
     _place_view_template_override(project.squad_dir, "finding_summary", _TABLE_TEMPLATE)
     _place_view_template_override(project.squad_dir, "finding_summary_line", _LINE_TEMPLATE)
@@ -290,8 +220,7 @@ async def test_a_view_with_no_presentation_template_fails_clean_not_a_traceback(
     item_id = await _review_with_a_finding(invoke)
     _write_workflow_override(
         project.squad_dir,
-        '[views.no_template_view]\nsource = { kind = "subentity", name = "finding" }\n\n'
-        + _FINDING_FIELDS.format(name="no_template_view"),
+        '[views.no_template_view]\nsource = { kind = "subentity", name = "finding" }\n',
     )
 
     result = await invoke(["workflow", "view", "no_template_view", item_id])
@@ -363,9 +292,7 @@ async def test_a_ref_sourced_views_json_equals_sq_tree_jsons_own_output(project,
     of its own is what proves each row's ``children`` field reflects the real tree rather than
     the flat default the source-widening review found (``children: []`` on every row)."""
     _write_workflow_override(
-        project.squad_dir,
-        '[views.by_target]\nsource = { kind = "ref", name = "targets" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        project.squad_dir, '[views.by_target]\nsource = { kind = "ref", name = "targets" }\n'
     )
     milestone_id = await _created_id(invoke, "milestone", "A milestone")
     task_ids = []
@@ -403,9 +330,7 @@ async def test_a_subtree_sourced_views_json_equals_the_hosts_own_tree_children(
     bug out from under its parent on the tree side while this source's own children-population
     stays unconditional, breaking the equality this test exists to hold."""
     _write_workflow_override(
-        project.squad_dir,
-        '[views.child_tasks]\nsource = { kind = "subtree", name = "task" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        project.squad_dir, '[views.child_tasks]\nsource = { kind = "subtree", name = "task" }\n'
     )
     feature_id = await _created_id(invoke, "feature", "A feature")
     task_ids = [await _created_id(invoke, "task", f"Task {i}", parent=feature_id) for i in range(2)]
@@ -430,9 +355,7 @@ async def test_a_ref_sourced_views_json_is_an_empty_list_with_no_matching_refs(
     """Emptiness is a success, not a refusal — the same clause the module docstring's
     applicability predicates already document, exercised here through the ``--json`` path."""
     _write_workflow_override(
-        project.squad_dir,
-        '[views.by_target]\nsource = { kind = "ref", name = "targets" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        project.squad_dir, '[views.by_target]\nsource = { kind = "ref", name = "targets" }\n'
     )
     milestone_id = await _created_id(invoke, "milestone", "A lonely milestone")
 

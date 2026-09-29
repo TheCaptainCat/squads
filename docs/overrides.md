@@ -195,7 +195,7 @@ By default, squads uses a bundled set of **item types** (`sq workflow types` lis
 build ships), **status lifecycles** (state machines for each type), **badge collections** (priority
 and severity, the reusable axes that label findings, tasks, etc.), **ref kinds** (the labelled
 edges — `blocks`, `fixes`, `supersedes` and the rest — that link one item to another) and
-**derived views** (declared read-only projections over those edges).
+**derived views** (declared read-only sources over those edges, rendered by a template).
 **`.overrides/workflow.toml`** is where you change that vocabulary. You can do
 three things with it:
 
@@ -858,13 +858,13 @@ See [workflow.md](workflow.md) § "Ref kinds" for the bundled set and what each 
 
 ---
 
-#### Derived views: declared projections
+#### Derived views: declared sources
 
-A **derived view** is a read-only projection over relationships an item already has — every item
-pointing here with a given ref kind, this item's own sub-entities, or its descendants of some type —
-carried into a chosen set of fields, optionally grouped and ordered, and rendered by a template.
-Views are declared in `[views]`, and nothing about them is a special case: they merge, shadow and
-drop exactly like item types and statuses do.
+A **derived view** is a read-only source over relationships an item already has — every item
+pointing here with a given ref kind, this item's own sub-entities, its descendants of some type,
+its own merged role definition, a type's playbook lane, or the item itself — rendered by a
+template. Views are declared in `[views]`, and nothing about them is a special case: they merge,
+shadow and drop exactly like item types and statuses do.
 
 Every view is **computed on every request**. No view is ever written into an item's file, so
 declaring, changing or dropping one rewrites nothing on disk and leaves nothing behind.
@@ -874,44 +874,22 @@ declaring, changing or dropping one rewrites nothing on disk and leaves nothing 
 ```toml
 [views.open_incidents]
 source = { kind = "ref", name = "escalates" }
-group_by = "status"
-order_by = ["id"]
-fields = [
-  { code = "id",     label = "Incident" },
-  { code = "status", label = "Status" },
-  { code = "title",  label = "Title" },
-]
 ```
 
-`source.kind` is `"ref"`, `"subentity"` or `"subtree"`, and `source.name` must be a declared ref
-kind, sub-entity kind or item type respectively — a name your merged spec does not declare is
-refused at load, with the rest of the spec's cross-references. The complete field reference is in
-[workflow.md § "Derived views"](workflow.md#derived-views-declared-projections).
+`source.kind` is `"ref"`, `"subentity"`, `"subtree"`, `"role"`, `"playbook"` or `"self"`; for the
+first three, `source.name` must be a declared ref kind, sub-entity kind or item type respectively
+— a name your merged spec does not declare is refused at load, with the rest of the spec's
+cross-references. There is no other key to declare: no field list, no grouping, no ordering — a
+view is a source and a template, nothing more. The complete field reference is in
+[workflow.md § "Derived views"](workflow.md#derived-views-field-reference).
 
 Read it back, and resolve it against an item:
 
 ```bash
 sq workflow views                             # your view, listed beside the bundled ones
 sq workflow view open_incidents <id>          # resolved and rendered
-sq workflow view open_incidents <id> --json   # the projection: fields, grouping, records
+sq workflow view open_incidents <id> --json   # the resolved source, no presentation
 ```
-
-**Shadowing a bundled view.** Write only the keys you want changed; everything you leave out is
-inherited and keeps tracking the bundled declaration. To reorder the bundled milestone roll-up
-without restating its six fields or its grouping:
-
-```toml
-[views.milestone_rollup]
-order_by = ["status", "id"]
-```
-
-Changing a bundled view's `group_by` is a bigger move than it looks: the bundled template renders
-the groups it was written against, so regrouping a view means re-templating it too (below).
-
-`fields` is a plain array and therefore a leaf — writing it replaces the bundled list wholesale
-rather than merging into it. A splat-ref extends it instead of restating it, the same way it does
-for a type's `parents` or `ref_rules`: `fields = ["$(*self)", { code = "…", label = "…" }]` keeps
-everything the bundled view projects and appends your own column.
 
 **Overriding a view's presentation.** A view's rendering is a bundled template at
 `templates/views/<name>.md.j2`, resolved by the view's own name — there is no `presentation` key,
@@ -925,35 +903,34 @@ sq override diff views/milestone_rollup.md.j2       # Δ-mine and Δ-upgrade, li
 sq override list                                    # your override, with its base version and drift state
 ```
 
-The template receives `fields`, `group_by` and `groups`; a group carries `key`, `count` and
-`records`, and a record's cells are addressed by field code:
+The template receives `source` — the resolved value, unflattened: a plain list of real
+`Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own native value for
+`role`/`playbook`/`self` — plus `item` and `spec`. Grouping and ordering are the template's own
+job, with Jinja's `groupby`/`sort`/`selectattr`:
 
 ```jinja
-{% for group in groups %}
-{% for r in group.records %}
-- **{{ r.values["id"].text }}** {{ r.values["status"].text }} — {{ r.values["title"].text }}
-{% endfor %}
+{% for r in source | sort(attribute="type,sequence_id") %}
+- **{{ r.id }}** {{ r.status }} — {{ r.title }}
 {% endfor %}
 ```
+
+Reordering the bundled milestone roll-up, or regrouping it onto a different axis, is therefore a
+template change, not a declaration change — copy the template with `sq override scaffold`, edit
+its Jinja `sort`/`groupby` call, and the one-line `[views.milestone_rollup]` declaration itself
+never needs to move.
 
 **A view you declare needs a template of your own at that path.** There is no generic fallback
 rendering: until `.overrides/templates/views/<name>.md.j2` exists, resolve your view with `--json`,
 which skips presentation entirely.
 
-**Dropping a view.** `[selected].views` names the views that survive. A view a type attaches is
-named twice — once in `[views]`, once in that type's own `views` list — so drop both:
+**Dropping a view.** `[selected].views` names the views that survive — a view is reached only by
+placing its own `sq:view:<name>` tag in a document body, never by a type attachment, so dropping
+the declaration needs no companion edit anywhere else:
 
 ```toml
-[items.milestone]
-views = []          # detach it from the type that shows it
-
 [selected]
-views = []          # and drop the declaration
+views = []          # drop the declaration
 ```
-
-Dropping the **type** through `[selected].items` needs neither line. A bundled view that only that
-type attached goes with it, so there is no second key to remember; a view no type ever attached is
-never touched by a type drop.
 
 ---
 

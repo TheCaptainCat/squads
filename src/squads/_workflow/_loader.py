@@ -73,6 +73,7 @@ from squads._errors import SquadsError
 from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
 from squads._specmerge import (
     Deselection,
+    MergeViolation,
     RawMapping,
     describe_spec_error,
     merge_override,
@@ -89,7 +90,6 @@ from squads._workflow._models import (
     RoleSpec,
     StatusSpec,
     SubentityKindSpec,
-    ViewField,
     ViewSource,
     ViewSpec,
     WorkflowSpec,
@@ -124,6 +124,90 @@ _ROSTER_LOCK_FIX_HINT = (
     "role/skill/operator are locked by key identity and fixed category; revert "
     "the change in .overrides/workflow.toml."
 )
+
+#: The retired view-declaration keys, each with its own reason — what it did is now the
+#: presentation template's own job, but *which* job differs per key, so one shared "grouping
+#: and ordering" sentence would misdescribe ``fields`` (a column list) as a sort/group concern.
+#: A ``[views.<name>]`` table declares only ``source`` now. Scanned at any nesting depth under
+#: a view's own table, not just its top level — a retired key can also be written nested under
+#: ``source`` (a hand-typed mistake, not a supported shape), which a top-level-only scan would
+#: miss and let fall through to ``ViewSource``'s own generic ``extra="forbid"`` instead.
+_RETIRED_VIEW_KEY_REASONS: dict[str, str] = {
+    "fields": (
+        "choosing and labelling which columns render is the presentation template's own job "
+        "now — write the fields a resolved record actually has directly in Jinja"
+    ),
+    "group_by": "grouping is the presentation template's own job now (Jinja `groupby`)",
+    "order_by": "ordering is the presentation template's own job now (Jinja `sort`)",
+}
+
+#: The retired item-type view-attachment key: a view is placed with a ``sq:view:<name>`` tag
+#: in a document body, never attached to a type by declaring it under ``[items.<type>]``.
+_RETIRED_ITEM_VIEWS_KEY = "views"
+
+
+def _scan_retired_view_grammar_keys(table: RawMapping, path: str) -> list[str]:
+    """Every dotted path under *path* (a ``[views.<name>]`` table) naming a key in
+    :data:`_RETIRED_VIEW_KEY_REASONS`, at any nesting depth. Runs on the raw, unmerged table,
+    so a plain value, an inline table, an array, an empty value and a splat token in value
+    position are all caught the same way — only the *key* is retired, not any particular shape
+    of its value."""
+    hits: list[str] = []
+    for key, value in table.items():
+        dotted = f"{path}.{key}"
+        if key in _RETIRED_VIEW_KEY_REASONS:
+            hits.append(dotted)
+        if isinstance(value, dict):
+            hits.extend(_scan_retired_view_grammar_keys(cast(RawMapping, value), dotted))
+    return hits
+
+
+def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
+    """Every retired-grammar key still declared in *raw_override* — the four keys retired
+    (``fields``, ``group_by``, ``order_by`` on a view; ``views`` on an item type), scanned on
+    the raw, pre-merge, pre-splat document.
+
+    Deliberately run before :func:`~squads._specmerge.merge_override`: splat resolution and
+    the deep merge both run before either spec model ever sees the key, and by the time a
+    retired key reaches ``ViewSpec``'s or ``ItemSpec``'s own ``extra="forbid"`` it is
+    indistinguishable from a genuinely unknown one — the generic refusal calls it ``"unknown"``,
+    and a self-splat position (``fields = ["$(*self)", ...]``) calls it ``"brand-new"``, which
+    is backwards for a key that was declared, shipped, and then removed. This check wins that
+    race on purpose, so the message says what actually happened: the key was retired, and what
+    replaces it.
+    """
+    violations: list[MergeViolation] = []
+    views_section = raw_override.get("views")
+    if isinstance(views_section, dict):
+        for name, table in cast(RawMapping, views_section).items():
+            if not isinstance(table, dict):
+                continue
+            for dotted in _scan_retired_view_grammar_keys(cast(RawMapping, table), f"views.{name}"):
+                key = dotted.rsplit(".", 1)[-1]
+                violations.append(
+                    MergeViolation(
+                        origin,
+                        dotted,
+                        f"{key!r} was retired — {_RETIRED_VIEW_KEY_REASONS[key]}, not a "
+                        "declared key",
+                        "remove it; a `[views.<name>]` table declares only `source` now.",
+                    )
+                )
+    items_section = raw_override.get("items")
+    if isinstance(items_section, dict):
+        for type_name, table in cast(RawMapping, items_section).items():
+            if isinstance(table, dict) and _RETIRED_ITEM_VIEWS_KEY in cast(RawMapping, table):
+                violations.append(
+                    MergeViolation(
+                        origin,
+                        f"items.{type_name}.views",
+                        "'views' was retired — a view is placed with a `sq:view:<name>` tag "
+                        "in a document body now, not attached to a type",
+                        "remove the key; place the view's tag with "
+                        "`sq <type> <n> view add <name>` instead.",
+                    )
+                )
+    return violations
 
 
 def spec_refusal(override_path: Path | str, cause: object) -> str:
@@ -181,6 +265,10 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
         raise SquadsError(parse_error[0])
 
     origin = str(override_path)
+    retired_violations = _retired_view_grammar_violations(raw_override, origin)
+    if retired_violations:
+        raise SquadsError("; ".join(str(v) for v in retired_violations))
+
     result = merge_override(
         _bundled_raw(),
         raw_override,
@@ -197,7 +285,6 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
         raise SquadsError(f"workflow override merge failed with no violation reported — {origin}")
 
     _raise_on_floor_violation(merged, origin)
-    _prune_orphaned_type_owned_views(merged, result.deselections)
     _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
 
     try:
@@ -414,27 +501,16 @@ def _parse_ref_kind(code: str, data: dict[str, Any]) -> RefKindSpec:
         ) from exc
 
 
-def _parse_view_fields(raw_fields: Any, ctx: str) -> list[ViewField]:
-    """Parse a view's ``fields`` array into ``ViewField`` objects (``extra="forbid"`` per
-    entry). Referential validation of each ``code`` against the source's own declared
-    vocabulary happens later, on the merged spec (``_check_views``) — this only builds the
-    typed list."""
-    fields: list[ViewField] = []
-    for i, field_data in enumerate(_as_entry_list(raw_fields, f"{ctx}.fields")):
-        try:
-            fields.append(ViewField.model_validate(field_data))
-        except Exception as exc:
-            raise SquadsError(f"{ctx} field[{i}]: {describe_spec_error(exc, ViewField)}") from exc
-    return fields
-
-
 def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
     """Parse one ``[views.<name>]`` table into a ``ViewSpec``.
 
-    ``source`` is required and itself a table (``{kind, name}``); everything else about a
-    view is validated on the merged spec once every vocabulary section has been parsed
-    (``_check_views``, run from ``WorkflowSpec._validate``) — this function only builds the
-    typed value, it does not cross-reference.
+    ``source`` is required and itself a table (``{kind, name}``); it is the only key a view
+    declares. Anything else in *data* — including the retired ``fields``/``group_by``/
+    ``order_by`` grammar — reaches ``ViewSpec.model_validate`` verbatim via ``**data`` below and
+    is refused by its ``extra="forbid"``, naming the offending key
+    (:func:`~squads._specmerge.describe_spec_error`). ``source.name`` is cross-referenced
+    against the merged spec once every vocabulary section has been parsed (``_check_views``,
+    run from ``WorkflowSpec._validate``) — this function only builds the typed value.
     """
     ctx = f"views.{name}"
     raw_source = _as_table(data.get("source", {}), f"{ctx}.source")
@@ -442,8 +518,7 @@ def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
         source = ViewSource.model_validate(raw_source)
     except Exception as exc:
         raise SquadsError(f"Invalid {ctx}.source: {describe_spec_error(exc, ViewSource)}") from exc
-    fields = _parse_view_fields(data.get("fields", []), ctx)
-    payload: dict[str, Any] = {**data, "source": source, "fields": fields}
+    payload: dict[str, Any] = {**data, "source": source}
     try:
         return ViewSpec.model_validate(payload)
     except Exception as exc:
@@ -642,55 +717,11 @@ def _raise_on_floor_violation(merged: RawMapping, origin: str) -> None:
         raise SquadsError(violations[0])
 
 
-def _prune_orphaned_type_owned_views(
-    merged: RawMapping, deselections: tuple[Deselection, ...]
-) -> None:
-    """Take a bundled view with its type, when ``[selected].items`` drops the type that owns it.
-
-    A ``ViewSpec`` never names the type(s) it's shown on (:class:`~squads._workflow._models.
-    ViewSource` names a ref kind/sub-entity kind/subtree type, never "the item this is attached
-    to") — the only place that binding exists is the *type's* own ``items.<type>.views`` list
-    (:class:`~squads._workflow._models.ItemSpec.views`). So dropping a type via ``[selected]``
-    does not, by itself, touch ``[views]`` at all: without this, a bundled view attached only by
-    a now-dropped type would survive the merge as an orphaned entry — still declared, still
-    listed by ``sq workflow views``, resolvable against any item, but over vocabulary (the type
-    it was written to describe) that no longer exists. An adopter who dropped one key would
-    have to remember to drop a second, unrelated-looking one to actually be rid of it.
-
-    Scoped precisely so a genuinely freestanding view is never touched: only a view named in a
-    *dropped* bundled type's own ``views`` list, and in no *surviving* type's ``views`` list
-    (bundled or override-added), is pruned. A view no type ever attached — the shape every
-    adopter-declared view in this project's own test suite takes — has nothing here to trigger
-    on. Mutates *merged* in place, before any model is built — the same raw-mapping layer
-    ``[selected]`` itself operates at.
-    """
-    dropped_types = {d.key for d in deselections if d.section == "items"}
-    if not dropped_types:
-        return
-    bundled_items = cast(dict[str, Any], _bundled_raw().get("items", {}))
-    owned_by_dropped: set[str] = set()
-    for t in dropped_types:
-        owned_by_dropped.update(cast(dict[str, Any], bundled_items.get(t, {})).get("views", []))
-    if not owned_by_dropped:
-        return
-    surviving_items = cast(dict[str, Any], merged.get("items", {}))
-    still_attached = {
-        v for it in surviving_items.values() for v in cast(dict[str, Any], it).get("views", [])
-    }
-    to_prune = owned_by_dropped - still_attached
-    if not to_prune:
-        return
-    views_table = cast(dict[str, Any], merged.get("views", {}))
-    for name in to_prune:
-        views_table.pop(name, None)
-
-
 def _strip_ref_rule_targets_of_dropped_types(
     merged: RawMapping, deselections: tuple[Deselection, ...]
 ) -> None:
     """Take a surviving type's declarations that name a type ``[selected].items`` just
-    dropped, the same courtesy :func:`_prune_orphaned_type_owned_views` already gives a
-    dropped type's own bundled view.
+    dropped.
 
     ``RefRule.target`` and a ``ref_rule_target_present:<T>`` validator entry both name another
     item type by string, from the *targeting* type's own block — dropping ``<T>`` leaves that
@@ -700,12 +731,11 @@ def _strip_ref_rule_targets_of_dropped_types(
     targeting it, and a project that opted into requiring that edge also carries
     ``ref_rule_target_present:contract`` there (nothing bundled selects it). Without this, an
     adopter dropping a non-reserved type through ``[selected].items`` bricks the whole squad
-    until they also find and edit the unrelated-looking type block that targets it — the one
-    courtesy the view-owning case above already gets.
+    until they also find and edit the unrelated-looking type block that targets it.
 
     Scoped to declarations that *target* a dropped type only — never ``parents``, which is the
     pre-existing, deliberately-unchanged coupling between ``epic`` and ``feature``. Mutates
-    *merged* in place, at the same raw-mapping layer the prune above operates at.
+    *merged* in place, at the same raw-mapping layer ``[selected]`` itself operates at.
     """
     dropped_types = {d.key for d in deselections if d.section == "items"}
     if not dropped_types:
@@ -1301,19 +1331,22 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
     1. **The stamp obligation** (``workflow_stamp_finding``) — always evaluated when an
        override file exists, independent of whether it merges cleanly; a raw key-set
        intersection needs no valid merge to compute.
-    2. **Engine-level failures** (splat/merge/``[selected]`` violations from
+    2. **Retired view-grammar keys** (``_retired_view_grammar_violations``) — checked on the
+       raw, pre-merge document, before splat resolution can mistake a retired key for a
+       brand-new one. Blocks the same downstream phases when found, the same as phase 3.
+    3. **Engine-level failures** (splat/merge/``[selected]`` violations from
        ``squads._specmerge.merge_override``, run in collect-all mode) block the merge — one
        finding per violation, all of them, not just the first. If any are found, the
        structural validation and the index cross-check below are skipped: there is no valid
        merged mapping to run them against.
-    3. **The roster type-key lock** (``_collect_floor_violations``) — the loader's own floor,
+    4. **The roster type-key lock** (``_collect_floor_violations``) — the loader's own floor,
        run on the merged mapping. Any violation here blocks the same downstream phases.
-    4. **Structural + referential validation** (``_build_spec``). If it still raises (e.g. an
+    5. **Structural + referential validation** (``_build_spec``). If it still raises (e.g. an
        unknown lifecycle reference, or a status the merge dropped that a surviving lifecycle
        still names), each bullet becomes its own finding, annotated with ``[selected]``
        provenance where it applies; the index cross-check is skipped (no valid spec to
        cross-check).
-    5. **The live-index cross-check** (``validate_against_index``) — only runs when every
+    6. **The live-index cross-check** (``validate_against_index``) — only runs when every
        phase above is clean. Index is read synchronously via ``_load_index_sync``; if the
        index is absent or unreadable the cross-check is skipped.
     """
@@ -1334,7 +1367,17 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         level, message = stamp_finding
         findings.append((level, WORKFLOW_OVERRIDE_FILENAME, message, _STAMP_FIX_HINT))
 
-    # Phase 2 — engine-level failures (collect-all): splat/merge/[selected] violations.
+    # Phase 2 — retired view-grammar keys, checked before splat resolution gets a chance to
+    # call one "brand-new" instead.
+    retired_violations = _retired_view_grammar_violations(raw_override, str(override_path))
+    if retired_violations:
+        findings.extend(
+            ("error", v.path or WORKFLOW_OVERRIDE_FILENAME, v.reason, v.hint)
+            for v in retired_violations
+        )
+        return findings
+
+    # Phase 3 — engine-level failures (collect-all): splat/merge/[selected] violations.
     origin = str(override_path)
     result = merge_override(
         _bundled_raw(),
@@ -1355,7 +1398,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         findings.append(("error", WORKFLOW_OVERRIDE_FILENAME, "workflow override merge failed", ""))
         return findings
 
-    # Phase 3 — the roster type-key lock.
+    # Phase 4 — the roster type-key lock.
     floor_violations = _collect_floor_violations(merged, origin)
     if floor_violations:
         findings.extend(
@@ -1366,7 +1409,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
 
     _strip_ref_rule_targets_of_dropped_types(merged, result.deselections)
 
-    # Phase 4 — structural + referential validation.
+    # Phase 5 — structural + referential validation.
     try:
         spec = _build_spec(merged)
     except SquadsError as exc:
@@ -1376,7 +1419,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
         )
         return findings
 
-    # Phase 5 — live-index cross-check. Each family gets its OWN fix hint (called separately
+    # Phase 6 — live-index cross-check. Each family gets its OWN fix hint (called separately
     # rather than through the combined validate_against_index) — a dropped type/status, a
     # re-prefixed/re-foldered type, a stale badge code, and a dropped/renamed ref kind each
     # have a genuinely different remedy, and `sq <type> <n> status <new>` (a status transition)

@@ -529,17 +529,14 @@ _WORKFLOW_SCAFFOLD_BODY = """\
 # lifecycle = "incident"
 #
 # [views.related_incidents]
-# # A derived view: source (a declared ref kind, a sub-entity kind, or a subtree), then the
-# # fields to project. Computed fresh on every request — nothing is ever written into a body.
+# # A derived view: a source (a declared ref kind, a sub-entity kind, or a subtree) and nothing
+# # else. Computed fresh on every request — nothing is ever written into a body. The
+# # presentation template receives the source's own resolved records directly (real items, not
+# # a flattened row) and does its own grouping/ordering with Jinja's groupby/sort/selectattr.
 # # Needs a presentation template of its own before it can render: create one at
 # # templates/views/related_incidents.md.j2 (or .overrides/templates/views/related_incidents.md.j2
 # # to shadow the bundled default) — until you do, resolve it with `--json`, which does not render.
 # source = { kind = "ref", name = "related" }
-# fields = [
-#   { code = "id", label = "Incident" },
-#   { code = "status", label = "Status" },
-#   { code = "title", label = "Title" },
-# ]
 # -----------------------------------------------------------------------------
 """
 

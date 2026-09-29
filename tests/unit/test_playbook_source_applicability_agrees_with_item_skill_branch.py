@@ -30,7 +30,7 @@ import pytest
 from squads._interactions import item_skill_name, laned_types
 from squads._interactions._models import PlaybookSpec
 from squads._services._service import Service, resolve_playbook
-from squads._views import PlaybookSource, render_resolved_source, resolve_source
+from squads._views import PlaybookSource, render_source_view, resolve_source
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import WorkflowSpec
 
@@ -72,8 +72,8 @@ async def _rendered_is_rich(svc: Service, item_type: str) -> bool:
         svc.paths.squad_dir,
     )
     assert isinstance(result, PlaybookSource)
-    rendered = render_resolved_source(
-        "item_skill", view, result, probe_item, svc.spec, svc.paths.config.squad_dir
+    rendered = render_source_view(
+        "item_skill", result, probe_item, svc.spec, svc.paths.config.squad_dir
     )
     if "## For " in rendered:
         assert result.lane is not None, f"{item_type}: rendered role sections with no lane"

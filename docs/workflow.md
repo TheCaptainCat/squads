@@ -287,22 +287,26 @@ findings. Transitions are validated by the sub-entity machines; `--force` overri
 
 ## Derived views
 
-A **derived view** is a declared, read-only projection over relationships an item already has: take
-every item pointing here with a given ref kind, or this item's own sub-entities, or its descendants
-of some type, keep a chosen set of fields, group and order them, and render the result. A view has
-three parts and no fourth:
+A **derived view** is a declared, read-only source over relationships an item already has: every
+item pointing here with a given ref kind, this item's own sub-entities, its descendants of some
+type, its own merged role definition, a type's playbook lane, or the item itself. A view's
+*declaration* is a source and nothing else:
 
-- **source** — the relation to project. One of three shapes: `ref` (every item carrying a forward
-  ref of the named kind to this item, recovered by inverting stored edges), `subentity` (this item's
-  own sub-entities of the named kind), or `subtree` (this item's descendants of the named type).
-- **projection** — the `fields` to carry, an optional `group_by`, an optional `order_by`. It
-  produces records and makes no presentation decision.
-- **presentation** — a template over those records, resolved by the view's own name.
+- **source** — where the data comes from. `ref` (every item carrying a forward ref of the named
+  kind to this item, recovered by inverting stored edges), `subentity` (this item's own
+  sub-entities of the named kind), `subtree` (this item's descendants of the named type), `role`
+  (this item's own merged role definition), `playbook` (a type's playbook lane), or `self` (this
+  item, with no join at all).
+
+Resolving it has one further step, presentation: a template rendered against the source's own
+resolved shape, resolved by the view's own name. For a relation source (`ref`/`subentity`/
+`subtree`) that shape is a plain list of real items or sub-entities, unflattened — the template
+groups and orders them itself, with Jinja's `groupby`/`sort`/`selectattr`.
 
 ```bash
-sq workflow views                       # every declared view: source, fields, grouping, ordering
+sq workflow views                       # every declared view: its source
 sq workflow view <name> <id>            # resolve one view against one item, rendered
-sq workflow view <name> <id> --json     # the projection instead: field metadata, grouping, records
+sq workflow view <name> <id> --json     # the resolved source instead, no presentation
 ```
 
 **Every view is computed, every time.** Nothing is ever written into an item's file. There is no
@@ -311,15 +315,16 @@ branches touch the same item — the underlying frontmatter merges as ordinary d
 read renders the merged result. A stored rendering would be a second answer to a question the
 frontmatter already answers, and the two go out of step silently.
 
-**`--json` gives the data, not the display.** It emits the projected records with the field metadata
-and grouping key that travel alongside them, and skips presentation entirely. The shape is the same
-for every view and every source, so a client can lay out a view it has never seen without
-special-casing it. That is the supported way to build on a view; the CLI's own rendering is one
-presentation over the records, never their source.
+**`--json` gives the data, not the display.** It emits the resolved source in the shape that
+source's kind already has a shape for — a `ref`/`subtree` source matches `sq tree --json`'s
+per-node rows, a `subentity` source matches the per-kind list `--json`, `role`/`self` match their
+own `show --json`, and `playbook` carries its lane plus the live roster — and skips presentation
+entirely. That is the supported way to build on a view; the CLI's own rendering is one
+presentation over the same data, never a second source of truth for it.
 
-The bundled spec declares one view, `milestone_rollup` — see below. Declaring your own is a section
-of the workflow override: [§ "Derived views"](#derived-views-declared-projections) has the field
-reference.
+The bundled spec declares one *relation*-sourced view, `milestone_rollup` — see below — plus five
+non-relation ones behind the role/skill surfaces. Declaring your own is a section of the workflow
+override: [§ "Derived views"](#derived-views-field-reference) has the field reference.
 
 ---
 
@@ -848,7 +853,7 @@ reachable from it. This is a working convention, not an engine binding: `duplica
 declared semantics, because doing so would hardcode a status name your own spec is free to rename or
 drop.
 
-#### Derived views: declared projections
+#### Derived views: field reference
 
 `[views]` declares the derived views described in [§ "Derived views"](#derived-views) above. A view
 is a section of this document like any other: it merges, it shadows field by field, and it drops
@@ -857,74 +862,24 @@ through `[selected]`.
 ```toml
 [views.open_incidents]
 source = { kind = "ref", name = "escalates" }
-group_by = "status"
-order_by = ["id"]
-fields = [
-  { code = "id",     label = "Incident" },
-  { code = "status", label = "Status" },
-  { code = "title",  label = "Title" },
-]
 ```
 
-Fields:
+A view declares one thing: `source` — required; an inline table of `kind` and `name`.
 
-- `source` — required; an inline table of `kind` and `name`.
-  - `kind = "ref"` — every item carrying a forward ref of kind `name` to the item the view is
-    resolved against. `name` must be a declared entry of `[ref_kinds]`.
-  - `kind = "subentity"` — the resolved item's own sub-entities of kind `name`. `name` must be a
-    declared entry of `[subentity_kinds]`, and the item must be of a type that hosts that kind.
-  - `kind = "subtree"` — the resolved item's descendants whose type is `name`. `name` must be a
-    declared entry of `[items]`.
-- `fields` — the projected columns, in order. Each is `{ code, label }`. `code` is either a base
-  record attribute (below) or a badge field the source's own type or kind declares; `label` is the
-  header a presentation may print.
-- `group_by` — optional; the `code` of one declared `fields` entry. Records are grouped by that
-  field's value. Omit it and the projection carries a single unkeyed group, so the shape a client
-  reads is the same either way.
-- `order_by` — optional; a list of `fields` codes to sort records within each group.
+- `kind = "ref"` — every item carrying a forward ref of kind `name` to the item the view is
+  resolved against, recovered by inverting stored edges. `name` must be a declared entry of
+  `[ref_kinds]`.
+- `kind = "subentity"` — the resolved item's own sub-entities of kind `name`. `name` must be a
+  declared entry of `[subentity_kinds]`, and the item must be of a type that hosts that kind.
+- `kind = "subtree"` — the resolved item's descendants whose type is `name`. `name` must be a
+  declared entry of `[items]`.
+- `kind = "role"` — the resolved item's own merged role definition. Takes no `name`.
+- `kind = "playbook"` — the playbook lane of type `name`, or the resolved item's own type when
+  `name` is absent.
+- `kind = "self"` — the resolved item itself, with no join at all. Takes no `name`.
 
 The table key is the view's name, and it is also where its presentation lives — there is no
 `presentation` field, because the template path *is* the identity (below).
-
-**Base record attributes.** These resolve for any source without the type declaring a field for
-them, and which ones are available depends on the source kind — projecting one from a source that
-cannot produce it is refused when the spec loads, not silently rendered blank:
-
-| `code` | `ref` | `subentity` | `subtree` | What it is |
-|---|---|---|---|---|
-| `id` | ✓ | ✓ | ✓ | The record's id — a full item id, or a sub-entity's local id |
-| `status` | ✓ | ✓ | ✓ | Its status, as declared |
-| `status_role` | ✓ | ✓ | ✓ | The role that status resolves to — the axis to group on |
-| `settled` | ✓ | ✓ | ✓ | Whether that role is settled — `true`/`false` |
-| `delivered` | ✓ | ✓ | ✓ | Whether it reached its own kind's happy-path settled terminal — a genuinely finished record, not merely a settled one (cancelled/superseded are settled but not delivered) |
-| `assignee` | ✓ | ✓ | ✓ | Its assignee slug, or `null` |
-| `title` | ✓ | ✓ | ✓ | Its title |
-| `type` | ✓ | — | ✓ | The item's own type; a sub-entity has none |
-| `story` | — | ✓ | — | The parent story a sub-entity maps onto, where its kind maps one |
-| `any declared badge field` | ✓ | ✓ | ✓ | e.g. `priority`, `severity`, or one you declared |
-
-**A `ref` source may project a badge field at least one declared item type carries.** Its records
-can be items of any type — that is what makes it a membership edge — so there is no single type
-whose declared fields apply to *all* of them, but that is not the same as none: a code no declared
-item type carries anywhere can never resolve for any record and is refused at load, while a code
-some declared type carries (roster types included) resolves for a record of that type and renders
-`null` for a record whose type does not carry it — the same `null` an unset declared field already
-renders everywhere in squads, so a client sees one absence, not two. A `subentity` source resolves
-badge fields against the named kind's own `fields`, and a `subtree` source against the named
-type's — both already yield records of exactly one type/kind, so neither is affected by this.
-
-**Group on `status_role`, not on a status name.** A view's members can span several types whose
-lifecycles spell "finished" differently — `Done`, `Verified`, `Accepted` — so grouping on the
-literal status silently splits work that is equally finished. `status_role` is the declared axis
-that answers the question, and it is what the bundled milestone roll-up groups on.
-
-**Tell "finished" from "just settled" with `settled`/`delivered`, not a status name.** Settled
-alone answers "is this a resting state" — `true` for a cancelled or superseded record too, which
-is why a presentation that treats every settled record as finished silently never reports zero
-outstanding once anything gets cancelled. `delivered` is narrower: it is `true` only when the
-record reached its own kind's *happy-path* settled terminal, whatever a lifecycle names it. A
-record that is `settled` but not `delivered` stopped some other way and belongs in neither an
-"outstanding" nor a "delivered" bucket — the bundled milestone roll-up's own three-way split.
 
 **Presentation: `templates/views/<name>.md.j2`.** A view's rendering is an ordinary bundled
 template, resolved by the view's own name, and it is overridden the way every other template is —
@@ -938,37 +893,46 @@ sq override diff views/milestone_rollup.md.j2       # your edits, and what an up
 sq override update views/milestone_rollup.md.j2     # re-stamp once you have reconciled
 ```
 
-The template receives `fields`, `group_by` and `groups`; a group has `key`, `count` and `records`,
-and a record's cells are addressed by field code — `record.values["id"].text` for the rendered text,
-`record.values["id"].json_value` for the structured value. **A view you declare needs a template of
-its own at that path** before it can be rendered; until you write one, resolve it with `--json`,
-which does not render at all.
+The template receives `source` — the resolved value in its own native shape, unflattened: a plain
+list of real `Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own value
+for `role`/`playbook`/`self` — plus `item` (the host the view resolved against) and `spec` (the
+active workflow spec). There is no separate field/grouping grammar to declare: a template groups
+and orders the list itself with Jinja's `groupby`/`sort`/`selectattr` under `StrictUndefined`, and
+resolves a status badge with the registered `badge` filter (`{{ r.status | badge(spec) }}`) rather
+than hand-writing an emoji. **Group on `spec.status_role(r.status)`, not on a literal status
+name** — a view's members can span several types whose lifecycles spell "finished" differently
+(`Done`, `Verified`, `Accepted`), so grouping on the literal status silently splits work that is
+equally finished. **Tell "finished" from "just settled" with `spec.is_delivered(r.type, r.status)`
+and `spec.role_for(r.status).settled`, not a status name** — settled alone answers "is this a
+resting state" (`true` for a cancelled or superseded record too), while `is_delivered` is narrower:
+`true` only when the record reached its own kind's *happy-path* settled terminal, whatever a
+lifecycle names it. A record that is settled but not delivered stopped some other way and belongs
+in neither an "outstanding" nor a "delivered" bucket — the bundled milestone roll-up's own
+three-way split. **Sort a `ref`/`subtree` list by `(type, sequence_id)`, not by the formatted
+`id` string** — `sequence_id` is the real integer the id is formatted from, and sorting on the
+string instead silently reorders any corpus past nine items on that type (a formatted id in the
+double digits sorts lexically ahead of one in the single digits of the same type).
 
-**Dropping a view.** `[selected].views` names the views that survive, like every other section. A
-view attached to an item type is also attached from that type's side — the type's own `views` list —
-so drop both together:
+**A view you declare needs a template of its own at that path** before it can be rendered; until
+you write one, resolve it with `--json`, which does not render at all.
+
+**Dropping a view.** `[selected].views` names the views that survive, like every other section —
+a view is reached only by placing its own `sq:view:<name>` tag in a document body, never by a type
+attachment, so dropping the declaration needs no companion edit anywhere else:
 
 ```toml
-[items.milestone]
-views = []          # detach it from the type that shows it
-
 [selected]
-views = []          # and drop the declaration itself
+views = []          # drop the declaration
 ```
 
-Dropping the **type** through `[selected].items` needs neither line: a bundled view that only that
-type attached is taken with it automatically, so there is no second, unrelated-looking key to
-remember.
-
 **Referential checks.** A view naming a ref kind, sub-entity kind or item type the merged spec does
-not declare is refused at load with the rest of the spec's cross-references, and so is a `group_by`
-or `order_by` naming a code the view's own `fields` do not carry. `sq workflow lint` reports it with
-everything else.
+not declare is refused at load with the rest of the spec's cross-references. `sq workflow lint`
+reports it with everything else.
 
 **Reading back what you declared:**
 
 ```bash
-sq workflow views          # name, source kind, source name, fields, grouping
+sq workflow views          # name, source kind, source name
 sq workflow views --json   # machine-readable
 ```
 

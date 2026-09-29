@@ -217,8 +217,8 @@ def test_no_per_kind_resolver_function_raises() -> None:
 def test_the_dispatcher_is_where_the_direct_question_caller_raises_instead() -> None:
     """The raise removed from the per-kind resolvers above still exists for the one caller
     that needs it unconditionally (`sq workflow view`, via ``resolve_source`` /
-    ``ViewsMixin.resolve_view``/``render_view``) -- proven directly against the dispatcher
-    rather than only against a service-level CLI path."""
+    ``ViewsMixin.resolve_view_source``/``render_view``) -- proven directly against the
+    dispatcher rather than only against a service-level CLI path."""
     from squads._models._index import SquadsDB
     from squads._workflow._models import ViewSpec
 

@@ -35,8 +35,7 @@ def _declare_resolvable_subentity_view(squad_dir: Path, name: str, kind: str) ->
     (templates_dir / f"{name}.md.j2").write_text(f"{name}\n", encoding="utf-8")
     (override_dir / "workflow.toml").write_text(
         f"# squads:override-base:{__version__}\n"
-        f'[views.{name}]\nsource = {{ kind = "subentity", name = "{kind}" }}\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        f'[views.{name}]\nsource = {{ kind = "subentity", name = "{kind}" }}\n',
         encoding="utf-8",
     )
     invalidate_squad_dir(squad_dir)

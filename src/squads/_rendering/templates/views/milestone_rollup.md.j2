@@ -1,23 +1,26 @@
 {% set delivered = [] %}
 {% set outstanding = [] %}
 {% set settled_not_delivered = [] %}
-{% for group in groups %}
-{% for record in group.records %}
-{% if record.values["delivered"].json_value %}
-{% set _ = delivered.append(record) %}
-{% elif record.values["settled"].json_value %}
-{% set _ = settled_not_delivered.append(record) %}
+{% for r in source %}
+{% if spec.is_delivered(r.type, r.status) %}
+{% set _ = delivered.append(r) %}
+{% elif spec.role_for(r.status).settled %}
+{% set _ = settled_not_delivered.append(r) %}
 {% else %}
-{% set _ = outstanding.append(record) %}
+{% set _ = outstanding.append(r) %}
 {% endif %}
 {% endfor %}
-{% endfor %}
+{% macro member_line(r) %}- **{{ r.id }}** ({{ r.type }}) {{ r.status }} — {{ r.title }}{% if r.assignee %} — {{ r.assignee }}{% endif %}
+{% endmacro %}
+{# Each section sorts type-ascending then sequence-id-ascending, case-sensitively (ASCII
+   order, matching Python's default string comparison) rather than Jinja's own
+   case-insensitive default — deterministic for a mixed-case custom item-type name, not just
+   the bundled all-lowercase ones. #}
 ## Delivered ({{ delivered | length }})
 
 {% if delivered %}
-{% for r in delivered %}
-- **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
-
+{% for r in delivered | sort(attribute="type,sequence_id", case_sensitive=True) %}
+{{ member_line(r) }}
 {% endfor %}
 
 {% else %}
@@ -27,9 +30,8 @@ _(none yet)_
 ## Outstanding ({{ outstanding | length }})
 
 {% if outstanding %}
-{% for r in outstanding %}
-- **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
-
+{% for r in outstanding | sort(attribute="type,sequence_id", case_sensitive=True) %}
+{{ member_line(r) }}
 {% endfor %}
 
 {% else %}
@@ -39,9 +41,8 @@ _(nothing outstanding)_
 ## Settled without delivering ({{ settled_not_delivered | length }})
 
 {% if settled_not_delivered %}
-{% for r in settled_not_delivered %}
-- **{{ r.values["id"].text }}** ({{ r.values["type"].text }}) {{ r.values["status"].text }} — {{ r.values["title"].text }}{% if r.values["assignee"].text %} — {{ r.values["assignee"].text }}{% endif %}
-
+{% for r in settled_not_delivered | sort(attribute="type,sequence_id", case_sensitive=True) %}
+{{ member_line(r) }}
 {% endfor %}
 {% else %}
 _(none)_

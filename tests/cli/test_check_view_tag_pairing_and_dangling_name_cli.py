@@ -79,8 +79,7 @@ async def test_check_exits_3_and_names_the_view_for_a_source_incompatible_host(
     (templates_dir / "story_board.md.j2").write_text("story board\n", encoding="utf-8")
     (override_dir / "workflow.toml").write_text(
         f"# squads:override-base:{__version__}\n"
-        '[views.story_board]\nsource = { kind = "subentity", name = "story" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        '[views.story_board]\nsource = { kind = "subentity", name = "story" }\n',
         encoding="utf-8",
     )
     await invoke(["create", "epic", "An epic", "--author", "manager"])

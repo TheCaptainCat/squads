@@ -64,8 +64,7 @@ def _declare_second_view(squad_dir) -> None:
     (templates_dir / "second_view.md.j2").write_text("second view\n", encoding="utf-8")
     (override_dir / "workflow.toml").write_text(
         f"# squads:override-base:{__version__}\n"
-        '[views.second_view]\nsource = { kind = "subentity", name = "subtask" }\n'
-        'fields = [ { code = "id", label = "Id" } ]\n',
+        '[views.second_view]\nsource = { kind = "subentity", name = "subtask" }\n',
         encoding="utf-8",
     )
     invalidate_squad_dir(squad_dir)

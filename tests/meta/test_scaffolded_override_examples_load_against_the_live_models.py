@@ -86,7 +86,6 @@ def test_the_workflow_scaffolds_worked_example_declares_a_valid_view(tmp_path) -
     view = spec.views["related_incidents"]
     assert view.source.kind == "ref"
     assert view.source.name in spec.ref_kinds
-    assert {f.code for f in view.fields} >= {"id", "status", "title"}
 
 
 def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_template(
@@ -98,16 +97,29 @@ def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_te
     one exists because, before it did, an adopter who uncommented and rendered the example hit
     a raw ``jinja2.TemplateNotFound`` traceback rather than a clean, actionable error — the
     exact shape this asserts stays fixed."""
+    from squads import _clock as clock
     from squads import _views as views
     from squads._errors import SquadsError
+    from squads._models._item import Item
 
     activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
     _write_override(tmp_path, "workflow.toml", activated)
-    load_workflow_spec(squad_dir=tmp_path)  # the example must still load on its own
+    spec = load_workflow_spec(squad_dir=tmp_path)  # the example must still load on its own
 
-    empty_projection = views.Projection(fields=[], group_by=None, groups=[])
+    now = clock.now()
+    incident = Item(
+        sequence_id=1,
+        type="incident",
+        title="An incident",
+        slug="an-incident",
+        status="Triage",
+        path="incidents/x1.md",
+        created_at=now,
+        updated_at=now,
+        prefix="INC",
+    )
     with pytest.raises(SquadsError, match=r"templates/views/related_incidents.md.j2"):
-        views.render_view("related_incidents", empty_projection)
+        views.render_source_view("related_incidents", [], incident, spec, None)
 
 
 def test_the_workflow_scaffolds_example_demonstrates_the_field_that_drives_status_behaviour(
