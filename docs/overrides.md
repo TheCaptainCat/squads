@@ -866,6 +866,11 @@ its own merged role definition, a type's playbook lane, or the item itself — r
 template. Views are declared in `[views]`, and nothing about them is a special case: they merge,
 shadow and drop exactly like item types and statuses do.
 
+Upgrading a squad whose `.overrides/workflow.toml` still declares a view with `fields`, `group_by`,
+`order_by`, or a type attachment (`items.<type>.views`)? Those keys are gone in 0.15 — see
+[workflow.md § "Upgrading a 0.14 view declaration"](workflow.md#upgrading-a-014-view-declaration)
+for the load error and a worked conversion.
+
 Every view is **computed on every request**. No view is ever written into an item's file, so
 declaring, changing or dropping one rewrites nothing on disk and leaves nothing behind.
 
