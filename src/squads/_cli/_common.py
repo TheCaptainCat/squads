@@ -43,9 +43,13 @@ from squads._paths import resolve
 from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
-from squads._services._maintenance import SYNC_RESTORES_SKILL_FRONTMATTER
+from squads._services._duplicate_ids import DUPLICATE_ID_REMEDY, RESTAMP_BLOCKED_REMEDY
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
+from squads._services._skill_files import (
+    RESOLVE_CONFLICT_REMEDY,
+    SYNC_RESTORES_SKILL_FRONTMATTER,
+)
 from squads._util import version_tuple
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
@@ -431,7 +435,15 @@ def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
 def unreadable_report(msg: str) -> str:
     """One ``repair``/``adopt``/``migrate`` line for an unreadable file. A managed skill file
     carries its own single remedy; every other file gets the generic carried-forward note."""
-    if SYNC_RESTORES_SKILL_FRONTMATTER in msg:
+    if any(
+        remedy in msg
+        for remedy in (
+            SYNC_RESTORES_SKILL_FRONTMATTER,
+            RESOLVE_CONFLICT_REMEDY,
+            RESTAMP_BLOCKED_REMEDY,
+            DUPLICATE_ID_REMEDY,
+        )
+    ):
         return f"[red]error[/red]: {e(msg)}"
     return (
         f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "

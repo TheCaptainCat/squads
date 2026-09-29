@@ -715,6 +715,7 @@ class SubentitiesMixin(ServiceCore):
                     )
             item.subentities = [s for s in item.subentities if s.local_id != local_id]
             item.updated_at = clock.now()
+            self._refuse_duplicated_id(item)
             path = item_file(self.paths, item)
             text = await self._read_item_file(item, path)
             ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
@@ -777,6 +778,7 @@ class SubentitiesMixin(ServiceCore):
         before it is substituted for the index-derived one.
         """
         kind = self.subentity_kind[item.type]
+        self._refuse_duplicated_id(item)
         text = await self._read_item_file(item, path) if text is None else text
         ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())

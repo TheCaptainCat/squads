@@ -168,6 +168,7 @@ class ItemsMixin(ServiceCore):
         item, old_status, base, severed, warnings = self._set_status_model(
             db, item_id, status, force=force, unlink=unlink
         )
+        self._refuse_duplicated_id(item)
         await update_frontmatter(
             item_file(self.paths, item), item, base, default_kind=self.spec.default_ref_kind()
         )
@@ -378,6 +379,7 @@ class ItemsMixin(ServiceCore):
                 old_text = await _aio.read_text(old_path)
                 ensure_no_skew(old_text, base, default_kind=default_kind)
                 await _aio.path_rename(old_path, new_path)
+        self._refuse_duplicated_id(item)
         await update_frontmatter(item_file(self.paths, item), item, base, default_kind=default_kind)
         self.store.log("update", item.id, delta)
         return item
@@ -459,6 +461,7 @@ class ItemsMixin(ServiceCore):
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
+            self._refuse_duplicated_id(child)
             await update_frontmatter(
                 item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
             )
@@ -477,6 +480,7 @@ class ItemsMixin(ServiceCore):
             child.parent = None
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
+            self._refuse_duplicated_id(child)
             await update_frontmatter(
                 item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
             )
@@ -790,6 +794,7 @@ class ItemsMixin(ServiceCore):
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
+                    self._refuse_duplicated_id(referrer)
                     await update_frontmatter(
                         item_file(self.paths, referrer), referrer, base, default_kind=default_kind
                     )

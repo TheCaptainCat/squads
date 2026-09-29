@@ -157,6 +157,7 @@ class RetypeMixin(ServiceCore):
             # old (skewed) frontmatter still inside: a strictly worse intermediate state than
             # refusing here, before anything on disk has moved.
             default_kind = self.spec.default_ref_kind()
+            self._refuse_duplicated_id(item)
             base = item.model_copy(deep=True)
             current_text = await self._read_item_file(item, item_file(self.paths, item))
             ensure_no_skew(current_text, base, default_kind=default_kind)

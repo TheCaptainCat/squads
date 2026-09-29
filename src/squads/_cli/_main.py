@@ -750,7 +750,9 @@ async def repair(
         )
     for msg in result.unreadable:
         console.print(common.unreadable_report(msg), soft_wrap=True)
-    if result.unreadable:
+    for line in result.renumber_report:
+        console.print(e(line), soft_wrap=True)
+    if result.unreadable or result.references_left:
         raise typer.Exit(1)
 
 

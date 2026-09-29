@@ -8,6 +8,7 @@ author: product-owner
 refs:
 - FEAT-976:depends-on
 - MILE-934:targets
+- ADR-979
 subentities:
 - local_id: US1
   title: As an operator, I want to retitle and describe a skill
@@ -22,7 +23,7 @@ subentities:
   title: As an operator, I want a clear error on spec-generated items
   status: Todo
 created_at: '2026-09-29T14:19:16Z'
-updated_at: '2026-09-29T14:31:27Z'
+updated_at: '2026-09-29T14:59:28Z'
 ---
 <!-- sq:body -->
 Roster entities lack most of the verbs an item has, and use different names for some. Compared with a task, read from `--help`:

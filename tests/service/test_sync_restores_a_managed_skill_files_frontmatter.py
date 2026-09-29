@@ -1,11 +1,14 @@
 """``sq sync`` writes a managed skill file back whole: frontmatter from the index entry, the
 body untouched. A file that is not a managed skill is never re-stamped from the index."""
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from squads import _aio
+from squads import _clock as clock
+from squads._errors import SquadsError
 from squads._sections import find_markers, split_frontmatter
 from squads._services import _service as service
 
@@ -203,3 +206,104 @@ async def test_repair_gives_the_one_remedy_for_a_stripped_managed_skill(svc, inv
     assert result.exit_code == 1
     assert "`sq sync`" in result.output
     assert "fix the file and repair again" not in result.output
+
+
+@pytest.mark.parametrize("damage", [*_DAMAGES, "invalid-yaml"])
+@pytest.mark.parametrize("slug", _SLUGS)
+async def test_a_restamp_leaves_no_timestamp_drift_on_a_real_clock(svc, slug, damage):
+    md = _skill_file(svc, slug)
+    original = md.read_text()
+    later = datetime.now(UTC) + timedelta(hours=3)
+    if damage == "invalid-yaml":
+        md.write_text(_BROKEN_YAML + split_frontmatter(original)[1])
+    elif (transform := _DAMAGES[damage]) is None:
+        md.unlink()
+    else:
+        md.write_text(transform(original))
+
+    clock.set_now(later)
+    try:
+        await svc.sync()
+    finally:
+        clock.set_now(None)
+
+    assert not [i for i in await svc.check() if "drift" in i.message], await svc.check()
+
+
+async def test_a_stray_stripped_copy_is_not_restamped_into_a_second_skill(svc):
+    md = _skill_file(svc, "sq-task")
+    stray = md.parent / "SKILL-000099-sq-task.md"
+    stray.write_text(_strip_whole(md.read_text()))
+
+    skips = await svc.sync()
+
+    assert "id" not in split_frontmatter(stray.read_text())[0]
+    holders = [
+        i for i in await svc.list_items(item_type="skill") if i.extra.get("slug") == "sq-task"
+    ]
+    assert len(holders) == 1
+    assert any("already" in s and "sq-task" in s for s in skips), skips
+
+
+def _wrap_whole_file(text: str) -> str:
+    return f"<<<<<<< HEAD\n{text}=======\n{text}>>>>>>> other\n"
+
+
+def _span_frontmatter_and_body(text: str) -> str:
+    fm, body = split_frontmatter(text)
+    head = "".join(f"{k}: {v!r}\n" for k, v in fm.items())
+    return f"---\n<<<<<<< HEAD\n{head}=======\ntitle: other\n---\n{body}>>>>>>> other\n"
+
+
+def _body_only_with_no_frontmatter(text: str) -> str:
+    return f"{_strip_whole(text)}\n<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> other\n"
+
+
+def _inside_frontmatter(text: str) -> str:
+    fm, body = split_frontmatter(text)
+    head = "".join(f"{k}: {v!r}\n" for k, v in fm.items())
+    return f"---\n{head}<<<<<<< HEAD\ntitle: a\n=======\ntitle: b\n>>>>>>> other\n---{body}"
+
+
+# (transform, rebuilt): a conflict wholly inside the frontmatter is rebuilt; any other
+# position is a merge a human must resolve, so sync refuses.
+_CONFLICTS = [
+    pytest.param(_inside_frontmatter, True, id="inside-frontmatter"),
+    pytest.param(_span_frontmatter_and_body, False, id="spans-frontmatter-and-body"),
+    pytest.param(_wrap_whole_file, False, id="wraps-the-whole-file"),
+    pytest.param(_body_only_with_no_frontmatter, False, id="in-the-body-after-lost-frontmatter"),
+]
+
+
+@pytest.mark.parametrize(("transform", "rebuilt"), _CONFLICTS)
+@pytest.mark.parametrize("slug", _SLUGS)
+async def test_only_a_frontmatter_conflict_is_rebuilt(svc, slug, transform, rebuilt):
+    md = _skill_file(svc, slug)
+    md.write_text(transform(md.read_text()))
+    damaged = md.read_bytes()
+
+    if rebuilt:
+        await svc.sync()
+        assert "<<<<<<<" not in md.read_text()
+        assert split_frontmatter(md.read_text())[0]["type"] == "skill"
+    else:
+        with pytest.raises(SquadsError, match="merge conflict"):
+            await svc.sync()
+        assert md.read_bytes() == damaged
+
+
+async def test_check_names_the_remedy_that_works_for_each_refusal(svc):
+    md = _skill_file(svc, "sq-task")
+    twin = md.with_name(md.name.replace("sq-task", "foo"))
+    twin.write_text(md.read_text())
+    md.write_text(_strip_whole(md.read_text()))
+
+    blocked = [i.message for i in await svc.check() if i.item == md.name]
+
+    assert any("remove or rename one of the two files" in m for m in blocked), blocked
+    assert not any("run `sq sync`" in m for m in blocked)
+
+    twin.unlink()
+    md.write_text(_wrap_whole_file(md.read_text()))
+    conflicted = [i.message for i in await svc.check() if i.item == md.name]
+    assert not any("run `sq sync`" in m for m in conflicted), conflicted

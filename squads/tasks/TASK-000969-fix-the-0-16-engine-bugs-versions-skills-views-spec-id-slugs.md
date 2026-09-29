@@ -40,10 +40,10 @@ subentities:
   assignee: python-dev
 - local_id: ST6
   title: Report two files carrying the same id
-  status: Todo
+  status: Done
   assignee: python-dev
 created_at: '2026-09-29T13:31:10Z'
-updated_at: '2026-09-29T14:38:00Z'
+updated_at: '2026-09-29T15:41:36Z'
 ---
 <!-- sq:body -->
 Six engine bugs targeted at 0.16, one dev pass. Each subtask is independent and touches a
@@ -468,6 +468,8 @@ restamp (ST2) can create exactly this state from a renamed file.
   - Added per op-pierre (via manager). Ruled: repair reports and refuses to pick a winner (carries the previous entry, exits 1), because any tie-break can silently drop edits. Also closes REV-975 F3 with ST2.
 - [2026-09-29T14:36:42Z] Pierre Chat:
   - repair --renumber on a same-id, different-slug duplicate (the merge case): keep one, mint a fresh number for the other, do NOT rewrite the ambiguous references; list every ref to that id for a manual check. Same-slug copies (a stray file copy) refuse.
+- [2026-09-29T15:39:39Z] Pierre Chat:
+  - repair --renumber refuses when the duplicate files are byte-identical apart from the filename (a copy, not a merge collision).
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 <!-- sq:subtasks:end -->
@@ -492,4 +494,10 @@ restamp (ST2) can create exactly this state from a renamed file.
   - BUG-978 goes into this task as a subtask, fixed in the same pass as the REV-975 restamp work.
 - [2026-09-29T14:36:30Z] Elias Python:
   - All nine REV-975 findings fixed, each with a falsified table-driven test. version_tuple orders by PEP 440 with the release numbers as their own tuple. The managed skill restamp now builds frontmatter from the file name and the skill catalog, runs before and after the sync writes, rebuilds the index when it lacks the restored file, refuses to create a second file with the same id, and rebuilds unreadable YAML. repair, adopt and migrate print the single sync remedy for such a file. The duplicate view tag message names a working remedy. legacy_slugify is a self-contained frozen copy; the transliteration map covers thorn, eth, h and t stroke, dotless i, and the length cut never splits an expansion. One existing sync test asserted that a merge-conflicted managed skill file aborts sync; it now asserts sync rebuilds it. Fast gates clean; tests/cli, tests/integration, tests/service, tests/unit and tests/meta pass.
+- [2026-09-29T14:57:48Z] Catherine Manager:
+  - Checkpoint 48cf1444 (suite 6412 passed). REV-975 F10-F13 (restamp) reopen ST2; ST6 (BUG-978) dispatched with them to @python-dev in one pass.
+- [2026-09-29T15:17:49Z] Elias Python:
+  - REV-975 F10-F13 and ST6 done, each with a falsified table-driven test. The restamp carries the index's timestamps, refuses on a duplicate id or slug, rebuilds only a conflict wholly inside the frontmatter, and check names the remedy that works. One shared detector (services/_duplicate_ids.py) serves check, repair and the restamp. check errors and names every file; repair refuses to pick a winner and exits 1; repair --renumber renumbers only groups whose slugs all differ (first path by byte order keeps the id), rewrites no reference and lists every one; show warns; writes refuse. A file's slug is extra.slug, else frontmatter slug, else the filename slug, so a work item copied to a differently named file counts as a different slug and is renumbered, while a skill copy or a copy in another type folder is refused. Two scan-wrapping test helpers gained a carriers argument. CHANGELOG via the writer.
+- [2026-09-29T15:41:36Z] Elias Python:
+  - ST6 addition: repair --renumber also refuses a duplicate group whose files are byte-identical (a copy, not a collision); a whitespace-only difference counts as different, since a byte comparison cannot tell an edit from noise and renumbering keeps both files. Rows added; falsified (1 red).
 <!-- sq:discussion:end -->

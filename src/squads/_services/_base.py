@@ -6,6 +6,7 @@ concerns (create/get/list, the backend, the role/skill lookups + roster projecti
 only ever call core methods + their own.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
@@ -51,6 +52,7 @@ from squads._roles._resolver import (
     resolve_role,
     resolve_role_for_item,
 )
+from squads._services._duplicate_ids import DUPLICATE_ID_REMEDY
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
@@ -916,6 +918,40 @@ class ServiceCore:
         item = require_item(await self.store.load(), item_id)
         return item.model_copy(deep=True)
 
+    def duplicate_files(self, item: Item) -> list[Path]:
+        """The other item files whose name carries *item*'s prefix and sequence number, in any
+        type folder. A name scan only, so it is cheap enough for every write and every show."""
+        own = item_file(self.paths, item)
+        name_re = re.compile(rf"^{re.escape(item.prefix)}-(\d+)(?:-|$)")
+        found: list[Path] = []
+        for spec in self.spec.items.values():
+            folder = self.paths.squad_dir / spec.folder
+            if not folder.is_dir():
+                continue
+            for md in sorted(folder.glob(f"{item.prefix}-*.md")):
+                m = name_re.match(md.stem)
+                if m and int(m[1]) == item.sequence_id and md != own:
+                    found.append(md)
+        return found
+
+    def duplicate_id_error(self, item: Item) -> str | None:
+        """The refusal text when another file carries *item*'s id, else ``None``."""
+        others = self.duplicate_files(item)
+        if not others:
+            return None
+        named = ", ".join(
+            p.relative_to(self.paths.squad_dir).as_posix()
+            for p in sorted([item_file(self.paths, item), *others])
+        )
+        return f"{item.id}: {len(others) + 1} files carry this id ({named})"
+
+    def _refuse_duplicated_id(self, item: Item) -> None:
+        """Refuse a write to an id more than one file carries: it would land on whichever copy
+        the scan reached."""
+        message = self.duplicate_id_error(item)
+        if message is not None:
+            raise SquadsError(f"{message}; refusing to write -- {DUPLICATE_ID_REMEDY}")
+
     async def _read_item_file(self, item: Item, path: Path) -> str:
         """Read *item*'s file at *path*, converting a missing file into a clean, actionable
         error — the item-read seam every show/body/discussion/comment path, and every
@@ -1174,6 +1210,7 @@ class ServiceCore:
         below is reused for the skew guard at no extra I/O cost.
         """
         it = require_item(db, item_id)
+        self._refuse_duplicated_id(it)
         base = it.model_copy(deep=True)
         path = item_file(self.paths, it)
         text = await self._read_item_file(it, path)

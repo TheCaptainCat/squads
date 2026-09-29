@@ -292,6 +292,8 @@ class RepairResult:
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
+    renumber_report: list[str] = field(default_factory=list[str])
+    references_left: bool = False
 
     def strip_notice(self) -> str | None:
         """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""
