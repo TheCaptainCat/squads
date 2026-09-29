@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format follows
 
   **A notebook that could not be read in full says so, in both clients**, rather than quietly showing fewer entries — the failure mode that makes a memory pool look smaller than it is, which is exactly what an oversight view must not do.
 
+- **A type's `validators` entry can set its level and its parameter.** An entry is `name`, `name:param`, `name@level` or `name:param@level`, with `error` or `warn` as the level — `parent_present@warn` adopts the parent rule as a warning, and `subentity_title_max:40` sets the title threshold for both `sq check` and the `add-<kind>` advisory. An unknown name or level, a malformed parameter, and a repeat that could never take effect are refused at load. `parent_acyclic` and `subentity_container_marker` cannot be lowered below `error`. See [docs/overrides.md § "Validators"](docs/overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are).
+
 - **`sq skill <slug> show --json` carries a `body` key**, the same key an ordinary item's `show --json` already has, with any view tag expanded to its rendered text, so a skill's text can be read without scraping the human output.
 
 - **`sq memory <role> show --json`**, one object for the memory you addressed — `{slug, summary, created_at, tags, body}` — so a client can render an entry whole instead of scraping the human output. `sq memory <role> list --json` rows gained `created_at` alongside `slug`, `filename` and `description`; that is what any age or staleness display is built on. Both are part of the stable `--json` surface described in [docs/stability.md](docs/stability.md).
@@ -41,6 +43,10 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 
 - **`sq migrate up`'s "manual steps remain" hint could name a `sq migrate chlog` range with nothing in it.** The range was built from the squad's last-sync version stamp, which is tracked independently of the schema and can already match the running release before the schema catches up — collapsing the suggested range to empty and leaving the real manual steps unreachable through the command the hint itself gave. The range is now built from the migrations the run actually applied, so it always covers their manual steps.
+
+### Migration
+
+**Schema 0.14 → 0.15 — commit, then run `sq migrate up`.** It adds the `sq:view:milestone_rollup` tag to every milestone, and writes each role's, system skill's and `sq-<type>` skill's own view tag into its body. **Every `sq-<type>` skill body is replaced by its tag, whoever wrote it**: if you keep a hand-written runbook under an `sq-<type>` slug, copy it into a skill of its own (`sq skill add`) before upgrading. A body holding marker-shaped content is skipped and named; `sq check` then gives the remedy. Run `sq sync` afterwards. See [docs/workflow.md § "After `sq migrate up`: seeded views"](docs/workflow.md#after-sq-migrate-up-seeded-views).
 
 ## [0.14.0]
 
@@ -1172,7 +1178,8 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[0.14.0]: https://github.com/TheCaptainCat/squads/compare/v0.13.1...HEAD
+[0.15.0]: https://github.com/TheCaptainCat/squads/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/TheCaptainCat/squads/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/TheCaptainCat/squads/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/TheCaptainCat/squads/compare/v0.12.3...v0.13.0
 [0.12.3]: https://github.com/TheCaptainCat/squads/compare/v0.12.2...v0.12.3
