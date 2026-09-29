@@ -326,6 +326,126 @@ The bundled spec declares one *relation*-sourced view, `milestone_rollup` — se
 non-relation ones behind the role/skill surfaces. Declaring your own is a section of the workflow
 override: [§ "Derived views"](#derived-views-field-reference) has the field reference.
 
+Upgrading a squad that still declares a view the 0.14 way (`fields`/`group_by`/`order_by`, or a
+type-attached view)? See ["Upgrading a 0.14 view declaration"](#upgrading-a-014-view-declaration)
+below.
+
+---
+
+## Upgrading a 0.14 view declaration
+
+0.14 shipped derived views with a `fields`/`group_by`/`order_by` projection grammar, and a view
+could be attached to a type with `items.<type>.views = […]`. 0.15 removes all four keys: a view
+now declares only where its data comes from, and everything else — which columns, how they're
+grouped, and where the view appears — moved elsewhere. If your own `.overrides/workflow.toml`
+still carries the 0.14 grammar, upgrading breaks the load, on purpose, naming the retired key:
+
+```
+error: this squad's workflow override could not be loaded, so no command can answer with the vocabulary it declares.
+  cause: …/.overrides/workflow.toml: views.milestone_rollup.group_by: 'group_by' was retired — grouping is the presentation template's own job now (Jinja `groupby`), not a declared key — remove it; a `[views.<name>]` table declares only `source` now.; …/.overrides/workflow.toml: views.milestone_rollup.order_by: 'order_by' was retired — ordering is the presentation template's own job now (Jinja `sort`), not a declared key — remove it; a `[views.<name>]` table declares only `source` now.; …/.overrides/workflow.toml: views.milestone_rollup.fields: 'fields' was retired — choosing and labelling which columns render is the presentation template's own job now — write the fields a resolved record actually has directly in Jinja, not a declared key — remove it; a `[views.<name>]` table declares only `source` now.
+  Fix the file, then re-run. `sq workflow lint` reports every problem at once with a fix hint.
+```
+
+An `items.<type>.views` type attachment gets its own version of the same message:
+
+```
+error: this squad's workflow override could not be loaded, so no command can answer with the vocabulary it declares.
+  cause: …/.overrides/workflow.toml: items.milestone.views: 'views' was retired — a view is placed with a `sq:view:<name>` tag in a document body now, not attached to a type — remove the key; place the view's tag with `sq <type> <n> view add <name>` instead.
+  Fix the file, then re-run. `sq workflow lint` reports every problem at once with a fix hint.
+```
+
+Converting covers three moving pieces, worked below against a `milestone_rollup` override in the
+shape a 0.14 squad might have carried.
+
+### 1. Declaration: collapse to `source`
+
+0.14:
+
+```toml
+[views.milestone_rollup]
+source = { kind = "ref", name = "targets" }
+group_by = "status_role"
+order_by = ["type", "id"]
+
+[[views.milestone_rollup.fields]]
+code = "id"
+label = "Id"
+
+[[views.milestone_rollup.fields]]
+code = "title"
+label = "Title"
+
+[[views.milestone_rollup.fields]]
+code = "status"
+label = "Status"
+```
+
+0.15 — delete every key but `source`:
+
+```toml
+[views.milestone_rollup]
+source = { kind = "ref", name = "targets" }
+```
+
+If you never customised `fields`/`group_by`/`order_by` on the bundled `milestone_rollup`, there is
+nothing to convert here: drop your whole `[views.milestone_rollup]` section and the bundled
+one-line declaration takes over. If your override also attached a view to a type
+(`items.<type>.views = […]`), delete that key too — see placement, below.
+
+### 2. Template: move grouping and ordering into Jinja
+
+The projection's `fields`/`group_by`/`order_by` become ordinary Jinja over `source` — the resolved
+records themselves, unflattened — plus `item` (the host the view resolved against) and `spec` (the
+active workflow spec). `sq override scaffold views/milestone_rollup.md.j2` starts you from the
+bundled rendering; a minimal replacement for the projection above looks like:
+
+```jinja
+{% for kind, members in source | groupby('type') %}
+### {{ kind }}
+{% for r in members | sort(attribute='sequence_id') %}
+- **{{ r.id }}** {{ r.status | badge(spec) }} — {{ r.title }}
+{% endfor %}
+{% endfor %}
+Outstanding: {{ (source | selectattr('status', 'ne', 'Done') | list) | length }}
+```
+
+This is a deliberately small example. The bundled `milestone_rollup` template groups on
+`spec.is_delivered(...)`/`spec.role_for(...).settled` rather than a literal status — read
+["Derived views: field reference"](#derived-views-field-reference) before converting
+a real `group_by = "status_role"`, which needs that same distinction.
+
+### 3. Placement: the dedicated verb, never the body
+
+0.14 put `milestone_rollup` on every milestone automatically, through the type attachment. 0.15
+places it with a verb instead:
+
+```
+sq milestone <n> view add milestone_rollup
+```
+
+which inserts the `sq:view:milestone_rollup` tag at the end of the milestone's body.
+`templates/items/milestone.md.j2` already seeds this tag on every *new* milestone, and upgrading
+(`sq migrate up`) places it on every milestone that predates the upgrade, so `view add` is mainly
+needed for a view you declared yourself, on a type whose creation template doesn't seed its tag.
+Typing the tag into a body by hand is refused, deliberately:
+
+```
+error: body must not contain sq marker comments (<!-- sq:… -->). Write the tag without its HTML-comment wrapper (e.g. sq:body rather than the comment form) — backtick-wrapping does not neutralize a well-formed tag.
+```
+
+`sq milestone <n> view rm milestone_rollup` takes the tag back out.
+
+### The result
+
+`sq milestone <n> show` renders the roll-up in place, computed fresh on every read — for a
+milestone with one linked feature:
+
+```
+### feature
+- **FEAT-<n>** ⚪ Draft — Ship the widget
+Outstanding: 1
+```
+
 ---
 
 ## Milestones

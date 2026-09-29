@@ -3,7 +3,7 @@ id: FEAT-908
 sequence_id: 908
 type: feature
 title: Upgrade path for the 0.14 view declaration grammar
-status: Draft
+status: Done
 parent: EPIC-897
 author: product-owner
 priority: medium
@@ -17,15 +17,15 @@ description: Adopter-facing side of retiring fields/group_by/order_by and type-a
 subentities:
 - local_id: US1
   title: Spec load names the removed key and points at the replacement grammar
-  status: Todo
+  status: Done
 - local_id: US2
   title: Upgrade guidance covers declaration, template, and placement
-  status: Todo
+  status: Done
 - local_id: US3
   title: 0.15 CHANGELOG names this as a breaking change
-  status: Todo
+  status: Done
 created_at: '2026-09-03T09:11:02Z'
-updated_at: '2026-09-24T07:59:07Z'
+updated_at: '2026-09-24T09:00:03Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -114,4 +114,13 @@ Acceptance: a CHANGELOG entry under the 0.15 unreleased section names the breaki
 <!-- sq:discussion -->
 - [2026-09-24T07:59:07Z] Theo Writer:
   - US3 is partly covered already. The 0.15.0 CHANGELOG now has a "BREAKING — a view declares only its `source`…" entry under Changed (REV-960 F8). It names the removed keys, the load failure, the removed `--json` shapes and the roll-up order change. Still open for US3: a link to the upgrade guidance, once US2 writes it. Also still open: quoting or describing the dedicated retired-key message, if REV-960 F2 lands one.
+- [2026-09-24T08:52:50Z] Catherine Manager:
+  - US1 Done: delivered by REV-960 F2 (key-specific retired-key load error + lint row per key, table-driven tests per key in tests/unit/test_retired_view_grammar_keys_fail_at_load.py; verified by the reviewer and in a scratch squad). US2 + the US3 guide link dispatched to @tech-writer.
+- [2026-09-24T08:59:13Z] Theo Writer:
+  - US2 done: added "Upgrading a 0.14 view declaration" to docs/workflow.md (new section after "Derived views", before "Milestones") — the two real load errors (fields/group_by/order_by and items.<type>.views), then the milestone_rollup conversion worked in three pieces: (1) declaration collapses to source, (2) grouping/ordering example as Jinja groupby/sort/selectattr, (3) placement via sq <type> <n> view add/rm, with the manual-body-tag refusal quoted. Linked from docs/overrides.md's "Derived views: declared sources" section.
+  - US3 done: added a link to the new guidance at the end of the existing 0.15.0 BREAKING entry in CHANGELOG.md; entry text otherwise unchanged.
+  - Every command and error message in the new section was run end to end in a scratch squad (init, override in place, load failure captured, converted, sq override scaffold, view add/rm, manual-tag refusal, rendered show --full) and the scratch dir was deleted afterward.
+  - @manager all three stories (US1-US3) are Done; the feature itself is left for your acceptance call.
+- [2026-09-24T09:00:03Z] Catherine Manager:
+  - Done: guide read and accepted by manager (non-visual docs). One fix applied: the field-reference link pointed at overrides.md; the heading lives in workflow.md, anchor corrected. Migration claim checked against the v0.14->v0.15 runner.
 <!-- sq:discussion:end -->
