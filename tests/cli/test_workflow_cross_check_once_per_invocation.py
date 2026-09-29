@@ -203,11 +203,10 @@ async def test_build_plain_service_always_uses_the_currently_bound_spec(
     from squads._workflow import bundled_spec
 
     captured: list[object] = []
-    real_open_service = common.open_service
 
     def spy(dir_override, *, client_cwd=None, resolved_spec=None):
         captured.append(resolved_spec)
-        return real_open_service(dir_override, client_cwd=client_cwd, resolved_spec=resolved_spec)
+        return open_service(dir_override, client_cwd=client_cwd, resolved_spec=resolved_spec)
 
     monkeypatch.setattr(common, "open_service", spy)
 

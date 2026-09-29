@@ -7,6 +7,7 @@ nor loops, and every session still renders exactly once.
 
 from io import StringIO
 
+import pytest
 from rich.console import Console
 
 import squads._cli._main as main_mod
@@ -38,15 +39,11 @@ def _entry(
     )
 
 
-def _capture_tree(entries: list[ReflogEntry]) -> str:
+def _capture_tree(entries: list[ReflogEntry], monkeypatch: pytest.MonkeyPatch) -> str:
     buf = StringIO()
     cap = Console(file=buf, highlight=False, markup=False)
-    original = main_mod.console
-    main_mod.console = cap  # pyright: ignore[reportAttributeAccessIssue]
-    try:
-        _render_reflog_tree(entries)
-    finally:
-        main_mod.console = original  # pyright: ignore[reportAttributeAccessIssue]
+    monkeypatch.setattr(main_mod, "console", cap)
+    _render_reflog_tree(entries)
     return buf.getvalue()
 
 
@@ -107,52 +104,66 @@ def test_build_session_maps_mixed_session_and_no_session_entries():
 # --------------------------------------------------------------------------- _render_reflog_tree
 
 
-def test_render_tree_empty_reflog_shows_the_best_effort_header_and_no_entries():
-    out = _capture_tree([])
+def test_render_tree_empty_reflog_shows_the_best_effort_header_and_no_entries(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    out = _capture_tree([], monkeypatch)
     assert "BEST-EFFORT" in out and "no reflog entries" in out
 
 
-def test_render_tree_no_session_entries_appear_as_individual_roots():
-    out = _capture_tree([_entry("manager", session_id=None), _entry("python-dev", session_id=None)])
+def test_render_tree_no_session_entries_appear_as_individual_roots(monkeypatch: pytest.MonkeyPatch):
+    out = _capture_tree(
+        [_entry("manager", session_id=None), _entry("python-dev", session_id=None)], monkeypatch
+    )
     assert "no session recorded" in out and "BEST-EFFORT" in out
 
 
-def test_render_tree_a_manager_dev_chain_nests_the_dev_under_the_manager():
+def test_render_tree_a_manager_dev_chain_nests_the_dev_under_the_manager(
+    monkeypatch: pytest.MonkeyPatch,
+):
     entries = [
         _entry("manager", session_id="mgr-sid", parent_session_id=None),
         _entry("python-dev", session_id="dev-sid", parent_session_id="mgr-sid"),
     ]
-    out = _capture_tree(entries)
+    out = _capture_tree(entries, monkeypatch)
     assert out.find("mgr-sid") < out.find("dev-sid")
 
 
-def test_render_tree_a_three_level_chain_nests_in_order():
+def test_render_tree_a_three_level_chain_nests_in_order(monkeypatch: pytest.MonkeyPatch):
     entries = [
         _entry("manager", session_id="mgr", parent_session_id=None),
         _entry("tech-lead", session_id="tl", parent_session_id="mgr"),
         _entry("python-dev", session_id="dev", parent_session_id="tl"),
     ]
-    out = _capture_tree(entries)
+    out = _capture_tree(entries, monkeypatch)
     assert out.find("mgr") < out.find("tl") < out.find("dev")
 
 
-def test_render_tree_unknown_parent_degrades_to_a_forest_root_not_an_error():
-    out = _capture_tree([_entry("python-dev", session_id="dev-sid", parent_session_id="ghost-sid")])
+def test_render_tree_unknown_parent_degrades_to_a_forest_root_not_an_error(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    out = _capture_tree(
+        [_entry("python-dev", session_id="dev-sid", parent_session_id="ghost-sid")], monkeypatch
+    )
     assert "dev-sid" in out
     assert "not in view" in out or "forest root" in out
 
 
-def test_render_tree_a_missing_intermediate_session_still_renders_both_ends():
+def test_render_tree_a_missing_intermediate_session_still_renders_both_ends(
+    monkeypatch: pytest.MonkeyPatch,
+):
     entries = [
         _entry("manager", session_id="mgr", parent_session_id=None),
         # the "tl" session between them is absent from the log
         _entry("python-dev", session_id="dev", parent_session_id="tl"),
     ]
-    out = _capture_tree(entries)
+    out = _capture_tree(entries, monkeypatch)
     assert "mgr" in out and "dev" in out
 
 
-def test_render_tree_shared_session_groups_both_operations_under_one_root():
+def test_render_tree_shared_session_groups_both_operations_under_one_root(
+    monkeypatch: pytest.MonkeyPatch,
+):
     """Two operations carrying the same session_id (a self-review) group under one root — a
     reader can see at a glance they are not independent."""
     entries = [
@@ -165,29 +176,37 @@ def test_render_tree_shared_session_groups_both_operations_under_one_root():
             target="REV-000001",
         ),
     ]
-    out = _capture_tree(entries)
+    out = _capture_tree(entries, monkeypatch)
     assert out.count("arch-sid") >= 1
 
 
-def test_render_tree_a_two_node_cycle_does_not_raise_and_both_sessions_appear():
+def test_render_tree_a_two_node_cycle_does_not_raise_and_both_sessions_appear(
+    monkeypatch: pytest.MonkeyPatch,
+):
     entries = [
         _entry("manager", session_id="sid-a", parent_session_id="sid-b"),
         _entry("python-dev", session_id="sid-b", parent_session_id="sid-a"),
     ]
-    out = _capture_tree(entries)
+    out = _capture_tree(entries, monkeypatch)
     assert "BEST-EFFORT" in out and "sid-a" in out and "sid-b" in out
 
 
-def test_render_tree_a_self_loop_does_not_raise_and_the_session_appears():
-    out = _capture_tree([_entry("manager", session_id="loop-sid", parent_session_id="loop-sid")])
+def test_render_tree_a_self_loop_does_not_raise_and_the_session_appears(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    out = _capture_tree(
+        [_entry("manager", session_id="loop-sid", parent_session_id="loop-sid")], monkeypatch
+    )
     assert "BEST-EFFORT" in out and "loop-sid" in out
 
 
-def test_render_tree_cycle_members_each_render_exactly_once_no_omission_or_duplication():
+def test_render_tree_cycle_members_each_render_exactly_once_no_omission_or_duplication(
+    monkeypatch: pytest.MonkeyPatch,
+):
     entries = [
         _entry("manager", session_id="cycle-alpha", parent_session_id="cycle-beta"),
         _entry("python-dev", session_id="cycle-beta", parent_session_id="cycle-alpha"),
     ]
-    out = _capture_tree(entries)
+    out = _capture_tree(entries, monkeypatch)
     assert out.count("[dim]session:[/dim] cycle-alpha") == 1
     assert out.count("[dim]session:[/dim] cycle-beta") == 1

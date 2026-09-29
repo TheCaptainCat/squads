@@ -34,6 +34,7 @@ from typing import Protocol
 import pytest
 
 from squads import __version__
+from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
 from squads._overrides import _service as override_service
 from squads._overrides._manifest import (
     PLAYBOOK_KEY,
@@ -44,6 +45,8 @@ from squads._overrides._manifest import (
 )
 from squads._overrides._service import STATE_DRIFTED, OverrideEntry
 from squads._overrides._stamp import stamp_template_file, stamp_toml_file
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME
+from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
 pytestmark = pytest.mark.anyio
 
@@ -134,12 +137,12 @@ def _place_role_add_only(squad_dir: Path) -> None:
 
 
 def _place_workflow_shadowing(squad_dir: Path) -> None:
-    path = _shadowing_path(squad_dir, override_service.WORKFLOW_OVERRIDE_FILENAME)
+    path = _shadowing_path(squad_dir, WORKFLOW_OVERRIDE_FILENAME)
     path.write_text('[items.task]\nfolder = "uniformity-probe-tickets"\n', encoding="utf-8")
 
 
 def _place_workflow_add_only(squad_dir: Path) -> None:
-    path = _shadowing_path(squad_dir, override_service.WORKFLOW_OVERRIDE_FILENAME)
+    path = _shadowing_path(squad_dir, WORKFLOW_OVERRIDE_FILENAME)
     path.write_text(
         '[items.uniformityprobe]\nprefix = "UPR"\nfolder = "uniformity-probes"\n'
         'lifecycle = "work"\n',
@@ -151,7 +154,7 @@ def _place_workflow_add_only(squad_dir: Path) -> None:
 
 
 def _place_playbook_shadowing(squad_dir: Path) -> None:
-    path = _shadowing_path(squad_dir, override_service.PLAYBOOK_OVERRIDE_FILENAME)
+    path = _shadowing_path(squad_dir, PLAYBOOK_OVERRIDE_FILENAME)
     path.write_text('[types.task]\nroles = ["$(*self)"]\n', encoding="utf-8")
 
 
@@ -160,7 +163,7 @@ def _place_playbook_add_only(squad_dir: Path) -> None:
     whether the matching workflow item type exists (``check_override_issues`` never validates
     playbook/workflow coverage; that lives in the full ``svc.check()`` merge path, out of
     scope for this file-scan-level guard)."""
-    path = _shadowing_path(squad_dir, override_service.PLAYBOOK_OVERRIDE_FILENAME)
+    path = _shadowing_path(squad_dir, PLAYBOOK_OVERRIDE_FILENAME)
     path.write_text(
         '[types.uniformityprobe]\noverview = "A probe."\nlifecycle = "Open -> Closed"\n'
         "commands = []\nroles = []\n",
@@ -172,7 +175,7 @@ def _place_playbook_add_only(squad_dir: Path) -> None:
 
 
 def _place_roles_catalog_shadowing(squad_dir: Path) -> None:
-    path = _shadowing_path(squad_dir, override_service.ROLES_OVERRIDE_FILENAME)
+    path = _shadowing_path(squad_dir, ROLES_OVERRIDE_FILENAME)
     path.write_text(
         '[[roles]]\nslug = "architect"\ntitle = "Uniformity Probe Architect"\n',
         encoding="utf-8",
@@ -180,7 +183,7 @@ def _place_roles_catalog_shadowing(squad_dir: Path) -> None:
 
 
 def _place_roles_catalog_add_only(squad_dir: Path) -> None:
-    path = _shadowing_path(squad_dir, override_service.ROLES_OVERRIDE_FILENAME)
+    path = _shadowing_path(squad_dir, ROLES_OVERRIDE_FILENAME)
     path.write_text(
         '[[roles]]\nslug = "uniformity-probe-role"\nfull_name = "Sam Probe"\n'
         'title = "Uniformity Prober"\ndescription = "Exists to be new."\n'
@@ -219,8 +222,8 @@ _KIND_FIXTURES: dict[str, _KindFixture] = {
     "workflow": _KindFixture(
         manifest_key=WORKFLOW_KEY,
         diff_name="workflow",
-        display=override_service.WORKFLOW_OVERRIDE_FILENAME,
-        add_only_display=override_service.WORKFLOW_OVERRIDE_FILENAME,
+        display=WORKFLOW_OVERRIDE_FILENAME,
+        add_only_display=WORKFLOW_OVERRIDE_FILENAME,
         place_shadowing=_place_workflow_shadowing,
         place_add_only=_place_workflow_add_only,
         restamp=stamp_toml_file,
@@ -229,8 +232,8 @@ _KIND_FIXTURES: dict[str, _KindFixture] = {
     "playbook": _KindFixture(
         manifest_key=PLAYBOOK_KEY,
         diff_name="playbook",
-        display=override_service.PLAYBOOK_OVERRIDE_FILENAME,
-        add_only_display=override_service.PLAYBOOK_OVERRIDE_FILENAME,
+        display=PLAYBOOK_OVERRIDE_FILENAME,
+        add_only_display=PLAYBOOK_OVERRIDE_FILENAME,
         place_shadowing=_place_playbook_shadowing,
         place_add_only=_place_playbook_add_only,
         restamp=stamp_toml_file,
@@ -239,8 +242,8 @@ _KIND_FIXTURES: dict[str, _KindFixture] = {
     "roles": _KindFixture(
         manifest_key=ROLES_KEY,
         diff_name="roles",
-        display=override_service.ROLES_OVERRIDE_FILENAME,
-        add_only_display=override_service.ROLES_OVERRIDE_FILENAME,
+        display=ROLES_OVERRIDE_FILENAME,
+        add_only_display=ROLES_OVERRIDE_FILENAME,
         place_shadowing=_place_roles_catalog_shadowing,
         place_add_only=_place_roles_catalog_add_only,
         restamp=stamp_toml_file,

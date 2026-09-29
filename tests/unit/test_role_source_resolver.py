@@ -21,6 +21,7 @@ import pytest
 
 from squads import __version__
 from squads import _views as views
+from squads._roles._resolver import resolve_role_for_item
 
 pytestmark = pytest.mark.anyio
 
@@ -28,7 +29,7 @@ pytestmark = pytest.mark.anyio
 async def test_resolve_role_source_delegates_to_the_documented_seam(svc) -> None:
     item = await svc.activate_role("tech-writer")
 
-    with patch.object(views, "resolve_role_for_item", wraps=views.resolve_role_for_item) as spy:
+    with patch.object(views, "resolve_role_for_item", wraps=resolve_role_for_item) as spy:
         resolved = views._resolve_role_source(item, svc.paths.squad_dir)
 
     spy.assert_called_once_with(item, svc.paths.squad_dir)

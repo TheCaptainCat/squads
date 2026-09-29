@@ -23,7 +23,7 @@ from squads._models._metadata import coerce_extra
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
-from squads._services._results import RemoveResult, RosterStatusResult, Severance
+from squads._services._results import RemoveResult, RosterStatusResult
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
@@ -90,7 +90,7 @@ class ItemsMixin(ServiceCore):
         force: bool = False,
         unlink: bool = False,
         now: datetime | None = None,
-    ) -> tuple[Item, str, Item, list[Severance], list[str]]:
+    ) -> tuple[Item, str, Item, list[retirement.Severance], list[str]]:
         """The PURE half of a status transition: no file I/O. Returns ``(item, old_status, base,
         severed, warnings)``:
 
@@ -117,7 +117,7 @@ class ItemsMixin(ServiceCore):
         base = item.model_copy(deep=True)
         old_status = item.status
         self._apply_status(item, status, force=force)
-        severed: list[Severance] = []
+        severed: list[retirement.Severance] = []
         warnings: list[str] = []
         if self.spec.item_is_roster(item.type):
             severed = retirement.enforce(
@@ -157,7 +157,7 @@ class ItemsMixin(ServiceCore):
 
     async def _set_status_core(
         self, db: SquadsDB, item_id: str, status: str, *, force: bool = False, unlink: bool = False
-    ) -> tuple[Item, list[Severance], list[str]]:
+    ) -> tuple[Item, list[retirement.Severance], list[str]]:
         """The status-transition mutation core: takes an already-open transaction's ``db``.
 
         Returns ``(item, severed, warnings)`` — see :meth:`_set_status_model`. Writes the

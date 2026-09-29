@@ -283,18 +283,19 @@ async def _resolve_addr(
     """
     svc = get_service()
     ctx.ensure_object(dict)
-    ctx.obj = {_ADDR_KEY: addr}
+    obj: dict[str, str | None] = {_ADDR_KEY: addr}
+    ctx.obj = obj
     t = addr.strip()
     # Detect numeric or full-ID-shaped tokens (TYPE-NNNNNN).
     if t.isdigit() or is_full_id_shape(t):
         # Numeric or full-ID tokens: strict DB resolution — wrong-type errors bubble up.
-        ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
+        obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
     else:
         # Slug token: try DB; if not found, store None so show() can render a bundled card.
         try:
-            ctx.obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
+            obj[_ID_KEY] = await resolve_agent_addr(addr, "role", svc)
         except SquadsError:
-            ctx.obj[_ID_KEY] = None
+            obj[_ID_KEY] = None
 
 
 def _require_id(ctx: typer.Context) -> str:

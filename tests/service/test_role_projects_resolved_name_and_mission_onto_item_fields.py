@@ -203,7 +203,7 @@ async def test_a_declared_full_name_equal_to_the_current_value_takes_the_no_op_p
     _place_override(project.squad_dir, "architect", f'full_name = "{current_title}"\n')
 
     calls: list[str] = []
-    real = maintenance.update_frontmatter
+    real = itemfile.update_frontmatter
 
     async def _spy(path, item, base, *, default_kind):
         calls.append(item.id)
@@ -337,7 +337,7 @@ async def test_a_simulated_write_failure_leaves_the_item_truthful_to_disk_on_tit
     original_description = role.description
     _place_override(project.squad_dir, "architect", 'full_name = "Ada Lovelace"\n')
 
-    real = maintenance.update_frontmatter
+    real = itemfile.update_frontmatter
 
     async def _boom(path, item, base, *, default_kind):
         if item.id == role.id:
@@ -388,7 +388,7 @@ async def test_a_raised_write_rolls_back_in_memory_and_a_retry_from_a_clean_stat
     role = await svc.activate_role("architect")
     _place_override(project.squad_dir, "architect", 'full_name = "Ada Lovelace"\n')
 
-    real = maintenance.update_frontmatter
+    real = itemfile.update_frontmatter
     call_count = 0
 
     async def _boom_once(path, item, base, *, default_kind):
@@ -513,7 +513,7 @@ async def test_a_second_genuinely_different_message_about_the_same_item_still_ge
     is the unrenderable one under test.
     """
     from squads._index._resolver import item_file
-    from squads._itemfile import replace_frontmatter
+    from squads._sections import replace_frontmatter
 
     unrenderable_model = "claude-opus-4-5"
     dev = await svc.add_dev("python", model=unrenderable_model)

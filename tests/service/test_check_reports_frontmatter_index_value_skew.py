@@ -20,6 +20,7 @@ from squads._errors import SquadsError
 from squads._index._store import IndexStore
 from squads._itemfile import read_frontmatter
 from squads._services import _maintenance as maintenance
+from squads._services._results import CheckIssue
 
 pytestmark = pytest.mark.anyio
 
@@ -188,7 +189,7 @@ async def test_a_skew_resolved_by_a_racing_repair_is_not_reported(svc, monkeypat
 
     svc._scan_for_check = paused_scan
 
-    issues: list[maintenance.CheckIssue] = []
+    issues: list[CheckIssue] = []
 
     async def run_check() -> None:
         issues.extend(await svc.check())
