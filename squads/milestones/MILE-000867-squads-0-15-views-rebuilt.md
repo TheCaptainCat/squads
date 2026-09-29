@@ -6,7 +6,7 @@ title: squads 0.15 - views, rebuilt
 status: InProgress
 author: product-owner
 created_at: '2026-09-02T08:03:36Z'
-updated_at: '2026-09-15T12:59:01Z'
+updated_at: '2026-09-24T09:59:59Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.14. It holds the engine and vocabulary work that was
@@ -140,4 +140,12 @@ follow-through on decisions taken during it.
     **Deferred to 0.16 (MILE-934):** BUG-935 + BUG-949 (both the VS Code skew canary, take as one
     job), BUG-937 + BUG-950's twin mechanism, BUG-938, BUG-957 (out-of-region view tag invisible to
     show/check/view rm), and the four validator followers.
+- [2026-09-24T09:59:59Z] Catherine Manager:
+  - - **Where 0.15 stands, for whoever picks this up next.**
+    
+      Landed and closed this run: FEAT-904 (view projection layer deleted; REV-960 Approved, all ten findings Verified), FEAT-908 (upgrade guide in docs/workflow.md, linked from the CHANGELOG breaking entry), BUG-950 (migrate up's manual-steps hint now spans the applied migrations; Verified, CHANGELOG entry in). REV-920 F9 and F11 Verified; F10 filed as BUG-962 for 0.16. Full suite green on the last code change (5093 passed). Branch release/0.15 is local only, not pushed.
+    
+      **Outstanding for 0.15:** FEAT-948 / TASK-942 (required views) only. TASK-942 is Draft; it now builds on the reduced view grammar, so its breakdown needs a rebase check against the deleted ViewSpec keys before dispatch.
+    
+      **Parked, not scheduled:** FEAT-961 (pronouns on agent and operator identity), Draft, no epic.
 <!-- sq:discussion:end -->
