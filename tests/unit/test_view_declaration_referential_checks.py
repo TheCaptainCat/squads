@@ -1,14 +1,6 @@
-"""``[views]`` is a declared keyed section of the workflow document, reduced to a single
-``source`` key. Referential validation of that source's ``name`` against its ``kind``'s
-vocabulary runs on the merged spec by the same cross-reference pass every other declared
-reference goes through — no view-specific guard. Table-driven across the three relation
-source-kind families (ref / subentity / subtree) rather than one probe per family, since the
-failure shape (an undeclared name) is identical across all three.
-
-The retired ``fields``/``group_by``/``order_by``/``items.<type>.views`` grammar is covered by
-``tests/unit/test_retired_view_grammar_keys_fail_at_load.py`` instead — every declared-key
-error, one test per key, rather than a load-time-resolution assertion here.
-"""
+"""``[views]``'s ``source.name`` is validated against its ``kind``'s vocabulary by the same
+cross-reference pass every other declared reference goes through, table-driven across the
+three relation source-kind families, since the failure shape is identical across all three."""
 
 from pathlib import Path
 
@@ -38,16 +30,7 @@ def test_views_is_a_member_of_the_closed_top_level_section_set() -> None:
 
 
 def test_exactly_one_relation_view_ships_bundled_and_none_are_type_attached() -> None:
-    """Naming a bundled ref kind / sub-entity kind / item type as a source would ordinarily
-    couple every project that later drops or renames it (an ordinary, already-tested
-    customisation — see ``test_workflow_subentity_kinds_cli.py``'s dropped-kind cases) to
-    keeping a view nothing consumes — the reason the mechanism itself shipped with no
-    *relation*-sourced view beyond one. The milestone roll-up is that one exception.
-
-    It is placed the same way the other five bundled views are: a ``sq:view:<name>`` tag
-    seeded straight into its host's creation template (``templates/items/milestone.md.j2``).
-    Every bundled view is reached only by a placed tag, never by declaring it against a type.
-    """
+    """Exactly one relation view, the milestone roll-up, ships bundled, none type-attached."""
     spec = bundled_spec()
     non_relation_views = {
         "role_definition",
@@ -92,8 +75,7 @@ def test_a_role_or_self_source_naming_a_name_is_refused(tmp_path: Path, kind: st
 
 
 def test_a_playbook_source_name_is_optional(tmp_path: Path) -> None:
-    """No name at all — resolved at read time against the host's own type — loads clean,
-    exactly like a declared one."""
+    """A playbook source's name is optional, resolved at read time against the host's own type."""
     _write_override(tmp_path, '[views.probe]\nsource = { kind = "playbook" }\n')
     spec = load_workflow_spec(squad_dir=tmp_path)
     assert spec.views["probe"].source.name is None
@@ -161,11 +143,55 @@ source = { kind = "subtree", name = "nope-type" }
     assert any("bad_subtree" in m for m in messages)
 
 
+# ------------------------------------------------------------------ name / position grammar
+
+
+@pytest.mark.parametrize(
+    ("declaration", "expected_substring"),
+    [
+        pytest.param(
+            '[views.probe]\nsource = { kind = "self" }\n',
+            None,
+            id="valid-name-and-default-position",
+        ),
+        pytest.param(
+            '[views."bad name"]\nsource = { kind = "self" }\n',
+            "not a bare TOML key",
+            id="name-with-a-space-refused",
+        ),
+        pytest.param(
+            '[views."nl\\n"]\nsource = { kind = "self" }\n',
+            "not a bare TOML key",
+            id="name-with-a-trailing-newline-refused",
+        ),
+        pytest.param(
+            '[views.probe]\nsource = { kind = "self" }\nposition = "sideways"\n',
+            "not one of 'top', 'bottom', 'after(<regex>)'",
+            id="position-not-one-of-the-declared-shapes",
+        ),
+        pytest.param(
+            '[views.probe]\nsource = { kind = "self" }\nposition = "after(x)\\n"\n',
+            "not one of 'top', 'bottom', 'after(<regex>)'",
+            id="position-with-a-trailing-newline-refused",
+        ),
+    ],
+)
+def test_the_name_and_position_grammar_table(
+    tmp_path: Path, declaration: str, expected_substring: str | None
+) -> None:
+    """The view-name alphabet and the ``after(<regex>)`` position grammar both reject a name
+    or a position ending in a newline; ``None`` is the positive control."""
+    _write_override(tmp_path, declaration)
+    if expected_substring is None:
+        load_workflow_spec(squad_dir=tmp_path)
+        return
+    with pytest.raises(SquadsError) as excinfo:
+        load_workflow_spec(squad_dir=tmp_path)
+    assert expected_substring in str(excinfo.value)
+
+
 def test_selected_may_drop_a_declared_view(tmp_path: Path) -> None:
-    """Dropping a declared view needs no companion edit — a view is reached only by placing
-    its own ``sq:view:<name>`` tag, never by a type attachment, so there is no reciprocal
-    binding to strand. ``[selected].views`` here re-selects the bundled ``milestone_rollup``
-    alongside the test-declared ``kept`` view simply to prove a re-selected bundled view
+    """Dropping a declared view needs no companion edit, and a re-selected bundled view
     survives an otherwise-narrowing ``[selected]`` line unchanged."""
     _write_override(
         tmp_path,
@@ -187,9 +213,8 @@ views = ["kept", "milestone_rollup"]
 def test_a_selected_line_dropping_a_ref_kind_a_view_projects_fails_with_no_view_specific_guard(
     tmp_path: Path,
 ) -> None:
-    """The referential pass runs on the *merged* spec, so this needs no code of its own: the
-    view's declared ``ref`` source simply stops resolving once ``[selected]`` drops the kind
-    it names."""
+    """A ``[selected]`` line dropping a ref kind a view projects fails with no view-specific
+    guard, since the referential pass runs on the merged spec."""
     _write_override(
         tmp_path,
         """

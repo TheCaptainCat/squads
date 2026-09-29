@@ -11,6 +11,7 @@ updated_at: '2025-05-20T11:00:00Z'
 ---
 <!-- sq:body -->
 Ship the auth module end to end: login, session handling and the JWT rollout.
+
 <!-- sq:view:milestone_rollup -->
 <!-- sq:body:end -->
 

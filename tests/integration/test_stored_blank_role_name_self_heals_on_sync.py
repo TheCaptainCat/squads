@@ -1,20 +1,5 @@
-"""The corpus-level counterpart the reviewer flagged as missing: neither existing blank-name
-test file (``tests/unit/test_role_def_refuses_a_blank_full_name.py``,
-``tests/cli/test_blank_role_name_is_refused_at_the_shared_seam.py``) drives a role item whose
-*stored* ``full_name`` is already blank -- only the input side (an operator's raw CLI string).
-
-A squad synced on v0.13.0 could reach exactly that state: that release's ``sq dev add --tech
-python --name "   "`` and ``sq role activate <slug> --name "   "`` both succeeded at exit 0, and
-the value survived repeated syncs with ``sq check`` reporting no issues throughout. This file
-plants that same shape directly into a current-release squad's frontmatter *and* index --
-bypassing every input-side refusal this release added, the only way left to reconstruct a fact
-an earlier release wrote and called healthy -- then drives every surface that reads it.
-
-Both role shapes are covered, because they fail through different code
-(``squads._roles._resolver.role_base_from_item`` for a bundled role,
-``squads._roles._resolver.dev_base_from_item`` for a developer role) and a fix to one does not
-imply the other is fixed.
-"""
+"""A role item whose *stored* ``full_name`` is already blank, planted directly into the
+frontmatter and index, self-heals on ``sync`` for both a bundled and a developer role."""
 
 import pytest
 
@@ -27,11 +12,8 @@ pytestmark = pytest.mark.anyio
 
 
 async def _plant_stored_blank_full_name(svc, item) -> None:
-    """Overwrite ``title``/``extra.full_name`` with a whitespace-only value on BOTH the
-    frontmatter file and the index -- directly, bypassing the service entirely. This is not a
-    mutation any current-release command can produce (every input boundary now refuses it); it
-    reconstructs the one a past release already wrote to disk and called healthy.
-    """
+    """Overwrite ``title``/``extra.full_name`` with a whitespace-only value directly on both
+    the frontmatter file and the index, bypassing the service entirely."""
     path = svc.paths.abspath(item.path)
     text = path.read_text(encoding="utf-8")
     fm = read_frontmatter(text=text)
@@ -46,9 +28,7 @@ async def _plant_stored_blank_full_name(svc, item) -> None:
 
 
 async def _role_stored_name(svc, slug: str) -> str:
-    """The role's stored name, read where it lives: the item's own ``title`` field. The
-    ``extra.full_name`` copy the planting helper still writes is what a pre-0.14 corpus
-    carries, and nothing reads it."""
+    """The role's stored name, read where it lives: the item's own ``title`` field."""
     roles = await svc.list_items(item_type=ROSTER_ROLE)
     role = next(it for it in roles if it.extra.get(X.SLUG) == slug)
     return role.title
@@ -150,8 +130,7 @@ async def test_check_stays_clean_with_a_stored_blank_name_on_a_developer_role(pr
 
 
 async def test_a_second_sync_after_the_first_heal_is_silent(project, svc, invoke):
-    """Once ``sq sync`` has healed the stored value, the corpus is ordinary again -- a
-    following sync makes no further change and reports nothing about this role."""
+    """A second sync after the heal makes no further change and reports nothing."""
     item = await svc.add_dev("python", name="Elias Python")
     await _plant_stored_blank_full_name(svc, item)
 
@@ -164,9 +143,7 @@ async def test_a_second_sync_after_the_first_heal_is_silent(project, svc, invoke
 
 
 async def test_the_role_is_never_purged_by_any_of_this(project, svc, invoke):
-    """The only documented remedy before this fix was ``sq role <slug> rm --purge``. After the
-    fix, the role must still be there -- self-healing recovers the entry, it does not discard
-    it."""
+    """Self-healing recovers the role entry; it never discards it."""
     item = await svc.activate_role("qa")
     await _plant_stored_blank_full_name(svc, item)
 

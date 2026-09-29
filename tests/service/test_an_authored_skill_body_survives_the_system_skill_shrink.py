@@ -1,17 +1,6 @@
-"""The discriminator, proven rather than inspected: a custom (author-defined) skill's body is
-storage and survives untouched, while a system (template-owned) skill's is not stored at all.
-
-Every candidate key except ``is_system_skill(slug, spec)`` picks the wrong set, and the fixture
-here is built so each wrong key fails visibly:
-
-* **the folder** — both skills sit in the same skills folder;
-* **the item type** — both are ``skill`` roster items with the same frontmatter shape;
-* **the ``sq-`` prefix** — one of the custom skills is deliberately named ``sq-onboarding``,
-  which a prefix-keyed implementation would classify as template-owned and silently empty. The
-  prefix is not reserved to squads, so this is a real adopter shape, not a contrived one;
-* **"declared in the bundled playbook"** — an adopter-declared type's ``sq-<type>`` skill takes
-  the thin branch and has no playbook entry at all, yet is system and must stay system.
-"""
+"""A custom skill's body is storage and survives untouched; a system skill's is not stored at
+all — proven against a fixture where the folder, item type, and ``sq-`` prefix all pick the
+wrong classification, so only ``is_system_skill`` gets it right."""
 
 from pathlib import Path
 
@@ -53,9 +42,8 @@ def _write_override(squad_dir: Path) -> None:
 
 @pytest.fixture
 async def squad(tmp_path, monkeypatch, frozen_time):
-    """A synced squad carrying, side by side in one skills folder: the bundled system skills, an
-    adopter-declared type's thin system skill, an ordinary custom skill, and a custom skill whose
-    slug starts with ``sq-``. Both custom skills carry authored bodies."""
+    """A synced squad with bundled system skills, an adopter type's thin system skill, and two
+    custom skills (one ``sq-``-prefixed) carrying authored bodies."""
     monkeypatch.chdir(tmp_path)
     result = await service.init(root=tmp_path, roles_spec="minimal")
     _write_override(result.paths.squad_dir)
@@ -72,8 +60,7 @@ async def squad(tmp_path, monkeypatch, frozen_time):
 async def test_the_two_custom_skills_are_classified_custom_and_the_declared_types_skill_system(
     squad,
 ):
-    """The classification itself, stated before anything depends on it — including the ``sq-``
-    prefixed custom skill and the playbook-less adopter type."""
+    """Both custom skills classify custom and the declared type's skill classifies system."""
     svc, _runbook, _onboarding = squad
     assert not is_system_skill("release-runbook", svc.spec)
     assert not is_system_skill("sq-onboarding", svc.spec)
@@ -94,8 +81,7 @@ async def test_an_authored_body_is_byte_identical_across_one_sync_and_across_two
 
 
 async def test_a_custom_skills_whole_file_is_untouched_by_a_sync(squad):
-    """Wider than the region: the file itself, byte for byte, for the ``sq-``-prefixed one — the
-    shape a prefix-keyed change would rewrite."""
+    """The ``sq-``-prefixed custom skill's whole file, byte for byte, survives a sync."""
     svc, _runbook, onboarding = squad
     path = svc.paths.abspath((await svc.get(onboarding.id)).path)
     before = path.read_text(encoding="utf-8")
@@ -116,14 +102,15 @@ async def test_a_body_write_is_still_admitted_on_a_custom_skill_and_survives_the
 
 
 async def test_a_body_write_is_refused_on_the_declared_types_thin_system_skill(squad):
-    """The other direction of the same key: an adopter-declared type's skill has no playbook
-    entry, and is still template-owned."""
+    """A declared type's skill with no playbook entry at all is still template-owned."""
     svc, _runbook, _onboarding = squad
     incident = await svc.roster_item("skill", "sq-incident")
     assert incident is not None, "the declared type's skill must have been seeded"
 
-    with pytest.raises(SquadsError, match="template-owned"):
+    with pytest.raises(SquadsError, match="renders through its declared sq:view:") as exc:
         await svc.set_body(incident.id, "free-form body")
+    assert "`.overrides/playbook.toml`" in str(exc.value)
+    assert "Drop the view from `[selected]`" in str(exc.value)
 
 
 async def test_a_custom_slugs_body_reads_as_authored_and_the_declared_types_skill_reads_thin(
@@ -131,22 +118,19 @@ async def test_a_custom_slugs_body_reads_as_authored_and_the_declared_types_skil
 ):
     svc, _runbook, onboarding = squad
 
-    # A custom skill's body is its own authored content, never a template render — the same
-    # read boundary every item's body goes through (`read_body`), not a resolver that refuses it.
     assert await svc.read_body(onboarding.id) == _AUTHORED_SQ
 
     incident = await svc.roster_item("skill", "sq-incident")
     assert incident is not None
     thin = await svc.read_body(incident.id)
     assert "Open → Done" in thin
-    assert "## For " not in thin  # no playbook entry -> no role sections
+    assert "## For " not in thin
 
 
 async def test_show_prints_the_authored_text_for_one_and_the_rendered_text_for_the_other(
     squad, invoke
 ):
-    """Both halves in one run, against one squad, so the branch is proven to select per skill
-    rather than per squad."""
+    """The authored/rendered branch selects per skill, not per squad, in one run."""
     svc, _runbook, _onboarding = squad
     incident = await svc.roster_item("skill", "sq-incident")
     assert incident is not None
@@ -160,8 +144,6 @@ async def test_show_prints_the_authored_text_for_one_and_the_rendered_text_for_t
     assert rendered.exit_code == 0, rendered.output
     assert "system (template-owned)" in rendered.output
     assert "Open → Done" in rendered.output
-    # ...while nothing AUTHORED is stored for it — the file's own sq:body region carries only
-    # the placement tag the render above expanded, never the rendered text itself.
     stored = svc.paths.abspath(incident.path).read_text(encoding="utf-8")
     region = (sections.get_section(stored, markers.BODY) or "").strip("\n")
     assert region == markers.open_marker(markers.view_tag("item_skill"))

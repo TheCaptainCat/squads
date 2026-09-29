@@ -16,13 +16,13 @@ from squads import _actor as actor
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
+from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext, OperatorView, RoleView
 from squads._backends._registry import get_backend
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
 from squads._interactions import (
-    ROLE_DEFINITION_VIEW_NAME,
     active_skill_slugs,
     allowed_create_types,
     get_playbook_spec,
@@ -847,30 +847,39 @@ class ServiceCore:
         # hardcodes its old container tag. Idempotent no-op when the template already emitted
         # the current kind's container correctly.
         rendered = ensure_subentity_container_text(self.spec, item_type, rendered)
-        if item_type == ROSTER_ROLE:
-            # Belt-and-suspenders, the same shape as the container guarantee above: the
-            # template's own `sq:body` already carries this tag as static content, so when the
-            # view is declared this is an idempotent no-op on the bundled template — but it is
-            # what makes a role's body provably seed the tag regardless of what the resolved
-            # template text turned out to be, rather than depending on the template file having
-            # gotten it right. Gated on `self.spec.views` the same way
-            # `MaintenanceMixin._repair_body_tag` already gates the sweep's own classification —
-            # a role activated under a dropped `role_definition` must not mint a fresh dangling
-            # tag, so this branch overrides the template's static tag with an empty body rather
-            # than reseeding it. The template itself cannot be made conditional (it is static
-            # text — see `agents/role.md.j2`), so this replace, not the template render above
-            # it, is what makes the created file agree with the live spec either way. An
-            # explicit `body` still wins below — that is the caller stating a body, not this
-            # template producing one.
-            rendered = sections.replace_section(
-                rendered,
-                markers.BODY,
-                markers.open_marker(markers.view_tag(ROLE_DEFINITION_VIEW_NAME))
-                if ROLE_DEFINITION_VIEW_NAME in self.spec.views
-                else "",
-            )
-        if body is not None:
-            rendered = sections.replace_section(rendered, markers.BODY, body)
+        # The one re-placement routine runs on creation too: the template's own `sq:body`
+        # region (static text, including a role's hand-written `role_definition` tag in
+        # `agents/role.md.j2`) is treated as ordinary prose input, so a seeded view lands at
+        # its declared position regardless of what the template's raw text happened to
+        # contain — belt-and-suspenders the same way the container guarantee above is. *body*
+        # is the caller's explicit prose, when given; otherwise the template's own rendered
+        # prose is kept and only its tags are re-placed.
+        #
+        # Every view tag the template's own static text carries is stripped first, never fed
+        # to the routine as "already there": the template is bundled and never revisited, so a
+        # tag it hardcodes for a view later dropped from `[selected]` (`role_definition` in
+        # `agents/role.md.j2`, `milestone_rollup` in `templates/items/milestone.md.j2`) is not
+        # an author's placement to preserve — it is stale scaffolding the "hand-placed tags
+        # survive" guarantee was never meant to cover. What actually lands is decided
+        # entirely by `seeded`, the same derivation the roster refusal and `sq check`'s
+        # finding read: a still-seeded view's tag reappears at its own position (byte-identical
+        # to keeping the template's copy, since position is the view's own declared property,
+        # never the document's), and a dropped view's does not, matching "a view dropped from
+        # `[selected]` seeds nothing anywhere" for creation too, not only for existing hosts.
+        host_slug = views.roster_slug(item_type, item.slug, item.extra)
+        addr: int | str = (
+            host_slug if item_type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
+        )
+        template_region = views.strip_view_tags(sections.get_section(rendered, markers.BODY) or "")
+        new_inner = views.place_view_tags(
+            template_region,
+            body,
+            seeded=views.seeded_view_names(item_type, host_slug, self.spec),
+            spec=self.spec,
+            item_type=item_type,
+            addr=addr,
+        )
+        rendered = sections.replace_section(rendered, markers.BODY, new_inner)
         squad_rel = item.path
         await write_new(self.paths.abspath(squad_rel), item, rendered)
         log_delta: dict[str, object] = {

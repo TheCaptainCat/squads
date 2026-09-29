@@ -552,8 +552,8 @@ aliases = []
 order = 90
 category = "roster"
 # a declared type's sq-<type> skill losing its generated guidance to an already-authored
-# body (the repair sweep's strict_empty license) is reported, not guarded against — see
-# item_skill_shadowed's own docstring.
+# body (the repair sweep leaves any non-empty region untouched) is reported, not guarded
+# against — see item_skill_shadowed's own docstring.
 validators = ["item_skill_shadowed"]
 ref_rules = []
 # subentity_kind absent → None
@@ -642,6 +642,11 @@ fields = [
 # id, case-sensitively — the template's own job too, via Jinja's `sort` — nothing declared here
 # beyond the source. The status is rendered as plain text, not the `badge` filter's emoji form;
 # a project's own override template is free to route it through `badge` instead.
+# Seeded: every milestone the `milestone` creation template seeds this tag onto keeps it for
+# good (a body write re-places it rather than dropping it; `sq milestone <n> view disable
+# milestone_rollup` turns it off without removing it; `sq check` reports a host that has lost
+# it anyway) — a milestone's roll-up is the one bundled view a body write can replace prose
+# beside at all, the other five sitting on bodies replace and append both refuse.
 source = { kind = "ref", name = "targets" }
 
 # ---------------------------------------------------------------------------
@@ -657,6 +662,9 @@ source = { kind = "ref", name = "targets" }
 # role.md.j2` (the role item's creation scaffold) seeds the tag naming this view into every
 # newly-activated role's `sq:body`; `sq repair`'s corpus sweep backfills it onto every
 # already-activated role from an earlier release.
+# Seeded: a role's body IS the slot this view renders into — its write path refuses replace
+# and append alike, unconditionally (declare the definition in `.overrides/roles.toml`, or
+# `.overrides/roles/<slug>.toml`, to author one instead).
 source = { kind = "role" }
 
 [views.squads_skill]
@@ -665,16 +673,20 @@ source = { kind = "role" }
 # itself rather than against some other named type; `PlaybookSource.roster` is populated
 # unconditionally regardless of whether a lane exists, and that live roster (plus the whole
 # active playbook, also carried) is all this view's template actually reads.
+# Seeded: this skill's body IS the slot this view renders into — same reasoning as
+# `role_definition` above.
 source = { kind = "playbook" }
 
 [views.greeting_skill]
 # Source: the projecting item itself, plus the active spec and squad dir — this skill's
 # content names no relation and needs no roster, only where the squad lives.
+# Seeded: same reasoning as `squads_skill` above.
 source = { kind = "self" }
 
 [views.memory_skill]
 # Source: the projecting item itself, plus the active spec and squad dir — same shape as
 # `greeting_skill`.
+# Seeded: same reasoning as `squads_skill` above.
 source = { kind = "self" }
 
 [views.item_skill]
@@ -688,4 +700,6 @@ source = { kind = "self" }
 # (`templates/views/item_skill.md.j2`), for every declared non-roster type, built-in or a
 # project's own — never a per-type entry, the same "declares nothing derivable" rule that
 # already governs the skill slug list itself.
+# Seeded: same reasoning as `squads_skill` above, for every skill this view classifies as
+# per-item-type-owned (`squads._views.roster_body_view_name`) rather than custom-authored.
 source = { kind = "playbook" }

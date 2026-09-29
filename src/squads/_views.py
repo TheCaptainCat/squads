@@ -32,30 +32,53 @@ and this is where that name turns into the view's rendered output, on every read
 fresh, never stored back.
 """
 
+import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from squads._backends._base import RoleView
 from squads._errors import SquadsError
-from squads._interactions import item_type_for_skill_slug
+from squads._interactions import (
+    ITEM_SKILL_VIEW_NAME,
+    ROLE_DEFINITION_VIEW_NAME,
+    SYSTEM_SKILL_VIEW_NAMES,
+    item_type_for_skill_slug,
+)
+from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import Item, effective_prefix, ref_id_matches, split_ref
+from squads._models._item import (
+    DISPLAY_ID_PADDING,
+    Item,
+    effective_prefix,
+    format_item_id,
+    ref_id_matches,
+    split_ref,
+)
 from squads._models._subentity import SubEntity
 from squads._paths import number_for_id
-from squads._rendering._engine import creation_template_name, has_template, render, template_source
+from squads._rendering._engine import (
+    TEMPLATES_OVERRIDE_DIR,
+    creation_template_name,
+    has_template,
+    render,
+    template_source,
+)
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_for_item
-from squads._sections import get_section, iter_marker_spans
+from squads._sections import get_section, iter_marker_spans, split_frontmatter, strip_marker_lines
 from squads._workflow._models import (
     ROSTER_ROLE,
     ROSTER_SKILL,
     ViewSpec,
     WorkflowSpec,
+    parse_view_position,
     subentity_source_reason,
 )
 
@@ -498,45 +521,26 @@ def resolve_view_target(
     return _source_incompatibility(spec.views[name], name, item_type, spec, playbook)
 
 
-#: The three states an empty ``sq:body`` region naming a placement tag can be in, from the
-#: operator's point of view — see :func:`empty_body_hint_state`.
+#: The four states an empty-or-disabled ``sq:body`` region naming a placement tag can be in,
+#: from the operator's point of view — see :func:`empty_body_hint_state`.
 type EmptyBodyHintState = Literal[
-    "view_undeclared", "declared_drift_outstanding", "declared_no_drift"
+    "view_undeclared", "declared_drift_outstanding", "declared_no_drift", "disabled"
 ]
 
 
 def empty_body_hint_state(
-    name: str, spec: WorkflowSpec, *, drift_outstanding: bool
+    name: str, spec: WorkflowSpec, *, drift_outstanding: bool, disabled: bool = False
 ) -> EmptyBodyHintState:
-    """Which of three states explains an empty ``sq:body`` region whose seeded placement tag
-    names view *name* — the single predicate ``sq role show`` and ``sq skill show`` each read
-    in place of their own ad hoc, independently duplicated "is the view declared" boolean,
-    so the two groups' empty-body hints cannot drift apart about what remedy is actually true.
+    """Which of four states explains an empty-rendering ``sq:body`` region tagged for view
+    *name* — the one predicate ``sq role show``/``sq skill show`` both read, so their empty-body
+    hints can't disagree. Checks *disabled* first (its own unconditional remedy), then whether
+    *name* is declared, then whether *drift_outstanding* is what ``sq sync`` would actually fix.
 
-    Two questions, not one. "Is *name* declared in *spec*'s ``[views]``" alone answers only
-    whether the tag can ever resolve — it says nothing about whether ``sq sync`` specifically
-    is what will populate it, because ``sq sync``'s only trigger for backfilling this exact
-    region is an outstanding *version* drift
-    (``MaintenanceMixin._backfill_roster_body_tags``, reached only when
-    :func:`~squads._models._schema.version_drifted` is true). A declared view with no drift
-    outstanding is a state ``sq sync`` provably cannot help: the guard that would seed the tag
-    never runs, and ``_write_managed_skill``/the role-creation writer both leave an
-    already-existing region byte-untouched by design. *drift_outstanding* is not recomputed
-    here — the caller reads it once (the same comparison ``sync()`` itself gates the backfill
-    on) and passes it in, so this stays a pure classification with no I/O of its own.
-
-    Returns:
-    - ``"view_undeclared"`` — *name* is not in *spec*'s ``[views]``; no remedy renders this
-      empty body from that view at all.
-    - ``"declared_drift_outstanding"`` — *name* is declared and a version drift is still
-      outstanding; ``sq sync`` is genuinely the fix, because this is the one condition under
-      which its backfill reaches this region.
-    - ``"declared_no_drift"`` — *name* is declared but there is no drift left to trigger the
-      backfill; ``sq sync`` is a no-op against this body. The real remedies are ``sq repair``
-      (when the region might be carrying unrecognised marker-shaped content) or explicitly
-      re-adding the tag (when the region is genuinely untagged), not the command this state
-      exists to stop naming.
-    """
+    Returns: ``"disabled"`` (``view add`` re-enables it); ``"view_undeclared"`` (no remedy
+    renders this); ``"declared_drift_outstanding"`` (``sq sync`` is the fix);
+    ``"declared_no_drift"`` (``sq sync`` is a no-op — ``view add`` is the real remedy)."""
+    if disabled:
+        return "disabled"
     if name not in spec.views:
         return "view_undeclared"
     return "declared_drift_outstanding" if drift_outstanding else "declared_no_drift"
@@ -600,16 +604,18 @@ def render_source_view(
 
 
 def has_view_tag(text: str) -> bool:
-    """Whether *text* carries at least one well-formed ``sq:view:<name>`` tag.
+    """Whether *text* carries at least one well-formed ``sq:view:<name>`` tag, enabled or
+    disabled.
 
     Computed from the body text alone — no index, no spec, no item — the same span-and-name
     check :func:`expand_view_tags` itself does, exposed separately so the one shared body-read
     boundary (:meth:`~squads._services._items.ItemsMixin.read_body`) can decide whether an
     index load and an expansion call are needed at all *before* paying either cost. The
     overwhelming majority of bodies carry no tag, so this is the common case's fast path, not
-    a redundant pre-check.
+    a redundant pre-check. A disabled-only body still answers ``True``: the read boundary must
+    still strip it (to nothing) rather than let the raw tag reach ``sq show``.
     """
-    return any(markers.view_tag_name(raw) is not None for raw, _, _ in iter_marker_spans(text))
+    return any(markers.view_tag_parts(raw) is not None for raw, _, _ in iter_marker_spans(text))
 
 
 def template_seeded_view_names(item_type: str, spec: WorkflowSpec) -> frozenset[str]:
@@ -627,7 +633,7 @@ def template_seeded_view_names(item_type: str, spec: WorkflowSpec) -> frozenset[
     The one derivation the retroactive migration (which view names to place, and on which
     types) and the ``sq check`` advisory for a template-seeded tag missing from a body both
     read, so the two can never disagree about what "the template seeds this tag" means.
-    Recognises a tag through :func:`~squads._models._markers.view_tag_name` over the same
+    Recognises a tag through :func:`~squads._models._markers.view_tag_parts` over the same
     positional marker scan every other consumer of the family uses
     (:func:`~squads._sections.iter_marker_spans`) — never a re-spelled ``sq:view:`` literal at
     this call site.
@@ -645,10 +651,402 @@ def template_seeded_view_names(item_type: str, spec: WorkflowSpec) -> frozenset[
     if body is None:
         return frozenset()
     return frozenset(
-        name
+        parts.name
         for raw, _start, _end in iter_marker_spans(body)
-        if (name := markers.view_tag_name(raw)) is not None
+        if (parts := markers.view_tag_parts(raw)) is not None
     )
+
+
+def roster_slug(item_type: str, slug: str, extra: dict[str, Any]) -> str:
+    """The identity a roster host (role or skill) classifies by — a skill's own ``extra.slug``
+    when set, else *slug* unchanged. The one derivation every caller (write-path refusal,
+    ``view rm``, :func:`roster_body_view_name`, the check tier) shares, so a hand-renamed skill
+    file is classified identically everywhere."""
+    return extra.get(X.SLUG, slug) if item_type == ROSTER_SKILL else slug
+
+
+def roster_body_view_name(item_type: str, slug: str, spec: WorkflowSpec) -> str | None:
+    """The view name a role's or skill's own ``sq:body`` region is classified as carrying, from
+    *item_type* and *slug* alone — ``None`` for every other item type, and ``None`` when the
+    classified view is dropped from ``[selected]`` or the slug matches no known role/system
+    skill/declared type. The one derivation the write path and the check tier both read."""
+    if item_type == ROSTER_ROLE:
+        return ROLE_DEFINITION_VIEW_NAME if ROLE_DEFINITION_VIEW_NAME in spec.views else None
+    if item_type == ROSTER_SKILL:
+        view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug)
+        if view_name is not None:
+            return view_name if view_name in spec.views else None
+        if item_type_for_skill_slug(slug, spec) is not None:
+            return ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in spec.views else None
+        return None
+    return None
+
+
+def skill_authoring_surface(
+    view_name: str, slug: str, spec: WorkflowSpec, playbook: PlaybookSpec
+) -> str:
+    """The real surface a roster skill's *view_name* tag is authored through — resolved off
+    the view's own declared source, never off *slug* as a literal, so it stays correct under a
+    project override. A ``self`` source names its own template override; a ``playbook`` source
+    names the resolved type's playbook lane, or the bare playbook file when there is none."""
+    view = spec.views[view_name]
+    if view.source.kind != "playbook":
+        template = view_template_name(view_name)
+        return (
+            f"its `{TEMPLATES_OVERRIDE_DIR}/{template}` view template override "
+            f"(`sq override scaffold {template}` creates it)"
+        )
+    target_type = view.source.name or item_type_for_skill_slug(slug, spec) or ROSTER_SKILL
+    if playbook.types.get(target_type) is not None:
+        return f"the `[types.{target_type}]` lane in `{PLAYBOOK_OVERRIDE_FILENAME}`"
+    return f"`{PLAYBOOK_OVERRIDE_FILENAME}`"
+
+
+def seeded_view_names(item_type: str, slug: str, spec: WorkflowSpec) -> frozenset[str]:
+    """The view name(s) a document of *item_type* named *slug* is seeded with, gated on the
+    view still being declared — :func:`roster_body_view_name` for a role or skill,
+    :func:`template_seeded_view_names` for every other type. Type and slug only, never the
+    host's content, so the check tier can call this before frontmatter ever parses."""
+    if item_type in (ROSTER_ROLE, ROSTER_SKILL):
+        return frozenset(
+            n for n in (roster_body_view_name(item_type, slug, spec),) if n is not None
+        )
+    return frozenset(n for n in template_seeded_view_names(item_type, spec) if n in spec.views)
+
+
+def view_placement_invocation(
+    item_type: str, addr: int | str, verb: Literal["add", "disable"], name: str
+) -> str:
+    """The real ``sq … view add|disable <name>`` invocation for a document of *item_type*
+    addressed by *addr* (slug for a role/skill, item number otherwise) — there is no bare
+    ``sq view add``/``sq view disable``. The one place a message composes this, so it can
+    never spell out a command form that does not exist."""
+    if item_type == ROSTER_ROLE:
+        return f"sq role {addr} view {verb} {name}"
+    if item_type == ROSTER_SKILL:
+        return f"sq skill {addr} view {verb} {name}"
+    return f"sq {item_type} {addr} view {verb} {name}"
+
+
+def clear_roster_body_cmd(item_type: str, slug: str, n: int | None, spec: WorkflowSpec) -> str:
+    """The real, filled-in command that clears a roster host's body text, once its view is
+    dropped from ``[selected]`` (what lifts the roster write refusal). A skill uses its own
+    ``body`` verb; a role has none, so it's a single-event ``sq import -`` instead. The one
+    derivation both check remedies that need this compose through, so they never disagree."""
+    if item_type == ROSTER_SKILL:
+        return f'sq skill {slug} body -m "" --force'
+    if n is None:
+        return (
+            f'echo \'{{"op":"body","target":"<see sq role {slug} show for its id>",'
+            '"body":"","force":true}}\' | sq import -'
+        )
+    item_id = format_item_id(spec.items[item_type].prefix, n, DISPLAY_ID_PADDING)
+    event = json.dumps({"op": "body", "target": item_id, "body": "", "force": True, "as": slug})
+    return f"echo '{event}' | sq import -"
+
+
+# --------------------------------------------------------------------------- placement
+
+
+def view_tag_states(region: str, name: str) -> set[bool]:
+    """Every state *name*'s view tag currently carries in *region* — empty, one state, or two
+    for a conflicting pair. Answers "what state does it render as", not "how many copies"; use
+    :func:`view_tag_settled` to check whether placing a tag would be a no-op."""
+    _prose, parts = _region_view_tags(region)
+    return {p.disabled for p in parts if p.name == name}
+
+
+def view_tag_settled(region: str, name: str, *, disabled: bool) -> bool:
+    """Whether *region* already carries exactly one copy of *name*'s tag in *disabled*'s
+    state — the "nothing to do" condition ``view add``/``view disable`` gate their no-op
+    return on. Stricter than :func:`view_tag_states`: a same-state duplicate must fall through
+    to placement, never read as already settled."""
+    _prose, parts = _region_view_tags(region)
+    matches = [p for p in parts if p.name == name]
+    return len(matches) == 1 and matches[0].disabled == disabled
+
+
+def strip_view_tags(text: str) -> str:
+    """*text* with every view tag stripped, each together with its own line — so a tag's state
+    or location never by itself makes a body count as authored when the authored-content guard
+    compares through this."""
+    stripped, _tags = _region_view_tags(text)
+    return stripped
+
+
+def _region_view_tags(region: str) -> tuple[str, list[markers.ViewTagParts]]:
+    """*region* with every view tag — enabled or disabled, named or not — stripped together
+    with its own line, and the parsed tags taken out, in file order (duplicates included). The
+    read half of :func:`place_view_tags`, built on
+    :func:`~squads._sections.strip_marker_lines`."""
+    stripped, raw = strip_marker_lines(region, lambda tag: markers.view_tag_parts(tag) is None)
+    parts = [p for tag in raw if (p := markers.view_tag_parts(tag)) is not None]
+    return stripped, parts
+
+
+def reinstate_absent_body_region(text: str) -> str | None:
+    """*text* with a fresh ``sq:body``/``sq:body:end`` pair inserted right after the
+    frontmatter, when *text* carries neither marker at all. Reclaims only the leading run of
+    view tags, plus — if present — exactly one heading line immediately followed by the real
+    ``sq:discussion`` marker; anything else (real prose, or a heading not immediately bounding
+    that marker) refuses by returning ``None`` rather than guessing, the same as when there is
+    no frontmatter to anchor the search from. A caller getting ``None`` back must leave the
+    file untouched and never raise."""
+    if get_section(text, markers.BODY) is not None:
+        return None
+    _fm, rest = split_frontmatter(text)
+    if rest == text:  # no frontmatter at all — nothing to anchor the search from
+        return None
+    fm_len = len(text) - len(rest)
+    pos = 0
+    next_marker_start = len(rest)
+    stop_raw: str | None = None
+    for raw, start, end in iter_marker_spans(rest):
+        if rest[pos:start].strip("\n \t") or markers.view_tag_parts(raw) is None:
+            next_marker_start = start
+            stop_raw = raw
+            break
+        line_end = rest.find("\n", end)
+        pos = line_end + 1 if line_end != -1 else len(rest)
+    else:
+        next_marker_start = len(rest)
+    after = rest[pos:next_marker_start].strip("\n \t")
+    if after:
+        # A heading is only ever the discussion region's own — never accepted on the strength
+        # of its text or its mere presence — when *after* reduces to exactly **one** non-blank
+        # line, that line is a heading, and the very next marker reached is that region's own
+        # open tag. An author's own body can itself start with a heading and run on for several
+        # more lines before a real "## Discussion" of its own — the single-line requirement is
+        # what tells "just the discussion heading, nothing else in between" apart from that
+        # shape, which the first-character check alone cannot: it would otherwise pass on the
+        # strength of the trailing "## Discussion" a role's own multi-line prose still ends in.
+        after_lines = [line for line in after.splitlines() if line.strip()]
+        is_discussion_heading = (
+            len(after_lines) == 1
+            and after_lines[0].lstrip().startswith("#")
+            and stop_raw == f"{markers.PREFIX}{markers.DISCUSSION}"
+        )
+        if not is_discussion_heading:
+            return None
+    boundary = fm_len + pos
+    inner = text[fm_len:boundary].strip("\n")
+    return (
+        text[:fm_len]
+        + markers.open_marker(markers.BODY)
+        + "\n"
+        + (f"{inner}\n" if inner else "")
+        + markers.close_marker(markers.BODY)
+        + "\n"
+        + text[boundary:]
+    )
+
+
+class ConflictingViewStateError(SquadsError):
+    """:func:`place_view_tags`'s own refusal when one view's tags disagree on state (an
+    enabled copy and a disabled copy both present) — a distinct type so a caller that must
+    catch it apart from every other :class:`SquadsError` can."""
+
+
+def place_view_tags(
+    region: str,
+    edit: str | None,
+    *,
+    append: bool = False,
+    seeded: frozenset[str],
+    spec: WorkflowSpec,
+    item_type: str,
+    addr: int | str,
+    force: tuple[str, bool] | None = None,
+) -> str:
+    """The one re-placement routine every ``sq:body`` writer drives: strips every view tag out
+    of *region*, applies the prose edit, and re-inserts one tag per view at its declared
+    position and prior state, plus any *seeded* view that was missing — so no caller inserts,
+    removes or moves a tag on its own. A tag mirrors whatever separator already sat at its
+    landing spot (never manufacturing a blank line), which is what makes stripping it back out
+    the exact inverse; conflicting states raise :class:`ConflictingViewStateError`, and *force*
+    is how ``view add``/``view disable`` settle that without tripping it."""
+    prose, existing = _region_view_tags(region)
+    prose = prose.strip("\n")
+    if edit is not None:
+        prose = (f"{prose}\n\n{edit}" if prose else edit) if append else edit
+
+    final, first_seen = _resolve_final_states(existing, seeded, force, item_type, addr)
+    decl_order = {name: i for i, name in enumerate(spec.views)}
+    declared = [n for n in final if n in decl_order]
+    undeclared = sorted(
+        (n for n in final if n not in decl_order),
+        key=lambda n: first_seen.get(n, len(existing)),
+    )
+
+    name_cut_points = _resolve_cut_points(prose, declared, decl_order, spec)
+    tag_cut_points = {
+        off: [markers.open_marker(markers.view_tag(n, disabled=final[n])) for n in names]
+        for off, names in name_cut_points.items()
+    }
+    atoms = _build_segments(prose, tag_cut_points)
+    atoms.extend(
+        (markers.open_marker(markers.view_tag(n, disabled=final[n])), len(prose), len(prose))
+        for n in undeclared
+    )
+    seps = _boundary_separators(prose, atoms)
+    out = atoms[0][0] if atoms else ""
+    for (text, _left, _right), sep in zip(atoms[1:], seps, strict=True):
+        out += sep + text
+    return out
+
+
+def _resolve_final_states(
+    existing: list[markers.ViewTagParts],
+    seeded: frozenset[str],
+    force: tuple[str, bool] | None,
+    item_type: str,
+    addr: int | str,
+) -> tuple[dict[str, bool], dict[str, int]]:
+    """The final ``name -> disabled`` state map :func:`place_view_tags` re-inserts, plus each
+    name's first-seen index in *existing* (used only to order the undeclared tags among
+    themselves) — split out purely to keep that function under the complexity ceiling.
+
+    Collapses same-state duplicates, raises :class:`ConflictingViewStateError` for a name
+    carrying both states (unless *force* names it), inserts every *seeded* name absent so far
+    as enabled, then applies *force* last so it always wins."""
+    states: dict[str, set[bool]] = {}
+    first_seen: dict[str, int] = {}
+    for i, part in enumerate(existing):
+        states.setdefault(part.name, set()).add(part.disabled)
+        first_seen.setdefault(part.name, i)
+
+    final: dict[str, bool] = {}
+    for name, seen in states.items():
+        if force is not None and force[0] == name:
+            continue
+        if len(seen) > 1:
+            add_cmd = view_placement_invocation(item_type, addr, "add", name)
+            disable_cmd = view_placement_invocation(item_type, addr, "disable", name)
+            raise ConflictingViewStateError(
+                f"{item_type} {addr}: {markers.PREFIX}{markers.view_tag(name)} carries both an "
+                f"enabled and a disabled tag; settle its state with `{add_cmd}` or "
+                f"`{disable_cmd}`"
+            )
+        final[name] = next(iter(seen))
+    for name in seeded:
+        final.setdefault(name, False)
+    if force is not None:
+        final[force[0]] = force[1]
+    return final, first_seen
+
+
+def _resolve_cut_points(
+    prose: str,
+    declared: list[str],
+    decl_order: dict[str, int],
+    spec: WorkflowSpec,
+) -> dict[int, list[str]]:
+    """Every declared view's resolved insertion offset into *prose*, grouped by offset and
+    ordered by declaration order within each group. ``"top"`` is offset 0, ``"bottom"`` (or a
+    non-matching ``"after(<regex>)"``) is ``len(prose)``, and a matching ``"after(<regex>)"``
+    resolves right after the line holding the match's last character."""
+    entries: list[tuple[int, int, str]] = []
+    for name in declared:
+        pos = parse_view_position(spec.views[name].position)
+        if pos.kind == "top":
+            offset = 0
+        elif pos.kind == "bottom" or pos.pattern is None:
+            offset = len(prose)
+        else:
+            m = pos.pattern.search(prose)
+            if m is None:
+                offset = len(prose)
+            else:
+                anchor = m.end() - 1 if m.end() > m.start() else m.end()
+                nl = prose.find("\n", anchor)
+                offset = nl + 1 if nl != -1 else len(prose)
+        entries.append((offset, decl_order[name], name))
+    entries.sort(key=lambda e: (e[0], e[1]))
+
+    cut_points: dict[int, list[str]] = {}
+    for offset, _idx, name in entries:
+        cut_points.setdefault(offset, []).append(name)
+    return cut_points
+
+
+#: A leading/trailing run of newline-delimited blank lines, whitespace-only lines included —
+#: the same shape :func:`_local_separator` reads by character count, spelled as a regex here
+#: because :func:`_build_segments` strips a whole run at once rather than counting it.
+_LEADING_BLANK_RUN_RE = re.compile(r"^(?:[ \t]*\n)+")
+_TRAILING_BLANK_RUN_RE = re.compile(r"(?:\n[ \t]*)+$")
+
+
+def _build_segments(prose: str, cut_points: dict[int, list[str]]) -> list[tuple[str, int, int]]:
+    """*prose* sliced at every offset in *cut_points* and interleaved with the tag lines
+    declared there, as an ordered list of ``(text, left_offset, right_offset)`` atoms. Each
+    prose slice is trimmed of its own leading/trailing separator (a run of newlines,
+    whitespace-only lines included) — never interior content — and an empty slice contributes
+    no atom at all."""
+    atoms: list[tuple[str, int, int]] = []
+    prev = 0
+    for off in sorted(set(cut_points) | {0, len(prose)}):
+        if off > prev:
+            slice_ = _LEADING_BLANK_RUN_RE.sub("", prose[prev:off])
+            slice_ = _TRAILING_BLANK_RUN_RE.sub("", slice_)
+            if slice_:
+                atoms.append((slice_, prev, off))
+        prev = off
+        if off in cut_points:
+            atoms.extend((tag, off, off) for tag in cut_points[off])
+    return atoms
+
+
+def _blank_run_length(text: str, offset: int, *, forward: bool, limit: int = 2) -> int:
+    """How many newlines bound *offset* on one side, up to *limit* — a line holding only
+    spaces/tabs between two newlines counts as blank too, the same as an empty line, since
+    that is how Markdown (and an author's own eye) reads it."""
+    count = 0
+    pos = offset if forward else offset - 1
+    step = 1 if forward else -1
+    n = len(text)
+    while count < limit:
+        scan = pos
+        while 0 <= scan < n and text[scan] in " \t":
+            scan += step
+        if not (0 <= scan < n and text[scan] == "\n"):
+            break
+        count += 1
+        pos = scan + step
+    return count
+
+
+def _local_separator(prose: str, offset: int) -> str:
+    """The separator a tag placed at *offset* shares with the prose beside it, mirroring
+    whatever newline run already sat there — a run of 2 or more newlines (a blank line, or
+    several, whitespace-only lines included) collapses to exactly one blank line; a single
+    newline (no blank line at all) stays a single newline."""
+    lead = _blank_run_length(prose, offset, forward=False)
+    trail = _blank_run_length(prose, offset, forward=True)
+    return "\n\n" if lead + trail >= 2 else "\n"
+
+
+def _boundary_separators(prose: str, atoms: list[tuple[str, int, int]]) -> list[str]:
+    """One separator per gap between consecutive *atoms*: always one blank line between two
+    tags, :func:`_local_separator` between a tag and prose at an interior cut point, and one
+    blank line at the region's own edges (nothing there to mirror either way)."""
+    seps: list[str] = []
+    for (_lt, _ll, left_right), (_rt, right_left, _rr) in pairwise(atoms):
+        boundary = left_right  # == right_left, by construction
+        left_is_tag = _ll == left_right
+        right_is_tag = right_left == _rr
+        if left_is_tag and right_is_tag:
+            seps.append("\n\n")
+        elif 0 < boundary < len(prose):
+            seps.append(_local_separator(prose, boundary))
+        else:
+            seps.append("\n\n")
+    return seps
+
+
+def _keep_unless_disabled_view_tag(raw: str) -> bool:
+    """False only for a disabled view tag — what ``strip_marker_lines`` should remove."""
+    parts = markers.view_tag_parts(raw)
+    return parts is None or not parts.disabled
 
 
 def expand_view_tags(
@@ -661,81 +1059,73 @@ def expand_view_tags(
     squad_dir: Path | None,
     squad_dir_display: str | None,
 ) -> str:
-    """*text* (an item's ``sq:body`` region content) with every well-formed
-    ``sq:view:<name>`` tag replaced by that view's rendered output, in place — the
-    mechanism behind the one shared body-read boundary
-    (:meth:`squads._services._items.ItemsMixin.read_body`) every read surface (``sq show``,
-    ``--raw``, ``--json``'s body field, the TUI, the operator pane, the skill read) inherits
-    expansion from, with no per-surface reimplementation.
-
-    *playbook*/*roster*/*squad_dir*/*squad_dir_display* only matter to a
-    ``role``/``playbook``/``self``-sourced tag — a ``ref``/``subtree``/``subentity`` tag's
-    expansion is untouched by any of the four (the byte-identical promise for the three
-    relation kinds). The caller supplies all four regardless of which kind a given tag turns
-    out to name, since a body can carry tags of more than one kind. *squad_dir* and
-    *squad_dir_display* are two different values carried for two different jobs, not one value
-    threaded twice: *squad_dir* is the resolved absolute :class:`Path`, handed to
-    :func:`resolve_source` because :func:`_resolve_role_source` needs it to locate a project's
-    ``.overrides/roles/`` on disk; *squad_dir_display* is the configured ``squad_dir`` string
-    (:class:`~squads._models._config.SquadsConfig`'s own field), handed to
-    :func:`_render_resolved_source_or_raise` because that is the value a template's
-    ``{{ squad_dir }}`` means — see :func:`render_source_view`. Collapsing them back into one
-    parameter is the regression this split exists to keep unreachable: a nested configured
-    value (``docs/squad``) is not recoverable from the Path by taking its last segment.
-    *playbook* and both *squad_dir* values are free to hand over; *roster* is not (a disk read
-    per live role), which is why it is a :data:`RosterProvider` here — a tag naming anything
-    but ``playbook`` never forces it, and a body carrying more than one ``playbook`` tag forces
-    it once, not once per tag, only when the caller's own callable is itself memoized
-    (:meth:`~squads._services._items.ItemsMixin.read_body` is).
-
-    **Single pass, by construction — not by a depth counter.** Tag spans are found once
-    against *text* exactly as given (:func:`~squads._sections.iter_marker_spans`) and the
-    result is built from those original positions; the loop never re-matches inside a
-    replacement it just inserted. Rendered view output is therefore never itself scanned for
-    tags — a well-formed tag appearing inside a view's own presentation stays literal text.
-    There is no second expansion site to recurse through, so there is nothing here for a
-    depth limit or a visited set to guard.
-
-    **The two failure modes stay distinct, deliberately.** A tag *spec* cannot resolve against
-    *item*'s type — undeclared, template missing, or a declared source that cannot apply to
-    this host (:func:`resolve_view_target`) — is left exactly as it appears in *text*: the read
-    still succeeds, because reads must keep working on a broken corpus; ``sq check``'s
-    file-scan finding is what reports it, through that same predicate this function gates on.
-    A *resolvable* view whose template raises under Jinja's ``StrictUndefined`` is an engine or
-    template defect, not corpus state: it propagates unchanged as :class:`SquadsError`, never
-    swallowed and never degraded to an empty expansion.
-
-    Read-only, and it must stay that way: nothing here writes anything, and the one caller
-    that mutates the body region (``ItemsMixin.set_body``'s ``mutate`` closure) reads the
-    region directly rather than through this function or :meth:`~squads._services._items
-    .ItemsMixin.read_body` — expanded bytes must never reach disk.
-    """
-    pieces: list[str] = []
+    """*text* with every well-formed ``sq:view:<name>`` tag replaced by that view's rendered
+    output, in place. A disabled tag is removed the way ``strip_marker_lines`` removes a
+    marker, never left as a blank line; an unresolvable enabled tag stays literal. Read-only,
+    and pads a rendered view with a blank line against neighbouring prose."""
+    text, _ = strip_marker_lines(text, _keep_unless_disabled_view_tag)
+    segments: list[tuple[str, str]] = []
+    pending = ""
     last = 0
     changed = False
     for raw, start, end in iter_marker_spans(text):
         # `iter_marker_spans`/`find_markers` emit the tag with its "sq:" prefix still on (e.g.
-        # "sq:view:milestone_rollup") — `view_tag_name` accepts that on-disk form directly, no
+        # "sq:view:milestone_rollup") — `view_tag_parts` accepts that on-disk form directly, no
         # hand-strip needed at this call site.
-        name = markers.view_tag_name(raw)
-        if name is None:
+        parts = markers.view_tag_parts(raw)
+        if parts is None:
             continue  # not a view tag — left literal
+        name = parts.name
         reason = resolve_view_target(name, item.type, spec, playbook)
         if reason is not None:
-            # undeclared, template missing, or source inapplicable — left literal; sq check
-            # reports it
-            continue
+            continue  # undeclared, template missing, or source inapplicable — left literal
         view = spec.views[name]
         result = resolve_source(view, name, item, db, spec, playbook, roster, squad_dir)
         rendered = _render_resolved_source_or_raise(name, result, item, spec, squad_dir_display)
-        pieces.append(text[last:start])
-        pieces.append(rendered)
+        pending += text[last:start]
+        segments.append(("literal", pending))
+        # Stripped of its own leading/trailing newlines so the padding this function adds is
+        # the only source of blank lines at its edges — a template ending in its own trailing
+        # newline must not stack with that padding into a double blank line.
+        segments.append(("rendered", rendered.strip("\n")))
+        pending = ""
         last = end
         changed = True
     if not changed:
         return text
-    pieces.append(text[last:])
-    return "".join(pieces)
+    pending += text[last:]
+    segments.append(("literal", pending))
+    return _assemble_padded_expansion(segments)
+
+
+def _pad_between(chunk: str, *, pad_before: bool, pad_after: bool) -> str:
+    """Normalise *chunk* to a full blank line on each side that borders a rendered view, never
+    at a body edge and never stacking beyond one blank line."""
+    if pad_before:
+        chunk = chunk.lstrip("\n")
+    if pad_after:
+        chunk = chunk.rstrip("\n")
+    if not chunk:
+        return "\n\n" if (pad_before and pad_after) else ""
+    if pad_before:
+        chunk = "\n\n" + chunk
+    if pad_after:
+        chunk = chunk + "\n\n"
+    return chunk
+
+
+def _assemble_padded_expansion(segments: list[tuple[str, str]]) -> str:
+    """Join alternating literal/rendered segments, padding each literal one against any
+    rendered neighbour so a view never merges into surrounding prose."""
+    out: list[str] = []
+    for i, (kind, content) in enumerate(segments):
+        if kind == "rendered":
+            out.append(content)
+            continue
+        pad_before = i > 0 and segments[i - 1][0] == "rendered"
+        pad_after = i < len(segments) - 1 and segments[i + 1][0] == "rendered"
+        out.append(_pad_between(content, pad_before=pad_before, pad_after=pad_after))
+    return "".join(out)
 
 
 def _render_resolved_source_or_raise(

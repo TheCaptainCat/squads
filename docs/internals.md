@@ -55,7 +55,7 @@ index, the filesystem, the backend, and rendering together.
     │   └── templates/ roles/    # template and role overrides
     └── agents/
         ├── roles/        # ROLE-*.md (real role definitions)
-        └── skills/       # SKILL-*.md — an authored skill's body; a managed skill's file keeps an empty body region
+        └── skills/       # SKILL-*.md — an authored skill's body; a managed skill's body holds only its view tag
 ```
 
 - **`.squads.toml`** lives at the project root and points at the squad folder (default `squads/`).

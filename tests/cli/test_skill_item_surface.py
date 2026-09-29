@@ -1,8 +1,5 @@
-"""The SKILL item's user-facing CLI surface: sq skill <n> show (text + JSON) and refs
-to/from a skill round-trip through the forward-edges-only backref invariant.
-
-Deferred from the migration chunk: these are agent-artifact facts, not migration-shaped.
-"""
+"""The SKILL item's user-facing CLI surface: ``sq skill <n> show`` (text + JSON) and refs
+to/from a skill round-trip through the forward-edges-only backref invariant."""
 
 import json
 
@@ -41,6 +38,19 @@ async def test_skill_show_json_carries_id_slug_and_status(seeded_paths, invoke) 
     assert data["id"] == sk.id
     assert data["slug"] == sk.slug
     assert data["status"] == "Active"
+
+
+async def test_skill_show_json_body_is_the_exact_stored_prose_alone(seeded_paths, invoke) -> None:
+    """``show --json``'s ``body`` key is the exact stored prose, byte for byte."""
+    svc = service.Service(seeded_paths)
+    sk = await svc.add_skill("sq-golden-body-check", description="pins the json body field")
+    await svc.set_body(sk.id, "Exact prose, nothing else.")
+
+    r = await invoke(["skill", str(sk.sequence_id), "show", "--json"])
+    data = json.loads(r.output)
+
+    assert data["body"] == await svc.read_body(sk.id)
+    assert data["body"] == "Exact prose, nothing else."
 
 
 async def test_a_task_can_ref_a_skill_and_the_forward_ref_appears_in_its_refs(
@@ -138,4 +148,6 @@ async def test_skill_body_on_a_bundled_skill_is_rejected_with_a_clear_message(
 
     r = await invoke(["skill", str(sk.sequence_id), "body", "-m", "free-form body"])
     assert r.exit_code != 0
-    assert "template-owned and rendered on read" in r.output
+    assert "renders through its declared sq:view:" in r.output
+    assert "view template override" in r.output
+    assert "Drop the view from `[selected]`" in r.output

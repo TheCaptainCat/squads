@@ -884,9 +884,35 @@ source = { kind = "ref", name = "escalates" }
 `source.kind` is `"ref"`, `"subentity"`, `"subtree"`, `"role"`, `"playbook"` or `"self"`; for the
 first three, `source.name` must be a declared ref kind, sub-entity kind or item type respectively
 — a name your merged spec does not declare is refused at load, with the rest of the spec's
-cross-references. There is no other key to declare: no field list, no grouping, no ordering — a
-view is a source and a template, nothing more. The complete field reference is in
-[workflow.md § "Derived views"](workflow.md#derived-views-field-reference).
+cross-references. There is no field list, no grouping, no ordering to declare — a view is a
+source, an optional `position`, and a template, nothing more. The complete field reference is
+in [workflow.md § "Derived views"](workflow.md#derived-views-field-reference).
+
+##### Setting a view's position
+
+`position` says where the view's tag sits in a document's `sq:body` region: `"bottom"` (the
+default), `"top"`, or `"after(<regex>)"` — its own line after the line where the pattern's first
+match ends, falling back to the bottom when nothing matches. Set it on your own view beside
+`source`:
+
+```toml
+[views.open_incidents]
+source = { kind = "ref", name = "escalates" }
+position = "top"
+```
+
+or on a bundled view, without restating its `source`:
+
+```toml
+[views.milestone_rollup]
+position = "after(^## Scope)"
+```
+
+Every body write re-places the tags, so a changed `position` moves the tag on each document's
+next body write, and a new document gets it from the start. A bad value or a pattern that does not
+compile fails the load; `sq workflow lint` lists it. The full grammar, the view-name rules and
+the placement rules are in
+[workflow.md § "Derived views: field reference"](workflow.md#derived-views-field-reference).
 
 Read it back, and resolve it against an item:
 
@@ -929,13 +955,50 @@ rendering: until `.overrides/templates/views/<name>.md.j2` exists, resolve your 
 which skips presentation entirely.
 
 **Dropping a view.** `[selected].views` names the views that survive — a view is reached only by
-placing its own `sq:view:<name>` tag in a document body, never by a type attachment, so dropping
-the declaration needs no companion edit anywhere else:
+placing its own `sq:view:<name>` tag in a document body, never by a type attachment:
 
 ```toml
 [selected]
 views = []          # drop the declaration
 ```
+
+A tag already placed for a dropped view no longer resolves: `sq check` reports each one at error
+level, and `sq <type> <n> view disable <name>` quiets it. A tag is never removed, only disabled.
+
+##### Authoring a role or skill body by hand
+
+A role's body, a permanently-system skill's body (`squads`, `greeting`, `sq-memory`) and a
+per-item-type `sq-<type>` skill's body render through their view and refuse prose — replace and
+append alike, `--force` or not. Their content normally comes from `.overrides/roles.toml`
+(`.overrides/roles/<slug>.toml` for a project-defined role), the playbook overrides, or the
+view's own template override. To write one of these bodies yourself instead, drop its view from
+`[selected]`. `[selected].views` lists the survivors, so name every other view you keep:
+
+```toml
+[selected]
+views = ["milestone_rollup", "role_definition", "greeting_skill", "memory_skill", "item_skill"]
+```
+
+With `squads_skill` dropped, `sq skill squads body -m "…"` is admitted, and `sq sync` and
+`sq repair` leave the prose alone. The tag already in the body now names an undeclared view, so
+`sq check` reports it until you run `sq skill squads view disable squads_skill`. A role has no
+`body` verb; with `role_definition` dropped, a role's body is written through a `sq import` body
+event:
+
+```json
+{"op": "body", "target": "ROLE-1", "body": "Our own QA charter.", "as": "manager"}
+```
+
+Dropping `role_definition` affects every role at once — each one's tag becomes an undeclared-view
+error in `sq check` until disabled. A role activated while the view is dropped gets no tag at all.
+Putting the view back in `[selected]` makes the bodies refuse prose again, and `sq check` names
+the remedy for each document that lacks the tag. The text you wrote stays, and renders beside the
+view once its tag is re-enabled with `view add`; changing it means dropping the view again.
+
+A runbook you want to keep does not belong in an `sq-<type>` skill's body: give it a skill of its
+own with `sq skill add`. If one already sits in an `sq-<type>` skill, `sq check` names the five
+steps that move it out — see
+[workflow.md § "After `sq migrate up`: seeded views"](workflow.md#after-sq-migrate-up-seeded-views).
 
 ---
 

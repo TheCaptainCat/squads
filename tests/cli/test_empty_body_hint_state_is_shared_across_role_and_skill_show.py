@@ -1,16 +1,5 @@
-"""``squads._views.empty_body_hint_state`` is the one predicate ``sq role show`` and ``sq skill
-show`` both read to pick an empty body's hint — table-driven here over the three states it can
-return, for both commands, so the two groups cannot silently disagree about which one applies.
-
-Before this fix, each command derived its hint from its own ad hoc "is the view declared"
-boolean, which cannot tell state 2 (declared, drift still outstanding — the one state ``sq
-sync`` genuinely fixes) apart from state 3 (declared, no drift left to trigger the backfill —
-where ``sq sync`` is provably a no-op). Both read as "declared" to that boolean, so both got the
-same "run `sq sync` to populate it" sentence — false in state 3, since the backfill this
-sentence promises only ever runs on an outstanding version drift. This module's state-3 cases
-must fail before the fix (the old code always printed the state-2 sentence for a declared view)
-and pass after.
-"""
+"""``sq role show`` and ``sq skill show`` pick an empty body's hint from the same predicate,
+table-driven here over its three states so the two commands can never disagree."""
 
 import re
 from pathlib import Path
@@ -29,8 +18,7 @@ _SYNC_SENTENCE = "run `sq sync` to populate it"
 
 
 def _collapsed(text: str) -> str:
-    """Console output can wrap a multi-word phrase across a line boundary — collapse before a
-    substring check, per the project's own line-wrap lesson."""
+    """Collapse whitespace so a wrapped multi-word phrase still matches a substring check."""
     return " ".join(text.split())
 
 
@@ -41,9 +29,8 @@ def _empty_body(svc, item) -> None:
 
 
 def _stamp_older_squads_version(squad_dir: Path) -> None:
-    """Rewrite ``.squads.toml``'s ``squads_version`` to an older plain release — puts the
-    version-drift backfill's own trigger, and this predicate's second question, in the
-    'outstanding' branch. ``schema_version`` is left untouched; no migration is wanted here."""
+    """Rewrite ``.squads.toml``'s ``squads_version`` to an older release, leaving
+    ``schema_version`` untouched, so version drift is outstanding."""
     toml_path = squad_dir.parent / ".squads.toml"
     text = toml_path.read_text(encoding="utf-8")
     text = re.sub(r'squads_version = ".*"', 'squads_version = "0.1.0"', text)
@@ -87,6 +74,22 @@ async def test_role_view_undeclared_names_the_view_not_sync(svc, invoke) -> None
     assert _SYNC_SENTENCE not in r.output
     assert "role_definition" in r.output
     assert "not declared" in r.output
+    assert "sq role reviewer view disable role_definition" in _collapsed(r.output)
+    assert "<slug>" not in _collapsed(r.output)
+
+
+async def test_role_view_disabled_names_the_real_role_in_the_re_enable_command(svc, invoke) -> None:
+    """The disabled-view hint names the real role slug, never a literal `<slug>` placeholder."""
+    role = await svc.activate_role("reviewer")
+    disabled = await svc.disable_view(role.id, "role_definition")
+    assert disabled is True
+
+    r = await invoke(["role", "reviewer", "show", "--raw"])
+
+    assert r.exit_code == 0, r.output
+    assert "disabled" in r.output
+    assert "sq role reviewer view add role_definition" in _collapsed(r.output)
+    assert "<slug>" not in _collapsed(r.output)
 
 
 async def test_role_view_declared_with_drift_outstanding_says_run_sync(svc, invoke) -> None:
@@ -101,21 +104,17 @@ async def test_role_view_declared_with_drift_outstanding_says_run_sync(svc, invo
 
 
 async def test_role_view_declared_with_no_drift_does_not_say_run_sync(svc, invoke) -> None:
-    """The state the old code could not distinguish: the view is declared and nothing has
-    backfilled the tag, but there is no version drift left to trigger the backfill — ``sq
-    sync`` is a no-op here. Must fail before the fix (old code always printed the state-2
-    sentence for any declared view)."""
+    """With no version drift outstanding, ``sq sync`` is a no-op, so the hint names the role's
+    real authoring surface instead."""
     role = await svc.activate_role("reviewer")
     _empty_body(svc, role)
-    # No _stamp_older_squads_version call: the fixture squad is already stamped at the
-    # running version, so there is nothing outstanding for sync's own trigger to fire on.
 
     r = await invoke(["role", "reviewer", "show", "--raw"])
 
     assert r.exit_code == 0, r.output
     assert _SYNC_SENTENCE not in _collapsed(r.output)
-    assert "sq repair" in r.output
-    assert "view add role_definition" in _collapsed(r.output)
+    assert "roles.toml" in r.output
+    assert "sq role reviewer view add role_definition" in _collapsed(r.output)
 
 
 # --------------------------------------------------------------------------- skill group
@@ -150,8 +149,7 @@ async def test_skill_view_declared_with_drift_outstanding_says_run_sync(svc, inv
 
 
 async def test_skill_view_declared_with_no_drift_does_not_say_run_sync(svc, invoke) -> None:
-    """The state the old code could not distinguish, on the skill side. Must fail before the
-    fix for the same reason as its role-group sibling above."""
+    """With no version drift outstanding, the skill's hint names the playbook overrides."""
     await svc.seed_bundled_skills()
     skill = await svc.roster_item("skill", "squads")
     assert skill is not None
@@ -161,5 +159,57 @@ async def test_skill_view_declared_with_no_drift_does_not_say_run_sync(svc, invo
 
     assert r.exit_code == 0, r.output
     assert _SYNC_SENTENCE not in _collapsed(r.output)
-    assert "sq repair" in r.output
+    assert "`.overrides/playbook.toml`" in r.output
     assert "view add squads_skill" in _collapsed(r.output)
+
+
+@pytest.mark.parametrize(
+    ("slug", "view_name", "expected", "unexpected"),
+    [
+        pytest.param(
+            "greeting",
+            "greeting_skill",
+            "its `.overrides/templates/views/greeting_skill.md.j2` view template override",
+            "playbook.toml",
+            id="self-sourced-permanently-system",
+        ),
+        pytest.param(
+            "sq-memory",
+            "memory_skill",
+            "its `.overrides/templates/views/memory_skill.md.j2` view template override",
+            "playbook.toml",
+            id="self-sourced-permanently-system-2",
+        ),
+        pytest.param(
+            "squads",
+            "squads_skill",
+            "`.overrides/playbook.toml`",
+            "[types.",
+            id="playbook-sourced-no-type-lane",
+        ),
+        pytest.param(
+            "sq-bug",
+            "item_skill",
+            "the `[types.bug]` lane in `.overrides/playbook.toml`",
+            "view template override",
+            id="playbook-sourced-per-item-type-lane",
+        ),
+    ],
+)
+async def test_skill_no_drift_hint_names_the_same_surface_as_the_refusal(
+    svc, invoke, slug, view_name, expected, unexpected
+) -> None:
+    """The show hint and the body-write refusal read the same authoring-surface predicate, so
+    they always name the same surface, including for the permanently-system skills."""
+    await svc.seed_bundled_skills()
+    skill = await svc.roster_item("skill", slug)
+    assert skill is not None
+    _empty_body(svc, skill)
+
+    r = await invoke(["skill", slug, "show", "--raw"])
+
+    assert r.exit_code == 0, r.output
+    assert _SYNC_SENTENCE not in _collapsed(r.output)
+    assert expected in _collapsed(r.output), r.output
+    assert unexpected not in _collapsed(r.output), r.output
+    assert f"sq skill {slug} view add {view_name}" in _collapsed(r.output)

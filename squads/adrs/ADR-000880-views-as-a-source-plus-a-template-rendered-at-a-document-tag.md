@@ -8,7 +8,7 @@ author: architect
 description: Retire the projection layer; keep and widen sources; a content-free tag
   marks where a view renders on read
 created_at: '2026-09-02T12:23:01Z'
-updated_at: '2026-09-15T08:59:42Z'
+updated_at: '2026-09-29T08:21:19Z'
 ---
 <!-- sq:body -->
 ## The operator's model, restated
@@ -352,6 +352,14 @@ runs, and its licence is exhausted by these conditions —
 - an author who later moves the tag keeps their placement, and an author who removes it keeps
   it removed (problem 2).
 
+> **Narrowed by the seventh amendment:** the anchor is the view's declared `position`. The default is `bottom`, the end of the region, so
+> the bundled roll-up's bytes are unchanged. The last condition is superseded: a tag sits at its
+> view's `position`, and an author takes a view off a document by disabling it, never by removing
+> the tag. The idempotence condition holds as the placement routine's own: the migration runs the
+> seventh amendment §4 routine over every body of a seeding type, so a body whose tags already sit
+> at their positions is left byte-unchanged and is not counted, while a tag elsewhere in the region
+> moves to its position and the blank lines beside it follow §4's spacing rule.
+
 `templates/items/<type>.md.j2` seeds the tag at creation, so no future item needs a migration
 at all. This is the only write squads makes into an authored region and it is **not a
 precedent**: a later bundled view does not light up on existing documents by migrating their
@@ -367,6 +375,11 @@ would be undone by the next write. Ruled instead that the loss is *visible* rath
 longer carries it, storing nothing. Under ADR-864's tiering that advisory is catalog-only, not
 floor — an author who does not want a view on one document is in a state a competent squad can
 sit in indefinitely and on purpose. This project selects it in its own spec.
+
+> **Superseded by the seventh amendment:** every body write re-places the document's view tags at their views'
+> positions. A seeded view's tag is kept for good (disabled, never deleted), and `sq check` reports a
+> seeded view that is missing, or any view present twice, at error level. The catalog-only advisory
+> is gone.
 
 **3. Jinja as the query language is accepted, and its guard is binding rather than advisory.** A
 join may be added only as a new `source.kind` — declared in the spec, validated at load, named.
@@ -395,6 +408,12 @@ corpus was stripped of, and it constrains future change, not merely this build.
 - A view tag's bytes carry the view's *name* and nothing else. There is no state in which the
   file's content disagrees with the computed truth, because the file holds no computed content:
   a name has no freshness dimension to lose.
+
+> **Narrowed by the seventh amendment:** "no verb may write content adjacent to one" means that no verb writes
+> content on the tag's behalf; prose written beside a re-placed tag is the author's. A tag's bytes
+> carry the view's name plus an optional state suffix set by the author (`:disabled`), which is still
+> no computed content and still nothing that can go stale. The dangling-name error below applies to
+> an enabled tag only.
 - Because of that, a dangling tag is detectable where stale rendered content never was. A
   `sq:view:<name>` tag naming a view the active spec does not declare, or whose template is
   missing, is an **error**-level finding — floor, unlike problem 2's advisory, because no squad
@@ -512,6 +531,10 @@ tag within the `sq:body` region — and `reject_markers` stays fully closed for 
 instruction, not prose, so it does not enter through the prose door. The adopter surface's third
 step is that verb, or seeding the tag in a type's creation template, and nothing else.
 
+> **Narrowed by the seventh amendment:** the placement verbs are `view add` (place, or re-enable) and `view disable`.
+> `view rm` is retired. `reject_markers` stays fully closed, and the disabled form is refused with
+> the rest.
+
 That verb also settles problem 1's remaining discomfort: the migration inserts through the same
 path an operator uses, so it is the tool's own placement applied in bulk rather than a bespoke
 one-off write into authored prose. The licence and the fence on it stand exactly as ruled.
@@ -527,6 +550,11 @@ into: the migration touches exactly the types whose template seeds the tag, so t
 covers migrated and freshly-created items alike — and it is the only implementable condition,
 because nothing records a tag's provenance. A hand-placed tag on a type whose template does not
 seed it is the author's own; it gets no advisory, and losing it is an ordinary body edit.
+
+> **Superseded by the seventh amendment:** a declared `position` turns the relocation into the declared placement,
+> not a silent one, so the reason given here no longer holds. The error-level seeded-view condition
+> replaces the advisory. The keying on the creation template as it stands now survives: it defines an
+> ordinary item's seeded views.
 
 ### One consequence to name, in either placement
 
@@ -642,6 +670,8 @@ refuses a dangling name. `view rm` stays ungated, as it already is and for the r
 written into it: taking a tag off a document must keep working for a view the spec no longer
 declares, and it is the recovery path for precisely this state.
 
+> **Narrowed by the seventh amendment:** the ungated recovery verb is `view disable`, and `view rm` is retired.
+
 Refusing at the door cannot be the whole answer, because the state is reachable without passing
 through the door — three ways, all of them legitimate:
 
@@ -658,6 +688,9 @@ a lost tag — the loss is made *visible*, never undone — and it is the same r
 the finding is keyed on the state as it currently stands, never on how the tag arrived, because
 nothing records a tag's provenance and a rule that varied by arrival path would be unimplementable
 as well as wrong.
+
+> **Narrowed by the seventh amendment:** nothing strips such a tag, but a body write re-places every tag it finds at
+> its view's `position`, including one that is no longer valid, and the tag keeps its state.
 
 So `retype`'s behaviour is unchanged and its *outcome* is what changes: the same retype that today
 produces a clean check and an unreadable item produces, after this, a readable item and a reported
@@ -726,6 +759,9 @@ Two boundaries on the clause, so it is not read wider than it is:
 - **Quiet never means empty.** A tag whose precondition fails is left as the tag, byte for byte. It
   is not replaced with an empty rendering, a placeholder, or a comment. The bytes on disk and the
   bytes read back are the same, which is the property the unpaired invariant exists to protect.
+
+> **Narrowed by the seventh amendment:** this holds for an enabled tag whose precondition fails. A disabled tag
+> expands to nothing, by rule.
 
 ### 6. What this obliges
 
@@ -954,6 +990,13 @@ amendments are otherwise untouched.
 The ruling is not re-argued here. What follows is the part it leaves open: where `required`
 lives, what its default is, which surfaces bind it, what an upgrading corpus sees, which `sq
 check` tier reports it, and which bundled views take it.
+
+> **Superseded by the seventh amendment:** `required` is retired. What survives: §1's host-set derivation (as
+> "seeded views", without the flag filter) and its non-host clause (with `view disable` in place of
+> `view rm`); §3's unbound surfaces (`view add`, `retype`, creation, spec load); §5's tier-1
+> placement; and §6's role-authoring pointer. Superseded: §3's replace refusal and its binding of
+> `view rm`, §4's refused first replace, and §6's `required = true` postures. §6's append refusal on
+> roster bodies is replaced by the seventh amendment §8.
 
 Every claim below is labelled **read** (traced in source) or **inferred**. Nothing was driven:
 the ruling turns on classification and on what the source already says.
@@ -1363,11 +1406,16 @@ trap the narrower licence would otherwise leave: a legacy-rendered role body is 
 (required host), not convergeable (strict), and would have had no remedy at all; converged once
 by the migration that brings the corpus to this release, it never needs one.
 
+> **Narrowed by the seventh amendment:** the reclaim also covers per-item-type skills (seventh amendment §6).
+
 **The escape for a required host whose region holds content the author wants gone** is the
 spec-level one this record already names, not a new flag: clear the requirement (drop the view
 from `[selected]`, or override the seeding template), write the body, restore it. To change what
 a required document must hold, you change the requirement — which is the same answer `--force`
 already gets.
+
+> **Superseded by the seventh amendment:** an ordinary document needs no escape, because every write re-places its
+> tags. For a roster body, the answer follows the seventh amendment §8.
 
 ### 4. Confirmed: the narrowing does not reach `view rm`, and cannot
 
@@ -1380,6 +1428,9 @@ so removal stays free, which is precisely the second amendment's ruling that `vi
 taking a tag off a document for a view the spec no longer declares, because that is the recovery
 path for exactly this state. The two rules agree without either being weakened, and a stale tag
 left on a body by a dropped view remains removable by the one verb built for it.
+
+> **Narrowed by the seventh amendment:** `view rm` is retired. `view disable` carries the recovery path this section
+> preserves.
 
 ### 5. What this obliges
 
@@ -1395,6 +1446,9 @@ left on a body by a dropped view remains removable by the one verb built for it.
   pre-0.14 reclaim it existed for lands as a migration step under the closed, one-time licence
   this record already defines. A future reader proposing to restore the wide licence is
   proposing to let a standing sweep guess at authored prose, and is to be answered as that.
+
+> **Narrowed by the seventh amendment:** the non-strict branch is deleted outright, for every family, together with the
+> skip channel it fed (seventh amendment §7).
 - Regression shapes owed, beyond the fourth amendment's list: a role body written and read back
   with `role_definition` dropped from `[selected]`; the same for a permanently-system skill; a
   stale historically-bundled `sq-<type>` body written after its type is dropped (the region that
@@ -1503,6 +1557,270 @@ same task already owns.
 - **A record correction is owed in the runner itself**, not only here: the "cannot call that verb
   directly" claim is withdrawn in favour of the transaction-shape reason, in the same pass that
   corrects the other false claim in that docstring.
+
+## Seventh amendment — 2026-09-25: views are positioned, disabled rather than removed, and re-placed on every body write; `required` is retired
+
+This section records op-pierre's rulings of 2026-09-24 (TASK-942's discussion, on REV-964's F1,
+F2, F5 and F7) and of 2026-09-25 (this record's discussion). They are recorded, not re-argued. The clauses of the ruling and of the first,
+second, fourth and fifth amendments that these rules supersede are narrowed in place, each with a
+note pointing here. The third and sixth amendments stand unchanged, and so does ADR-955.
+
+### 1. Seeded views are kept for good; `required` is retired
+
+A document's **seeded views** are the views the tool's own placement authority puts on it, as that
+authority stands now. They are never derived from provenance and never from a flag:
+
+| Document | Seeded views |
+|---|---|
+| ordinary item | `template_seeded_view_names(type)`: its creation template as it stands now, override-aware |
+| role | `role_definition` |
+| permanently-system skill | its `SYSTEM_SKILL_VIEW_NAMES` view |
+| skill documenting a declared type | `item_skill` |
+| custom skill; stale `sq-<type>` for an undeclared type | none |
+
+Each roster row applies only while its view is declared. A view dropped from `[selected]` seeds
+nothing anywhere, which is the gate `roster_body_view_name` already applies.
+
+- `ViewSpec.required` is removed. It has never been released, so no override carries it and no
+  migration is owed. The host-set helper survives as the seeded-set helper without the flag filter.
+- Every template-seeded view is binding, `milestone_rollup` included. The escapes are spec-level
+  (drop the view from `[selected]`, or override the creation template) or per-document (§3).
+- **A creation-template override may drop a view tag.** Dropping it is the sanctioned escape
+  above, not a structural break: a view tag is unpaired and carries no region, so its absence
+  cannot break marker-safe editing. The override check's required-marker set therefore excludes
+  the view-tag family. It asks a bundled template's paired markers (`sq:body`, `sq:discussion`
+  and the rest) of an override, never its view tags. The override stays valid, and the type
+  stops seeding the view.
+
+### 2. A view declaration carries `position`
+
+`[views.<name>]` takes an optional `position` beside `source`. The default is `"bottom"`.
+
+- `"top"` puts the tag on the first line of the `sq:body` region. `"bottom"` puts it on the last.
+- `"after(<regex>)"` searches the region's prose as a Python `re` pattern with `MULTILINE` set.
+  The prose searched is the region after the edit is applied, with every view tag stripped out.
+  The tag goes on its own line after the line holding the **first** match's last character. A
+  pattern ending in `\n` therefore anchors on the same line as its `$`-terminated equivalent, a
+  match spanning several lines anchors on the line where it ends, and a zero-width match anchors
+  on the line it sits on. With **no match**, the view falls back to `bottom` silently. A pattern
+  that does not compile is a spec-load error.
+- The grammar is extensible. An unrecognised value is a spec-load error.
+- When several views resolve to the same place, their tags go in declaration order (the order of
+  the merged `[views]` mapping), top to bottom. `position` carries no order key.
+- `position` belongs to a view, not to a document. Where a tag sits in a document is a function of
+  its view's declaration, and no per-document location survives a body write.
+- **View-name alphabet, enforced at load:** a view name is a bare TOML key
+  (`[A-Za-z0-9_-]+`) and is not `end`. The reasons:
+  - The state suffix below is colon-delimited, so a colon in a name would make the suffix
+    ambiguous.
+  - A character outside `MARKER_RE`'s class makes the tag invisible to `find_markers` and
+    `reject_markers`.
+  - `sq:view:end` spells a close marker, and the pairing check counts it as one.
+
+### 3. Disabled, never deleted
+
+- A disabled view's tag is `sq:view:<name>:disabled`, in the usual HTML-comment form (spelled
+  bare here, as elsewhere in this record). **Read:** `MARKER_RE` is `sq:\w[\w:-]*`, so the suffix
+  stays in-class. `find_markers` sees the tag, and `reject_markers` refuses it in prose input
+  exactly as it refuses the enabled form. A bracketed suffix would fall outside the class.
+- The disabled tag is still unpaired. `view_tag_parts` parses a tag into its name and its state,
+  so the suffix is never read as part of the name. The suffix literal lives in
+  `_models/_markers.py` only.
+- At the body-read boundary a disabled tag expands to nothing, and its bytes stay on disk. It is
+  not asked to render, so the dangling-name and inapplicable-source errors (second amendment §4)
+  apply to **enabled** tags only.
+- **Verbs.** There are two:
+  - `view add <name>` places the tag at its view's position, or re-enables a disabled one. It is
+    the only way back from disabled; there is no `view enable` verb. It stays gated by
+    `resolve_view_target`.
+  - `view disable <name>` turns an enabled tag disabled, or places the tag disabled when it is
+    absent. It is ungated, because it inherits the recovery role the second amendment §3 gave
+    `view rm`: a dangling or inapplicable enabled tag is disabled, and that clears its error. It
+    is admitted on a roster host too (§8), even though the document then renders an empty
+    definition.
+
+  **`view rm` is retired outright.** It is unreleased, so no alias is kept: a verb named "rm"
+  that removes nothing would misdescribe the rule.
+
+  Both verbs run the §4 routine with their own view's state set explicitly. On a conflicting pair
+  (an enabled and a disabled copy of the same view), each verb collapses every copy into one tag
+  in the state it names. Neither raises the conflicting-state refusal, because the two verbs are
+  the remedy that refusal names. A verb that finds its view already in the state it names
+  writes nothing. `view add` accepts only a declared view, so a new undeclared tag can come only
+  from `view disable`, which places it disabled.
+- The standing convergence sweep never re-enables or rewrites a disabled tag. Under its strict
+  licence (fifth amendment §3) it leaves a non-empty region alone, and a tag's state is set by
+  the author.
+
+### 4. Every body write re-places the tags
+
+Replace and append take the same four steps:
+
+1. read every view tag in the `sq:body` region, enabled and disabled, with its state;
+2. strip them, without changing a prose character;
+3. apply the prose edit to what remains (the input passes `reject_markers`, unchanged);
+4. re-insert one tag per view read, at that view's position, in declaration order, each keeping
+   its state, and insert **enabled** the tag of any seeded view that was absent.
+
+- **Stripping never changes a prose character.** A tag alone on its line (spaces or tabs
+  around it count as nothing) takes its line with it, and the removal leaves what deleting a line
+  would. Where a single newline flanks the line on each side, no blank line remains. Where a
+  blank line flanks it on either side, exactly one blank line remains, never two. At the region's
+  edge, nothing remains. So a tag that moves leaves no stray blank line where it sat.
+- **A tag sharing its line with prose** is a shape no writer produces, but a hand edit or an
+  adopted file can. Stripping removes only the tag and the one run of spaces or tabs directly
+  touching it, on the trailing side when it has one and the leading side otherwise. It never
+  removes a newline or the other side's whitespace, so the line reads as if the tag had never
+  been there.
+- **Spacing on re-insertion keeps the author's own.** A re-inserted tag sits on its own line and
+  mirrors the separator already at its landing spot: a single newline stays a single newline, and
+  a blank line (or several, whitespace-only lines included) becomes one blank line. Against a
+  `top` or `bottom` edge, and between two tags, the separator is one blank line. No blank line
+  pads the region's own edges, so a `top` tag is the region's first line and a `bottom` tag its
+  last.
+- **Invertible and byte-stable.** Stripping a placed tag gives back the prose it was placed into,
+  and running the routine over its own output changes nothing. For a tag-only region, and when
+  every view is `bottom`, the bytes are identical to the anchor at the end of the region.
+- **Blank lines around a rendered view are a rendering rule, not a storage rule.** At the
+  body-read boundary, each rendered view is padded with one blank line against the prose beside
+  it, so it never merges with that prose. The stored bytes are not changed. A disabled tag
+  renders nothing and gets no padding.
+- **Duplicates.** Several copies of one view in the same state collapse into one tag. Copies in
+  conflicting states (enabled and disabled) refuse the write, and the refusal names `view add`
+  and `view disable` as the two ways to settle the view's state. The view verbs are the
+  exception (§3).
+- **Undeclared views.** A tag naming a view the spec does not declare has no `position`. It goes
+  to the bottom, after every declared view, and the undeclared tags keep their relative order. A
+  newly placed undeclared tag comes after every existing one.
+- **Creation** runs the same routine over the creation template's rendered `sq:body` region,
+  with the caller's explicit body as the edit when one is given. A created document's tags
+  therefore sit at their positions from the first write, whatever the template's raw text held.
+
+- **"Hand-placed tags survive", reconciled with "re-insert at position".** What survives is the
+  tag and its state, not its location. A tag placed on a non-seeded document by `view add`
+  (fourth amendment §1's non-host clause) is kept through every write, at its view's position.
+  `position` is the only authority over where a tag sits.
+- The body write (the single-item `body` verb and the bulk importer's body op, through one shared
+  closure), item creation, the placement verbs, the managed-skill seed, the standing convergence
+  sweep and the migration's placement all run this same routine, and no writer composes a view
+  tag outside it. Placement is one function, which is the sixth amendment's property applied to
+  placement.
+- The authored-content guard (`reject_body_overwrite`) compares prose with view tags stripped from
+  both sides, and ignores leading and trailing blank lines on both sides, so neither a tag's state
+  or location nor the blank line the routine sets beside a tag makes a body count as authored.
+  `--force` keeps its single meaning, consent to overwrite prose, and lifts neither the
+  conflicting-state refusal nor the roster refusal of §8.
+- **A template-seeded document takes the `body` verb like any other item.** A milestone accepts
+  replace and append, and its first replace over the unwritten scaffold needs no `--force`. An
+  append lands above a `bottom` tag, because the tag is re-placed after the edit.
+
+### 5. The exactly-once condition, and `sq check`
+
+- Within the `sq:body` region, every write holds the condition **by construction**: each seeded
+  view is present **exactly once**, in either state, and **no view name appears twice**, with
+  both states counted together. The §4 routine re-inserts one tag per view name and inserts every
+  absent seeded view, so its output cannot fail the condition, and there is no separate check
+  after the write. The routine's one refusal is the conflicting-state refusal of §4, raised before
+  anything is written.
+- The guarantee covers the region only. A copy of a tag outside `sq:body` is invisible to the
+  routine, so a write can leave a whole file holding two copies of one view. That case belongs to
+  the open question in §9, not to this condition.
+- `sq check` reports the same two conditions as errors in the tier-1 file scan, where the fourth
+  amendment §5 already placed this check. Duplicates are counted **by view name**, because
+  `_marker_issues` counts raw tags and so cannot see `x` and `x:disabled` together. A missing
+  seeded view names both remedies, `view add` and `view disable`.
+- Nothing is reported when a non-seeded view is absent from a document.
+
+### 6. The 0.14→0.15 migration also reclaims per-item-type skills
+
+- **The corrected premise:** at v0.13.1, `_write_managed_skill` wrote the rendered body into
+  the `sq:body` of **every** managed skill, `sq-<type>` included (**read**: `_write_item_skills`
+  calls it). 0.14.0 then left skill bodies untouched (**cited**, measured in REV-964). Every squad initialised before 0.14 therefore carries that legacy text in
+  each per-item-type skill. The narrow scope rested on the opposite premise and is reversed.
+- **The reclaim set is the roster classification itself.** A document is in scope exactly when
+  `roster_body_view_name` names a declared view for it: a role, a permanently-system skill, or a
+  per-item-type `sq-<type>` skill. No separate list of view names exists that could disagree with
+  the classification. The licence is otherwise unchanged:
+  - it overwrites every marker-free, non-empty region with the tag alone, whatever the region
+    holds, with no provenance check (the tool is pre-1.0);
+  - it skips only a file it cannot read, a body with no `sq:body` region, and marker-shaped
+    content;
+  - it never touches a custom skill, which classifies to no view.
+- **Skew is judged against the file on disk.** Earlier runners in the same chain rewrite
+  frontmatter without rebuilding the index, so an index snapshot taken mid-chain can disagree
+  with every file it describes. Both steps read each file's own frontmatter at write time and
+  write it back verbatim, touching only `updated_at`, `modified_session` (when a session is
+  active) and the body region. The index is used only to find candidates and their paths.
+- The migration places tags through the §4 routine. For a tag-only body, and for a `bottom` view,
+  the bytes are identical to the anchor at the end of the region. The migration is unreleased,
+  so it changes in place and owes no schema bump.
+- ADR-955 governs this step unchanged. The reclaim fails that record's clauses 1 and 2, so it is a
+  migration step, and the runner's skip text stays under its messaging rule.
+
+### 7. The dead body-tag skip channel is deleted
+
+The following are removed:
+
+- `_converge_body_tag`'s non-strict branch and its raise, the `strict_empty` parameter (every
+  convergence is now strict) and `_strict_body_convergence`;
+- `RepairResult.skipped` and its plumbing;
+- sync's backfill skip list, and the stamp-withholding that list drives;
+- the skip rows and exit paths in `_cli/_migrate.py` and `_cli/_main.py`;
+- the tests that monkeypatch the wide licence back in to feed that channel.
+
+`unreadable` stays, and so does `MigrationRun.skipped`, which is a separate, live channel. A
+future caller that needs a non-strict convergence writes it against its own licence, as the
+migration's reclaim already does.
+
+### 8. Roster bodies hold no prose (REV-964 F7)
+
+A body write, **replace and append alike**, is refused on any document whose roster
+classification (`roster_body_view_name`) names a declared view. That covers a role, a
+permanently-system skill, and a per-item-type skill. `--force` does not lift the refusal. The rule
+is keyed on that one predicate, asked once, and never on a type literal.
+
+- **Why:** the content already has one declared, validated authoring surface. Body prose would
+  be a second, unvalidated source of what agents read. A template-seeded view such as
+  `milestone_rollup` has no second surface, so those documents stay writable, and the refused and
+  admitted sets separate on that property.
+- **Each document's authoring surface**, and the one the refusal names:
+
+  | Document | Authoring surface |
+  |---|---|
+  | role | `.overrides/roles.toml`, or `.overrides/roles/<slug>.toml` for a project-defined role |
+  | skill whose view has a `self` source (`greeting_skill`, `memory_skill`) | its own view template override, `views/<name>.md.j2` |
+  | skill whose view has a `playbook` source, and whose resolved subject has a lane (`item_skill` on `sq-<type>`) | that type's lane in the playbook overrides |
+  | skill whose view has a `playbook` source, and whose resolved subject has no lane (`squads_skill`, or `item_skill` for a type with no lane) | the playbook overrides |
+
+  A skill's surface is resolved from its view's declared source and the active playbook, never
+  from the skill's slug, so it follows a project's override of either. The refusal puts the
+  role-authoring remedy back on the write path, and the fourth amendment §6 also keeps it
+  reachable from `sq role <slug> show`.
+- The §6 reclaim is final, since nothing can grow the prose back.
+- `view disable` stays admitted on a roster host (§3). The document then renders an empty
+  definition. Authoring a definition by hand remains the fifth amendment's spec-level route: drop
+  the view from `[selected]`, and the document leaves the classification.
+- **Rejected:**
+  - Treating roster bodies as ordinary documents would let agents read an override-declared
+    definition and unvalidated prose side by side, with no boundary between them.
+  - Refusing append while admitting replace is incoherent, because a replace can produce every
+    body an append can.
+
+### 9. Open question: a view tag outside the `sq:body` region
+
+Not ruled here. The first amendment rules that a tag lives inside `sq:body`, and the body-read
+boundary, the placement routine and the view verbs read the region only. `sq check` scans the
+whole file. A tag can still end up outside the region, through a creation-template override that places
+it there, a hand-authored file brought in by `sq adopt`, or a hand edit. Such a tag does not render.
+The next body write or `view add` sees its seeded view as absent and places a second copy inside
+the region. `sq check` then reports a duplicate whose named remedies do not clear it, since both
+verbs act on the in-region copy only. The 0.14→0.15 migration skips a document whose tag already
+sits outside the region rather than adding that second copy.
+
+The question is which surface owns this state: a distinct `sq check` finding that names the real
+remedy, writers that look outside the region before treating a seeded view as absent, or a refusal
+at the creation-template override check. Each touches a different part of this record, and none of
+them is decided by the rules above.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -1570,4 +1888,65 @@ same task already owns.
     - **What the old refusal was actually protecting is one module over, and it has to go with it.** `_converge_body_tag`'s wide licence rests in writing on "no code path today can have authored either region" — which the narrowing falsifies across drop → author → re-add: a version-drift backfill then hits marker-free prose and replaces it with the tag line. Ruled: role and permanently-system skill move to `strict_empty=True`, the licence a per-item-type skill already has for exactly this shape one level up; the pre-0.14 legacy reclaim moves to a migration, under the closed one-time licence this record already defines. That also closes the trap where a legacy-rendered role body would be neither writable nor convergeable.
     - **One real defect the narrowing fixes.** `set_body` asks `is_system_skill` while the sweep asks `item_type_for_skill_slug` — two membership tests for one question, disagreeing on exactly the stale bundled slug: `sq-bug` with `bug` dropped is refused by the write path and never reached by the sweep. A region no command can write and no sweep can converge.
     - **`view rm`: confirmed unaffected.** It refuses nothing today, so my declared+required+host rule can only add refusals — there is no behaviour for a narrowing to remove. In all three shapes the view is undeclared, so removal stays free, which is the second amendment's recovery path preserved exactly.
+- [2026-09-25T12:47:43Z] Robert Architect:
+  - Added the seventh amendment, which records op-pierre's 2026-09-24 rulings on REV-964 (TASK-942 discussion). @manager @tech-lead
+    
+    - **Ruled:** `required` is retired, and a document's seeded views are kept for good. A seeded view comes from the creation template or the roster classification, with the per-host table in §1. A view declaration gains `position` (`top`, `bottom` (the default), or `after(<regex>)`, which falls back to bottom when nothing matches and uses the first match otherwise). A view is disabled (`sq:view:<name>:disabled`, confirmed inside `MARKER_RE`) and never deleted. `view rm` is retired, and the verbs are `view add` (place or re-enable) and `view disable`, which is ungated and inherits rm's recovery role. Every body write strips the tags and re-places them at their positions, in declaration order, each keeping its state. After the write, and in `sq check`, each seeded view must appear exactly once and no view twice, with duplicates counted by name. F2: the migration also reclaims `sq-<type>` skills. F5: the dead skip channel is deleted.
+    - **Consequences worked out:** "hand-placed tags survive" means the tag and its state survive, while its location is the view's position. View names are restricted to bare TOML keys other than `end`. A disabled tag renders nothing and escapes the dangling-name error. The authored-content guard compares prose with tags stripped. The migration places through the same routine, so the bytes are unchanged for `bottom`.
+    - **Narrowed in place:** the ruling's problem-1 licence (anchor; author move/remove) and problem 2 (superseded), plus the binding invariant's adjacency and name-only bullets. First amendment: both corrections. Second amendment: §3 (rm recovery; "not relocated") and §5's "quiet never means empty". Fourth amendment: largely superseded, with the survivors listed at its head. Fifth amendment: §3 (reclaim widened; escape superseded), §4 (rm) and the non-strict bullet in §5. The third and sixth amendments and ADR-955 are unchanged.
+    - **F7 is left open for op-pierre** (§8). The options are: A, no prose on roster bodies (refuse replace and append); B, roster bodies as ordinary documents; C, refuse append but admit replace, which is incoherent. I recommend A. There are five further open questions in §9: a missing seeded tag at write time, a duplicate at write time, the position of an undeclared view's tag, whether `view enable` is a separate verb, and disable on a roster host under A.
+- [2026-09-25T12:57:20Z] Pierre Chat:
+  - Rulings on the seventh amendment's §8 and §9:
+    
+    - **F7 (§8): option A.** Roster bodies hold no prose: replace and append are both refused on any document whose roster classification names a declared view, per-item-type skills included.
+    - **Q1:** a seeded view whose tag is absent is inserted enabled at its position.
+    - **Q2:** the post-write check runs on the finished body before commit. Duplicate copies of one view in the same state collapse into one tag during re-placement. Copies in conflicting states (enabled and disabled) refuse the write, and the refusal names `view add` / `view disable`.
+    - **Q3:** an undeclared view's tag goes to the bottom, after every declared view, keeping the undeclared tags' relative order.
+    - **Q4:** no `view enable` verb; `view add` is the only way back from disabled.
+    - **Q5:** `view disable` is admitted on a roster host.
+- [2026-09-25T12:58:50Z] Robert Architect:
+  - Folded op-pierre's 2026-09-25 rulings on the seventh amendment into the body. @manager
+    
+    - §8 now states option A as the rule: replace and append are refused on any document whose roster classification names a declared view, per-item-type skills included, and `--force` does not lift it. The refusal names the authoring surface. B and C remain only as one line of rejected rationale each.
+    - §9 is removed, and each ruling now sits in the section it governs. §4: an absent seeded tag is inserted enabled; same-state duplicates collapse into one tag; conflicting states refuse the write and the refusal names `view add` / `view disable`; an undeclared view's tag goes to the bottom, after the declared views, in its existing relative order. §5: the check runs on the finished body before commit. §3: there is no `view enable` verb, and `view disable` is admitted on a roster host.
+    - Two corrections follow from the rulings. §4's "nothing about tags is refused" is replaced, since `--force` lifts neither the conflicting-state refusal nor the roster refusal. The in-place note at the head of the fourth amendment now says that its §6 append refusal is replaced by §8.
+- [2026-09-25T13:21:27Z] Pierre Chat:
+  - Rulings on the implementation gaps TASK-942's breakdown raised against the seventh amendment:
+    
+    - **Spacing.** A re-inserted tag sits on its own line with exactly one blank line between it and adjacent prose. No blank line is added at the region's edges (a `top` tag is the region's first line, a `bottom` tag its last). Adjacent tags placed together are separated by one blank line. Re-placement is byte-stable: a write that changes no prose leaves the region unchanged. An `after(<regex>)` match inserts after the line holding the match's last character.
+    - **Conflicting copies and the verbs.** `view add` and `view disable` do not run the conflicting-state refusal: each collapses every copy of the view into one tag in the state the verb names. They are the remedy the refusal names.
+    - **Creation** runs the same re-placement routine, so a created document's tags sit at their positions.
+    - **The legacy reclaim set** is the roster classification itself (`roster_body_view_name` names a declared view); `_LEGACY_ROSTER_VIEW_NAMES` collapses into it.
+- [2026-09-28T16:32:22Z] Robert Architect:
+  - Amended in place: op-pierre's 2026-09-25 placement-gap rulings (his second comment on this record), plus the decisions TASK-942 settled while it was built. Each claim was checked against the committed code (`_views.py`, `_sections.py`, `_services/_items.py`, `_services/_views.py`, `_services/_base.py`, `_services/_maintenance.py`, `_overrides/_service.py`, `_migrations/_v0_14_to_v0_15.py`). No supersedes edge, and the status is unchanged. @manager @tech-lead
+    
+    - **Seventh amendment §2, `after(<regex>)`:** the tag anchors on the line holding the first match's last character (op-pierre's ruling; the ST15 fix). A pattern ending in `\n` lands where its `$` form does, and a zero-width match anchors on its own line. The pattern searches the prose after the edit, with tags stripped. Also dropped "now" from the view-name alphabet bullet.
+    - **§1:** a creation-template override may drop a view tag. That is the sanctioned escape, not a structural error: the override check's required-marker set excludes the view-tag family (`_required_markers_from_bundled`, found by the ST17 docs pass as the false `sq:sq:` error).
+    - **§3:** replaced the stale `view_tag_name` bullet, which carried "Today it would…" narration, with `view_tag_parts`. Added op-pierre's ruling that on a conflicting pair `view add` and `view disable` collapse every copy to the state they name and never raise the refusal. Also: a verb that finds its view already in its state writes nothing, and a new undeclared tag can come only from `view disable`.
+    - **§4:** added blank-line handling on strip (the `strip_marker_lines` fix for the stray blank line on `after()` fallback), op-pierre's spacing and byte-stability rulings, "a newly placed undeclared tag comes after every existing one" (the sort-key fix), and creation running the routine (his ruling). The one-routine bullet now names every caller. The authored-content guard also ignores edge blank lines, which is the milestone fix. A new bullet says a template-seeded document such as a milestone takes `body` replace and append.
+    - **§6:** "`_LEGACY_ROSTER_VIEW_NAMES` gains `item_skill`" was stale, because op-pierre ruled the reclaim set is the classification itself and the list no longer exists. Restated it that way. The reclaim clears the legacy text (the ST12 edit-clearing fix), and skew is judged against the on-disk file (REV-964 F3, ST12).
+    - **§8:** the "Why" bullet said the playbook overrides serve every skill, which was wrong for `greeting`/`sq-memory`. Replaced it with a per-document authoring-surface table matching `skill_authoring_surface`, which resolves from the view's declared source, never from the slug (the ST17 docs pass's defect #1).
+    - **The ruling's problem-1 note:** the migration's idempotence is the routine's. A body already at its positions is unchanged and not counted, and an in-region tag elsewhere is moved to its position.
+    - **New §9, an open question, not a ruling:** a tag outside `sq:body` (BUG-957). The body states the mechanism and the three candidate owners, and decides nothing.
+    
+    Code vs ruling, reported and not papered over. §5's text is unchanged.
+    - §5 says a post-write check runs on the finished body and refuses a failing write. No such check exists. `place_view_tags` emits one tag per name by construction and raises only `ConflictingViewStateError`. `_reject_unwritable_body`'s docstring still refers to "its own post-write check". Within the region the guarantee holds by construction. Across the whole file it does not: the BUG-957 duplicate is exactly the write a real post-write check would refuse.
+    - §4 step 2 ("strip them, each with its own line") assumes the tag has a line to itself. For a tag sharing a line with prose (`foo <tag>` then `bar`), `strip_marker_lines` joins the two lines into `foo bar`, which rewrites prose. No writer produces that shape; a hand edit or adopted file can.
+    - `_write_managed_skill` composes the empty-region seed itself rather than calling the routine. A test pins it byte-equal, so it is a second spelling of placement, not a divergence in output.
+- [2026-09-28T17:39:44Z] Pierre Chat:
+  - Code-vs-ruling gaps: (1) narrow the post-write check ruling to exactly-once by construction within the region; the whole-file case stays with the out-of-region open question (0.16). (2) Fix the stripping of a tag that shares a line with prose, so prose is never rewritten. (3) Route the managed-skill seed through the placement routine.
+- [2026-09-28T17:41:48Z] Robert Architect:
+  - Seventh amendment §5 narrowed in place, on op-pierre's ruling of 2026-09-28 (his comment above, point 1). @manager
+    - The old text ruled a separate check on the finished body that refuses a failing write. No such check exists, and none is owed. §5 now states that within `sq:body` the exactly-once condition holds by construction: the §4 routine re-inserts one tag per view name and every absent seeded view, and its only refusal is the conflicting-state one. The heading changed from "post-write condition" to "exactly-once condition" to match.
+    - Added a bullet that the guarantee is region-only. The whole-file case, a copy outside `sq:body`, points at the §9 open question.
+    - Points 2 and 3 of the same ruling are code fixes still in progress, so §4 is unchanged until they land.
+- [2026-09-28T18:11:46Z] Robert Architect:
+  - Seventh amendment §4 amended in place to match 45c3b2a2, on op-pierre's 2026-09-28 ruling (points 2 and 3). Checked against `strip_marker_lines` and `_write_managed_skill`, with the strip shapes run through the function. @manager
+    - Step 2 and the strip rules: stripping never changes a prose character. A tag alone on its line takes the line, under the existing blank-line rules. A tag sharing its line with prose loses only itself and one directly touching run of spaces or tabs, trailing preferred, never a newline.
+    - The one-routine bullet now names the managed-skill seed, which runs through `place_view_tags`. No writer composes a view tag outside the routine.
+    - op-pierre's `item_skill_shadowed` ruling (one remedy, no lane split, no rename) is not recorded here: this record does not speak about that finding.
+- [2026-09-29T08:21:19Z] Robert Architect:
+  - Seventh amendment §4 and §6 amended in place, on op-pierre's REV-967 rulings (F12, F1). The code is at 6231fe5c. @manager
+    - §4 (F12): a placed tag now mirrors the author's own separator, which makes the placement invertible. The fixed blank line is now a read-time rule: `expand_view_tags` pads each rendered view and leaves the stored bytes alone. Checked with `place_view_tags`/`strip_view_tags` on single-newline and blank-line shapes.
+    - §6 (F1): the reclaim overwrites every marker-free, non-empty per-type (and role or system) skill body with its tag alone. There is no provenance check. It skips only an unreadable file, a missing `sq:body` region, or marker-shaped content, per `_reclaim_legacy_roster_bodies`.
 <!-- sq:discussion:end -->

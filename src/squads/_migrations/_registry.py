@@ -177,7 +177,9 @@ MIGRATIONS: list[Migration] = [
         summary=(
             "The milestone roll-up moves off its type attachment onto a sq:view:milestone_rollup "
             "body tag: seed the tag on every existing milestone lacking one, through the tool's "
-            "own marker-safe placement primitive."
+            "own marker-safe placement primitive. Also reclaims a pre-0.14 role/permanently-"
+            "system-skill/sq-<type>-skill body still carrying a legacy plain-prose rendering "
+            "onto its own tag."
         ),
         run=_v0_14_to_v0_15.migrate,
         manual=_v0_14_to_v0_15.MANUAL,

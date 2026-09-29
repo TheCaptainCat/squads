@@ -1,39 +1,18 @@
-"""``squads._services._maintenance._converge_body_tag`` — the one license the repair sweep's
-backfill runs under, tested as a pure function rather than through a whole ``sq repair`` (the
-end-to-end path, including the classification half —
-``MaintenanceMixin._repair_body_tag`` — is
-``tests/service/test_repair_strips_only_retired_regions.py``).
-
-A role and a permanently-system skill share the same (non-strict) license: ``set_body`` refuses
-both bodies unconditionally in current code, so nothing on disk today was authored there.
-Whatever the region held before — empty, already the tag, or a plain-prose legacy rendering
-left by a release that predates this tag mechanism — converges onto the tag the same way. What
-stays loud is content that is itself marker-shaped: not the shape a legacy renderer produces, so
-this sweep refuses to guess what it is.
-
-A per-item-type skill (``item_skill``) passes ``strict_empty=True`` instead: unlike a role or a
-permanently-system skill, its slug CAN have been genuinely custom before a matching type was
-declared, so only empty or already-tagged may converge — anything else, marker-shaped or not,
-is left untouched rather than guessed at. A ``sq-`` slug is not reserved, so an author can write
-a real body under one before any type declares a matching skill; converging unconditionally over
-non-empty content the moment that slug turns template-owned would destroy that authored work.
-See ``tests/service/test_repair_strips_only_retired_regions.py::
-test_declaring_an_item_type_does_not_delete_an_authored_skill_of_that_name`` for the same
-guarantee proven end to end, through supported commands rather than as a pure function.
-"""
+"""``_converge_body_tag``, tested as a pure function: strict unconditionally, only a genuinely
+empty region converges, and any other non-empty content is left untouched, silently, never
+raised on — routed through the one placement function for the empty case."""
 
 import pytest
 
-from squads._errors import SquadsError
 from squads._models import _markers as markers
+from squads._sections import get_section
 from squads._services._maintenance import _converge_body_tag
+from squads._views import place_view_tags
+from squads._workflow import bundled_spec
+
+_SPEC = bundled_spec()
 
 _EMPTY_BODY = f"{markers.open_marker(markers.BODY)}\n{markers.close_marker(markers.BODY)}\n"
-_TAGGED_BODY = (
-    f"{markers.open_marker(markers.BODY)}\n"
-    f"{markers.open_marker(markers.view_tag('role_definition'))}\n"
-    f"{markers.close_marker(markers.BODY)}\n"
-)
 _LEGACY_BODY = (
     f"{markers.open_marker(markers.BODY)}\n"
     "# Stored Name\n\nA stale pre-tag rendering, plain prose only.\n"
@@ -46,74 +25,95 @@ _MARKER_SHAPED_BODY = (
 )
 
 
-@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill"])
-def test_an_empty_body_converges_onto_the_tag(view_name: str) -> None:
-    out = _converge_body_tag(_EMPTY_BODY, view_name)
-    assert markers.open_marker(markers.view_tag(view_name)) in out
-
-
-def test_an_already_tagged_body_is_returned_byte_identical() -> None:
-    out = _converge_body_tag(_TAGGED_BODY, "role_definition")
-    assert out == _TAGGED_BODY
-
-
-@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill"])
-def test_a_plain_prose_legacy_rendering_converges_onto_the_tag(view_name: str) -> None:
-    """The shape a release predating this tag mechanism (or 0.14's stored-region retirement)
-    would have left: rendered prose, no marker of its own. Admitted for both a role and a
-    system skill — the same license, since neither writer can be blamed for authoring it."""
-    out = _converge_body_tag(_LEGACY_BODY, view_name)
-    assert "Stored Name" not in out
-    assert markers.open_marker(markers.view_tag(view_name)) in out
-
-
-@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill"])
-def test_marker_shaped_content_is_not_silently_overwritten(view_name: str) -> None:
-    """Falsifies the guard itself: content carrying a well-formed marker of its own is not the
-    plain-prose shape a legacy release produced, so it must stop the sweep rather than be
-    guessed at. Remove the ``sections.find_markers`` check and this reddens — the exact same
-    input would converge silently instead of raising, which is what makes this a real guard.
-    Raises ``SquadsError``, the ordinary user-facing-error convention (``CLAUDE.md``), never a
-    bare ``AssertionError`` — a caller catching only ``SquadsError`` must still see this."""
-    with pytest.raises(SquadsError, match="found marker-shaped content"):
-        _converge_body_tag(_MARKER_SHAPED_BODY, view_name)
-
-
-# --------------------------------------------------------------------------- strict_empty
-# (the per-item-type skill license: only empty or already-tagged may ever converge)
-
-
-def test_an_empty_body_converges_onto_the_tag_under_strict_empty() -> None:
-    out = _converge_body_tag(_EMPTY_BODY, "item_skill", strict_empty=True)
-    assert markers.open_marker(markers.view_tag("item_skill")) in out
-
-
-def test_an_already_tagged_body_is_returned_byte_identical_under_strict_empty() -> None:
-    tagged = (
+def _tagged_body(view_name: str, *, disabled: bool = False) -> str:
+    return (
         f"{markers.open_marker(markers.BODY)}\n"
-        f"{markers.open_marker(markers.view_tag('item_skill'))}\n"
+        f"{markers.open_marker(markers.view_tag(view_name, disabled=disabled))}\n"
         f"{markers.close_marker(markers.BODY)}\n"
     )
-    out = _converge_body_tag(tagged, "item_skill", strict_empty=True)
+
+
+@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill", "item_skill"])
+def test_an_empty_body_converges_onto_the_enabled_tag(view_name: str) -> None:
+    out = _converge_body_tag(_EMPTY_BODY, view_name, _SPEC, "role", "some-slug")
+    assert markers.open_marker(markers.view_tag(view_name)) in out
+    assert markers.open_marker(markers.view_tag(view_name, disabled=True)) not in out
+
+
+@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill", "item_skill"])
+def test_an_already_enabled_tagged_body_is_returned_byte_identical(view_name: str) -> None:
+    tagged = _tagged_body(view_name)
+    out = _converge_body_tag(tagged, view_name, _SPEC, "role", "some-slug")
     assert out == tagged
 
 
-def test_a_plain_prose_body_is_left_untouched_under_strict_empty() -> None:
-    """The regression this mode exists to close: under the non-strict license this exact input
-    converges (see ``test_a_plain_prose_legacy_rendering_converges_onto_the_tag`` above) because
-    a role/permanently-system skill can never have authored one. A per-item-type skill's slug
-    can — an author's real runbook, written before its type existed — so strict_empty must
-    leave it alone, byte for byte, rather than guess it is a stale legacy rendering."""
-    out = _converge_body_tag(_LEGACY_BODY, "item_skill", strict_empty=True)
+@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill", "item_skill"])
+def test_a_disabled_tagged_body_is_returned_byte_identical(view_name: str) -> None:
+    """A disabled tagged body is returned byte identical, never re-enabled or rewritten."""
+    tagged = _tagged_body(view_name, disabled=True)
+    out = _converge_body_tag(tagged, view_name, _SPEC, "role", "some-slug")
+    assert out == tagged
+
+
+@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill", "item_skill"])
+def test_a_plain_prose_legacy_body_is_left_untouched(view_name: str) -> None:
+    """A plain-prose legacy body is left untouched, regardless of which view it is."""
+    out = _converge_body_tag(_LEGACY_BODY, view_name, _SPEC, "role", "some-slug")
     assert out == _LEGACY_BODY
-    assert "Stored Name" in out  # nothing was removed
+    assert "Stored Name" in out
 
 
-def test_marker_shaped_content_is_also_left_untouched_under_strict_empty_never_raising() -> None:
-    """The other half of the same asymmetry: non-strict raises on marker-shaped content (see
-    ``test_marker_shaped_content_is_not_silently_overwritten`` above) because that shape is
-    unexplained there. Under strict_empty it is simply more non-empty content this narrower
-    license has no license to touch — left alone, not raised on, so an ordinary ``sq repair``
-    over a squad carrying an author-customised per-type skill never aborts."""
-    out = _converge_body_tag(_MARKER_SHAPED_BODY, "item_skill", strict_empty=True)
+@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill", "item_skill"])
+def test_marker_shaped_content_is_left_untouched_never_raising(view_name: str) -> None:
+    """Marker-shaped content is left untouched, never raising."""
+    out = _converge_body_tag(_MARKER_SHAPED_BODY, view_name, _SPEC, "role", "some-slug")
     assert out == _MARKER_SHAPED_BODY
+
+
+_FRONTMATTER = "---\nid: ROLE-1\ntype: role\n---\n"
+_TAIL = "\n## Discussion\n\n<!-- sq:discussion -->\n<!-- sq:discussion:end -->\n"
+
+
+@pytest.mark.parametrize("view_name", ["role_definition", "squads_skill", "item_skill"])
+def test_an_absent_body_pair_with_only_the_tag_in_the_way_converges_instead_of_crashing(
+    view_name: str,
+) -> None:
+    """A hand-deleted body pair with only the tag in the way converges instead of crashing."""
+    corrupted = f"{_FRONTMATTER}{markers.open_marker(markers.view_tag(view_name))}{_TAIL}"
+    out = _converge_body_tag(corrupted, view_name, _SPEC, "role", "some-slug")
+    assert get_section(out, markers.BODY) is not None
+    assert markers.open_marker(markers.view_tag(view_name)) in (
+        get_section(out, markers.BODY) or ""
+    )
+    assert "## Discussion" in out
+
+
+def test_an_absent_body_pair_with_no_tag_at_all_converges_onto_a_fresh_empty_region() -> None:
+    """An absent body pair with no tag at all converges onto a fresh empty region."""
+    corrupted = f"{_FRONTMATTER}{_TAIL}"
+    out = _converge_body_tag(corrupted, "role_definition", _SPEC, "role", "some-slug")
+    assert get_section(out, markers.BODY) is not None
+    assert markers.open_marker(markers.view_tag("role_definition")) in (
+        get_section(out, markers.BODY) or ""
+    )
+
+
+def test_an_absent_body_pair_with_real_prose_in_the_way_is_left_untouched_never_raising() -> None:
+    """Real, unheaded prose in the absent region's span is left untouched, never raising."""
+    corrupted = f"{_FRONTMATTER}Some hand-typed replacement text, no tag at all.{_TAIL}"
+    out = _converge_body_tag(corrupted, "role_definition", _SPEC, "role", "some-slug")
+    assert out == corrupted
+
+
+def test_the_empty_case_is_byte_identical_to_the_placement_routine() -> None:
+    """Converging an empty region produces exactly what ``place_view_tags`` would."""
+    out = _converge_body_tag(_EMPTY_BODY, "role_definition", _SPEC, "role", "dev-agent")
+    direct = place_view_tags(
+        "",
+        None,
+        seeded=frozenset({"role_definition"}),
+        spec=_SPEC,
+        item_type="role",
+        addr="dev-agent",
+    )
+    assert (get_section(out, markers.BODY) or "").strip("\n") == direct

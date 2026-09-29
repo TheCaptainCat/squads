@@ -24,10 +24,6 @@ Allow users to log in with their credentials.
 <!-- sq:stories -->
 <!-- sq:story:US1 -->
 
-<!-- sq:story:US1:head -->
-**Status:** ⚪ Todo
-<!-- sq:story:US1:head:end -->
-
 ### US1 — Authenticate with email and password
 
 <!-- sq:story:US1:body -->
@@ -39,12 +35,6 @@ As a user, I want to log in with my email and password.
 
 <!-- sq:story:US1:end -->
 <!-- sq:stories:end -->
-
-<!-- sq:summary -->
-| Story | Title | Status |
-|---|---|---|
-| US1 | Authenticate with email and password | ⚪ Todo |
-<!-- sq:summary:end -->
 
 ## Discussion
 

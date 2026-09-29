@@ -37,7 +37,6 @@ from squads._context import bind_context, get_context
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import frontmatter_skew, skew_message
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import make_ref, split_ref
 from squads._services._base import reject_markers
@@ -74,7 +73,6 @@ from squads._services._results import (
 )
 from squads._services._subentities import SubentitiesMixin
 from squads._services._validators import ValidatorEngine
-from squads._workflow import ROSTER_OPERATOR, ROSTER_SKILL
 from squads._workflow._models import Field, WorkflowSpec
 
 #: Exception types the per-event dispatch treats as a collectible validation problem rather
@@ -377,17 +375,10 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
     def _sim_body(self, shadow: SquadsDB, handles: HandleMap, event: BodyEvent) -> None:
         target = handles.resolve_item(event.target)
         item = require_item(shadow, target)
-        if item.type == ROSTER_SKILL:
-            slug = item.extra.get(X.SLUG, item.slug)
-            from squads._interactions import is_system_skill
-
-            if is_system_skill(slug, self.spec):
-                raise SquadsError(
-                    f"{target} is a system skill; its definition is template-owned and"
-                    " rendered on read"
-                )
-        elif self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
-            raise SquadsError(f"{target} is a {item.type}; its body is generated from its fields")
+        # Delegates to the exact predicate the real apply pass's `_body_mutate` closure asks —
+        # see `ItemsMixin._reject_unwritable_body`'s own docstring for why a second, hand-rolled
+        # membership test here would be exactly the drift a single derivation exists to prevent.
+        self._reject_unwritable_body(target, item, append=event.append)
         reject_markers(event.body)
 
     def _sim_comment(self, shadow: SquadsDB, handles: HandleMap, event: CommentEvent) -> None:

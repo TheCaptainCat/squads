@@ -26,6 +26,7 @@ closed-set ``Priority``/``Severity`` enums.
 """
 
 import math
+import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from re import compile as re_compile
@@ -918,8 +919,64 @@ class ViewSource(BaseModel):
     strictly required or strictly forbidden."""
 
 
+#: A view name is a bare TOML key and nothing else — reuses
+#: :data:`_BARE_TOML_KEY_RE`'s own grammar (defined below, alongside ``[ref_kinds]``'s
+#: identical floor) rather than a second copy of the same pattern; enforced at load in
+#: :func:`_check_views` rather than by ``ViewSpec`` itself, since the dict *key* is what is
+#: being constrained, not any field on the value. Two reasons, both load-bearing: the
+#: disabled-state suffix is colon-delimited (``squads._models._markers._DISABLED_SUFFIX``), so a
+#: colon inside the name itself would make that suffix ambiguous; and a character outside
+#: :data:`~squads._sections.MARKER_RE`'s class (word characters, ``:``, ``-``) would make the
+#: tag invisible to ``find_markers``/``reject_markers``, the property this whole family depends
+#: on. ``end`` is refused too: ``sq:view:end`` spells a close marker, and the marker-pairing
+#: scan would count it as one.
+_RESERVED_VIEW_NAME = "end"
+
+
+@dataclass(frozen=True)
+class ViewPosition:
+    """A view's parsed ``position`` — never a raw string carried past
+    :func:`parse_view_position`. ``kind`` is one of ``"top"``/``"bottom"``/``"after"``;
+    ``pattern`` is the compiled ``after(<regex>)`` pattern, ``None`` for the other two kinds."""
+
+    kind: Literal["top", "bottom", "after"]
+    pattern: re.Pattern[str] | None = None
+
+
+#: ``position = "after(<regex>)"`` — captures the inner pattern text. Anchored so a trailing
+#: typo (``"after(foo)x"``) is refused rather than silently accepted as if the extra text were
+#: part of the pattern.
+_AFTER_POSITION_RE = re_compile(r"^after\((?P<pattern>.*)\)$")
+
+
+def parse_view_position(raw: str) -> ViewPosition:
+    """*raw* (a ``[views.<name>]`` entry's ``position`` string) parsed into a
+    :class:`ViewPosition` — the one place the grammar (``"top"``, ``"bottom"``,
+    ``"after(<regex>)"``) is recognised, so :func:`_check_views` (validating) and the
+    placement routine (``squads._views``, consuming) can never disagree about what a position
+    string means. Dispatches on shape rather than growing an ``if/elif`` chain callers repeat,
+    so a later grammar value adds one branch here, never a second parser.
+
+    Raises :class:`ValueError` — never a bare string return — for an unrecognised value or an
+    ``after(...)`` pattern that fails to compile, so callers that must defer the failure into a
+    collect-all report (:func:`_check_views`) catch it, and a runtime caller that only ever
+    sees an already-validated spec is free not to."""
+    if raw == "top":
+        return ViewPosition("top")
+    if raw == "bottom":
+        return ViewPosition("bottom")
+    m = _AFTER_POSITION_RE.fullmatch(raw)
+    if m is not None:
+        try:
+            pattern = re.compile(m.group("pattern"), re.MULTILINE)
+        except re.error as exc:
+            raise ValueError(f"position {raw!r}: pattern does not compile: {exc}") from exc
+        return ViewPosition("after", pattern)
+    raise ValueError(f"position {raw!r}: not one of 'top', 'bottom', 'after(<regex>)'")
+
+
 class ViewSpec(BaseModel):
-    """One declared entry of ``[views]`` — a source and nothing else.
+    """One declared entry of ``[views]`` — a source, and where its tag is placed.
 
     Identity is the dict key on ``WorkflowSpec.views``, never restated on the value (the
     convention ``ItemSpec``/``StatusSpec``/``Lifecycle``/``Collection``/``RefKindSpec`` already
@@ -929,11 +986,25 @@ class ViewSpec(BaseModel):
 
     Grouping and ordering are not spec grammar — a presentation template does its own with
     Jinja's ``groupby``/``sort``/``selectattr`` under ``StrictUndefined``, against the source's
-    own unflattened shape (see ``squads._views``)."""
+    own unflattened shape (see ``squads._views``).
+
+    ``position`` says where the placement routine re-inserts
+    this view's tag on every body write: ``"top"`` (the region's first line), ``"bottom"`` (the
+    default — its last line), or ``"after(<regex>)"`` (its own line after the line where the
+    pattern's first match against the region's prose ends; no match falls back to ``"bottom"``
+    silently). Kept here as the **raw string** — ``extra="forbid"`` on this model only checks
+    it is a string, never that it parses — so an unrecognised value or a pattern that fails to
+    compile is reported through :func:`_check_views`'s collect-all pass rather than aborting
+    the whole load at the first bad view; :func:`parse_view_position` is where it turns into a
+    typed :class:`ViewPosition`, called both by that check and by the placement routine, never
+    hand-parsed a second way at either call site. ``position`` carries no order key: several
+    views resolving to the same place go in the declared order of the merged ``[views]``
+    mapping (``squads._views``'s placement routine)."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     source: ViewSource
+    position: str = "bottom"
 
 
 class RoleSpec(BaseModel):
@@ -1947,11 +2018,27 @@ def _check_views(
     points at (``[ref_kinds]``/``[subentity_kinds]``/``[items]`` — ``role``/``self`` take none,
     ``playbook``'s is optional against ``[items]``) — the same shape ``_parse_ref_rules``
     already refuses a rule naming an undeclared kind for, applied to the view axis: a source
-    that can never resolve is refused here rather than carried as an inert declaration. This is
-    the only structural check a ``[views]`` entry needs: a view declares ``source`` and nothing
-    else."""
+    that can never resolve is refused here rather than carried as an inert declaration.
+
+    Two more checks run in the same collect-all pass, both by design rather than by
+    ``ViewSpec``'s own pydantic validation, so a bad ``position`` and a bad name both land in
+    one ``sq workflow lint`` run instead of the load aborting at the first one found: the view's
+    *key* must be a bare TOML key (:data:`_BARE_TOML_KEY_RE`) other than
+    :data:`_RESERVED_VIEW_NAME`, and its declared ``position`` must parse
+    (:func:`parse_view_position`)."""
     for name, v in sorted(views.items()):
-        _check_view_source(f"view {name!r}", v.source, items, subentity_kinds, ref_kinds, errors)
+        tag = f"view {name!r}"
+        if name == _RESERVED_VIEW_NAME or not _BARE_TOML_KEY_RE.fullmatch(name):
+            errors.append(
+                f"{tag}: not a bare TOML key other than {_RESERVED_VIEW_NAME!r} — a view name "
+                "must match [A-Za-z0-9_-]+ and must not be 'end' (the disabled-state suffix is "
+                "colon-delimited, and `sq:view:end` would spell a close marker)"
+            )
+        try:
+            parse_view_position(v.position)
+        except ValueError as exc:
+            errors.append(f"{tag}: invalid position {v.position!r}: {exc}")
+        _check_view_source(tag, v.source, items, subentity_kinds, ref_kinds, errors)
 
 
 def subentity_source_reason(
@@ -1980,8 +2067,8 @@ _BARE_TOML_KEY_RE = re_compile(r"^[A-Za-z0-9_-]+$")
 
 
 def _check_ref_kinds_floor(ref_kinds: dict[str, RefKindSpec], errors: list[str]) -> None:
-    """The per-capability floor over ``[ref_kinds]`` (plus the ``default`` role folded in by
-    the amendment that ruled it onto this floor) — checked here, on the merged mapping, so a
+    """The per-capability floor over ``[ref_kinds]`` (plus the ``default`` role, folded onto
+    this same floor) — checked here, on the merged mapping, so a
     violation surfaces as an ordinary ``_build_spec`` finding: visible to ``sq workflow lint``
     on the exact path every other structural failure already takes, not only at first use
     inside an accessor like :meth:`WorkflowSpec.default_ref_kind`/

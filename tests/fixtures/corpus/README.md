@@ -1,7 +1,7 @@
 # Migration fixture corpus
 
 Each subdirectory here is a **frozen, committed squad** captured at one released schema version.
-`tests/test_migration_corpus.py` copies each to a tmp dir, runs `sq migrate up` (via
+`tests/integration/test_migration_corpus.py` copies each to a tmp dir, runs `sq migrate up` (via
 `Service.run_pending_migrations()`), and asserts the squad reaches the current `SCHEMA_VERSION`
 with `sq check` clean.  The CLI smoke variant does the same thing through the real Typer app.
 
@@ -24,8 +24,18 @@ corpus/
              v0_11's content plus each type's managed skill, stamped as a SKILL item, body and
              `.claude` pointer; no existing frontmatter shape changed
   v0_15/   — schema 0.15: the milestone roll-up moves off its type attachment onto a
-             `sq:view:milestone_rollup` body tag; byte-identical to v0_14 except the schema
-             stamp, since this fixture carries no milestone item for the migration to touch
+             `sq:view:milestone_rollup` body tag, and a role/permanently-system-skill/
+             per-item-type-skill body renders through its own declared `sq:view:<name>` tag,
+             positioned by the spec (`top`/`bottom`/`after(<regex>)`) and disableable rather
+             than removable. Produced by running the *real* 0.14→0.15 migration end to end —
+             `sq migrate up` against a scratch copy of the frozen `v0_14` fixture, clock pinned
+             to this corpus's own `2025-05-20T11:00:00Z` convention — never hand-edited: the
+             milestone's tag, the role/`squads`/`greeting` skill bodies, and `sq-contract`'s/
+             `sq-milestone`'s (per-item-type skills — the reclaim's scope is the roster
+             classification itself, not the three permanently-system slugs alone) legacy
+             prose all converge onto their own tags by the migration's reclaim step, and the
+             trailing repair sweep's own retired-region strip and role-mirror-key removal are
+             all exactly what that run wrote
 ```
 
 Each directory contains:
@@ -41,8 +51,15 @@ When `_models/_schema.py::SCHEMA_VERSION` is bumped **and** a new runner is appe
 
 1. Copy the current `v0_N` fixture as `vN_M` (the new *from* schema label, underscored).
 2. Verify the copy passes `sq check` (it should — it's the current schema).
-3. Add `("N.M", "vN_M")` to `_CORPUS_CASES` in `tests/test_migration_corpus.py`.
-4. Update the `v0_N+1` fixture to represent the *new* current schema, then verify
-   `test_corpus_migrates_to_current_and_passes_check` is green for all entries.
+3. Add `("N.M", "vN_M")` to `_CORPUS_CASES` in `tests/integration/test_migration_corpus.py`.
+4. Update the `v0_N+1` fixture to represent the *new* current schema by running the real
+   migration end to end — `sq migrate up` (a real CLI invocation, not an isolated call to one
+   migration step) against a scratch copy of the frozen `v0_N` fixture, clock pinned with
+   `--at` — and committing exactly what that run wrote, minus any `.reflog.jsonl` it created.
+   Never a hand copy with only the schema stamp bumped, and never a single migration step run
+   in isolation: either shortcut leaves the fixture short of what the release actually ships (a
+   retired region, a role mirror key, a body-tag convergence) and a test written against it
+   quietly asserts the gap instead of the release. Then verify
+   `test_corpus_migrates_to_current_schema_and_passes_check` is green for all entries.
 
 Without this step the corpus drifts and the migration promise goes untested for the new schema.

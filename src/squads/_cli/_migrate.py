@@ -63,12 +63,16 @@ async def migrate_up():
         if skipped_ids:
             console.print(
                 f"  [yellow]skipped[/yellow] {len(skipped_ids)} item(s) rather than abort the "
-                f"run: {', '.join(e(i) for i in skipped_ids)} — a skewed one needs `sq repair`, "
-                "a missing file needs restoring or re-adopting, a missing body region needs "
-                "one added by hand; only once that is true and the item genuinely carries no "
-                "tag does `sq <type> <n> view add <name>` place one — an item already carrying "
-                "the tag outside its own region needs none of this: it was left exactly as it "
-                "was, and placing another copy would duplicate it",
+                f"run: {', '.join(e(i) for i in skipped_ids)} — a missing file needs restoring "
+                "or re-adopting; a missing body region needs one added by hand; a body carrying "
+                "content this step has no model for is left exactly as it was — `sq check` "
+                "(reachable once this run completes) names which applies to each. Once the "
+                "item's own problem is fixed and it genuinely carries no tag, place one with "
+                "`sq <type> <n> view add <name>` (a role or skill instead addresses by slug: "
+                "`sq role|skill <slug> view add <name>`); an item already carrying the tag "
+                "outside its own region needs its own different fix — placing another copy "
+                "inside the region would duplicate it, so delete the outside line from the "
+                "file by hand first, then place it with the same `view add`",
                 soft_wrap=True,
             )
     console.print(
@@ -93,18 +97,6 @@ async def migrate_up():
             "forward as-is; fix the file and repair again",
             soft_wrap=True,
         )
-    # The same sweep's other channel: a role/system-skill/per-item-type-skill `sq:body`
-    # region the body-tag convergence declined to touch (marker-shaped content it has no
-    # model for). `sq repair` reports this at error level and exits 1 for the identical
-    # input; this route runs the same rebuild without an operator ever typing `repair`, so
-    # printing nothing here would be the one place the refusal is least likely to be
-    # noticed.
-    for msg in run.repair.skipped if run.repair else []:
-        console.print(
-            f"[red]error[/red]: skipped {e(msg)} — this region was left untouched; "
-            "fix the file by hand and repair again",
-            soft_wrap=True,
-        )
     if any(m.manual for m in applied):
         span = _manual_chlog_span(applied)
         console.print(
@@ -112,12 +104,13 @@ async def migrate_up():
             soft_wrap=True,
         )
     # Same condition `sq repair` itself exits 1 for (`_cli/_main.py`'s `repair` command,
-    # `if result.unreadable or result.skipped`) — this command's trailing repair is the same
-    # rebuild over the same corpus, so a caller gating on `$?` must see the same partial-vs-
-    # clean answer whichever of the two verbs it ran. Never true when `applied` is empty
-    # (this function already returned above); both loops above already report every
-    # `unreadable`/`skipped` message this condition can fire on.
-    if run.repair and (run.repair.unreadable or run.repair.skipped):
+    # `if result.unreadable`) — this command's trailing repair is the same rebuild over the
+    # same corpus, so a caller gating on `$?` must see the same partial-vs-clean answer
+    # whichever of the two verbs it ran. Never true when `applied` is empty (this function
+    # already returned above); the loop above already reports every `unreadable` message this
+    # condition can fire on. The body-tag-convergence sweep is strict unconditionally and has
+    # no skip channel of its own to gate on.
+    if run.repair and run.repair.unreadable:
         raise typer.Exit(1)
 
 

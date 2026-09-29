@@ -320,7 +320,7 @@
     "_rendering/templates/workflow_static.md.j2": "42a6707b57c79ee25fad1539167089e6f3deeeb6183fcb2c01e14b5f7f859708",
     "_specs/playbook.toml": "7a932cb755738a8de3855b24f2a392ad8778db0a24b6c0b995d44bdfa57acbf0",
     "_specs/roles.toml": "4a9ea074f72a67d5f2070932e7973497edd84c6ffb0bdc3ab4b6b5ecd7f33adf",
-    "_specs/workflow.toml": "bd8e92c9c6dd76d3e17f83ad84b9bc8fa444d534346842b9cd454e7ae13f6e6b"
+    "_specs/workflow.toml": "59a27791f0ab888d1dd9d3741d8cd51a1695f158cad653e644dc84b2af19b4b3"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",

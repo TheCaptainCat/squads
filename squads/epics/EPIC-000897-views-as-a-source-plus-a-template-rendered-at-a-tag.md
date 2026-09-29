@@ -3,14 +3,14 @@ id: EPIC-897
 sequence_id: 897
 type: epic
 title: Views as a source plus a template, rendered at a tag
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - ADR-880
 description: 'Rebuild the view mechanism per ADR-880: source + template, a tag marks
   where it renders; the projection layer and its grammar are deleted'
 created_at: '2026-09-03T09:00:54Z'
-updated_at: '2026-09-03T09:59:56Z'
+updated_at: '2026-09-29T09:34:50Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -65,4 +65,14 @@ the outcome it targets — a working, adopter-declarable view mechanism — has 
 - [2026-09-03T09:01:36Z] Nina Product:
   - HOLD per op-pierre: Robert is ruling a live amendment to ADR-880 -- whether the view tag lives inside the authored sq:body region (as currently ruled) or outside it. This changes whether the retroactivity migration writes into authored prose at all, and whether the 'body write drops the tag' advisory needs to exist.
   - No features are created under this epic yet. Holding views feature authoring until the amendment is ruled; this epic's Scope section (seed/migrate the tag into :body) reflects the pre-amendment ruling and may need a rewrite once Robert rules.
+- [2026-09-29T09:34:47Z] Nina Product:
+  - Closing against outcomes (Pierre approved):
+  - Source widened to role/playbook/self -> FEAT-903 (verified: role_definition/self sources render)
+  - Projection layer + grammar deleted -> FEAT-904 (verified: retired fields/group_by/order_by key fails load with fix hint)
+  - View tag: placement verb, read-time expansion, check integration -> FEAT-905 + FEAT-948 (verified: disable persists, tag re-placed at declared position on every body write, sq check clean)
+  - Role/system-skill/per-item-type-skill text collapsed onto the tag -> FEAT-906 (verified: sq role show renders expanded body from the tag)
+  - Milestone rollup: seed at creation + migrate existing corpus -> FEAT-907 (verified: new milestone seeded with the tag)
+  - Adopter upgrade path for the retired 0.14 grammar -> FEAT-908 (verified: clear load-time error, fix hint, CHANGELOG)
+  - Out-of-scope, explicitly deferred to 0.16 (MILE-934): BUG-957 (tag outside sq:body invisible to show/check/view rm) and FEAT-966 (skill user-invocability, unrelated to this epic's outcomes).
+  - Every outcome delivered; no gaps.
 <!-- sq:discussion:end -->

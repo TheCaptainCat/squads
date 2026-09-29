@@ -13,13 +13,14 @@ from squads import _sections as sections
 from squads import _views as views
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
-from squads._interactions import is_system_skill
 from squads._itemfile import ensure_no_skew, update_frontmatter
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_extra
+from squads._paths import number_for_id
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
@@ -501,52 +502,124 @@ class ItemsMixin(ServiceCore):
             raise SquadsError(f"{item_id} is a {item.type}; only roles/skills have entries")
         return item
 
+    def _reject_unwritable_body(self, item_id: str, item: Item, *, append: bool) -> None:
+        """Raise when *item*'s body write is refused for a reason independent of the
+        authored-content overwrite guard (:func:`~squads._services._base.reject_body_overwrite`,
+        which the caller checks separately, only on a replace, only once this passes).
+
+        The one place either of two questions is asked, so :meth:`_body_mutate`'s real write and
+        the bulk importer's pre-pass simulation
+        (:meth:`~squads._services._import.ImportMixin._sim_body`) can never disagree about which
+        bodies this refuses — a second, hand-rolled membership test at either call site is
+        exactly the drift a single derivation exists to prevent (see
+        :func:`~squads._views.roster_body_view_name`'s own docstring).
+
+        - **Replace and append alike, on a roster-classified document** (a role, a
+          permanently-system skill, or a per-item-type skill —
+          :func:`~squads._views.roster_body_view_name` names a declared view): refused
+          unconditionally, and ``--force`` lifts neither half.
+          The content already has one declared, validated authoring surface — the role
+          overrides for a role, or a skill's own real surface
+          (:func:`~squads._views.skill_authoring_surface`, resolved from the view's own
+          declared source rather than the skill's slug) — and body prose would be a second,
+          unvalidated one. The escape is spec-level, not a per-write flag: drop the view from
+          ``[selected]`` and the document leaves the classification. ``view disable`` stays
+          admitted on such a host even so (it never writes prose); the document then renders an
+          empty definition.
+        - **Either, on a project-declared roster type outside role/skill/operator**: refused
+          unconditionally — its body is generated from its fields, not a view question, and
+          this branch is untouched by the one above.
+
+        Every other document — an ordinary item's seeded view (``milestone_rollup`` included),
+        a role/system/per-item-type-skill whose view is not (or no longer) declared, a stale
+        historically-bundled ``sq-<type>`` skill whose type is dropped — is admitted here: a
+        missing seeded tag is not this guard's job, since the placement routine
+        (:func:`~squads._views.place_view_tags`) inserts it — the routine holds exactly-once,
+        by construction, inside the region, and its only refusal is the conflicting-state
+        one."""
+        slug = views.roster_slug(item.type, item.slug, item.extra)
+        roster_view = (
+            views.roster_body_view_name(item.type, slug, self.spec)
+            if item.type in (ROSTER_ROLE, ROSTER_SKILL)
+            else None
+        )
+        if roster_view is not None:
+            verb = "Append" if append else "A replace"
+            authoring_surface = (
+                f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml` for a "
+                "project-defined role)"
+                if item.type == ROSTER_ROLE
+                else views.skill_authoring_surface(roster_view, slug, self.spec, self.playbook)
+            )
+            tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
+            raise SquadsError(
+                f"{item_id}'s body renders through its declared {tag} tag, and "
+                f"its content already has one validated authoring surface: {authoring_surface}. "
+                f"{verb} is refused — `--force` does not lift this. Drop the view from "
+                "`[selected]` to author this body directly instead."
+            )
+        if self.spec.item_is_roster(item.type) and item.type not in (
+            ROSTER_ROLE,
+            ROSTER_SKILL,
+            ROSTER_OPERATOR,
+        ):
+            raise SquadsError(f"{item_id} is a {item.type}; its body is generated, not authored")
+
     def _body_mutate(
         self, item_id: str, body: str, *, append: bool, force: bool = False
     ) -> Callable[[str, Item], tuple[str, bool]]:
         """Build the ``mutate(text, item)`` closure :meth:`set_body` applies via the shared
         section-edit core — factored out so the bulk importer's ``body`` op can drive the exact
-        same logic through :meth:`~squads._services._base.ServiceCore._section_edit_core`."""
+        same logic through :meth:`~squads._services._base.ServiceCore._section_edit_core`.
+        :meth:`_reject_unwritable_body` is the first thing the closure asks — see its own
+        docstring for the roster refusal it composes. The prose edit itself — replace, or
+        append onto whatever is there — is applied by the one re-placement routine
+        (:func:`~squads._views.place_view_tags`), which also
+        re-inserts every view tag at its declared position, so this closure never touches a
+        tag's bytes directly."""
         reject_markers(body)
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
-            if item.type == ROSTER_SKILL:
-                slug = item.extra.get(X.SLUG, item.slug)
-                if is_system_skill(slug, self.spec):
-                    raise SquadsError(
-                        f"{item_id} is a system skill; its definition is template-owned and"
-                        " rendered on read (an authored body here would never be shown)"
-                    )
-            elif item.type == ROSTER_ROLE:
-                raise SquadsError(
-                    f"{item_id} is a role; its definition is resolved from the role catalog"
-                    " and rendered on read (an authored body here would never be shown) —"
-                    " declare it in `.overrides/roles.toml`, or in"
-                    " `.overrides/roles/<slug>.toml` for a project-defined role"
-                )
-            elif self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
-                raise SquadsError(
-                    f"{item_id} is a {item.type}; its body is generated, not authored"
-                )
+            self._reject_unwritable_body(item_id, item, append=append)
             current = (sections.get_section(text, markers.BODY) or "").strip("\n")
-            if append:
-                # Append destroys nothing, so it needs no guard and no scaffold distinction —
-                # whatever is there is kept and the new prose follows it.
-                self.store.log("body", item.id, {})
-                new_body = f"{current}\n\n{body}" if current else body
-                return sections.replace_section(text, markers.BODY, new_body), True
-            # Replacing: authored iff there is prose and it is not the template scaffold the
-            # item was created with — see ServiceCore.pristine_body for why that is derived
-            # rather than pattern-matched.
-            authored = bool(current) and current != self.pristine_body(item)
-            if authored and not force:
-                reject_body_overwrite(item.id, current)
+            authored = False
+            if not append:
+                # Replacing: authored iff there is prose (tags stripped from both sides, so a
+                # tag's state or location never by itself makes a body count as authored — see
+                # `reject_body_overwrite`'s own docstring) and it is not the template scaffold
+                # the item was created with (`ServiceCore.pristine_body`). Stripping a tag here
+                # (`views.strip_view_tags`) and placing one (`views.place_view_tags`) are exact
+                # inverses of each other's spacing — a tag never manufactures a blank line the
+                # scaffold didn't already have at that point, and stripping it back out restores
+                # exactly what was there before — so the two sides compare equal on a byte-level
+                # scaffold once the tag's own line is gone, whatever position it was placed at.
+                current_prose = views.strip_view_tags(current).strip()
+                pristine = self.pristine_body(item)
+                pristine_prose = (
+                    views.strip_view_tags(pristine).strip() if pristine is not None else None
+                )
+                authored = bool(current_prose) and current_prose != pristine_prose
+                if authored and not force:
+                    reject_body_overwrite(item.id, current_prose)
+            slug = views.roster_slug(item.type, item.slug, item.extra)
+            addr: int | str = (
+                slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
+            )
+            new_inner = views.place_view_tags(
+                current,
+                body,
+                append=append,
+                seeded=views.seeded_view_names(item.type, slug, self.spec),
+                spec=self.spec,
+                item_type=item.type,
+                addr=addr,
+            )
             # The body ops that destroyed prose are the ones worth finding again later.
             delta: dict[str, object] = (
                 {"replaced_lines": len(current.splitlines())} if authored else {}
             )
             self.store.log("body", item.id, delta)
-            return sections.replace_section(text, markers.BODY, body), True
+            return sections.replace_section(text, markers.BODY, new_inner), True
 
         return mutate
 
@@ -556,19 +629,19 @@ class ItemsMixin(ServiceCore):
         """Set (or ``--append`` to) an item's top-level ``:body`` region — no manual editing.
 
         The body is free-form markdown the agent owns; ``description`` stays a short frontmatter
-        summary. A role's body is rejected here because its definition renders at read time off
-        the ``sq:view:role_definition`` tag its own ``sq:body`` carries (see
-        ``squads._views.expand_view_tags``, via :meth:`read_body`) and nothing would ever show
-        what was written; a system (template-owned) skill's body is rejected for the same reason
-        one document over — its own ``sq:body`` carries a placement tag too (one of
-        :data:`~squads._interactions.SYSTEM_SKILL_VIEW_NAMES` for a permanently-system skill,
-        :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME` for a per-item-type one). A *custom*
-        (author-defined) skill is the one roster-type exception: its body is authored content,
-        and the only place that content lives, so it's admitted.
+        summary. A role's body, a permanently-system skill's, and a per-item-type skill's are
+        refused on both ``--replace`` and ``--append`` whenever ``sq:body`` classifies as
+        rendering one of those (:meth:`_reject_unwritable_body`) — the content already has a
+        declared, validated authoring surface elsewhere. A *custom* (author-defined) skill
+        carries no such classification: its body is authored content, and the only place that
+        content lives, so it's admitted unconditionally, and so is every ordinary item's,
+        ``milestone_rollup`` included.
 
         Replacing an **authored** body is refused unless ``force`` — the write is destructive and
         there is no undo (see :func:`~squads._services._base.reject_body_overwrite`). Writing over
-        the unwritten template scaffold, which is what a first write does, is not affected.
+        the unwritten template scaffold, which is what a first write does, is not affected. The
+        roster refusal is independent of, and checked before, that guard: ``--force``
+        never lifts it.
         """
         mutate = self._body_mutate(item_id, body, append=append, force=force)
         item, _changed = await self._locked_section_edit(item_id, mutate)

@@ -5,6 +5,7 @@ close markers, leaving the marker lines and surrounding agent-authored prose int
 """
 
 import re
+from collections.abc import Callable
 from typing import Any, cast
 
 import yaml
@@ -196,74 +197,77 @@ def append_to_section(text: str, tag: str, snippet: str) -> str:
 # ------------------------------------------------------------------- unpaired markers
 
 
-def insert_unpaired_marker(text: str, region_tag: str, marker_tag: str) -> tuple[str, bool]:
-    """Insert the self-closing marker ``<!-- sq:<marker_tag> -->`` as the last line of
-    *region_tag*'s section, unless a marker for that exact tag already appears somewhere in
-    the section. Returns ``(new_text, inserted)`` — ``inserted`` is ``False``, and *text* is
-    returned unchanged (not merely unchanged in content — the identical object), when the
-    marker was already present: idempotent, never a duplicate.
-
-    Insert-only, and this is the whole of what makes it marker-safe for content that has no
-    closing counterpart to delimit a rewrite (an unpaired tag — see
-    :data:`~squads._models._markers.VIEW`): nothing else in the section is rewritten,
-    reordered or removed, and the position is anchored — immediately before the section's
-    close marker — the one deterministic anchor every caller shares.
-
-    Raises ``KeyError`` when *region_tag*'s section is not present in *text* (mirrors
-    :func:`get_section`/:func:`append_to_section`) — callers translate that into a
-    ``SquadsError`` naming the item and the region.
-    """
-    inner = get_section(text, region_tag)
-    if inner is None:
-        raise KeyError(f"section {region_tag!r} not found")
-    if markers.open_marker(marker_tag) in inner:
-        return text, False
-    return append_to_section(text, region_tag, markers.open_marker(marker_tag)), True
-
-
-def remove_unpaired_marker(text: str, region_tag: str, marker_tag: str) -> tuple[str, bool]:
-    """Remove **every** occurrence of the self-closing marker ``<!-- sq:<marker_tag> -->``
-    from *region_tag*'s section. Returns ``(new_text, removed)`` — ``removed`` is ``False``,
-    and *text* is returned unchanged, when the marker was absent entirely: a safe no-op, never
-    an error.
-
-    Removing every occurrence, not just the first, is the point: a caller reporting the marker
-    "removed" must mean it is actually gone, not that one of several duplicate copies was —
-    a duplicate is a state ``sq check`` reports and this is its repair path. Each occurrence
-    absorbs exactly the one adjacent newline it owns so no blank line is left behind; a
-    *different* marker of this same family (e.g. a second view tag under another name) and
-    every other byte of the section survive untouched.
-
-    **Splices directly into *text*, never through :func:`replace_section`.** That primitive's
-    newline-normalising rewrite (prepending/appending a ``\\n`` so replacement content is
-    delimited on its own lines) is right for a caller replacing a region's *content* wholesale,
-    but wrong here: this function's own promise is that every other byte of the section
-    survives verbatim, including a region whose inner content neither begins nor ends with a
-    newline — a shape squads itself never writes (every write path already goes through
-    :func:`replace_section` at least once) but an adopted corpus can carry.
-
-    Raises ``KeyError`` when *region_tag*'s section is not present in *text* (mirrors
-    :func:`get_section`/:func:`append_to_section`).
-    """
-    o, c = markers.open_marker(region_tag), markers.close_marker(region_tag)
-    oi = text.find(o)
-    start = oi + len(o) if oi != -1 else -1
-    ci = text.find(c, start) if start != -1 else -1
-    if oi == -1 or ci == -1:
-        raise KeyError(f"section {region_tag!r} not found")
-    inner = text[start:ci]
-    marker = markers.open_marker(marker_tag)
-    removed = False
-    idx = inner.find(marker)
-    while idx != -1:
-        end = idx + len(marker)
-        if inner[end : end + 1] == "\n":
-            end += 1
-        elif inner[:idx].endswith("\n"):
-            idx -= 1
-        inner = inner[:idx] + inner[end:]
-        removed = True
-        idx = inner.find(marker)
+def strip_marker_lines(text: str, keep: Callable[[str], bool]) -> tuple[str, list[str]]:
+    """*text* with every well-formed marker whose raw tag fails *keep* removed, never rewriting
+    a prose character. A marker alone on its own line takes the whole line, collapsing its
+    flanking newlines the way a deleted line would; one sharing a line with prose loses only
+    itself and the whitespace touching it. Several lone-line markers in a row are removed
+    together, against only the true outer flank, so collapsing one never leaks into the next."""
+    removed: list[str] = []
+    result = text
+    while True:
+        spans = iter_marker_spans(result)
+        idx = next((i for i, span in enumerate(spans) if not keep(span[0])), None)
+        if idx is None:
+            break
+        raw, start, end = spans[idx]
+        line_start = result.rfind("\n", 0, start) + 1
+        next_nl = result.find("\n", end)
+        line_end = next_nl if next_nl != -1 else len(result)
+        alone = not result[line_start:start].strip() and not result[end:line_end].strip()
+        if not alone:
+            result = _strip_shared_line_marker(result, start, end)
+            removed.append(raw)
+            continue
+        run_raw = [raw]
+        run_line_end = line_end
+        for nraw, nstart, nend in spans[idx + 1 :]:
+            if keep(nraw) or result[run_line_end:nstart].strip("\n"):
+                break
+            n_line_start = result.rfind("\n", 0, nstart) + 1
+            n_next_nl = result.find("\n", nend)
+            n_line_end = n_next_nl if n_next_nl != -1 else len(result)
+            if result[n_line_start:nstart].strip() or result[nend:n_line_end].strip():
+                break
+            run_raw.append(nraw)
+            run_line_end = n_line_end
+        result = _strip_lone_line(result, line_start, run_line_end)
+        removed.extend(run_raw)
     if not removed:
-        return text, False
-    return text[:start] + inner + text[ci:], True
+        return text, []
+    return result, removed
+
+
+def _strip_lone_line(result: str, start: int, end: int) -> str:
+    """Remove *result*'s ``[start, end)`` span — one lone-line marker, or a whole chain's first
+    and last line together — collapsing its flanking newlines the way a plain deleted line
+    would, with no padding at *result*'s own edges."""
+    lead = 0
+    while lead < 2 and start - lead - 1 >= 0 and result[start - lead - 1] == "\n":
+        lead += 1
+    trail = 0
+    while trail < 2 and result[end + trail : end + trail + 1] == "\n":
+        trail += 1
+    if lead == 0 or trail == 0:
+        keep_n = 0
+    elif lead == 2 or trail == 2:
+        keep_n = 2
+    else:
+        keep_n = 1
+    return result[: start - lead] + ("\n" * keep_n) + result[end + trail :]
+
+
+def _strip_shared_line_marker(result: str, start: int, end: int) -> str:
+    """Remove *result*'s ``[start, end)`` marker — sharing its line with prose, per
+    :func:`strip_marker_lines` — together with the one contiguous run of spaces/tabs directly
+    touching it on whichever side has one (trailing preferred), never a newline and never the
+    other side's whitespace."""
+    trailing_ws = 0
+    while result[end + trailing_ws : end + trailing_ws + 1] in (" ", "\t"):
+        trailing_ws += 1
+    if trailing_ws:
+        end += trailing_ws
+    else:
+        while start > 0 and result[start - 1] in (" ", "\t"):
+            start -= 1
+    return result[:start] + result[end:]

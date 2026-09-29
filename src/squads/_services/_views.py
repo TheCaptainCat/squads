@@ -10,69 +10,125 @@ so a resolve-and-render call costs one index load, matching ``sq tree``/``sq blo
 from squads import _sections as sections
 from squads import _views as views
 from squads._errors import SquadsError
-from squads._index._resolver import require_item
+from squads._index._resolver import item_file, require_item
 from squads._models import _markers as markers
 from squads._models._item import Item
+from squads._paths import number_for_id
 from squads._services._base import ServiceCore
-from squads._workflow._models import ViewSpec
+from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, ViewSpec
 
 
 class ViewsMixin(ServiceCore):
-    async def insert_view(self, item_id: str, name: str) -> bool:
-        """Insert the ``sq:view:<name>`` tag into *item_id*'s ``sq:body`` region — the
-        placement verb's insert direction. Anchored at the region's end,
-        insert-only, idempotent: a body already carrying the tag is left unchanged and this
-        returns ``False`` (already present) rather than duplicating it.
+    async def view_tag_state(self, item_id: str, name: str) -> bool | None:
+        """Whether *item_id*'s ``sq:body`` carries *name*'s tag disabled, enabled only, absent,
+        or conflicting (``None`` for the last two) — reads the raw region, never expanded, so
+        an empty-body hint can tell "disabled" apart from "genuinely absent". Never a gate."""
+        item = await self.get(item_id)
+        text = await self._read_item_file(item, item_file(self.paths, item))
+        region = sections.get_section(text, markers.BODY) or ""
+        states = views.view_tag_states(region, name)
+        return next(iter(states)) if len(states) == 1 else None
 
-        Refuses (:class:`SquadsError`) placing a tag that could not resolve when read back —
-        *name* undeclared, its presentation template missing, or its declared source unable to
-        apply to *item_id*'s own type — through the one predicate
-        (:func:`~squads._views.resolve_view_target`) ``sq check``'s file-scan finding reports
-        the same failure through, asked once inside the locked edit (where *item_id*'s real
-        type is already in hand) rather than a second question of its own. The door is not the
-        only way to reach that state — retype, or a later spec edit narrowing what a type
-        hosts, both can too — so refusing here narrows what a *fresh* placement can create;
-        it is not the corpus-wide guarantee. Also refuses an item whose file carries no
-        ``sq:body`` region, rather than crashing or half-writing.
-        """
-        tag = markers.view_tag(name)
+    async def view_tag_present(self, item_id: str, name: str) -> bool:
+        """Whether *item_id*'s ``sq:body`` carries *name*'s tag at all, in any state — unlike
+        :meth:`view_tag_state`, which collapses "absent" and "conflicting" into one ``None``.
+        The CLI reads this first, so it can say "placed" rather than "disabled" for a name
+        with no prior tag."""
+        item = await self.get(item_id)
+        text = await self._read_item_file(item, item_file(self.paths, item))
+        region = sections.get_section(text, markers.BODY) or ""
+        return bool(views.view_tag_states(region, name))
+
+    async def add_view(self, item_id: str, name: str) -> bool:
+        """Place the ``sq:view:<name>`` tag on *item_id*, enabled, or re-enable it if disabled
+        — the ``view add`` verb, idempotent against an already-single-enabled tag. Refuses
+        when *name* cannot resolve for this host's type. A roster host with no ``sq:body``
+        region gets it reinstated first when that's safe; otherwise the same refusal as any
+        other host with no region."""
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
             reason = views.resolve_view_target(name, item.type, self.spec, self.playbook)
             if reason is not None:
                 raise SquadsError(reason)
-            try:
-                return sections.insert_unpaired_marker(text, markers.BODY, tag)
-            except KeyError as exc:
-                raise SquadsError(
-                    f"{item_id} has no sq:body region; a view tag cannot be placed on it"
-                ) from exc
+            reinstating = False
+            if sections.get_section(text, markers.BODY) is None:
+                reinstated = (
+                    views.reinstate_absent_body_region(text)
+                    if item.type in (ROSTER_ROLE, ROSTER_SKILL)
+                    else None
+                )
+                if reinstated is None:
+                    raise SquadsError(
+                        f"{item_id} has no sq:body region; a view tag cannot be placed on it"
+                    )
+                text = reinstated
+                reinstating = True
+            current = sections.get_section(text, markers.BODY) or ""
+            # A reinstated region always counts as changed, even when the tag it turns out to
+            # already carry is exactly the one this call would have placed — the wrapper itself
+            # is new, and the caller (`_section_edit_core`) never rewrites the file at all when
+            # `changed` is False, which would silently discard the reinstatement.
+            if not reinstating and views.view_tag_settled(current, name, disabled=False):
+                return text, False
+            slug = views.roster_slug(item.type, item.slug, item.extra)
+            addr: int | str = (
+                slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
+            )
+            new_inner = views.place_view_tags(
+                current,
+                None,
+                seeded=views.seeded_view_names(item.type, slug, self.spec),
+                spec=self.spec,
+                item_type=item.type,
+                addr=addr,
+                force=(name, False),
+            )
+            return sections.replace_section(text, markers.BODY, new_inner), True
 
         _, inserted = await self._locked_section_edit(item_id, mutate)
         return inserted
 
-    async def remove_view(self, item_id: str, name: str) -> bool:
-        """Remove the ``sq:view:<name>`` tag from *item_id*'s ``sq:body`` region — the
-        placement verb's remove direction. Removes only that tag; every other byte
-        of the body — prose, any other view tag, any other marker — survives verbatim.
-
-        Removing an absent tag is a safe no-op (returns ``False``), never an error. No
-        name-resolution check runs here: taking a tag off a document must keep working even
-        for a view the spec no longer declares — that is the repair path for exactly that
-        case, not a place to refuse it.
-        """
-        tag = markers.view_tag(name)
+    async def disable_view(self, item_id: str, name: str) -> bool:
+        """Turn *item_id*'s ``sq:view:<name>`` tag disabled, or place it disabled if absent —
+        the ``view disable`` verb, ungated (no name-resolution check), since it is the one
+        recovery for a dangling or inapplicable tag; there is no ``view rm``. Same region
+        reinstatement as :meth:`add_view` for a roster host with no ``sq:body`` region."""
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
-            try:
-                return sections.remove_unpaired_marker(text, markers.BODY, tag)
-            except KeyError as exc:
-                raise SquadsError(
-                    f"{item_id} has no sq:body region; a view tag cannot be removed from it"
-                ) from exc
+            reinstating = False
+            if sections.get_section(text, markers.BODY) is None:
+                reinstated = (
+                    views.reinstate_absent_body_region(text)
+                    if item.type in (ROSTER_ROLE, ROSTER_SKILL)
+                    else None
+                )
+                if reinstated is None:
+                    raise SquadsError(
+                        f"{item_id} has no sq:body region; a view tag cannot be disabled on it"
+                    )
+                text = reinstated
+                reinstating = True
+            current = sections.get_section(text, markers.BODY) or ""
+            # See `add_view`'s matching comment: a reinstated region always counts as changed.
+            if not reinstating and views.view_tag_settled(current, name, disabled=True):
+                return text, False
+            slug = views.roster_slug(item.type, item.slug, item.extra)
+            addr: int | str = (
+                slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
+            )
+            new_inner = views.place_view_tags(
+                current,
+                None,
+                seeded=views.seeded_view_names(item.type, slug, self.spec),
+                spec=self.spec,
+                item_type=item.type,
+                addr=addr,
+                force=(name, True),
+            )
+            return sections.replace_section(text, markers.BODY, new_inner), True
 
-        _, removed = await self._locked_section_edit(item_id, mutate)
-        return removed
+        _, disabled = await self._locked_section_edit(item_id, mutate)
+        return disabled
 
     async def resolve_view_source(
         self, view_name: str, item_id: str

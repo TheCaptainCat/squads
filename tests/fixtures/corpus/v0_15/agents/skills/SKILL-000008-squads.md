@@ -20,7 +20,5 @@ id_padding: 6
 schema_version: '0.5'
 ---
 <!-- sq:body -->
-# Squads skill
-
-How to track work on this project with the squads CLI.
+<!-- sq:view:squads_skill -->
 <!-- sq:body:end -->

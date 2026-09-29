@@ -22,7 +22,5 @@ id_padding: 6
 schema_version: '0.5'
 ---
 <!-- sq:body -->
-# Greeting skill
-
-Detect and greet the operator at the start of a conversation.
+<!-- sq:view:greeting_skill -->
 <!-- sq:body:end -->

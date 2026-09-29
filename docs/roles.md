@@ -121,8 +121,10 @@ sq skill deploy-runbook status Archived [--force] [--unlink]   # transition its 
 sq skill deploy-runbook rm [--purge]
 ```
 
-A generated skill's body is not yours to write — `body` refuses one, because `sq sync` would discard
-the edit. Author the skills you add; leave the generated ones to `sq`.
+A generated skill's body is not yours to write — `body` refuses one, replace and append alike,
+because its content already comes from the playbook overrides or its view's template override. Author
+the skills you add; leave the generated ones to `sq`. To write a generated skill's body yourself, see
+[overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
 
 ## Operators (humans)
 

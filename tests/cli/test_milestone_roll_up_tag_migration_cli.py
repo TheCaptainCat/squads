@@ -1,7 +1,5 @@
-"""CLI smoke test for the schema 0.14 -> 0.15 migration, through the real ``sq migrate up``
-entry point: a milestone created before this change gets its roll-up tag, the run reports how
-many bodies it touched, and the command exits clean.
-"""
+"""CLI smoke test, through ``sq migrate up``: a milestone predating the roll-up tag gets it
+seeded, the run reports the changed count, and the command exits clean."""
 
 import re
 import tomllib
@@ -10,21 +8,27 @@ import pytest
 
 from squads import _aio
 from squads._models import _markers as markers
-from squads._sections import get_section, remove_unpaired_marker
+from squads._sections import get_section, replace_section, strip_marker_lines
 
 pytestmark = pytest.mark.anyio
 
 _TAG = markers.view_tag("milestone_rollup")
 
 
+def _strip_tag_from_body(text: str) -> str:
+    """Remove the roll-up tag from *text*'s ``sq:body`` region, so it reads like a body written
+    before this migration (or the tag's own placement) ever existed."""
+    region = get_section(text, markers.BODY) or ""
+    stripped_region, removed = strip_marker_lines(region, lambda raw: raw != f"sq:{_TAG}")
+    assert removed
+    return replace_section(text, markers.BODY, stripped_region)
+
+
 async def _strip_tag_and_downgrade(project) -> None:
-    # The one milestone this module ever creates per test — glob rather than compute the
-    # padded filename, so this stays decoupled from the id-formatting internals.
     folder = project.squad_dir / "milestones"
     (path,) = folder.glob("*.md")
     text = await _aio.read_text(path)
-    stripped, removed = remove_unpaired_marker(text, markers.BODY, _TAG)
-    assert removed
+    stripped = _strip_tag_from_body(text)
     await _aio.write_text(path, stripped)
 
     cfg_text = await _aio.read_text(project.config_path)
@@ -60,7 +64,6 @@ async def test_migrate_up_on_a_milestone_already_tagged_prints_no_changed_count(
     r = await invoke(["create", "milestone", "Already tagged", "--author", "manager"])
     assert r.exit_code == 0, r.output
 
-    # Downgrade the schema only — leave the freshly-seeded tag in place.
     cfg_text = await _aio.read_text(project.config_path)
     cfg_text = cfg_text.replace(
         f'schema_version = "{project.config.schema_version}"', 'schema_version = "0.14"'
@@ -76,8 +79,7 @@ async def test_migrate_up_on_a_milestone_already_tagged_prints_no_changed_count(
 async def test_migrate_up_skips_a_damaged_milestone_by_id_and_still_reaches_current(
     project, invoke
 ) -> None:
-    """A milestone this pass cannot safely act on no longer takes the whole run down with it —
-    it is named by id in the output, and every ordinary command still works afterwards."""
+    """A milestone the pass cannot safely act on is named by id, not aborted."""
     healthy = await invoke(["create", "milestone", "Healthy one", "--author", "manager"])
     assert healthy.exit_code == 0, healthy.output
     damaged = await invoke(["create", "milestone", "Damaged one", "--author", "manager"])
@@ -86,7 +88,7 @@ async def test_migrate_up_skips_a_damaged_milestone_by_id_and_still_reaches_curr
 
     folder = project.squad_dir / "milestones"
     (damaged_path,) = [p for p in folder.glob("*.md") if "damaged" in p.name]
-    damaged_path.unlink()  # the missing-indexed-file shape
+    damaged_path.unlink()
 
     cfg_text = await _aio.read_text(project.config_path)
     cfg_text = cfg_text.replace(
@@ -96,9 +98,6 @@ async def test_migrate_up_skips_a_damaged_milestone_by_id_and_still_reaches_curr
 
     r = await invoke(["migrate", "up"])
 
-    # The healthy milestone already carries its tag from creation (the template seeds it
-    # unconditionally) — nothing to change for it, so this run's own count is 0; the point of
-    # this test is that a damaged sibling does not take the run down with it.
     assert r.exit_code == 0, r.output
     assert damaged_id in r.output, r.output
     assert "skipped" in r.output.lower(), r.output
@@ -112,9 +111,7 @@ async def test_migrate_up_skips_a_damaged_milestone_by_id_and_still_reaches_curr
 async def test_migrate_up_skips_a_tag_moved_outside_the_body_region_check_stays_clean(
     project, invoke
 ) -> None:
-    """Inserting a second, in-region copy alongside one an author moved outside ``sq:body``
-    would duplicate it — the exact regression a byte-count assertion would miss. The only proof
-    that matters is ``sq check`` staying clean once the run completes."""
+    """A tag moved outside ``sq:body`` is not duplicated, and ``sq check`` stays clean."""
     r = await invoke(["create", "milestone", "Moved tag", "--author", "manager"])
     assert r.exit_code == 0, r.output
     moved_id = re.findall(r"MILE-\d+", r.output)[0]
@@ -122,8 +119,7 @@ async def test_migrate_up_skips_a_tag_moved_outside_the_body_region_check_stays_
     folder = project.squad_dir / "milestones"
     (path,) = folder.glob("*.md")
     text = await _aio.read_text(path)
-    stripped, removed = remove_unpaired_marker(text, markers.BODY, _TAG)
-    assert removed
+    stripped = _strip_tag_from_body(text)
     moved = stripped.replace("## Discussion", f"{markers.open_marker(_TAG)}\n\n## Discussion", 1)
     assert moved != stripped
     await _aio.write_text(path, moved)
@@ -139,6 +135,8 @@ async def test_migrate_up_skips_a_tag_moved_outside_the_body_region_check_stays_
     assert result.exit_code == 0, result.output
     assert moved_id in result.output, result.output
     assert "skipped" in result.output.lower(), result.output
+    assert "needs none of this" not in result.output
+    assert "delete the outside line" in result.output
     assert (await _aio.read_text(path)).count(markers.open_marker(_TAG)) == 1
 
     with project.config_path.open("rb") as fh:

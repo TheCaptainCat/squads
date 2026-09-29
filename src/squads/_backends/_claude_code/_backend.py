@@ -23,6 +23,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
+from squads._views import place_view_tags
 from squads._workflow import ROSTER_SKILL
 
 _AGENTS = "agents"
@@ -193,11 +194,11 @@ class ClaudeCodeBackend(AgentBackend):
         # the convention name right after and rewrites the pointer.
         from squads._workflow import bundled_spec
 
+        spec = ctx.spec if ctx.spec is not None else bundled_spec()
         resolved = ctx.skill_paths.get(name)
         if resolved is not None:
             body_path: Path = resolved
         else:
-            spec = ctx.spec if ctx.spec is not None else bundled_spec()
             body_path = ctx.squad_dir / spec.items[ROSTER_SKILL].folder / f"{name}.md"
         await _aio.mkdir(body_path.parent, parents=True, exist_ok=True)
 
@@ -206,10 +207,23 @@ class ClaudeCodeBackend(AgentBackend):
         # gates body_tag on spec.views before calling this method, so the tag is seeded only
         # for a declared view — an undeclared one reaches here as None and this writes an
         # empty, untagged region instead (the same quiet state _repair_body_tag already
-        # produces for a dropped view).
-        inner = f"\n{markers.open_marker(markers.view_tag(body_tag))}\n" if body_tag else "\n"
-        seed_body = (
-            f"{markers.open_marker(markers.BODY)}{inner}{markers.close_marker(markers.BODY)}\n"
+        # produces for a dropped view). Placed through the one re-placement routine every other
+        # writer of a ``sq:body`` region drives (:func:`~squads._views.place_view_tags`), over
+        # an empty starting region and no prose edit, so this seed is never a second spelling of
+        # placement — :func:`~squads._sections.replace_section`'s own newline padding then gives
+        # the empty shell the region back exactly as any other writer's would.
+        placed = place_view_tags(
+            "",
+            None,
+            seeded=frozenset({body_tag}) if body_tag else frozenset(),
+            spec=spec,
+            item_type=ROSTER_SKILL,
+            addr=name,
+        )
+        seed_body = sections.replace_section(
+            f"{markers.open_marker(markers.BODY)}{markers.close_marker(markers.BODY)}\n",
+            markers.BODY,
+            placed,
         )
 
         if await _aio.path_exists(body_path):

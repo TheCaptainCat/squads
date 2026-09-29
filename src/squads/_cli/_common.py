@@ -431,6 +431,25 @@ def e(value: object) -> str:
     return escape(str(value))
 
 
+def view_disable_result_message(
+    item_id: str, name: str, *, was_present: bool, changed: bool
+) -> str:
+    """The ``view disable`` verb's one print line, worded for what actually happened rather
+    than a single static "disabled" for every ``changed=True`` outcome. ``disable_view`` is
+    ungated (any name, declared or not) and collapses three different prior shapes into one
+    write: a genuinely absent tag gets *placed*, freshly, disabled; an enabled tag gets *turned*
+    off; a conflicting pair *collapses* into the single disabled copy it settles on. Only the
+    first of those is not, in any sense, a disable — nothing was there to disable — so
+    ``was_present`` (read by the caller, via :meth:`~squads._services._views.ViewsMixin
+    .view_tag_present`, before the write that would change the answer) is what tells that shape
+    apart from the other two, which both still read as "disabled" correctly."""
+    if not changed:
+        return f"{item_id}: view {e(name)} already disabled, unchanged"
+    if not was_present:
+        return f"{item_id}: view {e(name)} had no existing tag — placed disabled in sq:body"
+    return f"{item_id}: view {e(name)} disabled in sq:body"
+
+
 #: Concrete `rich` colour per semantic colour intent (the closed palette declared as
 #: ``squads._workflow._models.COLOR_INTENTS``) — the CLI's own per-client rendering of the
 #: role's colour axis: colour is single-sourced as an intent in the spec, mapped to a
@@ -691,7 +710,7 @@ def _render_body(body_text: str, *, styled: bool, empty_hint: str | None = None)
             console.print(body_text, markup=False, highlight=False)
     else:
         hint = empty_hint if empty_hint is not None else "(empty — set it with `body`)"
-        console.print(f"[dim]{hint}[/dim]")
+        console.print(f"[dim]{e(hint)}[/dim]")
 
 
 def render_body_text(body_text: str, *, raw: bool = False, empty_hint: str | None = None) -> None:

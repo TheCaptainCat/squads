@@ -599,6 +599,23 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["extra"] = item.extra
 
 
+def slug_from_stem(stem: str, prefix: str) -> str:
+    """Derive a filename stem's slug segment (``PREFIX-NNNNNN-<slug>`` -> ``<slug>``) given an
+    already-resolved *prefix* — the one primitive both :func:`_slug_from_path` (below, prefix
+    from the frontmatter ``id``) and ``_services._maintenance._stem_slug`` (prefix from the
+    file's own type folder, read before frontmatter ever parses) share, so a hand-renamed
+    skill's slug is derived by the identical string surgery regardless of which caller's prefix
+    source it agrees or disagrees with — see :func:`_slug_from_path`'s own docstring for which
+    one wins when they diverge. Falls back to the bare stem (never a corrupt front-hyphen
+    split) when *prefix* is empty or the stem doesn't actually start with it (a legacy or
+    hand-edited file)."""
+    if not prefix or not stem.startswith(f"{prefix}-"):
+        return stem
+    remainder = stem.removeprefix(f"{prefix}-")
+    _digit_run, sep, slug = remainder.partition("-")
+    return slug if sep else stem
+
+
 def _slug_from_path(path: str, item_id: str | None) -> str:
     """Derive the filename's slug segment (``PREFIX-NNNNNN-<slug>.md`` -> ``<slug>``).
 
@@ -609,14 +626,19 @@ def _slug_from_path(path: str, item_id: str | None) -> str:
     hyphens from the front — the same shape as ``_services._maintenance._scan_records``.
     Falls back to the bare stem (never a corrupt front-hyphen split) when *item_id* is
     missing or the stem doesn't actually start with its prefix (a legacy/hand-edited file).
+
+    **Which source wins on a hand-renamed skill file.** This function's prefix
+    comes from *item_id* — the frontmatter's own declared identity. The file-level check tier
+    (``_services._maintenance._stem_slug``) cannot read frontmatter yet when it asks the same
+    question (it runs before ``read_frontmatter``), so its prefix comes from the file's type
+    *folder* instead. The two agree on every file ``sq`` itself writes. They can disagree only
+    when a skill's ``extra.slug`` is set to something the filename does not spell — the write
+    path (which reads ``extra.slug`` when present) and this function then answer differently,
+    and the check tier, never reading ``extra`` at all, answers by the filename alone.
     """
     name = path.rsplit("/", 1)[-1].removesuffix(".md")
     prefix = prefix_from_id(item_id) if item_id else ""
-    if not prefix or not name.startswith(f"{prefix}-"):
-        return name
-    remainder = name.removeprefix(f"{prefix}-")
-    _digit_run, sep, slug = remainder.partition("-")
-    return slug if sep else name
+    return slug_from_stem(name, prefix)
 
 
 def _parse_dt(value: object) -> Any:
