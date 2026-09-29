@@ -11,7 +11,7 @@ from squads._errors import SquadsError
 from squads._interactions import bundled_skill_slugs, custom_skill_slugs
 from squads._models._item import Item
 from squads._models._vocab import prefix_for
-from squads._services._duplicate_ids import file_slug, normalized_id
+from squads._services._duplicate_ids import CarrierLog, file_slug, normalized_id
 from squads._workflow import ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
 
@@ -152,6 +152,24 @@ class SkillFolder:
         if rivals:
             return Verdict("blocked", f"{rivals[0]} also claims skill slug {slug!r}")
         return None
+
+
+@dataclass
+class SkillScan:
+    """What one scan has learned about the skill folder. Made by the call that scans and passed
+    down it; never kept on the service."""
+
+    texts: dict[Path, str] | None = None
+    items: list[Item] | None = None
+    state: SkillFolder | None = None
+
+
+@dataclass
+class ScanContext:
+    """Everything one ``check``, ``repair`` or restamp pass shares between its steps."""
+
+    carriers: CarrierLog = field(default_factory=CarrierLog)
+    skills: SkillScan = field(default_factory=SkillScan)
 
 
 def remedy_text(verdict: Verdict | None) -> str:

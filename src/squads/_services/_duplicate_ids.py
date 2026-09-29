@@ -53,43 +53,33 @@ def duplicate_groups(pairs: Iterable[tuple[object, Path]]) -> dict[str, list[Pat
     return {key: sorted(files) for key, files in groups.items() if len(files) > 1}
 
 
-class IdCarrierCache:
-    """The id each item file carries, re-read only for files that are new or whose size or
-    modification time changed, so the write guard costs a directory listing and a stat per
-    file rather than a read."""
-
-    def __init__(self) -> None:
-        self._seen: dict[Path, tuple[int, int, str | None]] = {}
-
-    async def groups(self, files: Iterable[Path]) -> dict[str, list[Path]]:
-        """The duplicate groups among *files*, by the same rule the detector uses."""
-        current = set(files)
-        for gone in set(self._seen) - current:
-            del self._seen[gone]
-        pairs: list[tuple[object, Path]] = []
-        for md in sorted(current):
-            try:
-                st = md.stat()
-            except OSError:
-                continue
-            known = self._seen.get(md)
-            if known is None or known[:2] != (st.st_mtime_ns, st.st_size):
-                known = (st.st_mtime_ns, st.st_size, await self._read_id(md))
-                self._seen[md] = known
-            if known[2] is not None:
-                pairs.append((known[2], md))
-        return duplicate_groups(pairs)
-
-    @staticmethod
-    async def _read_id(md: Path) -> str | None:
-        try:
-            fid = sections.split_frontmatter(await _aio.read_text(md))[0].get("id")
-        except (OSError, SquadsError):  # fmt: skip
-            return None
-        return normalized_id(fid)
+_NAME_NUMBER = re.compile(r"^.+?-(\d+)(?:-|\.md$)")
 
 
-# --------------------------------------------------------------------------- repair --renumber
+def name_number(name: str) -> int | None:
+    """The sequence number a file name carries (``<PREFIX>-000022-alpha.md`` -> 22), whatever its
+    prefix, or ``None`` when the name carries none."""
+    m = _NAME_NUMBER.match(name)
+    return int(m[1]) if m else None
+
+
+async def read_id(md: Path) -> str | None:
+    """The normalized id in *md*'s frontmatter, or ``None`` when it has none or is unreadable."""
+    try:
+        fid = sections.split_frontmatter(await _aio.read_text(md))[0].get("id")
+    except (OSError, SquadsError):  # fmt: skip
+        return None
+    return normalized_id(fid)
+
+
+async def groups_among(files: Iterable[Path]) -> dict[str, list[Path]]:
+    """The duplicate groups among *files*, reading every one of them."""
+    pairs: list[tuple[object, Path]] = []
+    for md in sorted(files):
+        fid = await read_id(md)
+        if fid is not None:
+            pairs.append((fid, md))
+    return duplicate_groups(pairs)
 
 
 @dataclass

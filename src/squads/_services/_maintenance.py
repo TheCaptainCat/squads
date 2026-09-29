@@ -85,7 +85,9 @@ from squads._services._results import (
 from squads._services._skill_files import (
     RESOLVE_CONFLICT_REMEDY,
     RESTAMP_BLOCKED_REMEDY,
+    ScanContext,
     SkillFolder,
+    SkillScan,
     managed_skill_slugs,
     remedy_text,
     stamped_skill_parts,
@@ -957,13 +959,6 @@ def _fold_stem_into_floor(
 
 
 class MaintenanceMixin(ServiceCore):
-    #: The skill folder as one scan saw it; reset at the start of each scan and restamp pass.
-    _skill_state: SkillFolder | None = None
-    #: The skill files ``check`` read up front, so its scan and its remedies share one read.
-    _skill_texts: dict[Path, str] | None = None
-    #: The skill items ``check`` already loaded with the index, so its remedies load nothing.
-    _skill_items: list[Item] | None = None
-
     # ------------------------------------------------------------------ sync
     async def sync(self) -> SyncSkips:
         """Regenerate all tool-owned managed files to the current version, and stamp the
@@ -1277,22 +1272,21 @@ class MaintenanceMixin(ServiceCore):
             extra={X.SLUG: slug},
         )
 
-    async def _skill_folder_state(self) -> SkillFolder:
+    async def _skill_folder_state(self, scan: SkillScan) -> SkillFolder:
         """The skill folder's files and who carries which id and slug; built once per scan and
         given the index's skill items only if some file could be restamped."""
-        if self._skill_state is not None:
-            return self._skill_state
-        texts = {md.name: text for md, text in (await self._read_skill_texts()).items()}
-        state = SkillFolder.build(texts, self.spec)
-        if state.needs_index:
-            state = state.with_index(await self._indexed_skills())
-        self._skill_state = state
-        return state
+        if scan.state is None:
+            texts = {md.name: text for md, text in (await self._read_skill_texts(scan)).items()}
+            state = SkillFolder.build(texts, self.spec)
+            if state.needs_index:
+                state = state.with_index(await self._indexed_skills(scan))
+            scan.state = state
+        return scan.state
 
-    async def _read_skill_texts(self) -> dict[Path, str]:
-        """The stamped skill files' text: what ``check`` already read, else read now."""
-        if self._skill_texts is not None:
-            return self._skill_texts
+    async def _read_skill_texts(self, scan: SkillScan) -> dict[Path, str]:
+        """The stamped skill files' text: what this scan already read, else read now."""
+        if scan.texts is not None:
+            return scan.texts
         folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
         texts: dict[Path, str] = {}
         if folder.is_dir():
@@ -1301,29 +1295,30 @@ class MaintenanceMixin(ServiceCore):
                     texts[md] = await _aio.read_text(md)
         return texts
 
-    async def _scan_text(self, md: Path) -> str:
+    @staticmethod
+    async def _scan_text(md: Path, scan: SkillScan) -> str:
         """A file's text for the ``check`` scan: the up-front skill read if it has one."""
-        cached = self._skill_texts.get(md) if self._skill_texts else None
+        cached = scan.texts.get(md) if scan.texts else None
         return cached if cached is not None else await _aio.read_text(md)
 
-    async def _indexed_skills(self) -> list[Item]:
+    async def _indexed_skills(self, scan: SkillScan | None = None) -> list[Item]:
         """The skill items the index holds, or none when there is no readable index -- the
         restamp treats the index as a hint and never needs it."""
-        if self._skill_items is not None:
-            return self._skill_items
+        if scan is not None and scan.items is not None:
+            return scan.items
         if not self.store.exists():
             return []
         with contextlib.suppress(SquadsError):
             return await self.list_items(item_type=ROSTER_SKILL)
         return []
 
-    async def _skill_remedy(self, md: Path, item_type: str) -> str | None:
+    async def _skill_remedy(self, md: Path, item_type: str, scan: SkillScan) -> str | None:
         """The remedy a report line gives for a stamped managed-skill file, else ``None``."""
         if item_type != ROSTER_SKILL or stamped_skill_slug(md, self.spec) not in (
             managed_skill_slugs(self.spec)
         ):
             return None
-        return remedy_text((await self._skill_folder_state()).verdict(md.name, self.spec))
+        return remedy_text((await self._skill_folder_state(scan)).verdict(md.name, self.spec))
 
     async def _id_carriers(self, log: CarrierLog | None = None) -> list[tuple[object, Path]]:
         """``(frontmatter id, file)`` for every item file whose frontmatter parses and has an
@@ -1349,10 +1344,10 @@ class MaintenanceMixin(ServiceCore):
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
         return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
 
-    async def _missing_id_message(self, md: Path, item_type: str) -> str:
+    async def _missing_id_message(self, md: Path, item_type: str, scan: SkillScan) -> str:
         """The "no ``id``" report line; a stamped managed-skill file also names the remedy that
         works for its state."""
-        remedy = await self._skill_remedy(md, item_type)
+        remedy = await self._skill_remedy(md, item_type, scan)
         msg = "file has no `id` in frontmatter"
         return SelfRemedied(f"{msg}; {remedy}") if remedy else msg
 
@@ -1373,10 +1368,7 @@ class MaintenanceMixin(ServiceCore):
         another file's id or slug already claims is reported, not written; a merge conflict
         that reaches past the frontmatter refuses the sync. Returns the numbers restamped and
         one report line per file left alone."""
-        self._skill_state = None
-        self._skill_texts = None
-        state = await self._skill_folder_state()
-        self._skill_state = None
+        state = await self._skill_folder_state(SkillScan())
         folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
         restamped: list[int] = []
         skipped: list[str] = []
@@ -2137,6 +2129,7 @@ class MaintenanceMixin(ServiceCore):
         item_type: str,
         max_n: int,
         max_filename_width: int,
+        scan: SkillScan,
     ) -> tuple[int, int]:
         """A file whose frontmatter parsed but carries no ``id`` — the third-state treatment
         (:meth:`_report_third_state`), except for a pre-migration skill body file, which
@@ -2150,7 +2143,7 @@ class MaintenanceMixin(ServiceCore):
             known_corpus,
             md,
             item_type,
-            await self._missing_id_message(md, item_type),
+            await self._missing_id_message(md, item_type, scan),
             max_n,
             max_filename_width,
         )
@@ -2380,7 +2373,7 @@ class MaintenanceMixin(ServiceCore):
         # default ref kinds must fail as one clean refusal naming the spec, never be
         # caught and mis-reported as N separate "unreadable file" issues.
         default_kind = self.spec.default_ref_kind()
-        self._skill_state = None
+        skills = SkillScan()
         duplicated = await self._duplicated_files()
         for item_type, md in self._iter_item_files():
             if md in duplicated:
@@ -2409,7 +2402,7 @@ class MaintenanceMixin(ServiceCore):
                 continue
             if not data.get("id"):
                 max_n, max_filename_width = await self._handle_missing_id(
-                    db, unreadable, known_corpus, md, item_type, max_n, max_filename_width
+                    db, unreadable, known_corpus, md, item_type, max_n, max_filename_width, skills
                 )
                 continue
             squad_rel = self.paths.squad_relative(item_type, md.name, spec=self.spec)
@@ -3059,12 +3052,11 @@ class MaintenanceMixin(ServiceCore):
         from squads._overrides._service import check_override_issues
 
         index = await self.store.load()
-        self._skill_items = [it for it in index.items.values() if it.type == ROSTER_SKILL]
-        carrier_log = CarrierLog()
-        self._skill_state = None
-        self._skill_texts = await self._read_skill_texts()
+        ctx = ScanContext()
+        ctx.skills.items = [it for it in index.items.values() if it.type == ROSTER_SKILL]
+        ctx.skills.texts = await self._read_skill_texts(ctx.skills)
         issues, on_disk, bodies, unparseable_seqs, suppress_missing = await self._scan_for_check(
-            carrier_log
+            ctx
         )
         # Two override checks — version-drift warn + missing-marker error. Role items keyed by
         # slug so a role override resolves against its own live identity, exactly like
@@ -3079,7 +3071,7 @@ class MaintenanceMixin(ServiceCore):
             for level, item, msg in check_override_issues(self.paths.squad_dir, role_items_by_slug)
         ]
         issues += self._orphaned_skill_issues(index)
-        dup_groups = duplicate_groups(await self._id_carriers(carrier_log))
+        dup_groups = duplicate_groups(await self._id_carriers(ctx.carriers))
         issues += [
             CheckIssue("error", key, self._duplicate_id_message(files))
             for key, files in dup_groups.items()
@@ -3113,9 +3105,6 @@ class MaintenanceMixin(ServiceCore):
                 and normalized_id(i.item) in dup_groups
             )
         ]
-        self._skill_texts = None
-        self._skill_state = None
-        self._skill_items = None
         return issues
 
     def _orphaned_skill_issues(self, index: SquadsDB) -> list[CheckIssue]:
@@ -3480,7 +3469,7 @@ class MaintenanceMixin(ServiceCore):
         return issues
 
     async def _scan_for_check(
-        self, carriers: CarrierLog
+        self, ctx: ScanContext
     ) -> tuple[
         list[CheckIssue],
         dict[int, tuple[str, Path, dict[str, Any]]],
@@ -3546,7 +3535,7 @@ class MaintenanceMixin(ServiceCore):
         default_kind = self.spec.default_ref_kind()
         for item_type, md in self._iter_item_files():
             try:
-                text = await self._scan_text(md)
+                text = await self._scan_text(md, ctx.skills)
             except FileNotFoundError:
                 if not await _aio.path_is_symlink(md):
                     continue  # vanished between glob and read -- genuinely absent
@@ -3591,7 +3580,7 @@ class MaintenanceMixin(ServiceCore):
             try:
                 data = read_frontmatter(text=text, source=str(md))
             except SquadsError as exc:
-                remedy = await self._skill_remedy(md, item_type)
+                remedy = await self._skill_remedy(md, item_type, ctx.skills)
                 suppress_missing |= _report_and_third_state(
                     issues,
                     unparseable_seqs,
@@ -3601,12 +3590,14 @@ class MaintenanceMixin(ServiceCore):
                     SelfRemedied(f"{exc}; {remedy}") if remedy else str(exc),
                 )
                 continue
-            fid = carriers.record(md, data.get("id"))
+            fid = ctx.carriers.record(md, data.get("id"))
             if not fid:
                 if _is_legacy_skill_body(md, item_type, self.spec):
                     continue  # pre-migration skill body -- never had an id, not an error
                 issues.append(
-                    CheckIssue("error", md.name, await self._missing_id_message(md, item_type))
+                    CheckIssue(
+                        "error", md.name, await self._missing_id_message(md, item_type, ctx.skills)
+                    )
                 )
                 continue
             seq = _seq_from_frontmatter_id(fid)

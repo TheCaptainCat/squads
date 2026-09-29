@@ -270,8 +270,12 @@ async def test_with_no_index_the_first_name_is_kept_whatever_the_scan_order(svc,
     first = _copy(alpha, name=alpha.name.replace("alpha", "aaa"), slug="aaa", title="aaa")
     (svc.paths.squad_dir / ".squads.json").unlink()
     fresh = service.Service(svc.paths)
-    original = fresh._iter_item_files
-    monkeypatch.setattr(fresh, "_iter_item_files", lambda: iter(reversed(list(original()))))
+    original = fresh._id_carriers
+
+    async def reversed_carriers(*args, **kwargs):
+        return list(reversed(await original(*args, **kwargs)))
+
+    monkeypatch.setattr(fresh, "_id_carriers", reversed_carriers)
 
     await fresh.repair(renumber=True)
 

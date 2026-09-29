@@ -51,7 +51,13 @@ from squads._roles._resolver import (
     resolve_role,
     resolve_role_for_item,
 )
-from squads._services._duplicate_ids import DUPLICATE_ID_REMEDY, IdCarrierCache, normalized_id
+from squads._services._duplicate_ids import (
+    DUPLICATE_ID_REMEDY,
+    groups_among,
+    name_number,
+    normalized_id,
+    read_id,
+)
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
@@ -466,7 +472,6 @@ class ServiceCore:
         # same "fine because there's no override file yet" reasoning as the spec fallback above.
         self.playbook: PlaybookSpec = playbook if playbook is not None else get_playbook_spec()
         self.store = IndexStore(paths.index_path, paths.lock_path, spec=self.spec)
-        self._id_cache = IdCarrierCache()
         # Activate the squad-aware template search path so render() picks up any project
         # overrides under <squad_dir>/.overrides/templates/ for this service's squad.
         set_active_squad_dir(paths.squad_dir)
@@ -928,15 +933,22 @@ class ServiceCore:
         return found
 
     async def duplicate_files(self, item: Item) -> list[Path]:
-        """The other files carrying *item*'s id, by the detector's own rule (frontmatter id,
-        any name, any type folder). Empty when *item*'s own file is missing, so the caller's
+        """The other files carrying *item*'s id, by the detector's rule (frontmatter id).
+
+        Only files whose name could carry the item's number, or carries no number at all, are
+        read; a file named for a different number that still carries this id is `check`'s and
+        `repair`'s to find. Empty when *item*'s own file is missing, so the caller's
         missing-file error is the one reported."""
         own = item_file(self.paths, item)
         key = normalized_id(item.id)
         if key is None or not own.is_file():
             return []
-        files = (await self._id_cache.groups(self._all_item_files())).get(key, [])
-        return [f for f in files if f != own] if own in files else []
+        candidates = [
+            md
+            for md in self._all_item_files()
+            if md != own and name_number(md.name) in (item.sequence_id, None)
+        ]
+        return [md for md in candidates if await read_id(md) == key]
 
     async def duplicate_id_error(self, item: Item) -> str | None:
         """The refusal text when another file carries *item*'s id, else ``None``."""
@@ -960,7 +972,7 @@ class ServiceCore:
     async def _refuse_any_duplicated_id(self) -> None:
         """Refuse a write that may rewrite any file (an id rename touches every mention) while
         some id is carried by more than one file."""
-        groups = await self._id_cache.groups(self._all_item_files())
+        groups = await groups_among(self._all_item_files())
         for key, files in groups.items():
             named = ", ".join(p.relative_to(self.paths.squad_dir).as_posix() for p in files)
             raise SquadsError(

@@ -52,7 +52,6 @@ async def _task(svc, title: str):
 _SHAPES: dict[str, Callable[[service.Service, Path], Path]] = {
     "prefixed-name": lambda svc, md: _copy(md, name=md.name.replace("alpha", "other")),
     "unprefixed-name": lambda svc, md: _copy(md, name="alpha-copy.md"),
-    "prefixed-name-other-number": lambda svc, md: _copy(md, name="TASK-000099-alpha.md"),
     "other-type-folder": lambda svc, md: _copy(md, folder=_bugs(svc)),
 }
 
@@ -78,6 +77,19 @@ async def test_the_guard_finds_what_the_detector_finds(svc, shape):
     for path in (md, copy):
         rel = path.relative_to(svc.paths.squad_dir).as_posix()
         assert rel in detected[0].message and rel in guard
+
+
+async def test_a_copy_named_for_another_number_is_left_to_check_and_repair(svc):
+    """The write guard reads only files whose name could carry the item's number (or no
+    number); a well-formed name for a different number is found by `check` and `repair`."""
+    item, md = await _task(svc, "Alpha")
+    copy = _copy(md, name="TASK-000099-alpha.md")
+
+    assert await svc.duplicate_id_error(item) is None
+    detected = [i for i in await svc.check() if "carry this id" in i.message]
+    assert len(detected) == 1
+    assert copy.relative_to(svc.paths.squad_dir).as_posix() in detected[0].message
+    assert (await svc.repair()).unreadable
 
 
 async def test_an_interrupted_rename_is_not_reported_as_a_duplicate(svc):
@@ -298,8 +310,10 @@ async def test_check_on_damaged_skills_parses_the_index_and_reads_files_no_more_
     await svc.check()
 
     reread = [p.name for p, n in reads.items() if n > 1]
-    assert parses <= 2, parses
-    assert len(reread) <= 3, reread  # only the damaged files, by the confirm round
+    # Measured: one index parse for the load, one for the confirm round's fresh reload, and one
+    # file (the confirm round's candidate) read twice; every other file is read once.
+    assert parses == 2, parses
+    assert len(reread) == 1, reread
 
 
 async def test_the_indexed_file_keeps_the_id_even_when_another_name_sorts_first(svc):
@@ -310,3 +324,33 @@ async def test_the_indexed_file_keeps_the_id_even_when_another_name_sorts_first(
 
     assert md.exists() and not early.exists(), result.renumber_report
     assert item.sequence_id in result.db.items
+
+
+@pytest.mark.parametrize("corpus_size", [4, 40])
+async def test_a_write_and_a_show_read_a_bounded_number_of_files(svc, monkeypatch, corpus_size):
+    subject = None
+    for n in range(corpus_size):
+        item, _ = await _task(svc, f"Task {n}")
+        subject = subject or item
+    assert subject is not None
+    reads: list[Path] = []
+    real_read = _aio.read_text
+
+    async def counting_read(path: Path) -> str:
+        reads.append(path)
+        return await real_read(path)
+
+    monkeypatch.setattr(_aio, "read_text", counting_read)
+
+    await svc.duplicate_id_error(subject)
+    guard_reads = len(reads)
+    reads.clear()
+    await svc.comment(subject.id, ["x"], as_slug="manager")
+
+    assert guard_reads == 0, "no file other than the item's own carries its number"
+    assert len(reads) <= 3, [p.name for p in reads]
+
+
+async def test_scan_state_is_never_kept_on_the_service(svc):
+    for name in ("_skill_state", "_skill_texts", "_skill_items", "_id_cache"):
+        assert not hasattr(svc, name), name
