@@ -43,8 +43,10 @@ from squads._paths import resolve
 from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
+from squads._services._maintenance import SYNC_RESTORES_SKILL_FRONTMATTER
 from squads._services._results import BlockResult, SubentityDetail
 from squads._services._service import Service, open_service
+from squads._util import version_tuple
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
 
@@ -424,6 +426,17 @@ def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
     leaf: _click.Command = typer.main.get_command(refusal_app)  # type: ignore[assignment]
     leaf.name = cmd_name
     return leaf
+
+
+def unreadable_report(msg: str) -> str:
+    """One ``repair``/``adopt``/``migrate`` line for an unreadable file. A managed skill file
+    carries its own single remedy; every other file gets the generic carried-forward note."""
+    if SYNC_RESTORES_SKILL_FRONTMATTER in msg:
+        return f"[red]error[/red]: {e(msg)}"
+    return (
+        f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
+        "forward as-is; fix the file and repair again"
+    )
 
 
 def e(value: object) -> str:
@@ -1410,14 +1423,6 @@ def _close_read_scope(root: _click.core.Context) -> None:
         exit_read_scope(token)
     root.meta.pop(_SERVICE_META_KEY, None)
     root.meta.pop(_BYPASS_SERVICE_META_KEY, None)
-
-
-def version_tuple(version: str) -> tuple[int, ...]:
-    parts: list[int] = []
-    for p in version.split("."):
-        num = "".join(c for c in p if c.isdigit())
-        parts.append(int(num) if num else 0)
-    return tuple(parts)
 
 
 def version_notice() -> None:

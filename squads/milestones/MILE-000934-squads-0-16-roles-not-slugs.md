@@ -3,12 +3,12 @@ id: MILE-934
 sequence_id: 934
 type: milestone
 title: squads 0.16 - roles, not slugs
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-09-14T14:58:07Z'
+updated_at: '2026-09-29T14:21:29Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -51,4 +51,6 @@ The next squads release after 0.15.
   - Received FEAT-899, FEAT-900, FEAT-901, FEAT-902 and BUG-935 from MILE-867 (targets ref rm/add), per op-pierre's ruling in MILE-867's discussion. Body scope section extended with the validator-followers bullet and the BUG-935 bullet, plus the build-order note: all four followers depend only on FEAT-898, which is Done -- this line starts with a completed dependency, not an open one.
   - Title kept as 'squads 0.16 - roles, not slugs', deliberately: the -dev retirement is still the dominant line here -- its own ADR, a cross-cutting defect fix across dozens of call sites -- while the four followers and BUG-935 are secondary overflow carried for release-size reasons (op-pierre: 'a smaller release seems good'), not because they share a theme with the roles work. Same call MILE-867 made naming only its dominant line over a full validator-catalog build-out riding along.
   - Also dropped 'moved here from 0.15 unchanged in scope' from the -dev bullet while updating the body -- lifecycle/move narration that belongs in the discussion (already on record there), not in scope prose.
+- [2026-09-29T14:21:20Z] Catherine Manager:
+  - Moved to InProgress: 0.16 kicked off with op-pierre; bug fixes under way (TASK-968 Done, TASK-969 in review).
 <!-- sq:discussion:end -->

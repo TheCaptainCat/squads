@@ -3,7 +3,7 @@ id: TASK-969
 sequence_id: 969
 type: task
 title: 'Fix the 0.16 engine bugs: versions, skills, views, spec id, slugs'
-status: Draft
+status: InProgress
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -14,34 +14,39 @@ refs:
 - BUG-962:fixes
 - BUG-965:fixes
 - MILE-934:targets
+- BUG-978:fixes
 description: Five independent engine fixes for MILE-934; the spec-identity and slug
   subtasks wait on architect rulings
 subentities:
 - local_id: ST1
   title: Order prereleases below their release in version_tuple
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST2
   title: Restore frontmatter on a stripped managed skill file
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST3
   title: Report view tags outside the body region
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST4
   title: Make the self-view spec identity track the merged spec
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST5
   title: Transliterate accented letters in slugify
+  status: Done
+  assignee: python-dev
+- local_id: ST6
+  title: Report two files carrying the same id
   status: Todo
   assignee: python-dev
 created_at: '2026-09-29T13:31:10Z'
-updated_at: '2026-09-29T13:32:21Z'
+updated_at: '2026-09-29T14:38:00Z'
 ---
 <!-- sq:body -->
-Five engine bugs targeted at 0.16, one dev pass. Each subtask is independent and touches a
+Six engine bugs targeted at 0.16, one dev pass. Each subtask is independent and touches a
 different area, so they can land in any order. ST4 and ST5 wait on @architect rulings
 (see below). Take ST1 to ST3 first.
 
@@ -64,6 +69,11 @@ different area, so they can land in any order. ST4 and ST5 wait on @architect ru
   map. Slugs already stored in a squad never change. The dev-role path re-derives its
   slug from `extra.tech`, so it has to be pinned to the stored slug. Waiting on an
   architect ruling for existing identity keys.
+- **ST6, report two files carrying one id (BUG-978).** `check` errors and `repair` exits 1
+  naming every file. Plain repair refuses to pick a winner. `--renumber` renumbers a
+  different-slug copy without rewriting refs (it lists them) and refuses a same-slug copy. `list`/`show`
+  read the index and `show` warns. Writes to that id refuse. The ST2 restamp uses the same
+  detector (REV-975 F3).
 
 ## Acceptance (whole task)
 
@@ -271,6 +281,8 @@ it. Say so in the handoff to @typescript-dev.
 <!-- sq:subtask:ST4:discussion -->
 - [2026-09-29T13:32:14Z] Olivia Lead:
   - @architect ruling needed before ST4 dispatch (BUG-962): merged-spec digest vs override-document hash, equality-only vs ordered, and whether override stays a boolean. Any answer changes the spec block of sq workflow view --json. No VS Code consumer today.
+- [2026-09-29T13:44:18Z] Robert Architect:
+  - Ruled in ADR-970 (Proposed, for op-pierre). Carry a digest of the merged workflow spec (sha256 over the model dump, key order kept), not a hash of override files: a file hash misses every upgrade that changes the bundled spec and is constant with no override. Equality only, opaque. override stays as a display flag with its meaning restated; the block becomes {schema_version, override, digest}. Playbook and roles are out: they do not resolve a self payload. Body rewritten to build from. @tech-lead ready to dispatch once you are satisfied; status left as is.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -344,8 +356,120 @@ re-derived one.
 <!-- sq:subtask:ST5:discussion -->
 - [2026-09-29T13:32:13Z] Olivia Lead:
   - @architect ruling needed before ST5 dispatch (BUG-965). dev_base_from_item re-derives the dev-role slug from extra.tech on every resolve, so fixing slugify would silently move an accented-tech dev role to a new slug. Three calls: (1) is the stored slug authoritative everywhere (pin dev-role resolution to item.slug), aligned with the MILE-934 dev-pseudo-role ADR; (2) existing mangled slugs stay forever (no migration) or get a re-slug path; (3) should add_operator/add_skill duplicate detection also match the legacy derivation. Default in the body: stored slugs never change, no migration.
+- [2026-09-29T13:44:27Z] Robert Architect:
+  - Ruled in ADR-971 (Proposed, for op-pierre). (1) The stored slug is authoritative everywhere; derivation only proposes one at creation. dev_base_from_item takes the slug from the item, and resolve_dev_role builds its override path from the derived slug, not tech.lower(). Read: without this, sync would rewrite extra.slug and the pointer name via to_extra() for an accented tech. (2) Existing slugs stay forever: no migration, no re-slug verb. (3) Duplicate detection in add_operator (no explicit --slug), add_skill and add_dev also matches a frozen private copy of the pre-fix rule. Compatible with the -dev retirement: no new -dev suffix reader. Body rewritten. @tech-lead ready to dispatch; status left as is.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
+
+<!-- sq:subtask:ST6 -->
+### ST6 — Report two files carrying the same id
+
+<!-- sq:subtask:ST6:body -->
+**Bug:** BUG-978. When two item files carry the same `id`, nothing reports it. `sq check`
+says "no issues", `sq repair` exits 0 with both files kept, and `list`/`show` show
+whichever copy the scan reached last. REV-975 F3 depends on this: the managed-skill
+restamp (ST2) can create exactly this state from a renamed file.
+
+**Approach**
+
+- **One detector, shared.** While scanning the corpus, group the item files by their
+  frontmatter `id`, normalised through the same parser `from_frontmatter` uses, so a
+  padded and an unpadded spelling of one id count as one. Any group with more than one
+  file is a duplicate. `check`, `repair`, and the ST2 restamp all use this detector. None
+  of them reimplements it.
+- **`sq check`**: an error for each duplicate id, naming the id and every file that carries
+  it (paths relative to the squad). Exit code follows the existing error level.
+- **`sq repair`: report and refuse to pick a winner.** For a duplicated id, repair doesn't
+  take either file's frontmatter. It keeps the previous index entry for that id if there
+  is one (the same carry-forward it uses for an unreadable file), leaves the id out if
+  there isn't, names every file, and exits 1. Every other item rebuilds as normal.
+  *Why:* frontmatter is the source of truth (invariant #1), and here there are two
+  truths. Every tie-break on offer (scan order, mtime, the file that sits in the right
+  type folder, the file whose name matches the slug) can pick the stale copy and quietly
+  drop the edits in the other one. That's the silent identity loss the bug is about. Only
+  a human can tell which copy is meant. The remedy says to merge the content you want
+  into one file, delete the other by hand, then run `sq repair`. Byte-identical copies
+  get the same refusal: one rule, and keeping the extra copy costs nothing.
+- **`repair --renumber` (op-pierre's ruling).** What happens depends on the slugs in the
+  duplicate group. A file's slug is its frontmatter `slug`, or the filename slug if the
+  frontmatter has none.
+  - **All slugs different** (the parallel-tree merge collision): keep one file and mint a
+    fresh number for each of the others, the same way the number-collision path does
+    (renamed file and a rewritten frontmatter `id`, nothing else in the file). **Which file
+    is kept:** sort the group by squad-relative POSIX path, byte order. The first one keeps
+    the id. The rest get fresh numbers in that same order, so the same corpus always gives
+    the same result.
+  - **References are not rewritten.** Every existing reference to the old id is ambiguous
+    (it could mean either copy), so nothing touches it: not refs, not `parent`, not
+    sub-entity fields, not prose. `--renumber` lists them instead, one block per
+    renumbered file:
+
+    ```
+    TASK-21: two files, different slugs
+      kept      tasks/TASK-000021-alpha.md
+      renumbered tasks/TASK-000021-other.md -> TASK-42 (tasks/TASK-000042-other.md)
+      references to TASK-21 left unchanged; check each by hand:
+        tasks/TASK-000030-beta.md   refs       TASK-21:implements
+        bugs/BUG-000031-gamma.md    parent     TASK-21
+        tasks/TASK-000030-beta.md   body:12    "see TASK-21 for the ..."
+        tasks/TASK-000030-beta.md   comment:40 "@python-dev TASK-21 is ..."
+    ```
+
+    One line per reference: file, where it sits (`refs`, `parent`, a sub-entity field,
+    or `body`/`comment` with its line number), and the reference text. Scan every item
+    file, including the two copies themselves. If there are no references, print
+    "no references". Exit 1 when any reference is listed, because a board that still
+    needs a hand check is not a clean result. Exit 0 when there are none.
+  - **Any two slugs the same** (a stray file copy, including a group of three where only
+    two match): refuse the whole group. Report it the way plain `repair` does, rename
+    nothing, and exit 1. Distinct ids that share a number keep today's `--renumber`
+    behaviour.
+- **`list`/`show` while a duplicate exists.** Both keep reading from the index, so `list`
+  shows one row: the carried-forward entry, or no row if there was none. `show` renders
+  the indexed file and prints a warning to stderr naming the other files and pointing at
+  `sq check`. The item stays readable, and the `--json` output is unchanged.
+- **Writes refuse.** `update`, `body`, `comment`, sub-entity edits, retitle, retype and
+  every other write to a duplicated id refuse with the same message, because a write would
+  land on one copy chosen by scan order. The check has to be cheap: glob for that
+  sequence number's files across the type folders, and don't rescan the whole corpus.
+- **Closes REV-975 F3 with ST2.** The restamp calls the detector before it writes, and
+  skips and reports a file whose id another file already carries. Mark F3 Fixed and
+  point it at this subtask.
+
+**Acceptance**
+
+- Table-driven over the bug's shapes, each run through `check`, `repair`, `repair
+  --renumber`, `list -a`, `show`, and one write:
+  1. work item, same id, same slug (a `-copy` file);
+  2. skill, same id;
+  3. same id, different slug and title (the copy that shadows the original);
+  4. same id, file in a different type folder (`bugs/TASK-...`);
+  5. REV-975 F3: a managed skill renamed away from its slug with frontmatter intact, then
+     `sync`;
+  6. REV-975 F3: the same rename with frontmatter stripped, then `sync`;
+  7. three files for one id;
+  8. a padded and an unpadded spelling of one id.
+  Every row: `check` errors and names every file; `repair` exits 1, names every file, and
+  keeps both files byte-identical; `--renumber` refuses on same-slug rows (1, 2, 4, 5, 8) and, on different-slug rows (3, 7 when all slugs differ), keeps the first path, renumbers the rest, rewrites no reference, and prints the listing; `list`
+  shows at most one row; `show` warns; the write refuses. Control rows: a clean squad,
+  and distinct ids sharing a number, both behave exactly as today.
+- `--renumber` rows: the kept file is the same across repeated runs and a reversed scan order; a different-slug group with zero references (exit 0) and with references in each position (refs, parent, sub-entity field, body, comment; exit 1, every one listed, none changed); a three-file group mixing same and different slugs (refused).
+- Also cover: with no previous index (`.squads.json` deleted), repair leaves the id out
+  and still exits 1.
+- Falsified: turn off the detector (group but never report), watch rows 1 to 8 go red,
+  restore it.
+- Service-level tests plus a CLI smoke test for `check`, `repair` and `show`.
+<!-- sq:subtask:ST6:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST6:discussion -->
+- [2026-09-29T14:33:06Z] Olivia Lead:
+  - Added per op-pierre (via manager). Ruled: repair reports and refuses to pick a winner (carries the previous entry, exits 1), because any tie-break can silently drop edits. Also closes REV-975 F3 with ST2.
+- [2026-09-29T14:36:42Z] Pierre Chat:
+  - repair --renumber on a same-id, different-slug duplicate (the merge case): keep one, mint a fresh number for the other, do NOT rewrite the ambiguous references; list every ref to that id for a manual check. Same-slug copies (a stray file copy) refuse.
+<!-- sq:subtask:ST6:discussion:end -->
+<!-- sq:subtask:ST6:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
@@ -353,4 +477,19 @@ re-derived one.
 <!-- sq:discussion -->
 - [2026-09-29T13:32:21Z] Olivia Lead:
   - Authored from BUG-937/938/957/962/965. Left in Draft. ST1-ST3 are ready to build; ST4 and ST5 wait on @architect rulings (see their subtask comments). Ruled ST3 report-only (no writer relocates tags).
+- [2026-09-29T13:47:49Z] Catherine Manager:
+  - Dispatched ST1-ST3 to @python-dev. ST4/ST5 were waiting on @architect rulings, now ADR-970/ADR-971 (Proposed).
+  - Restated: a git stash plus reset at 13:44Z had reverted this item's statuses and the original dispatch comment.
+- [2026-09-29T13:55:15Z] Catherine Manager:
+  - ADR-970 and ADR-971 accepted by op-pierre (no slug-rename command). ST4/ST5 dispatched to @python-dev. Full suite green on ST1-ST3: 6342 passed, pyright 0 errors.
+- [2026-09-29T13:56:00Z] Elias Python:
+  - ST1-ST3 implemented, each with a falsified table-driven test. version_tuple is prerelease-aware in _util and the CLI duplicate is gone. sync re-stamps a managed skill file that lost its id from the index entry. sq check warns on out-of-region view tags, and view add/disable refuse them (view rm is retired, so disable is the verb that misreported). CHANGELOG entries needed for all three, via the writer.
+- [2026-09-29T14:03:33Z] Elias Python:
+  - ST4 and ST5 implemented per ADR-970 and ADR-971, each with a falsified table-driven test. The self-view spec block is now {schema_version, override, digest}. slugify transliterates accented Latin letters, dev_base_from_item takes the slug from the item, resolve_dev_role reads its override under the stored-form slug, and duplicate checks in add_operator/add_skill/add_dev also match a frozen copy of the earlier rule. One existing operator test pinned the old accent-dropping slug and was updated. CHANGELOG entries (both) and a docs/stability.md refresh for the digest key are needed via the writer; the exact-key canary should cover the self block when the client starts reading it.
+- [2026-09-29T14:24:14Z] Catherine Manager:
+  - REV-975 ChangesRequested: F1-F2 on ST1, F3-F5+F7 on ST2, F6 on ST3, F8-F9 on ST5. Back to @python-dev.
+- [2026-09-29T14:30:26Z] Pierre Chat:
+  - BUG-978 goes into this task as a subtask, fixed in the same pass as the REV-975 restamp work.
+- [2026-09-29T14:36:30Z] Elias Python:
+  - All nine REV-975 findings fixed, each with a falsified table-driven test. version_tuple orders by PEP 440 with the release numbers as their own tuple. The managed skill restamp now builds frontmatter from the file name and the skill catalog, runs before and after the sync writes, rebuilds the index when it lacks the restored file, refuses to create a second file with the same id, and rebuilds unreadable YAML. repair, adopt and migrate print the single sync remedy for such a file. The duplicate view tag message names a working remedy. legacy_slugify is a self-contained frozen copy; the transliteration map covers thorn, eth, h and t stroke, dotless i, and the length cut never splits an expansion. One existing sync test asserted that a merge-conflicted managed skill file aborts sync; it now asserts sync rebuilds it. Fast gates clean; tests/cli, tests/integration, tests/service, tests/unit and tests/meta pass.
 <!-- sq:discussion:end -->

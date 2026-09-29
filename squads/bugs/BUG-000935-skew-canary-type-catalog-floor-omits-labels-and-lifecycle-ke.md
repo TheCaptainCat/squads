@@ -3,7 +3,7 @@ id: BUG-935
 sequence_id: 935
 type: bug
 title: Skew canary type-catalog floor omits labels and lifecycle keys
-status: Open
+status: Verified
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - BUG-896:addresses
 - MILE-934:targets
 created_at: '2026-09-09T14:41:36Z'
-updated_at: '2026-09-09T14:46:23Z'
+updated_at: '2026-09-29T14:13:24Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -97,4 +97,8 @@ with zero canary protection, which is a step past BUG-896's fully-latent graph/l
 <!-- sq:discussion -->
 - [2026-09-09T14:42:32Z] Mara Tester:
   - @tech-lead for triage. Driven and evidenced (not a guess) — same blindness class as BUG-896, on a surface it did not touch. labels is the sharper of the two: modelled + actively consumed by domain/typeLabels.ts with zero canary protection today. lifecycle needs one written call before closing: fold into the exact key set as an unmodelled-but-required key (protecting the existing "deliberately unmodelled" decision already on record in types.ts, mirroring badges/edge_semantic), or explicitly decide it stays unguarded.
+- [2026-09-29T13:38:28Z] Ada Typescript:
+  - TYPE_ENTRY_KEYS holds all 9 keys (labels, lifecycle included) and every live entry goes through assertExactKeys.
+- [2026-09-29T14:13:22Z] Catherine Manager:
+  - Verified via REV-972 (Approved, F1-F7 Verified); canary 68/68.
 <!-- sq:discussion:end -->

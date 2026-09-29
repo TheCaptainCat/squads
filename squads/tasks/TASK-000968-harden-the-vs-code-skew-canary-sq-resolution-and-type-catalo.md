@@ -3,7 +3,7 @@ id: TASK-968
 sequence_id: 968
 type: task
 title: 'Harden the VS Code skew canary: sq resolution and type-catalog keys'
-status: Draft
+status: Done
 author: tech-lead
 assignee: typescript-dev
 priority: medium
@@ -16,14 +16,14 @@ description: The canary resolves sq off bare PATH and floor-checks 7 of 9 type-c
 subentities:
 - local_id: ST1
   title: Resolve sq like discovery.ts, not bare PATH
-  status: Todo
+  status: Done
   assignee: typescript-dev
 - local_id: ST2
   title: Assert the exact type-catalog key set
-  status: Todo
+  status: Done
   assignee: typescript-dev
 created_at: '2026-09-29T13:29:18Z'
-updated_at: '2026-09-29T13:32:20Z'
+updated_at: '2026-09-29T14:13:45Z'
 ---
 <!-- sq:body -->
 Harden the VS Code skew canary (`clients/vscode/test/canary/skewCanary.test.ts`) on both
@@ -144,4 +144,41 @@ extension itself only falls back to bare PATH as a last resort (`src/discovery.t
 <!-- sq:discussion -->
 - [2026-09-29T13:32:20Z] Olivia Lead:
   - Authored from BUG-949 + BUG-935 as one canary pass (per op-pierre on BUG-949). Left in Draft for the manager to promote at dispatch. Ruled lifecycle into the exact key set as unmodelled-but-required.
+- [2026-09-29T13:33:48Z] Catherine Manager:
+  - Dispatched to @typescript-dev.
+- [2026-09-29T13:38:33Z] Ada Typescript:
+  - Both subtasks Done, both bugs Fixed. Client only (clients/vscode/test/canary).
+    
+    - resolveSq.ts (new): resolveCanarySq wraps resolveSqInvocation from src/discovery.ts with the repo root as workspace, SQ_CANARY_CMD as the explicit override, and points uv/poetry at the repo since the canary runs from a scratch dir. resolveSq.test.ts (new): 8-row table (venv beats PATH, Windows Scripts/sq.exe, uv, poetry, bare PATH, nothing, pin wins, dead pin falls through).
+    - skewCanary.test.ts: bare sq literals gone, suite prints resolved command and version to stderr, header updated; TYPE_ENTRY_KEYS (9 keys, lifecycle as unmodelled-but-required) checked with assertExactKeys on every live entry; new table-driven self-test (full, reordered, labels missing, lifecycle missing, extra, renamed).
+    
+    Gates: typecheck, lint (type-aware, max-warnings 0), prettier check clean. npm test 688 passed. Canary 45 passed, resolved to .venv/bin/sq (squads 0.15.0).
+    
+    Falsified: returning bare sq from the resolver turned 4 table rows red (.venv wins, Windows, pin beats venv, dead pin); dropping labels from TYPE_ENTRY_KEYS turned the labels-missing row and the live types/list tests red. Both restored, green again.
+- [2026-09-29T13:52:39Z] Ada Typescript:
+  - REV-972 F1-F3 fixed in clients/vscode/test/canary (resolveSq.ts, resolveSq.test.ts, skewCanary.test.ts); BUG-949 back to Fixed.
+    
+    - F1: version probe and live tests share one execSq from a non-repo cwd; pinned uv/poetry get the --project/--directory rewrite.
+    - F2: an unresolved or non-answering pin returns a failure and the live block's beforeAll throws; table row flipped to unresolved.
+    - F3: a pin naming an existing file stays one path; JSON argv arrays accepted.
+    
+    Table now 13 rows. Falsified in place: removing the rewrite reddened 4 rows, letting a dead pin fall through reddened 2, always splitting on whitespace reddened the spaced-path row; restored. Driven live: dead pin fails, spaced-path wrapper and uv run sq pass. npm run check clean, npm test 688 passed, canary 50 passed.
+- [2026-09-29T14:01:43Z] Ada Typescript:
+  - REV-972 F4-F6 fixed in clients/vscode/test/canary (resolveSq.ts, resolveSq.test.ts); BUG-949 Fixed again.
+    
+    - F4: poetry gets --project, not --directory; a guard test runs every resolution shape and fails on any cwd-moving flag. Driven with a fake poetry that honours --directory: sq ran in the scratch dir, never the repo. Reverting to --directory reddens 4 tests (2 table rows, 2 guard rows).
+    - F5: relative pin paths resolve against the process cwd (Windows absolute paths left alone). Removing that reddens the relative-pin test.
+    - F6: pinned check goes through resolveSqInvocation and requires source config-command. Dropping the source check reddens the 2 dead-pin rows.
+    
+    npm run check clean, npm test 688 passed, canary 61 passed.
+- [2026-09-29T14:10:16Z] Ada Typescript:
+  - REV-972 F7 fixed in clients/vscode/test/canary; BUG-949 Fixed again.
+    
+    - Runtime guard: before the first write, beforeAll runs a read-only `sq list --json` from the fresh scratch dir and throws if it finds a squad there, whatever the pin's spelling.
+    - Early rejection: movesCwd matches --directory/--cwd/--chdir (split or `=`) and -C (split or attached); resolveCanarySq rejects such a pin. Unit table covers 7 pin spellings.
+    - afterAll no longer throws when beforeAll failed before creating the scratch dir.
+    
+    Driven with a fake wrapper that cds into the repo (passes the flag check): the guard threw before any write. With the guard disabled the same wrapper reached `sq init` in the repo (refused by the existing squad, nothing written). Fake uv with --directory rejected at resolution. Falsified in place: guard off, flag check off (7 red), `=` form dropped (2 red). npm run check clean, npm test 688, canary 68.
+- [2026-09-29T14:13:40Z] Catherine Manager:
+  - Accepted under op-pierre delegation for reviewed non-visual work: REV-972 Approved, BUG-935/949 Verified.
 <!-- sq:discussion:end -->

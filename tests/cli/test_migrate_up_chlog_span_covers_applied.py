@@ -93,3 +93,32 @@ async def test_migrate_up_span_reports_every_applied_manual_migration(
         # match on the text content only.
         heading = f"v{m.version} — manual steps (schema v{m.from_schema}→v{m.to_schema})"
         assert heading in chlog.output, f"{heading!r} missing from chlog output for {span!r}"
+
+
+@pytest.mark.parametrize(
+    "lower_bound",
+    [
+        pytest.param("v0.14.0rc1", id="rc-of-the-release-that-ships-the-migration"),
+        pytest.param("v0.14.0a1", id="alpha-of-that-release"),
+        pytest.param("v0.13.1", id="previous-release"),
+    ],
+)
+async def test_chlog_window_opened_at_a_prerelease_keeps_the_release_steps(invoke, lower_bound):
+    chlog = await invoke(["migrate", "chlog", f"{lower_bound}..v0.15.0"])
+    assert chlog.exit_code == 0, chlog.output
+    assert "no manual steps" not in chlog.output
+    assert "v0.14.0 — manual steps" in chlog.output
+
+
+async def test_migrate_up_from_a_prerelease_stamp_prints_a_nonempty_window(project, invoke):
+    await _downgrade_schema(project, "0.11")
+    await _set_squads_version(project, "0.14.0rc1")
+
+    up = await invoke(["migrate", "up"])
+    assert up.exit_code == 0, up.output
+    match = _SPAN_RE.search(up.output)
+    assert match, up.output
+
+    chlog = await invoke(["migrate", "chlog", match.group(1)])
+    assert "no manual steps" not in chlog.output
+    assert "v0.14.0 — manual steps" in chlog.output

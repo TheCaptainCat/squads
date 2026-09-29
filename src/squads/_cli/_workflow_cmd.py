@@ -22,6 +22,7 @@ diagnose.  Bypassing ``open_service`` means lint is never self-blocked by the sa
 trying to report.
 """
 
+import hashlib
 import json
 import math
 from typing import TYPE_CHECKING, Any, cast
@@ -830,15 +831,19 @@ def _playbook_json_payload(source: PlaybookSource) -> dict[str, object]:
 
 
 def _spec_identity_json(svc: Service) -> dict[str, object]:
-    """Enough of the active spec's identity for a ``self``-view client to tell which spec
-    resolved the payload — never the whole spec object, which is not item-shaped JSON.
-    ``override`` says whether a project ``.overrides/workflow.toml`` is in force; a client
-    that needs the resolved vocabulary itself reads the type/status/field catalogs (``sq
-    workflow types --json`` and its siblings) directly rather than through this source."""
+    """The identity of the workflow spec that resolved a ``self``-view payload.
+
+    ``digest`` is the SHA-256 of the merged spec, opaque and compared for equality only;
+    ``override`` is a display flag saying a project ``.overrides/workflow.toml`` was merged
+    into it, never a change detector."""
     from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
     override = (svc.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME).is_file()
-    return {"schema_version": SCHEMA_VERSION, "override": override}
+    canonical = json.dumps(
+        svc.spec.model_dump(mode="json"), ensure_ascii=False, separators=(",", ":")
+    )
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return {"schema_version": SCHEMA_VERSION, "override": override, "digest": digest}
 
 
 def _view_json_child_rows(

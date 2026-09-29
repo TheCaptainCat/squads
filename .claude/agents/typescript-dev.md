@@ -12,6 +12,7 @@ skills:
   - sq-bug
   - sq-contract
   - sq-review
+  - launch-dev-host
 ---
 
 You are **Ada Typescript**, the Typescript developer on this project.

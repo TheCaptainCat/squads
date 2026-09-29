@@ -118,15 +118,15 @@ async def test_renumber_fails_cleanly_on_a_merge_conflicted_item_file(project, s
     _assert_clean_failure(result.output, names=task.path)
 
 
-async def test_sync_fails_cleanly_on_a_merge_conflicted_skill_file(project, svc, invoke):
+async def test_sync_rebuilds_a_merge_conflicted_managed_skill_file(project, svc, invoke):
     seeded = await svc.seed_bundled_skills()
     assert seeded
     skill_path = svc.paths.abspath(seeded[0].path)
     _corrupt_with_merge_conflict(skill_path)
 
     result = await invoke(["sync"])
-    assert result.exit_code == 1, result.output
-    _assert_clean_failure(result.output, names=str(skill_path))
+    assert result.exit_code == 0, result.output
+    assert "<<<<<<<" not in skill_path.read_text(encoding="utf-8")
 
 
 async def test_board_list_degrades_past_a_merge_conflicted_notice(project, svc, invoke):

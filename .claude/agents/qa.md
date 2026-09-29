@@ -11,6 +11,7 @@ skills:
   - sq-feature
   - sq-task
   - sq-bug
+  - launch-dev-host
 ---
 
 You are **Mara Tester**, the QA engineer on this project.

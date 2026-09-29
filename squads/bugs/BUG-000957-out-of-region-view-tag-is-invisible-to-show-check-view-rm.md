@@ -3,14 +3,14 @@ id: BUG-957
 sequence_id: 957
 type: bug
 title: Out-of-region view tag is invisible to show/check/view rm
-status: Open
+status: Fixed
 author: qa
 priority: low
 refs:
 - MILE-934:targets
 - REV-952
 created_at: '2026-09-15T09:34:39Z'
-updated_at: '2026-09-15T09:34:44Z'
+updated_at: '2026-09-29T14:36:22Z'
 ---
 <!-- sq:body -->
 ## Symptom
@@ -85,4 +85,10 @@ for whoever picks this up, not decided here.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-29T13:49:32Z] Elias Python:
+  - Fixed: sq check warns on a view tag outside sq:body (also in template overrides); view add and view disable refuse instead of placing a duplicate. view rm no longer exists, so disable is the verb that used to misreport.
+- [2026-09-29T14:24:02Z] Catherine Manager:
+  - Reopened for REV-975 findings.
+- [2026-09-29T14:36:22Z] Elias Python:
+  - Review fix: the duplicate-tag message names a remedy that works when a copy sits outside sq:body.
 <!-- sq:discussion:end -->

@@ -55,6 +55,12 @@ def split_frontmatter(text: str, *, source: str | None = None) -> tuple[dict[str
     return data, text[m.end() :]
 
 
+def strip_frontmatter(text: str) -> str:
+    """*text* without its leading frontmatter block, whether or not that block is valid YAML."""
+    m = _FRONTMATTER_RE.match(text)
+    return text[m.end() :] if m else text
+
+
 def join_frontmatter(data: dict[str, Any], body: str) -> str:
     front = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
     if not body.startswith("\n"):

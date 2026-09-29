@@ -18,11 +18,11 @@ from squads._cli._common import (
     e,
     get_service,
     handle_errors,
-    version_tuple,
 )
 from squads._errors import SquadsError
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
+from squads._util import version_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
 
@@ -92,11 +92,7 @@ async def migrate_up():
     # `unreadable`, so printing nothing here would leave an operator with a failing exit
     # code and no stated cause — the one combination this route must not produce.
     for msg in run.repair.unreadable if run.repair else []:
-        console.print(
-            f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
-            "forward as-is; fix the file and repair again",
-            soft_wrap=True,
-        )
+        console.print(common.unreadable_report(msg), soft_wrap=True)
     if any(m.manual for m in applied):
         span = _manual_chlog_span(applied)
         console.print(

@@ -3,14 +3,14 @@ id: BUG-938
 sequence_id: 938
 type: bug
 title: Deleting a managed skill body permanently loses its frontmatter
-status: Open
+status: Fixed
 author: qa
 priority: low
 refs:
 - MILE-934:targets
 - REV-926:addresses
 created_at: '2026-09-10T08:37:34Z'
-updated_at: '2026-09-10T08:38:20Z'
+updated_at: '2026-09-29T14:36:16Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -108,4 +108,10 @@ currently no supported command that performs that fix.
   - Correction against the reviewer's aside: on the current tree sq check does NOT report clean -- it flags the missing id every cycle, exit 3 (_is_legacy_skill_body only exempts a non-SKILL-prefixed filename). The unrecoverable-without-a-forbidden-hand-edit half of the finding stands; the silent-clean-check half does not reproduce today. Body has the full detail.
   - Priority: low, per op-pierre's reasoning -- pre-existing, orthogonal, and only reachable through a hand-edit under squads/ that project convention forbids. Filed anyway since agents have made forbidden edits before, and the failure is a permanently unfixable file even though sq check now does catch it.
   - Targeted 0.16 (MILE-934), addresses REV-926.
+- [2026-09-29T13:49:28Z] Elias Python:
+  - Fixed: sq sync re-stamps a managed skill file that lost its id from the index entry, body kept; sq check and repair name sq sync for it.
+- [2026-09-29T14:23:53Z] Catherine Manager:
+  - Reopened for REV-975 findings.
+- [2026-09-29T14:36:16Z] Elias Python:
+  - Review fixes: frontmatter rebuilt from file name plus catalog (no index needed), duplicate-id guard, invalid YAML rebuilt, single remedy in repair.
 <!-- sq:discussion:end -->

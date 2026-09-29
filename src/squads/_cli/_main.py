@@ -451,11 +451,7 @@ async def adopt(
     # this sweep is the only pass an adopted folder ever gets, so an operator who never runs
     # `sq repair` by hand must still be told.
     for msg in result.repair.unreadable:
-        console.print(
-            f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
-            "forward as-is; fix the file and repair again",
-            soft_wrap=True,
-        )
+        console.print(common.unreadable_report(msg), soft_wrap=True)
     if result.repair.unreadable:
         # Same partial-completion condition `sq repair` itself exits 1 for, over the same
         # rebuild — a caller gating on `$?` must see the same answer from either route. Skip
@@ -753,11 +749,7 @@ async def repair(
             f"[yellow]warn[/yellow] [dim]{mid}[/dim]: indexed but no markdown file found (deleted?)"
         )
     for msg in result.unreadable:
-        console.print(
-            f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
-            "forward as-is; fix the file and repair again",
-            soft_wrap=True,
-        )
+        console.print(common.unreadable_report(msg), soft_wrap=True)
     if result.unreadable:
         raise typer.Exit(1)
 

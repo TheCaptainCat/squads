@@ -3,14 +3,14 @@ id: BUG-937
 sequence_id: 937
 type: bug
 title: sq migrate chlog silently drops manual steps on a prerelease bound
-status: Open
+status: Fixed
 author: qa
 priority: medium
 refs:
 - MILE-934:targets
 - REV-926:addresses
 created_at: '2026-09-10T08:37:16Z'
-updated_at: '2026-09-10T08:38:15Z'
+updated_at: '2026-09-29T14:36:12Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -106,4 +106,10 @@ boolean. That one change closes the `chlog` filter and both `_overrides/_manifes
   - Confirmed by reading: _cli/_migrate.py imports version_tuple from _cli/_common (not _util), and all four call-site regions (chlog filter, _overrides/_service.py x3, _overrides/_manifest.py x2).
   - Priority: medium. Not release-blocking for a clean X.Y.Z cut per op-pierre's ruling -- it only triggers on a prerelease-stamped squads_version, which this project's own release-prep produces.
   - Targeted 0.16 (MILE-934), addresses REV-926 (F22, F24).
+- [2026-09-29T13:49:26Z] Elias Python:
+  - Fixed: one prerelease-aware version_tuple in squads._util (dev < a < b < rc < release); the duplicate in the CLI is gone.
+- [2026-09-29T14:23:43Z] Catherine Manager:
+  - Reopened for REV-975 findings.
+- [2026-09-29T14:36:12Z] Elias Python:
+  - Review fixes: PEP 440 ordering with release numbers as their own tuple; the fallback never joins digits.
 <!-- sq:discussion:end -->

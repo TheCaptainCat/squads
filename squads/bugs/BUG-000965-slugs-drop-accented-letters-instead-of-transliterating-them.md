@@ -3,14 +3,14 @@ id: BUG-965
 sequence_id: 965
 type: bug
 title: Slugs drop accented letters instead of transliterating them
-status: Open
+status: Fixed
 author: qa
 priority: medium
 severity: medium
 refs:
 - MILE-934:targets
 created_at: '2026-09-25T13:39:46Z'
-updated_at: '2026-09-25T13:40:13Z'
+updated_at: '2026-09-29T14:36:27Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -106,4 +106,12 @@ approach, not a defect to fix here.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-29T13:44:44Z] Robert Architect:
+  - Ruled in ADR-971: stored slugs are identity and never re-derived; dev roles pin to the stored slug; no migration; duplicate detection also matches the pre-fix rule. Build plan in TASK-969 ST5.
+- [2026-09-29T14:03:28Z] Elias Python:
+  - Fixed: slugify transliterates accented Latin letters; dev roles resolve to their stored slug; add_operator/add_skill/add_dev also refuse a slug matching the earlier rule.
+- [2026-09-29T14:24:08Z] Catherine Manager:
+  - Reopened for REV-975 findings.
+- [2026-09-29T14:36:27Z] Elias Python:
+  - Review fixes: self-contained frozen legacy rule; map extended; the length cut never splits an expansion.
 <!-- sq:discussion:end -->

@@ -7,6 +7,7 @@ skills:
   - squads
   - greeting
   - sq-memory
+  - launch-dev-host
   - releasing-squads
 ---
 

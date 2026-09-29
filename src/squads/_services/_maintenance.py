@@ -2,6 +2,7 @@
 
 import contextlib
 import dataclasses
+import re
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
@@ -624,14 +625,28 @@ def _seeded_view_issues(
                 f"missing seeded view tag {tag} — restore it with `{add_cmd}`, "
                 f"or disable it with `{disable_cmd}`"
             )
-    problems.extend(
-        f"duplicate {markers.PREFIX}{markers.view_tag(name)} tag "
-        f"({counts[name]} copies, counting both states) — "
-        f"collapse to one with "
-        f"`{views.view_placement_invocation(item_type, addr, 'add', name)}` or "
-        f"`{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
-        for name in sorted(n for n, c in counts.items() if c > 1)
-    )
+    stray = {
+        parts.name
+        for tag in views.out_of_region_view_tags(text)
+        if (parts := markers.view_tag_parts(tag)) is not None
+    }
+    for name in sorted(n for n, c in counts.items() if c > 1):
+        head = (
+            f"duplicate {markers.PREFIX}{markers.view_tag(name)} tag "
+            f"({counts[name]} copies, counting both states) — "
+        )
+        if name in stray:
+            problems.append(
+                head + "one copy sits outside sq:body, where `view add` and `view disable` "
+                "refuse to act; remove or move that copy first, then collapse the rest with "
+                f"`{views.view_placement_invocation(item_type, addr, 'add', name)}`"
+            )
+        else:
+            problems.append(
+                head + "collapse to one with "
+                f"`{views.view_placement_invocation(item_type, addr, 'add', name)}` or "
+                f"`{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
+            )
     return problems
 
 
@@ -908,6 +923,44 @@ def _is_legacy_skill_body(md: Path, item_type: str, spec: WorkflowSpec) -> bool:
     return not md.name.startswith(skill_prefix)
 
 
+#: What a report line says to do about a managed skill file whose frontmatter is gone or
+#: unreadable; `sq sync` rebuilds it from the file name and the skill catalog.
+SYNC_RESTORES_SKILL_FRONTMATTER = "run `sq sync` to restore a managed skill's frontmatter"
+
+
+def _managed_skill_remedy(md: Path, item_type: str, spec: WorkflowSpec) -> str | None:
+    """The remedy for a stamped managed-skill file, else ``None``."""
+    if item_type == ROSTER_SKILL and _is_managed_skill_slug(_stamped_skill_slug(md, spec), spec):
+        return SYNC_RESTORES_SKILL_FRONTMATTER
+    return None
+
+
+def _missing_id_message(md: Path, item_type: str, spec: WorkflowSpec) -> str:
+    """The "no ``id``" report line; a stamped managed-skill file names ``sq sync``, the one verb
+    that restores its frontmatter."""
+    msg = "file has no `id` in frontmatter"
+    remedy = _managed_skill_remedy(md, item_type, spec)
+    return f"{msg}; {remedy}" if remedy else msg
+
+
+def _stamped_skill_parts(md: Path, spec: WorkflowSpec) -> tuple[int, str] | None:
+    """``(number, slug)`` of a ``<PREFIX>-<number>-<slug>.md`` skill file name, else ``None``."""
+    prefix = prefix_for(ROSTER_SKILL, spec)
+    m = re.fullmatch(rf"{re.escape(prefix)}-(?P<n>\d+)-(?P<slug>.+)", md.stem)
+    return (int(m["n"]), m["slug"]) if m else None
+
+
+def _stamped_skill_slug(md: Path, spec: WorkflowSpec) -> str | None:
+    """The slug of a ``<PREFIX>-<number>-<slug>.md`` skill file name, else ``None``."""
+    parts = _stamped_skill_parts(md, spec)
+    return parts[1] if parts else None
+
+
+def _is_managed_skill_slug(slug: str | None, spec: WorkflowSpec) -> bool:
+    """True when *slug* names a skill ``sync`` itself generates (bundled or custom)."""
+    return slug is not None and slug in {*bundled_skill_slugs(), *custom_skill_slugs(spec)}
+
+
 def _fold_stem_into_floor(
     max_n: int, max_filename_width: int, stem_seq: int | None, digit_run: str | None
 ) -> tuple[int, int]:
@@ -985,6 +1038,10 @@ class MaintenanceMixin(ServiceCore):
             folder = self.paths.squad_dir / ts.folder
             await _aio.mkdir(folder, parents=True, exist_ok=True)
 
+        # A managed skill file that lost its frontmatter is restored before anything reads the
+        # index; when the index does not know it yet, rebuild the index from the restored file.
+        first_skips = await self._restore_skill_files_ahead_of_sync()
+
         backends = self._backends()
         ctx = self._ctx
         for backend in backends:
@@ -996,7 +1053,7 @@ class MaintenanceMixin(ServiceCore):
         proj_ctx = BackendContext(
             paths=self.paths, spec=self.spec, playbook=self.playbook, role_skills=role_skills
         )
-        skipped: list[str] = []
+        skipped: list[str] = list(first_skips)
         # sq sync is the convergence point for the live/withdrawn projection:
         # every roster item's status is re-applied against the predicate on every run,
         # materialising a live entry and withdrawing every other one — including an entry
@@ -1188,6 +1245,8 @@ class MaintenanceMixin(ServiceCore):
         # skill. Seeding both halves on every sync is what makes that migration unnecessary.
         await self.seed_bundled_skills()
         await self.seed_custom_skills()
+        _restamped, restamp_skips = await self._restamp_managed_skill_frontmatter()
+        skipped += restamp_skips
         # ... and report anything the two seeders could not claim. Seeding both halves closes
         # the gap for every slug a seeding vocabulary names; this closes the *class*, by asking
         # the only question that generalises to the next variant — is there a skill body on
@@ -1200,6 +1259,87 @@ class MaintenanceMixin(ServiceCore):
         # Collapse exact duplicates only (order-preserving) — see the docstring above. A
         # second, textually different message about the same item is never touched by this.
         return SyncSkips(dict.fromkeys(skipped))
+
+    def _catalog_skill_item(self, slug: str, number: int, filename: str) -> Item:
+        """A managed skill's item as the seeders would create it, built from the file name's
+        number and slug and the skill catalog alone."""
+        desc = (
+            skill_description(slug)
+            if slug in bundled_skill_slugs()
+            else custom_item_skill_description(slug.removeprefix("sq-"))
+        )
+        now = clock.now()
+        sid, _psid = actor.current_session()
+        return Item(
+            sequence_id=number,
+            type=ROSTER_SKILL,
+            prefix=prefix_for(ROSTER_SKILL, self.spec),
+            title=slug,
+            slug=slug,
+            status=self.spec.live_initial(ROSTER_SKILL),
+            description=desc,
+            author=slug,
+            path=self.paths.squad_relative(ROSTER_SKILL, filename, spec=self.spec),
+            created_at=now,
+            updated_at=now,
+            created_session=sid,
+            modified_session=sid,
+            extra={X.SLUG: slug},
+        )
+
+    async def _restore_skill_files_ahead_of_sync(self) -> list[str]:
+        """Restamp managed skill files before anything reads them, and rebuild the index from
+        them when it does not know a restored file yet. Returns the restamp's report lines."""
+        restored, skips = await self._restamp_managed_skill_frontmatter()
+        if restored:
+            known = (await self.store.load()).items
+            if any(n not in known for n in restored):
+                await self.repair()
+        return skips
+
+    async def _restamp_managed_skill_frontmatter(self) -> tuple[list[int], list[str]]:
+        """Rewrite the frontmatter of every managed skill file that has none, has no ``id`` or
+        has unreadable YAML, keeping its body. The frontmatter comes from the file name and the
+        skill catalog, never from the index, and an authored item is never touched. A file whose
+        id another file already carries is reported, not written. Returns the numbers restamped
+        and one report line per file left alone."""
+        folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
+        if not folder.is_dir():
+            return [], []
+        texts: dict[str, str] = {}
+        carriers: dict[str, list[str]] = {}
+        for md in sorted(folder.glob(f"{prefix_for(ROSTER_SKILL, self.spec)}-*.md")):
+            with contextlib.suppress(OSError):
+                texts[md.name] = await _aio.read_text(md)
+                with contextlib.suppress(SquadsError):
+                    fid = sections.split_frontmatter(texts[md.name])[0].get("id")
+                    if fid:
+                        carriers.setdefault(str(fid), []).append(md.name)
+        restamped: list[int] = []
+        skipped: list[str] = []
+        for name, text in texts.items():
+            parts = _stamped_skill_parts(folder / name, self.spec)
+            if parts is None or not _is_managed_skill_slug(parts[1], self.spec):
+                continue
+            try:
+                if sections.split_frontmatter(text)[0].get("id"):
+                    continue
+            except SquadsError:
+                pass  # unreadable YAML is rebuilt like missing frontmatter
+            item = self._catalog_skill_item(parts[1], parts[0], name)
+            others = [n for n in carriers.get(item.id, []) if n != name]
+            if others:
+                skipped.append(
+                    f"{name}: not restamped -- {others[0]} already carries id {item.id}; "
+                    "remove or rename one of the two files"
+                )
+                continue
+            body = sections.strip_frontmatter(text)
+            await _aio.atomic_write_text(
+                folder / name, join_frontmatter(item.to_frontmatter_dict(), body)
+            )
+            restamped.append(parts[0])
+        return restamped, skipped
 
     async def _entry_content_snapshot(
         self,
@@ -1912,7 +2052,7 @@ class MaintenanceMixin(ServiceCore):
             known_corpus,
             md,
             item_type,
-            "file has no `id` in frontmatter",
+            _missing_id_message(md, item_type, self.spec),
             max_n,
             max_filename_width,
         )
@@ -3248,6 +3388,10 @@ class MaintenanceMixin(ServiceCore):
                 CheckIssue("error", md.name, msg)
                 for msg in _view_target_issues(text, item_type, self.spec, self.playbook)
             ]
+            issues += [
+                CheckIssue("warn", md.name, views.out_of_region_view_warning(tag))
+                for tag in views.out_of_region_view_tags(text)
+            ]
             check_slug = _check_slug(md, item_type, text, self.spec)
             issues += [
                 CheckIssue("error", md.name, msg)
@@ -3266,15 +3410,23 @@ class MaintenanceMixin(ServiceCore):
             try:
                 data = read_frontmatter(text=text, source=str(md))
             except SquadsError as exc:
+                remedy = _managed_skill_remedy(md, item_type, self.spec)
                 suppress_missing |= _report_and_third_state(
-                    issues, unparseable_seqs, md, item_type, self.spec, str(exc)
+                    issues,
+                    unparseable_seqs,
+                    md,
+                    item_type,
+                    self.spec,
+                    f"{exc}; {remedy}" if remedy else str(exc),
                 )
                 continue
             fid = data.get("id")
             if not fid:
                 if _is_legacy_skill_body(md, item_type, self.spec):
                     continue  # pre-migration skill body -- never had an id, not an error
-                issues.append(CheckIssue("error", md.name, "file has no `id` in frontmatter"))
+                issues.append(
+                    CheckIssue("error", md.name, _missing_id_message(md, item_type, self.spec))
+                )
                 continue
             seq = _seq_from_frontmatter_id(fid)
             if seq is None:

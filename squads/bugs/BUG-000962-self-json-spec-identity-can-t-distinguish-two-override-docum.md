@@ -3,14 +3,14 @@ id: BUG-962
 sequence_id: 962
 type: bug
 title: self --json spec identity can't distinguish two override documents
-status: Open
+status: Fixed
 author: qa
 severity: low
 refs:
 - MILE-934:targets
 - REV-920
 created_at: '2026-09-24T09:57:16Z'
-updated_at: '2026-09-24T09:57:31Z'
+updated_at: '2026-09-29T14:03:25Z'
 ---
 <!-- sq:body -->
 ## Summary
@@ -94,4 +94,8 @@ operator ruling (op-pierre).
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-09-29T13:44:42Z] Robert Architect:
+  - Ruled in ADR-970: the self-view spec block gains an equality-only digest of the merged workflow spec. Build plan in TASK-969 ST4.
+- [2026-09-29T14:03:25Z] Elias Python:
+  - Fixed: the self-view spec block now carries a SHA-256 digest of the merged workflow spec (equality only); override stays a display flag.
 <!-- sq:discussion:end -->
