@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-09T15:26:22Z'
+updated_at: '2026-10-09T19:14:14Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -62,4 +62,22 @@ The next squads release after 0.15.
     - The board notice telling agents to use `uv run sq` is replaced: board operations go through the released tool.
 - [2026-10-09T15:26:22Z] Pierre Chat:
   - 2026-10-09: no developer starts after the current round (two reviews, two bug verifications, the feature readiness pass, the FEAT-961 ruling). The next step is proposed to me and waits for my approval.
+- [2026-10-09T18:40:09Z] Pierre Chat:
+  - 2026-10-09: next round approved with no developer: the ADR-983 revision and the dated notes on ADR-541 and ADR-492, FEAT-902 brought in line with ADR-982, a bug for the [dev] override reverted by sync, and Draft developer tasks for TASK-954 and BUG-951 only. No developer starts until I have seen those tasks.
+- [2026-10-09T19:14:14Z] Pierre Chat:
+  - 2026-10-09: development plan for this milestone approved, with the validator features in a parallel worktree. Approval covers the no-code preparation; the first developer still waits for my go.
+    
+    Build order:
+    1. TASK-954, the reconcile path for a behind-schema squad, after the architect amends ADR-955.
+    2. The import-graph guard, then the two behaviour-neutral moves from ADR-984 (role views, role derivations).
+    3. The `-dev` retirement proper, which fixes BUG-985 and creates this release's migration runner.
+    4. FEAT-976, then FEAT-977.
+    5. FEAT-980, FEAT-961 and FEAT-966, with the VS Code setting and canary keys.
+    6. FEAT-899, FEAT-901, FEAT-900 and FEAT-902, in a second worktree alongside steps 3 to 5.
+    7. The REV-958 help-text work: the writer's strings, then one developer task.
+    8. Release preparation.
+    
+    Rules: one Python stream outside the validator worktree; one independent review per feature, cleared before the next feature starts; one migration step for the release, amended by each contributor.
+    
+    Review findings: the import guard, the role moves and the write-count guard are in this milestone, as is REV-958 except the finding about a per-item verb's help needing a real item, which gets its own item. The structural refactors and the comment pass are deferred past this milestone, each with a home item.
 <!-- sq:discussion:end -->

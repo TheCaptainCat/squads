@@ -3,7 +3,7 @@ id: FEAT-902
 sequence_id: 902
 type: feature
 title: 'Squad-global validators: parent outcomes, cycles, WIP, staleness'
-status: Draft
+status: Ready
 parent: EPIC-540
 author: product-owner
 priority: low
@@ -12,7 +12,9 @@ refs:
 - FEAT-898:depends-on
 - MILE-934:targets
 - FEAT-901
-description: Five squad-wide opt-in checks from ADR-864 Part 2, none bundled by default
+- ADR-982:implements
+description: Five opt-in squad-wide checks from ADR-864 Part 2, selected in the workflow
+  document's squad validators list
 subentities:
 - local_id: US1
   title: 'children_settled_with_parent: flag a settled parent with open children'
@@ -30,8 +32,11 @@ subentities:
   title: 'stale_active: flag an active item untouched for n days, via the injectable
     clock'
   status: Todo
+- local_id: US6
+  title: As a squad, I want to select squad-global checks in one list
+  status: Todo
 created_at: '2026-09-03T09:02:36Z'
-updated_at: '2026-10-09T18:26:23Z'
+updated_at: '2026-10-09T18:42:50Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -39,7 +44,7 @@ updated_at: '2026-10-09T18:26:23Z'
 Five squad-wide checks named in ADR-864 Part 2, each opt-in, none bundled by default. One of
 them names a failure this team has already hit more than once.
 
-## Scope (all warn, catalog-only, squad-global)
+## Scope (selectable squad-global members; warn by default)
 
 - `children_settled_with_parent` -- a parent at a settled status with open children. **For
   everyone, and specifically for the failure this team has hit repeatedly**: a parent closed
@@ -54,8 +59,8 @@ them names a failure this team has already hit more than once.
   one finding when more than *n* active-role items have nobody assigned, for a board owner who
   wants one line instead of fifty.
 - `stale_active:<days>` -- an item at an active-role status untouched for *n* days. **Admitted
-  with one binding condition**: it reaches the clock only through the injectable clock the rest
-  of the codebase already uses (`clock.now()`), and it is **never bundled** by default for any
+  with one binding condition**: the time it measures against is the injectable clock the rest of
+  the codebase already uses, read once per run, and it is **never bundled** by default for any
   squad -- so `sq check` stays deterministic between two runs over an unchanged corpus unless a
   squad has knowingly selected it.
 
@@ -64,12 +69,32 @@ kind declares (dependency), never by a name.
 
 ## Selection surface
 
-Per-item members are selected through a type's `validators` list. The five squad-global members
-that exist today run unconditionally and have no selection, level or parameter surface of any
-kind. These five need one: a squad-wide place to name a member, with its `:<param>` and `@<level>`
-where it takes them, validated at spec load like the per-item grammar. Its shape is an
-architectural ruling; this feature's stories depend on it and are written against "this project
-selects it" without fixing where that is written.
+A squad selects these members in a `[squad]` table of the workflow document, key `validators`:
+
+```toml
+[squad]
+validators = ["children_settled_with_parent", "wip_limit:3", "stale_active:30@error"]
+```
+
+- The grammar and the parser are the ones a type's `[items.<type>] validators` list uses:
+  `name`, `name:param`, `name@level`, `name:param@level`. `[items.task] validators` is what the
+  task type runs; `[squad] validators` is what the squad runs.
+- The bundled document ships the list empty. A project selects in `.overrides/workflow.toml`; the
+  list is replaced whole by an override, and `"$(*squad.validators)"` extends the bundled one.
+  `[selected]` does not accept `squad`.
+- Two tiers at squad scope. The five squad-global checks that exist today (index, backend and
+  roster-config reconciliation, duplicate default designation, playbook guide roles) are
+  **always-on**: they run in every squad and cannot be named in the list. The five above are the
+  **selectable** tier.
+- Every squad-global member, always-on included, has one declared default level; a selected
+  member reports at its selection's level and otherwise at its default. Always-on members keep
+  the levels they have today.
+- At this scope `@error` changes only whether `sq check` exits non-zero. Squad-global members
+  never run at the create/update gate, so a level never refuses a write -- unlike a per-item
+  `@error`, which does.
+- A finding's `item` is an item id when it concerns exactly one item, and empty otherwise, with
+  the subjects named in the message. An assignee slug is never written there.
+- Staleness is measured per squad: one `stale_active` threshold for the whole squad.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -85,10 +110,11 @@ _Add with `sq feature 902 add-story "As a <role>, I want … so that …"`; trac
 As a team that has closed a parent against its children rather than its outcomes before, I want a settled parent with open children flagged, so an unbuilt outcome can't vanish silently the way EPIC-538 did with three unbuilt features.
 
 Acceptance:
-- Warn, catalog-only, squad-global. Fires once per parent item whose status resolves to a settled role while at least one child item (an item whose parent is it) is at a non-settled role; the message names the parent and lists the open children.
+- Shared: selected by name in the squad validators list of the workflow document (this project selects it in its own .overrides/workflow.toml unless the story says otherwise); a squad that does not select it sees no finding from it; it reports at warn by default; @error on it only makes sq check exit non-zero and never refuses a write.
+- Fires once per parent item whose status resolves to a settled role while at least one child item (an item whose parent is it) is at a non-settled role; the message lists the open children. The finding's item is the parent's id.
 - Applies to any parent type, not only epic/feature/task; sub-entities (stories, subtasks, findings) are not children for this check.
 - Silent when every child is settled (cancelled counts as settled), silent for a parent with no children, silent for an open parent.
-- This project selects it in its own override.
+- This project selects it in the squad validators list of its own override.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -104,9 +130,10 @@ Acceptance:
 As a team using dependency edges, I want a cycle among dependency edges flagged, since sq blocked would otherwise render it as a permanent mutual block with no way out.
 
 Acceptance:
-- Warn, catalog-only, squad-global. Considers only edges whose kind declares the dependency role (blocks and depends-on in the bundled spec), after orienting each by its declared direction; a cycle of related or targets edges is not reported.
+- Shared: selected by name in the squad validators list of the workflow document (this project selects it in its own .overrides/workflow.toml unless the story says otherwise); a squad that does not select it sees no finding from it; it reports at warn by default; @error on it only makes sq check exit non-zero and never refuses a write.
+- Considers only edges whose kind declares the dependency role (blocks and depends-on in the bundled spec), after orienting each by its declared direction; a cycle of related or targets edges is not reported.
 - Test shapes: a two-item cycle, a three-item cycle, one item blocking itself, a diamond (no cycle, no finding); a chain mixing blocks and depends-on that closes on itself.
-- One finding per cycle, naming the items on it; terminates on any graph.
+- One finding per cycle; its item is empty and the message names the items on the cycle; terminates on any graph.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -122,8 +149,9 @@ Acceptance:
 As a team running a kanban discipline, I want to declare a WIP cap per assignee and be warned when it's exceeded.
 
 Acceptance:
-- Warn, catalog-only, squad-global, with a required parameter wip_limit:<n> (positive integer; a bare or malformed selection is refused at spec load).
-- Fires once per assignee holding more than n items at an active-role status; an assignee at exactly n is clean; items with no assignee are not counted here; settled and non-active items are not counted.
+- Shared: selected by name in the squad validators list of the workflow document (this project selects it in its own .overrides/workflow.toml unless the story says otherwise); a squad that does not select it sees no finding from it; it reports at warn by default; @error on it only makes sq check exit non-zero and never refuses a write.
+- Required positive-integer parameter, wip_limit:<n> (a bare or malformed entry is refused at spec load; see the surface story).
+- Fires once per assignee holding more than n items at an active-role status; an assignee at exactly n is clean; items with no assignee are not counted here; settled and non-active items are not counted. The finding's item is empty; the message names the assignee and the count, and no assignee slug is written in the item field.
 - Explicitly not selected in this project's own override -- named as the clearest example of a real check that is nobody's defect and would be wrong to bundle.
 <!-- sq:story:US3:body:end -->
 
@@ -140,7 +168,9 @@ Acceptance:
 As a board owner, I want one roll-up line for how many active items are unassigned, instead of reading fifty individual assignee_present warnings.
 
 Acceptance:
-- Warn, catalog-only, squad-global, with a required parameter unassigned_active:<n> (zero or a positive integer): one finding when more than n active-role items have no assignee, stating the count and listing no more than the first few items; clean at n or fewer.
+- Shared: selected by name in the squad validators list of the workflow document (this project selects it in its own .overrides/workflow.toml unless the story says otherwise); a squad that does not select it sees no finding from it; it reports at warn by default; @error on it only makes sq check exit non-zero and never refuses a write.
+- Required non-negative-integer parameter, unassigned_active:<n> (zero is valid; a bare or malformed entry is refused at spec load). Fires once when MORE THAN n active-role items have no assignee; at n or fewer it is clean, so unassigned_active:0 flags any unassigned active item.
+- The finding's item is empty; the message states the count and names at most the first few items.
 - Independent of the per-item assignee_present check: a squad may select either, both or neither.
 - This project does not select it.
 <!-- sq:story:US4:body:end -->
@@ -158,11 +188,12 @@ Acceptance:
 As a team running a long-lived board, I want an active item untouched for n days flagged.
 
 Acceptance:
-- Warn, catalog-only, squad-global, with a required parameter stale_active:<days> (positive integer; a bare or malformed selection is refused at spec load).
-- Reads the time only through the codebase's injectable clock (clock.now()), never datetime.now() directly; a test freezes the clock and proves an item untouched for days+1 days warns while one untouched for days days is clean.
-- "Untouched" is measured from the item's updated_at timestamp; this feature does not change what bumps it.
+- Shared: selected by name in the squad validators list of the workflow document (this project selects it in its own .overrides/workflow.toml unless the story says otherwise); a squad that does not select it sees no finding from it; it reports at warn by default; @error on it only makes sq check exit non-zero and never refuses a write.
+- Required positive-integer parameter, stale_active:<days> (a bare or malformed entry is refused at spec load).
+- The engine reads the injectable clock once per run and every item in that run is measured against that same instant; the member itself calls no clock. A test freezes the clock and proves an item untouched for days+1 days warns while one untouched for exactly days days is clean, and that two items checked in one run are measured against the same instant.
+- "Untouched" is measured from the item's updated_at timestamp; this feature does not change what bumps it. The finding's item is the stale item's id.
 - Never bundled by default for any squad, so sq check is deterministic between two runs over an unchanged corpus unless a squad has knowingly selected it; a test proves two runs over an unchanged corpus with nothing selected agree.
-- This project does not select it.
+- One threshold applies to the whole squad. This project does not select it.
 <!-- sq:story:US5:body:end -->
 
 #### Discussion
@@ -170,6 +201,30 @@ Acceptance:
 <!-- sq:story:US5:discussion -->
 <!-- sq:story:US5:discussion:end -->
 <!-- sq:story:US5:end -->
+
+<!-- sq:story:US6 -->
+### US6 — As a squad, I want to select squad-global checks in one list
+
+<!-- sq:story:US6:body -->
+As an adopter, I want to name, level and parameterise squad-wide checks in one place, so I choose which policies my squad enforces and how loudly, without the checks every squad needs ever being switchable.
+
+Acceptance:
+- The workflow document accepts a [squad] table with one key, validators, a list of entries in the same grammar as a type's validators list (name, name:param, name@level, name:param@level). Any other key under [squad] is refused. The bundled document ships the list empty, and a squad that selects nothing sees no new finding from sq check.
+- An override in .overrides/workflow.toml replaces the list whole; "$(*squad.validators)" extends the bundled one. [selected] refuses squad.
+- Each of these is refused at spec load, naming the entry, and reported by sq workflow lint: an unknown name; an always-on member (index_reconciled, backend_reconciled, roster_config_integrity, default_designation_duplicated, playbook_guide_role_live); a parameter on a member that takes none; a missing or malformed parameter on one that requires it (wip_limit and stale_active need a positive integer, unassigned_active a non-negative one); a level other than error or warn; the same bare name twice, whatever the parameters. Selecting any of the five members at @warn or @error loads clean.
+- A per-item validator name written under [squad] is refused with a message saying it belongs on a type's validators list; a squad-global name written on a type's validators list is refused with the reciprocal message, instead of "unknown validator".
+- Every squad-global member, the five always-on ones included, has one declared default level. The always-on members report at exactly the levels they report at today (four error, one warn: playbook_guide_role_live); a test over the whole squad-global catalog proves each member has a declared default and that no member writes a level literal of its own. A selected member reports at its selection's level when it has one and at its default otherwise.
+- The always-on and selectable names are disjoint, together make up the squad-global catalog, and neither overlaps the per-item catalog; a test fails when a new member is added without a tier.
+- Squad-global members never run at the create/update gate at any level: a selection at @error makes sq check exit non-zero on a finding and does not refuse any write.
+- A selection in an override that fails to load does not run; sq check falls back to the bundled spec as it does for every other declaration.
+- Adopter documentation (authored by the tech writer) lists which squad-global findings are always-on and cannot be deselected, states that @error at this scope changes only sq check's exit code, and carries no item IDs or build-process narration.
+<!-- sq:story:US6:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US6:discussion -->
+<!-- sq:story:US6:discussion:end -->
+<!-- sq:story:US6:end -->
 <!-- sq:stories:end -->
 
 ## Discussion
@@ -200,4 +255,6 @@ Acceptance:
     **On REV-956 F11.** This adds no finding source: the five are members of the existing squad-global catalog. Each selected member's bare name is the rule identity a `rule` key would carry, and the always-on/selectable split is declared, not inferred. One correction to F11's own text: it says the squad-global catalog is selectable; today it is not (read: `ValidatorEngine.report` runs every member), and after ADR-982 only its selectable tier is.
     
     **For op-pierre to weigh.** `stale_active` and `children_settled_with_parent` report per item and could have been per-item members with a per-type threshold. ADR-982 clause 7 keeps them at squad scope, as ADR-864 placed them, at the cost of one staleness threshold per squad.
+- [2026-10-09T18:42:50Z] Nina Product:
+  - 2026-10-09 aligned with ADR-982 (Accepted) and the architect's list: selection surface stated in the body, new US6 for the surface (load refusals, default-level table, always-on tier, docs), US1-US5 name the list, warn by default, shared @error-never-refuses-a-write acceptance, finding item per story, US5 single clock read, implements ref to ADR-982. Moved to Ready.
 <!-- sq:discussion:end -->

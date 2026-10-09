@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 984,
+  "counter": 985,
   "padding": 6,
   "items": {
     "12": {
@@ -6428,8 +6428,8 @@
       "type": "feature",
       "title": "Squad-global validators: parent outcomes, cycles, WIP, staleness",
       "slug": "squad-global-validators-parent-outcomes-cycles-wip-staleness",
-      "status": "Draft",
-      "description": "Five squad-wide opt-in checks from ADR-864 Part 2, none bundled by default",
+      "status": "Ready",
+      "description": "Five opt-in squad-wide checks from ADR-864 Part 2, selected in the workflow document's squad validators list",
       "parent": "EPIC-540",
       "author": "product-owner",
       "assignee": null,
@@ -6440,7 +6440,8 @@
         "ADR-864:implements",
         "FEAT-898:depends-on",
         "MILE-934:targets",
-        "FEAT-901"
+        "FEAT-901",
+        "ADR-982:implements"
       ],
       "subentities": [
         {
@@ -6487,11 +6488,20 @@
           "severity": null,
           "story": null,
           "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As a squad, I want to select squad-global checks in one list",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
         }
       ],
       "path": "features/FEAT-000902-squad-global-validators-parent-outcomes-cycles-wip-staleness.md",
       "created_at": "2026-09-03T09:02:36Z",
-      "updated_at": "2026-10-09T18:26:23Z",
+      "updated_at": "2026-10-09T18:42:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7248,7 +7258,7 @@
       ],
       "path": "features/FEAT-000966-declare-skill-user-invocability-hide-reference-skills.md",
       "created_at": "2026-09-28T17:54:53Z",
-      "updated_at": "2026-10-09T18:28:20Z",
+      "updated_at": "2026-10-09T18:46:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25685,7 +25695,7 @@
       "title": "Give a behind-schema squad a reconcile path the gate permits",
       "slug": "give-a-behind-schema-squad-a-reconcile-path-the-gate-permits",
       "status": "Draft",
-      "description": "require_current_schema exempts only migrate, so every remedy naming sq repair is unreachable exactly when it is needed; needs a ruling on what repair may do under a stale schema",
+      "description": "Behind the schema gate only sq migrate runs, yet a stale index dead-ends it, its remedies name refused commands, and every migrate verb is exempt; reconcile inside migrate up per ADR-955",
       "parent": null,
       "author": "tech-lead",
       "assignee": null,
@@ -25694,12 +25704,13 @@
       "labels": [],
       "refs": [
         "REV-952:fixes",
-        "MILE-934:targets"
+        "MILE-934:targets",
+        "ADR-955:implements"
       ],
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Inventory every remedy that names a gate-refused command",
+          "title": "Name only permitted commands in remedies behind the gate",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -25708,7 +25719,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Narrow what repair may do on a behind-schema squad, then exempt it",
+          "title": "Reconcile the index structurally before the first runner",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -25717,7 +25728,25 @@
         },
         {
           "local_id": "ST3",
-          "title": "Drive the escape end to end on a behind-schema squad",
+          "title": "Drive migrate up end to end over behind-schema squad shapes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Build migrate up without the live-index cross-check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Exempt only migrate up, help and chlog from the schema gate",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -25727,7 +25756,7 @@
       ],
       "path": "tasks/TASK-000954-give-a-behind-schema-squad-a-reconcile-path-the-gate-permits.md",
       "created_at": "2026-09-15T08:41:13Z",
-      "updated_at": "2026-10-09T15:20:53Z",
+      "updated_at": "2026-10-09T19:14:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29810,12 +29839,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "BUG-490:addresses"
+        "BUG-490:addresses",
+        "FEAT-976"
       ],
       "subentities": [],
       "path": "adrs/ADR-000492-custom-skills-authored-bodies-and-role-scoping.md",
       "created_at": "2026-07-20T08:47:15Z",
-      "updated_at": "2026-10-09T18:35:04Z",
+      "updated_at": "2026-10-09T18:47:45Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29920,12 +29950,13 @@
         "EPIC-538",
         "EPIC-540",
         "ADR-696",
-        "ADR-320"
+        "ADR-320",
+        "ADR-982"
       ],
       "subentities": [],
       "path": "adrs/ADR-000541-type-categories-pluggable-validators-closed-catalog-open-ass.md",
       "created_at": "2026-07-21T16:26:15Z",
-      "updated_at": "2026-08-03T08:52:23Z",
+      "updated_at": "2026-10-09T18:47:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30182,12 +30213,13 @@
         "REV-736",
         "TASK-751",
         "REV-770",
-        "ADR-971"
+        "ADR-971",
+        "ADR-984"
       ],
       "subentities": [],
       "path": "adrs/ADR-000754-dev-role-resolution-takes-an-explicit-base-never-a-regenerat.md",
       "created_at": "2026-08-21T12:47:51Z",
-      "updated_at": "2026-09-29T13:53:56Z",
+      "updated_at": "2026-10-09T18:47:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30532,12 +30564,13 @@
         "BUG-965:addresses",
         "ADR-754",
         "MILE-934",
-        "TASK-969"
+        "TASK-969",
+        "ADR-984"
       ],
       "subentities": [],
       "path": "adrs/ADR-000971-a-stored-slug-is-identity-slugify-only-proposes-one-at-creat.md",
       "created_at": "2026-09-29T13:41:21Z",
-      "updated_at": "2026-09-29T13:53:06Z",
+      "updated_at": "2026-10-09T18:47:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30793,7 +30826,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-09T15:26:22Z",
+      "updated_at": "2026-10-09T19:14:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42572,7 +42605,7 @@
       ],
       "path": "features/FEAT-000976-store-role-and-skill-origin-lock-system-skills.md",
       "created_at": "2026-09-29T14:19:13Z",
-      "updated_at": "2026-10-09T18:13:12Z",
+      "updated_at": "2026-10-09T18:43:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42829,10 +42862,10 @@
     "983": {
       "sequence_id": 983,
       "type": "decision",
-      "title": "Skill invocability derives from origin; only exceptions are stored",
-      "slug": "skill-invocability-derives-from-origin-only-exceptions-are-s",
-      "status": "Proposed",
-      "description": "Where a skill's operator-invocable property lives, how it resolves, and what each backend does with it.",
+      "title": "Skill invocability: a declared default and a squad's stored choice",
+      "slug": "skill-invocability-a-declared-default-and-a-squad-s-stored-c",
+      "status": "Accepted",
+      "description": "Where a skill's operator-invocable attribute is declared and stored, how it resolves, and what each backend does with it.",
       "parent": null,
       "author": "architect",
       "assignee": null,
@@ -42849,9 +42882,9 @@
         "FEAT-976"
       ],
       "subentities": [],
-      "path": "adrs/ADR-000983-skill-invocability-derives-from-origin-only-exceptions-are-s.md",
+      "path": "adrs/ADR-000983-skill-invocability-a-declared-default-and-a-squad-s-stored-c.md",
       "created_at": "2026-10-09T18:27:22Z",
-      "updated_at": "2026-10-09T18:35:00Z",
+      "updated_at": "2026-10-09T19:14:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42862,7 +42895,7 @@
       "type": "decision",
       "title": "A developer is a role that declares a capability, not a slug suffix",
       "slug": "a-developer-is-a-role-that-declares-a-capability-not-a-slug",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "Roles declare capabilities; *dev addresses the dev capability; extra.is_dev is dropped and extra.tech kept; slugs stay; no second 0.16 schema bump",
       "parent": null,
       "author": "architect",
@@ -42882,11 +42915,37 @@
       "subentities": [],
       "path": "adrs/ADR-000984-a-developer-is-a-role-that-declares-a-capability-not-a-slug.md",
       "created_at": "2026-10-09T18:30:02Z",
-      "updated_at": "2026-10-09T18:30:59Z",
+      "updated_at": "2026-10-09T18:40:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "ADR-984"
+    },
+    "985": {
+      "sequence_id": 985,
+      "type": "bug",
+      "title": "A [dev] catalog override is reverted for existing devs by sq sync",
+      "slug": "a-dev-catalog-override-is-reverted-for-existing-devs-by-sq-s",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-984",
+        "MILE-934:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000985-a-dev-catalog-override-is-reverted-for-existing-devs-by-sq-s.md",
+      "created_at": "2026-10-09T18:42:59Z",
+      "updated_at": "2026-10-09T18:43:13Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-985"
     }
   }
 }

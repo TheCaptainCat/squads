@@ -11,10 +11,11 @@ refs:
 - TASK-751
 - REV-770
 - ADR-971
+- ADR-984
 description: Dev-role overrides merge onto a base supplied by the caller, built from
   the live role's stored identity
 created_at: '2026-08-21T12:47:51Z'
-updated_at: '2026-09-29T13:53:56Z'
+updated_at: '2026-10-09T18:47:49Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -272,6 +273,10 @@ nothing authoritative, and is its own small item — not a precondition for this
 ## Narrowing (2026-09-29, ADR-971)
 
 `dev_base_from_item` also takes `slug` from the item (`item.extra.get(X.SLUG, item.slug)`), beside name, model and tech. The `<tech>-dev` derivation runs only when a developer is created; `extra.tech` is a template input, never a source of identity. See ADR-971.
+
+## Narrowing (2026-10-09, ADR-984)
+
+Decision 2's precedence was "a stored fact first, a naming convention only where no stored fact exists". The first half stands and the second is withdrawn: a slug that names no roster item resolves to nothing, whatever its spelling, so the `dev_base_for_slug` case and the `is_dev_slug` fallback no longer apply (ADR-984 decision 6). The stored fact the first half reads is `extra.tech`, since `extra.is_dev` is removed (ADR-984 decision 4). See ADR-984.
 <!-- sq:body:end -->
 
 ## Discussion

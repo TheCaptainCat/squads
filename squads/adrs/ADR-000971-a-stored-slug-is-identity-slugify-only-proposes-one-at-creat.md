@@ -10,10 +10,11 @@ refs:
 - ADR-754
 - MILE-934
 - TASK-969
+- ADR-984
 description: No path re-derives a stored slug; dev roles resolve to their stored slug;
   existing slugs stay; duplicates match both rules
 created_at: '2026-09-29T13:41:21Z'
-updated_at: '2026-09-29T13:53:06Z'
+updated_at: '2026-10-09T18:47:52Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -86,6 +87,11 @@ created.**
 - At creation, `resolve_dev_role` looks up the per-slug override under the same slug the
   role will be stored with, `slugify(tech) + "-dev"`, so there is one derivation instead of
   two.
+
+**Narrowed 2026-10-09 (ADR-984).** "An input to the generated template ... and nothing else"
+gains one reading: the presence of `extra.tech` on a role item selects the template, that is,
+says the definition comes from the catalog's `[dev]` table. It still supplies no identity, and
+it never says what the role may do (ADR-984 decision 4).
 
 **3. Existing slugs stay as they are.**
 

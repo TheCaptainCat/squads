@@ -3,7 +3,7 @@ id: ADR-984
 sequence_id: 984
 type: decision
 title: A developer is a role that declares a capability, not a slug suffix
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - MILE-934:targets
@@ -16,7 +16,7 @@ refs:
 description: Roles declare capabilities; *dev addresses the dev capability; extra.is_dev
   is dropped and extra.tech kept; slugs stay; no second 0.16 schema bump
 created_at: '2026-10-09T18:30:02Z'
-updated_at: '2026-10-09T18:30:59Z'
+updated_at: '2026-10-09T18:40:01Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -327,4 +327,6 @@ and 6, and a single composition function (finding 15).
     Verified myself: every site in REV-956 finding 1's inventory was opened, and its disagreement was reproduced in a scratch squad (a `platform-dev` custom role). Taken from the review without re-measuring: findings 2, 3, 5, 6 and 16, including the import-graph measurements. Not driven: that the retired-key sweep removes `is_dev` with no runner code, and the override drift path.
     
     If accepted, ADR-754 decision 2 and ADR-971 decision 2 each need a dated narrowing in place and a `related` ref back. I touched neither.
+- [2026-10-09T18:40:01Z] Pierre Chat:
+  - 2026-10-09: accepted as written, including the open capability vocabulary, developers staying templated, sq dev add --slug, and the two upgrade changes with no automatic fix.
 <!-- sq:discussion:end -->

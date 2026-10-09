@@ -7,8 +7,9 @@ status: Accepted
 author: architect
 refs:
 - BUG-490:addresses
+- FEAT-976
 created_at: '2026-07-20T08:47:15Z'
-updated_at: '2026-10-09T18:35:04Z'
+updated_at: '2026-10-09T18:47:45Z'
 ---
 <!-- sq:body -->
 # Custom skills: authored bodies and role scoping
@@ -94,6 +95,15 @@ This single predicate governs the one behavior that actually needs it: the autho
 (reject `sq skill body` on a template-owned skill; allow it on a custom one). It also drives
 display legibility — `sq skill <n> show` labels the skill system (template-owned) or custom
 (authored) computed on the fly.
+
+**Reversed for the label, 2026-10-09 (FEAT-976).** Where a role or skill came from is now stored:
+an `origin` key in its frontmatter, `system` or `project`, stamped at creation and by a migration,
+and shown under that one name on every surface. It replaces the label this pillar computed on the
+fly, so "derived, not persisted" and, under *Schema and migration*, "there is no stored flag to
+set" no longer hold for roles and skills. Origin is provenance only: the authoring gate does not
+read it and still follows whether the body is generated. Origin has no decision record of its
+own. FEAT-976, op-pierre's rulings in its discussion (2026-09-29, 2026-10-09) and his ruling in
+this decision's discussion (2026-10-09) are the record.
 
 The other two behaviors the session assigned to a stored flag need no flag:
 

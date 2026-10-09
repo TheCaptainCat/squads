@@ -27,7 +27,7 @@ subentities:
     with no migration required
   status: Todo
 created_at: '2026-09-28T17:54:53Z'
-updated_at: '2026-10-09T18:28:20Z'
+updated_at: '2026-10-09T18:46:38Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -206,4 +206,29 @@ Acceptance: an existing squad on the current schema picks up the flag on its nex
     - FEAT-977 US1 and US4 say `update` on a system skill exits 1. They need the one exemption from ADR-983 clause 3, on the same footing as comments and pronouns. Not edited by me.
     
     **For op-pierre to weigh.** Reading `origin` for this default makes origin an input to one behaviour, where the write refusal deliberately does not read it. A system skill whose view the project dropped is writable again and still hidden by default. If a system skill should never be shown, clause 3 shrinks to project skills only and the exemption above disappears.
+- [2026-10-09T18:46:38Z] Robert Architect:
+  - @product-owner ADR-983 was rewritten on op-pierre's rulings of 2026-10-09 (its discussion) and retitled. It is still Proposed. This replaces my earlier change list where the two differ.
+    
+    **Ruling now.** `operator_invocable` is an attribute of the skill. A bundled skill's default is declared in its bundled definition, in code beside its description: `false` for the three always-on skills and for every `sq-<type>` skill. An author-defined skill defaults to invocable. A squad's own value is stored in the skill's frontmatter (`extra.operator_invocable`) and only a verb writes it, so a release can change a bundled default without touching a squad's choice. Resolution is the stored value, else the declared default.
+    
+    **Withdrawn from my earlier list**
+    
+    - "The default comes from origin". It does not, and nothing here reads `origin`.
+    - "Make FEAT-976 `depends-on`". Not needed for the default. Keep a plain ref: the only link left is that the system-skill write refusal has to let this one option through.
+    - "Setting the default value removes the key". Reversed: a set is always stored.
+    - "`--operator-invocable` / `--no-operator-invocable`". Replaced by one option, below.
+    
+    **What has to change here, in full**
+    
+    - Outcome and Scope: drop "declared vocabulary the engine resolves from the active spec" and "a per-skill `user-invocable` property in the declared vocabulary". Use `operator_invocable` everywhere outside the Claude Code backend bullet, and say it is a declared default plus a squad's stored value.
+    - US1: the default is the one the skill's bundled definition declares, never read off the slug. Nothing is stamped on any skill. Your acceptance stands (every bundled pointer carries the line; an authored skill does not, including one whose slug begins with `sq-`). Add: a guard fails when a bundled skill has no declared default.
+    - US2: add that the three render sites agree: the managed writer, the item entry, and the pure render `sq check` compares against disk (read: `_write_managed_skill`, `generate_skill_entry`, `render_skill_entry`).
+    - US3, rewritten: `--operator-invocable <yes|no|default>` on `sq skill add` and `sq skill <addr> update`. `yes` and `no` store the value even when it equals the current default; `default` removes it; leaving the option out stores nothing. It works on a system skill, where every other `update` option is still refused. `sq init`, `sq sync` and migrations never write the key. The value survives `sq sync` and an index rebuild by `sq repair`. A test changes a bundled default and shows that a skill with a stored value keeps it and one without follows.
+    - Read surfaces: `show` prints the resolved value and whether it is the squad's own; `--json` carries `operator_invocable` and `operator_invocable_set`.
+    - US4: unchanged from my earlier note (no warning from the AGENTS.md backend; it states it has no place for the value).
+    - US5 and the body's "`sq check` stays clean": still wrong as written. Between an upgrade and the next `sq sync`, `sq check` warns that each system skill pointer has drifted (inferred from read: `backend_entry_drift`). Make it "clean after `sq sync`". "No schema bump, no migration" is now true without qualification.
+    - Preload: keep the acceptance line that a hidden skill is seen to preload into a subagent on a real host. The docs confirm the menu half only.
+    - Refs: `depends-on` FEAT-977 (it introduces `sq skill update`), `implements` ADR-983.
+    - FEAT-977 US1 and US4 still need the one exemption for this option on a system skill. Not edited by me.
+    - Implementation hazard for the task: the generic `--set` boolean coercion turns any unrecognised text into `false` (read: `_models/_metadata.py::coerce`). This option must not go through it.
 <!-- sq:discussion:end -->
