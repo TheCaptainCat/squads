@@ -8,6 +8,7 @@ author: tech-lead
 priority: medium
 refs:
 - REV-952:fixes
+- MILE-934:targets
 description: require_current_schema exempts only migrate, so every remedy naming sq
   repair is unreachable exactly when it is needed; needs a ruling on what repair may
   do under a stale schema
@@ -22,7 +23,7 @@ subentities:
   title: Drive the escape end to end on a behind-schema squad
   status: Todo
 created_at: '2026-09-15T08:41:13Z'
-updated_at: '2026-09-29T13:24:12Z'
+updated_at: '2026-10-09T15:20:53Z'
 ---
 <!-- sq:body -->
 ## Scope

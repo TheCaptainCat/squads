@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 980,
+  "counter": 981,
   "padding": 6,
   "items": {
     "12": {
@@ -6215,10 +6215,10 @@
     "899": {
       "sequence_id": 899,
       "type": "feature",
-      "title": "Re-tier no_status_banner and the title-length floor",
-      "slug": "re-tier-no-status-banner-and-the-title-length-floor",
-      "status": "Draft",
-      "description": "Move two floor members that fail the catalog's own tiering test to catalog-only, declared thresholds, selected by our own spec",
+      "title": "Re-tier no_status_banner and the sub-entity title advisory",
+      "slug": "re-tier-no-status-banner-and-the-sub-entity-title-advisory",
+      "status": "Ready",
+      "description": "Move two always-on members to catalog-only, with this project selecting both in its own override",
       "parent": "EPIC-540",
       "author": "product-owner",
       "assignee": null,
@@ -6228,7 +6228,8 @@
       "refs": [
         "ADR-864:implements",
         "FEAT-898:depends-on",
-        "MILE-934:targets"
+        "MILE-934:targets",
+        "FEAT-901"
       ],
       "subentities": [
         {
@@ -6242,7 +6243,7 @@
         },
         {
           "local_id": "US2",
-          "title": "Move the sub-entity title threshold from floor to catalog-only",
+          "title": "Move the sub-entity title advisory from the work bundle to catalog-only",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -6257,11 +6258,20 @@
           "severity": null,
           "story": null,
           "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an adopter upgrading, I want the behaviour change documented",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
         }
       ],
-      "path": "features/FEAT-000899-re-tier-no-status-banner-and-the-title-length-floor.md",
+      "path": "features/FEAT-000899-re-tier-no-status-banner-and-the-sub-entity-title-advisory.md",
       "created_at": "2026-09-03T09:02:32Z",
-      "updated_at": "2026-09-09T14:46:04Z",
+      "updated_at": "2026-10-09T17:04:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6272,7 +6282,7 @@
       "type": "feature",
       "title": "field_value_declared: frontmatter values against declared collections",
       "slug": "field-value-declared-frontmatter-values-against-declared-col",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Error-level validator, work+records bundles: a badge/field value not a member of its field's declared collection",
       "parent": "EPIC-540",
       "author": "product-owner",
@@ -6298,7 +6308,7 @@
       ],
       "path": "features/FEAT-000900-field-value-declared-frontmatter-values-against-declared-col.md",
       "created_at": "2026-09-03T09:02:33Z",
-      "updated_at": "2026-09-09T14:46:07Z",
+      "updated_at": "2026-10-09T15:35:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6309,7 +6319,7 @@
       "type": "feature",
       "title": "Part 2 catalog-only validators: title, body, description, blockers",
       "slug": "part-2-catalog-only-validators-title-body-description-blocke",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Eight opt-in per-item checks from ADR-864 Part 2; this project selects item_title_max and body_written",
       "parent": "EPIC-540",
       "author": "product-owner",
@@ -6407,7 +6417,7 @@
       ],
       "path": "features/FEAT-000901-part-2-catalog-only-validators-title-body-description-blocke.md",
       "created_at": "2026-09-03T09:02:34Z",
-      "updated_at": "2026-09-09T14:46:12Z",
+      "updated_at": "2026-10-09T17:04:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6429,7 +6439,8 @@
       "refs": [
         "ADR-864:implements",
         "FEAT-898:depends-on",
-        "MILE-934:targets"
+        "MILE-934:targets",
+        "FEAT-901"
       ],
       "subentities": [
         {
@@ -6480,7 +6491,7 @@
       ],
       "path": "features/FEAT-000902-squad-global-validators-parent-outcomes-cycles-wip-staleness.md",
       "created_at": "2026-09-03T09:02:36Z",
-      "updated_at": "2026-09-09T14:46:16Z",
+      "updated_at": "2026-10-09T17:04:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7112,7 +7123,9 @@
       "priority": null,
       "severity": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "MILE-934:targets"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -7162,7 +7175,7 @@
       ],
       "path": "features/FEAT-000961-pronouns-on-agent-and-operator-identity-with-a-generic-displ.md",
       "created_at": "2026-09-24T09:30:03Z",
-      "updated_at": "2026-09-24T09:53:56Z",
+      "updated_at": "2026-10-09T15:36:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7182,7 +7195,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "MILE-934:targets"
+        "MILE-934:targets",
+        "FEAT-976"
       ],
       "subentities": [
         {
@@ -7233,7 +7247,7 @@
       ],
       "path": "features/FEAT-000966-declare-skill-user-invocability-hide-reference-skills.md",
       "created_at": "2026-09-28T17:54:53Z",
-      "updated_at": "2026-09-28T18:09:12Z",
+      "updated_at": "2026-10-09T15:37:09Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25678,7 +25692,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-952:fixes"
+        "REV-952:fixes",
+        "MILE-934:targets"
       ],
       "subentities": [
         {
@@ -25711,7 +25726,7 @@
       ],
       "path": "tasks/TASK-000954-give-a-behind-schema-squad-a-reconcile-path-the-gate-permits.md",
       "created_at": "2026-09-15T08:41:13Z",
-      "updated_at": "2026-09-29T13:24:12Z",
+      "updated_at": "2026-10-09T15:20:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28368,7 +28383,7 @@
       "type": "bug",
       "title": "Deleting a managed skill body permanently loses its frontmatter",
       "slug": "deleting-a-managed-skill-body-permanently-loses-its-frontmat",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -28383,7 +28398,7 @@
       "subentities": [],
       "path": "bugs/BUG-000938-deleting-a-managed-skill-body-permanently-loses-its-frontmat.md",
       "created_at": "2026-09-10T08:37:34Z",
-      "updated_at": "2026-09-29T16:23:09Z",
+      "updated_at": "2026-10-09T15:38:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28457,12 +28472,13 @@
       "labels": [],
       "refs": [
         "ADR-880",
-        "FEAT-948"
+        "FEAT-948",
+        "MILE-934:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000951-set-body-and-repair-sweep-disagree-on-a-stale-bundled-skill.md",
       "created_at": "2026-09-15T08:00:38Z",
-      "updated_at": "2026-09-15T08:13:00Z",
+      "updated_at": "2026-10-09T15:20:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30776,7 +30792,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-09-29T14:21:29Z",
+      "updated_at": "2026-10-09T15:26:22Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40710,21 +40726,193 @@
       "type": "review",
       "title": "Structural review of the engine: layering and cohesion",
       "slug": "structural-review-of-the-engine-layering-and-cohesion",
-      "status": "Requested",
+      "status": "ChangesRequested",
       "description": "Module boundaries, layering and cohesion across the sq engine, including whether DI answers the construction tensions.",
       "parent": null,
       "author": "architect",
-      "assignee": null,
+      "assignee": "reviewer",
       "priority": null,
       "severity": null,
       "labels": [],
       "refs": [
         "MILE-934:targets"
       ],
-      "subentities": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Two disagreeing answers to whether a role is a developer",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "RoleView lives in _backends and forces protocol stand-ins",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Roster projection is 400 lines of ServiceCore, used by six mixins",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "The mixin composition is a type-checked star: leave it",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "_interactions/__init__.py is an undeclared 1k-line policy hub",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "48 parameters silently default a missing spec to the bundled one",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Bundled sub-entity vocabulary survives as test-only API and tags",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Three spec loaders hand-write one load shape",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "WorkflowSpec methods are fine; its file holds three other things",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "_maintenance.py is two modules: the rebuild corridor and check",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "sq check has eight finding sources and names none of them",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "View layout is right; _views.py itself holds five jobs",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "_cli/_common.py: nothing breaks today, leave it whole",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "DI container: no at today's graph size, with measurements",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Service is built at eight sites; three omit the playbook",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "Layering is stated in three places and guarded by no test",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "retype and import write one file several times per transaction",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F18",
+          "title": "Comment rule: 95 of 127 source files fail a mechanical check",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F19",
+          "title": "Comment rule: 414 of 566 test files fail a mechanical check",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
       "path": "reviews/REV-000956-structural-review-of-the-engine-layering-and-cohesion.md",
       "created_at": "2026-09-15T09:01:18Z",
-      "updated_at": "2026-09-29T08:44:07Z",
+      "updated_at": "2026-10-09T16:53:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40735,11 +40923,11 @@
       "type": "review",
       "title": "The --help surface: what belongs in a command's help text",
       "slug": "the-help-surface-what-belongs-in-a-command-s-help-text",
-      "status": "Requested",
+      "status": "ChangesRequested",
       "description": "A read of every rendered --help body and flag description, settling what help text is for versus a module docstring or docs/.",
       "parent": null,
       "author": "tech-writer",
-      "assignee": null,
+      "assignee": "reviewer",
       "priority": null,
       "severity": null,
       "labels": [],
@@ -40747,10 +40935,110 @@
         "MILE-934:targets",
         "REV-956"
       ],
-      "subentities": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Help bodies carry maintainer reasoning and private names",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "One in four option and argument descriptions is blank",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "JSON field reference fills the help body of 13 commands",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Help is written for a layout the renderer does not produce",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Exit-code prose in 11 commands, in three forms",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "A per-item verb's help needs a real item to open",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Five markup dialects, none rendered; brackets are consumed",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Same flag, different words; text that contradicts its screen",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Summaries name the mechanism or stay generic",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Flags described in the body and again in the panel",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Nothing holds a help change to the rule",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
       "path": "reviews/REV-000958-the-help-surface-what-belongs-in-a-command-s-help-text.md",
       "created_at": "2026-09-15T10:12:29Z",
-      "updated_at": "2026-09-15T10:13:23Z",
+      "updated_at": "2026-10-09T18:13:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42241,7 +42529,7 @@
       "type": "feature",
       "title": "Store role and skill origin, lock system skills",
       "slug": "store-role-and-skill-origin-lock-system-skills",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -42283,7 +42571,7 @@
       ],
       "path": "features/FEAT-000976-store-role-and-skill-origin-lock-system-skills.md",
       "created_at": "2026-09-29T14:19:13Z",
-      "updated_at": "2026-09-29T14:32:08Z",
+      "updated_at": "2026-10-09T18:13:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42294,7 +42582,7 @@
       "type": "feature",
       "title": "Verb parity for skills, roles and operators",
       "slug": "verb-parity-for-skills-roles-and-operators",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -42347,7 +42635,7 @@
       ],
       "path": "features/FEAT-000977-verb-parity-for-skills-roles-and-operators.md",
       "created_at": "2026-09-29T14:19:16Z",
-      "updated_at": "2026-09-29T14:59:28Z",
+      "updated_at": "2026-10-09T15:35:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42358,7 +42646,7 @@
       "type": "bug",
       "title": "check and repair do not report two files with the same id",
       "slug": "check-and-repair-do-not-report-two-files-with-the-same-id",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "check and repair stay silent when two files carry one id",
       "parent": null,
       "author": "qa",
@@ -42373,7 +42661,7 @@
       "subentities": [],
       "path": "bugs/BUG-000978-check-and-repair-do-not-report-two-files-with-the-same-id.md",
       "created_at": "2026-09-29T14:25:57Z",
-      "updated_at": "2026-09-29T16:52:00Z",
+      "updated_at": "2026-10-09T15:38:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42411,7 +42699,7 @@
       "type": "feature",
       "title": "Comment headers carry the author's permanent slug",
       "slug": "comment-headers-carry-the-author-s-permanent-slug",
-      "status": "Draft",
+      "status": "Ready",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -42474,11 +42762,39 @@
       ],
       "path": "features/FEAT-000980-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:58:15Z",
-      "updated_at": "2026-09-29T14:59:22Z",
+      "updated_at": "2026-10-09T15:35:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "FEAT-980"
+    },
+    "981": {
+      "sequence_id": 981,
+      "type": "decision",
+      "title": "Pronouns are roster-item data; display preferences get a typed table",
+      "slug": "pronouns-are-roster-item-data-display-preferences-get-a-type",
+      "status": "Accepted",
+      "description": "extra.pronouns on role and operator items; one declared roster default; a typed display table in .squads.toml; free text, checked shape",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-961",
+        "ADR-766",
+        "ADR-979",
+        "FEAT-977"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-000981-pronouns-are-roster-item-data-display-preferences-get-a-type.md",
+      "created_at": "2026-10-09T15:35:21Z",
+      "updated_at": "2026-10-09T16:53:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-981"
     }
   }
 }

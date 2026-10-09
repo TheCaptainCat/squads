@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-09-29T14:21:29Z'
+updated_at: '2026-10-09T15:26:22Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -53,4 +53,13 @@ The next squads release after 0.15.
   - Also dropped 'moved here from 0.15 unchanged in scope' from the -dev bullet while updating the body -- lifecycle/move narration that belongs in the discussion (already on record there), not in scope prose.
 - [2026-09-29T14:21:20Z] Catherine Manager:
   - Moved to InProgress: 0.16 kicked off with op-pierre; bug fixes under way (TASK-968 Done, TASK-969 in review).
+- [2026-10-09T15:21:11Z] Pierre Chat:
+  - Scope and sequencing calls for 0.16, taken 2026-10-09:
+    
+    - The next build is retiring the `-dev` pseudo-role, starting with its ADR.
+    - REV-956 and REV-958 run now, by the reviewer, before new feature work starts. The architect and the tech writer stay as the ones who scoped them.
+    - TASK-954, BUG-951 and FEAT-961 are pulled into this milestone.
+    - The board notice telling agents to use `uv run sq` is replaced: board operations go through the released tool.
+- [2026-10-09T15:26:22Z] Pierre Chat:
+  - 2026-10-09: no developer starts after the current round (two reviews, two bug verifications, the feature readiness pass, the FEAT-961 ruling). The next step is proposed to me and waits for my approval.
 <!-- sq:discussion:end -->

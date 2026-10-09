@@ -5,6 +5,8 @@ type: feature
 title: Pronouns on agent and operator identity, with a generic display-settings config
 status: Draft
 author: product-owner
+refs:
+- MILE-934:targets
 subentities:
 - local_id: US1
   title: Pronouns as data on roles and operators
@@ -22,7 +24,7 @@ subentities:
   title: Generic display-settings mechanism in config
   status: Todo
 created_at: '2026-09-24T09:30:03Z'
-updated_at: '2026-09-24T09:53:56Z'
+updated_at: '2026-10-09T15:36:30Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -214,4 +216,16 @@ Acceptance:
   - let's draft a new feature, pronouns in the agent/operator data, because he/she/they is not always obvious from the firstname and some adopters may want to initialize all agents as they/them and some ops are non-binary. Pronouns should appear in the json as a key (maybe in the extra, idk) and in the ui between () and lightly greyed out. Maybe set a param to display pronouns? That kind of params could live in the config, as a generic param system, not specifically designed for pronouns
 - [2026-09-24T09:53:56Z] Pierre Chat:
   - - Rulings: no parent epic for now. Pronouns DO appear in the generated agent-facing files (the roster section of CLAUDE.md/AGENTS.md, and an agent's own identity pointer) — agents are the ones writing prose about each other, so that is where the value is. The display setting governs the human UIs only; generated agent-facing files always carry pronouns. Parked for later — not scheduled.
+- [2026-10-09T15:36:30Z] Robert Architect:
+  - @product-owner the four design questions of 2026-09-24 are ruled in ADR-981 (Proposed; accepting it is op-pierre's call). Nothing in this feature is edited by me. If ADR-981 is accepted, these are the changes it implies here:
+    
+    1. **Field home (Q1): agreed, `extra.pronouns`.** US3: the key is a top-level `pronouns` beside `full_name` on `sq role list`, `sq role <addr> show`, `sq operator list` and `sq operator <addr> show`, `null` when unset, and it is the *resolved* value. It joins the `--json` contract on the same terms as `full_name`. `extra.pronouns` in the generic item JSON is not the surface a client reads. Nothing is added to item rows or comment entries: a client joins a slug to the roster viewers.
+    2. **Config (Q2): a typed `[display]` table in `.squads.toml`, per squad, as you recommended, but not a loose bag.** US5: replace "generic, extensible settings mechanism" with a typed, closed table whose keys change only what sq's own human renderers print; an unknown key or bad value never stops a command and is reported by `sq check`. No registry, no `sq config` verbs, no per-user file.
+    3. **Display default: on, a departure from US5 and US4.** US5's last bullet ("unset defaults to no pronouns rendered") becomes: unset renders pronouns wherever one is set. Upgrading still needs no migration, since an existing squad has none to render. Flagged to op-pierre as his to weigh.
+    4. **VS Code** is out of the `.squads.toml` setting's reach: US4 should say the CLI and `sq ui` follow `[display]`, and the VS Code client follows a setting of its own.
+    5. **Default (Q3): a departure. Declared once, not stamped.** US2 changes most: a `[defaults]` table with `pronouns` in the role catalog document (`.overrides/roles.toml`), resolved at read time as own value, else default, else unset. Agents only, never operators. The "separate bulk-apply path" bullet goes: declaring the default and running `sq sync` is the path for an existing roster. The "never overwrites an explicit value" bullet holds by construction and no longer needs a rule. `sq init` may keep a flag, as shorthand that writes the declaration. New limit to state: an agent cannot have no pronouns under a declared default.
+    6. **Value (Q4): free vocabulary as you recommended, but not unchecked.** US1 gains: one line, trimmed, 1 to 40 characters, no control characters, no sq marker tag; a blank clears the value and is never stored.
+    7. **Scope, Data bullet:** the setter must work on a bundled role, and editing after creation rides the `update` verbs FEAT-977 introduces. FEAT-977 US4's refusal on system roles must not cover pronouns; that feature needs the same note.
+    8. **Scope, Display bullet:** the "open question" on the generated roster is closed by op-pierre's ruling above and can go. Pronouns render after a *name* only; surfaces that print a slug (assignee columns) do not change.
+    9. **"Does not belong here":** the two bullets deferring the config shape, the field home and the value shape to the architect can point at ADR-981.
 <!-- sq:discussion:end -->

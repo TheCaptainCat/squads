@@ -3,14 +3,14 @@ id: BUG-938
 sequence_id: 938
 type: bug
 title: Deleting a managed skill body permanently loses its frontmatter
-status: Fixed
+status: Verified
 author: qa
 priority: low
 refs:
 - MILE-934:targets
 - REV-926:addresses
 created_at: '2026-09-10T08:37:34Z'
-updated_at: '2026-09-29T16:23:09Z'
+updated_at: '2026-10-09T15:38:04Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -118,4 +118,21 @@ currently no supported command that performs that fix.
   - Review fixes: timestamps carried over, duplicate slug guard, conflict-only-in-frontmatter rebuild, check names the right remedy.
 - [2026-09-29T16:23:09Z] Elias Python:
   - Review round 3: slug identity is one helper, unstamped rivals are left alone, the skill folder is read once per scan.
+- [2026-10-09T15:38:01Z] Mara Tester:
+  - Verified at HEAD 7cd45323. Driven (real CLI, dev build, one scratch squad per row, bare exit codes): `sq sync` restores frontmatter on every shape, then `sq check` is clean (exit 0), `sq repair` exits 0, a second `sync` leaves the file byte-identical, and the result is byte-identical to the original file.
+    
+    Rows, on both a permanently-system skill (`squads`) and a per-type skill (`sq-task`):
+    - file deleted: check exit 3 ("in index but no markdown file"); after sync restored whole, frontmatter and timestamps included.
+    - frontmatter stripped whole, body kept: check exit 3, message names `sq sync`; after sync restored; a body with an extra line inside the body region keeps that line.
+    - `id` line removed only: same as above.
+    - empty file: check exit 3 (no id, missing body region); after sync restored.
+    - invalid YAML frontmatter: check exit 3 (malformed frontmatter); after sync restored.
+    - two files claiming SKILL-19 (a `-copy` plus a stripped original): sync warns "not restamped", leaves both files byte-identical; check exit 3 and repair exit 1, both naming the other file.
+    - a managed skill renamed away from its slug: frontmatter intact then sync writes a body-only canonical file and warns; stripped then sync writes a fully stamped canonical file; after deleting the stray file, check exit 0 and repair exit 0 in both.
+    - user-authored skill (`sq skill add my-custom`) stripped: sync leaves it byte-identical, check exit 3, repair exit 1 (not re-stamped, as intended); a deleted user skill file is not recreated.
+    - a stripped task (non-managed): not re-stamped by sync, check exit 3, repair exit 1.
+    - no index (`.squads.json` deleted) plus stripped managed skill: sync restores it, check exit 0 (only the created_at/updated_at differ from the original, as nothing carries them).
+    
+    Targeted tests: 114 passed (4 files, run once).
+    Not covered: a hand-edited non-default frontmatter field on a managed skill beyond the fields above; Windows paths.
 <!-- sq:discussion:end -->

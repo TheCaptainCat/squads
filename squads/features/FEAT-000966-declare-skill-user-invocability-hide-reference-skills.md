@@ -7,6 +7,7 @@ status: Draft
 author: product-owner
 refs:
 - MILE-934:targets
+- FEAT-976
 subentities:
 - local_id: US1
   title: As an adopter, I want type-bound skills hidden from the slash menu
@@ -26,7 +27,7 @@ subentities:
     with no migration required
   status: Todo
 created_at: '2026-09-28T17:54:53Z'
-updated_at: '2026-09-28T18:09:12Z'
+updated_at: '2026-10-09T15:37:09Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -103,9 +104,9 @@ _Add with `sq feature 966 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:story:US1:body -->
 Declare a per-skill user-invocable property in the vocabulary, resolved per skill, never off a slug spelling.
 
-The rule: every bundled skill defaults to not user-invocable (agent reference material); every author-defined skill a project adds stays user-invocable by default. A project can override the default for any individual skill.
+The rule: every bundled skill defaults to not user-invocable (agent reference material): squads, sq-memory, greeting and every generated sq-<type> skill. Every author-defined skill a project adds stays user-invocable by default, whatever its slug looks like -- this repo's own releasing-squads is author-defined and stays invocable. A project can override the default for any individual skill.
 
-Acceptance: sq init / sq sync writes user-invocable: false into the SKILL.md frontmatter of every bundled skill; an author-defined skill's pointer carries no such line.
+Acceptance: sq init / sq sync writes user-invocable: false into the SKILL.md frontmatter of every bundled skill, including a sq-<type> skill for a type a project added; an author-defined skill's pointer carries no such line, including one whose slug begins with sq-.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -184,4 +185,6 @@ Acceptance: an existing squad on the current schema picks up the flag on its nex
   - Defaults confirmed: greeting is hidden too. Not user-invocable: every sq-<type>, squads, sq-memory, greeting. releasing-squads and author-defined skills stay invocable.
 - [2026-09-28T18:08:20Z] Pierre Chat:
   - Correction: releasing-squads is this repo's own authored skill, not a bundled one. The rule is that every bundled skill is not user-invocable and every author-defined skill stays invocable.
+- [2026-10-09T15:35:46Z] Nina Product:
+  - 2026-10-09 readiness pass: stays Draft. Pierre's rule (every bundled skill hidden, every author-defined skill invocable; greeting included) is already in body and stories; US1 now names the bundled set and the sq- prefix trap. Missing, owed by @architect: where the per-skill user-invocable property is declared and how a project overrides it. No bundled skill is declared in any spec (read: bundled_skill_slugs is code, sq-type skills derive from the playbook, no per-skill customization surface exists), so US3 cannot be tested as written and the spec/override half of the Outcome has nowhere to live. Related: FEAT-976 stores origin on every skill; whether the default should resolve from that field (system hidden, project visible) is part of the same ruling.
 <!-- sq:discussion:end -->

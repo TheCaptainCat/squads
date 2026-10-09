@@ -9,8 +9,9 @@ severity: low
 refs:
 - ADR-880
 - FEAT-948
+- MILE-934:targets
 created_at: '2026-09-15T08:00:38Z'
-updated_at: '2026-09-15T08:13:00Z'
+updated_at: '2026-10-09T15:20:57Z'
 ---
 <!-- sq:body -->
 ## Problem

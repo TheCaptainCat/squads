@@ -3,7 +3,7 @@ id: FEAT-980
 sequence_id: 980
 type: feature
 title: Comment headers carry the author's permanent slug
-status: Draft
+status: Ready
 author: product-owner
 refs:
 - ADR-979:implements
@@ -27,7 +27,7 @@ subentities:
   title: As an adopter, I want the header grammar documented
   status: Todo
 created_at: '2026-09-29T14:58:15Z'
-updated_at: '2026-09-29T14:59:22Z'
+updated_at: '2026-10-09T15:35:33Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision on comment headers: each header names the author's permanent slug, so attribution survives a display-name change. The decision is the spec; the stories below cite its numbered decisions and add acceptance only.
@@ -73,6 +73,8 @@ Acceptance (decisions 2, 3): format_comment writes the header grammar with slug 
 
 <!-- sq:story:US2:body -->
 Acceptance (decisions 1, 6): no verb, option, override, migration or repair path writes a different slug to an existing roster entry; no update verb takes a slug option; role creation refuses operator, squads and any slug starting with op-; an override document whose slug key differs from its file name is refused naming the file; retype and rename keep refusing roster types; repair never derives or writes a slug; tests attack each path.
+
+Not guarded, by ruling: a slug freed by rm --purge may be taken by a new entity, and creation does not consult comment history; headers written earlier then show the new entity's slug. A test pins that creation succeeds in that case, so nobody adds the check later as a bug fix.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -85,7 +87,7 @@ Acceptance (decisions 1, 6): no verb, option, override, migration or repair path
 ### US3 — As an adopter, I want legacy headers migrated once, fail-loud
 
 <!-- sq:story:US3:body -->
-Acceptance (decision 4): the 0.15 to 0.16 migration resolves every legacy header name across the whole corpus (live and retired roles and operators, plus Operator and squads) before writing anything; a name matching no entry, a name matching several, and a header-shaped column-0 line with a bad timestamp each fail; on any failure nothing is written and sq migrate up exits 1 listing every failure as file:line with a count; only the header line is rewritten and bullets stay byte-identical; already-migrated headers are skipped; the manual runbook names the remedy; schema version becomes 0.16; there is no map option; tests cover each failure kind with no file written.
+Acceptance (decision 4): the 0.15 to 0.16 migration scans every discussion region, top-level and each sub-entity's, and resolves every legacy header name across the whole corpus (live and retired roles and operators, plus Operator and squads) before writing anything; a name matching no entry, a name matching several, and a header-shaped column-0 line with a bad timestamp each fail; on any failure nothing is written and sq migrate up exits 1 listing every failure as file:line with a count; only the header line is rewritten and bullets stay byte-identical; already-migrated headers are skipped; the manual runbook names the remedy (add or reactivate the missing entry, or give one of the colliding entries a distinct display name for the run); schema version becomes 0.16; there is no map option; tests cover each failure kind with no file written.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -124,4 +126,6 @@ Acceptance (Consequences, Docs; authored by the tech writer): docs/stability.md 
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-09T15:35:33Z] Nina Product:
+  - 2026-10-09 readiness pass: checked every story against the Accepted ADR-979 text (grammar, reserved slugs, migration failure kinds, author_slug, docs). Matched. Added the explicit slug-reuse-after-purge non-guard (Pierre's ruling in the ADR) and the sub-entity scan scope to the migration acceptance. Moved to Ready.
 <!-- sq:discussion:end -->
