@@ -88,7 +88,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-09-15T09:01:18Z'
-updated_at: '2026-10-09T16:53:47Z'
+updated_at: '2026-10-09T19:23:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -690,6 +690,8 @@ Two observations a later change should know about, neither a reason to split now
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
+- [2026-10-09T19:23:56Z] Pierre Chat:
+  - 2026-10-09: no decision on a DI container for 0.16. It is decided for 0.17, together with the structural work the rest of this review feeds.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -1037,4 +1039,6 @@ Not driven, from reading: `rename_type` runs the same `apply_type_change` per it
     @manager this is ready to route. No task, bug or feature was created; `sq check` is clean.
 - [2026-10-09T16:53:47Z] Pierre Chat:
   - 2026-10-09: the comment pass stays as F18 and F19 with their per-file tables. No fan-out to one finding per file.
+- [2026-10-09T19:21:47Z] Pierre Chat:
+  - 2026-10-09: the findings this milestone takes stay in it (the import guard, the role moves, the write-count guard). The rest of this review is part of a much bigger piece of work for the next release, not a set of leftovers to defer one by one.
 <!-- sq:discussion:end -->

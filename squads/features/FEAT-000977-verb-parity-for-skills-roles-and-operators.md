@@ -23,7 +23,7 @@ subentities:
   title: As an operator, I want a clear error on spec-generated items
   status: Todo
 created_at: '2026-09-29T14:19:16Z'
-updated_at: '2026-10-09T18:16:47Z'
+updated_at: '2026-10-09T19:18:32Z'
 ---
 <!-- sq:body -->
 Roster entities lack most of the verbs an item has, and use different names for some. Compared with a task, read from `--help`:
@@ -43,6 +43,8 @@ Roster entities lack most of the verbs an item has, and use different names for 
 - Comments written on roster entities use the permanent-slug header grammar of the comment-header feature, and `update` on a roster entity edits display fields only.
 
 - Pronouns are exempt from that refusal. A pronouns value is identity the operator sets, like the name and the default-role designation, not generated content, so `update` may set, change or clear pronouns on a system role (and on an operator or project role) while every other content-changing edit on a system role is still refused. The pronouns value itself, its checks and where it is stored are the business of the pronouns feature.
+
+- The skill invocability option is exempt from that refusal too. `--operator-invocable <yes|no|default>` is how a squad chooses whether a skill is offered to the person at the keyboard; it is an operator's choice about exposure, not generated content, so `sq skill <addr> update --operator-invocable` works on a system skill, and it is the only `update` option a system skill accepts. The option, its values and its storage belong to the skill invocability feature.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -59,6 +61,8 @@ Acceptance:
 - sq skill <x> update sets the title, --desc and --when-to-use on a project skill; the skill's pointer file regenerates with the new description; the slug, file name and pointer directory do not change.
 - On a system skill it exits 1 with the named-surface error (the playbook); sq check clean afterwards.
 - sq skill <x> remove works and sq skill <x> rm still works as an alias with the same effect.
+
+- On a system skill, update --operator-invocable yes|no|default succeeds (exit 0) and is the only update option accepted there: update --desc, --when-to-use and a title change on the same skill still exit 1 with the named-surface error, and so does a call that combines the option with any of them (nothing is written).
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -109,6 +113,8 @@ Acceptance:
 - comment and comments are not content-changing: a test proves they succeed on a system skill and a system role.
 
 - Pronouns are not content-changing: a test proves a pronouns-only `update` succeeds on a system role, and that a content-changing `update` or `remove` on the same role is still refused, so the exemption is exactly the pronouns value and nothing broader.
+
+- The skill invocability option is not content-changing: a test proves update --operator-invocable succeeds on a system skill, and that every other update option on that skill, alone or combined with it, is still refused, so the exemption is exactly that one option.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -128,4 +134,6 @@ Acceptance:
   - 2026-10-09 readiness pass: folded in the comments-allowed and operator-verb rulings; corrected the baseline (operator show and status already exist, driven), so the real operator gains are update, comment, comments, remove. Refusal wording aligned with FEAT-976 (classification, not a second test) and with ADR-979 decision 6 (update edits display fields only). Moved to Ready; still depends on FEAT-976.
 - [2026-10-09T18:16:47Z] Nina Product:
   - 2026-10-09: added the pronouns exemption to the spec and to US3/US4 acceptance (ADR-981 consequence); still Ready, still depends on FEAT-976.
+- [2026-10-09T19:18:32Z] Nina Product:
+  - 2026-10-09 per ADR-983 clause 3: added the --operator-invocable exemption (the only update option a system skill accepts) to the body and to US1 and US4 acceptance. Still Ready.
 <!-- sq:discussion:end -->

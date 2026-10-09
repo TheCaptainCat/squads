@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 985,
+  "counter": 986,
   "padding": 6,
   "items": {
     "12": {
@@ -7195,10 +7195,10 @@
     "966": {
       "sequence_id": 966,
       "type": "feature",
-      "title": "Declare skill user-invocability; hide reference skills",
-      "slug": "declare-skill-user-invocability-hide-reference-skills",
-      "status": "Draft",
-      "description": "",
+      "title": "Skill invocability: declared default, squad's own choice",
+      "slug": "skill-invocability-declared-default-squad-s-own-choice",
+      "status": "Ready",
+      "description": "A skill's operator_invocable attribute: a bundled default plus a stored squad choice, rendered by the Claude Code backend",
       "parent": null,
       "author": "product-owner",
       "assignee": null,
@@ -7207,12 +7207,14 @@
       "labels": [],
       "refs": [
         "MILE-934:targets",
-        "FEAT-976"
+        "FEAT-976",
+        "FEAT-977:depends-on",
+        "ADR-983:implements"
       ],
       "subentities": [
         {
           "local_id": "US1",
-          "title": "As an adopter, I want type-bound skills hidden from the slash menu",
+          "title": "As an adopter, I want reference skills hidden, my own skills visible",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -7221,7 +7223,7 @@
         },
         {
           "local_id": "US2",
-          "title": "As squads, I want the Claude Code backend to render the user-invocable flag",
+          "title": "As squads, I want the Claude Code backend to render the value",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -7230,7 +7232,7 @@
         },
         {
           "local_id": "US3",
-          "title": "As an adopter, I want to override a skill's user-invocable default per project so my own conventions win",
+          "title": "As an adopter, I want to choose a skill's invocability with the CLI",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -7254,11 +7256,20 @@
           "severity": null,
           "story": null,
           "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an adopter, I want to see whether a skill's value is my own choice",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
         }
       ],
-      "path": "features/FEAT-000966-declare-skill-user-invocability-hide-reference-skills.md",
+      "path": "features/FEAT-000966-skill-invocability-declared-default-squad-s-own-choice.md",
       "created_at": "2026-09-28T17:54:53Z",
-      "updated_at": "2026-10-09T18:46:38Z",
+      "updated_at": "2026-10-09T19:18:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -25756,7 +25767,7 @@
       ],
       "path": "tasks/TASK-000954-give-a-behind-schema-squad-a-reconcile-path-the-gate-permits.md",
       "created_at": "2026-09-15T08:41:13Z",
-      "updated_at": "2026-10-09T19:14:12Z",
+      "updated_at": "2026-10-09T19:37:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28492,7 +28503,7 @@
       "type": "bug",
       "title": "set_body and repair sweep disagree on a stale bundled skill slug",
       "slug": "set-body-and-repair-sweep-disagree-on-a-stale-bundled-skill",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -28508,7 +28519,7 @@
       "subentities": [],
       "path": "bugs/BUG-000951-set-body-and-repair-sweep-disagree-on-a-stale-bundled-skill.md",
       "created_at": "2026-09-15T08:00:38Z",
-      "updated_at": "2026-10-09T15:20:57Z",
+      "updated_at": "2026-10-09T19:20:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30509,12 +30520,14 @@
       "labels": [],
       "refs": [
         "REV-952:addresses",
-        "TASK-954"
+        "TASK-954",
+        "ADR-663",
+        "ADR-76"
       ],
       "subentities": [],
       "path": "adrs/ADR-000955-what-a-squad-may-do-while-its-schema-is-behind-the-package.md",
       "created_at": "2026-09-15T08:58:16Z",
-      "updated_at": "2026-09-15T09:17:00Z",
+      "updated_at": "2026-10-09T20:16:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -40946,7 +40959,7 @@
       ],
       "path": "reviews/REV-000956-structural-review-of-the-engine-layering-and-cohesion.md",
       "created_at": "2026-09-15T09:01:18Z",
-      "updated_at": "2026-10-09T16:53:47Z",
+      "updated_at": "2026-10-09T19:23:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -41072,7 +41085,7 @@
       ],
       "path": "reviews/REV-000958-the-help-surface-what-belongs-in-a-command-s-help-text.md",
       "created_at": "2026-09-15T10:12:29Z",
-      "updated_at": "2026-10-09T18:13:10Z",
+      "updated_at": "2026-10-09T19:21:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42669,7 +42682,7 @@
       ],
       "path": "features/FEAT-000977-verb-parity-for-skills-roles-and-operators.md",
       "created_at": "2026-09-29T14:19:16Z",
-      "updated_at": "2026-10-09T18:16:47Z",
+      "updated_at": "2026-10-09T19:18:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42946,6 +42959,124 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-985"
+    },
+    "986": {
+      "sequence_id": 986,
+      "type": "feature",
+      "title": "Retire the -dev pseudo-role: a developer declares a capability",
+      "slug": "retire-the-dev-pseudo-role-a-developer-declares-a-capability",
+      "status": "Ready",
+      "description": "Roles declare capabilities; the playbook addresses *<name>; developers are ordinary roles on every surface",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "ADR-984:implements",
+        "BUG-985:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an adopter, I want to declare a capability on a role and address it from the playbook",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, I want declared and templated developers treated alike everywhere",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, I want a -dev-named role with no capability to be an ordinary role",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an operator, I want extra.is_dev gone and existing squads migrated",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an operator, I want existing slugs untouched and sq dev add --slug",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an adopter, I want an unknown slug to resolve to nothing",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "As an agent, I want generated text to name roles from the roster",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "As an adopter, I want my [dev] override to reach existing developers on sync",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "As a tool author, I want capabilities as an additive --json key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US10",
+          "title": "As an adopter, I want the docs to cover capabilities and the upgrade changes",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-000986-retire-the-dev-pseudo-role-a-developer-declares-a-capability.md",
+      "created_at": "2026-10-09T19:16:16Z",
+      "updated_at": "2026-10-09T19:19:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-986"
     }
   }
 }

@@ -57,7 +57,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-09-15T10:12:29Z'
-updated_at: '2026-10-09T18:13:10Z'
+updated_at: '2026-10-09T19:21:50Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -748,4 +748,6 @@ Each of those would fail today, so each lands with the fix for its finding, not 
     **Judged and left alone.** `--priority` enumerating on the item verbs and not on `list` and `tree` is correct and is information (F8 records why). No position is taken on the designs whose rationale F1 moves; that belongs to the structural review.
     
     @manager REV-958 is at ChangesRequested with F1 to F11 open. Routing is yours: a writer pass for the strings, a python-dev task to land them, a separate item for F6 if you want it acted on, and the renderer question for op-pierre. `sq check` is clean for this review.
+- [2026-10-09T19:21:49Z] Pierre Chat:
+  - 2026-10-09: the help-text work stays in the 0.16 milestone.
 <!-- sq:discussion:end -->

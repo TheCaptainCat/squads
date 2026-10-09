@@ -30,7 +30,7 @@ subentities:
   title: Exempt only migrate up, help and chlog from the schema gate
   status: Todo
 created_at: '2026-09-15T08:41:13Z'
-updated_at: '2026-10-09T19:14:12Z'
+updated_at: '2026-10-09T19:37:29Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -611,4 +611,35 @@ corpus. Each then prints `run sq check to verify integrity`, which the gate refu
     @manager for the operator's read. Points 1 and 2 touch the decision itself, so they may want the architect's amendment rather than a yes on this task.
 - [2026-10-09T19:14:12Z] Pierre Chat:
   - 2026-10-09: the points where this draft goes past ADR-955 (the narrower gate exemption, the pre-runner vocabulary check and skipped fallback) and the stale premises it found go to the architect as an amendment to ADR-955. The task follows the amended decision; no developer starts on it before that.
+- [2026-10-09T19:36:38Z] Robert Architect:
+  - 2026-10-09: ADR-955 is amended in place (A1 to A7 under **Amendments**). Your four calls are confirmed with the changes below; nothing in the task body is edited by me. @tech-lead
+    
+    **ST5, the gate (A1).** Confirmed: `up`, `help`, `chlog`. Two changes.
+    - The declared capability carries the directions it covers: `up` behind only, `help` and `chlog` both. On a squad ahead of the package the gate refuses `up` itself, before a service is built. Driven today: an ahead squad with an override conflict prints the override refusal with `sq workflow lint`, not "upgrade the squads package". `migrate_up`'s own ahead check may stay as a second line but is not the mechanism.
+    - The meta-test binds the set per direction, and the table gets the ahead-plus-override row.
+    
+    **ST2, the reconcile (A2, A3, A4).** Confirmed, including "nothing is reconciled when no runner applies". Three changes.
+    - "A file is an item when its frontmatter parses and carries an `id`" is too wide. A squad directory may be the project root (`squad_dir = "."`, as in every corpus fixture), where the walk meets every markdown file in the repository, and a docs page with an `id:` key would be reported as a broken item. Recognise an item by the shape of its file name and of its `id`. Add a row: root squad directory, unrelated markdown with and without an `id` key, nothing reported.
+    - A4 turns two of your report lines into a refusal. A file that could not be given an entry of its own (undecodable, frontmatter that does not parse, identity that cannot be established, an id two files claim) stops the run before the first runner, entry carried forward, each file named with its cause. The result dataclass has to keep that set apart from "dropped as missing", which stays a report on a run that continues.
+    - Scope items 1 and 2 and ST2's defect say every runner enumerates items from the index. Two do (0.11 to 0.14 for the roster projection, 0.14 to 0.15), two are no-ops, and the rest glob by frozen folder and prefix literals, opening the index, if at all, to allocate ids. Reword.
+    
+    **ST4, the build and the check (A5, A6).** Both additions confirmed. Four changes.
+    - One vocabulary resolution, used by every step. Driven: a squad stamped 0.11 or 0.8 whose valid override declares a type of its own, with one item, is refused by `migrate up` ("type 'incident', which the active spec no longer declares ... run sq repair"). Stamped 0.14 it migrates; without the override, stamped 0.11, it migrates. Cause, read: `IndexStore(paths.index_path, paths.lock_path)` with no spec in the 0.4 to 0.5, 0.8 to 0.10 and 0.11 to 0.14 runners, which validates under the bundled vocabulary. Your pre-runner check would pass this squad and the runner would then refuse it. It needs a row (completes) and a home: this subtask or a bug, your call with the manager.
+    - The check refuses only the families the load boundary refuses at the current schema. Say in its docstring that a runner which renames or retires vocabulary declares what it consumes on its migration record; none does today, so no mechanism is owed now.
+    - Remedy text. Override that does not load: the file, the loader's cause, correct the file, re-run `sq migrate up`. Conflict: the items, the override path, restore the declaration or correct the frontmatter by hand, re-run. Neither may carry the closing line of `spec_refusal`, the "run `sq workflow lint`" embedded in the fail-closed cause, or `rename-type` and `rename-status` as later steps.
+    - Ruled is "before the first runner". Whether the override refusal precedes the reconcile is yours.
+    
+    **ST1, remedies (A7).** Confirmed, static guard on `raise` literals included. Four changes.
+    - The behavioural invariant's permitted set is `sq migrate up`, `help`, `chlog`, read from the capability. "Every token is `sq migrate`" lets `sq migrate repad` through. Scope it to runs that end with the stamp unchanged.
+    - `skew_message` is correct after ST5, not as it stands: `rename_type` and `rename_status` reach it through `_check_batch_skew` on a behind squad today. Record the dependency.
+    - Add to the inventory: the capacity refusal in `SquadsDB.allocate_id` names `sq migrate repad` and can be raised to the three runners that allocate ids; the three writing verbs' closing "run `sq check`" (unreachable on a mismatched squad once ST5 lands).
+    - The 0.14 to 0.15 docstring paragraph is wrong on a second count: the runner does raise, through what it calls. Driven: malformed frontmatter in a milestone file stops the run from inside it.
+    
+    **ST3, end to end.** Add: the unreadable-file rows (malformed frontmatter, undecodable bytes, one id in two files), each exit 1 before any item file changes and completing after the fix; the custom-type override stamped 0.11 and 0.8; the root squad directory; the ahead squad with an override conflict. "Value ahead of the index" and "partial pass" complete today without the reconcile, so they prove nothing about it alone. The undecodable row reverses a pinned behaviour (skipped, stamped, exit 1): review the existing exit-parity test and the `migrate up` exit-code docstring with it.
+    
+    **Docs handoff, for the tech writer.** `docs/migration.md`: the sentence that `sq migrate *` are the only commands exempt and always run on an out-of-date squad; the order to follow when the three verbs are wanted on an old squad (migrate first; restore a dropped declaration, migrate, rename, drop it again); the new `migrate up` refusals and their remedies; the reconcile line. The table there already lists exactly `up`, `help` and `chlog`.
+    
+    **Read, not driven, not ruled.** The 0.1 to 0.2, 0.2 to 0.3, 0.5 to 0.7 and 0.7 to 0.8 runners walk frozen bundled folders and prefixes, so a custom type's files on a squad stamped 0.5 are not visited by the 0.5 to 0.7 unpadding. Same family as A4, outside this task unless you take it. And a suggestion only: carry the reconcile's result on the `migrate` reflog line, since an entry dropped as missing is otherwise recorded nowhere.
+- [2026-10-09T19:37:29Z] Robert Architect:
+  - 2026-10-09: @manager ADR-955 is amended in place. Its discussion carries what changed and four points for op-pierre to weigh before this task is promoted: the narrower gate exemption (adopter-visible), the refusal on an unreadable item file instead of stamping past it, a custom-type migration defect that needs a home, and a reciprocal note owed on ADR-663. Posted here as well because an inbox lists open items only and ADR-955 is Accepted.
 <!-- sq:discussion:end -->
