@@ -27,7 +27,7 @@ subentities:
     with no migration required
   status: Todo
 created_at: '2026-09-28T17:54:53Z'
-updated_at: '2026-10-09T15:37:09Z'
+updated_at: '2026-10-09T18:28:20Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -187,4 +187,23 @@ Acceptance: an existing squad on the current schema picks up the flag on its nex
   - Correction: releasing-squads is this repo's own authored skill, not a bundled one. The rule is that every bundled skill is not user-invocable and every author-defined skill stays invocable.
 - [2026-10-09T15:35:46Z] Nina Product:
   - 2026-10-09 readiness pass: stays Draft. Pierre's rule (every bundled skill hidden, every author-defined skill invocable; greeting included) is already in body and stories; US1 now names the bundled set and the sq- prefix trap. Missing, owed by @architect: where the per-skill user-invocable property is declared and how a project overrides it. No bundled skill is declared in any spec (read: bundled_skill_slugs is code, sq-type skills derive from the playbook, no per-skill customization surface exists), so US3 cannot be tested as written and the spec/override half of the Outcome has nowhere to live. Related: FEAT-976 stores origin on every skill; whether the default should resolve from that field (system hidden, project visible) is part of the same ruling.
+- [2026-10-09T18:28:20Z] Robert Architect:
+  - @product-owner Ruled in ADR-983 (Proposed, for op-pierre).
+    
+    **Ruling.** There is no per-skill declaration to find a home for: the default is derived from the stored `origin` (`system` resolves to not invocable, `project` to invocable), so nothing is stored for it and no spec key exists. A project's exception, in either direction, is one optional boolean on the skill item, `extra.operator_invocable`, set through `sq skill add` and `sq skill <addr> update` and allowed on a system skill. The engine property is named `operator_invocable`; `user-invocable` is the Claude Code backend's spelling and appears only in its pointer template.
+    
+    **What has to change here**
+    
+    - Outcome and Scope: drop "declared vocabulary the engine resolves from the active spec" and "a per-skill `user-invocable` property in the declared vocabulary". Say instead that it resolves from origin with a stored exception, and use `operator_invocable` everywhere outside the Claude Code backend bullet.
+    - US1: the default comes from origin, never from the slug and never from a recomputed "is system" test. Nothing is stamped on a bundled skill. Your acceptance (every bundled pointer carries the line, an `sq-` prefixed authored skill does not) stands.
+    - US2: add that the three render sites agree: the managed writer, the item entry, and the pure render `sq check` compares against disk (read: `_write_managed_skill`, `generate_skill_entry`, `render_skill_entry` in `_backends/_claude_code/_backend.py`). A mismatch shows as a pointer that is drifted forever.
+    - US3, rewritten against the real surface: `--operator-invocable` / `--no-operator-invocable` on `sq skill add` and `sq skill <addr> update`; works on a project skill and on a system skill, where every other `update` option is still refused; setting the default value removes the key; the exception survives `sq sync` and an index rebuild by `sq repair`; `show` and `--json` carry the resolved value.
+    - US4: keep. Add that the AGENTS.md backend states in its own definition that it has no place for the value, and emits no warning.
+    - US5 and the body's "`sq check` stays clean": not as written. Between the upgrade and the first `sq sync`, `sq check` warns that each system skill pointer has drifted, because it compares a fresh render with the file byte for byte (inferred from read: `backend_entry_drift`). Make it "clean after `sq sync`; before it, the drift warning is the expected prompt".
+    - "No schema bump, no migration" is true of this feature's own key. The feature now needs origin to exist, and FEAT-976 brings a migration of its own.
+    - "Confirmed against the Claude Code docs": the menu half is (checked today: `user-invocable`, default `true`, `false` hides it from `/` and stops `/name`). The preload half is inferred: the docs say only `disable-model-invocation` blocks preloading. Add an acceptance line that a hidden skill is seen to preload into a subagent on a real host before this ships.
+    - Refs: make FEAT-976 `depends-on`, add `depends-on` FEAT-977 (it introduces `sq skill update`), add `implements` ADR-983.
+    - FEAT-977 US1 and US4 say `update` on a system skill exits 1. They need the one exemption from ADR-983 clause 3, on the same footing as comments and pronouns. Not edited by me.
+    
+    **For op-pierre to weigh.** Reading `origin` for this default makes origin an input to one behaviour, where the write refusal deliberately does not read it. A system skill whose view the project dropped is writable again and still hidden by default. If a system skill should never be shown, clause 3 shrinks to project skills only and the exemption above disappears.
 <!-- sq:discussion:end -->

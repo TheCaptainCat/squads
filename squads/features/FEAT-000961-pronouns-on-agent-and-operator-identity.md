@@ -2,29 +2,30 @@
 id: FEAT-961
 sequence_id: 961
 type: feature
-title: Pronouns on agent and operator identity, with a generic display-settings config
-status: Draft
+title: Pronouns on agent and operator identity
+status: Ready
 author: product-owner
 refs:
 - MILE-934:targets
+- FEAT-977:depends-on
 subentities:
 - local_id: US1
   title: Pronouns as data on roles and operators
   status: Todo
 - local_id: US2
-  title: Bulk default pronouns at init and for the existing roster
+  title: Declare a roster-wide default pronouns once
   status: Todo
 - local_id: US3
   title: Pronouns in --json output
   status: Todo
 - local_id: US4
-  title: Render pronouns next to names, dimmed, in the UIs
+  title: Render pronouns after names, dimmed, in human UIs
   status: Todo
 - local_id: US5
-  title: Generic display-settings mechanism in config
+  title: Typed display table in .squads.toml
   status: Todo
 created_at: '2026-09-24T09:30:03Z'
-updated_at: '2026-10-09T15:36:30Z'
+updated_at: '2026-10-09T18:16:15Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -36,50 +37,60 @@ disambiguates a non-binary person. Three concrete adopter scenarios motivate thi
 - An adopter's operator (a real person on their team) is non-binary and wants they/them recorded
   and shown, the same way squads already records their full name.
 - An adopter wants every generated agent persona to read as they/them by default — a deliberate,
-  bulk choice at `sq init` (or applied after the fact across the roster), not a per-agent chore.
+  roster-wide choice made once, not a per-agent chore.
 - An adopter simply wants pronouns visible next to a name anywhere squads shows one, the way many
   chat and email tools already do, because the agents (and the human) address each other by name
   and pronoun in conversation and handoff comments.
 
-Today neither roles (`_specs/roles.toml`, `Item.extra` via `ExtraKey` in
-`src/squads/_models/_extras.py`) nor operators carry a pronoun field, `init_names` in
-`.squads.toml` (`src/squads/_models/_config.py`) only seeds `full_name`, and no config surface
-exists for a display preference at all — `SquadsConfig` has no generic "how do we render things"
-section, only `squad_dir` / `active_backends` / `squads_version` / `init_names`.
+Neither roles nor operators carry a pronoun field today, `init_names` in `.squads.toml` only seeds
+`full_name`, and no config surface exists for a display preference.
 
 ## Scope
 
-- **Data**: a pronouns value on a role/agent item and on an operator item, settable at creation
-  and editable afterwards (`sq role <slug> update` / `sq operator <slug> update`-shaped surface —
-  exact command TBD by the tech lead), present in `--json` output for both.
-- **Bulk / default-at-init**: a way to set pronouns for the whole roster at once — at minimum a
-  default applied to every agent at `sq init` (e.g. "initialize all agents as they/them"), and
-  ideally also a bulk-apply for an existing roster, not only new agents.
-- **Display**: when a display setting is enabled, render pronouns right after a name, in
-  parentheses and visually de-emphasised ("dimmed"/grey), everywhere a full name currently appears
-  in an agent-facing or human-facing surface:
-  - `sq ui` (TUI) wherever an assignee/author/role name is shown.
-  - the VS Code client's tree/detail views.
-  - CLI tables and `show` output wherever a name is printed.
-  - **Open question, flagged below**: the generated roster in the managed CLAUDE.md/AGENTS.md
-    section (`claude_section.md.j2`), since that is the text agents read to address each other by
-    name — decide whether pronouns belong there too or are display-surface-only.
-- **Config**: a display-settings toggle for whether pronouns render at all, living in a **generic**
-  mechanism in `.squads.toml` — a small extensible bag for this class of "how do we render things"
-  preference — explicitly not a `show_pronouns` field bolted directly onto `SquadsConfig`. Pronouns
-  is the first consumer, not the only intended one.
+Design is ruled in ADR-981; this feature delivers it.
+
+- **Data**: a pronouns value stored in `extra.pronouns` on role items and operator items. Settable
+  on creation (`sq role activate`, `sq dev add`, `sq operator add`) and editable afterwards through
+  the `update` verbs FEAT-977 introduces. The setter works on a bundled role: pronouns are identity
+  the operator sets, like the name. Unset means the key is absent; a blank is never stored. The
+  value is free text with a checked shape: one line, stored trimmed, 1 to 40 characters, no control
+  characters, no sq marker tag.
+- **Roster default**: declared once, in the role catalog document (`.overrides/roles.toml`), as
+  `[defaults]` with a `pronouns` key. A role's pronouns resolve as its own value, else the declared
+  default, else unset. The default applies to agents only, never to operators, and is never written
+  onto items. Declaring it and running `sq sync` is the same act at init and on an existing roster;
+  there is no bulk-apply verb. `sq init` may offer a flag as shorthand, provided it only writes that
+  declaration through the override scaffold path and writes nothing per item. The bundled catalog
+  declares no default and no pronouns for any bundled role.
+- **`--json`**: `sq role list`, `sq role <addr> show`, `sq operator list` and `sq operator <addr>
+  show` gain a top-level `pronouns` key beside `full_name`: the resolved value, a string, or `null`
+  when unset, always present. Nothing is added to item rows or discussion entries; a client joins a
+  slug to the roster viewers.
+- **Display**: a typed `[display]` table in `.squads.toml` with one key, `pronouns`, a boolean that
+  defaults to true. When true, a name with pronouns renders as `Name (pronouns)` with the
+  parenthesis dimmed, in the CLI's human output and `sq ui`. Pronouns follow a name only; surfaces
+  that print a slug (assignee columns) do not change. The VS Code client always receives the data
+  and follows a setting of its own, default on, not `.squads.toml`.
+- **Generated agent-facing files**: the roster section of `CLAUDE.md` / `AGENTS.md` and an agent's
+  own identity pointer always carry pronouns, whatever `[display]` says. A changed pronouns value
+  or declared default is picked up by `sq sync`.
+- **Config**: `[display]` is a typed, closed table whose keys change only what sq's own human
+  renderers print. An unknown key or unusable value never stops a command: it falls back to the
+  default and `sq check` reports it by name. An existing `.squads.toml` is rewritten byte-identically
+  when nothing differs from the defaults.
 
 ## Does not belong here
 
-- Implementation: no tasks, ADRs, or code in this drafting pass.
-- Deciding the generic config system's exact schema/storage shape, or the data-model home for the
-  pronouns field itself (first-class vs `extra` key) — both are open design questions for the
-  architect, see the comment on this feature.
-- Free-text vs a validated/controlled set of pronoun values — also an open question below.
+- Implementation: no tasks or code in this drafting pass.
+- A generic settings system: no key registry, no `sq config get/set` verbs, no per-user file, no
+  environment override.
+- A closed list of pronouns, or a per-role `pronouns` entry in the role catalog or a per-slug role
+  file (refused; the refusal names the verb).
+- Pronouns for an agent that has none under a declared default: an agent's own value replaces the
+  default, nothing erases it.
 - Any change to how names are chosen/generated (dev name pool, `dev_role()`) — pronouns are an
-  additional attribute on top of the existing name, not a naming-scheme change.
-- Per-message or per-comment pronoun mentions in generated prose beyond the name-adjacent badge
-  described above (e.g. squads is not adding pronoun-aware grammar to generated text).
+  additional attribute on top of the existing name.
+- Pronoun-aware grammar in generated prose.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -97,11 +108,25 @@ persona's pronouns, so that the roster reflects how they should be addressed ins
 from their first name.
 
 Acceptance:
-- A pronouns value can be set when a role/agent is created or activated, and when an operator is
-  created.
-- The value can be edited later on an existing role or operator without recreating it.
-- Leaving it unset is a valid, supported state (no default pronoun is invented for an existing
-  roster on upgrade).
+- `sq role activate`, `sq dev add` and `sq operator add` each accept a pronouns option; the value
+  is stored as `extra.pronouns` in the item's frontmatter.
+- After FEAT-977 ships, the `update` verb of a role and of an operator sets, changes and clears
+  pronouns; setting pronouns on a bundled (system) role succeeds, while a content-changing edit on
+  that same role is still refused.
+- An accepted value is one line, stored trimmed, 1 to 40 characters. Each of these is refused with
+  exit 1 and a message, and nothing is stored: 41 characters, an embedded newline, a tab or other
+  control character, a string containing an sq marker tag (a tag of the form sq:body wrapped in an HTML comment).
+- A value of exactly 40 characters and one of 1 character are accepted; surrounding whitespace is
+  trimmed before the length check.
+- A blank value (empty or whitespace only) on `update` clears the value: the key is absent from the
+  frontmatter afterwards. A blank on creation stores nothing.
+- A role or operator created without pronouns has no `extra.pronouns` key; a squad upgraded with no
+  declaration shows no new output on any surface.
+- A `pronouns` key in a `[[roles]]` entry or a per-slug role file is refused, and the refusal
+  names the verb that sets pronouns.
+- A sync never rewrites or removes a stored `extra.pronouns`.
+- `sq check` reports a stored value that fails the shape check (hand-edited file); renderers treat
+  such a value as unset.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -111,19 +136,31 @@ Acceptance:
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — Bulk default pronouns at init and for the existing roster
+### US2 — Declare a roster-wide default pronouns once
 
 <!-- sq:story:US2:body -->
 As an adopter who wants a they/them-for-everyone roster (or any other single default), I want to
-set pronouns for the whole agent roster in one action, so that I don't have to edit each agent by
-hand.
+declare it once, so that I don't have to edit each agent by hand.
 
 Acceptance:
-- `sq init` accepts a default pronouns value applied to every scaffolded agent.
-- A separate bulk-apply path sets pronouns across the existing roster after init, for an adopter
-  who decides this later.
-- A bulk default never overwrites a pronouns value an adopter already set explicitly on one agent,
-  unless they ask it to.
+- The role catalog document (`.overrides/roles.toml`) accepts a top-level `[defaults]` table with a
+  `pronouns` key; the value is checked with the same shape rules as US1 and an invalid one is
+  reported by `sq check` and refused on load as any invalid override is.
+- With `[defaults] pronouns = "they/them"` declared, every agent role without its own value shows
+  `they/them` as its pronouns on every surface (`sq role` JSON, human output, generated files)
+  after `sq sync`; no role item's frontmatter gains an `extra.pronouns` key.
+- A role that has its own value shows that value, not the default.
+- No operator ever takes the default: an operator with no own value has `pronouns` null.
+- Removing the declaration and running `sq sync` returns every role without its own value to
+  unset, with no leftover in any item file.
+- No verb applies pronouns in bulk; there is no bulk-apply command.
+- If `sq init` takes a pronouns-default flag, running it produces only the `[defaults]`
+  declaration in the override document and no per-item `extra.pronouns`; without the flag the
+  document carries no `[defaults]`.
+- The bundled `roles.toml` is byte-identical to before, and an existing catalog override reports no
+  drift because of this feature.
+- An agent cannot be given "no pronouns" under a declared default; this limit is stated in the
+  user documentation.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -140,10 +177,14 @@ As a client or script consuming squads data, I want pronouns in `--json` output 
 operators, so that another UI (or the VS Code client) can render them without re-deriving them.
 
 Acceptance:
-- `sq role <slug> show --json` and `sq operator <slug> show --json` include the pronouns field
-  (present-but-null when unset, not omitted).
-- Any roster listing JSON used to build a UI (e.g. what feeds the VS Code client's tree) carries
-  the same field.
+- `sq role list --json`, `sq role <addr> show --json`, `sq operator list --json` and
+  `sq operator <addr> show --json` each carry a top-level `pronouns` key beside `full_name`.
+- The value is the resolved one (own, else the role default, else unset): a string, or `null` when
+  unset. The key is always present, never omitted.
+- For a role that takes the declared default, `pronouns` shows the default although the item's
+  `extra.pronouns` is absent.
+- Item rows, `discussion[]` entries and comment headers gain no pronouns key.
+- The output is the same whether `[display] pronouns` is true or false.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -153,7 +194,7 @@ Acceptance:
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — Render pronouns next to names, dimmed, in the UIs
+### US4 — Render pronouns after names, dimmed, in human UIs
 
 <!-- sq:story:US4:body -->
 As someone reading squads output — the TUI, the VS Code client, or a CLI table/show — I want a
@@ -161,13 +202,21 @@ name's pronouns to appear next to it in parentheses and visually de-emphasised, 
 them at a glance without them competing with the name.
 
 Acceptance:
-- When the display setting (US5) is on and a pronouns value is set, "(they/them)" (or the stored
-  value) renders immediately after the name, styled as secondary/dimmed text, in: `sq ui`, the
-  VS Code client, and CLI tables/`show` output that print a role or operator name.
-- When the value is unset, or the display setting is off, nothing extra renders — no empty
-  parentheses.
-- The generated CLAUDE.md/AGENTS.md roster section is explicitly decided one way or the other
-  (include or omit) rather than left inconsistent with the other surfaces.
+- With `[display] pronouns` true (the default, including when `.squads.toml` has no `[display]`) and
+  a pronouns value set, `Name (pronouns)` renders in `sq ui` and in the CLI's human output wherever
+  a role or operator name is printed, the parenthesis in a dimmed style.
+- With a name that has no pronouns, or with `[display] pronouns = false`, the name renders exactly
+  as today: no empty parentheses and no trailing space.
+- A surface that prints a slug (such as an assignee column) is unchanged in both cases.
+- The pronouns text is escaped like any content string: a stored value containing square brackets
+  prints literally.
+- The generated `CLAUDE.md` / `AGENTS.md` roster section and an agent's own identity pointer carry
+  the pronouns whether `[display] pronouns` is true or false.
+- The VS Code client shows pronouns after a name by default and has its own setting that turns this
+  off; changing `[display]` in `.squads.toml` does not change the VS Code client, and changing the
+  VS Code setting does not change the CLI or `sq ui`.
+- The VS Code client gets pronouns by joining a slug to the roster `--json` viewers, and its
+  version-skew check accepts the new key.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -177,19 +226,23 @@ Acceptance:
 <!-- sq:story:US4:end -->
 
 <!-- sq:story:US5 -->
-### US5 — Generic display-settings mechanism in config
+### US5 — Typed display table in .squads.toml
 
 <!-- sq:story:US5:body -->
-As an adopter, I want a generic display-settings section in `.squads.toml`, so that pronouns (and
-future preferences of the same kind) have one place to live instead of each growing its own
-bespoke top-level config field.
+As an adopter, I want a typed `[display]` table in `.squads.toml`, so that presentation
+preferences have one place to live without a general settings system.
 
 Acceptance:
-- `.squads.toml` gains a generic, extensible settings mechanism (not a `show_pronouns` field on
-  `SquadsConfig` itself) that a specific preference plugs a key into.
-- The "show pronouns next to names" toggle is the first entry in that mechanism.
-- Unset/missing settings default to today's behavior (no pronouns rendered), so upgrading an
-  existing `.squads.toml` needs no migration.
+- `.squads.toml` accepts `[display]` with one key, `pronouns`, a boolean defaulting to true;
+  `sq check` and every command accept a file without the table.
+- A `.squads.toml` with no `[display]`, or with every value at its default, is rewritten
+  byte-identically by a version or schema stamp; a non-default `pronouns = false` survives a stamp.
+- An unknown key under `[display]`, or a non-boolean `pronouns`, never stops a command: the
+  default applies and `sq check` reports the offending key by name.
+- The table changes only what the CLI's human output and `sq ui` print; `--json`, exit codes, stored
+  data and generated files are identical with the setting true or false.
+- There is no `sq config` verb, per-user file or environment override for it.
+- Upgrading an existing squad needs no migration step and no schema version bump.
 <!-- sq:story:US5:body:end -->
 
 #### Discussion
@@ -228,4 +281,6 @@ Acceptance:
     7. **Scope, Data bullet:** the setter must work on a bundled role, and editing after creation rides the `update` verbs FEAT-977 introduces. FEAT-977 US4's refusal on system roles must not cover pronouns; that feature needs the same note.
     8. **Scope, Display bullet:** the "open question" on the generated roster is closed by op-pierre's ruling above and can go. Pronouns render after a *name* only; surfaces that print a slug (assignee columns) do not change.
     9. **"Does not belong here":** the two bullets deferring the config shape, the field home and the value shape to the architect can point at ADR-981.
+- [2026-10-09T18:16:15Z] Nina Product:
+  - 2026-10-09: prose rewritten to match accepted ADR-981; depends-on FEAT-977 for the update verbs. Ready; blocker is independent.
 <!-- sq:discussion:end -->

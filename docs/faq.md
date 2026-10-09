@@ -135,15 +135,16 @@ its own rather than mixed into an unresolved merge.
 
 What it does depends on the collision:
 
-- **Distinct IDs that share a number** (say `TASK-21` and `BUG-21`): every file but one gets a
-  fresh number, and every reference to it is rewritten. The IDs differ, so each reference is
-  unambiguous.
-- **The same ID in two files** (both branches created `TASK-21`): when every file has a different
-  slug, one keeps the ID and the others get fresh numbers. The kept file is the one the index
-  already points at, otherwise the first by path. Only each renumbered file's own `id`,
-  `sequence_id` and filename change. **References are not rewritten.** A reference to `TASK-21`
-  could mean either copy, so the command lists every one it finds instead (file, frontmatter key
-  or body/comment line, and the text) and exits `1` while any remain. Check each one by hand.
+- **Distinct IDs that share a number** (say `TASK-<n>` and `BUG-<n>`, which carry the same number
+  but are two different IDs): every file but one gets a fresh number, and every reference to it is
+  rewritten. The IDs differ, so each reference is unambiguous.
+- **The same ID in two files** (both branches created `TASK-<n>`, so one ID is carried by two
+  files): when every file has a different slug, one keeps the ID and the others get fresh numbers.
+  The kept file is the one the index already points at, otherwise the first by path. Only each
+  renumbered file's own `id`, `sequence_id` and filename change. **References are not rewritten.**
+  A reference to `TASK-<n>` could mean either copy, so the command lists every one it finds instead
+  (file, frontmatter key or body/comment line, and the text) and exits `1` while any remain. Check
+  each one by hand.
 - **Refused:** two files with the same slug, byte-identical copies, or a file outside its type's
   folder. Those are copies, not a merge collision. Nothing is renamed, and the files are reported
   the way plain `sq repair` reports them (below).

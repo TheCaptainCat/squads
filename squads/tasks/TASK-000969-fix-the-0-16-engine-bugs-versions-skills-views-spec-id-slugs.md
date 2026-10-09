@@ -3,7 +3,7 @@ id: TASK-969
 sequence_id: 969
 type: task
 title: 'Fix the 0.16 engine bugs: versions, skills, views, spec id, slugs'
-status: InProgress
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -43,7 +43,7 @@ subentities:
   status: Done
   assignee: python-dev
 created_at: '2026-09-29T13:31:10Z'
-updated_at: '2026-09-29T17:05:11Z'
+updated_at: '2026-10-09T18:18:40Z'
 ---
 <!-- sq:body -->
 Six engine bugs targeted at 0.16, one dev pass. Each subtask is independent and touches a
@@ -530,4 +530,22 @@ restamp (ST2) can create exactly this state from a renamed file.
   - CHANGELOG 0.16.0 section added (new, with compare link): Added self-view spec digest; Changed repair --renumber on one id in several files; Fixed duplicate-id reporting, slug transliteration, dev add override filename, sync skill frontmatter restore, out-of-region view tags, migrate chlog prerelease bounds. Canary fixes left out (no earlier section lists test-harness changes).
   - Docs: stability.md (self spec block + digest rules), faq.md (ID collisions rewritten for same-id vs shared-number, sync bullet), internals.md (renumber + check), workflow.md (out-of-region tags, migration skip note), migration.md (prerelease chlog bounds), roles.md (slug derivation, stored slugs never change), README.md (renumber link).
   - Already wrong before this: workflow.md said check accepts an out-of-region tag and view add duplicates it; faq/internals said repair --renumber rewrites every reference for a same-id collision. Claims checked against the diff and a scratch squad. @manager for review; nothing committed.
+- [2026-10-09T18:15:26Z] Theo Writer:
+  - Docs fix for the hygiene gate failure on release/0.16 (not a change to the 0.16 engine work).
+    
+    The gate test_source_and_docs_have_no_stray_ticket_references_anywhere_in_their_text reported docs/faq.md lines 138, 141 and 144 (token TASK-2). These were concrete example IDs (TASK-21, BUG-21) in the ID collisions section, added by commit 7cd45323.
+    
+    Changed, docs/faq.md only:
+    - L138: `TASK-21` and `BUG-21` became `TASK-<n>` and `BUG-<n>`, with the text saying they carry the same number but are two different IDs.
+    - L141: "both branches created `TASK-21`" became "both branches created `TASK-<n>`, so one ID is carried by two files".
+    - L144: "A reference to `TASK-21`" became "A reference to `TASK-<n>`".
+    The rest of the section is unchanged, and the same-number versus same-ID distinction still reads clearly.
+    
+    Checked the rest of 7cd45323 (CHANGELOG.md, README.md, docs/*.md): the lines it added contain no concrete item IDs under the gate pattern. Only the three faq.md lines matched.
+    
+    Test run: tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py, 14 passed. The gate's test file and allowlist are untouched. Full suite not run.
+    
+    No status change. No git state changed.
+- [2026-10-09T18:18:38Z] Catherine Manager:
+  - Closing under the operator's standing delegation for reviewed, verified, non-visual work: all six subtasks Done, REV-975 Approved, the six bugs Verified by QA. Gates on the tree with the faq example-ID fix: pyright, ruff check and ruff format clean; full suite 6505 passed, 13 skipped.
 <!-- sq:discussion:end -->

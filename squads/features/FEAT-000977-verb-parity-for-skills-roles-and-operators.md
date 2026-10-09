@@ -23,7 +23,7 @@ subentities:
   title: As an operator, I want a clear error on spec-generated items
   status: Todo
 created_at: '2026-09-29T14:19:16Z'
-updated_at: '2026-10-09T15:35:27Z'
+updated_at: '2026-10-09T18:16:47Z'
 ---
 <!-- sq:body -->
 Roster entities lack most of the verbs an item has, and use different names for some. Compared with a task, read from `--help`:
@@ -41,6 +41,8 @@ Roster entities lack most of the verbs an item has, and use different names for 
 - `comment` and `comments` are allowed on system skills and roles, since a comment never touches generated content. Only content-changing verbs refuse.
 - Any verb that would edit a spec-generated item (a system skill or role) refuses with an error that names the real authoring surface. It reuses the same classification as the existing body refusal (`_reject_unwritable_body`), the one the origin feature's refusal also reads; no hand-rolled membership test. Origin is the label operators see; the refusal follows the classification.
 - Comments written on roster entities use the permanent-slug header grammar of the comment-header feature, and `update` on a roster entity edits display fields only.
+
+- Pronouns are exempt from that refusal. A pronouns value is identity the operator sets, like the name and the default-role designation, not generated content, so `update` may set, change or clear pronouns on a system role (and on an operator or project role) while every other content-changing edit on a system role is still refused. The pronouns value itself, its checks and where it is stored are the business of the pronouns feature.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -87,6 +89,8 @@ Acceptance:
 - Operator update changes the display name only: it takes no slug option, and the operator's slug, file name and id are identical before and after; a role or skill update likewise never changes a slug.
 - On a system role, update and remove are refused with the named-surface error (the role override); on a project role they work. A project role's body stays refused by the existing body refusal, unchanged.
 - sq check clean after each verb.
+
+- Setting pronouns on a system role through `update` succeeds (exit 0, the value is then visible on the role), and a content-changing edit on that same role is still refused with the named-surface error. Pronouns on a project role and on an operator work the same way.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -103,6 +107,8 @@ Acceptance:
 - Any content-changing verb that would edit a spec-generated skill or role exits 1 with a message naming the real authoring surface (playbook for skills, role override for roles).
 - The decision comes from the single existing classification used by the body refusal; a test proves each new content-changing verb (update, remove) hits it, a test asserts no second membership test exists, and --force does not lift it.
 - comment and comments are not content-changing: a test proves they succeed on a system skill and a system role.
+
+- Pronouns are not content-changing: a test proves a pronouns-only `update` succeeds on a system role, and that a content-changing `update` or `remove` on the same role is still refused, so the exemption is exactly the pronouns value and nothing broader.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -120,4 +126,6 @@ Acceptance:
   - Operators get show, update (display name only, never the slug), comment/comments, and remove/status.
 - [2026-10-09T15:35:27Z] Nina Product:
   - 2026-10-09 readiness pass: folded in the comments-allowed and operator-verb rulings; corrected the baseline (operator show and status already exist, driven), so the real operator gains are update, comment, comments, remove. Refusal wording aligned with FEAT-976 (classification, not a second test) and with ADR-979 decision 6 (update edits display fields only). Moved to Ready; still depends on FEAT-976.
+- [2026-10-09T18:16:47Z] Nina Product:
+  - 2026-10-09: added the pronouns exemption to the spec and to US3/US4 acceptance (ADR-981 consequence); still Ready, still depends on FEAT-976.
 <!-- sq:discussion:end -->

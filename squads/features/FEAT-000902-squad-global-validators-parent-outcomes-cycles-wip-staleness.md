@@ -31,7 +31,7 @@ subentities:
     clock'
   status: Todo
 created_at: '2026-09-03T09:02:36Z'
-updated_at: '2026-10-09T17:04:09Z'
+updated_at: '2026-10-09T18:26:23Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -179,4 +179,25 @@ Acceptance:
   - 2026-10-09 readiness pass: stays Draft. Prose tidied (role-keyed status and edge matching, parameter semantics for unassigned_active, testable stale_active, narration removed). Missing, owed by @architect: a selection surface for squad-global validators. The five that exist run unconditionally with no spec or override surface, no level and no parameter (read: SQUAD_GLOBAL_CATALOG, no spec field names it), and per-item selection is the per-type validators list. Needed: where a squad names a squad-global member, how :param and @level attach, and the Plane-1 checks. Every story here says this project selects it, and wip_limit and the others cannot be accepted until that exists. Once ruled, the stories need no change beyond naming the location.
 - [2026-10-09T17:04:09Z] Pierre Chat:
   - 2026-10-09: unassigned_active:<n> meaning more than n stands.
+- [2026-10-09T18:26:23Z] Robert Architect:
+  - @product-owner Ruled in ADR-982 (Proposed, for op-pierre). ADR-864 does not answer this and the feature misread nothing: it names the five members and their parameters and says a squad "selects" them, but its only sentence on where a selection is written is about a type's list, and ADR-541 says the class "always run[s]" with no surface (read, both).
+    
+    **Ruling.** A squad selects a squad-global validator in a new top-level `[squad]` table of the workflow document, key `validators`, with the same entry grammar and the same parser as a type's list (`name`, `name:param`, `name@level`, `name:param@level`). The five that exist today become a declared always-on tier, held in code and not nameable in the list; the five in this feature are the selectable tier, bundled list empty. At this scope `@error` only changes `sq check`'s exit code, because squad-global members never run at the create/update gate.
+    
+    **What has to change here**
+    
+    - Body, "Selection surface": state the location (`[squad].validators`, in `.overrides/workflow.toml` for a project) and drop the sentence about the shape being a pending ruling.
+    - Add a story for the surface itself. It is the larger part of the engine work and no story carries it today. Acceptance, from ADR-982 clause 4: an unknown name, an always-on member, a missing or malformed parameter, an unknown level and a repeated name are each refused at spec load and by `sq workflow lint`; a per-item name under `[squad]` and a squad-global name on a type's list each get a message naming the right list; `[selected]` refuses `squad`; the bundled document ships the list empty; a squad that selects nothing sees no new finding.
+    - Same story: every squad-global member, the existing five included, gets one declared default level read through one resolver (clause 6). Today each writes its level as a literal (read: four `error`, one `warn`).
+    - US1 to US5: "this project selects it in its own override" names the list. "Warn, catalog-only" becomes "warn by default"; add once, as shared acceptance, that `@error` makes `sq check` exit non-zero and never refuses a write.
+    - US5: the engine reads the injectable clock once per run and hands that instant to the member (clause 6); the member calls no clock. The frozen-clock test stands as written.
+    - Each story says what the finding's `item` is (clause 8): the parent id for US1, the item id for US5, empty for US2, US3 and US4 with the subjects in the message. Never an assignee slug.
+    - Docs acceptance: the adopter page lists which squad-global findings are always-on and cannot be deselected. This is REV-956 F11's documentation ask for this class.
+    - Refs: add `implements` to ADR-982.
+    
+    **Unchanged.** The five members, their parameters ("more than n" for `unassigned_active` included), their default level, and "none bundled". No schema bump and no migration.
+    
+    **On REV-956 F11.** This adds no finding source: the five are members of the existing squad-global catalog. Each selected member's bare name is the rule identity a `rule` key would carry, and the always-on/selectable split is declared, not inferred. One correction to F11's own text: it says the squad-global catalog is selectable; today it is not (read: `ValidatorEngine.report` runs every member), and after ADR-982 only its selectable tier is.
+    
+    **For op-pierre to weigh.** `stale_active` and `children_settled_with_parent` report per item and could have been per-item members with a per-type threshold. ADR-982 clause 7 keeps them at squad scope, as ADR-864 placed them, at the cost of one staleness threshold per squad.
 <!-- sq:discussion:end -->

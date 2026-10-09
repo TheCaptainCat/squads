@@ -22,13 +22,13 @@ subentities:
   title: Move the sub-entity title advisory from the work bundle to catalog-only
   status: Todo
 - local_id: US3
-  title: This project selects both, at today's strength, in its own spec
+  title: This project selects both, at today's strength, by override
   status: Todo
 - local_id: US4
   title: As an adopter upgrading, I want the behaviour change documented
   status: Todo
 created_at: '2026-09-03T09:02:32Z'
-updated_at: '2026-10-09T17:04:03Z'
+updated_at: '2026-10-09T18:15:29Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -116,7 +116,7 @@ Acceptance:
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — This project selects both, at today's strength, in its own spec
+### US3 — This project selects both, at today's strength, by override
 
 <!-- sq:story:US3:body -->
 As this project, I want both re-tiered members selected in our own override at their current effective strength, so re-tiering demotes neither rule for us -- it is the difference between a policy we hold and a defect we assert on every adopter's behalf.
