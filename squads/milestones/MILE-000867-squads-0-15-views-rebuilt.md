@@ -3,10 +3,10 @@ id: MILE-867
 sequence_id: 867
 type: milestone
 title: squads 0.15 - views, rebuilt
-status: InProgress
+status: Done
 author: product-owner
 created_at: '2026-09-02T08:03:36Z'
-updated_at: '2026-09-25T16:06:27Z'
+updated_at: '2026-09-29T13:24:07Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.14. It holds the engine and vocabulary work that was
@@ -152,4 +152,6 @@ follow-through on decisions taken during it.
   - Ruling (team-wide, on the board): while 0.15 is unreleased the 0.14 to 0.15 migration may change, and the dogfood squad must be brought up to date with it, through a dedicated temporary migration if that is what it takes.
 - [2026-09-25T16:06:27Z] Catherine Manager:
   - Where 0.15 stands: only FEAT-948 / TASK-942 remains. The core is checkpointed (1e317941, local, suite red on second-leg tests only). ST15 is reopened for one after(regex) off-by-one. The second leg waits on op-pierre. The full handoff is the latest manager comment on TASK-942.
+- [2026-09-29T13:24:06Z] Catherine Manager:
+  - Closed on op-pierre's call: v0.15.0 is tagged and nothing is outstanding.
 <!-- sq:discussion:end -->

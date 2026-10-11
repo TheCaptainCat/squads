@@ -766,6 +766,47 @@ def view_tag_settled(region: str, name: str, *, disabled: bool) -> bool:
     return len(matches) == 1 and matches[0].disabled == disabled
 
 
+def out_of_region_view_tags(text: str) -> list[str]:
+    """Every ``sq:view:*`` tag in *text* that sits outside the ``sq:body`` region, in file
+    order. Those tags neither render nor answer to ``view add``/``view disable``. Empty when the
+    file has no complete ``sq:body`` region, which is reported on its own."""
+    open_tag, close_tag = markers.open_marker(markers.BODY), markers.close_marker(markers.BODY)
+    start = text.find(open_tag)
+    end = text.find(close_tag, start + len(open_tag)) if start != -1 else -1
+    if end == -1:
+        return []
+    region_end = end + len(close_tag)
+    return [
+        tag
+        for tag, tag_start, _tag_end in iter_marker_spans(text)
+        if markers.view_tag_parts(tag) is not None and not start <= tag_start < region_end
+    ]
+
+
+def out_of_region_view_warning(tag: str) -> str:
+    """The ``sq check`` line for one out-of-region view tag."""
+    return (
+        f"view tag <!-- {tag} --> sits outside sq:body, so it never renders; move it inside sq:body"
+    )
+
+
+def out_of_region_view_error(item_id: str, name: str, text: str) -> str | None:
+    """The refusal message when *text* carries a tag for view *name* outside ``sq:body``, else
+    ``None``. ``view add``/``view disable`` manage in-region tags only and would otherwise
+    place a second copy."""
+    stray = [
+        tag
+        for tag in out_of_region_view_tags(text)
+        if (parts := markers.view_tag_parts(tag)) is not None and parts.name == name
+    ]
+    if not stray:
+        return None
+    return (
+        f"{item_id}: view {name} has a tag outside sq:body (<!-- {stray[0]} -->), which "
+        "`view add`/`view disable` do not manage; move it inside the sq:body region first"
+    )
+
+
 def strip_view_tags(text: str) -> str:
     """*text* with every view tag stripped, each together with its own line — so a tag's state
     or location never by itself makes a body count as authored when the authored-content guard

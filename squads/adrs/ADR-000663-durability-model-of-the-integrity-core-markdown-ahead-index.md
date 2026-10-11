@@ -12,11 +12,12 @@ refs:
 - ADR-534
 - ADR-249
 - ADR-153
+- ADR-955
 description: Markdown is always ahead or equal and the index commits last; every squad-data
   .md write is an atomic replace; sq check stays lock-free and confirms cross-source
   claims; the active transaction is task-local and store-scoped.
 created_at: '2026-07-27T14:02:48Z'
-updated_at: '2026-08-06T20:45:09Z'
+updated_at: '2026-10-09T20:20:32Z'
 ---
 <!-- sq:body -->
 # Context
@@ -99,6 +100,12 @@ Each is healed **losslessly** by `sq repair`: repair derives the index from the 
 markdown-ahead skew is not a special case it has to detect — it is simply the input. `load()`
 raising the counter in memory when it trails the max sequence on disk closes the one remaining hole
 (a lost counter bump cannot cause ID reuse even before repair runs).
+
+> **Narrowed 2026-10-09 (ADR-955):** this holds on a squad at the package's schema. While a squad's
+> schema is behind the package the gate refuses `sq repair`, and the recovery path there is the
+> reconcile that `sq migrate up` runs before its first runner. The same narrowing applies wherever
+> this record names `sq repair` as the recovery path, the out-of-model sentence under "Crash model"
+> included. See ADR-955 and its amendments of 2026-10-09.
 
 The inverse skew is the lossy one, which is why it is forbidden rather than merely discouraged: an
 index ahead of the markdown makes `sq repair` **silently revert** a committed mutation, or resurrect
@@ -511,4 +518,6 @@ squad.
   - Paul's distinction is real and is now a rule rather than a one-off ruling: *permitting a skew* means both operands are real and legitimately differ; *withholding a comparison* means the disk operand was fabricated by the loader, so there is no second value to disagree with — only an invention being compared against a record. §1 amended in place today with that clause, bounded by four load-bearing conditions: loader-fabricated operand, non-deterministic (so the round trip genuinely cannot absorb it), conditioned on the observed raw frontmatter per read rather than on a key name, and self-extinguishing at the first successful write. That per-read condition is what makes it strictly narrower than the ordering exemptions beside it, not a widening of them. Standing obligation carried over: any field that later gains an invented load-time default registers here in the same change.
   - A second clause landed with it, because the withholding is only sound in company. It obliges two things: keep reporting the gap where the gap is (`sq check`'s warning on the file), and never commit a fabricated value over a known one (the rebuild's carry-forward of the previously-indexed timestamp). Skip the first and the defect is invisible; skip the second and the invented instant reaches the index, a later mutation heals the markdown from it, and the item's real creation time is unrecoverable from either artifact with nothing having reported it at any step. That, not the refusal, is the invariant #1 failure worth guarding.
   - No `supersedes` and no `related` edge: this narrows no other decision, it clarifies this one in place, so the record is the amended §1 plus this comment. **No code change** — the mechanism as it stands, together with `_carry_forward_indexed_timestamps` on the rebuild and the `sq check` warning, satisfies all four bounds and both obligations. F42 marked Fixed against the clarification.
+- [2026-10-09T20:20:32Z] Robert Architect:
+  - 2026-10-09: narrowed in place, with the operator's approval. One dated note under section 1, after the paragraph stating that each interrupted state is healed losslessly by `sq repair`: that holds at the package's schema; while a squad's schema is behind the package the gate refuses `sq repair`, and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of this date). The note covers every place this record names `sq repair` as the recovery path. Nothing else in the body changed; `related` ref to ADR-955 added, the reciprocal of the one ADR-955 already carries.
 <!-- sq:discussion:end -->

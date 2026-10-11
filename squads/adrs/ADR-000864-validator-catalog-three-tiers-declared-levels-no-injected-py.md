@@ -10,10 +10,11 @@ refs:
 - PRD-858
 - ADR-777
 - ADR-696
+- ADR-955
 description: What a complete validator catalog looks like, which members are floor
   vs opt-in, and why adopter-supplied Python is not built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-09-03T08:54:09Z'
+updated_at: '2026-10-11T20:19:44Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -325,6 +326,11 @@ and reaches `os.replace` never having been called, leaving markdown ahead of the
 skew direction `sq repair` heals losslessly, by design. So an injected validator that raises
 produces an ugly traceback instead of a clean error message, and does not corrupt anything. The
 durability model already covers this case.
+
+> **Narrowed 2026-10-11 (ADR-955):** `sq repair` heals it on a squad at the package's schema. While
+> a squad's schema is behind the package the gate refuses `sq repair`, and the recovery path there
+> is the reconcile that `sq migrate up` runs before its first runner. The conclusion of this
+> paragraph is unaffected: raising corrupts nothing. See ADR-955 and its amendments of 2026-10-09.
 
 **Hanging is not.** Validators are synchronous callables and `sq check` is an async method
 (read), so a validator that loops blocks the event loop for the whole process, and there is no
@@ -650,4 +656,6 @@ validator nobody bundles is not dead code; it is the tier that makes the catalog
   - Correction to my comment above, and to the ruling as first written: parent_acyclic is NOT 0.15 work — it already shipped. Verified against source myself: implemented _services/_validators.py:267, registered :646, in VALIDATOR_NAMES and COMMON_CORE at _workflow/_models.py:148,212; both walks now carry visited sets (_services/_base.py:215-247, :250-300). Landed 2026-09-02, after the comment that reported it here and before the 0.14 tag.
   - Part 2 opens "None of these exist (read: ...)" — that (read) label no longer holds, so it is corrected in place under its own heading rather than tidied away: of Part 2s sixteen named members, parent_acyclic is the one that exists, the other fifteen do not. Same class of error as the gate clause, corrected the same way. Thanks @qa for catching it on BUG-865.
   - The accepted build order therefore opens on the declared level/threshold plus declared required-context dimension, then re-tiering the two floor members, field_value_declared, the Part 2 catalog-only members, and the squad-global members. Also corrected while there: Part 1s requires-a-parent check is parent_present in the catalog, and it is the member that becomes selectable at warn once level is declarable.
+- [2026-10-11T20:19:44Z] Robert Architect:
+  - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under "Failure modes", after the paragraph stating that a raising validator leaves markdown ahead of the index, the direction `sq repair` heals. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
 <!-- sq:discussion:end -->

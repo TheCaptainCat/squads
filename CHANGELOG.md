@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0]
+
+### Added
+
+- **A `self` view's `spec` block carries a `digest` of the merged workflow spec.** `sq workflow view <name> <id> --json` for a `self` view now emits `spec` as `{schema_version, override, digest}`. `digest` is the SHA-256 of the workflow spec the payload was resolved against, bundled spec and override merged. Before, two different overrides produced the same block, so a client could not see that the spec had changed. Compare `digest` for equality only. It is opaque: a new squads release can change it without any change in meaning, so a changed digest means "re-read the catalogs", nothing more. `override` still says whether a project `.overrides/workflow.toml` was merged. Use it for display, not to detect change. See [docs/stability.md](docs/stability.md).
+
+### Changed
+
+- **`sq repair --renumber` handles two files that carry the same id.** This is what a merge leaves when both branches created the same id under different names. When every file in the group has a different slug, one keeps the id and the others get fresh numbers. The kept file is the one the index already points at, otherwise the first by path. Only a renumbered file's own `id`, `sequence_id` and filename change. References to the old id are **not** rewritten, because nothing can tell which copy each one meant. Instead the command lists every one it finds, with its file and position (frontmatter key, or body or comment line), and exits `1` while any remain to check by hand. Some groups are refused and reported the way plain `sq repair` reports them, with nothing renamed: two files sharing a slug, byte-identical copies, or a file outside its type's folder. Distinct ids that only share a number are renumbered with their references rewritten, as before.
+
+### Fixed
+
+- **Two files carrying the same id are reported instead of one silently shadowing the other.** `sq check` reports an error naming every file that carries the id. `sq repair` refuses to choose: it keeps the previous index entry for that id (if there is one), names every file and exits `1`. `sq <type> <n> show` still renders the indexed file, and warns on stderr that other copies exist; `--json` output is unchanged. Every write to that id is refused before any file is touched. So are `retype`, `sq migrate rename-status` and `sq role <slug> set-default` while any id in the squad is duplicated. The remedy: merge the content you want into one file, delete the other, then run `sq repair` (or `sq repair --renumber`, above).
+
+- **Slugs transliterate accented letters instead of dropping them.** `Réduire la latence` now gives `reduire-la-latence` (it gave `r-duire-la-latence`), `Élodie Martin` gives `op-elodie` (it gave `op-lodie`), and `ß`, `æ`, `ø`, `œ`, `ł`, `þ` and similar letters are spelled out. This applies to every new item filename, skill, operator, developer role and memory entry. Letters outside the Latin script are still dropped, so a title with no Latin letters still slugs to `untitled`. **Existing slugs never change.** Nothing migrates them, and a developer role keeps its stored slug on every `sq sync`. `sq operator add`, `sq skill add` and `sq dev add` refuse a name (or tech label) whose slug is already stored under either rule, and name the existing entry. An explicit `--slug` is compared as given. Retitling an item created earlier renames its file to the new form, as any retitle does.
+
+- **`sq dev add` reads a developer's role override from the file it uses afterwards.** At creation, the per-role override was looked up under the raw lowercased tech label (`node.js-dev.toml` for `--tech Node.js`), while every later read used the role's slug (`node-js-dev.toml`). Both now use the slug.
+
+- **`sq sync` restores a managed skill file's frontmatter.** A deleted `sq-<type>` or bundled skill file came back from `sq sync` with its body but no frontmatter, and neither `sq sync` nor `sq repair` could repair it. `sq sync` now rebuilds the frontmatter of a managed skill file that has none, has no `id`, or has unreadable YAML, from the file name and the skill catalog, and keeps the body. `sq check` and `sq repair` name `sq sync` as the fix. Some files are reported and left alone: one whose id or slug another file already holds, for which the remedy is to remove or rename one of the two. A merge conflict that reaches past the frontmatter makes `sq sync` refuse until it is resolved by hand. Authored items are never rebuilt this way.
+
+- **A view tag outside `sq:body` is reported instead of ignored.** Such a tag never renders. `sq check` said nothing about it, and `view add` or `view disable` placed a second copy inside the body. `sq check` now warns about the tag, in an item file and in a project item or role template override. `view add` and `view disable` refuse with exit `1` and say where the tag is. When a duplicate-tag error involves an out-of-region copy, its remedy says to remove or move that copy first. No command moves the tag: move it inside `sq:body` by hand.
+
+- **`sq migrate chlog` with a prerelease bound printed nothing.** After `sq migrate up` on a squad stamped by a prerelease such as `0.14.0rc1`, the range it suggested (`v0.14.0rc1..v0.15.0`) reported no manual steps, because `0.14.0rc1` sorted above `0.14.0`. Versions now order the PEP 440 way (`dev < a < b < rc < release`, and `0.14 == 0.14.0`), everywhere squads compares its own versions.
+
 ## [0.15.0]
 
 ### Added
@@ -1178,7 +1202,8 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[0.15.0]: https://github.com/TheCaptainCat/squads/compare/v0.14.0...HEAD
+[0.16.0]: https://github.com/TheCaptainCat/squads/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/TheCaptainCat/squads/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/TheCaptainCat/squads/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/TheCaptainCat/squads/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/TheCaptainCat/squads/compare/v0.12.3...v0.13.0

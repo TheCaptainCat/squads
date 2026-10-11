@@ -54,10 +54,10 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
     release = threading.Event()
     orig_scan = maintenance.MaintenanceMixin._scan_for_check
 
-    async def paused_scan(self):
+    async def paused_scan(self, carriers):
         started.set()
         await _aio.to_thread(release.wait)
-        return await orig_scan(self)
+        return await orig_scan(self, carriers)
 
     monkeypatch.setattr(
         maintenance.MaintenanceMixin,

@@ -9,6 +9,7 @@ from pathlib import PureWindowsPath
 
 import pytest
 
+from _helpers import bundled_migration_context
 from squads._interactions import bundled_skill_slugs, skill_description
 from squads._migrations._v0_4_to_v0_5 import _posix_rel
 from squads._migrations._v0_4_to_v0_5 import migrate as migrate_v0_4_to_v0_5
@@ -43,7 +44,7 @@ async def test_migration_stamps_every_bundled_skill_with_an_id_and_convention_fi
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     skills_dir = paths.squad_dir / "agents/skills"
 
-    acted = await migrate_v0_4_to_v0_5(paths)
+    acted = await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
     assert acted > 0
 
     skill_ids: set[str] = set()
@@ -65,7 +66,7 @@ async def test_migration_is_idempotent_no_renames_or_id_changes_on_a_second_run(
     tmp_path, monkeypatch, frozen_time
 ):
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    first = await migrate_v0_4_to_v0_5(paths)
+    first = await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
     assert first > 0
 
     skills_dir = paths.squad_dir / "agents/skills"
@@ -74,7 +75,7 @@ async def test_migration_is_idempotent_no_renames_or_id_changes_on_a_second_run(
         for md in sorted(skills_dir.glob("SKILL-*.md"))
     }
 
-    second = await migrate_v0_4_to_v0_5(paths)
+    second = await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
     assert second == 0
 
     for md in sorted(skills_dir.glob("SKILL-*.md")):
@@ -109,7 +110,7 @@ async def test_migration_renames_an_already_stamped_but_still_slug_named_file(
     }
     legacy.write_text(join_frontmatter(fake_fm, existing), encoding="utf-8")
 
-    acted = await migrate_v0_4_to_v0_5(paths)
+    acted = await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
     assert acted >= 1
     assert not legacy.exists()
 
@@ -130,7 +131,7 @@ async def test_migration_leaves_a_pointer_naming_the_fetch_command_not_a_path(
     the definition-fetch command rather than a path (regardless of the body file's own renamed,
     convention-stamped location)."""
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    await migrate_v0_4_to_v0_5(paths)
+    await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
 
     skills_dir = paths.squad_dir / "agents/skills"
     claude_skills = paths.root / ".claude" / "skills"
@@ -148,7 +149,7 @@ async def test_repair_after_migration_rebuilds_the_index_cleanly(
     tmp_path, monkeypatch, frozen_time
 ):
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    await migrate_v0_4_to_v0_5(paths)
+    await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
 
     svc = service.Service(paths)
     await svc.repair()
@@ -166,7 +167,8 @@ async def test_migration_backfills_description_onto_an_already_stamped_conventio
     from squads._sections import replace_frontmatter, split_frontmatter
 
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    await migrate_v0_4_to_v0_5(paths)  # first pass: creates convention files with description
+    # first pass: creates convention files with description
+    await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
 
     skills_dir = paths.squad_dir / "agents/skills"
     for slug in bundled_skill_slugs():
@@ -178,7 +180,7 @@ async def test_migration_backfills_description_onto_an_already_stamped_conventio
         fm["description"] = ""
         convention[0].write_text(replace_frontmatter(text, fm), encoding="utf-8")
 
-    acted = await migrate_v0_4_to_v0_5(paths)
+    acted = await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
     assert acted > 0, "the re-run must backfill every description-less convention file"
 
     for slug in bundled_skill_slugs():
@@ -196,7 +198,8 @@ async def test_description_backfill_still_rewrites_the_pointer_with_no_path_fron
     from squads._sections import replace_frontmatter, split_frontmatter
 
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    await migrate_v0_4_to_v0_5(paths)  # first pass: creates convention files + pointers
+    # first pass: creates convention files + pointers
+    await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
 
     skills_dir = paths.squad_dir / "agents/skills"
     slug = bundled_skill_slugs()[0]
@@ -210,7 +213,7 @@ async def test_description_backfill_still_rewrites_the_pointer_with_no_path_fron
     pointer = paths.root / ".claude" / "skills" / slug / "SKILL.md"
     pointer.write_text("STALE\n", encoding="utf-8")  # simulate a pointer that needs rewriting
 
-    acted = await migrate_v0_4_to_v0_5(paths)
+    acted = await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
     assert acted > 0
 
     content = pointer.read_text(encoding="utf-8")
@@ -228,7 +231,8 @@ async def test_backfill_strips_a_stale_path_key_even_with_a_description_already_
     from squads._sections import replace_frontmatter, split_frontmatter
 
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    await migrate_v0_4_to_v0_5(paths)  # first pass: creates convention files + description
+    # first pass: creates convention files + description
+    await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
 
     skills_dir = paths.squad_dir / "agents/skills"
     slug = bundled_skill_slugs()[0]
@@ -239,7 +243,7 @@ async def test_backfill_strips_a_stale_path_key_even_with_a_description_already_
     fm["path"] = f"agents/skills/OLD-STALE-NAME-{slug}.md"  # what a pre-fix release stamped
     convention.write_text(replace_frontmatter(text, fm), encoding="utf-8")
 
-    acted = await migrate_v0_4_to_v0_5(paths)
+    acted = await migrate_v0_4_to_v0_5(bundled_migration_context(paths))
     assert acted > 0
 
     fm_after, _ = split_frontmatter(convention.read_text(encoding="utf-8"))

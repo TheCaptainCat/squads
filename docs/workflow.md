@@ -470,10 +470,11 @@ A document the migration cannot safely rewrite is skipped rather than aborting t
 by id in its output:
 
 - a milestone whose file is missing, or whose body has no `sq:body` region;
-- a milestone whose tag you had already moved outside `sq:body` by hand. `sq check` accepts it
-  there, but the next body write or `view add` places a second copy inside the body, and
-  `sq check` then reports a duplicate. Delete the out-of-region line from the file by hand, then
-  run `sq milestone <n> view add milestone_rollup`;
+- a milestone whose tag you had already moved outside `sq:body` by hand. `sq check` warns that
+  the tag never renders there, and `view add` refuses while it is out of region, but the next
+  body write places a second copy inside the body and `sq check` then reports a duplicate. Move
+  the out-of-region line inside `sq:body` by hand, or delete it and run
+  `sq milestone <n> view add milestone_rollup`;
 - a role or skill body holding marker-shaped content the migration does not recognise.
 
 `sq check` then reports each skipped document that still lacks its tag, at error level. For a
@@ -1196,6 +1197,12 @@ The duplicate error is the same whether both copies share a state or an enabled 
 a disabled one, and either named command collapses them to one tag. A body write refuses to run on a body that
 holds a view in both states, and names the same two commands. A disabled tag naming an undeclared
 view is not an error; an enabled one is.
+
+A view tag outside `sq:body` never renders. `sq check` warns about it, in an item file and in a
+project item or role template override. `view add` and `view disable` manage in-region tags only,
+so they refuse with exit `1` for a view whose tag sits outside, rather than place a second copy.
+No command moves the tag: move it inside `sq:body` by hand. When such a tag also makes a duplicate,
+the duplicate error says to remove or move the out-of-region copy first.
 
 A role or skill file whose `sq:body` markers were deleted by hand is reported too, with the
 command that restores the region:

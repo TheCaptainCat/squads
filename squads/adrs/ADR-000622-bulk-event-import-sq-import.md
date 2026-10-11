@@ -7,11 +7,12 @@ status: Accepted
 author: architect
 refs:
 - REV-565
+- ADR-955
 description: A JSONL event-import command that replays a project's history in one
   process, with per-event timestamps and attribution, to replace hundreds of per-mutation
   sq calls.
 created_at: '2026-07-23T07:56:31Z'
-updated_at: '2026-07-23T13:02:47Z'
+updated_at: '2026-10-11T20:19:04Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -128,6 +129,12 @@ mid-flush, the index simply isn't committed and `sq repair` reconciles the index
 exist. Net contract: **all-or-nothing for the common (validation) failures — nothing is written
 unless the whole file validates; crash-safe-and-repairable for I/O failures.**
 
+> **Narrowed 2026-10-11 (ADR-955):** `sq repair` reconciles the index on a squad at the package's
+> schema. While a squad's schema is behind the package the gate refuses `sq repair`, and the
+> recovery path there is the reconcile that `sq migrate up` runs before its first runner. That
+> covers an import interrupted before the package moved ahead of the squad. See ADR-955 and its
+> amendments of 2026-10-09.
+
 Every applied event still emits its reflog op (`create`/`status`/`comment`/`ref`/…) with the
 event's own actor/session, so the imported history is captured in the reflog exactly as
 interactive work is.
@@ -207,4 +214,6 @@ importer that could drift from the interactive behavior.
   - F7 (bundled designer/ux role vs dev add for non-code specialties): recommend loosening 'dev add' over bundling a role. FEAT-543 already ships custom non-dev role scaffolding via .overrides/roles, so the capability exists — the friction is being forced to hand-write a .toml override. Add 'sq dev add --tech ux --kind design' (a --kind/non-code path) that scaffolds the same role through the ergonomic verb without asserting a coding stack. Do NOT bundle a designer/ux role: the bundled set is a deliberately small canonical core, and bundling one specialty invites bundling every one (data/SRE/security/…); spec-driven customization (EPIC-538) plus FEAT-543 is the sanctioned extension path. Optionally ship a documented ux example in docs rather than an always-on role.
 - [2026-07-23T13:02:46Z] Pierre Chat:
   - Accepted: bulk event import (sq import) design is sound — validate-first pre-pass narrows apply failures to I/O only, per-event at/as via the RequestContext seam, client-handle addressing, file-order-authoritative, fresh IDs from the global counter in one transaction, import gated through ValidatorEngine + board-debt surfaced as warnings. Deferrals (idempotent/resumable re-import, source-ID preservation, sq export) accepted for v1 with their schema flags. One v1 rough edge accepted: a rare mid-flush I/O crash leaves partial .md that repair folds in and can't be safely re-run without idempotency — FEAT-576 to ship a short post-failure recovery note in the adopt docs.
+- [2026-10-11T20:19:04Z] Robert Architect:
+  - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under "Atomicity, validation, idempotency", after the paragraph stating that `sq repair` reconciles the index when an apply dies mid-flush. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
 <!-- sq:discussion:end -->

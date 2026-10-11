@@ -324,6 +324,7 @@ def _cmd_show(item: typer.Typer) -> None:
         if json_out:
             print_json_clean(await build_item_json(svc, it))
             return
+        await common.warn_duplicate_id(svc, it)
         await print_item(svc, it, raw=raw, comments=comments, full=full)
 
 

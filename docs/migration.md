@@ -50,7 +50,7 @@ files is the usual case; when you are moving between versions, use the order abo
 |---------|------|
 | `sq migrate up` | Runs every **automatic** migration whose target schema is newer than the squad's, in order; rebuilds the index; stamps the new `schema_version`. Then prints which (if any) leave **manual** steps. |
 | `sq migrate help` | The **changelog index** — every shipped migration: release, schema bump, one-line summary, and whether it has manual steps. |
-| `sq migrate chlog vFROM..vTO` | The **complete manual steps** for migrations shipped in `(vFROM, vTO]` (release versions, exclusive-low). This is the canonical place those runbooks live — not buried in prose. |
+| `sq migrate chlog vFROM..vTO` | The **complete manual steps** for migrations shipped in `(vFROM, vTO]` (release versions, exclusive-low; a prerelease bound such as `v0.14.0rc1` sorts below its release). This is the canonical place those runbooks live — not buried in prose. |
 
 `sq migrate *` are the only commands exempt from the schema gate, so they always run even on an
 out-of-date squad — read the steps *before* applying them.

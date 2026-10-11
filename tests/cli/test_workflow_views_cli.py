@@ -405,7 +405,9 @@ async def test_a_self_sourced_views_json_matches_show_json_plus_spec_identity(
     assert payload == json.loads(show_result.output)
     # An ``.overrides/workflow.toml`` is in force (it declares ``self_card`` itself), so a
     # client reading this payload can tell a customised spec resolved it.
-    assert spec_identity == {"schema_version": SCHEMA_VERSION, "override": True}
+    assert set(spec_identity) == {"schema_version", "override", "digest"}
+    assert spec_identity["schema_version"] == SCHEMA_VERSION
+    assert spec_identity["override"] is True
 
 
 async def test_a_playbook_sourced_views_json_carries_the_lane_and_roster(project, invoke) -> None:

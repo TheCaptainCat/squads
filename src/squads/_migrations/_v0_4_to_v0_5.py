@@ -44,6 +44,7 @@ from squads import _sections as sections
 from squads._backends._claude_code._frontmatter import oneline
 from squads._index._store import IndexStore
 from squads._interactions import bundled_skill_slugs, skill_description
+from squads._migrations._context import MigrationContext
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import SquadPaths
@@ -194,7 +195,7 @@ async def _rename_stamped_legacy(
     await _rewrite_pointer(paths, slug, desc, f"{squad_dir_rel}/{squad_rel}")
 
 
-async def migrate(paths: SquadPaths) -> int:
+async def migrate(ctx: MigrationContext) -> int:
     """Stamp SKILL ids and rename legacy slug-named files to the convention.
 
     Walks ``agents/skills/`` in lexical-by-slug order (shared ordering primitive),
@@ -207,6 +208,7 @@ async def migrate(paths: SquadPaths) -> int:
 
     Returns the count of files acted on (stampings + renames + backfills).
     """
+    paths = ctx.paths
     skills_folder = paths.squad_dir / _SKILL_FOLDER
     if not skills_folder.is_dir():
         return 0
@@ -214,7 +216,7 @@ async def migrate(paths: SquadPaths) -> int:
     if not paths.index_path.is_file():
         return 0
 
-    store = IndexStore(paths.index_path, paths.lock_path)
+    store = IndexStore(paths.index_path, paths.lock_path, spec=ctx.spec)
     now = clock.now()
     acted = 0
 

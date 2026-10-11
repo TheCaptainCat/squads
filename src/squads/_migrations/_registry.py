@@ -7,12 +7,12 @@ on), a one-line ``summary``, the deterministic ``run`` step, and any ``manual`` 
 steps that ``up`` can't do. Adding a step = drop a ``_vNtoM.py`` runner, append it here, and bump
 ``_models._schema.SCHEMA_VERSION``.
 
-Runner functions are async — ``Callable[[SquadPaths], Awaitable[MigrationOutcome]]``. Sync
-runners that need no IO can be wrapped with :func:`_wrap_sync`; an async runner whose own
-function still speaks the pre-existing plain ``int`` contract (every one shipped before this
-comment) is wrapped with :func:`_wrap_async` at its ``MIGRATIONS`` entry instead of widening its
-own return type — see :class:`~squads._migrations._outcome.MigrationOutcome` for why keeping
-those two untouched is the point, not an oversight.
+Runner functions are async — ``Callable[[MigrationContext], Awaitable[MigrationOutcome]]``, and
+receive the one :class:`~squads._migrations._context.MigrationContext` the run resolved. A sync
+runner that only walks files (and so takes ``SquadPaths``) is wrapped with :func:`_wrap_sync`;
+an async runner that returns a plain ``int`` is wrapped with :func:`_wrap_async` at its
+``MIGRATIONS`` entry instead of widening its own return type — see
+:class:`~squads._migrations._outcome.MigrationOutcome`.
 """
 
 from collections.abc import Awaitable, Callable
@@ -30,33 +30,31 @@ from squads._migrations import (
     _v0_11_to_v0_14,
     _v0_14_to_v0_15,
 )
+from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
 from squads._paths import SquadPaths
 
 
 def _wrap_sync(
     fn: Callable[[SquadPaths], int],
-) -> Callable[[SquadPaths], Awaitable[MigrationOutcome]]:
-    """Lift a synchronous migration runner into an async one (no IO needed)."""
+) -> Callable[[MigrationContext], Awaitable[MigrationOutcome]]:
+    """Lift a synchronous migration runner that only walks files into an async one taking the
+    run's context (no IO needed)."""
 
-    async def _async(paths: SquadPaths) -> MigrationOutcome:
-        return MigrationOutcome(count=fn(paths))
+    async def _async(ctx: MigrationContext) -> MigrationOutcome:
+        return MigrationOutcome(count=fn(ctx.paths))
 
     return _async
 
 
 def _wrap_async(
-    fn: Callable[[SquadPaths], Awaitable[int]],
-) -> Callable[[SquadPaths], Awaitable[MigrationOutcome]]:
-    """Adapt an async runner that still returns a bare ``int`` (the shape every runner had
-    before :class:`MigrationOutcome` existed) to the current ``Migration.run`` contract,
-    without touching the runner's own function — its return type, and every existing test that
-    calls it directly and compares the plain count, are untouched by this feature. Only a
-    runner that has something to report beyond a count (currently: none of these three) needs
-    its own function to speak :class:`MigrationOutcome` natively."""
+    fn: Callable[[MigrationContext], Awaitable[int]],
+) -> Callable[[MigrationContext], Awaitable[MigrationOutcome]]:
+    """Adapt an async runner that takes the run's context and still returns a bare ``int`` to
+    the ``Migration.run`` contract, without widening the runner's own return type."""
 
-    async def _async(paths: SquadPaths) -> MigrationOutcome:
-        return MigrationOutcome(count=await fn(paths))
+    async def _async(ctx: MigrationContext) -> MigrationOutcome:
+        return MigrationOutcome(count=await fn(ctx))
 
     return _async
 
@@ -69,7 +67,7 @@ class Migration:
     summary: str  # one line, for `sq migrate help`
     # The deterministic step (`sq migrate up`) — see the module docstring for why most runners
     # reach this contract through _wrap_sync/_wrap_async rather than speaking it natively.
-    run: Callable[[SquadPaths], Awaitable[MigrationOutcome]]
+    run: Callable[[MigrationContext], Awaitable[MigrationOutcome]]
     manual: str = ""  # markdown manual steps (LLM runbook); "" if fully automatic
 
 

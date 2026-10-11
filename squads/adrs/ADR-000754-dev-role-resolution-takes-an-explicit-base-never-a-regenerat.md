@@ -10,10 +10,12 @@ refs:
 - REV-736
 - TASK-751
 - REV-770
+- ADR-971
+- ADR-984
 description: Dev-role overrides merge onto a base supplied by the caller, built from
   the live role's stored identity
 created_at: '2026-08-21T12:47:51Z'
-updated_at: '2026-08-21T21:02:32Z'
+updated_at: '2026-10-09T18:47:49Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -267,6 +269,14 @@ a **report**, not a repair: `sq check` should say so when a role item's `extra.f
 from that slug's `[init.names]` entry, so a squad that has already lost a name is told rather
 than left silently pinned to the bundled default. That reads only data already on disk, makes
 nothing authoritative, and is its own small item — not a precondition for this fix.
+
+## Narrowing (2026-09-29, ADR-971)
+
+`dev_base_from_item` also takes `slug` from the item (`item.extra.get(X.SLUG, item.slug)`), beside name, model and tech. The `<tech>-dev` derivation runs only when a developer is created; `extra.tech` is a template input, never a source of identity. See ADR-971.
+
+## Narrowing (2026-10-09, ADR-984)
+
+Decision 2's precedence was "a stored fact first, a naming convention only where no stored fact exists". The first half stands and the second is withdrawn: a slug that names no roster item resolves to nothing, whatever its spelling, so the `dev_base_for_slug` case and the `is_dev_slug` fallback no longer apply (ADR-984 decision 6). The stored fact the first half reads is `extra.tech`, since `extra.is_dev` is removed (ADR-984 decision 4). See ADR-984.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -279,4 +289,6 @@ nothing authoritative, and is its own small item — not a precondition for this
   - A1: one line is the whole cause — _roles/_resolver.py:255-256 discards the caller base whenever the slug is in PREDEFINED, so no caller can make the live item the base for a bundled role. Narrow rule to implement: the item is authoritative for exactly the fields an operator can set on it ({full_name} for a bundled role, {full_name, model, tech} for a dev role) and no others; the rest of the catalog merge is untouched.
   - A2: [init.names] stays outside the resolution order and must not be read at resolve time — it is the input that produced extra.full_name, and it is empty for the sq role activate --name path (driven), so a resolver reading it would miss the very case it looks like it covers. Order: override full_name > item extra.full_name > bundled default (or pool name for a dev slug with no item).
   - A3: recoverable — the name survives in .squads.toml [init.names] and in the reflog create entry (both driven; the projection logs nothing, so the create entry is never clobbered). So the fix is to stop the loss; an automatic heal is refused because it would make an init-input table retroactively authoritative. A sq check report on the mismatch is the right follow-up, as its own small item.
+- [2026-09-29T13:44:31Z] Robert Architect:
+  - ADR-971 (Proposed) extends this decision: dev_base_from_item would take slug from the item too, beside name/model/tech. If ADR-971 is accepted, a dated narrowing note goes into this body.
 <!-- sq:discussion:end -->

@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import bundled_migration_context
 from squads import _actor as actor
 from squads._aio import read_text, write_text
 from squads._interactions import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
@@ -339,7 +340,7 @@ async def test_a_rerun_after_reclaiming_reports_zero_and_writes_nothing(project,
     from squads._paths import resolve as resolve_squad_paths
 
     fresh_paths = resolve_squad_paths(client_cwd=project.root)
-    outcome = await migrate(fresh_paths)
+    outcome = await migrate(bundled_migration_context(fresh_paths))
 
     assert outcome.count == 0
     assert await _text(svc.paths, role) == reclaimed

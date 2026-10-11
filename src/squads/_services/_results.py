@@ -134,6 +134,11 @@ class CreateResult:
     lane_warning: str | None = None
 
 
+class SelfRemedied(str):
+    """A report line that already carries the one remedy that works, so a caller appends no
+    generic tail to it."""
+
+
 @dataclass
 class CheckIssue:
     level: str  # "error" | "warn"
@@ -292,6 +297,8 @@ class RepairResult:
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
+    renumber_report: list[str] = field(default_factory=list[str])
+    references_left: bool = False
 
     def strip_notice(self) -> str | None:
         """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""
