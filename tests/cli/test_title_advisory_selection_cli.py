@@ -14,9 +14,6 @@ from _selection_table import HOSTING_ROWS, TITLE_SHAPES, override_toml, service_
 
 pytestmark = pytest.mark.anyio
 
-#: Hosting rows whose type holds no title check unless it names one.
-UNSELECTED_IDS = {"records-hosting-a-kind"}
-
 
 @pytest.mark.parametrize("shape", TITLE_SHAPES)
 @pytest.mark.parametrize("row", HOSTING_ROWS, ids=lambda r: r.id)
@@ -24,10 +21,6 @@ async def test_add_prints_the_advisory_and_exits_0_only_for_a_selecting_type(
     project, invoke, row, shape
 ) -> None:
     entries, threshold, level = TITLE_SHAPES[shape]
-    if threshold is None and row.id not in UNSELECTED_IDS:
-        pytest.skip(
-            "this hosting type runs the check without a selection until the bundle drops it"
-        )
     svc = service_with(project.squad_dir, override_toml(row, entries))
     parent = (await create_item(svc, row.type, "parent")).item
     number = threshold if threshold is not None else 120

@@ -18,7 +18,6 @@ _WORK = (
     "subentity_status_valid",
     "subentity_container_marker",
     "subentity_body_written",
-    "subentity_title_max",
     "subtask_story_mapping",
 )
 _RECORDS = (

@@ -20,15 +20,12 @@ from _selection_table import (
     service_with,
 )
 from squads._index._reflog import read_lines, reflog_path
+from squads._services._results import CheckIssue
 
 pytestmark = pytest.mark.anyio
 
-#: Hosting rows whose type holds no title check unless it names one. The bundled hosting types
-#: join once the work bundle stops supplying it.
-UNSELECTED_ROWS = tuple(r for r in HOSTING_ROWS if r.id == "records-hosting-a-kind")
 
-
-def _title_findings(issues, parent_id: str) -> dict[str, object]:
+def _title_findings(issues: list[CheckIssue], parent_id: str) -> dict[str, CheckIssue]:
     return {
         i.message.split()[2]: i for i in issues if i.item == parent_id and "title is" in i.message
     }
@@ -77,7 +74,7 @@ async def test_the_advisory_and_the_finding_agree_at_the_selected_number(
     await _drive(svc, row, threshold, level)
 
 
-@pytest.mark.parametrize("row", UNSELECTED_ROWS, ids=lambda r: r.id)
+@pytest.mark.parametrize("row", HOSTING_ROWS, ids=lambda r: r.id)
 async def test_a_hosting_type_that_does_not_select_the_check_gets_neither_at_any_length(
     project, row
 ) -> None:
@@ -111,10 +108,6 @@ async def test_an_import_warns_for_an_imported_sub_entity_exactly_when_the_type_
     project, row, shape
 ) -> None:
     entries, threshold, level = TITLE_SHAPES[shape]
-    if threshold is None and row not in UNSELECTED_ROWS:
-        pytest.skip(
-            "this hosting type runs the check without a selection until the bundle drops it"
-        )
     svc = service_with(project.squad_dir, override_toml(row, entries))
     parent = (await create_item(svc, row.type, "parent")).item
     number = threshold if threshold is not None else 120
@@ -130,3 +123,13 @@ async def test_an_import_warns_for_an_imported_sub_entity_exactly_when_the_type_
     findings = [f for f in result.applied.findings if "threshold" in f.message]
     assert (len(advisories), len(findings)) == (selected, selected)
     assert {f.level for f in findings} <= {level}
+
+
+@pytest.mark.parametrize("item_type", ["bug", "epic"])
+async def test_a_type_hosting_no_kind_may_select_the_check_and_reports_nothing(
+    project, item_type
+) -> None:
+    row = TypeRow(item_type, item_type)
+    svc = service_with(project.squad_dir, override_toml(row, ("subentity_title_max",)))
+    item = (await create_item(svc, item_type, "T" * 200)).item
+    assert not [i for i in await svc.check() if i.item == item.id]

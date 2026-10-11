@@ -1,6 +1,7 @@
 """A sub-entity title longer than the advisory threshold (120 chars) never blocks creation —
 the advisory rides back on the result and into the reflog delta, names the actual length and
-the body command to use instead, and is silent at or below the threshold. One shared code path
+the body command to use instead, and is silent at or below the threshold. Every case runs on a
+spec where the three hosting types select the check. One shared code path
 (`add_block`) backs story/subtask/finding, so the threshold math is proven once and parametrized
 over the three kinds rather than tripled.
 """
@@ -8,10 +9,21 @@ over the three kinds rather than tripled.
 import pytest
 
 from _helpers import create_item
+from _selection_table import service_with
 from squads._index._reflog import read_lines, reflog_path
 from squads._interactions import TITLE_ADVISORY_MAX
 
 pytestmark = pytest.mark.anyio
+
+SELECTING = "".join(
+    f'[items.{t}]\nvalidators = ["subentity_title_max"]\n' for t in ("feature", "task", "review")
+)
+
+
+@pytest.fixture
+def svc(project):
+    return service_with(project.squad_dir, SELECTING)
+
 
 LONG_TITLE = "A" * (TITLE_ADVISORY_MAX + 1)
 EXACT_TITLE = "A" * TITLE_ADVISORY_MAX

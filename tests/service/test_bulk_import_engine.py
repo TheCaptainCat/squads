@@ -10,6 +10,7 @@ import json
 import pytest
 
 from _helpers import create_item
+from _selection_table import service_with
 from squads import _itemfile
 from squads._index._reflog import read_lines, reflog_path
 from squads._index._resolver import item_file
@@ -206,7 +207,9 @@ async def test_a_dangling_handle_reference_is_reported_not_silently_passed_throu
     assert result.plan.issues[0].line == 1
 
 
-async def test_board_debt_from_an_import_surfaces_as_a_warning_not_silent_debt(svc):
+async def test_board_debt_from_an_import_surfaces_as_a_warning_not_silent_debt(project):
+    """Runs on a spec where the review type selects the over-long-title check."""
+    svc = service_with(project.squad_dir, '[items.review]\nvalidators = ["subentity_title_max"]\n')
     review = (await create_item(svc, "review", "A review")).item
     long_title = "x" * 200
     text = _lines(

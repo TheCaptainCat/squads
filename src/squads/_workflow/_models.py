@@ -236,14 +236,13 @@ assert MULTI_SELECTION_VALIDATOR_NAMES.isdisjoint(SINGLE_SELECTION_VALIDATOR_NAM
     "a member cannot be both first-match and unioning"
 )
 
-#: The bundled default threshold for ``subentity_title_max``'s parameter — what a type
-#: inherits unless its own ``validators`` entry names a different one
-#: (``subentity_title_max:<n>``). ``_interactions.TITLE_ADVISORY_MAX`` re-exports this value
-#: for callers that want "the bundled number" without touching validator machinery (e.g. a
-#: test fixture building an over-threshold title); nothing reads that re-export as a live,
-#: type-aware threshold — :meth:`WorkflowSpec.item_subentity_title_max` is the only resolver
-#: ``sq check`` and the create-time advisory use, and it answers ``None`` for a type that does
-#: not select the check.
+#: What a bare ``subentity_title_max`` selection resolves to; a type's own
+#: ``subentity_title_max:<n>`` entry names a different number. ``_interactions.TITLE_ADVISORY_MAX``
+#: re-exports this value for callers that want "the bundled number" without touching validator
+#: machinery (e.g. a test fixture building an over-threshold title); nothing reads that
+#: re-export as a live threshold -- :meth:`WorkflowSpec.item_subentity_title_max` is the only
+#: resolver ``sq check`` and the create-time advisory use, and it answers ``None`` for a type
+#: that does not select the check.
 DEFAULT_SUBENTITY_TITLE_MAX: int = 120
 
 #: The two levels a validator finding may carry — matches :class:`~squads._services._results.
@@ -448,7 +447,6 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
         "subentity_status_valid",
         "subentity_container_marker",
         "subentity_body_written",
-        "subentity_title_max",
         "subtask_story_mapping",
     ),
     "records": ("no_parent", "supersedes_incoming"),
@@ -456,9 +454,11 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
 
 #: The validators whose subject is a type's declared ``subentity_kind``. A type that declares a
 #: kind but whose effective set holds none of these has declared sub-entities nothing can check
-#: — see :func:`_check_category_consistency`. ``subtask_story_mapping`` is deliberately absent:
-#: it is specific to one kind's ``maps_parent_story`` capability, not to hosting a kind at all,
-#: so it is guarded by its own clause (:func:`_clause_story_mapping_reachable`) instead.
+#: — see :func:`_check_category_consistency`. ``subentity_title_max`` is a member although no
+#: bundle supplies it: a hosting type may satisfy the clause by naming it alone.
+#: ``subtask_story_mapping`` is deliberately absent: it is specific to one kind's
+#: ``maps_parent_story`` capability, not to hosting a kind at all, so it is guarded by its own
+#: clause (:func:`_clause_story_mapping_reachable`) instead.
 SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "subentity_status_valid",
@@ -488,8 +488,8 @@ def effective_validator_names(
     refuses a repeat of. *common_core* and *category_bundles* entries are always bare (module
     constants, never carrying a ``:<param>``/``@<level>`` suffix, so their key is always
     ``(bare, None)``); the ordinary way a key recurs is a type naming an already-bundled member
-    in its own *extra* with a suffix and no param — e.g. ``subentity_title_max@warn`` overriding
-    the level of a category's bare ``subentity_title_max`` — and keeping only the last occurrence
+    in its own *extra* with a suffix and no param — e.g. ``subentity_body_written@error`` overriding
+    the level of a category's bare ``subentity_body_written`` — and keeping only the last occurrence
     makes that override the member's one authoritative entry instead of running it twice under
     two spellings of the same name. A type's own *extra* naming a
     :data:`MULTI_SELECTION_VALIDATOR_NAMES` member with two *different* params (e.g.
@@ -1684,7 +1684,8 @@ def _clause_subentity_checked(
     _kinds: dict[str, SubentityKindSpec],
     _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards the four :data:`SUBENTITY_VALIDATOR_NAMES`. A type declaring a ``subentity_kind``
+    """Guards the sub-entity validators a bundle supplies; any of the four
+    :data:`SUBENTITY_VALIDATOR_NAMES` satisfies it. A type declaring a ``subentity_kind``
     must keep at least one validator whose subject is that kind. The ``records`` bundle carries
     none, so a hosting type moved there keeps its sub-entities while every check on them stops
     running.
@@ -1764,13 +1765,22 @@ def _clause_story_mapping_reachable(
     ]
 
 
+#: The :data:`SUBENTITY_VALIDATOR_NAMES` a category bundle supplies -- the ones a category
+#: reassignment can take away, and so the ones :func:`_clause_subentity_checked` guards. The
+#: rest of the set is only ever effective when a type names it.
+_BUNDLED_SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    name
+    for name in SUBENTITY_VALIDATOR_NAMES
+    if any(name in bundle for bundle in CATEGORY_BUNDLES.values())
+)
+
 #: Each clause paired with the validator names whose *reachability* it guards. Declarative so
 #: the coverage assert below can hold, not decoration: the rule is defined over the validator
 #: set, so the audit that matters is per-validator, and every member of the closed catalog must
 #: be accounted for exactly once.
 CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
     (frozenset({"parent_in"}), _clause_parent_reachable),
-    (SUBENTITY_VALIDATOR_NAMES, _clause_subentity_checked),
+    (_BUNDLED_SUBENTITY_VALIDATOR_NAMES, _clause_subentity_checked),
     (frozenset({"supersedes_incoming"}), _clause_supersedes_checked),
     (frozenset({"subtask_story_mapping"}), _clause_story_mapping_reachable),
 )
@@ -1808,9 +1818,10 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   so there is no category reassignment for this member to be silently lost to in the first
 #:   place — a stronger guarantee than the ordinary "nobody happened to reassign it" the other
 #:   two entries above rely on.
-#: - ``no_status_banner`` is the same shape as ``parent_present``: it sits in no category bundle
-#:   and in no floor, so it is only ever effective when a type names it, and no category
-#:   reassignment can take it away.
+#: - ``no_status_banner`` and ``subentity_title_max`` are the same shape as ``parent_present``:
+#:   each sits in no category bundle and in no floor, so it is only ever effective when a type
+#:   names it, and no category reassignment can take it away. ``subentity_title_max`` is still
+#:   one of the :data:`SUBENTITY_VALIDATOR_NAMES` that satisfy :func:`_clause_subentity_checked`.
 UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "no_parent",
@@ -1818,6 +1829,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "ref_rule_target_present",
         "item_skill_shadowed",
         "no_status_banner",
+        "subentity_title_max",
     }
 )
 
