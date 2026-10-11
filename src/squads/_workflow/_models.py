@@ -432,7 +432,6 @@ COMMON_CORE: tuple[str, ...] = (
     "item_status_valid",
     "dangling_ref",
     "ref_kind_valid",
-    "no_status_banner",
     "agent_registered",
     "parent_acyclic",
 )
@@ -1808,8 +1807,17 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   so there is no category reassignment for this member to be silently lost to in the first
 #:   place — a stronger guarantee than the ordinary "nobody happened to reassign it" the other
 #:   two entries above rely on.
+#: - ``no_status_banner`` is the same shape as ``parent_present``: it sits in no category bundle
+#:   and in no floor, so it is only ever effective when a type names it, and no category
+#:   reassignment can take it away.
 UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"no_parent", "parent_present", "ref_rule_target_present", "item_skill_shadowed"}
+    {
+        "no_parent",
+        "parent_present",
+        "ref_rule_target_present",
+        "item_skill_shadowed",
+        "no_status_banner",
+    }
 )
 
 _CLAUSE_GUARDED: frozenset[str] = frozenset(

@@ -62,10 +62,10 @@ def test_common_core_and_category_bundles_are_populated() -> None:
         "item_status_valid",
         "dangling_ref",
         "ref_kind_valid",
-        "no_status_banner",
         "agent_registered",
         "parent_acyclic",
     }
+    assert "no_status_banner" not in COMMON_CORE
     assert set(CATEGORY_BUNDLES) == {"roster", "work", "records"}
     assert CATEGORY_BUNDLES["roster"] == ()
     assert "no_parent" in CATEGORY_BUNDLES["records"]
