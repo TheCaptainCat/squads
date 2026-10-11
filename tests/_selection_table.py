@@ -166,3 +166,20 @@ def banner_findings(issues: list[Any], planted: dict[str, str]) -> dict[str, tup
         if "status/lifecycle banner" in issue.message and issue.item in by_id:
             found[by_id[issue.item]] = (issue.level, issue.message)
     return found
+
+
+#: Rows that host a sub-entity kind, and the three bundled ones among them.
+HOSTING_ROWS: tuple[TypeRow, ...] = tuple(r for r in ALL_ROWS if r.kind is not None)
+BUNDLED_HOSTING_ROWS: tuple[TypeRow, ...] = tuple(r for r in BUNDLED_ROWS if r.kind is not None)
+
+#: Title-length selection shape -> (validators entries, threshold the type runs or None,
+#: level of the finding).
+TITLE_SHAPES: dict[str, tuple[tuple[str, ...], int | None, str | None]] = {
+    "unselected": ((), None, None),
+    "bare": (("subentity_title_max",), 120, "warn"),
+    "number": (("subentity_title_max:80",), 80, "warn"),
+    "warn-suffix": (("subentity_title_max@warn",), 120, "warn"),
+    "number-and-error": (("subentity_title_max:80@error",), 80, "error"),
+}
+
+BODY_WRITTEN = "Written."

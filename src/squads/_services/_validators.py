@@ -581,12 +581,15 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
 def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_subentity_title_lengths``. The threshold is resolved from the spec —
     ``WorkflowSpec.item_subentity_title_max`` — never a module constant, so a type's own
-    ``subentity_title_max:<n>`` selection actually changes what fires."""
+    ``subentity_title_max:<n>`` selection actually changes what fires. A type whose effective
+    set does not hold the member has no threshold and reports nothing."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     if kind is None:
         return []
     threshold = ctx.spec.item_subentity_title_max(item.type)
+    if threshold is None:
+        return []
     level = _resolved_level(ctx, "subentity_title_max")
     return [
         CheckIssue(

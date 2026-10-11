@@ -225,11 +225,10 @@ def is_dev_slug(slug: str) -> bool:
 
 
 #: Re-exported bundled default for the advisory threshold (characters) sub-entity titles are
-#: checked against — a convenience for callers that want "the bundled number" without touching
-#: validator machinery (e.g. a test building an over-threshold title). The threshold a type
-#: actually gets, on ``add-<kind>`` and on ``sq check`` alike, is spec-resolved and per-type
-#: (``WorkflowSpec.item_subentity_title_max`` — a type's own ``subentity_title_max:<n>``
-#: selection, else this default): nothing reads this constant as a live check threshold.
+#: checked against -- what a bare ``subentity_title_max`` selection resolves to, for callers that
+#: want "the bundled number" without touching validator machinery (e.g. a test building an
+#: over-threshold title). The threshold a type actually gets is spec-resolved and per-type
+#: (``WorkflowSpec.item_subentity_title_max``): nothing reads this constant as a live threshold.
 TITLE_ADVISORY_MAX: int = DEFAULT_SUBENTITY_TITLE_MAX
 
 # The advisory create-lane is DERIVED from the playbook document, per role guide, from the

@@ -242,7 +242,8 @@ assert MULTI_SELECTION_VALIDATOR_NAMES.isdisjoint(SINGLE_SELECTION_VALIDATOR_NAM
 #: for callers that want "the bundled number" without touching validator machinery (e.g. a
 #: test fixture building an over-threshold title); nothing reads that re-export as a live,
 #: type-aware threshold — :meth:`WorkflowSpec.item_subentity_title_max` is the only resolver
-#: ``sq check`` and the create-time advisory use.
+#: ``sq check`` and the create-time advisory use, and it answers ``None`` for a type that does
+#: not select the check.
 DEFAULT_SUBENTITY_TITLE_MAX: int = 120
 
 #: The two levels a validator finding may carry — matches :class:`~squads._services._results.
@@ -2447,19 +2448,21 @@ class WorkflowSpec(BaseModel):
         ts = self.items.get(item_type)
         return ts.parent_required if ts else None
 
-    def item_subentity_title_max(self, item_type: str) -> int:
-        """The resolved ``subentity_title_max`` advisory threshold for *item_type*: its own
-        ``subentity_title_max:<n>`` selection when its ``validators`` list carries one, else
-        :data:`DEFAULT_SUBENTITY_TITLE_MAX`. The single resolver both ``sq check``
+    def item_subentity_title_max(self, item_type: str) -> int | None:
+        """The ``subentity_title_max`` threshold *item_type* runs, or ``None`` when its
+        effective validator set does not hold the member (or the type is not declared). A
+        selection carrying ``:<n>`` gives ``n``; a bare selection gives
+        :data:`DEFAULT_SUBENTITY_TITLE_MAX`. The one resolver both ``sq check``
         (``_services/_validators.py::_subentity_title_max``) and the create-time advisory
-        (``_services/_subentities.py``) call, so a type that overrides the threshold gets the
-        same number at both."""
+        (``_services/_subentities.py``) ask, so the two never disagree on whether the check
+        runs or at what number."""
         ts = self.items.get(item_type)
-        if ts is not None:
-            for entry in ts.validators:
-                bare, param, _level = parse_validator_entry(entry)
-                if bare == "subentity_title_max" and param is not None:
-                    return int(param)
+        if ts is None or "subentity_title_max" not in _effective_bare_validators(ts):
+            return None
+        for entry in ts.validators:
+            bare, param, _level = parse_validator_entry(entry)
+            if bare == "subentity_title_max" and param is not None:
+                return int(param)
         return DEFAULT_SUBENTITY_TITLE_MAX
 
     def item_extra_fields(self, item_type: str) -> list[str]:
