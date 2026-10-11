@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-09T19:14:14Z'
+updated_at: '2026-10-11T20:15:29Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -80,4 +80,14 @@ The next squads release after 0.15.
     Rules: one Python stream outside the validator worktree; one independent review per feature, cleared before the next feature starts; one migration step for the release, amended by each contributor.
     
     Review findings: the import guard, the role moves and the write-count guard are in this milestone, as is REV-958 except the finding about a per-item verb's help needing a real item, which gets its own item. The structural refactors and the comment pass are deferred past this milestone, each with a home item.
+- [2026-10-11T20:15:29Z] Pierre Chat:
+  - 2026-10-11: rulings before the first developer starts.
+    
+    - The first developer starts on TASK-954. Its fix for BUG-988 ships with 0.16; there is no 0.15.1 patch.
+    - The working version stays 0.15.0 until release preparation, and is bumped to 0.16.0 there.
+    - This repository's own squad is migrated to the 0.16 schema once, at release preparation, after every contributor has amended the runner.
+    - A developer's model stays as stored at `sq dev add` (ADR-984 as written). Only the colour half of BUG-985 is fixed by the retirement; story 8 of FEAT-986 is reworded to say so.
+    - TASK-989 corrects the three out-of-date passages in CLAUDE.md that the structural review found.
+    - `sq check` should report two distinct ids sharing one number; that and the misleading stale-index message are filed as bugs.
+    - ADR-71, ADR-622, ADR-766, ADR-864 and ADR-783 each get the dated note ADR-663 carries about `sq repair` behind the schema gate.
 <!-- sq:discussion:end -->

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 986,
+  "counter": 992,
   "padding": 6,
   "items": {
     "12": {
@@ -25706,7 +25706,7 @@
       "title": "Give a behind-schema squad a reconcile path the gate permits",
       "slug": "give-a-behind-schema-squad-a-reconcile-path-the-gate-permits",
       "status": "Draft",
-      "description": "Behind the schema gate only sq migrate runs, yet a stale index dead-ends it, its remedies name refused commands, and every migrate verb is exempt; reconcile inside migrate up per ADR-955",
+      "description": "sq migrate up is the only exit for a behind-schema squad, yet a stale index dead-ends it, unreadable files are stamped past, own-type squads are refused, every migrate verb is exempt and remedies name refused commands; ADR-955 as amended",
       "parent": null,
       "author": "tech-lead",
       "assignee": null,
@@ -25716,7 +25716,8 @@
       "refs": [
         "REV-952:fixes",
         "MILE-934:targets",
-        "ADR-955:implements"
+        "ADR-955:implements",
+        "BUG-988:fixes"
       ],
       "subentities": [
         {
@@ -25730,7 +25731,7 @@
         },
         {
           "local_id": "ST2",
-          "title": "Reconcile the index structurally before the first runner",
+          "title": "Reconcile the index before the runners; refuse unindexable files",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -25739,7 +25740,7 @@
         },
         {
           "local_id": "ST3",
-          "title": "Drive migrate up end to end over behind-schema squad shapes",
+          "title": "Drive migrate up end to end over mismatched squad shapes",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -25748,7 +25749,7 @@
         },
         {
           "local_id": "ST4",
-          "title": "Build migrate up without the live-index cross-check",
+          "title": "Run migrate up under the squad's vocabulary, checked up front",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -25757,7 +25758,16 @@
         },
         {
           "local_id": "ST5",
-          "title": "Exempt only migrate up, help and chlog from the schema gate",
+          "title": "Let only migrate up, help and chlog past the gate, by direction",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Open every runner's index under the run's resolved vocabulary",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -25767,7 +25777,7 @@
       ],
       "path": "tasks/TASK-000954-give-a-behind-schema-squad-a-reconcile-path-the-gate-permits.md",
       "created_at": "2026-09-15T08:41:13Z",
-      "updated_at": "2026-10-09T19:37:29Z",
+      "updated_at": "2026-10-09T20:29:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30075,12 +30085,13 @@
         "BUG-657:addresses",
         "ADR-534",
         "ADR-249",
-        "ADR-153"
+        "ADR-153",
+        "ADR-955"
       ],
       "subentities": [],
       "path": "adrs/ADR-000663-durability-model-of-the-integrity-core-markdown-ahead-index.md",
       "created_at": "2026-07-27T14:02:48Z",
-      "updated_at": "2026-08-06T20:45:09Z",
+      "updated_at": "2026-10-09T20:20:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30839,7 +30850,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-09T19:14:14Z",
+      "updated_at": "2026-10-11T20:15:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -43077,6 +43088,358 @@
       "modified_session": null,
       "extra": {},
       "id": "FEAT-986"
+    },
+    "987": {
+      "sequence_id": 987,
+      "type": "bug",
+      "title": "Renamed stripped managed skill file: check gives no remedy",
+      "slug": "renamed-stripped-managed-skill-file-check-gives-no-remedy",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000987-renamed-stripped-managed-skill-file-check-gives-no-remedy.md",
+      "created_at": "2026-10-09T20:19:45Z",
+      "updated_at": "2026-10-09T20:19:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-987"
+    },
+    "988": {
+      "sequence_id": 988,
+      "type": "bug",
+      "title": "migrate up refuses old-schema squad with a valid custom type",
+      "slug": "migrate-up-refuses-old-schema-squad-with-a-valid-custom-type",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "ADR-955",
+        "TASK-954"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000988-migrate-up-refuses-old-schema-squad-with-a-valid-custom-type.md",
+      "created_at": "2026-10-09T20:19:46Z",
+      "updated_at": "2026-10-09T20:20:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-988"
+    },
+    "989": {
+      "sequence_id": 989,
+      "type": "task",
+      "title": "Guard the import graph and move role views and derivations",
+      "slug": "guard-the-import-graph-and-move-role-views-and-derivations",
+      "status": "Draft",
+      "description": "Behaviour-neutral: an import-graph guard in tests/meta, the roster views into _roles, and the role derivations out of the _interactions init",
+      "parent": "FEAT-986",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-984:implements",
+        "REV-956:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Record the package import edges in a tests/meta guard",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Move RoleView and OperatorView into _roles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Move the role derivations out of the _interactions init",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000989-guard-the-import-graph-and-move-role-views-and-derivations.md",
+      "created_at": "2026-10-09T20:27:55Z",
+      "updated_at": "2026-10-11T20:15:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-989"
+    },
+    "990": {
+      "sequence_id": 990,
+      "type": "task",
+      "title": "Make a developer a role that declares a capability",
+      "slug": "make-a-developer-a-role-that-declares-a-capability",
+      "status": "Draft",
+      "description": "Capabilities on roles and *<name> in the playbook, every consumer on the resolved role, extra.is_dev dropped, the 0.16 migration step created",
+      "parent": "FEAT-986",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-984:implements",
+        "BUG-985:fixes",
+        "REV-956:addresses",
+        "TASK-989:depends-on",
+        "TASK-954:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Require the catalog and playbook on the role derivation path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Declare capabilities and resolve them onto the role",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Read the developer template from the resolved catalog",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US8",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Expose capabilities in --json and role text output",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US9",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Address a capability from the playbook with *<name>",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Switch every consumer to the resolved role",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Name roles from the roster in generated text",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US7",
+          "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Drop extra.is_dev and create the 0.16 migration step",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Report suffix-only -dev roles and pin their transitions",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "Add sq dev add --slug and stop reading the suffix",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST11",
+          "title": "Resolve an unknown slug to nothing",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000990-make-a-developer-a-role-that-declares-a-capability.md",
+      "created_at": "2026-10-09T20:28:02Z",
+      "updated_at": "2026-10-11T20:15:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-990"
+    },
+    "991": {
+      "sequence_id": 991,
+      "type": "task",
+      "title": "Document capabilities, declared developers and the 0.16 upgrade",
+      "slug": "document-capabilities-declared-developers-and-the-0-16-upgra",
+      "status": "Draft",
+      "description": "Adopter docs, stability refresh and CHANGELOG for capabilities, sq dev add --slug, the [dev] template and the two upgrade changes with no automatic fix",
+      "parent": "FEAT-986",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-990:depends-on",
+        "ADR-984:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Document capabilities and developers in roles and overrides",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Write the 0.16 upgrade section and the changelog entries",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Refresh stability.md, internals, agents and the README",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US10",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000991-document-capabilities-declared-developers-and-the-0-16-upgra.md",
+      "created_at": "2026-10-09T20:28:03Z",
+      "updated_at": "2026-10-09T20:39:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-991"
+    },
+    "992": {
+      "sequence_id": 992,
+      "type": "task",
+      "title": "Write each item file once per transaction in retype and import",
+      "slug": "write-each-item-file-once-per-transaction-in-retype-and-impo",
+      "status": "Draft",
+      "description": "retype writes one file three times and import_events once per event; compose in memory, write once, and guard the rule with a write-count fixture",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "REV-956:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Guard one write per item file per transaction",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Compose the retyped file in memory and write it once",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Write each file once per import",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Establish the rename_type and repair multi-write cases",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000992-write-each-item-file-once-per-transaction-in-retype-and-impo.md",
+      "created_at": "2026-10-09T20:28:05Z",
+      "updated_at": "2026-10-09T20:39:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-992"
     }
   }
 }
