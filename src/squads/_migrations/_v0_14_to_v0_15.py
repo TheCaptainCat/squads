@@ -146,16 +146,13 @@ from squads import _clock as clock
 from squads._actor import current_session
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
-from squads._interactions import get_playbook_spec
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
-from squads._interactions._models import PlaybookSpec
 from squads._itemfile import read_frontmatter, read_item_text, write_text
+from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._paths import SquadPaths, number_for_id
-from squads._roles._catalog import get_catalog
 from squads._sections import find_markers, get_section, replace_frontmatter, replace_section
 from squads._views import (
     place_view_tags,
@@ -163,8 +160,6 @@ from squads._views import (
     roster_body_view_name,
     template_seeded_view_names,
 )
-from squads._workflow import bundled_spec
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 MANUAL = """\
@@ -241,31 +236,6 @@ as a stand-in for the four-step remedy above.
 """
 
 
-def _active_spec(paths: SquadPaths) -> WorkflowSpec:
-    """The spec this runner reads the milestone declaration and view catalog against — the
-    bundled singleton, or a squad's own ``.overrides/workflow.toml`` merge when one is present.
-    Mirrors how every other runner/``init``/``adopt`` resolve the spec they act against, so a
-    squad whose override renamed, re-templated or dropped the milestone type gets exactly what
-    its own declaration says, never the bundled default."""
-    override_path = paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
-        return bundled_spec()
-    return load_workflow_spec(squad_dir=paths.squad_dir)
-
-
-def _active_playbook(paths: SquadPaths, spec: WorkflowSpec) -> PlaybookSpec:
-    """The playbook :func:`~squads._views.resolve_view_target` needs in hand (only a
-    ``playbook``-sourced view ever reads it; the ``ref``-sourced ``milestone_rollup`` does not,
-    but the predicate's signature is uniform across every source kind) — mirrors
-    ``resolve_playbook``'s own fast-path/merge split (``_services/_service.py``): the bundled
-    singleton with no reparse when *spec* is the untouched bundled spec and no playbook
-    override file exists, the merged document otherwise."""
-    override_path = paths.squad_dir / PLAYBOOK_OVERRIDE_FILENAME
-    if spec is bundled_spec() and not override_path.is_file():
-        return get_playbook_spec()
-    return load_playbook(get_catalog(), spec=spec, squad_dir=paths.squad_dir)
-
-
 def _tag_present_outside_region(text: str, region_tag: str, name: str) -> bool:
     """Whether view *name*'s tag (either state) appears somewhere in *text* but not inside
     *region_tag*'s own section — the shape a hand-moved tag produces (see module docstring).
@@ -306,7 +276,7 @@ async def _write_body_change(path: Path, text: str, new_inner: str) -> str:
     return new_text
 
 
-async def migrate(paths: SquadPaths) -> MigrationOutcome:
+async def migrate(ctx: MigrationContext) -> MigrationOutcome:
     """Two independent steps, one run, one transaction, one reported outcome (see the module
     docstring for why each belongs here):
 
@@ -324,8 +294,7 @@ async def migrate(paths: SquadPaths) -> MigrationOutcome:
     on — a missing indexed file, no ``sq:body`` region, the tag already present outside it, or
     (the second step only) marker-shaped content it has no model for — always empty when
     ``count`` alone tells the whole story."""
-    spec = _active_spec(paths)
-    playbook = _active_playbook(paths, spec)
+    paths, spec, playbook = ctx.paths, ctx.spec, ctx.playbook
 
     # (item_type, view names to seed) — resolved once against the shared derivation and
     # restricted to non-roster types — never against a hand-pinned "milestone"/"milestone_rollup"

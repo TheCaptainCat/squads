@@ -166,7 +166,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   never `<`/`>` on the raw string. The root CLI callback hard-stops on a mismatch (`require_current_schema` →
   run `sq migrate up`). The `sq migrate` Typer app (`_cli/_migrate.py`): `up` runs the ordered
   `_migrations/_registry.py::MIGRATIONS` (each a `Migration` record with a private
-  `_vN_M_to_vP_Q.py` `migrate(paths)->int` + a `manual` runbook string) then `repair` + stamps;
+  `_vN_M_to_vP_Q.py` runner taking `SquadPaths` (wrapped) or, to open the index, the run's `MigrationContext` + a `manual` string) then `repair` + stamps;
   `help` lists the changelog index; `chlog vA..vB` prints `manual` steps for a release range.
   Runner modules are **private** — never `python -m`; only through `sq migrate`.
 - **Strict typing** — `pyright` runs in strict mode and `ruff` (E/F/I/UP/B/W + C901/SIM/PERF/PTH/RUF/TRY/PLR0911-15,

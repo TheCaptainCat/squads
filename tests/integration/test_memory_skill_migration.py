@@ -6,6 +6,7 @@ on), scoped to the single sq-memory slug.
 
 import pytest
 
+from _helpers import bundled_migration_context
 from squads._migrations._v0_8_to_v0_10 import migrate as migrate_v0_8_to_v0_10
 from squads._models._schema import SCHEMA_VERSION
 from squads._sections import split_frontmatter
@@ -36,7 +37,7 @@ async def test_migration_stamps_sq_memory_with_an_id_and_convention_filename(
     legacy = skills_dir / "sq-memory.md"
     assert legacy.is_file()  # precondition: untracked legacy file
 
-    acted = await migrate_v0_8_to_v0_10(paths)
+    acted = await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
     assert acted == 1
 
     assert not legacy.exists()
@@ -54,7 +55,7 @@ async def test_migration_is_idempotent_no_new_id_or_rename_on_a_second_run(
     tmp_path, monkeypatch, frozen_time
 ):
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    first = await migrate_v0_8_to_v0_10(paths)
+    first = await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
     assert first == 1
 
     skills_dir = paths.squad_dir / "agents/skills"
@@ -63,7 +64,7 @@ async def test_migration_is_idempotent_no_new_id_or_rename_on_a_second_run(
     fm_before, _ = split_frontmatter(convention_before[0].read_text(encoding="utf-8"))
     id_before = fm_before["id"]
 
-    second = await migrate_v0_8_to_v0_10(paths)
+    second = await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
     assert second == 0
 
     convention_after = list(skills_dir.glob("SKILL-*-sq-memory.md"))
@@ -99,7 +100,7 @@ async def test_migration_renames_an_already_stamped_but_still_slug_named_file(
     }
     legacy.write_text(join_frontmatter(fake_fm, existing), encoding="utf-8")
 
-    acted = await migrate_v0_8_to_v0_10(paths)
+    acted = await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
     assert acted == 1
     assert not legacy.exists()
 
@@ -122,7 +123,7 @@ async def test_migration_is_a_noop_when_already_tracked(tmp_path, monkeypatch, f
     convention_before = list(skills_dir.glob("SKILL-*-sq-memory.md"))
     assert convention_before, "fresh init should already seed sq-memory as a tracked SKILL"
 
-    acted = await migrate_v0_8_to_v0_10(paths)
+    acted = await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
     assert acted == 0
     convention_after = list(skills_dir.glob("SKILL-*-sq-memory.md"))
     assert convention_after == convention_before
@@ -137,7 +138,7 @@ async def test_migration_leaves_a_pointer_naming_the_fetch_command_not_a_path(
     file's own renamed location)."""
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
     assert paths.squad_dir.name == "squads"  # precondition: default init nests under squad_dir
-    await migrate_v0_8_to_v0_10(paths)
+    await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
 
     skills_dir = paths.squad_dir / "agents/skills"
     pointer = paths.root / ".claude" / "skills" / "sq-memory" / "SKILL.md"
@@ -152,7 +153,7 @@ async def test_repair_after_migration_rebuilds_the_index_cleanly(
     tmp_path, monkeypatch, frozen_time
 ):
     paths = await _make_pre_seed_squad(tmp_path, monkeypatch)
-    await migrate_v0_8_to_v0_10(paths)
+    await migrate_v0_8_to_v0_10(bundled_migration_context(paths))
 
     svc = service.Service(paths)
     await svc.repair()

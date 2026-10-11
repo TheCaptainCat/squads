@@ -9,6 +9,7 @@ tests/integration/test_skill_migration.py).
 
 import pytest
 
+from _helpers import bundled_migration_context
 from squads._interactions import bundled_skill_slugs
 from squads._migrations._v0_4_to_v0_5 import migrate as migrate_v0_4_to_v0_5
 from squads._services import _service as service
@@ -35,7 +36,7 @@ async def test_init_seeded_order_and_post_migration_order_both_match_the_canonic
     dir_b.mkdir()
     monkeypatch.chdir(dir_b)
     result_b = await service.init(root=dir_b, roles_spec="minimal", _skip_skill_seed=True)
-    await migrate_v0_4_to_v0_5(result_b.paths)
+    await migrate_v0_4_to_v0_5(bundled_migration_context(result_b.paths))
     svc_b = service.Service(result_b.paths)
     await svc_b.repair()
     migrated_skills = sorted(await svc_b.list_items(item_type="skill"), key=lambda s: s.sequence_id)

@@ -43,6 +43,7 @@ from squads._itemfile import (
     update_frontmatter,
     write_text,
 )
+from squads._migrations._context import MigrationContext
 from squads._migrations._registry import MIGRATIONS
 from squads._models import _markers as markers
 from squads._models._config import CONFIG_FILENAME
@@ -1677,8 +1678,9 @@ class MaintenanceMixin(ServiceCore):
         applied = [m for m in MIGRATIONS if schema_tuple(m.to_schema) > schema_tuple(disk)]
         changed: dict[str, int] = {}
         skipped: dict[str, list[str]] = {}
+        ctx = MigrationContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
         for m in applied:
-            outcome = await m.run(self.paths)
+            outcome = await m.run(ctx)
             changed[m.to_schema] = outcome.count
             if outcome.skipped:
                 skipped[m.to_schema] = list(outcome.skipped)
