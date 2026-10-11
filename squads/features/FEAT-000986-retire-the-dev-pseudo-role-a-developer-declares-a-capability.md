@@ -36,7 +36,8 @@ subentities:
   title: As an agent, I want generated text to name roles from the roster
   status: Todo
 - local_id: US8
-  title: As an adopter, I want my [dev] override to reach existing developers on sync
+  title: As an adopter, I want my [dev] colour override to reach existing developers
+    on sync
   status: Todo
 - local_id: US9
   title: As a tool author, I want capabilities as an additive --json key
@@ -45,7 +46,7 @@ subentities:
   title: As an adopter, I want the docs to cover capabilities and the upgrade changes
   status: Todo
 created_at: '2026-10-09T19:16:16Z'
-updated_at: '2026-10-09T19:19:53Z'
+updated_at: '2026-10-11T20:18:45Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -54,7 +55,7 @@ Today the engine decides "is this role a developer?" in two ways that disagree. 
 
 - An adopter who declares their own developer role (say `platform-dev`, titled "platform engineer") gets the developer guidance on some surfaces and not on others: the pointer preloads the developer skills, yet `sq dev list` says "no developers".
 - An adopter whose role is not spelled `-dev` (say `backend-engineer`) cannot receive the developer guidance at all.
-- An adopter who overrides the `[dev]` table (colour, model) sees it applied when a developer is added and silently reverted for that developer by the next `sq sync`.
+- An adopter who overrides the `[dev]` table sees the colour applied when a developer is added and silently reverted for that developer by the next `sq sync`.
 - Agents are told that "a developer's slug is `<tech>-dev`" in generated text, even in squads where that is false.
 - `sq role go-dev show` previews a developer that does not exist, and an override file for a role that is not on the roster is accepted or rejected depending on how its slug is spelled.
 
@@ -68,7 +69,7 @@ The release is named "roles, not slugs". This feature makes a developer an ordin
 - `sq dev add` gains `--slug`; existing slugs never change.
 - A slug that names no role resolves to nothing, whatever its spelling.
 - Generated text names roles from the roster and states no slug pattern.
-- The `[dev]` override reaches existing developers on sync (BUG-985).
+- A project `[dev]` override reaches existing developers on sync for what the template supplies on every read, such as the colour (BUG-985). The model a developer was created with stays as stored.
 - The stored `extra.is_dev` marker is removed and existing squads are migrated.
 - `--json` gains `capabilities` on the role surfaces, additively.
 - Adopter documentation covers the new vocabulary and the two upgrade changes that have no automatic fix.
@@ -228,17 +229,17 @@ Acceptance:
 <!-- sq:story:US7:end -->
 
 <!-- sq:story:US8 -->
-### US8 — As an adopter, I want my [dev] override to reach existing developers on sync
+### US8 — As an adopter, I want my [dev] colour override to reach existing developers on sync
 
 <!-- sq:story:US8:body -->
-Acceptance (BUG-985 reproduction, run as written):
+Acceptance (the colour half of the BUG-985 reproduction, run as written):
 - With `[dev] model = "haiku"` and `color = "pink"` in `.overrides/roles.toml`, `sq dev add --tech rust` then `sq sync` leaves the pointer at haiku/pink, and a second sync changes nothing.
-- A developer added before the override existed picks it up on the next `sq sync`.
-- Changing the override's model from haiku to opus reaches existing templated developers on sync.
+- A developer added before the override existed picks up the colour on the next `sq sync`; changing the override's colour later reaches existing templated developers on sync.
+- The model a developer was created with stays as stored: changing `[dev].model` (haiku to opus) leaves existing developers on their stored model, and only a developer added afterwards gets opus. Tested both ways.
 - A per-slug override file still merges over the template for that developer.
 - `sq role <slug> show` agrees with the pointer on model and shows colour.
-- The template is read from the catalog the squad resolves, not the bundled one; the same is tested with the bundled catalog and a project catalog that changes `name_pool`.
-- BUG-985 can be verified against this story.
+- The template is read from the catalog the squad resolves, not the bundled one; tested with a project catalog that changes `name_pool`.
+- BUG-985 can be verified against the colour lines of this story; the model behaviour is the documented stored default, not part of the bug's fix.
 <!-- sq:story:US8:body:end -->
 
 #### Discussion
@@ -272,7 +273,7 @@ Acceptance:
 Acceptance:
 - `docs/roles.md` and `docs/overrides.md` no longer document the suffix rule, the `*dev` sentinel, or that an override for a developer not yet added is accepted; they document `capabilities`, `*<name>`, declaring a developer, `sq dev add --slug`, and the `[dev]` template.
 - `docs/stability.md` is refreshed: the role document key and the `*<name>` subject in Tier 1, the new key in Tier 3, and the additive `--json` keys. `docs/internals.md`, `docs/agents.md`, the README and the CHANGELOG follow.
-- The upgrade section states, with a worked example for each, the two changes that have no automatic fix: a custom `-dev` role must declare `capabilities = ["dev"]`, and an override written before its developer is added now fails `sq check` and no longer previews. It also states that an existing developer picks up a project `[dev]` override on sync.
+- The upgrade section states, with a worked example for each, the two changes that have no automatic fix: a custom `-dev` role must declare `capabilities = ["dev"]`, and an override written before its developer is added now fails `sq check` and no longer previews. It also states that an existing developer picks up a project `[dev]` override on sync for template-supplied values such as the colour, while its model stays as stored at creation.
 - Adopter docs carry no sq item references and no development-process content.
 - A reader following only the docs can declare a developer role and a second capability, and `sq check` is clean.
 <!-- sq:story:US10:body:end -->
@@ -289,4 +290,6 @@ Acceptance:
 <!-- sq:discussion -->
 - [2026-10-09T19:19:53Z] Nina Product:
   - 2026-10-09: prose complete against ADR-984; ready for breakdown.
+- [2026-10-11T20:18:09Z] Nina Product:
+  - 2026-10-11: US8 and the scope line reworded per the operator's ruling: a [dev] override reaches existing developers for template-supplied values (colour); the stored model stays as created.
 <!-- sq:discussion:end -->

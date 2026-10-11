@@ -24,7 +24,7 @@ subentities:
   title: Move the role derivations out of the _interactions init
   status: Todo
 created_at: '2026-10-09T20:27:55Z'
-updated_at: '2026-10-11T20:15:32Z'
+updated_at: '2026-10-11T20:23:47Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -41,7 +41,8 @@ Nothing here is adopter-visible: no CHANGELOG entry, no `docs/` change.
 - **ST1, the import-graph guard.** One `tests/meta` module holding the allowed
   package-to-package edges as a table, seeded from the graph as it is today (REV-956
   finding 16). The next two subtasks change edges, and the guard makes each one a line in a
-  diff.
+  diff. The same subtask corrects the three passages of `CLAUDE.md` that the measured graph
+  contradicts.
 - **ST2, the roster views move to `_roles/`.** `RoleView` and `OperatorView` leave
   `_backends/_base.py`; the two structural protocols that stand in for them are deleted
   (REV-956 finding 2).
@@ -59,9 +60,9 @@ One developer, in this order: ST2 and ST3 both edit `_interactions/__init__.py` 
   cheatsheet anchoring). No parameter becomes required here; TASK-990 does that.
 - `is_dev_slug` and both `DEV` constants are moved or left where they are, never changed.
   TASK-990 deletes them.
-- `CLAUDE.md`. The measured graph contradicts three of its statements (the layering diagram,
-  "`_models` has no internal deps", the list of non-empty inits). The handoff lists each
-  contradiction with its evidence; the file is not edited in this task.
+- The managed region of `CLAUDE.md` (between the `squads:start` and `squads:end` markers).
+  It is regenerated from its template and is not touched here. Only the hand-written part
+  above it is edited, and only for the three passages ST1 names.
 
 ## Acceptance (whole task)
 
@@ -84,6 +85,9 @@ One developer, in this order: ST2 and ST3 both edit `_interactions/__init__.py` 
   before it moves. The handoff records, per subtask, what was broken and the test that went
   red.
 - The handoff quotes the guard table's diff for ST2 and ST3.
+- `CLAUDE.md`'s layering diagram, its statement about `_models` and its list of non-empty
+  inits agree with the guard's tables as they stand at the end of ST3, and the managed
+  region is byte-identical to what it was before the task.
 
 ## Gates and working rules
 
@@ -103,7 +107,8 @@ One developer, in this order: ST2 and ST3 both edit `_interactions/__init__.py` 
 - `type X = ...` for aliases. A multi-exception handler is parenthesised and carries
   `# fmt: skip`. No `from __future__ import annotations`. Package inits do not re-export:
   every importer of a moved name imports it from its new module.
-- Do not edit `CHANGELOG.md`, `docs/` or `CLAUDE.md`.
+- Do not edit `CHANGELOG.md` or `docs/`. `CLAUDE.md` is contributor documentation and is
+  edited directly, within the limit the "Out of scope" section sets.
 - Probe in a scratch squad nested under the session scratchpad, never at `/tmp` and never in
   this repository's own squad: print the working directory before any writing command and
   chain with `&&`.
@@ -121,7 +126,7 @@ _Add with `sq task 989 add-subtask "<title>"`; track with `sq task 989 subtask <
 <!-- sq:subtask:ST1:body -->
 **Goal.** The package import edges of `src/squads` are a recorded table. A new edge, or an
 edge that disappears, is a one-line change in a diff instead of something each change
-re-derives.
+re-derives. `CLAUDE.md` says what the table shows.
 
 **Approach**
 
@@ -139,12 +144,36 @@ re-derives.
   edges as a recorded set of nodes (eight in REV-956 finding 16's measurement: `_backends`,
   `_badges`, `_interactions`, `_overrides`, `_paths`, `_rendering`, `_views`, `_workflow`). A node joining it fails;
   a node leaving it is a row to delete.
-- The reviewer's prototype is at
-  `/tmp/claude-1000/-home-pchat-projects-squads/0e7cfa35-3836-44b0-a1a3-638cc5819285/scratchpad/rev956/imports.py`
-  (edges) and `scc.py` beside it. Read them for the measurement, do not copy them: they
-  ignore relative imports and dynamic imports, and resolve `from pkg import name` by a rule
-  that needs its own rows. `_backends/_registry.py` imports backends through
-  `importlib.import_module`; decide how the guard sees that edge and say so in the table.
+- A third assertion records the package inits that hold code, as a set. REV-956 finding 5
+  measured five where `CLAUDE.md` names three: `squads/__init__`, `_cli/__init__` and
+  `_backends/_claude_code/__init__`, plus `_workflow/__init__` and `_interactions/__init__`.
+- The reviewer's measuring script is no longer on disk. What it did: walk every module, put
+  each `squads` import into one of three sets (top-level, inside a function, inside
+  `if TYPE_CHECKING:`), resolve `from pkg import name` to `pkg.name` when that is a module,
+  and reduce both ends to the first component under `squads`. It ignored relative imports
+  and dynamic imports, and its `from pkg import name` rule needs its own rows. Rebuild the
+  walker from that description and test it as below. `_backends/_registry.py` imports
+  backends through `importlib.import_module`; decide how the guard sees that edge and say so
+  in the table.
+
+**Correct `CLAUDE.md`** (the hand-written part above the managed region; contributor
+documentation, edited directly)
+
+- Three passages, all in "Architecture & layering", are brought in line with the measured
+  graph:
+  - the layering diagram (`_cli → _services → (index store, backends, rendering)`): it shows
+    the edges that exist, or the direction rule the table enforces, whichever stays true;
+  - the line "`_models` shared, no internal deps": `_models/_item.py` imports `_clock`,
+    which imports `_context`;
+  - the sentence listing "the only non-empty inits".
+- Keep it short and point at the guard module as the place the edges are recorded. Do not
+  copy the table into the file, where it would go stale again.
+- Nothing between the `squads:start` and `squads:end` markers changes. Hash that region
+  before and after.
+- Any other sentence the measurement contradicts is listed in the handoff with its
+  evidence, not edited.
+- ST2 and ST3 change edges: re-read the three passages against the final tables at the end
+  of ST3.
 
 **Tests**
 
@@ -161,16 +190,17 @@ re-derives.
 - Invariant: the stated rule "`_backends` does not import `_index`" holds as the absence of
   that row.
 
-**Falsify.** Three breaks, each restored: add an import that creates an unlisted edge (for
+**Falsify.** Four breaks, each restored: add an import that creates an unlisted edge (for
 example `_models` importing `_services`); delete a row whose edge still exists; add a row for
-an edge that does not exist. Record the failure message for each.
+an edge that does not exist; add a statement to an empty package init. Record the failure
+message for each.
 
 **Acceptance**
 
 - The guard passes on the unchanged tree, and its failure message for a new edge names the
   importer, the line and the row to add.
-- The handoff lists what the measured graph contradicts in `CLAUDE.md` (diagram, the
-  `_models` claim, the non-empty inits), with the edge that shows each.
+- The three `CLAUDE.md` passages state what the tables record, each checked against the
+  edge or the init that shows it, and the managed region's hash is unchanged.
 - No source file under `src/` changes in this subtask.
 
 Gates and working rules: the task body.
@@ -291,6 +321,7 @@ renders). A family no existing test catches gets its characterisation row first.
   the new module).
 - Guard table diff quoted in the handoff. Expected: no new package edge.
 - Tests change by import line only, apart from the characterisation table.
+- The three `CLAUDE.md` passages ST1 corrected still agree with the guard's final tables.
 
 Gates and working rules: the task body.
 <!-- sq:subtask:ST3:body:end -->
@@ -309,4 +340,6 @@ Gates and working rules: the task body.
   - 2026-10-09: authored from ADR-984 order of work, steps 1 to 3, and REV-956 findings 2, 5 and 16. Left in Draft; nothing promoted, no developer briefed. The subtasks carry no story on purpose: FEAT-986 keeps this enabling work as tasks. Two readings to confirm: "the existing suite passes unchanged" is taken as import-line edits only, since inits do not re-export; and `CLAUDE.md`'s layering statements are reported in the handoff, not edited. @manager
 - [2026-10-11T20:15:32Z] Pierre Chat:
   - 2026-10-11: correcting CLAUDE.md's layering diagram, its claim about _models and its list of non-empty inits is in scope for this task.
+- [2026-10-11T20:23:47Z] Olivia Lead:
+  - 2026-10-11: brought in line with op-pierre's ruling of the same date. Correcting `CLAUDE.md`'s layering diagram, its `_models` statement and its list of non-empty inits is now part of ST1, checked again at the end of ST3; only the hand-written part above the managed region is edited. ST1's guard also records the non-empty package inits, so the corrected list has a test behind it. The reviewer's measuring script is gone from disk (the session scratchpad was cleared), so ST1 now describes what it did instead of pointing at it. Still Draft.
 <!-- sq:discussion:end -->

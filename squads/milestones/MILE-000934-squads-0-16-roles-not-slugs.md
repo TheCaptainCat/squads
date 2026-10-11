@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-11T20:15:29Z'
+updated_at: '2026-10-11T20:32:05Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -90,4 +90,6 @@ The next squads release after 0.15.
     - TASK-989 corrects the three out-of-date passages in CLAUDE.md that the structural review found.
     - `sq check` should report two distinct ids sharing one number; that and the misleading stale-index message are filed as bugs.
     - ADR-71, ADR-622, ADR-766, ADR-864 and ADR-783 each get the dated note ADR-663 carries about `sq repair` behind the schema gate.
+- [2026-10-11T20:32:05Z] Pierre Chat:
+  - 2026-10-11: the manager drives the build from here, in the approved order, without waiting for my go between steps. Still mine: pushing, the version bump, migrating this repository's squad, publishing, and the ruling on the manifest-freshness checks before TASK-990 changes bundled files.
 <!-- sq:discussion:end -->

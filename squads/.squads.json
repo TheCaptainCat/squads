@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 992,
+  "counter": 997,
   "padding": 6,
   "items": {
     "12": {
@@ -25705,11 +25705,11 @@
       "type": "task",
       "title": "Give a behind-schema squad a reconcile path the gate permits",
       "slug": "give-a-behind-schema-squad-a-reconcile-path-the-gate-permits",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "sq migrate up is the only exit for a behind-schema squad, yet a stale index dead-ends it, unreadable files are stamped past, own-type squads are refused, every migrate verb is exempt and remedies name refused commands; ADR-955 as amended",
       "parent": null,
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "priority": "medium",
       "severity": null,
       "labels": [],
@@ -25768,7 +25768,7 @@
         {
           "local_id": "ST6",
           "title": "Open every runner's index under the run's resolved vocabulary",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -25777,7 +25777,7 @@
       ],
       "path": "tasks/TASK-000954-give-a-behind-schema-squad-a-reconcile-path-the-gate-permits.md",
       "created_at": "2026-09-15T08:41:13Z",
-      "updated_at": "2026-10-09T20:29:14Z",
+      "updated_at": "2026-10-11T21:04:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -28656,12 +28656,13 @@
       "labels": [],
       "refs": [
         "GUIDE-79",
-        "ADR-104"
+        "ADR-104",
+        "ADR-955"
       ],
       "subentities": [],
       "path": "adrs/ADR-000071-frontmatter-is-the-source-of-truth-the-index-is-rebuildable.md",
       "created_at": "2026-06-12T14:22:53Z",
-      "updated_at": "2026-08-03T08:40:48Z",
+      "updated_at": "2026-10-11T20:18:45Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30027,12 +30028,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-565"
+        "REV-565",
+        "ADR-955"
       ],
       "subentities": [],
       "path": "adrs/ADR-000622-bulk-event-import-sq-import.md",
       "created_at": "2026-07-23T07:56:31Z",
-      "updated_at": "2026-07-23T13:02:47Z",
+      "updated_at": "2026-10-11T20:19:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30261,12 +30263,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "BUG-756:addresses"
+        "BUG-756:addresses",
+        "ADR-955"
       ],
       "subentities": [],
       "path": "adrs/ADR-000766-a-role-s-resolved-name-is-written-to-the-item-s-title-not-de.md",
       "created_at": "2026-08-21T19:44:27Z",
-      "updated_at": "2026-09-02T13:14:46Z",
+      "updated_at": "2026-10-11T20:19:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30426,12 +30429,13 @@
       "labels": [],
       "refs": [
         "BUG-779",
-        "ADR-766"
+        "ADR-766",
+        "ADR-955"
       ],
       "subentities": [],
       "path": "adrs/ADR-000783-an-unrepaired-frontmatter-index-skew-is-reported-by-sq-check.md",
       "created_at": "2026-08-22T10:00:59Z",
-      "updated_at": "2026-08-22T10:04:30Z",
+      "updated_at": "2026-10-11T20:20:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30454,12 +30458,13 @@
         "ADR-541",
         "PRD-858",
         "ADR-777",
-        "ADR-696"
+        "ADR-696",
+        "ADR-955"
       ],
       "subentities": [],
       "path": "adrs/ADR-000864-validator-catalog-three-tiers-declared-levels-no-injected-py.md",
       "created_at": "2026-09-01T15:26:04Z",
-      "updated_at": "2026-09-03T08:54:09Z",
+      "updated_at": "2026-10-11T20:19:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30850,7 +30855,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-11T20:15:29Z",
+      "updated_at": "2026-10-11T20:32:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -42965,7 +42970,7 @@
       "subentities": [],
       "path": "bugs/BUG-000985-a-dev-catalog-override-is-reverted-for-existing-devs-by-sq-s.md",
       "created_at": "2026-10-09T18:42:59Z",
-      "updated_at": "2026-10-09T18:43:13Z",
+      "updated_at": "2026-10-11T20:18:25Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -43055,7 +43060,7 @@
         },
         {
           "local_id": "US8",
-          "title": "As an adopter, I want my [dev] override to reach existing developers on sync",
+          "title": "As an adopter, I want my [dev] colour override to reach existing developers on sync",
           "status": "Todo",
           "assignee": null,
           "severity": null,
@@ -43083,7 +43088,7 @@
       ],
       "path": "features/FEAT-000986-retire-the-dev-pseudo-role-a-developer-declares-a-capability.md",
       "created_at": "2026-10-09T19:16:16Z",
-      "updated_at": "2026-10-09T19:19:53Z",
+      "updated_at": "2026-10-11T20:18:45Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -43119,7 +43124,7 @@
       "type": "bug",
       "title": "migrate up refuses old-schema squad with a valid custom type",
       "slug": "migrate-up-refuses-old-schema-squad-with-a-valid-custom-type",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -43135,7 +43140,7 @@
       "subentities": [],
       "path": "bugs/BUG-000988-migrate-up-refuses-old-schema-squad-with-a-valid-custom-type.md",
       "created_at": "2026-10-09T20:19:46Z",
-      "updated_at": "2026-10-09T20:20:11Z",
+      "updated_at": "2026-10-11T21:15:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -43189,7 +43194,7 @@
       ],
       "path": "tasks/TASK-000989-guard-the-import-graph-and-move-role-views-and-derivations.md",
       "created_at": "2026-10-09T20:27:55Z",
-      "updated_at": "2026-10-11T20:15:32Z",
+      "updated_at": "2026-10-11T20:23:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -43318,7 +43323,7 @@
       ],
       "path": "tasks/TASK-000990-make-a-developer-a-role-that-declares-a-capability.md",
       "created_at": "2026-10-09T20:28:02Z",
-      "updated_at": "2026-10-11T20:15:30Z",
+      "updated_at": "2026-10-11T20:24:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -43393,7 +43398,8 @@
       "labels": [],
       "refs": [
         "MILE-934:targets",
-        "REV-956:addresses"
+        "REV-956:addresses",
+        "TASK-990:depends-on"
       ],
       "subentities": [
         {
@@ -43435,11 +43441,250 @@
       ],
       "path": "tasks/TASK-000992-write-each-item-file-once-per-transaction-in-retype-and-impo.md",
       "created_at": "2026-10-09T20:28:05Z",
-      "updated_at": "2026-10-09T20:39:51Z",
+      "updated_at": "2026-10-11T20:24:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-992"
+    },
+    "993": {
+      "sequence_id": 993,
+      "type": "bug",
+      "title": "check after a number clash blames a missing subtasks section",
+      "slug": "check-after-a-number-clash-blames-a-missing-subtasks-section",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "BUG-994"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000993-check-after-a-number-clash-blames-a-missing-subtasks-section.md",
+      "created_at": "2026-10-11T20:18:02Z",
+      "updated_at": "2026-10-11T20:18:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-993"
+    },
+    "994": {
+      "sequence_id": 994,
+      "type": "bug",
+      "title": "check is clean when two ids share one number",
+      "slug": "check-is-clean-when-two-ids-share-one-number",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "BUG-993"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-000994-check-is-clean-when-two-ids-share-one-number.md",
+      "created_at": "2026-10-11T20:18:04Z",
+      "updated_at": "2026-10-11T20:18:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-994"
+    },
+    "995": {
+      "sequence_id": 995,
+      "type": "review",
+      "title": "Behind-schema migrate up: reconcile path and run vocabulary",
+      "slug": "behind-schema-migrate-up-reconcile-path-and-run-vocabulary",
+      "status": "ChangesRequested",
+      "description": "Review of TASK-954, one pass per group of subtasks; the first pass covers the runners opening the index under the run's resolved vocabulary.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-954:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "No test fails when a runner is handed the wrong playbook",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Static guard passes code that still reads the bundled vocabulary",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Digest golden cannot be reviewed or regenerated on update",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Contributor guide and a runner docstring state the old contract",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Re-run after a stopped run is refused on a pre-0.7 override squad",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Migrated-corpus goldens store one rendered surface nine times",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-000995-behind-schema-migrate-up-reconcile-path-and-run-vocabulary.md",
+      "created_at": "2026-10-11T20:54:17Z",
+      "updated_at": "2026-10-11T21:12:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-995"
+    },
+    "996": {
+      "sequence_id": 996,
+      "type": "task",
+      "title": "Move no_status_banner and the title advisory to catalog-only",
+      "slug": "move-no-status-banner-and-the-title-advisory-to-catalog-only",
+      "status": "Draft",
+      "description": "Both checks leave the floor and the work bundle, the add-<kind> advisory follows selection, and this project selects both in its first workflow override",
+      "parent": "FEAT-899",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-864:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Take no_status_banner off the floor",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Resolve the title threshold only for a type that selects it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Take subentity_title_max out of the work bundle",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Select both checks in this project's workflow override",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000996-move-no-status-banner-and-the-title-advisory-to-catalog-only.md",
+      "created_at": "2026-10-11T21:10:16Z",
+      "updated_at": "2026-10-11T21:16:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-996"
+    },
+    "997": {
+      "sequence_id": 997,
+      "type": "task",
+      "title": "Document the two checks that became catalog-only",
+      "slug": "document-the-two-checks-that-became-catalog-only",
+      "status": "Draft",
+      "description": "Validators reference and release note: no_status_banner and subentity_title_max run only where a type selects them, with the line that restores each",
+      "parent": "FEAT-899",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-996:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rewrite the validators reference for the two checks",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Write the release note for the two checks",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-000997-document-the-two-checks-that-became-catalog-only.md",
+      "created_at": "2026-10-11T21:10:21Z",
+      "updated_at": "2026-10-11T21:15:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-997"
     }
   }
 }

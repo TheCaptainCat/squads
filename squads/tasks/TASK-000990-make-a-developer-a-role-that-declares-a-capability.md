@@ -61,7 +61,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-09T20:28:02Z'
-updated_at: '2026-10-11T20:15:30Z'
+updated_at: '2026-10-11T20:24:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -78,26 +78,25 @@ task replaces both with one declared, resolved fact (ADR-984, order of work, ste
 - `extra.is_dev` is removed and existing squads are migrated by the release's one
   0.15 to 0.16 step, which this task creates.
 
-It fixes BUG-985 and covers stories 1 to 9 of FEAT-986. Story 10 (documentation) is TASK-991.
+It fixes the colour half of BUG-985 (a developer's model stays as stored, by decision) and
+covers stories 1 to 9 of FEAT-986. Story 10 (documentation) is TASK-991.
 
 ## Before the first edit
 
 - TASK-989 is merged: the import-graph guard exists, `RoleView` lives in `_roles/`, and the
   role derivations live in their own module. TASK-954 is merged: `run_pending_migrations`
   reconciles the index before the first runner, and this task adds a runner behind it.
-- **The working version reads 0.16.0** in `pyproject.toml`. This task changes bundled bytes
-  (`roles.toml`, `playbook.toml`, templates), and the manifest generator replaces the index
-  entry of whatever version is current: at 0.15.0 it overwrites the shipped release's entry.
-  The drift report for a stamped override is also silent while the running version equals
-  the stamp. If the version still reads 0.15.0, stop and report; do not bump it and do not
-  regenerate the manifest.
+- **The working version reads 0.15.0 and stays there** until release preparation. Do not
+  bump it and do not wait for a bump. "Building at the released version" below says what
+  follows from that.
 - Not built in parallel with FEAT-961 (pronouns) or the `[defaults]` table of ADR-981: they
   extend the same role models and the same closed key space.
 
 ## Subtasks, in build order
 
-The order is the decision's, and the task has three points where the suite is green and the
-tree can be committed.
+The order is the decision's. It is one task, reviewed at two commit points, after ST4 and
+after ST7, and at the end. At each, the suite is green apart from the manifest freshness
+failures recorded under "Building at the released version".
 
 **Declare and resolve; nothing reads the capability yet.**
 
@@ -171,11 +170,67 @@ and ST10 add columns or rows to it instead of writing a test per branch.
   `SCHEMA_VERSION`. The runner's test module is a table of contributions over corpus
   fixtures, so a later contributor adds a row and the "all contributions in one
   `sq migrate up`" assertion grows with it.
-- **This repository's own squad.** Never run `sq migrate up`, `sq repair` or `sq sync` on
-  it. The proof that it migrates is made on a copy: copy `squads/` and `.squads.toml` into a
-  scratch directory, run the dev build's `migrate up`, `sync` and `check` there, and record
-  the result in the handoff (both developer items lose the key, `sq check` is clean, the
-  list of files that changed). Running it on the live squad is the operator's call.
+- **This repository's own squad.** It is migrated once, by the operator, at release
+  preparation, after FEAT-976 and FEAT-980 have amended the runner. The developer never runs
+  `sq migrate up`, `sq repair` or `sq sync` on it, with any build. The proof that it
+  migrates is made on a copy: copy `squads/` and `.squads.toml` into a scratch directory,
+  run the dev build's `migrate up`, `sync` and `check` there, and record the result in the
+  handoff (both developer items lose the key, `sq check` is clean, the list of files that
+  changed).
+
+## Building at the released version
+
+The package reads 0.15.0 while this task changes bundled bytes (`_specs/roles.toml`,
+`_specs/playbook.toml`, templates under `_rendering/templates/`). Five things follow.
+
+- **The manifest is not regenerated.** Do not run `scripts/gen_template_manifest.py` in
+  write mode, `scripts/seed_content_store.py` or `scripts/bump_version.py`, and do not edit
+  `templates_manifest.json` or `content_store.json` by hand. The generator replaces the
+  index entry of the current version, which is the shipped 0.15.0 entry. At release
+  preparation the bump script restores that entry from its tag, bumps the version and
+  regenerates, which adds the 0.16.0 entry.
+- **The manifest freshness checks fail from ST2 onward and stay failing until release
+  preparation.** Read, not run: in `tests/meta/test_override_manifest_and_stamp_freshness.py`,
+  `test_the_index_has_a_current_version_hash_for_every_overridable_bundled_artifact`
+  ("manifest hashes are stale for" each changed key) and
+  `test_artifact_changed_since_is_content_gated_for_every_kind` (for `roles.toml` and
+  `playbook.toml`); and the `manifest freshness` step of the CI lint job, which runs the
+  generator's `--check` on pushes and pull requests to `main`. After the first bundled-byte change, run `tests/meta` and record in
+  a task comment every failing test and the artifact keys it names. That list is the
+  expected set: it holds only freshness failures for artifacts this task changed, and it is
+  recorded again when ST7 changes more. The guard is not edited, skipped or marked as an
+  expected failure. Any other failure is real.
+- **Override drift cannot be observed with this build.** The drift state compares the
+  override's stamp with the running version first. While both read 0.15.0 an override
+  reports `current` and `sq check` is silent, whatever the bundled bytes are (driven). So no
+  test asserts drift through the real version. The behaviour is proven two ways:
+  - in the suite, by a test that sets the running version the override service compares
+    against to a later one, over overrides stamped 0.15.0, and asserts `drifted` in
+    `sq override list` and "may be stale" in `sq check` for the catalog, the playbook, a
+    per-slug role file and (ST7) a template, with the control at the real version
+    (`current`, silent);
+  - by hand, on a scratch copy of the built package with `__version__` set to `"0.16.0"` in
+    the copy's `__init__.py`, run against a scratch squad whose overrides the released tool
+    scaffolded. The output goes in the handoff.
+- **A stamp written by this build is misleading.** `sq override scaffold` stamps 0.15.0 onto
+  bytes that are no longer 0.15.0's, so the base content the store holds for that stamp is
+  the released text, not the text scaffolded from. Upgrade fixtures and probes use a squad
+  and overrides made by the released tool (`~/.local/bin/sq`, in a scratch squad). An
+  existing test that needs the base content to equal the current content is reported, not
+  patched around.
+- **The registry entry names release 0.16.0 while the package reads 0.15.0.**
+  `sq migrate up` and `sq migrate chlog` take their span from the registry, not from the
+  running version (read). Report any test that ties the two.
+
+**Moved to release preparation**, and not part of this task's acceptance:
+
+- the manifest carries a 0.16.0 entry for the changed artifacts and its 0.15.0 entry is
+  byte-identical to the tag (`scripts/gen_template_manifest.py --release-gate`);
+- the two freshness tests above and the CI `manifest freshness` step pass;
+- drift is observed with the unpatched build at 0.16.0, on a squad upgraded from 0.15.0, for
+  a catalog, a playbook, a per-slug role and a template override;
+- this repository's own squad is migrated, which is when story 4's last bullet becomes true
+  of the live squad.
 
 ## What was driven, and what is left to confirm
 
@@ -204,6 +259,7 @@ of the package carrying the stated one-line change.
 
 ## Acceptance (whole task)
 
+- The lines under "Moved to release preparation" are not acceptance of this task.
 - Each subtask's own acceptance holds, and every acceptance bullet of stories 1 to 9 is
   pinned by a named test. The handoff maps bullet to test.
 - **Table-driven tests over named shape families**, as each subtask lists, with the
@@ -239,9 +295,9 @@ of the package carrying the stated one-line change.
   `tests/` and run that union, redirected to a file and read from the file. Report the
   selectors. The manager runs the full suite afterwards.
 - Run `uv run --all-extras pytest tests/meta` whenever a module-level constant is added (the
-  mutable-state guard), a bundled document or template changes (the manifest freshness
-  guard; regenerate with `scripts/gen_template_manifest.py`, at version 0.16.0 only), a
-  migration module is added, or an import edge changes (the guard of TASK-989).
+  mutable-state guard), a bundled document or template changes (to record the expected
+  freshness failures again; the manifest is not regenerated), a migration module is added,
+  or an import edge changes (the guard of TASK-989).
 - Comments and docstrings are one or two sentences, with no release versions, ticket ids or
   history. The migration runner is the one exception for versions. Several docstrings on
   this path explain the marker at length; they are rewritten to what the code does now, not
@@ -257,6 +313,9 @@ of the package carrying the stated one-line change.
 - Do not edit `CHANGELOG.md` or anything under `docs/`. The handoff lists every
   adopter-visible change for the tech writer (TASK-991): each new key, flag, message and
   exit code, each generated-text change, and the migration's report and manual text.
+- The hand-written part of `CLAUDE.md` is not edited here. The handoff lists each of its
+  sentences this task makes false (the `*dev` sentinel line, `dev_role()`), with the wording
+  proposed.
 - Probe in a scratch squad nested under the session scratchpad, never at `/tmp` and never in
   this repository's own squad: print the working directory before any writing command and
   chain with `&&`.
@@ -342,10 +401,11 @@ validated at load, and resolved once onto `RoleDef` and `RoleView`. No consumer 
   `DevPoolSpec.capabilities: list[str] = []`. Both models forbid unknown keys, so the key
   space widens by exactly this name.
 - `_specs/roles.toml`: `[dev]` declares `capabilities = ["dev"]`. The eight bundled roles
-  declare none. This is the first bundled-byte change of the task: check the working version
-  first (task body), then regenerate the manifest, and update the golden lock in
-  `tests/unit/test_role_catalog_artifact.py` and the roles scaffold body in
-  `_overrides/_service.py` if it documents the `[dev]` keys.
+  declare none. This is the first bundled-byte change of the task. The manifest is not
+  regenerated: run `tests/meta` afterwards and record the expected freshness failures in a
+  task comment, as "Building at the released version" in the task body describes. Update
+  the golden lock in `tests/unit/test_role_catalog_artifact.py` and the roles scaffold body
+  in `_overrides/_service.py` if it documents the `[dev]` keys.
 - `_roles/_loader.py`: a name must match `[a-z0-9][a-z0-9-]*`. Check it for every `[[roles]]`
   entry and for `[dev]` in `_validate`, with the existing error prefix that names the file.
   `_roles/_resolver.py::_apply_override` makes the same check for a per-slug role file and
@@ -412,12 +472,12 @@ longer reverts on `sq sync`.
   its imports. `dev_role_from_pool` is the only constructor.
 - The developer's capabilities now arrive from `[dev].capabilities` of the resolved catalog
   by the same path, which is what ST6 relies on.
-- `extra.model` stays the stored value for a developer (ADR-984, "Left out"): `sq dev add`
-  stores the catalog default when `--model` is omitted, and the resolver reads it back. So a
-  later change to `[dev].model` reaches a developer's colour but not its model. Story 8's
-  second and third bullets read as if the model followed the override too; this subtask
-  follows the decision, and the table below pins "the stored model wins" as its own row so
-  the behaviour is stated, not accidental.
+- `extra.model` stays the stored value for a developer (ADR-984, "Left out"; story 8):
+  `sq dev add` stores the catalog default when `--model` is omitted, and the resolver reads
+  it back. A `[dev]` override therefore reaches an existing developer for what the template
+  supplies (colour) and never changes its model; only a developer added afterwards takes a
+  new `[dev].model`. The table below pins "the stored model wins" as rows of its own, so the
+  behaviour is stated, not accidental.
 - `sq role <slug> show` prints the colour on its text card (`_cli/_role.py`), so the card and
   the pointer can be compared. The `--json` payload gains no key here.
 
@@ -438,15 +498,25 @@ longer reverts on `sq sync`.
   the handoff says so.
 
 **Falsify.** Point `dev_base_from_item` back at the bundled catalog: every "colour changed"
-and "override added" row goes red. Restore.
+and "override added" row goes red. Restore. Then take the developer's model from `[dev]`
+instead of from the item: the "model changed" rows go red. Restore.
 
 **Acceptance**
 
-- Story 8, with the model reading above. BUG-985's reproduction passes.
+- Story 8, all bullets, stated both ways and each pinned by a named row:
+  - **the colour follows.** For an existing developer, a `[dev]` colour added or changed
+    after the developer was created is on its pointer after the next `sq sync`, a second
+    sync changes nothing, and `sq role <slug> show` prints the same colour.
+  - **the stored model does not change.** Changing `[dev].model` (haiku to opus) leaves each
+    existing developer's `extra.model`, its pointer and its `sq role <slug> show` on the
+    stored model across two syncs. Only a developer added afterwards gets opus.
+- The colour lines of BUG-985's reproduction pass. Its model rows are behaviour by decision:
+  they are pinned as written above, not changed.
 - `rg "def dev_role\b|dev_role\(" src/squads` finds nothing, checked against the commit
   before.
 - Adopter-visible, for the handoff: an existing developer picks up a project `[dev]`
-  override on the next `sq sync`; `sq role <slug> show` prints the colour.
+  colour on the next `sq sync` and keeps the model it was created with;
+  `sq role <slug> show` prints the colour.
 
 Gates and working rules: the task body.
 <!-- sq:subtask:ST3:body:end -->
@@ -670,12 +740,14 @@ roles, computed in Python and handed to the templates.
   same line.
 - The per-type skill heading is ST5's. `AGENTS.md` and the squads skill take their example
   from the same functions; check both templates for a second copy of any sentence removed.
-- Bundled bytes change here and in `playbook.toml`: regenerate the manifest (version check
-  in the task body), and update the goldens that pin rendered output
+- Bundled bytes change here, in templates and in `playbook.toml`. The manifest is not
+  regenerated: record the expected freshness failures again ("Building at the released
+  version" in the task body), and update the goldens that pin rendered output
   (`tests/goldens`, `tests/unit/test_managed_section_and_cheatsheet_goldens.py`). First
-  step: confirm on a scratch squad that a stamped template override and a stamped playbook
-  override report "may be stale" after the change, at running version 0.16.0, and record the
-  output; the playbook and catalog cases were driven, the template case was only read.
+  step: prove that a stamped template override and a stamped playbook override report "may
+  be stale" after the change, by the two methods the task body gives (the in-suite test
+  with a later running version, and the scratch copy at `0.16.0`), and record the output.
+  The playbook and catalog cases were driven on 2026-10-09; the template case was only read.
 
 **Tests**
 
@@ -725,8 +797,8 @@ which this subtask creates.
 **First step: confirm what was driven.** The task body records two results from a patched
 scratch copy: the retired-key sweep strips `is_dev` with no runner code, and a second
 rebuild deletes `extra.model` unless the role's shape is read from `extra.tech`. Reproduce
-both on the real change before writing the runner: one `sq migrate up` on a squad the
-previous release initialised with two developers (one added with `--model opus`), then a
+both on the real change before writing the runner: one `sq migrate up` on a scratch squad
+the released tool initialised with two developers (one added with `--model opus`), then a
 second `sq repair`, hashing the tree after each. Record the output in a subtask comment.
 
 **Approach**
@@ -782,7 +854,8 @@ second `sq repair`, hashing the tree after each. Record the output in a subtask 
   writes it.
 - Generated files are diffed as the task body describes (init against migrate then sync).
 - A copy of this repository's squad, in scratch: `migrate up`, `sync`, `check`. Record which
-  files changed and that `sq check` is clean. Never the live squad.
+  files changed and that `sq check` is clean. Never the live squad, with any build: the
+  operator migrates it once, at release preparation.
 
 **Falsify.** Leave `_retired_role_extra_keys` reading the marker: the "second step changes
 no file" invariant and the `model` invariant go red on the `--model` row. Then remove the
@@ -792,8 +865,9 @@ key from the retired set: the "no role item carries the key" column goes red. Re
 
 - Story 4, all bullets. The bullet about a squad carrying all three contributions is met
   here by the runner's shape and its contribution table; FEAT-976 and FEAT-980 add their
-  rows.
-- `tests/meta` passes with the new migration module (the migration-import guard, the
+  rows. The bullet about this repository's squad is met here on the scratch copy.
+- `tests/meta` passes with the new migration module, apart from the recorded freshness
+  failures (the migration-import guard, the
   `from_frontmatter` call-site table).
 - Adopter-visible, for the handoff: the schema step, the printed report, the `MANUAL` text,
   and the refusal on `tech`.
@@ -1004,4 +1078,17 @@ Gates and working rules: the task body.
     Calls made in the bodies, to overturn if wrong: the "no capability name in code" grep excludes `_migrations/` as well as `_specs/`; the migration also reports retired suffix-only roles; `sq role show` prints colour on the text card and `--json` gains no `color` key; the delegate example is at most four live slugs in roster order, never the default role, with a developer included.
 - [2026-10-11T20:15:30Z] Pierre Chat:
   - 2026-10-11: the working version stays 0.15.0 until release preparation. This task does not bump it and does not wait for a bump; the developer does not regenerate the template manifest.
+- [2026-10-11T20:23:52Z] Olivia Lead:
+  - 2026-10-11: brought in line with op-pierre's rulings of the same date (MILE-934). Still Draft.
+    
+    - **Working version.** The stop-and-report instruction is gone. The developer does not bump the version and does not regenerate the manifest. A new section, "Building at the released version", records what follows; ST2 and ST7 point at it.
+    - **What follows, for whoever runs the suite.** From ST2 until release preparation two tests in `tests/meta/test_override_manifest_and_stamp_freshness.py` fail, and so does the CI `manifest freshness` step (read from the test and the workflow, not run). The developer records the exact set after the first bundled-byte change; the guard is not edited or skipped. If a standing red there is not acceptable, that needs a ruling before ST2, not before the task starts. @manager
+    - **Drift.** It cannot be observed while stamp and running version both read 0.15.0, so it is proven by an in-suite test that sets a later running version and by a scratch copy at 0.16.0.
+    - **Moved to release preparation:** the 0.16.0 manifest entry and the untouched 0.15.0 entry; the freshness tests and the CI step passing; drift observed with the unpatched build at 0.16.0; the live migration of this repository's squad.
+    - **Live squad.** One `sq migrate up` by the operator at release preparation, after FEAT-976 and FEAT-980 amend the runner. The developer proves the migration on a scratch copy only.
+    - **Model.** ST3's acceptance now states both directions: the colour follows a `[dev]` override on sync for an existing developer; the stored model does not change. It matches story 8 as reworded.
+    - **One task**, reviewed after ST4, after ST7 and at the end.
+    - Added to the handoff list: the hand-written `CLAUDE.md` sentences this task makes false (the `*dev` sentinel line, `dev_role()`). They are listed, not edited, since only TASK-989 has that file in scope.
+- [2026-10-11T20:24:56Z] Catherine Manager:
+  - Correction of attribution: keeping this as one task, reviewed at its commit points, is the manager's call, not a ruling by the operator. I relayed it to the tech lead as his answer in error.
 <!-- sq:discussion:end -->

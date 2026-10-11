@@ -10,7 +10,7 @@ refs:
 - ADR-984
 - MILE-934:targets
 created_at: '2026-10-09T18:42:59Z'
-updated_at: '2026-10-09T18:43:13Z'
+updated_at: '2026-10-11T20:18:25Z'
 ---
 <!-- sq:body -->
 A project override of the `[dev]` table in the role catalog (`.overrides/roles.toml`) is applied to a developer when it is added, then silently reverted for that same developer by the next `sq sync`. An existing developer's template is not read from the catalog the squad resolves.
@@ -65,4 +65,6 @@ ADR-984 decision 2 (the template is read from the catalog the squad resolves) is
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-11T20:18:25Z] Mara Tester:
+  - Verification scope, per the operator's ruling in the MILE-934 discussion (2026-10-11): a developer's model stays as stored at `sq dev add` (ADR-984 as written). The retirement therefore fixes the colour half of this bug only. The model half (a later `[dev]` model change never reaching an existing developer) is behaviour by decision, not a defect. When verifying against FEAT-986, check the colour and do not fail the bug on the model.
 <!-- sq:discussion:end -->

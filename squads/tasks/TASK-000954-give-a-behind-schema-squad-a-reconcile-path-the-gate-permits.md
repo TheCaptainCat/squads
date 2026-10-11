@@ -3,8 +3,9 @@ id: TASK-954
 sequence_id: 954
 type: task
 title: Give a behind-schema squad a reconcile path the gate permits
-status: Draft
+status: InProgress
 author: tech-lead
+assignee: python-dev
 priority: medium
 refs:
 - REV-952:fixes
@@ -32,9 +33,9 @@ subentities:
   status: Todo
 - local_id: ST6
   title: Open every runner's index under the run's resolved vocabulary
-  status: Todo
+  status: Done
 created_at: '2026-09-15T08:41:13Z'
-updated_at: '2026-10-09T20:29:14Z'
+updated_at: '2026-10-11T21:04:05Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -940,4 +941,27 @@ The two newest runners also resolve the spec and the playbook a second time each
     **One thing to weigh, not blocking.** With the squad directory at the project root, another tool's file whose name and `id` both have the item shape (an `ADR-0007-x.md` carrying `id: ADR-0007`) is an item by the A2 rule and, lacking squads' fields, stops `sq migrate up` under A4, where "take it out of the squad directory" is not available. ST2 pins that as its own row so it is one line to change.
     
     Build order: ST6, ST2, ST4, ST5, ST1, ST3. @manager
+- [2026-10-11T20:16:02Z] Catherine Manager:
+  - Promoted to Ready and dispatched on the operator's go of 2026-10-11. Built in two passes by one developer: the first subtask in the build order (every runner's index opened under the run's vocabulary, which fixes BUG-988) is built and reviewed alone, then the rest.
+- [2026-10-11T20:26:25Z] Elias Python:
+  - @manager ST6 built and set Done; uncommitted in the working tree for review.
+    
+    Design: new frozen `MigrationContext(paths, spec, playbook)` in `_migrations/_context.py`. `run_pending_migrations` builds it once from self.paths/self.spec/self.playbook and passes it to every `Migration.run`. `_wrap_sync` unwraps `ctx.paths` for the file-walking runners (their `migrate(paths)` and direct tests are unchanged). The four index-opening runners (0.4-0.5, 0.8-0.10, 0.11-0.14, 0.14-0.15) now take the context; every IndexStore they build passes `spec=ctx.spec` (0.11-0.14 passes the spec down to `_live_roster` and the seeding loop). `_active_spec`/`_active_playbook` are gone from both newest runners.
+    
+    Tests: table of 5 sources (corpus 0.8/0.11/0.14, fresh-built 0.4/0.8 so the 0.4 and 0.8 allocation paths really run) x 6 families (type, status, sub-entity status, badge code, none, type+playbook override), each through the service and through `sq migrate up`: 60 green. Pipeline invariant: committed digests of the migrated tree per corpus (captured on the unchanged code first, reflog excluded), 12 green. Resolution count: one shared context, zero resolver calls inside any runner. Static guard in tests/meta (planted violations proven).
+    Falsified: dropped spec= from the roster load in 0.11-0.14: 41 red (every override row at 0.4/0.8/0.11, service and CLI, plus the static guard; 0.14 and none rows stay green). Put `_active_spec` back in the 0.14-0.15 runner: the static guard and the resolution count red.
+    
+    Subtask vs code: (1) the shipped corpus 0.8 and 0.11 fixtures never reach the 0.4-0.5 or 0.8-0.10 allocation (no legacy skill file), so I added fresh-built squads stamped 0.4 and 0.8 to the table. (2) `_meta_compat.py` (frozen legacy reader used by the 0.1-0.2 and 0.2-0.3 walkers) calls `bundled_spec()`; the guard exempts it from the resolver half by name, since it is a helper not a runner. (3) `test_milestone_roll_up_tag_migration._downgraded` built a Service on the bundled spec and relied on the runner re-resolving the override; it now opens the Service under the override, as the CLI does.
+    
+    Adopter-visible: a squad stamped before 0.14 whose valid override declares its own type, status, sub-entity status or badge code now migrates with `sq migrate up` instead of being refused; no output byte changes for a squad that migrates today. Gates: pyright, ruff check, ruff format clean. Not run: the whole suite (yours).
+- [2026-10-11T20:58:24Z] Catherine Manager:
+  - From REV-995 F5, for ST3's table: add a row for a run that stops part-way on a squad stamped before 0.7 with any override, then is re-run. Today the seeding transaction writes the old index back with unresolved ids and every re-run is refused with a false cause; after ST2 and ST4 the re-run must complete.
+- [2026-10-11T21:04:05Z] Elias Python:
+  - @manager REV-995 findings F1 to F4 closed; tests and text only, no behaviour change; uncommitted.
+    
+    F1: the once-test now builds its Service under a workflow override and a playbook override and asserts the spec and playbook are not the bundled singletons before checking the context carries them. The table gains a built-0.11 source and the type-and-playbook family now declares a playbook entry whose role authors the squad's own type, then asserts the compiled CLAUDE.md line "authors **incidents**" for the built squads (stamped 0.4, 0.8, 0.11; the aged corpora register a different role, so the line is not produced there). Falsified as the reviewer did (bundled playbook in the context in run_pending_migrations): 7 red, the once-test and the type-and-playbook row at built-0.4, built-0.8 and built-0.11 in both the service and the CLI driver. Restored.
+    F2: guard now flags a missing or literal-None spec, IndexStore used other than called directly, import-as and plain rebinding of IndexStore, and Service, open_service, resolve_playbook, get_active_spec, PLAYBOOK beside the four resolvers; scans recursively; the exemption is the one name bundled_spec in _meta_compat.py. Docstring says what it cannot see and that the behavioural table covers the existing runners. Each planted form is proven flagged.
+    F3: the hash file is replaced by reviewed copies of every file the run adds or changes, as text, under tests/goldens/migrated_corpus/<corpus>/ with a REMOVED.txt per corpus. A mismatch prints a unified diff. Regenerate with UPDATE_GOLDENS=1 (the repo's existing switch). Docstring states it covers squads without overrides only. The copies were recorded from the current tree, which had already matched the earlier digests captured on the unchanged code.
+    F4: CLAUDE.md line 169 (one line, outside the generated region) and the 0.5 to 0.7 docstring now state the two runner shapes.
+    Also: first falsification count is 42 red, not 41. tests/_helpers.py imports are now under TYPE_CHECKING with the runtime ones local, matching the file's convention.
 <!-- sq:discussion:end -->

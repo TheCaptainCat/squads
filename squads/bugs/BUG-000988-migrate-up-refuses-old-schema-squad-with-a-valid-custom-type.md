@@ -3,7 +3,7 @@ id: BUG-988
 sequence_id: 988
 type: bug
 title: migrate up refuses old-schema squad with a valid custom type
-status: Open
+status: Verified
 author: qa
 priority: high
 refs:
@@ -11,7 +11,7 @@ refs:
 - ADR-955
 - TASK-954
 created_at: '2026-10-09T20:19:46Z'
-updated_at: '2026-10-09T20:20:11Z'
+updated_at: '2026-10-11T21:15:44Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -56,4 +56,17 @@ The architect's reading of the cause (runners opening the index without the acti
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-11T21:15:38Z] Mara Tester:
+  - Verified the working tree before commit (HEAD 1a96e516 plus the uncommitted TASK-954 ST6 change), driving the dev build `.venv/bin/sq` in scratch squads; exit codes read from the bare command.
+    
+    - Original reproduction (override declaring `incident`, one INC item, `migrate up`): stamped 0.1, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13 each exit 0, stamp 0.15, `incident 21 show` exit 0, `check` exit 0, `repair` exit 0 and a second repair changes no file (reflog excluded).
+    - Controls as before: stamped 0.14 migrates; no override, 0.11 migrates; override with no incident item, 0.11 migrates.
+    - Real fixtures from `tests/fixtures/corpus` (v0_3, v0_4, v0_5, v0_7, v0_8, v0_10, v0_11, v0_14) with the override and one hand-added INC item in each era's file shape (padded id with sequence_id, unpadded id from 0.7): all exit 0, item loads, check exit 0, repair stable.
+    - Vocabulary only the override declares (custom item status, custom sub-entity status on a subtask, custom badge code on a collection field), item carrying all three, stamped 0.11 and 0.8: exit 0, values preserved, check and repair clean. The same squad on the released 0.15.0 tool is refused (exit 1), so the probe discriminates.
+    - Re-prefix and re-label: re-prefixing `milestone` (no items) and `contract` (no items), and a task label and alias override, all migrate cleanly with check exit 0.
+    - Legitimate refusals leave every file byte-identical, stamp included (exit 1): re-prefix `bug` while a bug exists, re-folder `bug`, an override dropping `task` while a task exists, an override dropping the `incident` type while an incident exists, and an override that is not valid TOML.
+    
+    Not covered or not attributable to this fix: fixtures v0_1 and v0_2 with a hand-added custom item exit 1 after stamping 0.15, because the item in that shape has no `sequence_id` and nothing in those eras could have carried a custom type; the released tool does the same, so it is not a regression. A pre-0.7 fixture with any workflow override (even a label-only one) is refused at the start on both builds with the UNRESOLVED-4 prefix message; that is the pre-0.7 refusal tracked on TASK-954. Not driven: a custom type whose items use a custom ref kind, the VS Code client, Windows.
+    
+    Moving InProgress -> Fixed -> Verified (the legal path in the bug lifecycle).
 <!-- sq:discussion:end -->

@@ -10,6 +10,7 @@ priority: medium
 refs:
 - MILE-934:targets
 - REV-956:addresses
+- TASK-990:depends-on
 description: retype writes one file three times and import_events once per event;
   compose in memory, write once, and guard the rule with a write-count fixture
 subentities:
@@ -26,7 +27,7 @@ subentities:
   title: Establish the rename_type and repair multi-write cases
   status: Todo
 created_at: '2026-10-09T20:28:05Z'
-updated_at: '2026-10-09T20:39:51Z'
+updated_at: '2026-10-11T20:24:58Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -66,6 +67,12 @@ under a guard so it cannot regress.
   what is confirmed; the allowlist ends empty or every remaining entry names its reason.
 
 One developer, in this order: the guard is the measuring instrument for the other three.
+
+## Sequence
+
+Built after TASK-990 and the review of FEAT-986, and before FEAT-976: it edits
+`_services/_maintenance.py`, which TASK-954 and TASK-990 also edit, and the autouse guard is
+then in place for the two features that add migration writes.
 
 ## Acceptance (whole task)
 
@@ -134,9 +141,11 @@ at most one write per transaction.
   commit pass, and `_aio.write_text`) and the unit of work (`IndexStore.transaction`), keys a
   counter on (unit, resolved path), and fails the test when an item path was written twice
   in one unit.
-- The reviewer's prototype is at
-  `/tmp/claude-1000/-home-pchat-projects-squads/0e7cfa35-3836-44b0-a1a3-638cc5819285/scratchpad/rev956/spy/spy.py`.
-  Read it for the idea; these parts do not carry over as written:
+- The reviewer's prototype spy is no longer on disk; REV-956 finding 17 describes it. It
+  replaced `_aio.atomic_replace_sync`, `_aio.write_text` and `IndexStore.transaction` with
+  wrappers, numbered each transaction, and counted writes per (transaction, path), leaving
+  out any path ending in `.squads.json`. These parts of that design do not carry over as
+  written:
   - It replaces module attributes of `_aio`. A caller that imported the function by name
     keeps its own reference and is never seen (`_overrides/_stamp.py` does). Prove coverage
     with known positives before trusting a zero: one test per write seam (`_itemfile`
@@ -369,4 +378,8 @@ Gates and working rules: the task body.
     
     - **Order.** The milestone comment places the write-count guard in 0.16 without a slot. It edits `_services/_maintenance.py`, which TASK-954 and TASK-990 also edit, and there is one Python stream. Proposed: after FEAT-986's review clears and before FEAT-976, so the autouse guard is in place for the two features that add migration writes.
     - **The repair case may not exist.** Read today: `_backfill_roster_body_tags` is called only by `sync` on version drift, and the rebuild converges the body tag inside its single pending rewrite. ST4 drives it either way and records the counts on the finding's terms.
+- [2026-10-11T20:23:55Z] Olivia Lead:
+  - 2026-10-11: slot recorded as relayed by the manager from op-pierre's answers: built after TASK-990 and the review of FEAT-986, before FEAT-976. The body carries it under "Sequence" and the task now depends on TASK-990. The reviewer's prototype spy is gone from disk (the session scratchpad was cleared), so ST1 describes its design instead of pointing at it. Still Draft.
+- [2026-10-11T20:24:58Z] Catherine Manager:
+  - Correction of attribution: this task's slot (after the FEAT-986 review, before FEAT-976) is the manager's call following the tech lead's proposal, not a ruling by the operator. I relayed it as his answer in error.
 <!-- sq:discussion:end -->
