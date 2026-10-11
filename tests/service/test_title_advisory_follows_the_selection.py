@@ -95,11 +95,12 @@ async def test_a_type_selecting_another_sub_entity_check_gets_no_title_advisory(
 
 
 @pytest.mark.parametrize("row", BUNDLED_HOSTING_ROWS, ids=lambda r: r.id)
-async def test_selecting_the_check_on_another_type_leaves_this_type_as_it_was(project, row) -> None:
+async def test_selecting_the_check_on_another_type_leaves_this_type_silent(project, row) -> None:
     other = next(r for r in BUNDLED_HOSTING_ROWS if r.type != row.type)
     toml = override_toml(row, (), others={other.type: ("subentity_title_max:80",)})
     svc = service_with(project.squad_dir, toml)
     await _drive(svc, other, 80, "warn")
+    await _drive(svc, row, None, None)
 
 
 @pytest.mark.parametrize("shape", TITLE_SHAPES)

@@ -18,7 +18,6 @@ SHIPPED_LIST_TYPES = frozenset({"epic", "skill"})
 
 BANNER_MESSAGE_BODY = "body opens with a status/lifecycle banner"
 BANNER_MESSAGE_DESCRIPTION = "description opens with a status/lifecycle banner"
-TITLE_MESSAGE = "advisory: "
 
 
 @dataclass(frozen=True)

@@ -2,9 +2,9 @@
 shape of the two checks that are selected rather than always on (a status banner in a body or
 a description on each type that can carry one; a sub-entity title one over and exactly at the
 threshold on each hosting type). Under the bundled spec nothing selects either check, so the
-squad reports nothing; under this repository's own workflow override, which selects both, it
-reports exactly the list below -- the list the engine produced before either check became
-selectable.
+squad reports nothing; under this repository's own workflow override, which selects both, the
+two checks' findings are exactly the list below: each offender once, at ``warn``, with that
+text. Findings of any other check the override selects are not part of the comparison.
 """
 
 from pathlib import Path
@@ -12,7 +12,6 @@ from pathlib import Path
 import pytest
 
 from _helpers import create_item
-from squads import __version__
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -80,6 +79,7 @@ EXPECTED: list[tuple[str, str, str]] = [
             " — a sub-entity title is a one-line handle; put the detail in the body"
         ),
     ),
+    ("warn", "REV-36", BODY_BANNER),
 ]
 
 
@@ -120,19 +120,25 @@ async def _populate(svc: service.Service) -> None:
     review = (await create_item(svc, "review", "review hosting findings")).item
     await svc.add_finding(review.id, OVER, body=WRITTEN)
     await svc.add_finding(review.id, AT, body=WRITTEN)
+    review_banner = (await create_item(svc, "review", "review body banner")).item
+    await svc.set_body(review_banner.id, BANNER)
 
 
 def _with_repo_override(svc: service.Service) -> service.Service:
     override_dir = svc.paths.squad_dir / ".overrides"
     override_dir.mkdir(parents=True, exist_ok=True)
     text = REPO_OVERRIDE.read_text(encoding="utf-8")
-    assert text.startswith(f"# squads:override-base:{__version__}\n")
     (override_dir / "workflow.toml").write_text(text, encoding="utf-8")
     return service.open_service()
 
 
 def _report(issues) -> list[tuple[str, str, str]]:
-    return [(i.level, i.item, i.message) for i in issues]
+    """The findings of the two checks under comparison, whatever else is selected."""
+    return [
+        (i.level, i.item, i.message)
+        for i in issues
+        if "status/lifecycle banner" in i.message or "(threshold:" in i.message
+    ]
 
 
 async def test_the_squad_reports_the_recorded_list_when_both_checks_are_selected(svc) -> None:

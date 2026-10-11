@@ -2,8 +2,8 @@
 the ``sq check`` advisory (``CATALOG["subentity_title_max"]``) and the create-time advisory
 (``add-<kind>``'s own check in ``_services/_subentities.py``) through the one accessor,
 ``WorkflowSpec.item_subentity_title_max`` — never the bundled module constant. A type
-overriding it gets the same number at both call sites; a type that does not override it
-reproduces today's 120-character default exactly, byte for byte (message text included).
+overriding it gets the same number at both call sites; a type that names it bare gets the
+120-character default, and a type that does not name it gets neither check nor advisory.
 """
 
 from pathlib import Path
