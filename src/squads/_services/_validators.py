@@ -17,9 +17,10 @@ engine runs. ``no_parent`` shows both routes: a ``records`` type gets it from th
 bundle, and ``epic`` — a ``work`` type — declares it itself. One catalog member,
 ``parent_present``, sits in no bundle at all and is reachable only through a type's own
 ``validators`` list — see its docstring for why that is the decision and not an omission.
-``gate()`` only aborts on an **error**-level issue — a warn-level one (``agent_registered``,
-``no_status_banner``, …) is advisory everywhere, mirroring ``sq check``'s own error-only exit
-code; it is never a create/update blocker.
+``gate()`` runs only the members whose resolved level for the item's type is ``error`` and
+aborts on their first finding; a warn-level member (``agent_registered``, ``no_status_banner``,
+…) is advisory everywhere, mirroring ``sq check``'s own error-only exit code, and is never
+evaluated on a write.
 
 **A second, always-on tier sits below this catalog and is not part of it.**
 ``MaintenanceMixin._scan_for_check`` (``_services/_maintenance.py``) runs a raw-text file-level
@@ -1250,10 +1251,10 @@ class ValidatorEngine:
     (never a module singleton — rides the same seam as ``Service.spec``).
 
     ``report()`` collects every issue across both validator classes, for ``sq check``.
-    ``gate()`` runs only the one item's own effective per-item set and stops at the first
-    **error-level** violation, for create/update — a warn-level catalog issue (e.g.
-    ``agent_registered``, ``no_status_banner``) is advisory everywhere, exactly like ``sq
-    check``'s exit code (error-only): it never aborts a mutation, only ever gets reported.
+    ``gate()`` runs the one item's own effective per-item members whose resolved level is
+    ``error`` and whose declared context it holds, and aborts on the first finding, for
+    create/update. A member at ``warn`` is advisory everywhere, exactly like ``sq check``'s
+    exit code (error-only): it is reported, never evaluated on a write.
     Squad-global validators never run in gate mode — they are a report-only, once-per-
     invocation check, not a create/update gate.
 
@@ -1279,7 +1280,11 @@ class ValidatorEngine:
         supersedes: frozenset[int],
         type_present: frozenset[str],
         raw_text: str | None,
+        error_level_only: bool = False,
     ) -> list[CheckIssue]:
+        """Run *item*'s effective members. *error_level_only* (set by ``gate()``) also skips a
+        member whose resolved level for the item's type is not ``error``: it cannot refuse a
+        write, so evaluating it would only cost time under the index lock."""
         item_spec = self.spec.items.get(item.type)
         if item_spec is None:
             return []  # a dropped/renamed type — not this engine's concern (index cross-check)
@@ -1318,6 +1323,8 @@ class ValidatorEngine:
             # by coincidence, and it is why no docstring here has to claim anything about what
             # the rest of the catalog happens to contain.
             if not VALIDATOR_CONTEXT.get(bare, frozenset()) <= held:
+                continue
+            if error_level_only and _resolved_level(ctx, bare) != "error":
                 continue
             issues += self.catalog[bare](ctx)
         return issues
@@ -1362,8 +1369,8 @@ class ValidatorEngine:
         return issues
 
     def gate(self, item: Item, index: SquadsDB) -> None:
-        """Abort on *item*'s first **error-level** violation of its own effective per-item
-        set (warn-level issues are report-only, never a gate — see the class docstring).
+        """Abort on the first finding of an effective per-item member whose resolved level for
+        *item*'s type is ``error``. A member at ``warn`` is not evaluated here at all.
 
         This path holds neither :class:`ContextRequirement`, and both absences are structural
         rather than an economy. There is no ``raw_text`` to thread: a create gates an ``Item``
@@ -1390,6 +1397,7 @@ class ValidatorEngine:
                 supersedes=supersedes,
                 type_present=frozenset(),
                 raw_text=None,
+                error_level_only=True,
             )
             if i.level == "error"
         ]
