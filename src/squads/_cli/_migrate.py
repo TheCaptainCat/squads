@@ -17,14 +17,26 @@ from squads._cli._common import (
     console,
     e,
     get_service,
+    get_service_bypassing_index_cross_check,
     handle_errors,
 )
 from squads._errors import SquadsError
+from squads._index._reconcile import ReconcileResult
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._util import version_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
+
+
+def _reconcile_line(result: ReconcileResult) -> str:
+    """One line for what the index rebuild before the runners changed."""
+    parts: list[str] = []
+    if result.indexed:
+        parts.append(f"indexed {', '.join(e(i) for i in result.indexed)}")
+    if result.missing:
+        parts.append(f"dropped {', '.join(e(i) for i in result.missing)} (no file backs it)")
+    return f"  index reconciled with the files: {'; '.join(parts)}"
 
 
 @migrate_app.command("up")
@@ -33,14 +45,15 @@ async def migrate_up():
     """Run the automatic migration(s) to bring this squad to the current schema version.
 
     Exit codes: 0 = nothing to migrate, or migrated with the trailing repair fully clean;
-    1 = migrated, but that repair had to carry an unreadable file's previous entry forward
-    rather than refresh it, or had to leave a marker-shaped ``sq:body`` region untouched rather
-    than guess at what it is — the identical partial-completion condition ``sq repair`` itself
-    exits 1 for (``_cli/_main.py``'s own ``repair`` command), since this command runs that same
-    rebuild as its trailing step. A caller gating on ``$?`` must see the same answer from
-    either route to the same corpus state.
+    1 = an item file cannot be given an index entry, so nothing was migrated and the schema is
+    unchanged, or the squad migrated but that repair had to carry an unreadable file's previous
+    entry forward rather than refresh it, or had to leave a marker-shaped ``sq:body`` region
+    untouched rather than guess at what it is — the identical partial-completion condition ``sq
+    repair`` itself exits 1 for (``_cli/_main.py``'s own ``repair`` command), since this command
+    runs that same rebuild as its trailing step. A caller gating on ``$?`` must see the same
+    answer from either route to the same corpus state.
     """
-    svc = get_service()
+    svc = get_service_bypassing_index_cross_check(bundled_fallback=False)
     disk = svc.paths.config.schema_version
     if schema_tuple(disk) > schema_tuple(SCHEMA_VERSION):
         raise SquadsError(
@@ -52,6 +65,8 @@ async def migrate_up():
     if not applied:
         console.print(f"already at schema v{SCHEMA_VERSION}; nothing to migrate")
         return
+    if run.reconcile and (run.reconcile.indexed or run.reconcile.missing):
+        console.print(_reconcile_line(run.reconcile), soft_wrap=True)
     for m in applied:
         count = run.changed.get(m.to_schema)
         changed_suffix = f" — {count} changed" if count else ""
@@ -63,8 +78,8 @@ async def migrate_up():
         if skipped_ids:
             console.print(
                 f"  [yellow]skipped[/yellow] {len(skipped_ids)} item(s) rather than abort the "
-                f"run: {', '.join(e(i) for i in skipped_ids)} — a missing file needs restoring "
-                "or re-adopting; a missing body region needs one added by hand; a body carrying "
+                f"run: {', '.join(e(i) for i in skipped_ids)} — a missing body region needs one "
+                "added by hand; a body carrying "
                 "content this step has no model for is left exactly as it was — `sq check` "
                 "(reachable once this run completes) names which applies to each. Once the "
                 "item's own problem is fixed and it genuinely carries no tag, place one with "

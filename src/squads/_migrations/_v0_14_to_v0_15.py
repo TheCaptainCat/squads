@@ -180,9 +180,8 @@ carries no `sq:body` region at all, is left exactly as it was.
 A milestone this migration cannot safely place the tag on is **skipped, not aborted**: the run
 still completes and the rest of your corpus is still migrated. `sq migrate up` names every
 skipped item by id, and `sq check` (reachable again once the run completes) reports what it
-still needs — a missing file needs restoring or re-adopting, a body with no `sq:body` region
-needs one added by hand. Once that item's own problem is fixed, place the tag with
-`sq milestone <n> view add milestone_rollup`.
+still needs — a body with no `sq:body` region needs one added by hand. Once that item's own
+problem is fixed, place the tag with `sq milestone <n> view add milestone_rollup`.
 
 A milestone whose tag you had already moved outside `sq:body` by hand is skipped too, for a
 different reason: it already carries the tag, so this migration leaves it exactly as it was

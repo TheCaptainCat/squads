@@ -355,6 +355,17 @@ class Item(BaseModel):
           Its text is rendered by :func:`_validation_message`, not ``str(exc)`` — see there for
           why the raw dump is not what an operator should be shown.
         """
+        return cls._build(data, path=path, default_kind=default_kind)
+
+    @classmethod
+    def from_frontmatter_verbatim(cls, data: dict[str, Any], *, path: str) -> Item:
+        """Like :meth:`from_frontmatter`, but resolves no vocabulary: ``refs`` and a legacy
+        ``extra.ref_kinds`` map are kept exactly as the file spells them, with no default ref
+        kind folded in. For a reader that must not depend on any spec."""
+        return cls._build(data, path=path, default_kind=None)
+
+    @classmethod
+    def _build(cls, data: dict[str, Any], *, path: str, default_kind: str | None) -> Item:
         missing = [key for key in REQUIRED_FRONTMATTER_KEYS if key not in data]
         if missing:
             keys = ", ".join(repr(key) for key in missing)
@@ -421,7 +432,32 @@ def _validation_message(exc: ValidationError) -> str:
 REQUIRED_FRONTMATTER_KEYS: tuple[str, ...] = ("type", "sequence_id", "status")
 
 
-def _frontmatter_payload(data: dict[str, Any], path: str, *, default_kind: str) -> dict[str, Any]:
+#: The frontmatter keys whose absent-value default is *invented* at load time rather than
+#: derived from the file (:func:`_parse_dt` falls back to ``clock.now()``
+#: so a legacy or hand-authored ``.md`` loads at all).
+#:
+#: They are the one part of the ``from_frontmatter`` round trip that is not a function of the
+#: file's own bytes: load the same absent-timestamp file twice and you get two different
+#: values. A skew comparison that includes them therefore reports a divergence on a key the
+#: file says *nothing* about — and does so on every read, so the item is refused for good, with
+#: a "run `sq repair`" pointer that repair structurally cannot honour (repair rebuilds the
+#: index from markdown; it never rewrites markdown, so the key stays absent and the next read
+#: invents a new value again).
+#:
+#: The absence itself is not lost, only left out of the comparison: every write seam persists
+#: the whole ``to_frontmatter_dict()`` (see ``update_frontmatter`` and the service's
+#: section-edit core), so the first successful mutation writes the index's value into the file
+#: and heals it permanently. Excluding them is what makes that first mutation possible.
+#:
+#: This is narrow on purpose. It applies only when the raw on-disk frontmatter has no value for
+#: the key at all; a timestamp the file *does* carry is compared like any other field, and one
+#: it carries unparseably still fails the load boundary as a ``SquadsError``.
+INVENTED_WHEN_ABSENT: frozenset[str] = frozenset({"created_at", "updated_at"})
+
+
+def _frontmatter_payload(
+    data: dict[str, Any], path: str, *, default_kind: str | None
+) -> dict[str, Any]:
     """The ``model_validate`` payload for :meth:`Item.from_frontmatter` — **never raises**.
 
     Every value is either passed straight through or folded by a helper that returns an
@@ -461,7 +497,7 @@ def _frontmatter_payload(data: dict[str, Any], path: str, *, default_kind: str) 
         # Session fields are optional — absent from legacy files; None == unset.
         "created_session": data.get("created_session") or None,
         "modified_session": data.get("modified_session") or None,
-        "extra": _read_extra(data),
+        "extra": _read_extra(data, keep_ref_kinds=default_kind is None),
     }
 
 
@@ -511,7 +547,7 @@ def _is_str_list(value: object) -> bool:
     return isinstance(value, list) and all(isinstance(v, str) for v in cast("list[Any]", value))
 
 
-def _read_refs(data: dict[str, Any], *, default_kind: str) -> Any:
+def _read_refs(data: dict[str, Any], *, default_kind: str | None) -> Any:
     """Refs as inline ``ID[:kind]`` strings, folding a pre-0.2 ``extra.ref_kinds`` map if
     present, and normalising every ref against *default_kind* either way (see
     :func:`fold_legacy_kinds`) — the one point on this load path where an edge already
@@ -524,7 +560,7 @@ def _read_refs(data: dict[str, Any], *, default_kind: str) -> Any:
     fold onto, so the legacy lookup would be wasted work on the overwhelmingly common case.
     """
     refs: Any = _empty_list_if_unset(data.get("refs"))
-    if not refs or not _is_str_list(refs):
+    if default_kind is None or not refs or not _is_str_list(refs):
         return refs
     legacy: Any = _extra_mapping(data).get("ref_kinds")
     legacy_map = cast("dict[str, str]", legacy) if isinstance(legacy, dict) else {}
@@ -542,7 +578,7 @@ def _read_severity(data: dict[str, Any]) -> Any:
     return _extra_mapping(data).get(X.SEVERITY) or None
 
 
-def _read_extra(data: dict[str, Any]) -> Any:
+def _read_extra(data: dict[str, Any], *, keep_ref_kinds: bool = False) -> Any:
     """Item ``extra``, minus the legacy ``ref_kinds`` (now inline on the refs) and the legacy
     ``severity`` key (now read top-level via :func:`_read_severity`).
 
@@ -554,7 +590,8 @@ def _read_extra(data: dict[str, Any]) -> Any:
     if not isinstance(raw, dict):
         return raw
     extra: dict[str, Any] = dict(cast("dict[str, Any]", raw))
-    extra.pop("ref_kinds", None)
+    if not keep_ref_kinds:
+        extra.pop("ref_kinds", None)
     extra.pop(X.SEVERITY, None)
     return extra
 
@@ -655,7 +692,7 @@ def _parse_dt(value: object) -> Any:
       later value. Anything that compares two loads of the same file (or a load against an
       index-derived item) must therefore exclude a key the file does not actually carry, or it
       compares against a value the file never said: see
-      :data:`squads._itemfile.INVENTED_WHEN_ABSENT`, which is what stops such a file from being
+      :data:`INVENTED_WHEN_ABSENT`, which is what stops such a file from being
       permanently refused as skewed. A write heals it, since every write seam persists the
       whole frontmatter dict.
 

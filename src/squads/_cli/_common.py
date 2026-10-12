@@ -44,7 +44,7 @@ from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
 from squads._services._results import BlockResult, SelfRemedied, SubentityDetail
-from squads._services._service import Service, open_service
+from squads._services._service import Service, open_service, resolve_playbook
 from squads._util import version_tuple
 from squads._workflow import CATEGORIES, ROSTER_OPERATOR, ROSTER_ROLE, bundled_spec
 from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
@@ -1305,7 +1305,7 @@ def _build_plain_service() -> Service:
     return open_service(ctx.active_dir, client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec)
 
 
-def get_service_bypassing_index_cross_check() -> Service:
+def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) -> Service:
     """Like :func:`get_service`, but for the one class of caller that must never be blocked by
     ``open_service``'s live-index cross-check: a maintenance command whose entire job is fixing
     exactly what that cross-check can refuse over — a corpus/spec conflict, or (just as often) a
@@ -1330,6 +1330,11 @@ def get_service_bypassing_index_cross_check() -> Service:
     cross-check-skipping instance, and this function reusing its own memo never masks a
     genuine, still-current refusal behind a stale success.
 
+    With ``bundled_fallback=False`` step 3 does not exist: an override that will not load stops
+    the caller with the file and the loader's cause, and the service carries the playbook
+    resolved beside the spec. That is the one caller (``sq migrate up``) that must run under the
+    vocabulary the squad declared or not at all.
+
     Re-establishes the active-squad-dir ContextVar on a memo hit for the same reason
     :func:`get_service` does — see its docstring.
     """
@@ -1342,25 +1347,39 @@ def get_service_bypassing_index_cross_check() -> Service:
         try:
             return get_service()
         except SquadsError:
-            svc = _build_bypass_fallback_service()
+            svc = _build_bypass_fallback_service(bundled_fallback=bundled_fallback)
             root.meta[_BYPASS_SERVICE_META_KEY] = svc
             return svc
     try:
         return get_service()
     except SquadsError:
-        return _build_bypass_fallback_service()
+        return _build_bypass_fallback_service(bundled_fallback=bundled_fallback)
 
 
-def _build_bypass_fallback_service() -> Service:
+def _build_bypass_fallback_service(*, bundled_fallback: bool = True) -> Service:
     ctx = get_context()
     sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
-    try:
-        from squads._workflow._loader import load_workflow_spec
+    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
 
+    try:
         merged_spec = load_workflow_spec(squad_dir=sp.squad_dir)
-    except SquadsError:
-        merged_spec = bundled_spec()
-    return Service(sp, spec=merged_spec)
+    except SquadsError as exc:
+        if bundled_fallback:
+            return Service(sp, spec=bundled_spec())
+        raise SquadsError(
+            "this squad's workflow override could not be loaded, so `sq migrate up` cannot run "
+            "under the vocabulary it declares.\n"
+            f"  file:  {sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME}\n"
+            f"  cause: {exc}\n"
+            "Correct the file, then re-run `sq migrate up`."
+        ) from exc
+    if bundled_fallback:
+        return Service(sp, spec=merged_spec)
+    try:
+        playbook = resolve_playbook(merged_spec, sp.squad_dir)
+    except SquadsError as exc:
+        raise SquadsError(f"{exc}\nCorrect the file, then re-run `sq migrate up`.") from exc
+    return Service(sp, spec=merged_spec, playbook=playbook)
 
 
 def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:

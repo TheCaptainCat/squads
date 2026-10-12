@@ -1183,7 +1183,7 @@ def _collect_unreachable_status_errors(spec: WorkflowSpec, db: Any) -> list[str]
     return errors
 
 
-def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
+def validate_against_index(spec: WorkflowSpec, db: Any, *, alignment: bool = True) -> list[str]:
     """Cross-check live index items against the merged workflow spec.
 
     Returns a list of human-readable error strings (empty = clean).
@@ -1211,6 +1211,10 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
     field value still names, against a non-empty corpus fails closed, listing the offending
     item IDs.
 
+    *alignment* ``False`` leaves out the prefix/folder alignment half, which exists to catch an
+    override that re-prefixes or re-folders a type: a caller with no override to blame asks only
+    the families the store's own load refuses.
+
     ``db`` is a ``SquadsDB`` instance; typed ``Any`` here to avoid an import cycle
     (``_workflow`` must not import ``_models._index`` at module level).
 
@@ -1224,7 +1228,7 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
     """
     return [
         *_collect_type_status_errors(spec, db),
-        *_collect_corpus_alignment_errors(spec, db),
+        *(_collect_corpus_alignment_errors(spec, db) if alignment else []),
         *_collect_badge_alignment_errors(spec, db),
     ]
 

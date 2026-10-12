@@ -32,6 +32,7 @@ from squads._migrations import (
 )
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
+from squads._models._schema import schema_tuple
 from squads._paths import SquadPaths
 
 
@@ -183,3 +184,13 @@ MIGRATIONS: list[Migration] = [
         manual=_v0_14_to_v0_15.MANUAL,
     ),
 ]
+
+
+def release_reading_schema(schema: str) -> str:
+    """A squads release that reads *schema*: the release whose migration introduced it, else the
+    first release that migrates past it. ``""`` when no recorded release reaches that far."""
+    target = schema_tuple(schema)
+    for m in MIGRATIONS:
+        if schema_tuple(m.to_schema) >= target:
+            return m.version
+    return ""

@@ -16,6 +16,12 @@ from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
 from squads._errors import RoleNotFoundError, SquadsError
+from squads._index._reconcile import (
+    ReconcileResult,
+    carry_forward_indexed_timestamps,
+    fold_stem_into_floor,
+    plan_reconcile,
+)
 from squads._index._reflog import append_line, reflog_path
 from squads._index._resolver import item_file
 from squads._interactions import (
@@ -32,7 +38,6 @@ from squads._interactions import (
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._interactions._models import PlaybookSpec
 from squads._itemfile import (
-    INVENTED_WHEN_ABSENT,
     SkewKey,
     frontmatter_skew,
     read_frontmatter,
@@ -44,7 +49,7 @@ from squads._itemfile import (
     write_text,
 )
 from squads._migrations._context import MigrationContext
-from squads._migrations._registry import MIGRATIONS
+from squads._migrations._registry import MIGRATIONS, release_reading_schema
 from squads._models import _markers as markers
 from squads._models._config import CONFIG_FILENAME
 from squads._models._extras import ExtraKey as X
@@ -52,6 +57,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_ID_PADDING,
     DISPLAY_ID_PADDING,
+    INVENTED_WHEN_ABSENT,
     Item,
     format_item_id,
     prefix_from_id,
@@ -65,6 +71,7 @@ from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_with_base, role_base_from_item
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
+from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
     DUPLICATE_ID_REMEDY,
     CarrierLog,
@@ -107,6 +114,7 @@ from squads._services._validators import (
     on_disk_not_indexed,
 )
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, bundled_spec
+from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 from squads._workflow._models import WorkflowSpec
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
@@ -156,7 +164,7 @@ def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssu
     """Report a frontmatter that carries no ``created_at``/``updated_at``.
 
     Absent, those load as an invented ``clock.now()`` that differs on every read (see
-    :data:`~squads._itemfile.INVENTED_WHEN_ABSENT`) — so the file's own reported dates are
+    :data:`~squads._models._item.INVENTED_WHEN_ABSENT`) — so the file's own reported dates are
     fiction until something writes them, and every date-ordered view of it is wrong meanwhile.
     A warning rather than an error: the file is perfectly usable and any mutation heals it, but
     it is the one part of a loaded item that is not a function of what the file says, so it is
@@ -180,42 +188,6 @@ def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssu
             "until any mutation writes the value the index holds back into the file",
         )
     ]
-
-
-def _carry_forward_indexed_timestamps(
-    item: Item, data: dict[str, Any], known_corpus: SquadsDB | None
-) -> None:
-    """Keep the previously-indexed timestamp for any key *data* — the file just scanned —
-    carries no value for.
-
-    Rebuilding the index from markdown means re-reading every field from the file, and for
-    :data:`~squads._itemfile.INVENTED_WHEN_ABSENT` an absent field does not read as "absent":
-    the loader substitutes ``clock.now()``. Committing that would write a placeholder *over* an
-    entry the index already held correctly — and since a later mutation heals the markdown from
-    the index, the fabricated instant then becomes the durable value in the source of truth,
-    with nothing reporting it at any step. The item's real creation time would be unrecoverable
-    from either artifact.
-
-    So this is the same "carry the previous entry forward" posture the rebuild already takes
-    for a whole unreadable *file* (:meth:`MaintenanceMixin._carry_forward_unreadable`), applied
-    to an unreadable *field*: keep what was already indexed, fabricate nothing, and let the
-    next rebuild pick up the real value once the file is fixed. ``check``'s warning keeps
-    reporting the gap in the file itself, which is where it actually is.
-
-    Gated on *known_corpus* — the caller's previous index snapshot — being present, which is
-    also what makes it safe. ``repair`` supplies one; ``renumber`` deliberately does not,
-    because a renumber shifts sequence numbers on purpose, so a lookup into the pre-renumber
-    index would match a *different* item's entry. Carrying nothing there is correct, not a
-    gap left open for convenience.
-    """
-    if known_corpus is None:
-        return
-    previous = known_corpus.get(item.id)
-    if previous is None:
-        return
-    for key in INVENTED_WHEN_ABSENT:
-        if data.get(key) is None:
-            setattr(item, key, getattr(previous, key))
 
 
 def _ref_encoding_is_stale(data: dict[str, Any], item: Item) -> bool:
@@ -944,19 +916,44 @@ def _is_legacy_skill_body(md: Path, item_type: str, spec: WorkflowSpec) -> bool:
     return not md.name.startswith(skill_prefix)
 
 
-def _fold_stem_into_floor(
-    max_n: int, max_filename_width: int, stem_seq: int | None, digit_run: str | None
-) -> tuple[int, int]:
-    """Fold one unreadable file's filename-derived sequence number/digit-run width into the
-    rebuild's running counter/padding floor — the same ``max()`` a successfully-parsed file's
-    own ``item.id``/filename would contribute, so an unreadable file (with or without a
-    previous index entry to carry forward) can never let its own number regress the counter
-    or its own width regress the padding floor."""
-    if stem_seq is not None:
-        max_n = max(max_n, stem_seq)
-    if digit_run:
-        max_filename_width = max(max_filename_width, len(digit_run))
-    return max_n, max_filename_width
+def _unindexable_refusal(result: ReconcileResult, reader: str) -> str:
+    """The refusal for files at the squad's item locations that cannot be given an index entry
+    of their own: each file with its cause, and the remedy there is."""
+    lines = [f"  - {u.path}: {' '.join(u.cause.split())}" for u in result.unindexable]
+    done: list[str] = []
+    if result.indexed:
+        done.append(f"indexed {', '.join(result.indexed)}")
+    if result.missing:
+        done.append(f"dropped {', '.join(result.missing)} (no file backs it)")
+    index_note = (
+        f" The index was rebuilt first ({'; '.join(done)})." if done and result.had_index else ""
+    )
+    remedy = (
+        "\ncorrect each file, or, when it is not one of the squad's items, move it out of the "
+        "folder it sits in, then re-run `sq migrate up`."
+    )
+    if not result.had_index:
+        remedy = (
+            "\nthere was no readable index, so every item-shaped file under the squad directory "
+            "was taken for an item: restore the index (from version control, or with the index "
+            f"rebuild of {reader}), or "
+            "correct each file, or move it out of the squad directory, then re-run "
+            "`sq migrate up`."
+        )
+    renumber = ""
+    if any(u.shared_number for u in result.unindexable):
+        renumber = (
+            "\nto renumber one of the files that share a number, by hand: give it "
+            f"number {result.counter + 1}, which is above the counter, in its file name, in "
+            "its `id` and in its `sequence_id`, and change every reference that names its old "
+            f"id. {reader[0].upper()}{reader[1:]} can also "
+            "renumber it, references included."
+        )
+    return (
+        "no migration has run: "
+        f"{len(result.unindexable)} item file(s) cannot be given an index entry, and the "
+        "schema is unchanged:\n" + "\n".join(lines) + renumber + remedy + index_note
+    )
 
 
 class MaintenanceMixin(ServiceCore):
@@ -1679,6 +1676,23 @@ class MaintenanceMixin(ServiceCore):
         changed: dict[str, int] = {}
         skipped: dict[str, list[str]] = {}
         ctx = MigrationContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
+        reconciled: ReconcileResult | None = None
+        if applied:
+            built, reconciled = await plan_reconcile(
+                self.paths.squad_dir,
+                self.store,
+                disk,
+                squads_version=self.paths.config.squads_version,
+            )
+            # With a readable index the rebuilt one is kept even when the run stops; with none,
+            # a run refused before its first runner leaves the squad as it found it.
+            if reconciled.had_index:
+                await self._keep_reconciled(built, reconciled, disk)
+            refusal = self._pre_runner_refusal(built, reconciled)
+            if refusal is not None:
+                raise SquadsError(refusal)
+            if not reconciled.had_index:
+                await self._keep_reconciled(built, reconciled, disk)
         for m in applied:
             outcome = await m.run(ctx)
             changed[m.to_schema] = outcome.count
@@ -1704,7 +1718,68 @@ class MaintenanceMixin(ServiceCore):
                 session_id=sid,
                 parent_session_id=psid,
             )
-        return MigrationRun(applied=applied, changed=changed, skipped=skipped, repair=repaired)
+        return MigrationRun(
+            applied=applied,
+            changed=changed,
+            skipped=skipped,
+            repair=repaired,
+            reconcile=reconciled,
+        )
+
+    async def _keep_reconciled(self, built: SquadsDB, result: ReconcileResult, schema: str) -> None:
+        """Write the rebuilt index and record what it indexed and dropped."""
+        await self.store.overwrite(built)
+        if result.indexed or result.missing:
+            await self._log_reconcile(schema, result)
+
+    def _pre_runner_refusal(self, built: SquadsDB, result: ReconcileResult) -> str | None:
+        """Why the run must stop before its first runner, or ``None``: an item file that cannot
+        be indexed, or a corpus that does not fit the vocabulary the run resolved."""
+        schema = self.paths.config.schema_version
+        release = release_reading_schema(schema)
+        reader = f"a squads release that reads schema v{schema}" + (
+            f" (v{release} is one)" if release else ""
+        )
+        if result.unindexable:
+            return _unindexable_refusal(result, reader)
+        override = self.paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME
+        done: list[str] = []
+        if result.indexed:
+            done.append(f"indexed {', '.join(result.indexed)}")
+        if result.missing:
+            done.append(f"dropped {', '.join(result.missing)} (no file backs it)")
+        rebuilt = (
+            f" The index was rebuilt first ({'; '.join(done)})."
+            if done and result.had_index
+            else ""
+        )
+        return corpus_fit_refusal(
+            built,
+            self.spec,
+            self.paths.squad_dir,
+            had_index=result.had_index,
+            override_path=override if override.is_file() else None,
+            reader=reader,
+            rebuilt=rebuilt,
+        )
+
+    async def _log_reconcile(self, schema: str, result: ReconcileResult) -> None:
+        """Record what the index rebuild indexed and dropped as soon as it is written, so a run
+        that stops afterwards still leaves it on record."""
+        sid, psid = actor.current_session()
+        await append_line(
+            reflog_path(self.paths.squad_dir),
+            ts=clock.iso(clock.now()),
+            actor=actor.current_actor(),
+            op="migrate",
+            target="",
+            delta={
+                "from_schema": schema,
+                "reconcile": {"indexed": list(result.indexed), "missing": list(result.missing)},
+            },
+            session_id=sid,
+            parent_session_id=psid,
+        )
 
     # ------------------------------------------------------------------ skill seeding
     async def seed_bundled_skills(self) -> list[Item]:
@@ -2020,7 +2095,7 @@ class MaintenanceMixin(ServiceCore):
         forward into *db* unchanged when one exists — recovered by the sequence number parsed
         from the filename stem alone, since the frontmatter is exactly what this file cannot
         supply. Returns that stem's ``(seq, digit_run)`` so the caller can fold it into its own
-        running counter/padding floor via :func:`_fold_stem_into_floor` — this method only
+        running counter/padding floor via :func:`fold_stem_into_floor` — this method only
         touches ``db``/``unreadable``, never the floor, which is a whole-rebuild value no
         single file owns.
         """
@@ -2068,7 +2143,7 @@ class MaintenanceMixin(ServiceCore):
             note,
             report=not any(line.endswith(note) for line in unreadable),
         )
-        return _fold_stem_into_floor(floor[0], floor[1], stem_seq, digit_run)
+        return fold_stem_into_floor(floor[0], floor[1], stem_seq, digit_run)
 
     async def _report_third_state(
         self,
@@ -2084,12 +2159,12 @@ class MaintenanceMixin(ServiceCore):
         """The one call every branch of :meth:`_rebuild_index_from_disk` that cannot produce
         an ``Item`` from *md* reaches for: report + carry-forward
         (:meth:`_carry_forward_unreadable`), then fold the recovered filename stem into the
-        running counter/padding floor (:func:`_fold_stem_into_floor`) in one step, so no call
+        running counter/padding floor (:func:`fold_stem_into_floor`) in one step, so no call
         site has to thread the intermediate ``(stem_seq, digit_run)`` pair itself."""
         stem_seq, digit_run = self._carry_forward_unreadable(
             db, unreadable, known_corpus, md, item_type, message
         )
-        return _fold_stem_into_floor(max_n, max_filename_width, stem_seq, digit_run)
+        return fold_stem_into_floor(max_n, max_filename_width, stem_seq, digit_run)
 
     async def _handle_missing_dirent(
         self,
@@ -2294,13 +2369,13 @@ class MaintenanceMixin(ServiceCore):
         additionally claim it is on-disk-but-not-indexed, since that would mean guessing the
         file's id from its filename and reporting the guess as fact.
         Either way, the filename-derived sequence number/digit-run width is folded into the
-        rebuild's counter/padding floor (:func:`_fold_stem_into_floor`) — an unreadable file's
+        rebuild's counter/padding floor (:func:`fold_stem_into_floor`) — an unreadable file's
         own number must never be free for reissue just because its frontmatter couldn't
         contribute to the ordinary ``max_n``/``max_filename_width`` scan below.
 
         A timestamp the markdown does not carry is *not* re-read as an invented ``now`` and
         committed over the entry the index already holds: it is carried forward from
-        ``known_corpus`` (:func:`_carry_forward_indexed_timestamps`) — the same carry-the-
+        ``known_corpus`` (:func:`carry_forward_indexed_timestamps`) — the same carry-the-
         previous-entry posture above, at field granularity rather than file granularity. The
         rebuild rebuilds from what the corpus says; it must not manufacture what the corpus
         omitted, least of all over a value it already had.
@@ -2415,7 +2490,7 @@ class MaintenanceMixin(ServiceCore):
                     db, unreadable, known_corpus, md, item_type, str(exc), max_n, max_filename_width
                 )
                 continue
-            _carry_forward_indexed_timestamps(item, data, known_corpus)
+            carry_forward_indexed_timestamps(item, data, known_corpus)
             self._raise_unless_vocab_valid(item, md)
             _record_pending_rewrite(
                 pending, md, text, data, item, body_tag=self._repair_body_tag(item), spec=self.spec

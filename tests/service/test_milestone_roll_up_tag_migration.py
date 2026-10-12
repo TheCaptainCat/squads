@@ -429,7 +429,13 @@ async def test_a_damaged_item_at_the_lower_sequence_id_is_skipped_the_healthy_on
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
 
-    assert damaged.id in run.skipped.get("0.15", [])
+    if damage is _make_missing_file:
+        # the index rebuild before the runners drops an entry no file backs, so no runner sees it
+        assert run.reconcile is not None
+        assert damaged.id in run.reconcile.missing
+        assert damaged.id not in run.skipped.get("0.15", [])
+    else:
+        assert damaged.id in run.skipped.get("0.15", [])
     if damaged_before is not None:
         assert await _text(svc.paths, damaged) == damaged_before
     assert run.changed.get("0.15") == 1
@@ -481,7 +487,26 @@ async def test_a_run_that_skips_nothing_reports_no_skipped_ids(project, svc) -> 
     assert run.skipped.get("0.15", []) == []
 
 
-async def test_every_eligible_item_skipped_still_reaches_current_and_reports_zero_changed(
+async def test_every_item_the_runner_cannot_act_on_is_skipped_and_the_run_still_reaches_current(
+    project, svc
+) -> None:
+    m1 = (await create_item(svc, "milestone", "One")).item
+    await _strip_tag(svc, m1)
+    await _make_no_body_region(svc, m1)
+    m2 = (await create_item(svc, "milestone", "Two")).item
+    await _strip_tag(svc, m2)
+    await _make_moved_tag(svc, m2)
+
+    down = await _downgraded(project)
+    run = await down.run_pending_migrations()
+
+    assert run.changed.get("0.15", 0) == 0
+    assert set(run.skipped.get("0.15", [])) == {m1.id, m2.id}
+    with project.config_path.open("rb") as fh:
+        assert tomllib.load(fh)["schema_version"] == "0.15"
+
+
+async def test_every_eligible_item_missing_its_file_still_reaches_current_and_reports_zero_changed(
     project, svc
 ) -> None:
     m1 = (await create_item(svc, "milestone", "One")).item
@@ -495,6 +520,8 @@ async def test_every_eligible_item_skipped_still_reaches_current_and_reports_zer
     run = await down.run_pending_migrations()
 
     assert run.changed.get("0.15", 0) == 0
-    assert set(run.skipped.get("0.15", [])) == {m1.id, m2.id}
+    assert run.reconcile is not None
+    assert set(run.reconcile.missing) == {m1.id, m2.id}
+    assert run.skipped.get("0.15", []) == []
     with project.config_path.open("rb") as fh:
         assert tomllib.load(fh)["schema_version"] == "0.15"

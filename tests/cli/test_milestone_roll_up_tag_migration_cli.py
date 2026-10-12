@@ -76,10 +76,10 @@ async def test_migrate_up_on_a_milestone_already_tagged_prints_no_changed_count(
     assert "changed" not in r.output, r.output
 
 
-async def test_migrate_up_skips_a_damaged_milestone_by_id_and_still_reaches_current(
+async def test_migrate_up_names_a_milestone_with_no_file_by_id_and_still_reaches_current(
     project, invoke
 ) -> None:
-    """A milestone the pass cannot safely act on is named by id, not aborted."""
+    """A milestone whose file is gone is dropped from the index and named by id, not aborted."""
     healthy = await invoke(["create", "milestone", "Healthy one", "--author", "manager"])
     assert healthy.exit_code == 0, healthy.output
     damaged = await invoke(["create", "milestone", "Damaged one", "--author", "manager"])
@@ -100,12 +100,36 @@ async def test_migrate_up_skips_a_damaged_milestone_by_id_and_still_reaches_curr
 
     assert r.exit_code == 0, r.output
     assert damaged_id in r.output, r.output
-    assert "skipped" in r.output.lower(), r.output
+    assert f"dropped {damaged_id}" in r.output, r.output
 
     with project.config_path.open("rb") as fh:
         assert tomllib.load(fh)["schema_version"] == "0.15"
     check = await invoke(["check"])
     assert check.exit_code == 0, check.output
+
+
+async def test_migrate_up_refuses_a_milestone_whose_frontmatter_does_not_parse(
+    project, invoke
+) -> None:
+    """An unparseable milestone is named and stops the run with the schema unchanged."""
+    damaged = await invoke(["create", "milestone", "Damaged one", "--author", "manager"])
+    assert damaged.exit_code == 0, damaged.output
+    (damaged_path,) = [p for p in (project.squad_dir / "milestones").glob("*.md")]
+    text = await _aio.read_text(damaged_path)
+    await _aio.write_text(damaged_path, text.replace("---\n", "---\nbroken: [unclosed\n", 1))
+    cfg_text = await _aio.read_text(project.config_path)
+    cfg_text = cfg_text.replace(
+        f'schema_version = "{project.config.schema_version}"', 'schema_version = "0.14"'
+    )
+    await _aio.write_text(project.config_path, cfg_text)
+
+    r = await invoke(["migrate", "up"])
+
+    assert r.exit_code == 1, r.output
+    assert damaged_path.name in r.output, r.output
+    assert "no migration has run" in r.output
+    with project.config_path.open("rb") as fh:
+        assert tomllib.load(fh)["schema_version"] == "0.14"
 
 
 async def test_migrate_up_skips_a_tag_moved_outside_the_body_region_check_stays_clean(
