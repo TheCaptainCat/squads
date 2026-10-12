@@ -26,8 +26,8 @@ class TypeRow:
 
     *declaration* holds the lines that declare the type (or move its category) inside its
     ``[items.<type>]`` table; *keep* is the entries every spec of the row carries so the type
-    loads at all; *kind* is the sub-entity kind it hosts; *roster* marks a type whose body is
-    rendered, not authored.
+    loads at all; *kind* is the sub-entity kind it hosts; *slug* is the stem a roster item needs
+    at create; *body_authorable* is False for a type whose body is rendered, not authored.
     """
 
     id: str
