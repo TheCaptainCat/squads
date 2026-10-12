@@ -917,8 +917,9 @@ Optional:
 - `parents` — list of allowed parent item types (e.g. `["epic"]`); empty list means unconstrained
 - `aliases` — list of short command aliases (e.g. `["inc"]` allows `sq inc <n>` as shorthand for `sq incident <n>`)
 - `validators` — checks this type runs beyond the set its category already turns on, each entry
-  `name`, `name:param`, `name@level` or `name:param@level`. The grammar, the levels, and which
-  members take a parameter are in [overrides.md](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are)
+  `name`, `name:param`, `name@level` or `name:param@level`. The grammar, the levels, which
+  members take a parameter, and the checks no type runs until its list names them are in
+  [overrides.md](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are)
   § "Validators".
 
 ```toml
