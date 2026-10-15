@@ -606,6 +606,25 @@ def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
+def _item_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose title is longer than the number its type's ``item_title_max:<n>`` entry
+    names. The number comes from the spec, so a type that does not select the check reports
+    nothing."""
+    item = ctx.item
+    threshold = ctx.spec.item_title_max(item.type)
+    if threshold is None or len(item.title) <= threshold:
+        return []
+    level = _resolved_level(ctx, "item_title_max")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"advisory: title is {len(item.title)} chars (threshold: {threshold})"
+            " — an item title is a one-line handle; put the detail in the body",
+        )
+    ]
+
+
 def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_status_banners``: an item whose body or description opens with a
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
@@ -773,6 +792,7 @@ CATALOG: dict[str, Validator] = {
     "supersedes_incoming": _supersedes_incoming,
     "ref_rule_target_present": _ref_rule_target_present,
     "item_skill_shadowed": _item_skill_shadowed,
+    "item_title_max": _item_title_max,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 

@@ -4,7 +4,8 @@ shapes. Several test modules (service, CLI, meta) drive the same rows through di
 surfaces, so the rows live in one place.
 """
 
-from dataclasses import dataclass
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,16 @@ from squads._services import _service as service
 #: Bundled types whose spec ships its own ``validators`` list: a selection on them must open
 #: with the splat of it, or the bundled entry is silently lost.
 SHIPPED_LIST_TYPES = frozenset({"epic", "skill"})
+
+BANNER_FRAGMENT = "status/lifecycle banner"
+SUBENTITY_TITLE_FRAGMENT = "a sub-entity title is a one-line handle"
+SUBENTITY_BODY_FRAGMENT = "still the placeholder stub"
+ITEM_TITLE_FRAGMENT = "an item title is a one-line handle"
+
+ROSTER_TYPES = ("role", "skill", "operator")
+
+#: What the load refusal of a policy check on a roster type says.
+ROSTER_REFUSAL = "cannot apply to a roster type"
 
 BANNER_MESSAGE_BODY = "body opens with a status/lifecycle banner"
 BANNER_MESSAGE_DESCRIPTION = "description opens with a status/lifecycle banner"
@@ -47,6 +58,8 @@ BUNDLED_ROWS: tuple[TypeRow, ...] = (
     TypeRow("bug", "bug"),
     TypeRow("decision", "decision"),
     TypeRow("guide", "guide"),
+    TypeRow("contract", "contract"),
+    TypeRow("milestone", "milestone"),
     TypeRow("role", "role", slug="role-x", body_authorable=False),
     TypeRow("skill", "skill", slug="skill-x"),
     TypeRow("operator", "operator", slug="op-x"),
@@ -98,16 +111,21 @@ BANNER_CLEAN: dict[str, tuple[str | None, str | None]] = {
 
 
 def override_toml(
-    row: TypeRow, entries: tuple[str, ...], *, others: dict[str, tuple[str, ...]] | None = None
+    row: TypeRow,
+    entries: tuple[str, ...],
+    *,
+    others: dict[str, tuple[str, ...]] | None = None,
+    splat: bool = True,
 ) -> str:
     """The override text declaring *row* and selecting *entries* on its type, plus a selection
     on each type of *others* (a bare ``[items.<t>]`` table opening with the shipped-list splat
-    where the type ships one)."""
+    where the type ships one, unless *splat* is False and the list replaces the bundled one)."""
     tables: list[str] = []
     selections: dict[str, tuple[str, ...]] = {row.type: row.keep + entries, **(others or {})}
     for type_name, names in selections.items():
         header = row.declaration if type_name == row.type else ""
-        lines = [f'"$(*items.{type_name}.validators)"'] if type_name in SHIPPED_LIST_TYPES else []
+        shipped = splat and type_name in SHIPPED_LIST_TYPES
+        lines = [f'"$(*items.{type_name}.validators)"'] if shipped else []
         lines += [f'"{n}"' for n in names]
         if not lines and not header:
             continue
@@ -182,3 +200,109 @@ TITLE_SHAPES: dict[str, tuple[tuple[str, ...], int | None, str | None]] = {
 }
 
 BODY_WRITTEN = "Written."
+
+
+@dataclass(frozen=True)
+class Shape:
+    """One selection shape of a member: the entries a type names, and the level its findings
+    carry (``None`` when the type does not run the check)."""
+
+    entries: tuple[str, ...]
+    level: str | None
+
+
+@dataclass(frozen=True)
+class Planted:
+    """The ids of one offender and one clean neighbour planted on a row."""
+
+    offender: str
+    clean: str
+
+
+@dataclass(frozen=True)
+class Member:
+    """One opt-in per-item check of the catalog and everything the shared tests need to drive it.
+
+    *fragment* is the text of its message that no other message holds; *shapes* maps a shape
+    name to its entries and finding level; *cells* decides every row of :data:`ALL_ROWS`: ``None``
+    when the member's plain entry loads there, otherwise the text its load refusal carries;
+    *plant* creates an offender and a clean neighbour on a row (under a spec that does not yet
+    select the member); *message* is the full text one planted offender earns.
+    """
+
+    name: str
+    fragment: str
+    can_refuse: bool
+    shapes: dict[str, Shape]
+    cells: dict[str, str | None]
+    plant: Callable[[service.Service, TypeRow], Awaitable[Planted]]
+    message: str
+    plain: tuple[str, ...] = field(default=())
+
+    def accepting_rows(self) -> tuple[TypeRow, ...]:
+        return tuple(r for r in ALL_ROWS if self.cells[r.id] is None)
+
+    def refusing_rows(self) -> tuple[TypeRow, ...]:
+        return tuple(r for r in ALL_ROWS if self.cells[r.id] is not None)
+
+
+def roster_refused(accepting: set[str] | frozenset[str] | None = None) -> dict[str, str | None]:
+    """The cell table of a member that applies to every non-roster row: the three roster rows
+    are refused, every other row loads. *accepting* narrows the loading rows."""
+    cells: dict[str, str | None] = {}
+    for row in ALL_ROWS:
+        if row.type in ROSTER_TYPES:
+            cells[row.id] = ROSTER_REFUSAL
+        else:
+            cells[row.id] = None if accepting is None or row.id in accepting else ""
+    return cells
+
+
+#: Every row but the roster ones: the rows a policy check applies to.
+WORK_AND_RECORDS_ROWS: tuple[TypeRow, ...] = tuple(
+    r for r in ALL_ROWS if r.type not in ROSTER_TYPES
+)
+
+TITLE_THRESHOLD = 80
+
+
+async def _plant_over_and_at_title(svc: service.Service, row: TypeRow) -> Planted:
+    over = (await create_item(svc, row.type, "x" * (TITLE_THRESHOLD + 1))).item
+    at = (await create_item(svc, row.type, "x" * TITLE_THRESHOLD)).item
+    return Planted(over.id, at.id)
+
+
+ITEM_TITLE_MAX = Member(
+    name="item_title_max",
+    fragment=ITEM_TITLE_FRAGMENT,
+    can_refuse=True,
+    plain=(f"item_title_max:{TITLE_THRESHOLD}",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape((f"item_title_max:{TITLE_THRESHOLD}",), "warn"),
+        "warn-suffix": Shape((f"item_title_max:{TITLE_THRESHOLD}@warn",), "warn"),
+        "error-suffix": Shape((f"item_title_max:{TITLE_THRESHOLD}@error",), "error"),
+    },
+    cells=roster_refused(),
+    plant=_plant_over_and_at_title,
+    message=(
+        f"advisory: title is {TITLE_THRESHOLD + 1} chars (threshold: {TITLE_THRESHOLD})"
+        " — an item title is a one-line handle; put the detail in the body"
+    ),
+)
+
+#: Every member this table drives, by name.
+MEMBERS: dict[str, Member] = {m.name: m for m in (ITEM_TITLE_MAX,)}
+
+#: The fixed message fragments of every check that is selected rather than always on.
+ALL_FRAGMENTS: dict[str, str] = {
+    "no_status_banner": BANNER_FRAGMENT,
+    "subentity_title_max": SUBENTITY_TITLE_FRAGMENT,
+    "subentity_body_written": SUBENTITY_BODY_FRAGMENT,
+    **{m.name: m.fragment for m in MEMBERS.values()},
+}
+
+
+def member_findings(issues: list[Any], member: Member) -> list[tuple[str, str, str]]:
+    """The findings among *issues* that carry *member*'s fragment, as (level, item, message)."""
+    return [(i.level, i.item, i.message) for i in issues if member.fragment in i.message]
