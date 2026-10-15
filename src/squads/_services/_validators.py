@@ -646,6 +646,23 @@ def _body_written(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
+def _description_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose summary — the ``description`` line list views show — is empty or only
+    whitespace."""
+    item = ctx.item
+    if item.description.strip():
+        return []
+    level = _resolved_level(ctx, "description_present")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            "description is empty"
+            f' — set it with `sq {item.type} {item.sequence_id} update --desc "..."`',
+        )
+    ]
+
+
 def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_status_banners``: an item whose body or description opens with a
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
@@ -855,6 +872,7 @@ CATALOG: dict[str, Validator] = {
     "item_title_max": _item_title_max,
     "ref_rule_target_typed": _ref_rule_target_typed,
     "body_written": _body_written,
+    "description_present": _description_present,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 

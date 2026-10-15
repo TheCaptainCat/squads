@@ -163,6 +163,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "item_title_max",
         "ref_rule_target_typed",
         "body_written",
+        "description_present",
     }
 )
 
@@ -250,6 +251,7 @@ WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "item_title_max",
         "ref_rule_target_typed",
         "body_written",
+        "description_present",
     }
 )
 
@@ -375,6 +377,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "item_title_max": "warn",
     "ref_rule_target_typed": "warn",
     "body_written": "warn",
+    "description_present": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -1906,6 +1909,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "item_title_max",
         "ref_rule_target_typed",
         "body_written",
+        "description_present",
     }
 )
 

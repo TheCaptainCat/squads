@@ -384,9 +384,37 @@ BODY_WRITTEN_MEMBER = Member(
     plant=_plant_unwritten_and_written_body,
 )
 
+
+async def _plant_without_and_with_a_summary(svc: service.Service, row: TypeRow) -> Planted:
+    offender = (await create_item(svc, row.type, "no summary")).item
+    clean = (await create_item(svc, row.type, "summarised", description="A summary.")).item
+    return Planted(
+        offender.id,
+        clean.id,
+        "description is empty"
+        f' — set it with `sq {row.type} {offender.sequence_id} update --desc "..."`',
+    )
+
+
+DESCRIPTION_PRESENT = Member(
+    name="description_present",
+    fragment="description is empty",
+    can_refuse=True,
+    plain=("description_present",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape(("description_present",), "warn"),
+        "warn-suffix": Shape(("description_present@warn",), "warn"),
+        "error-suffix": Shape(("description_present@error",), "error"),
+    },
+    cells=roster_refused(),
+    plant=_plant_without_and_with_a_summary,
+)
+
 #: Every member this table drives, by name.
 MEMBERS: dict[str, Member] = {
-    m.name: m for m in (ITEM_TITLE_MAX, REF_RULE_TARGET_TYPED, BODY_WRITTEN_MEMBER)
+    m.name: m
+    for m in (ITEM_TITLE_MAX, REF_RULE_TARGET_TYPED, BODY_WRITTEN_MEMBER, DESCRIPTION_PRESENT)
 }
 
 #: The fixed message fragments of every check that is selected rather than always on.
