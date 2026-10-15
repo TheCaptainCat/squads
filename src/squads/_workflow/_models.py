@@ -27,6 +27,8 @@ closed-set ``Priority``/``Severity`` enums.
 
 import math
 import re
+import uuid
+import warnings
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from re import compile as re_compile
@@ -160,6 +162,13 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "supersedes_incoming",
         "ref_rule_target_present",
         "item_skill_shadowed",
+        "item_title_max",
+        "ref_rule_target_typed",
+        "body_written",
+        "description_present",
+        "assignee_present",
+        "settled_requires_discussion",
+        "external_id_not_in_title",
     }
 )
 
@@ -193,9 +202,11 @@ COLOR_INTENTS: frozenset[str] = frozenset(
 #: suffix before the catalog lookup (``ValidatorEngine._run_per_item``), same as every other
 #: name. ``subentity_title_max``'s param is its title-length threshold
 #: (``WorkflowSpec.item_subentity_title_max``); ``ref_rule_target_present``'s is the item type
-#: it selects an obligation for (``_services/_validators.py::_ref_rule_target_present``).
+#: it selects an obligation for (``_services/_validators.py::_ref_rule_target_present``);
+#: ``item_title_max``'s is its title-length threshold and ``external_id_not_in_title``'s a
+#: regular expression (``WorkflowSpec.item_title_max``/``item_external_id_pattern``).
 PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"subentity_title_max", "ref_rule_target_present"}
+    {"subentity_title_max", "ref_rule_target_present", "item_title_max", "external_id_not_in_title"}
 )
 
 #: The subset of :data:`PARAMETERIZED_VALIDATOR_NAMES` whose own runtime resolver **unions**
@@ -221,7 +232,9 @@ MULTI_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset({"ref_rule_target_pr
 #: entry that loads clean and does nothing, forever, which is exactly what
 #: :func:`_check_ref_rule_targets` refuses on principle for its own member ("refused here rather
 #: than silently doing nothing forever").
-SINGLE_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset({"subentity_title_max"})
+SINGLE_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {"subentity_title_max", "item_title_max", "external_id_not_in_title"}
+)
 
 assert (
     MULTI_SELECTION_VALIDATOR_NAMES | SINGLE_SELECTION_VALIDATOR_NAMES
@@ -234,6 +247,28 @@ assert (
 assert MULTI_SELECTION_VALIDATOR_NAMES.isdisjoint(SINGLE_SELECTION_VALIDATOR_NAMES), (
     "MULTI_SELECTION_VALIDATOR_NAMES and SINGLE_SELECTION_VALIDATOR_NAMES must not overlap — "
     "a member cannot be both first-match and unioning"
+)
+
+#: The opt-in per-item policy checks about the work an item tracks. A type of the ``roster``
+#: category (a role, a skill, an operator) is configuration, not tracked work, so naming one of
+#: these on it is refused at load by :func:`_check_selections_that_cannot_fire` instead of
+#: loading and reporting every roster entry.
+WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {
+        "item_title_max",
+        "ref_rule_target_typed",
+        "body_written",
+        "description_present",
+        "assignee_present",
+        "settled_requires_discussion",
+        "external_id_not_in_title",
+    }
+)
+
+#: Members whose ``:<param>`` is required: a bare entry loads nothing to check, so it is refused
+#: at load (:func:`_check_validator_param`) rather than selecting a check that never fires.
+REQUIRED_PARAM_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {"item_title_max", "external_id_not_in_title"}
 )
 
 #: What a bare ``subentity_title_max`` selection resolves to; a type's own
@@ -262,8 +297,9 @@ _LEVEL_RANK: dict[str, int] = {"warn": 0, "error": 1}
 #: The separator between a validator name (with its optional ``:<param>``) and an optional
 #: declared level. ``@`` rather than a second ``:`` — ``:`` is already the param separator, and
 #: reusing it would make ``name:param:level`` ambiguous about which half is which. ``@`` cannot
-#: appear in a validator name (plain identifiers) or in ``subentity_title_max``'s param (an
-#: integer, enforced by :func:`_check_validator_param`), and it is a different namespace from
+#: appear in a validator name (plain identifiers) or in a title-length threshold (an integer,
+#: enforced by :func:`_check_validator_param`), is refused in an ``external_id_not_in_title``
+#: pattern (a literal ``@`` is written ``\x40``), and it is a different namespace from
 #: the unrelated place a bare ``@`` already means something in this codebase (an ``@mention``
 #: inside discussion prose — comment text, never spec vocabulary).
 #:
@@ -351,6 +387,13 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "supersedes_incoming": "warn",
     "ref_rule_target_present": "warn",
     "item_skill_shadowed": "warn",
+    "item_title_max": "warn",
+    "ref_rule_target_typed": "warn",
+    "body_written": "warn",
+    "description_present": "warn",
+    "assignee_present": "warn",
+    "settled_requires_discussion": "warn",
+    "external_id_not_in_title": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -612,8 +655,9 @@ class RefRule(BaseModel):
     expected to point at an item of the named type — e.g. ``feature``'s ``implements`` rule
     targets ``contract``, disambiguating a kind reused for more than one relationship. It is
     **not** an allowlist and restricts nothing on its own (a ``feature`` carrying
-    ``implements`` to a ``decision`` is unaffected); requiredness stays with whatever
-    validator selects it (``ref_rule_target_present``). Referential validation (Plane-1,
+    ``implements`` to a ``decision`` is unaffected unless its type selects
+    ``ref_rule_target_typed``, which reports such an edge); requiredness stays with
+    ``ref_rule_target_present``. Referential validation (Plane-1,
     ``_check_ref_rule_targets``) checks ``target`` names a declared item type —
     ``_parse_ref_rules`` cannot: item types are known only after every ``[items.*]`` block has
     parsed, while it sees the declared ref *kinds* alone. Carried on the same declared-
@@ -1429,17 +1473,74 @@ def _check_item_refs(
             seen_aliases[alias] = t
 
 
-def _check_validator_param(t: str, entry: str, bare: str, param: str, errors: list[str]) -> None:
-    """The one currently-meaningful param: ``subentity_title_max:<n>`` must parse as a
-    positive integer threshold — the same class of check :func:`_check_ref_rule_targets` runs
-    for ``ref_rule_target_present``'s own param, just resolvable without the whole ``[items.*]``
-    table (a threshold needs no cross-type lookup)."""
-    if bare != "subentity_title_max":
+def parse_positive_int(text: str) -> int | None:
+    """*text* as a positive integer, or ``None``. ASCII decimal digits only: ``str.isdigit`` is
+    also true for characters such as a superscript digit that ``int`` refuses."""
+    if not (text.isascii() and text.isdigit()):
+        return None
+    value = int(text)
+    return value if value > 0 else None
+
+
+def _check_external_id_pattern(t: str, entry: str, param: str, errors: list[str]) -> None:
+    """*param* must compile without a warning and must not match the empty string, which would
+    report every title (and, at ``@error``, refuse every write of the type).
+
+    ``re`` warns only on the first compile of a pattern, so the warning check compiles a copy
+    behind a unique comment group: its cache key is never seen before, the semantics are
+    unchanged, and no other caller's cached pattern is touched."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        try:
+            compiled = re_compile(param)
+        except re.error as exc:
+            errors.append(
+                f"item {t!r}: validators entry {entry!r} names an invalid regular expression "
+                f"{param!r}: {exc}"
+            )
+            return
+        re_compile(f"(?#{uuid.uuid4().hex}){param}")
+    if caught:
+        detail = re.sub(r" at position \d+", "", str(caught[0].message))
+        errors.append(
+            f"item {t!r}: validators entry {entry!r} names a regular expression {param!r} that "
+            f"compiles with a warning: {detail} — rewrite it"
+        )
+    elif compiled.search("") is not None:
+        errors.append(
+            f"item {t!r}: validators entry {entry!r} names a regular expression {param!r} that "
+            "matches the empty string, so it would report every title — make it require a "
+            "character"
+        )
+
+
+def _check_validator_param(
+    t: str, entry: str, bare: str, param: str | None, errors: list[str]
+) -> None:
+    """The meaningful params: a title-length threshold (``subentity_title_max:<n>``,
+    ``item_title_max:<n>``) must parse as a positive integer, ``external_id_not_in_title``'s
+    must compile as a regular expression, and a member in
+    :data:`REQUIRED_PARAM_VALIDATOR_NAMES` must carry one at all. Resolvable without the whole
+    ``[items.*]`` table (nothing here needs a cross-type lookup)."""
+    if bare in REQUIRED_PARAM_VALIDATOR_NAMES and not (param and param.strip()):
+        shape = "<regex>" if bare == "external_id_not_in_title" else "<n>"
+        errors.append(
+            f"item {t!r}: validators entry {entry!r} is missing its required parameter — "
+            f"name it as '{bare}:{shape}', or drop the validator; "
+            "without a parameter it never fires"
+        )
         return
-    if not param.isdigit() or int(param) <= 0:
+    if param is None:
+        return
+    if bare == "external_id_not_in_title":
+        _check_external_id_pattern(t, entry, param, errors)
+        return
+    if bare not in ("subentity_title_max", "item_title_max"):
+        return
+    if parse_positive_int(param) is None:
         errors.append(
             f"item {t!r}: validators entry {entry!r} names a non-positive-integer "
-            f"subentity_title_max threshold {param!r}"
+            f"{bare} threshold {param!r}"
         )
 
 
@@ -1523,13 +1624,19 @@ def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) 
             if bare not in VALIDATOR_NAMES:
                 errors.append(f"item {t!r}: validators entry {entry!r} names an unknown validator")
                 continue
-            if param is not None:
-                if bare not in PARAMETERIZED_VALIDATOR_NAMES:
-                    errors.append(f"item {t!r}: validator {bare!r} takes no param (got {entry!r})")
-                else:
-                    _check_validator_param(t, entry, bare, param, errors)
+            if param is not None and bare not in PARAMETERIZED_VALIDATOR_NAMES:
+                errors.append(f"item {t!r}: validator {bare!r} takes no param (got {entry!r})")
+            else:
+                _check_validator_param(t, entry, bare, param, errors)
             if level is not None:
-                _check_validator_level(t, entry, bare, level, errors)
+                if bare == "external_id_not_in_title" and level not in VALIDATOR_LEVELS:
+                    errors.append(
+                        f"item {t!r}: validators entry {entry!r} reads {level!r} as its level — "
+                        "'@' separates the pattern from the level ('error' or 'warn') and cannot "
+                        "appear in the pattern; write a literal '@' as \\x40"
+                    )
+                else:
+                    _check_validator_level(t, entry, bare, level, errors)
             key = validator_selection_key(entry)
             if key in seen:
                 errors.append(_repeat_selection_message(t, bare, seen[key], entry))
@@ -1591,6 +1698,54 @@ def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> No
                     "would refuse every settled item unconditionally. Add "
                     f"{{ kind = ..., target = {param!r} }} to its ref_rules, or drop the "
                     "validator"
+                )
+
+
+def _check_selections_that_cannot_fire(
+    items: dict[str, ItemSpec],
+    lifecycles: dict[str, Lifecycle],
+    statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
+    errors: list[str],
+) -> None:
+    """Plane-1: a selected check that the spec's own declarations make unable to fire is
+    refused here, so it is never a silent no-op and never depends on what the corpus holds.
+    Each message names the type, the entry and the declaration that is missing.
+
+    A member of :data:`WORK_POLICY_VALIDATOR_NAMES` is about the work an item tracks, so naming
+    it on a ``roster`` type is refused. ``ref_rule_target_typed`` also needs a ref rule with a
+    target on the type, and ``assignee_present`` a lifecycle holding a status of a live role.
+    """
+    for t, ts in items.items():
+        for entry in ts.validators:
+            bare, _param, _level = parse_validator_entry(entry)
+            if bare in WORK_POLICY_VALIDATOR_NAMES and ts.category == "roster":
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} cannot apply to a roster type — "
+                    f"{bare} is a policy about tracked work and applies to 'work' and "
+                    "'records' types only; drop the entry"
+                )
+                continue
+            if bare == "ref_rule_target_typed" and not any(
+                rr.target is not None for rr in ts.ref_rules
+            ):
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} needs a ref_rules entry with a "
+                    f"target, and {t!r} declares none (a rule whose target type was dropped "
+                    "through [selected] is removed with it) — declare "
+                    "{ kind = ..., target = ... } in its ref_rules, or drop the entry"
+                )
+            lifecycle = lifecycles.get(ts.lifecycle)
+            if (
+                bare == "assignee_present"
+                and lifecycle is not None
+                and not any(_status_live(st, statuses, roles) for st in lifecycle.states)
+            ):
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} needs a status of a role declaring "
+                    f"live = true, and the lifecycle {ts.lifecycle!r} of {t!r} holds none — "
+                    "without one it never fires; drop the entry or give the lifecycle a status "
+                    "of a live role"
                 )
 
 
@@ -1826,6 +1981,9 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   each sits in no category bundle and in no floor, so it is only ever effective when a type
 #:   names it, and no category reassignment can take it away. ``subentity_title_max`` is still
 #:   one of the :data:`SUBENTITY_VALIDATOR_NAMES` that satisfy :func:`_clause_subentity_checked`.
+#: - The members of :data:`WORK_POLICY_VALIDATOR_NAMES` are the same shape again: in no bundle
+#:   and no floor, effective only where a type names them, so no category reassignment can take
+#:   one away.
 UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "no_parent",
@@ -1834,6 +1992,13 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "item_skill_shadowed",
         "no_status_banner",
         "subentity_title_max",
+        "item_title_max",
+        "ref_rule_target_typed",
+        "body_written",
+        "description_present",
+        "assignee_present",
+        "settled_requires_discussion",
+        "external_id_not_in_title",
     }
 )
 
@@ -2481,6 +2646,32 @@ class WorkflowSpec(BaseModel):
                 return int(param)
         return DEFAULT_SUBENTITY_TITLE_MAX
 
+    def item_title_max(self, item_type: str) -> int | None:
+        """The ``item_title_max`` threshold *item_type* runs, or ``None`` when its effective
+        validator set does not hold the member (or the type is not declared). The number is the
+        type's own ``item_title_max:<n>`` entry."""
+        ts = self.items.get(item_type)
+        if ts is None:
+            return None
+        for entry in ts.validators:
+            bare, param, _level = parse_validator_entry(entry)
+            if bare == "item_title_max" and param is not None:
+                return parse_positive_int(param)
+        return None
+
+    def item_external_id_pattern(self, item_type: str) -> str | None:
+        """The ``external_id_not_in_title`` pattern *item_type* selects, or ``None`` when it does
+        not select the check (or the type is not declared). The whole text after the entry's
+        first colon, further colons included."""
+        ts = self.items.get(item_type)
+        if ts is None:
+            return None
+        for entry in ts.validators:
+            bare, param, _level = parse_validator_entry(entry)
+            if bare == "external_id_not_in_title":
+                return param
+        return None
+
     def item_extra_fields(self, item_type: str) -> list[str]:
         """Declared generic ``extra``-metadata keys for this type (drives ``sq update --set``
         identity for a renamed/custom type, e.g. guide's ``tags``, review's ``target_ref``)."""
@@ -2883,6 +3074,11 @@ class WorkflowSpec(BaseModel):
         # RefRule.target referential validation: names a declared item type, and a type
         # selecting ref_rule_target_present:<T> declares a rule targeting <T>.
         _check_ref_rule_targets(self.items, errors)
+
+        # A selected check the spec's own declarations make unable to fire is refused.
+        _check_selections_that_cannot_fire(
+            self.items, self.lifecycles, self.statuses, self.roles, errors
+        )
 
         # Every capability a type declares must be reachable under the validators its own
         # category turns on — a category reassignment that contradicts itself fails here.

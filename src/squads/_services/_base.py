@@ -45,7 +45,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
-from squads._rendering._engine import render, set_active_squad_dir
+from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_role,
@@ -506,35 +506,11 @@ class ServiceCore:
         return creation_template_name(item_type, self.spec)
 
     def pristine_body(self, item: Item) -> str | None:
-        """The ``:body`` region a freshly-created *item* of this type would carry — i.e. the
-        template's unwritten placeholder scaffold (``## Description`` / ``_TODO: …_``), not the
-        empty string.
-
-        This is what tells "nobody has written this body yet" apart from "this body holds 66
-        lines of someone's work", and it has to be *derived* rather than pattern-matched: the
-        scaffold differs per type, interpolates (``items/_default.md.j2`` names the type,
-        ``items/review.md.j2`` reads ``extra.target_ref``), and an adopter can replace it
-        wholesale via ``.overrides/templates/items/<type>.md.j2``.  Re-rendering through the
-        same squad-aware loader that produced the file is the only answer that stays true for
-        all three.
-
-        ``None`` when the scaffold cannot be reproduced (a template that no longer renders for
-        this item).  Callers must read that as "assume authored" — refusing a first write is
-        recoverable, discarding a real body is not. ``render`` (:mod:`squads._rendering._engine`)
-        translates the underlying ``jinja2.TemplateError`` into :class:`SquadsError`, which is
-        caught here and swallowed into that ``None``.
-        """
-        try:
-            rendered = render(
-                self._template_for(item.type),
-                item=item,
-                description=item.description,
-                extra=item.extra,
-                spec=self.spec,
-            )
-        except SquadsError:
-            return None
-        return (sections.get_section(rendered, markers.BODY) or "").strip("\n")
+        """The ``:body`` region a freshly-created *item* of this type would carry, or ``None``
+        when the scaffold cannot be reproduced (see :func:`~squads._rendering._engine.
+        scaffold_body`). It is derived rather than pattern-matched because the scaffold differs
+        per type, interpolates item fields and can be replaced by a project template."""
+        return scaffold_body(item, self.spec)
 
     # ------------------------------------------------------------------ backend
     @property

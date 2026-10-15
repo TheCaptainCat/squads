@@ -815,6 +815,17 @@ def strip_view_tags(text: str) -> str:
     return stripped
 
 
+def body_is_unwritten(body: str, scaffold: str | None) -> bool:
+    """Whether *body* is still unwritten: no prose once view tags are stripped, or prose equal
+    to *scaffold* (also stripped of its tags) after trimming whitespace. An absent scaffold
+    counts as written whenever there is prose, so the answer errs towards "authored". The one
+    definition the body-overwrite guard and ``body_written`` both read."""
+    prose = strip_view_tags(body).strip()
+    if not prose:
+        return True
+    return scaffold is not None and prose == strip_view_tags(scaffold).strip()
+
+
 def _region_view_tags(region: str) -> tuple[str, list[markers.ViewTagParts]]:
     """*region* with every view tag — enabled or disabled, named or not — stripped together
     with its own line, and the parsed tags taken out, in file order (duplicates included). The

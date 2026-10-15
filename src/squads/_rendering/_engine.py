@@ -33,8 +33,10 @@ from squads._interactions import (
     parent_chain,
 )
 from squads._models import _markers as markers
+from squads._models._item import Item
 from squads._models._vocab import label_for
 from squads._paths import number_for_id
+from squads._sections import get_section
 from squads._util import slugify
 from squads._workflow._models import WorkflowSpec, linearize_lifecycle
 
@@ -222,6 +224,25 @@ def creation_template_name(item_type: str, spec: WorkflowSpec) -> str:
     return "items/_default.md.j2"
 
 
+def scaffold_body(item: Item, spec: WorkflowSpec) -> str | None:
+    """The ``:body`` region a freshly-created *item* would carry: its creation template's
+    unwritten scaffold, derived by re-rendering through the squad-aware loader so a per-type
+    template, an interpolated field and a project's overriding template are all honoured.
+    ``None`` when the template no longer renders for the item; a caller reads that as "assume
+    authored", since refusing a first write is recoverable and discarding a real body is not."""
+    try:
+        rendered = render(
+            creation_template_name(item.type, spec),
+            item=item,
+            description=item.description,
+            extra=item.extra,
+            spec=spec,
+        )
+    except SquadsError:
+        return None
+    return (get_section(rendered, markers.BODY) or "").strip("\n")
+
+
 def template_source(template_name: str) -> str:
     """*template_name*'s raw source text, resolved through the same override-aware loader
     :func:`render` uses — never rendered, since a caller reading a template's own authored
@@ -260,7 +281,7 @@ def render(template_name: str, /, **context: object) -> str:
     :func:`~squads._views._render_resolved_source_or_raise`); a consumer that wants to swallow
     a rendering
     failure entirely catches it and returns its own sentinel (see
-    :meth:`~squads._services._base.ServiceCore.pristine_body`).
+    :func:`scaffold_body`).
     """
     from jinja2 import TemplateError
 

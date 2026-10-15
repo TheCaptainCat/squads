@@ -598,11 +598,7 @@ class ItemsMixin(ServiceCore):
                 # exactly what was there before — so the two sides compare equal on a byte-level
                 # scaffold once the tag's own line is gone, whatever position it was placed at.
                 current_prose = views.strip_view_tags(current).strip()
-                pristine = self.pristine_body(item)
-                pristine_prose = (
-                    views.strip_view_tags(pristine).strip() if pristine is not None else None
-                )
-                authored = bool(current_prose) and current_prose != pristine_prose
+                authored = not views.body_is_unwritten(current, self.pristine_body(item))
                 if authored and not force:
                     reject_body_overwrite(item.id, current_prose)
             slug = views.roster_slug(item.type, item.slug, item.extra)

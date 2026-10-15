@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from _helpers import create_item
+from _selection_table import SUBENTITY_TITLE_FRAGMENT
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -137,7 +138,7 @@ def _report(issues) -> list[tuple[str, str, str]]:
     return [
         (i.level, i.item, i.message)
         for i in issues
-        if "status/lifecycle banner" in i.message or "(threshold:" in i.message
+        if "status/lifecycle banner" in i.message or SUBENTITY_TITLE_FRAGMENT in i.message
     ]
 
 
