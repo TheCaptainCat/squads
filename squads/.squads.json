@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1009,
+  "counter": 1014,
   "padding": 6,
   "items": {
     "12": {
@@ -31894,7 +31894,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-15T19:16:53Z",
+      "updated_at": "2026-10-15T19:35:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44149,7 +44149,7 @@
       ],
       "path": "tasks/TASK-001001-add-the-eight-opt-in-per-item-policy-checks-to-the-validator.md",
       "created_at": "2026-10-12T05:46:24Z",
-      "updated_at": "2026-10-15T19:12:45Z",
+      "updated_at": "2026-10-15T19:49:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44494,6 +44494,222 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-1009"
+    },
+    "1010": {
+      "sequence_id": 1010,
+      "type": "review",
+      "title": "Opt-in per-item checks and the level-aware gate, part one",
+      "slug": "opt-in-per-item-checks-and-the-level-aware-gate-part-one",
+      "status": "Approved",
+      "description": "Review of TASK-1001 part one: the gate change and seven opt-in per-item catalog checks, with the BUG-1003 fix.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1001:addresses",
+        "FEAT-901:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A pattern matching the empty string loads and fires on every item",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "sq import runs warn members over the whole squad; a bad pattern hangs it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "item_title_max refusal at @error is worded as an advisory",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Create refusal hint names an item id that was never allocated",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "item_title_max counts code points, not visible characters",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "body_written misses a scaffold whose interpolated field changed",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "A pattern compiling with a FutureWarning prints it on every command",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Missing body region crashes body -m; new test comment says otherwise",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Import sub-status with an unnormalised target skips board debt",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001010-opt-in-per-item-checks-and-the-level-aware-gate-part-one.md",
+      "created_at": "2026-10-15T19:25:04Z",
+      "updated_at": "2026-10-15T19:44:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1010"
+    },
+    "1011": {
+      "sequence_id": 1011,
+      "type": "bug",
+      "title": "sq console text drops a backslash before a bracket",
+      "slug": "sq-console-text-drops-a-backslash-before-a-bracket",
+      "status": "Open",
+      "description": "e() is plain rich escape, so a \\[ in user text prints without its backslash",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1001"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001011-sq-console-text-drops-a-backslash-before-a-bracket.md",
+      "created_at": "2026-10-15T19:27:50Z",
+      "updated_at": "2026-10-15T19:27:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1011"
+    },
+    "1012": {
+      "sequence_id": 1012,
+      "type": "bug",
+      "title": "body -m on a file with no body region raises a KeyError",
+      "slug": "body-m-on-a-file-with-no-body-region-raises-a-keyerror",
+      "status": "Open",
+      "description": "Raw traceback instead of a SquadsError when the body region is missing",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1010"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001012-body-m-on-a-file-with-no-body-region-raises-a-keyerror.md",
+      "created_at": "2026-10-15T19:27:55Z",
+      "updated_at": "2026-10-15T19:27:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1012"
+    },
+    "1013": {
+      "sequence_id": 1013,
+      "type": "decision",
+      "title": "Comments are edited and removed by short hash, by their author",
+      "slug": "comments-are-edited-and-removed-by-short-hash-by-their-autho",
+      "status": "Proposed",
+      "description": "How comments are addressed by a derived short hash, edited and removed by their author only",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-934:targets",
+        "ADR-979",
+        "FEAT-980",
+        "ADR-981",
+        "ADR-114",
+        "FEAT-977",
+        "ADR-1009"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001013-comments-are-edited-and-removed-by-short-hash-by-their-autho.md",
+      "created_at": "2026-10-15T19:31:21Z",
+      "updated_at": "2026-10-15T19:35:27Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-1013"
+    },
+    "1014": {
+      "sequence_id": 1014,
+      "type": "bug",
+      "title": "Untouched scaffold reads as written once target_ref is set",
+      "slug": "untouched-scaffold-reads-as-written-once-target-ref-is-set",
+      "status": "Open",
+      "description": "Body guard and body_written compare against a re-render, so a changed scaffold input hides the stub",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1010",
+        "TASK-1001"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001014-untouched-scaffold-reads-as-written-once-target-ref-is-set.md",
+      "created_at": "2026-10-15T19:36:06Z",
+      "updated_at": "2026-10-15T19:36:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1014"
     }
   }
 }
