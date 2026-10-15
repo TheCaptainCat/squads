@@ -44,7 +44,7 @@ subentities:
   title: As an adopter, I want the docs and changelog to match the new help
   status: Todo
 created_at: '2026-10-15T21:43:01Z'
-updated_at: '2026-10-15T21:43:30Z'
+updated_at: '2026-10-15T21:43:41Z'
 ---
 <!-- sq:body -->
 Brings the rendered `--help` surface into line with the rule on what a command's help holds, so that a person with the tool and no repository finds what they typed `--help` to learn. The rule, the eleven findings and their measurements are the review's; the stories below cite the rule (R1 to R9) and the findings (F1 to F11) and add acceptance only.
@@ -261,4 +261,6 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-15T21:43:41Z] Nina Product:
+  - @manager FEAT-1024 drafted for REV-958 (F1 to F5, F7 to F11; F6 excluded, needs its own item). 10 stories; open questions for @architect in US3 (fields frozen), US6 (exit-4 in help) and US9 (guard exceptions). Build after FEAT-980, the bump and TASK-989.
 <!-- sq:discussion:end -->
