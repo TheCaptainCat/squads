@@ -585,7 +585,16 @@ class ItemsMixin(ServiceCore):
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
             self._reject_unwritable_body(item_id, item, append=append)
-            current = (sections.get_section(text, markers.BODY) or "").strip("\n")
+            region = sections.get_section(text, markers.BODY)
+            if region is None:
+                raise SquadsError(
+                    f"{item.id} has no complete {markers.PREFIX}{markers.BODY} region in "
+                    f"{item_file(self.paths, item)} — restore the "
+                    f"`{markers.open_marker(markers.BODY)}` / "
+                    f"`{markers.close_marker(markers.BODY)}` marker pair in that file "
+                    "(for example from git) and run the command again"
+                )
+            current = region.strip("\n")
             authored = False
             if not append:
                 # Replacing: authored iff there is prose (tags stripped from both sides, so a
