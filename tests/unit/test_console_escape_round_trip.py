@@ -39,3 +39,24 @@ def _render(markup: str, *, colour: bool) -> str:
 def test_escaped_text_prints_byte_for_byte(s: str, context: str, colour: bool) -> None:
     expected = _TAGS.sub("", context).format(s)
     assert _render(context.format(e(s)), colour=colour) == expected
+
+
+PAIR_CONTEXTS = ["{}{}", "{}: {}", "[red]{}[/red][red]{}[/red]", "{}[red]{}[/red]"]
+PAIRS = [
+    (r"x\[y", "z]"),
+    (r"x\[/", "]"),
+    (r"\[", "a]"),
+    ("[", "x]"),
+    ("trail\\", "[x]"),
+    *[(a, b) for a in FIX[:4] for b in ("]", "z]", "[x]", "\\")],
+]
+
+
+@pytest.mark.parametrize("colour", [False, True])
+@pytest.mark.parametrize("context", PAIR_CONTEXTS)
+@pytest.mark.parametrize(("a", "b"), PAIRS)
+def test_adjacent_escaped_values_print_byte_for_byte(
+    a: str, b: str, context: str, colour: bool
+) -> None:
+    expected = _TAGS.sub("", context).format(a, b)
+    assert _render(context.format(e(a), e(b)), colour=colour) == expected

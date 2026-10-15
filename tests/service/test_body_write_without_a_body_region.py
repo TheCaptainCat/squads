@@ -79,3 +79,25 @@ async def test_check_is_silent_on_an_intact_task(svc):
     item = (await svc.create("task", "t", author="manager")).item
 
     assert not [i for i in await svc.check() if i.item == item_file(svc.paths, item).name]
+
+
+async def test_check_reports_a_custom_skill_with_no_body_region(svc):
+    skill = (await svc.create("skill", "probe skill", author="manager")).item
+    path = item_file(svc.paths, skill)
+    path.write_text(break_region(path.read_text(encoding="utf-8"), "both"), encoding="utf-8")
+
+    found = [i for i in await svc.check() if i.item == path.name]
+
+    assert [(i.level, "missing sq:body region" in i.message) for i in found] == [("error", True)]
+
+
+async def test_check_reports_a_reversed_pair_once(svc):
+    item = (await svc.create("task", "t", author="manager")).item
+    path = item_file(svc.paths, item)
+    text = path.read_text(encoding="utf-8")
+    text = text.replace(OPEN, "@@o@@").replace(CLOSE, OPEN).replace("@@o@@", CLOSE)
+    path.write_text(text, encoding="utf-8")
+
+    found = [i for i in await svc.check() if i.item == path.name]
+
+    assert [i.message for i in found] == ["close before open <!-- sq:body:end -->"]

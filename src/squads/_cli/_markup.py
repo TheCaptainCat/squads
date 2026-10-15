@@ -1,7 +1,6 @@
 import re
 
-# A run of backslashes plus a `[`; the lookahead group is set when Rich would read it as a tag.
-_BRACKET = re.compile(r"(\\*)\[((?=[a-z#/@][^\[]*?\]))?")
+_BRACKET = re.compile(r"(\\*)\[")
 _TRAILING_RUN = re.compile(r"\\+\Z")
 _EMPTY_TAG_PAIR = "[bold][/bold]"
 
@@ -9,16 +8,14 @@ _EMPTY_TAG_PAIR = "[bold][/bold]"
 def escape_markup(text: str) -> str:
     """Escape ``text`` so Rich prints it byte for byte in any context.
 
-    Rich drops one backslash before every non-tag ``[`` on render, and a trailing backslash
-    would join the markup that follows; the trailing run is doubled and closed with an empty
-    tag pair, which prints a single copy whether plain text or a tag comes next.
+    Every ``[`` becomes ``\\[``, which Rich reads the same whether or not a later ``]`` makes
+    it look like a tag. A backslash run before a bracket, or at the end, is doubled and closed
+    with an empty tag pair, so one copy prints whatever follows.
     """
 
     def bracket(match: re.Match[str]) -> str:
         run = match[1]
-        if match[2] is None:
-            return f"{run}\\["
-        return f"{run}{run}\\["
+        return f"{run}{run}{_EMPTY_TAG_PAIR}\\[" if run else "\\["
 
     escaped = _BRACKET.sub(bracket, text)
     trailing = _TRAILING_RUN.search(escaped)

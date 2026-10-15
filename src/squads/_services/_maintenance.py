@@ -498,6 +498,10 @@ def _marker_issues(text: str) -> list[str]:
     for tag, n in closes.items():
         if opens[tag] < n:
             problems.append(f"close without open <!-- sq:{tag}:end -->")
+    for tag, n in opens.items():
+        paired = n == 1 and closes[tag] == 1 and markers.view_tag_parts(tag) is None
+        if paired and text.find(markers.close_marker(tag)) < text.find(markers.open_marker(tag)):
+            problems.append(f"close before open <!-- sq:{tag}:end -->")
     return problems
 
 
@@ -659,15 +663,16 @@ def _absent_body_region_issues(
     without guessing."""
     if markers.open_marker(markers.BODY) in text or markers.close_marker(markers.BODY) in text:
         return []
+    generic = [
+        f"missing {markers.PREFIX}{markers.BODY} region (no "
+        f"`{markers.open_marker(markers.BODY)}`/`{markers.close_marker(markers.BODY)}` "
+        "pair at all) — restore the marker pair in this file, for example from git"
+    ]
     if item_type not in (ROSTER_ROLE, ROSTER_SKILL):
-        return [
-            f"missing {markers.PREFIX}{markers.BODY} region (no "
-            f"`{markers.open_marker(markers.BODY)}`/`{markers.close_marker(markers.BODY)}` "
-            "pair at all) — restore the marker pair in this file, for example from git"
-        ]
+        return generic
     view_name = views.roster_body_view_name(item_type, slug, spec)
     if view_name is None:
-        return []
+        return generic
     if views.reinstate_absent_body_region(text) is None:
         return [
             "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at "
