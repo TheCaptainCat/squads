@@ -1,7 +1,8 @@
 """`item_title_max:<n>` over the title shapes: on every type that accepts it, a title of at most
-the number is silent and a longer one is reported, counting characters rather than bytes; a
-retitle that crosses the number moves the finding in step; and an epic's list replaced without
-the splat form drops its bundled `no_parent` while the splat form keeps it.
+the number is silent and a longer one is reported, counting code points after NFC
+normalisation, not bytes; a retitle that crosses the number moves the finding in step; and
+an epic's list replaced without the splat form drops its bundled `no_parent` while the splat
+form keeps it.
 """
 
 import pytest

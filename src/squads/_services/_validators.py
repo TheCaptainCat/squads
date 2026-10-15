@@ -1502,7 +1502,8 @@ class ValidatorEngine:
         validator (run once). *bodies* maps sequence number -> the item's on-disk markdown
         text (the caller already read it scanning ``on_disk``); absent/``None`` entries mean
         body-reading validators (``subentity_body_written``, ``no_status_banner``) see no text
-        for that item and stay silent, same as when the file could not be resolved.
+        for that item and stay silent, same as when the file could not be resolved. *only*, when
+        given, limits the per-item members to the items with those ids.
         """
         registered = registered_slugs(index, self.spec)
         supersedes = supersedes_incoming_seqs(index, self.spec)

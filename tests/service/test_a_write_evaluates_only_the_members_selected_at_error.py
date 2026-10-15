@@ -1,6 +1,6 @@
 """Through ``Service.create`` and ``Service.update``: a type selecting one member at ``warn`` and
-another at ``@error`` evaluates only the second on a write, and the write is refused or accepted
-exactly as before.
+another at ``@error`` evaluates only the second on a write, and the write is refused exactly when
+the ``@error`` member reports.
 """
 
 import pytest
