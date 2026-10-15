@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1018,
+  "counter": 1019,
   "padding": 6,
   "items": {
     "12": {
@@ -45123,6 +45123,52 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-1018"
+    },
+    "1019": {
+      "sequence_id": 1019,
+      "type": "task",
+      "title": "Fix console backslash loss and the missing-body-region KeyError",
+      "slug": "fix-console-backslash-loss-and-the-missing-body-region-keyer",
+      "status": "InProgress",
+      "description": "e() round-trips backslashes before brackets; body -m on a file with no body region fails cleanly and sq check reports it",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1011:fixes",
+        "BUG-1012:fixes",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Make e() round-trip backslashes before brackets",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Fail body writes cleanly on a missing body region",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001019-fix-console-backslash-loss-and-the-missing-body-region-keyer.md",
+      "created_at": "2026-10-15T20:23:28Z",
+      "updated_at": "2026-10-15T20:25:21Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1019"
     }
   }
 }
