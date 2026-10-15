@@ -16,15 +16,15 @@ description: One header grammar and parser, author_slug in JSON, reserved role s
 subentities:
 - local_id: ST1
   title: Write and parse one header grammar that names the slug
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Add author_slug to discussion JSON; show name then slug
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST3
   title: Refuse reserved role slugs and pin slug permanence
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST4
   title: Create the 0.16 migration step as a list of contributions
@@ -43,7 +43,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-10-12T06:46:55Z'
-updated_at: '2026-10-15T21:43:32Z'
+updated_at: '2026-10-15T22:04:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -391,6 +391,12 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-15T22:03:54Z] Elias Python:
+  - - Built: one `_COMMENT_HEADER_RE` in `_discussion.py` (column 0, no stripping) shared by `split_discussion`, `match_comment_header` (now returns ts, slug, name) and the search/inbox scan; `format_comment(ts, slug, name, messages)` collapses line breaks, falls back to the slug, refuses a slug outside `[a-z0-9][a-z0-9-]*`; `Comment.author_slug`. The three system writers use the `squads` slug. Slug grammar and the reserved slugs live once in `_models/_participants.py`.
+    - Driven on the previous commit: the importer wrote any actor string verbatim (`Bad Actor`, `ghost`) with no roster check. Now an actor outside the grammar is a line-numbered validation issue, exit 1, nothing written. A grammatical but unregistered actor (`ghost`) is still accepted, as before.
+    - Driven: `search --json`, `inbox --json` identical (diff) between the previous commit's source and this build on the same scripted squad with forged timestamps.
+    - Tests: `tests/unit/test_comment_header_grammar.py` (write and parse table, non-header rows, slug refusal), `tests/service/test_every_comment_writer_stamps_the_slug_header.py` (comment verb x author kind, story/subtask/finding, importer, retype and both renames, refusal), `tests/service/test_search_and_inbox_read_the_header_the_way_comments_do.py`, `tests/cli/test_comment_writers_stamp_the_slug_cli.py`. Four existing tests rewritten to the new grammar, none deleted.
+    - Falsified: `.strip()` back in the scan -> 1 red (parser agreement). Lazy `(.+?)` -> 0 red, the mutation is equivalent because `$` anchors the name; a name group excluding colons -> 3 red (colon rows). Writer slug refusal removed -> 8 red. Importer refusal removed -> 4 red. All restored, green.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -450,6 +456,11 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-15T22:03:55Z] Elias Python:
+  - - Built: `discussion.comment_json` (author, author_slug, ts, body) used by the three JSON sites; `discussion.author_label` (`Name (slug)`, slug once when equal) used by plain and styled `comments`, the sub-entity panes, the `--raw` discussion and the TUI discussion tab. Search and inbox untouched.
+    - Tests: `tests/cli/test_discussion_shows_the_authors_slug.py` is one table of JSON surface x author shape, one of render x author shape (name carrying `[x]` included), show --json identical across flags, no `author_slug` in search/inbox JSON. Goldens regenerated through `UPDATE_GOLDENS=1`: comments.json, feature_show.json, task_show.json, subtask_st1_show.json gain `author_slug` after `author`; item_show_raw.txt changes `Catherine Manager` to `Catherine Manager (manager)` in the discussion heading. Nothing else moved.
+    - Falsified: comments verb built by hand without the key -> 3 red; `--raw` printing `cmt.author` alone -> 2 red (table row and raw golden); sub-entity JSON built by hand -> 5 red. Restored, green.
+    - Not driven: the styled TUI tab through a mounted screen; the pure `_discussion_view` is asserted.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -534,6 +545,12 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-15T22:03:56Z] Elias Python:
+  - - Built: role creation refuses `operator`, `squads` and any `op-` slug at the one pure seam `_create_model` (CLI, importer simulation and apply all pass it), message `slug 'x' is reserved for ...; a role needs another slug`, exit 1, nothing written. `sq operator add` unchanged.
+    - Defects found by attacking the paths and fixed: (1) the bulk importer's `update` event with a title on a roster entry re-derived `item.slug` and renamed the file (driven: `ROLE-000001-manager.md` became `ROLE-000001-renamed-manager.md`); `_rename` now changes only the display title for roster types. (2) the importer's `unset_fields: ["slug"]` removed `extra.slug`; refused now. `fields: {slug: ...}` was already refused. The override-document slug mismatch refusal already existed and is pinned.
+    - Tests: `tests/cli/test_a_roster_slug_is_fixed_at_creation_cli.py` (one table per behaviour: creation source x reserved slug, update x roster kind, set/unset x kind, overrides, bulk renames, retype, repair/sync x kind x damage x index state, the live command walk for `--slug`, reuse after purge pinned as accepted) and `tests/integration/test_migration_never_changes_a_roster_slug.py` over every corpus fixture.
+    - Falsified: refusal removed -> 10 red; roster retitle re-deriving the slug -> 4 red; unset guard removed -> 4 red; repair deriving the slug from the title -> 16 red; a `--slug` option on `skill add` -> 1 red (the walk). Restored, green.
+    - Observed, not changed: the importer's `unset_fields` can still drop other identity-adjacent role keys (`is_dev`, `tech`); that is not a slug and is left for FEAT-977's verb work.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -995,4 +1012,20 @@ Gates and working rules: the task body.
     The eight design questions are with @architect; TASK-1004 is not promoted until they are ruled and TASK-954 has landed.
 - [2026-10-15T21:43:32Z] Catherine Manager:
   - Dispatched to @python-dev: ST1-ST3 first, then the review checkpoint, then ST4-ST7 (manager call of 2026-10-12). -C (FEAT-1015) has landed; scratch probes use -C.
+- [2026-10-15T22:04:38Z] Elias Python:
+  - - @manager ST1 to ST3 are done and ST4 to ST7 untouched: the review checkpoint. Nothing committed. Gates: `pyright` 0 errors, `ruff check src tests` and `ruff format --check src tests` clean, `tests/meta` 356 passed. A wide targeted run (unit, cli, service, tui, integration, filtered by comment/discussion/search/import/roster/repair/migration keywords) gave 4036 passed, 8 skipped, 0 failed. No full suite run. The squad on this branch still holds legacy headers, so this build reads none of them until ST4 to ST7 land, as the task expects.
+    - **Driven** (scratch squads, dev build with `-C`): importer with out-of-grammar and unregistered actors on the previous commit (wrote them verbatim) and on this build (refuses `Bad Actor`, line numbered, nothing written); `search --json` and `inbox --json` diffed identical between the previous commit's source and this build; importer `update` with a title on a role and an operator (renamed the file, before the fix); importer `fields` and `unset_fields` on `slug`; project role file, catalog entry, import and `dev add --tech op` for each reserved slug; every corpus fixture migrated with roster files compared; every test table falsified, counts on each subtask.
+    - **Read, not driven**: the `_apply_override` slug-mismatch refusal (pinned by a CLI test, not changed); the VS Code client (untouched, TASK-1005's work); the styled TUI tab through a mounted screen (the pure `_discussion_view` is asserted).
+    - **Inferred**: that `sq operator add --slug squads` stays allowed (unchanged; the tech lead's open question 6 is unanswered); that a grammatical but unregistered importer actor such as `ghost` keeps working (unchanged behaviour).
+    - **Two defects fixed beyond the brief's list**: an importer `update` event with a title re-derived a roster entry's core slug and file name, and `unset_fields: ["slug"]` removed `extra.slug`. Both fixed at the path, tables kept.
+    - **Equivalent mutation**: the brief's "lazy `.+?`" falsifier does not go red because `$` anchors the name; a colon-excluding name group does (3 red).
+    - **Adopter-visible, for the tech writer**
+      - Header grammar: ``- [2026-06-07T10:00:00Z] `architect` Robert Architect:`` (slug in backticks, then the name snapshot; reserved authors `operator`/`Operator` and `squads`/`squads`).
+      - `author_slug` after `author` in every discussion entry of `show --json` (item and sub-entity, in the item and standalone) and `comments --json`; search and inbox JSON unchanged.
+      - Human renders show `Name (slug)`, the slug once when equal (`squads`): `comments` plain and styled, `show --comments`, sub-entity panes of `show --full --comments`, `show --raw` (`### Catherine Manager (manager) — <ts>`), the TUI discussion tab.
+      - Search and inbox attribution: an indented header-shaped line inside a comment is no longer a second comment for search; snippet and location text unchanged.
+      - New refusals, exit 1, nothing written: role creation with `operator` (`slug 'operator' is reserved for the anonymous author; a role needs another slug`), `squads` (`... reserved for system entries; ...`), any `op-` slug (`slug 'op-x' is reserved for operators (the 'op-' prefix); ...`), through `role activate`, a catalog entry, `dev add` and the importer. A comment written as a slug outside `[a-z0-9][a-z0-9-]*` (`cannot write a comment as 'Bad Actor': a slug is lowercase letters, digits and hyphens`), and the same text for an importer actor as a line-numbered issue. Importer `unset_fields: ["slug"]` on any item: `<id>'s slug is permanent and cannot be unset`.
+      - Changed behaviour: an importer `update` title on a role, skill or operator now changes the title only; the file name and slug stay.
+    - **Clause to test**: US1 grammar, parser, search scan, round trips: `test_comment_header_grammar.py`, `test_every_comment_writer_stamps_the_slug_header.py`, `test_search_and_inbox_read_the_header_the_way_comments_do.py`, `test_comment_writers_stamp_the_slug_cli.py`. US1 human renders and US4 Python half: `test_discussion_shows_the_authors_slug.py`. US2: `test_a_roster_slug_is_fixed_at_creation_cli.py`, `test_migration_never_changes_a_roster_slug.py`.
+    - **Rewritten, not deleted**: `test_discussion_comment_formatting_and_mentions.py` (four tests to the new signature), `test_comments_readback_command_cli.py` (key set), `test_time_forging_backdates_items_and_comments.py` (stored header), five goldens.
 <!-- sq:discussion:end -->

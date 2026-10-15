@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1025,
+  "counter": 1026,
   "padding": 6,
   "items": {
     "12": {
@@ -31534,7 +31534,7 @@
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-10-15T20:16:59Z",
+      "updated_at": "2026-10-15T22:17:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44274,7 +44274,7 @@
         {
           "local_id": "ST1",
           "title": "Write and parse one header grammar that names the slug",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -44283,7 +44283,7 @@
         {
           "local_id": "ST2",
           "title": "Add author_slug to discussion JSON; show name then slug",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -44292,7 +44292,7 @@
         {
           "local_id": "ST3",
           "title": "Refuse reserved role slugs and pin slug permanence",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -44337,7 +44337,7 @@
       ],
       "path": "tasks/TASK-001004-put-the-author-s-slug-in-comment-headers-and-migrate-the-cor.md",
       "created_at": "2026-10-12T06:46:55Z",
-      "updated_at": "2026-10-15T21:43:32Z",
+      "updated_at": "2026-10-15T22:04:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45540,6 +45540,88 @@
       "modified_session": null,
       "extra": {},
       "id": "ADR-1025"
+    },
+    "1026": {
+      "sequence_id": 1026,
+      "type": "review",
+      "title": "TASK-1004 ST1-ST3 checkpoint: slug comment headers",
+      "slug": "task-1004-st1-st3-checkpoint-slug-comment-headers",
+      "status": "Approved",
+      "description": "Checkpoint review of the header grammar, author_slug and reserved role slugs before the 0.16 migration",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1004:addresses",
+        "FEAT-980:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A line separator in a message forges a second comment header",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Role creation skips the slug grammar; reserved check is case-blind",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "operator add --slug takes squads, operator and live role slugs",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Anonymous slug still spelled as a literal at three sites",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Importer comment actor is not resolved against the roster",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Importer unset_fields accepts an unknown key as a silent no-op",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001026-task-1004-st1-st3-checkpoint-slug-comment-headers.md",
+      "created_at": "2026-10-15T22:10:58Z",
+      "updated_at": "2026-10-15T22:17:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1026"
     }
   }
 }
