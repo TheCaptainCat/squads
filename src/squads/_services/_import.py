@@ -589,7 +589,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             await self._set_block_status_core(
                 db, target, event.kind, local_id, event.status, force=event.force
             )
-            return {target}
+            return {require_item(db, target).id}
         if isinstance(event, SubBodyEvent):
             target = handles.resolve_item(event.target)
             local_id = handles.resolve_local(target, event.local)

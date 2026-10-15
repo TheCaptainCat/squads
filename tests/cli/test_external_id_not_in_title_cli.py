@@ -86,3 +86,13 @@ async def test_a_basic_toml_string_with_a_single_backslash_fails_in_the_toml_par
     linted = await invoke(["workflow", "lint"])
     assert linted.exit_code == 1, linted.output
     assert "Malformed" in linted.output
+
+
+async def test_lint_refuses_a_warning_pattern_however_often_it_runs(project, invoke) -> None:
+    write_override(project.squad_dir, f"[items.task]\nvalidators = ['{_NAME}:[[a]]']\n")
+    for _ in range(2):
+        linted = await invoke(["workflow", "lint"])
+        assert linted.exit_code == 1, linted.output
+        assert "warning" in linted.output
+    listed = await invoke(["list"])
+    assert listed.exit_code == 1, listed.output

@@ -27,6 +27,7 @@ closed-set ``Priority``/``Severity`` enums.
 
 import math
 import re
+import uuid
 import warnings
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -1479,7 +1480,11 @@ def parse_positive_int(text: str) -> int | None:
 
 def _check_external_id_pattern(t: str, entry: str, param: str, errors: list[str]) -> None:
     """*param* must compile without a warning and must not match the empty string, which would
-    report every title (and, at ``@error``, refuse every write of the type)."""
+    report every title (and, at ``@error``, refuse every write of the type).
+
+    ``re`` warns only on the first compile of a pattern, so the warning check compiles a copy
+    behind a unique comment group: its cache key is never seen before, the semantics are
+    unchanged, and no other caller's cached pattern is touched."""
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         try:
@@ -1490,10 +1495,12 @@ def _check_external_id_pattern(t: str, entry: str, param: str, errors: list[str]
                 f"{param!r}: {exc}"
             )
             return
+        re_compile(f"(?#{uuid.uuid4().hex}){param}")
     if caught:
+        detail = re.sub(r" at position \d+", "", str(caught[0].message))
         errors.append(
             f"item {t!r}: validators entry {entry!r} names a regular expression {param!r} that "
-            f"compiles with a warning: {caught[0].message} — rewrite it"
+            f"compiles with a warning: {detail} — rewrite it"
         )
     elif compiled.search("") is not None:
         errors.append(

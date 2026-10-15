@@ -112,3 +112,17 @@ def test_the_check_is_refused_on_a_roster_type(roster_type: str, entry: str) -> 
     text = str(raised.value)
     assert f"item {roster_type!r}" in text
     assert "cannot apply to a roster type" in text
+
+
+def test_a_warning_pattern_is_refused_every_time_it_is_loaded_not_only_the_first() -> None:
+    """``re`` warns on the first compile of a pattern only; the refusal must not depend on
+    whether this process (or an earlier test) already compiled it."""
+    import re
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        re.compile("[[a]]")
+    for _ in range(3):
+        with pytest.raises(SquadsError, match="compiles with a warning"):
+            _load("task", [f"{_NAME}:[[a]]"])
