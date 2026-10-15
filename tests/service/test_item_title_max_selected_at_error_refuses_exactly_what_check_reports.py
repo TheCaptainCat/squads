@@ -4,6 +4,8 @@ number leaves no file and no index entry; retitling to the number is the way out
 `warn`, the check is not evaluated on a write.
 """
 
+import unicodedata
+
 import pytest
 
 from _helpers import create_item
@@ -20,6 +22,7 @@ from squads._services import _validators as validators
 
 pytestmark = pytest.mark.anyio
 
+_TASK_ROW = TypeRow("task", "task")
 _ROWS = ITEM_TITLE_MAX.accepting_rows()
 _AT_ERROR = (f"item_title_max:{TITLE_THRESHOLD}@error",)
 _SHAPES = {
@@ -28,9 +31,12 @@ _SHAPES = {
     "over": "x" * (TITLE_THRESHOLD + 1),
     "long": "x" * 200,
     "non-ascii-at": "é" * TITLE_THRESHOLD,
+    "decomposed-at": "e\u0301" * TITLE_THRESHOLD,
+    "decomposed-over": "e\u0301" * (TITLE_THRESHOLD + 1),
     "non-ascii-over": "é" * (TITLE_THRESHOLD + 1),
 }
 _MESSAGE = "an item title is a one-line handle"
+_NOT_AN_ADVISORY = "advisory"
 
 
 @pytest.mark.parametrize("shape", _SHAPES)
@@ -58,7 +64,7 @@ async def test_a_create_is_refused_exactly_when_the_title_is_over_the_number(
 ) -> None:
     svc = service_with(project.squad_dir, override_toml(row, _AT_ERROR))
     before = set(svc.paths.squad_dir.rglob("*.md"))
-    over = len(_SHAPES[shape]) > TITLE_THRESHOLD
+    over = len(unicodedata.normalize("NFC", _SHAPES[shape])) > TITLE_THRESHOLD
     try:
         created = (await create_item(svc, row.type, _SHAPES[shape])).item
     except SquadsError as err:
@@ -113,3 +119,11 @@ async def test_a_member_selected_at_warn_is_not_evaluated_on_a_write(
     await svc.update(item.id, add_labels=["touched"])
     assert calls == []
     assert [i for _, i, _ in member_findings(await svc.check(), ITEM_TITLE_MAX)] == [item.id]
+
+
+async def test_the_refusal_does_not_call_itself_an_advisory(project) -> None:
+    svc = service_with(project.squad_dir, override_toml(_TASK_ROW, _AT_ERROR))
+    with pytest.raises(SquadsError) as raised:
+        await create_item(svc, "task", "x" * 200)
+    assert _MESSAGE in str(raised.value)
+    assert _NOT_AN_ADVISORY not in str(raised.value)

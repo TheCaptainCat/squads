@@ -19,7 +19,7 @@ from squads._errors import SquadsError
 pytestmark = pytest.mark.anyio
 
 _ROWS = ITEM_TITLE_MAX.accepting_rows()
-_LETTERS = {"ascii": "x", "non-ascii": "é"}
+_LETTERS = {"ascii": "x", "non-ascii": "é", "decomposed": "e\u0301"}
 
 
 def _lengths(number: int) -> list[int]:
@@ -50,7 +50,7 @@ async def test_the_message_carries_the_length_and_the_threshold(project, row: Ty
     svc = service_with(project.squad_dir, override_toml(row, ("item_title_max:120",)))
     (finding,) = member_findings(await svc.check(), ITEM_TITLE_MAX)
     assert finding[2] == (
-        "advisory: title is 121 chars (threshold: 120)"
+        "title is 121 chars (threshold: 120)"
         " — an item title is a one-line handle; put the detail in the body"
     )
 

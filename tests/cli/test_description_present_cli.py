@@ -1,12 +1,10 @@
-"""`description_present` at the CLI: the command the finding names clears it on every type that
+"""`description_present` at the CLI: `update --desc` clears it on every type that
 accepts the check; `sq create` without `--desc` is refused (exit 1) only at `@error` and with it
 is accepted; `sq check` exits 0 at `warn` and 3 at `@error`; `sq workflow lint` refuses the
 check on a roster type.
 """
 
 import json
-import re
-import shlex
 
 import pytest
 
@@ -24,16 +22,12 @@ pytestmark = pytest.mark.anyio
 
 
 @pytest.mark.parametrize("row", DESCRIPTION_PRESENT.accepting_rows(), ids=lambda r: r.id)
-async def test_the_command_the_finding_names_clears_it(project, invoke, row: TypeRow) -> None:
+async def test_update_desc_clears_the_finding_on_every_type(project, invoke, row: TypeRow) -> None:
     unselected = service_with(project.squad_dir, override_toml(row, ()))
-    await create_item(unselected, row.type, "t")
+    item = (await create_item(unselected, row.type, "t")).item
     svc = service_with(project.squad_dir, override_toml(row, ("description_present@error",)))
-    ((_, _, message),) = member_findings(await svc.check(), DESCRIPTION_PRESENT)
-
-    named = re.search(r"`sq ([^`]+)`", message)
-    assert named
-    argv = shlex.split(named.group(1).replace('"..."', '"A summary."'))
-    cleared = await invoke(argv)
+    assert member_findings(await svc.check(), DESCRIPTION_PRESENT)
+    cleared = await invoke([row.type, str(item.sequence_id), "update", "--desc", "A summary."])
     assert cleared.exit_code == 0, cleared.output
     assert member_findings(await svc.check(), DESCRIPTION_PRESENT) == []
 

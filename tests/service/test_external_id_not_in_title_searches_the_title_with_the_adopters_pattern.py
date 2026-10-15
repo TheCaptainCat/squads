@@ -39,6 +39,7 @@ _SHAPES: dict[str, list[tuple[str, str | None]]] = {
     r"\x40[a-z]+": [("ping @bob about it", "@bob"), ("no handle here", None)],
     r"(?i)abc-\d+": [("lower case abc-123 key", "abc-123"), ("no key", None)],
     r"[A-Z]+-\d+|GH#\d+": [("a tracker ABC-1", "ABC-1"), ("a hash GH#42", "GH#42"), ("none", None)],
+    r"(?=ABC)": [("a bare lookahead has no text to name", None), ("ABC-1", None)],
     r"\[[A-Z]+-\d+\]": [("[ABC-1] bracketed", "[ABC-1]"), ("ABC-1 bare", None)],
 }
 _CASES = [(p, t, m) for p, titles in _SHAPES.items() for t, m in titles]

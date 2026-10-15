@@ -105,7 +105,8 @@ _STATES: dict[str, tuple[Build, bool]] = {
     "no-body-region": (_no_region, False),
     "template-no-longer-renders": (_template_no_longer_renders, False),
 }
-#: The overwrite guard has nothing to say about a file with no body region at all.
+#: A file with no body region at all cannot be written by `body -m` (it ends in an unhandled
+#: KeyError rather than a refusal), so there is no first-write answer to compare with.
 _NOT_GUARDED = frozenset({"no-body-region"})
 
 

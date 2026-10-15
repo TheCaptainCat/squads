@@ -292,7 +292,7 @@ async def _plant_over_and_at_title(svc: service.Service, row: TypeRow) -> Plante
     return Planted(
         over.id,
         at.id,
-        f"advisory: title is {TITLE_THRESHOLD + 1} chars (threshold: {TITLE_THRESHOLD})"
+        f"title is {TITLE_THRESHOLD + 1} chars (threshold: {TITLE_THRESHOLD})"
         " — an item title is a one-line handle; put the detail in the body",
     )
 
@@ -404,8 +404,7 @@ async def _plant_without_and_with_a_summary(svc: service.Service, row: TypeRow) 
     return Planted(
         offender.id,
         clean.id,
-        "description is empty"
-        f' — set it with `sq {row.type} {offender.sequence_id} update --desc "..."`',
+        "description is empty — set a summary: `--desc` on create, `update --desc` after",
     )
 
 

@@ -66,7 +66,7 @@ def test_under_the_bundled_spec_neither_check_is_effective_for_any_type(item_typ
 
 
 _TITLE = (
-    "advisory: title is 121 chars (threshold: 120)"
+    "title is 121 chars (threshold: 120)"
     " — an item title is a one-line handle; put the detail in the body"
 )
 

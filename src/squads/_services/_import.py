@@ -532,7 +532,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
                 continue
             bodies[item.sequence_id] = await self._read_item_file(item, item_file(self.paths, item))
         engine = ValidatorEngine(spec=self.spec, squad_global={})
-        issues = engine.report(final_db, {}, bodies=bodies)
+        issues = engine.report(final_db, {}, bodies=bodies, only=frozenset(touched_ids))
         return [i for i in issues if i.item in touched_ids]
 
     async def _apply_one(  # noqa: PLR0911 — one per-op dispatch, mirrors _simulate_one's shape

@@ -4,6 +4,8 @@ refused and one with it accepted; a write that also sets a summary is the way ou
 summary is refused.
 """
 
+import re
+
 import pytest
 
 from _helpers import create_item
@@ -83,3 +85,15 @@ async def test_a_status_move_needs_the_summary_in_the_same_command(project) -> N
         await svc.update(item.id, status="Ready")
     moved = await svc.update(item.id, status="Ready", description="Summarised.")
     assert moved.status == "Ready"
+
+
+async def test_the_create_refusal_names_no_item_id_that_was_never_allocated(project) -> None:
+    row = TypeRow("task", "task")
+    svc = service_with(project.squad_dir, override_toml(row, _AT_ERROR))
+    with pytest.raises(SquadsError) as raised:
+        await create_item(svc, "task", "no summary")
+    text = str(raised.value)
+    assert "--desc" in text
+    assert not re.search(r"sq task \d+", text)
+    next_item = (await create_item(svc, "task", "next", description="A summary.")).item
+    assert str(next_item.sequence_id) not in text

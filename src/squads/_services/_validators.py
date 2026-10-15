@@ -52,6 +52,7 @@ time, never pre-baked onto the spec.
 
 import dataclasses
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -609,18 +610,21 @@ def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
 
 def _item_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     """An item whose title is longer than the number its type's ``item_title_max:<n>`` entry
-    names. The number comes from the spec, so a type that does not select the check reports
+    names, counted in code points after NFC normalisation (so a decomposed and a composed
+    spelling of one title agree; a grapheme cluster of several code points still counts as
+    several). The number comes from the spec, so a type that does not select the check reports
     nothing."""
     item = ctx.item
     threshold = ctx.spec.item_title_max(item.type)
-    if threshold is None or len(item.title) <= threshold:
+    length = len(unicodedata.normalize("NFC", item.title))
+    if threshold is None or length <= threshold:
         return []
     level = _resolved_level(ctx, "item_title_max")
     return [
         CheckIssue(
             level,
             item.id,
-            f"advisory: title is {len(item.title)} chars (threshold: {threshold})"
+            f"title is {length} chars (threshold: {threshold})"
             " — an item title is a one-line handle; put the detail in the body",
         )
     ]
@@ -657,8 +661,7 @@ def _description_present(ctx: ValidatorContext) -> list[CheckIssue]:
         CheckIssue(
             level,
             item.id,
-            "description is empty"
-            f' — set it with `sq {item.type} {item.sequence_id} update --desc "..."`',
+            "description is empty — set a summary: `--desc` on create, `update --desc` after",
         )
     ]
 
@@ -695,13 +698,14 @@ def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
 def _external_id_not_in_title(ctx: ValidatorContext) -> list[CheckIssue]:
     """An item whose title matches the regular expression its type's
     ``external_id_not_in_title:<regex>`` entry names, reporting the first match. The pattern is
-    the adopter's own and is searched with no flags and no bound on its cost; a type that does
+    the adopter's own and is searched with no flags and no bound on its cost, a zero-width match
+    (a bare lookahead) counting as no match; a type that does
     not select the check has no pattern and reports nothing."""
     item = ctx.item
     pattern = ctx.spec.item_external_id_pattern(item.type)
     if pattern is None:
         return []
-    found = re.search(pattern, item.title)
+    found = next((m for m in re.finditer(pattern, item.title) if m.group(0)), None)
     if found is None:
         return []
     level = _resolved_level(ctx, "external_id_not_in_title")
@@ -1487,7 +1491,12 @@ class ValidatorEngine:
         return issues
 
     def report(
-        self, index: SquadsDB, on_disk: OnDiskMap, *, bodies: dict[int, str] | None = None
+        self,
+        index: SquadsDB,
+        on_disk: OnDiskMap,
+        *,
+        bodies: dict[int, str] | None = None,
+        only: frozenset[str] | None = None,
     ) -> list[CheckIssue]:
         """Collect every issue: every item's effective per-item set, plus every squad-global
         validator (run once). *bodies* maps sequence number -> the item's on-disk markdown
@@ -1501,6 +1510,8 @@ class ValidatorEngine:
         bodies = bodies or {}
         issues: list[CheckIssue] = []
         for item in index.items.values():
+            if only is not None and item.id not in only:
+                continue
             issues += self._run_per_item(
                 item,
                 index,
