@@ -11,10 +11,11 @@ refs:
 - ADR-738
 - ADR-777
 - FEAT-902
+- ADR-696
 description: Where a squad names, levels and parameterises a squad-global validator,
   and which members stay always-on.
 created_at: '2026-10-09T18:25:28Z'
-updated_at: '2026-10-09T18:34:58Z'
+updated_at: '2026-10-12T06:23:21Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -110,6 +111,23 @@ Each is a spec-load refusal naming the entry, reported by `sq workflow lint` wit
 5. A bare name appears at most once. Every parameterised member here resolves one value, so two
    entries of one name are refused whatever their parameters.
 
+> **Amended 2026-10-12 (ADR-864, amendment of the same date):** two additions.
+>
+> - **What the members count.** For `wip_limit`, `unassigned_active` and `stale_active` an
+>   active item is an item of a `work`-category type whose status's role declares
+>   `live = true`; for `children_settled_with_parent`, settled is the role's `settled` flag. No
+>   role is matched by name. Roster and `records` types are not counted as active: the bundled
+>   `Active` status is live and is where every role, skill, operator and contract rests.
+> - **A sixth check.** A selection the spec's own declarations make unable to fire is refused:
+>   `wip_limit`, `unassigned_active` or `stale_active` when no `work`-category type's lifecycle
+>   holds a live status, and `dependency_acyclic` when no ref kind declares the dependency
+>   role.
+
+> **Confirmed 2026-10-12 (op-pierre, this decision's discussion):** both additions stand as
+> written. The amendment of ADR-864 they follow was corrected the same day on a point no member
+> at this scope reads: blocked is a `blocked` flag a role declares, not a role named by a
+> parameter.
+
 ### 5. What a level means at this scope
 
 A selectable member's default level is `warn`. `@error` makes `sq check` exit non-zero on the
@@ -198,4 +216,12 @@ arrives as an additive change.
 <!-- sq:discussion -->
 - [2026-10-09T18:34:58Z] Pierre Chat:
   - 2026-10-09: accepted as written. One staleness threshold per squad and non-dialable always-on checks are fine for now.
+- [2026-10-12T05:59:31Z] Robert Architect:
+  - 2026-10-12: one dated note added after clause 4's list, nothing else in the body changed; `related` ref to ADR-696 added. For op-pierre to confirm. @manager
+    
+    - The three members that count active items count `work`-category items at a status whose role declares `live = true`, never a role matched by name.
+    - A sixth Plane-1 check: a selection the spec's own declarations make unable to fire is refused.
+    - It follows ADR-864's amendment of the same date; FEAT-902 has the story changes.
+- [2026-10-12T06:19:21Z] Pierre Chat:
+  - 2026-10-12: the note of this date stands for squad scope (an active item is a work-category item at a live status; a selection that cannot fire is refused at load), with one change from my ruling on ADR-864: blocked is a flag a role declares, not a role named by a parameter.
 <!-- sq:discussion:end -->

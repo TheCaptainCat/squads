@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-11T20:32:05Z'
+updated_at: '2026-10-15T19:16:53Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -92,4 +92,37 @@ The next squads release after 0.15.
     - ADR-71, ADR-622, ADR-766, ADR-864 and ADR-783 each get the dated note ADR-663 carries about `sq repair` behind the schema gate.
 - [2026-10-11T20:32:05Z] Pierre Chat:
   - 2026-10-11: the manager drives the build from here, in the approved order, without waiting for my go between steps. Still mine: pushing, the version bump, migrating this repository's squad, publishing, and the ruling on the manifest-freshness checks before TASK-990 changes bundled files.
+- [2026-10-12T05:16:15Z] Pierre Chat:
+  - 2026-10-12: the working version is bumped to 0.16.0 before TASK-990 changes bundled files, once TASK-989 is in. This replaces my answer of 2026-10-11 to bump at release preparation; the manifest is then regenerated normally during the build.
+- [2026-10-12T06:26:45Z] Pierre Chat:
+  - 2026-10-12: the build order changes, and so does the timing of the version bump.
+    
+    - The working version is bumped to 0.16.0 after the comment-header migration (FEAT-980) is in. This replaces my two earlier answers on the bump.
+    - FEAT-980 therefore moves up: it is built right after TASK-954, before the developer-role retirement. It creates this release's migration runner and the 0.16 schema; the retirement and the origin work amend that runner afterwards.
+    - Nothing that changes a bundled file is built before the bump. That covers TASK-990 and the `blocked` flag on status roles in FEAT-901.
+    
+    Main stream, in order: TASK-954, FEAT-980, the bump, TASK-989, TASK-990, FEAT-976, FEAT-977, then FEAT-961 and FEAT-966. The validator features continue in their own worktree, with any bundled-file change held until after the bump.
+    
+    On the validator rulings of this date: blocked stays a flag a role declares (I looked at it again after asking why it is not derived from ref kinds: the check compares the hand-set Blocked status with the dependency edges, so it needs to know which status that is).
+- [2026-10-15T18:39:05Z] Pierre Chat:
+  - 2026-10-15: frontmatter is already scoped by type, so the nested extra block has no reason to exist. Every key it holds is promoted to a top-level frontmatter field.
+- [2026-10-15T18:41:35Z] Pierre Chat:
+  - 2026-10-15: promoting the extra keys to top-level fields ships in 0.16, carried by this release migration runner.
+- [2026-10-15T18:44:48Z] Pierre Chat:
+  - 2026-10-15, on the frontmatter shape once `extra` goes away:
+    
+    - **Core keys**: the ones common to all items and used by the sq internals.
+    - **Per-type keys**: generic, declared in the specs, not hardcoded per type.
+    - The frontmatter is parsed against the core keys and the declared ones, and validated.
+    - Unknown keys are kept silently.
+- [2026-10-15T18:46:02Z] Pierre Chat:
+  - 2026-10-15: the risk to guard against: a key removed from a custom spec must not then be removed from the frontmatter on the next save.
+- [2026-10-15T19:09:10Z] Robert Architect:
+  - 2026-10-15: ADR-1007 (flat frontmatter, no extra block) adds one step to the main stream of 2026-10-12, as ruled on ADR-1007 by op-pierre: after the 0.16.0 bump and before TASK-989. Main stream: TASK-954, FEAT-980, the bump, the ADR-1007 flattening (first frontmatter step of the 0.16 runner), TASK-989, TASK-990, FEAT-976, FEAT-977, then FEAT-961 and FEAT-966. @manager: it has no feature or task yet.
+- [2026-10-15T19:11:19Z] Pierre Chat:
+  - 2026-10-15: --dir is replaced by git-style -C (run sq as if started from that folder), decided by ADR, shipped in 0.16. The F26 fix in TASK-954 lands first so 0.16 has no gate bypass meanwhile.
+- [2026-10-15T19:16:11Z] Pierre Chat:
+  - 2026-10-15: -C names the folder that holds .squads.toml (the project root). No walk-up: if that folder has no .squads.toml, sq refuses.
+- [2026-10-15T19:16:53Z] Pierre Chat:
+  - 2026-10-15: correction to my previous comment: -C keeps the walk-up (git-style, as if sq were started from that folder). It refuses if no .squads.toml is found from there.
 <!-- sq:discussion:end -->

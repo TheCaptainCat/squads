@@ -18,7 +18,7 @@ subentities:
   title: Flag a frontmatter field value outside its declared collection
   status: Todo
 created_at: '2026-09-03T09:02:33Z'
-updated_at: '2026-10-09T15:35:14Z'
+updated_at: '2026-10-12T05:26:08Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -62,7 +62,7 @@ Acceptance:
 - Status values are not reported by this member.
 - CLI writes are unaffected: a value the CLI accepts never triggers it.
 - The way out exists: setting a valid value through the CLI on an item that currently carries a stale one succeeds, while an unrelated update to that item is refused until it is fixed.
-- A bare sq check on this repo reports the same issues before and after the change lands.
+- Proven on a scratch copy of this repository's squad (brought to the schema of the build under test if it differs): sq check there reports the same issues with the member as without it, so adopting it adds no finding to a squad whose values are all valid. This repository's own override is not edited by this feature, and the live board, run by the released tool until release preparation, is unaffected.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -77,4 +77,8 @@ Acceptance:
 <!-- sq:discussion -->
 - [2026-10-09T15:35:14Z] Nina Product:
   - 2026-10-09 readiness pass: ADR-864 tier and FEAT-898 grammar confirmed as shipped; scoped to item and sub-entity fields, status excluded, recovery path and unchanged-sq-check acceptance added. Moved to Ready.
+- [2026-10-12T05:25:57Z] Nina Product:
+  - 2026-10-12: separated engine delivery from this project's own selection; the live override is read by the released 0.15.0 tool, so this repository's selection moves to a release-preparation step after the squad is migrated.
+- [2026-10-12T05:26:08Z] Nina Product:
+  - 2026-10-12: (correction for FEAT-900) only US1's last acceptance line changed: proof on a scratch copy of the squad; no project selection exists here, the member is in the bundles.
 <!-- sq:discussion:end -->

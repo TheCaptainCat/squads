@@ -14,7 +14,7 @@ description: 'The reconcile licence: vocabulary-blind, content-neutral, converge
   — and why the reconcile lives inside migrate up rather than as an exemption for
   sq repair'
 created_at: '2026-09-15T08:58:16Z'
-updated_at: '2026-10-09T20:16:21Z'
+updated_at: '2026-10-12T06:23:28Z'
 ---
 <!-- sq:body -->
 ## The state, and why it currently has no exit
@@ -132,6 +132,14 @@ if all three clauses hold, for every input corpus:
    found it, and it never makes a later migration's input differ from what that migration was
    written against.
 
+> **Amended 2026-10-12 (A8):** clause 1 is narrowed for the reconcile on one point. Where the
+> routine looks for the squad's item files is taken from the previous index and from the folder
+> and prefix each type declares, handed to it as plain pairs. It still resolves nothing and reads
+> no content through a spec. See A8.
+
+> **Corrected 2026-10-12 (A11):** this narrowing was not confirmed. Clause 1 stands as written:
+> nothing declared is handed to the routine. See A11.
+
 Anything that fails clause 1 or clause 2 is a **migration step**, not a maintenance command, and
 its home is a versioned runner where the schema it assumes is written down and the transition it
 performs is reviewable. That is the general rule, and it is what the next migration inherits:
@@ -225,6 +233,15 @@ resembles, each following from a clause rather than from taste:
 > **Amended 2026-10-09 (A2):** the folders are whatever the squad directory holds, and what makes
 > a file an item there is structural. A2 states the recognition rule, the schemas the routine must
 > read, and what it owes each state of the index.
+
+> **Amended 2026-10-12 (A8):** the first bullet is withdrawn as written. Recognising a file in
+> any folder made the trailing `repair`'s alignment refusal reachable instead of unreachable: the
+> pre-pass indexed files that `repair`'s scan cannot see. The routine looks only where the squad
+> keeps items. See A8.
+
+> **Corrected 2026-10-12 (A11):** with no readable index the routine does recognise a file in any
+> folder. The check before the first runner then keeps the trailing `repair` from meeting it. See
+> A11.
 
 Because it strips nothing, `repair`'s ordering prohibition is satisfied vacuously rather than
 weakened, and `repair`'s own "by construction" proof stays true verbatim, because nothing else
@@ -454,6 +471,15 @@ Two precisions on the routine itself.
   in any item file (**driven** over the corpus fixtures); the number is read from the `id`, which
   is derivation and not fabrication. A shape an older schema wrote legitimately is never damage.
 
+> **Amended 2026-10-12 (A8, A9):** "wherever under the squad directory it sits" and "never by a
+> declared folder" are withdrawn, and no tree is walked. A file is the squad's item only at a
+> location, a directory and a prefix, known from the previous index or declared by the run's
+> vocabulary. A squad at the project root stays the test: nothing outside a location is opened.
+> See A8 and A9.
+
+> **Corrected 2026-10-12 (A11):** "or declared by the run's vocabulary" is withdrawn, and the
+> tree is walked when there is no readable index. See A11.
+
 ### A3 — "Unconditional" means no staleness test
 
 The reconcile runs whenever at least one runner applies, with no test of whether the index looks
@@ -473,6 +499,11 @@ that do not decode, frontmatter that does not parse, an identity that cannot be 
 id two files claim), the run stops before the first runner and names each file with what is wrong
 with it. The entry such a file already had is carried forward, not dropped. The remedy is outside
 `sq`: correct the file, or take it out of the squad directory, then re-run `sq migrate up`.
+
+> **Amended 2026-10-12 (A9, A10):** the item files this ruling covers are those at a location
+> (A8), with or without a previous entry. The list gains a number two different ids share, with a
+> cause and a remedy of its own (A10). The remedy is reworded: correct the file, or, when it is
+> not one of the squad's items, move it out of the folder it sits in (A9).
 
 This gives one disposition to shapes that get two today (**driven**): frontmatter that does not
 parse already stops the run with the schema unchanged, and a re-run after the fix completes,
@@ -588,6 +619,263 @@ Two tests carry the rule, in place of the one this record named:
 - Two changes an adopter can observe: `repad`, `rename-type` and `rename-status` no longer run on
   a squad whose schema differs from the package's, and `sq migrate up` no longer stamps past an
   item file it cannot read.
+
+> **Amended 2026-10-12:** A8 to A10 correct A2 and A4 and add to this list. See the closing list
+> under **Amendments — 2026-10-12**.
+
+## Amendments — 2026-10-12
+
+A2 and A4 stand in what they are for: an index that mirrors the squad's files before the first
+runner, and no stamp past an item file the run could not see. What they left open is which files
+are the squad's. The three cases below were met by the routine once it was built. Evidence is
+marked **reviewed** (driven on scratch squads, the code before the pre-pass against the code with
+it, and recorded on REV-995) or **read**. Nothing here was driven for this ruling, so where a
+point rests on reading alone the proof it is owed is named.
+
+### A8 — The squad's item files are the ones where it keeps them
+
+A2 recognised an item "wherever under the squad directory it sits". The trailing `repair` does
+not: it scans one folder per type, under that type's prefix, and takes an indexed file its scan
+cannot see for a re-foldered type (**read**). The runners that enumerate items from the index go
+wherever an entry points. So a file recognised anywhere else was indexed, written to by a runner,
+and then refused by the trailing `repair` with a cause naming an override the squad does not
+have. The schema was never stamped and every re-run repeated, on squads that migrated before the
+pre-pass existed (**reviewed**: an item moved by hand into an archive folder, an archived item
+the index never held, a lone fixture file in a squad at the project root).
+
+Ruled: **a file is the squad's item only where the squad keeps items of that prefix.** A
+*location* is a directory and a prefix. The routine takes its locations from two sources and
+looks nowhere else:
+
+- **the previous index**: the directory and the file-name prefix of the path each entry records.
+  This is the squad's own record of where its corpus lives, and no vocabulary filters it;
+- **the run's resolved vocabulary** (A5): the folder and prefix each type declares, handed to the
+  routine as plain pairs. This source adds places to look and never removes one.
+
+A file named for an item of a location's prefix, in that location's directory, is the squad's
+item. A file in no location's directory is nothing to the run: it is not opened, indexed,
+reported, counted towards the counter or the padding, or written to. The tree is not walked. The
+prefix is part of the location because `repair` scans by it: a file carrying another type's
+prefix inside a type's folder is as invisible to that scan as a file in an archive, so it is not
+an item there (**read**; the row that proves it is owed).
+
+The measure of the rule is the trailing `repair`: the reconcile's idea of which files are the
+squad's is `repair`'s, with the previous index standing in for whatever the vocabulary does not
+declare.
+
+The second source narrows clause 1 of the licence, by this much and no more. The routine still
+resolves nothing, reads no content through a spec and refuses nothing on vocabulary grounds, but
+where it looks is in part a function of two declared values. Without it two states have no answer
+a blind routine can give: a squad with no readable index has no record of where its corpus lives,
+and the first item of a type, left unindexed, sits in a place no entry points at. The strictly
+blind alternative is to recognise every item-shaped file in the tree in those two states, which
+is the behaviour this amendment withdraws. A runner that moves a type's folder or changes its
+prefix declares the location it consumes on its migration record, and the run hands that in as
+well; none does today.
+
+> **Withdrawn 2026-10-12 (A11):** the second source, and with it this paragraph and the sentence
+> on the measure of the rule as said of the routine. The routine's locations come from the
+> previous index only, and clause 1 is not narrowed. See A11.
+
+What follows for the states A2 names. With no index, or one that does not parse, the locations
+are the declared ones, which are the places the trailing `repair` will scan (**read**; this
+state was not driven with a stray file beside it, and that row is owed). A file with no entry
+gains one when it sits in a location. An entry whose file is in no location any more is dropped
+and named as missing, which is what happened to an item moved out by hand before the pre-pass
+existed. A custom type is found like any other: by its entries, or by the folder and prefix the
+override declares.
+
+> **Corrected 2026-10-12 (A11):** two sentences here no longer hold. With no index, or one that
+> does not parse, the tree is walked. A custom type, like any type, is found by its entries only;
+> its first item left unindexed is not seen by the routine. A11 states what happens to each.
+
+What the pre-pass hands on. After the reconcile every entry it added sits in a location. A
+location the vocabulary declares is a place the trailing `repair` scans. A location only the
+previous index knows is a real disagreement between the corpus and the vocabulary, and A6 refuses
+it before the first runner, saying where the file is and where its type's items live, and naming
+an override only when the squad has one. The invariant is: **a run that the steps before the
+first runner let through is never refused by the trailing `repair` for where a file sits.**
+
+> **Corrected 2026-10-12 (A11):** the invariant stands. It is carried by the check before the
+> first runner, which holds the vocabulary, and no longer by where the routine looks. See A11.
+
+### A9 — A file that cannot be read is the squad's by where it sits
+
+A2 says a markdown file that is not an item is never reported, and A4 that an item file that
+cannot be read stops the run. The two met at a file that cannot be read far enough to tell which
+it is (**reviewed**: a Latin-1 document and one opening with a block that is not YAML, both named
+like items, each stopping a squad at the project root).
+
+Ruled: location decides, and content never has to. A file at a location, named for an item of its
+prefix, is the squad's item whether or not it can be read, and whether or not an entry ever stood
+for it. When it cannot be given an entry of its own, A4 applies. A file outside every location's
+directory is never opened, so it can be neither unreadable nor reported.
+
+> **Corrected 2026-10-12 (A11):** this holds where a readable index gives the routine its
+> locations. With no index there are none, and the name decides. See A11.
+
+This makes the reconcile and the trailing `repair` agree on which files are the squad's. `repair`
+reports an unreadable file, and one that parses but carries no `id`, in a type's folder. The
+routine as built passes over an id-less file no entry stood for, which leaves it to that report,
+after the stamp (both **read**; the row that proves it is owed). The reconcile stops on the same
+file before the first runner.
+
+The same holds for an id two files carry. `repair` looks for it in every markdown file of a
+type's folder, whatever the file is called (**read**), so the reconcile does too: in a location's
+directory a file not named for an item is opened only to learn whether it carries the id of one,
+and is otherwise left alone, readable or not. The row that proves the two agree is owed.
+
+A4's remedy is reworded with it. "Take it out of the squad directory" meant, for a squad at the
+project root, out of the repository. The remedy is: correct the file, or, when it is not one of
+the squad's items, move it out of the folder it sits in. A file moved out and put back later has
+not been migrated, so the message does not offer the move as a way round a file that is an item.
+
+### A10 — One number, two ids
+
+Two files with different ids that share one sequence number (a task and a bug both numbered 15)
+cannot both have an entry, because the index holds one item per number. Before the pre-pass the
+run completed and one of the two was gone from the index without a word. The routine as built
+refuses, calling each file a duplicate of the other's id, which is false (both **reviewed**).
+
+Ruled: this is A4's case and the run stops. The entry the index already held is carried forward,
+and neither file is picked over the other. What changes is what the refusal says:
+
+- the cause names what is shared: the number, both ids, both paths, and that the index holds one
+  item per number. "Is also claimed by" is kept for two files carrying the same id;
+- the remedy is a renumber by hand, and the message gives its parts: a number above the counter,
+  which it prints, then the file name, `id`, `sequence_id`, and the references that name the old
+  id;
+- the message may add that the release the squad is stamped for can renumber it, references
+  included, naming that release (BUG-994 records the 0.15.0 release doing so). It does not print
+  that release's command as one to run here (A7).
+
+No renumber is made reachable behind the gate. `sq repair --renumber` is `repair`, and
+`sq renumber` rewrites ids and references across the files. Neither holds the licence, and a
+renumber is not a step of any migration.
+
+The cost is stated because it is real. This state is routine after a merge and `sq check` does
+not report it (BUG-994), so the refusal can be the first sign of it. The alternative is to migrate
+anyway and leave the clash to `sq repair --renumber` afterwards. It is refused because the file
+left out of the index is passed over by every runner that enumerates items from the index, and
+then stamped past.
+
+### What these amendments oblige
+
+- The reconcile takes its locations from the previous index and from the pairs the run hands it,
+  opens no file outside their directories, and takes the counter and the padding only from files
+  it indexes.
+- A file outside every location's directory changes nothing and is named nowhere, whatever it
+  holds. The proof rows, each through `sq migrate up` and each completing as it did before the
+  pre-pass: an item moved by hand into an archive folder (its entry dropped and named as
+  missing), an archived item the index never held, a copy of an indexed item in an archive
+  folder, and, in a squad at the project root, a backup folder, a nested fixture tree, a lone
+  fixture item, another tool's numbered record, and documents named like items that do not decode
+  or do not parse. One more, inside a type's folder: a file carrying another type's prefix and an
+  id of its own.
+- A file at a location that cannot be given an entry of its own stops the run before the first
+  runner, with or without a previous entry: bytes that do not decode, frontmatter that does not
+  parse, no usable `id`, a number two ids share, and an id two files carry, the second file under
+  any name in a location's directory.
+- With no readable index the reconcile indexes what the declared locations hold and nothing else.
+- No run that reaches its first runner is refused by the trailing `repair` for where a file sits,
+  and no file that was on disk before the run reaches the trailing `repair`'s unreadable report.
+  Both are held on reading for the shapes A8 and A9 name. The test over the whole table is what
+  proves them, and a shape that breaks either comes back to this record.
+
+> **Corrected 2026-10-12 (A11):** the first and fourth points above are replaced by the closing
+> list of A11, and the second holds where there is a readable index. The third and the fifth
+> stand.
+
+### A11 — The routine stays blind: the second source is withdrawn
+
+The second source of A8 was not confirmed. Ruled, by the operator's decision of 2026-10-12: the
+routine's locations come from the previous index only, no declared folder or prefix is handed to
+it, and with no readable index it recognises every item-shaped file in the tree. Clause 1 of the
+licence stands as first written. A8's first source, A9 where an index exists, and A10 are
+unchanged. What follows states the consequences in each of the two states, and what the step
+that does hold the vocabulary, the check before the first runner (A6), does about them. All of it
+is **read** and none of it driven; the proof owed is listed at the end.
+
+**With a readable previous index.** A location is the directory and file-name prefix of an
+entry's recorded path, and nothing else. A8 and A9 hold as written for every such location. The
+routine does not see a file that sits where no entry points: the first item of a type, bundled or
+custom, left unindexed in a folder the index has never held an item in. Left to itself that file
+would be indexed by the trailing `repair` after the runners and stamped past, which is the
+under-migration A2 set out to end. It is not left to itself. The check before the first runner
+lists, under the run's vocabulary, the files named for an item at each declared location, and
+refuses the run when the reconciled index holds no entry for one of them. The remedy: when the
+file is not one of the squad's items, move it out of the folder; when it is, the release the
+squad is stamped for indexes it with its own index rebuild, after which `sq migrate up` finds the
+folder through the entry. The message names that release and prints no command to run here (A7).
+
+**With no readable previous index.** The tree under the squad directory is walked, and every
+file with an item's name and a well-formed `id` is recognised, as A2 first said. The price is the
+one REV-995 recorded, in this state only: an archived item, a backup copy or a fixture is taken
+for the squad's, and a document that only looks like an item stops the run when it cannot be
+read. Three things bound that price without handing the routine anything.
+
+- *No runner writes first.* The check before the first runner refuses every entry that does not
+  sit at a declared location, with a true cause: there was no readable index, so every
+  item-shaped file under the squad directory was taken for an item, and these sit where no type
+  of this squad lives. It names an override only when the squad has one.
+- *No index is left behind.* A run refused before its first runner in this state leaves the squad
+  as it found it: with no index, or with the unparseable one untouched. An index built from a tree
+  walk and kept would make every stray's directory a location for the next run, and carry its
+  number into the counter.
+- *The remedy restores the first state.* Restore the index, from version control or with the
+  index rebuild of the release the squad is stamped for, and re-run: with an index the locations
+  decide, and the strays are never opened. Moving the files out of the squad directory is the
+  other way, and for a squad at the project root it means out of the repository.
+
+**What decides, for A9.** With an index, location decides and content never has to. With no index
+there are no locations, so the name decides: a file named like an item anywhere under the squad
+directory is taken for the squad's, and when it cannot be read A4 applies to it. A file that
+parses and carries no well-formed `id` is not an item in this state and is passed over. Two files
+carrying one id are refused wherever in the tree they sit.
+
+**The invariants.** Both stand, carried by the check before the first runner and no longer by
+where the routine looks. Its two questions are whether every indexed file sits where a declared
+type lives, and whether every file named for an item where a declared type lives has an entry.
+When both hold, the index the runners read is the corpus the trailing `repair` will scan. One
+limit is known: a copy of an item under a name that is not an item's, in a declared folder the
+index has never held an item in, is seen by neither question and is left to `repair`'s report
+after the stamp. No item is passed over by it.
+
+> **Amended 2026-10-12 (REV-995 finding 17):** the invariants do not rest on a name pattern the
+> routine holds, and no such pattern recognises a prefix where an index exists. The workflow spec
+> gives a type's prefix no grammar: any string loads, checked for uniqueness only (**read**), so no
+> pattern can cover every squad. With an index, a location's prefix is the spelling its entries
+> record, what stands before the entry's own number in its recorded file name, and files are
+> matched against it literally. An `id` is well formed when the model's own parser reads a prefix
+> and a number from it. With no index the walk needs a shape of its own, and it is word
+> characters: hyphen-joined segments of letters, digits and underscores, the first segment made
+> of digits alone being the number. A type whose prefix lies outside that shape is not found by
+> the walk. The check's second question lists files by each declared prefix exactly as declared,
+> so that type's unindexed files are refused before the first runner, and once an index holds
+> them their spelling is known. Whether a spec should refuse such a prefix at load is not ruled
+> here: it would stop a squad that uses one, and it belongs with what a spec must satisfy
+> (ADR-696). Owed as proof, none of it driven for this note: a prefix with an underscore and one
+> with a leading digit, each with an index (entry refreshed from its file, a second unindexed
+> item gaining an entry) and with none (recognised, run completes); and a prefix outside the
+> walk's shape with none (refused by the second question before any runner).
+
+**What this obliges, in place of the points A8 and A9 no longer carry.**
+
+- The reconcile takes its locations from the previous index alone. With no readable previous
+  index it walks the tree. Nothing declared reaches it, and its result says which of the two it
+  did.
+- The check before the first runner asks its two questions under the run's vocabulary and refuses
+  on either, with the causes and remedies above. No run that fails one of them has written an
+  item file.
+- A run refused before its first runner with no readable previous index leaves no index behind.
+- Proof owed, each through `sq migrate up`. With an index: the first item of a bundled type and
+  of a custom type, unindexed in a folder the index does not know, refused before any runner and
+  completing once the stamped release has indexed it. With no index: a clean squad, completing
+  with every item indexed; the same squad beside an archived item, refused before any runner with
+  the true cause, no index left, and completing after the index is restored; beside a look-alike
+  document that cannot be read, refused, no index left; beside another tool's numbered record,
+  refused with the counter not raised. A second run after any of these refusals behaves as the
+  first. And over every aged corpus fixture, both questions pass.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -621,4 +909,56 @@ Two tests carry the rule, in place of the one this record named:
     @manager for the operator's read before TASK-954 is promoted. What the subtasks must change is on TASK-954.
 - [2026-10-09T20:16:20Z] Pierre Chat:
   - 2026-10-09: the amendments of this date are confirmed, including the two that change what an adopter can do: A1 (only migrate up, help and chlog run on a squad whose schema differs from the package) and A4 (migrate up refuses rather than stamps past an item file it cannot index).
+- [2026-10-11T22:18:54Z] Robert Architect:
+  - 2026-10-12: amended in place a second time, on REV-995 findings 7, 9 and 12. Five dated notes (at clause 1 of the licence, at the reconcile's obligations, under A2, under A4, under the 2026-10-09 obligations) and a closing section **Amendments — 2026-10-12** with A8 to A10. The diff is additions only in the body; status untouched.
+    
+    **The rule (A8).** A file is the squad's item only where the squad keeps items of that prefix. A location is a directory and a prefix, known from the previous index (the path each entry records) or declared by the run's resolved vocabulary. Nothing outside a location's directory is opened, indexed, reported, counted or written to, and the tree is no longer walked. The measure is the trailing `repair`: the reconcile's idea of the squad's files is `repair`'s, with the previous index standing in for what the vocabulary does not declare.
+    
+    **A9.** Whether an unreadable file is the squad's is decided by where it sits, never by its content. At a location it stops the run, with or without a previous entry; anywhere else it is never opened. The remedy becomes "correct the file, or, when it is not one of the squad's items, move it out of the folder it sits in".
+    
+    **A10.** A number shared by two different ids still stops the run (it is A4's case), with a true cause and a hand renumber spelled out. No renumber is made reachable behind the gate.
+    
+    **For op-pierre to weigh.** I see one defensible rule and two real choices inside it:
+    1. A8 narrows clause 1 of the licence he accepted: the routine is handed each type's declared folder and prefix as plain pairs. Without that, a squad with no readable index has no record of where its corpus lives. The strictly blind alternative is to recognise every item-shaped file in the tree in that state, which brings back findings 7 and 9 there. I ruled the hand-in.
+    2. A10 keeps the refusal. The state is routine after a merge and `sq check` is clean in it today (BUG-994), so the refusal can be its first sign, and the way out is a hand renumber or the renumbering repair of the release the squad is stamped for. The alternative is to migrate and leave it to `sq repair --renumber`, which stamps past the file left out of the index. I ruled refusal, as A4 does.
+    
+    Two smaller effects he should know of: a copy of an item in an archive or backup folder is now ignored where the built routine refused it; and a never-indexed, id-less file named for an item inside a type's folder now stops the run, where `repair` reported it after the stamp.
+    
+    **Evidence.** Nothing was driven for this ruling. My probe script ran in the repository instead of a scratch squad and was stopped; the coordinator repaired the board. Every claim is marked read (the routine, its call site, `repair`'s scan, alignment refusal and duplicate-id reader) or taken from REV-995, and the amendment names each row the developer still owes as proof: the no-index state beside a stray file, a file with another type's prefix inside a type's folder, the id-less file, a same-id copy under any name in a type's folder, and the two pipeline invariants.
+    
+    @manager for the operator's confirmation. What the code and tests must change is on TASK-954.
+- [2026-10-12T05:16:13Z] Pierre Chat:
+  - 2026-10-12, on the amendments of this date:
+    
+    - A8: not confirmed as written. The routine stays strictly blind: its locations come from the previous index only, and no declared folder or prefix is handed to it. With no readable index it recognises every item-shaped file in the tree.
+    - A9 follows A8 as corrected.
+    - A10: confirmed. Two ids sharing one number stop the run, with the number, both ids and both paths named and the renumber by hand spelled out.
+- [2026-10-12T05:21:58Z] Robert Architect:
+  - 2026-10-12: corrected in place to carry the operator's decision of this date. A8's second source (declared folder and prefix handed to the routine) is withdrawn; clause 1 of the licence stands as first written. Eight dated notes mark the sentences that no longer hold (two at the licence and the reconcile's obligations, one under A2, three in A8, one in A9, one at the obligations list) and a new section A11 states what replaces them. The original A8 and A9 text is left readable; A10 is untouched. Additions only in the body.
+    
+    **The rule now.** With a readable previous index, a location is the directory and file-name prefix of an entry's recorded path, and nothing else. With no readable index the tree is walked and every file with an item's name and a well-formed `id` is recognised.
+    
+    **What the check before the first runner (A6) carries.** It holds the vocabulary, so it asks two questions the routine cannot: does every indexed file sit where a declared type lives, and does every file named for an item where a declared type lives have an entry. A run that fails either is refused before any item file is written. With both, the invariant of A8 still holds: no run that reaches its first runner is refused by the trailing `repair` for where a file sits.
+    
+    **The cost in the no-index state, for op-pierre.**
+    - A squad with no readable index and any item-shaped file outside its type folders (an archive, a backup, a fixture, another tool's numbered record) is refused before the first runner, where the first version of A8 migrated it. A look-alike document that cannot be read stops it too. The cause is true and no runner has written, so it is a refusal and not the half-migrated state REV-995 found.
+    - The remedy is to restore the index, from version control or with the index rebuild of the release the squad is stamped for. Moving the files out is the other way, and at a project-root squad that means out of the repository.
+    - A refused run in this state must leave no index behind. One built from a tree walk and kept would turn every stray's directory into a location for the next run and raise the counter. This is a new obligation born of the decision.
+    - With an index, the first item of a type left unindexed in a folder the index does not know is no longer found by the routine. A6 refuses it rather than let the run stamp past it, and the remedy is again the stamped release's index rebuild.
+    
+    **One point to reconsider, stated once.** The vocabulary still decides both cases, one step later and by refusing instead of by looking: A6 uses the same declared folders and prefixes the routine was denied. So strict blindness buys the licence its purity and costs two refusals with remedies outside this package, plus the no-index-left-behind rule, in states the declared pairs handled in one run. If that trade is the intended one, nothing here needs to change.
+    
+    **Evidence.** All of A11 is read, none driven; the rows owed are listed at its end and on TASK-954.
+    
+    @manager for the operator. What flips in the built code and rows is on TASK-954.
+- [2026-10-12T06:23:28Z] Robert Architect:
+  - 2026-10-12: one dated note added at A11, on REV-995 finding 17 (a type prefix the routine's name pattern does not match). Additions only in the body.
+    
+    **Ruled.** With an index the routine uses the spelling each entry records, so any prefix a squad actually used is recognised and no pattern is involved. With no index the tree walk keeps one shape, widened to letters, digits and underscores. The invariant of A11 does not rest on that shape: the check before the first runner lists files by each declared prefix exactly as declared, so an item the walk misses is refused before any runner and never stamped past.
+    
+    **For op-pierre to weigh, two things.**
+    1. The wider walk shape takes a few more file names for items when there is no index. It only matters in that state, and a file that parses without a well-formed id is still passed over.
+    2. The workflow spec has no grammar for a type's prefix: any string loads, checked for uniqueness only (read). Four readers in the code each assume a different one. I did not rule a load-time grammar, because it is a hard stop for a squad already using a prefix it would refuse, and it belongs with ADR-696. It is worth its own decision: a prefix holding a slash or a glob character would reach `repair`'s scan as declared (inferred from reading the glob, not driven).
+    
+    @manager for the operator; the code and rows are on TASK-954.
 <!-- sq:discussion:end -->

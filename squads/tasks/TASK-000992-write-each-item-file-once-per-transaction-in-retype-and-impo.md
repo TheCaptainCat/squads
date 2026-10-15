@@ -27,7 +27,7 @@ subentities:
   title: Establish the rename_type and repair multi-write cases
   status: Todo
 created_at: '2026-10-09T20:28:05Z'
-updated_at: '2026-10-11T20:24:58Z'
+updated_at: '2026-10-12T06:34:37Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -71,8 +71,9 @@ One developer, in this order: the guard is the measuring instrument for the othe
 ## Sequence
 
 Built after TASK-990 and the review of FEAT-986, and before FEAT-976: it edits
-`_services/_maintenance.py`, which TASK-954 and TASK-990 also edit, and the autouse guard is
-then in place for the two features that add migration writes.
+`_services/_maintenance.py`, which TASK-954, FEAT-980 and TASK-990 also edit, and the
+autouse guard is then in place before FEAT-976 adds its migration writes. FEAT-980's
+migration writes land earlier; the guard's first run measures them with everything else.
 
 ## Acceptance (whole task)
 
@@ -382,4 +383,6 @@ Gates and working rules: the task body.
   - 2026-10-11: slot recorded as relayed by the manager from op-pierre's answers: built after TASK-990 and the review of FEAT-986, before FEAT-976. The body carries it under "Sequence" and the task now depends on TASK-990. The reviewer's prototype spy is gone from disk (the session scratchpad was cleared), so ST1 describes its design instead of pointing at it. Still Draft.
 - [2026-10-11T20:24:58Z] Catherine Manager:
   - Correction of attribution: this task's slot (after the FEAT-986 review, before FEAT-976) is the manager's call following the tech lead's proposal, not a ruling by the operator. I relayed it as his answer in error.
+- [2026-10-12T06:34:37Z] Olivia Lead:
+  - 2026-10-12: wording of the "Sequence" section corrected for the new build order (FEAT-980 now lands before this task). The slot is unchanged: after TASK-990 and the review of FEAT-986, before FEAT-976. Still Draft.
 <!-- sq:discussion:end -->

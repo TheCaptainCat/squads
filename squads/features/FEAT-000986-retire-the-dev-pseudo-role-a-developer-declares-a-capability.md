@@ -46,7 +46,7 @@ subentities:
   title: As an adopter, I want the docs to cover capabilities and the upgrade changes
   status: Todo
 created_at: '2026-10-09T19:16:16Z'
-updated_at: '2026-10-11T20:18:45Z'
+updated_at: '2026-10-12T06:32:04Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -77,7 +77,7 @@ The release is named "roles, not slugs". This feature makes a developer an ordin
 ## Constraints
 
 - Must not be built in parallel with the pronouns feature (FEAT-961) or ADR-981's `[defaults]`: they extend the same role models and the same closed key space.
-- Shares the release's single migration step with comment headers (FEAT-980) and origin stamping (FEAT-976). Whichever contributor lands first creates the runner; the others amend it. This feature adds no schema bump of its own.
+- Amends the release's single migration step, which comment headers (FEAT-980) creates along with the 0.16 schema; origin stamping (FEAT-976) amends it after this feature. This feature adds no schema bump of its own and is built after FEAT-980.
 - FEAT-976 and FEAT-977 build after this one.
 
 ## Enabling work, kept as tasks
@@ -164,7 +164,7 @@ Acceptance:
 - After `sq migrate up`, no role item carries `extra.is_dev`; `extra.tech` and `extra.model` are untouched; a second run changes nothing.
 - `extra.tech` is no longer a settable field on a role item through `sq role ... update`/`set`-style verbs; `sq dev add` remains its only writer.
 - A build with this change reads an un-migrated squad correctly (a developer item still carrying `is_dev` and `tech` resolves, and `sq check` stays clean for it); no new key enters `.squads.json` and `sq repair` after deleting the index reproduces the same values.
-- The migration contributes to the release's one 0.15 to 0.16 step and adds no schema bump of its own. If the runner does not yet exist the work creates it; if it does, the work amends it. Test: a squad with the comment-header and origin contributions and this one migrates in a single `sq migrate up`.
+- The migration contributes to the release's one 0.15 to 0.16 step, which already exists, and adds no schema bump of its own. Test: a squad needing the comment-header contribution and this one migrates in a single `sq migrate up`; the origin contribution, added later, joins the same run.
 - This repository's own squad (two developer items) loses the key and passes `sq check`.
 <!-- sq:story:US4:body:end -->
 
@@ -292,4 +292,6 @@ Acceptance:
   - 2026-10-09: prose complete against ADR-984; ready for breakdown.
 - [2026-10-11T20:18:09Z] Nina Product:
   - 2026-10-11: US8 and the scope line reworded per the operator's ruling: a [dev] override reaches existing developers for template-supplied values (colour); the stored model stays as created.
+- [2026-10-12T06:32:04Z] Nina Product:
+  - 2026-10-12: build order reversed: the release's migration step now exists when this feature amends it; constraint and story 4 corrected.
 <!-- sq:discussion:end -->

@@ -27,7 +27,7 @@ subentities:
   title: As an adopter, I want the header grammar documented
   status: Todo
 created_at: '2026-09-29T14:58:15Z'
-updated_at: '2026-10-09T15:35:33Z'
+updated_at: '2026-10-12T06:31:58Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision on comment headers: each header names the author's permanent slug, so attribution survives a display-name change. The decision is the spec; the stories below cite its numbered decisions and add acceptance only.
@@ -45,6 +45,8 @@ Implements the accepted decision on comment headers: each header names the autho
 A slug-mapping option on the migration (declined in the decision). Any change to search or inbox JSON. Rewriting the name in a header already written.
 
 ## Sequencing
+
+This work creates the release's migration step (0.15 to 0.16) and the 0.16 schema; the developer-role retirement and the origin stamping add their contributions to that step afterwards, and neither bumps the schema.
 
 The verb parity feature's comment verbs write this grammar and its update verbs must never touch a slug, so the two are coordinated.
 <!-- sq:body:end -->
@@ -87,7 +89,9 @@ Not guarded, by ruling: a slug freed by rm --purge may be taken by a new entity,
 ### US3 — As an adopter, I want legacy headers migrated once, fail-loud
 
 <!-- sq:story:US3:body -->
-Acceptance (decision 4): the 0.15 to 0.16 migration scans every discussion region, top-level and each sub-entity's, and resolves every legacy header name across the whole corpus (live and retired roles and operators, plus Operator and squads) before writing anything; a name matching no entry, a name matching several, and a header-shaped column-0 line with a bad timestamp each fail; on any failure nothing is written and sq migrate up exits 1 listing every failure as file:line with a count; only the header line is rewritten and bullets stay byte-identical; already-migrated headers are skipped; the manual runbook names the remedy (add or reactivate the missing entry, or give one of the colliding entries a distinct display name for the run); schema version becomes 0.16; there is no map option; tests cover each failure kind with no file written.
+Acceptance (decision 4): this work creates the release's 0.15 to 0.16 migration step, registered so that sq migrate up runs it, and that step scans every discussion region, top-level and each sub-entity's, and resolves every legacy header name across the whole corpus (live and retired roles and operators, plus Operator and squads) before writing anything; a name matching no entry, a name matching several, and a header-shaped column-0 line with a bad timestamp each fail; on any failure nothing is written and sq migrate up exits 1 listing every failure as file:line with a count; only the header line is rewritten and bullets stay byte-identical; already-migrated headers are skipped; the manual runbook names the remedy (add or reactivate the missing entry, or give one of the colliding entries a distinct display name for the run); the schema version the migration stamps is 0.16, introduced here; there is no map option; tests cover each failure kind with no file written.
+
+Also, on its own: on a 0.15 squad holding only this story's work, sq migrate up runs this step alone, exits 0 and stamps 0.16; a squad already at 0.16 reports nothing to migrate; the step is a single entry that later contributions extend, and a test that appends a second contribution to it sees both run in one sq migrate up.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -128,4 +132,6 @@ Acceptance (Consequences, Docs; authored by the tech writer): docs/stability.md 
 <!-- sq:discussion -->
 - [2026-10-09T15:35:33Z] Nina Product:
   - 2026-10-09 readiness pass: checked every story against the Accepted ADR-979 text (grammar, reserved slugs, migration failure kinds, author_slug, docs). Matched. Added the explicit slug-reuse-after-purge non-guard (Pierre's ruling in the ADR) and the sub-entity scan scope to the migration acceptance. Moved to Ready.
+- [2026-10-12T06:31:58Z] Nina Product:
+  - 2026-10-12: build order reversed: this feature creates the release's migration step and the 0.16 schema; story 3 and the sequencing section say so.
 <!-- sq:discussion:end -->
