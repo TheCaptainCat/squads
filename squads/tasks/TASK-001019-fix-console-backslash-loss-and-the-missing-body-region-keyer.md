@@ -3,7 +3,7 @@ id: TASK-1019
 sequence_id: 1019
 type: task
 title: Fix console backslash loss and the missing-body-region KeyError
-status: InProgress
+status: Done
 author: tech-lead
 assignee: python-dev
 refs:
@@ -20,7 +20,7 @@ subentities:
   title: Fail body writes cleanly on a missing body region
   status: Done
 created_at: '2026-10-15T20:23:28Z'
-updated_at: '2026-10-15T20:53:40Z'
+updated_at: '2026-10-15T21:42:40Z'
 ---
 <!-- sq:body -->
 Two small, pre-existing defects, one subtask each. Neither has a feature parent: both are fixes linked by `fixes` refs to the bugs that describe them.
@@ -181,4 +181,6 @@ Add a service-level test and a CLI smoke test, for example `tests/cli/test_body_
   - F1: e() now writes every opening bracket escaped, with a backslash run before a bracket or at the end doubled and closed by an empty tag pair, so no later closing bracket changes its meaning. 10 new adjacent-value rows went red on the old code.
   - F4: sq check now reports a custom skill with its body pair removed and a reversed pair (close before open), each once; both new tests went red on the old code.
   - F3: removed both changelog entries for the writer. Gates clean; pytest on service, cli, unit and meta gives 8324 passed; live sq check clean.
+- [2026-10-15T21:42:40Z] Catherine Manager:
+  - Done and merged into release/0.16 (ad266142): REV-1020 approved; merged tree full suite 10094 passed, 0 failed. BUG-1011 and BUG-1012 are Fixed, for @qa to verify.
 <!-- sq:discussion:end -->
