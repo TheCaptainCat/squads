@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1017,
+  "counter": 1018,
   "padding": 6,
   "items": {
     "12": {
@@ -44735,7 +44735,7 @@
       "type": "feature",
       "title": "Select the squad with git-style -C, not --dir",
       "slug": "select-the-squad-with-git-style-c-not-dir",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "-C runs sq as if started in PATH; --dir is refused naming -C; BUG-1008 closed",
       "parent": null,
       "author": "product-owner",
@@ -44753,7 +44753,7 @@
         {
           "local_id": "US1",
           "title": "As an adopter, I want git-style -C to pick where sq runs",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44762,7 +44762,7 @@
         {
           "local_id": "US2",
           "title": "As an adopter, I want -C threaded, never a chdir",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44771,7 +44771,7 @@
         {
           "local_id": "US3",
           "title": "As an adopter, I want init and adopt to honour -C",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44780,7 +44780,7 @@
         {
           "local_id": "US4",
           "title": "As an adopter, I want --dir refused and one resolver left",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44789,7 +44789,7 @@
         {
           "local_id": "US5",
           "title": "As a maintainer, I want -C proven equal to cd",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44798,7 +44798,7 @@
         {
           "local_id": "US6",
           "title": "As an adopter, I want the docs and changelog to say -C",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44807,7 +44807,7 @@
       ],
       "path": "features/FEAT-001015-select-the-squad-with-git-style-c-not-dir.md",
       "created_at": "2026-10-15T20:12:57Z",
-      "updated_at": "2026-10-15T20:13:58Z",
+      "updated_at": "2026-10-15T20:20:36Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44932,14 +44932,197 @@
         "FEAT-980:depends-on",
         "FEAT-977:depends-on"
       ],
-      "subentities": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an agent, I want a comment address grammar beside comment -m",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an agent, I want a short hash that addresses one comment",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As a reader, I want to show one comment, with --json",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an author, I want to edit my own comment",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an author, I want to remove my own comment",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an agent, I want duplicate comments handled predictably",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "As an operator, I want edits and removals in the reflog",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "As an adopter, I want edits that keep markers and other lines intact",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "As a tool author, I want the hash in every render, JSON and hit",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US10",
+          "title": "As an operator, I want the same verbs on skills, roles, operators",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US11",
+          "title": "As an adopter, I want the docs, guidance and notes updated",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
       "path": "features/FEAT-001017-comments-are-shown-edited-and-removed-by-short-hash.md",
       "created_at": "2026-10-15T20:17:43Z",
-      "updated_at": "2026-10-15T20:17:43Z",
+      "updated_at": "2026-10-15T20:19:16Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "FEAT-1017"
+    },
+    "1018": {
+      "sequence_id": 1018,
+      "type": "task",
+      "title": "Replace --dir with git-style -C and one resolver",
+      "slug": "replace-dir-with-git-style-c-and-one-resolver",
+      "status": "InProgress",
+      "description": "Root -C threaded as client_cwd; --dir refused naming -C; resolve() is the walk-up only; init/adopt honour -C",
+      "parent": "FEAT-1015",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1008:fixes",
+        "REV-995:addresses",
+        "ADR-1009:implements",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Root -C option and the effective-directory helper",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Thread -C into client_cwd, pre-callback lookups and --file",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "init and adopt create at the -C directory",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Refuse --dir and delete the backwards inference",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Differential -C vs cd test and the process-cwd guard",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Docs, changelog and contributor prose say -C",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001018-replace-dir-with-git-style-c-and-one-resolver.md",
+      "created_at": "2026-10-15T20:19:04Z",
+      "updated_at": "2026-10-15T20:20:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1018"
     }
   }
 }

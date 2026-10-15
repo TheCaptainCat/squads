@@ -3,7 +3,7 @@ id: FEAT-1015
 sequence_id: 1015
 type: feature
 title: Select the squad with git-style -C, not --dir
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - ADR-1009:implements
@@ -15,24 +15,24 @@ description: -C runs sq as if started in PATH; --dir is refused naming -C; BUG-1
 subentities:
 - local_id: US1
   title: As an adopter, I want git-style -C to pick where sq runs
-  status: Todo
+  status: InProgress
 - local_id: US2
   title: As an adopter, I want -C threaded, never a chdir
-  status: Todo
+  status: InProgress
 - local_id: US3
   title: As an adopter, I want init and adopt to honour -C
-  status: Todo
+  status: InProgress
 - local_id: US4
   title: As an adopter, I want --dir refused and one resolver left
-  status: Todo
+  status: InProgress
 - local_id: US5
   title: As a maintainer, I want -C proven equal to cd
-  status: Todo
+  status: InProgress
 - local_id: US6
   title: As an adopter, I want the docs and changelog to say -C
-  status: Todo
+  status: InProgress
 created_at: '2026-10-15T20:12:57Z'
-updated_at: '2026-10-15T20:13:58Z'
+updated_at: '2026-10-15T20:20:36Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision on selecting the squad with a git-style `-C <path>`. The decision is the spec; the stories cite its numbered sections and add acceptance only. It replaces the global `--dir` and closes the `sq init` defect that ignored it.
@@ -172,4 +172,9 @@ Acceptance (decisions 6 and 7):
 <!-- sq:discussion -->
 - [2026-10-15T20:13:58Z] Nina Product:
   - 2026-10-15: drafted from the accepted -C decision. Six stories; no tasks yet. Ref kind fixes on BUG-1008 was accepted from a feature. depends-on TASK-954 is already satisfied; it records that the temporary refusal it deletes must land first. @manager: sequencing is right after the reconcile-path task and before FEAT-980, in its own worktree if the stream is busy.
+- [2026-10-15T20:19:55Z] Olivia Lead:
+  - 2026-10-15: broken down into TASK-1018, one task with six subtasks mapped one-to-one onto US1 to US6. ST1 to ST5 go to one python-dev in a single pass, in order, because they share `_cli/__init__.py`, `_cli/_common.py`, `_paths.py` and the gate table. ST6 (docs, changelog, contributor prose) goes to tech-writer after ST4 fixes the help text and refusal messages. It checks the architect's dated notes on ADR-263, ADR-622 and ADR-534 but does not write them.
+  - Refs: fixes BUG-1008, addresses REV-995 (F28 is closed because the heuristic is deleted, not widened), implements ADR-1009. The REV-995 layout rows stay in the gate table and run with -C. Each row expects what cd into the folder does, and ST5's differential test generalises them.
+  - Two calls not spelled out in the ADR. (1) The library keeps one process-directory default in `_paths.py`, shared by `resolve()`, `init` and `adopt`, so the many tests that call `service.init()` without a root keep working; the tests/meta guard allowlists that default and the CLI helper and nothing else. (2) A bare trailing `--dir` gets the same refusal as `--dir X`.
+  - @manager: TASK-1018 is Draft with no task-level assignee. Promote it to Ready when you dispatch. Board notice 21 still says scratch squads are addressed with --dir; ST6 drafts the new wording and hands it to you.
 <!-- sq:discussion:end -->
