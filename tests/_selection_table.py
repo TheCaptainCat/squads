@@ -110,6 +110,12 @@ BANNER_CLEAN: dict[str, tuple[str | None, str | None]] = {
 }
 
 
+def toml_string(text: str) -> str:
+    """*text* as a TOML string: a literal (single-quoted) string when it holds a backslash, so a
+    regular expression is written as it reads, otherwise a basic string."""
+    return f"'{text}'" if "\\" in text else f'"{text}"'
+
+
 def override_toml(
     row: TypeRow,
     entries: tuple[str, ...],
@@ -126,7 +132,7 @@ def override_toml(
         header = row.declaration if type_name == row.type else ""
         shipped = splat and type_name in SHIPPED_LIST_TYPES
         lines = [f'"$(*items.{type_name}.validators)"'] if shipped else []
-        lines += [f'"{n}"' for n in names]
+        lines += [toml_string(n) for n in names]
         if not lines and not header:
             continue
         body = f"validators = [{', '.join(lines)}]\n" if lines else ""
@@ -487,6 +493,35 @@ SETTLED_REQUIRES_DISCUSSION = Member(
     plant=_plant_settled_without_and_with_a_comment,
 )
 
+TRACKER_KEY = r"[A-Z]+-\d+"
+
+
+async def _plant_a_tracker_key_and_a_clean_title(svc: service.Service, row: TypeRow) -> Planted:
+    offender = (await create_item(svc, row.type, "Fix ABC-123 flake")).item
+    clean = (await create_item(svc, row.type, "Fix the flake")).item
+    return Planted(
+        offender.id,
+        clean.id,
+        f"title holds `ABC-123` (matches the external-id pattern `{TRACKER_KEY}`)"
+        " — keep tracker ids out of the title",
+    )
+
+
+EXTERNAL_ID_NOT_IN_TITLE = Member(
+    name="external_id_not_in_title",
+    fragment="matches the external-id pattern",
+    can_refuse=True,
+    plain=(f"external_id_not_in_title:{TRACKER_KEY}",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape((f"external_id_not_in_title:{TRACKER_KEY}",), "warn"),
+        "warn-suffix": Shape((f"external_id_not_in_title:{TRACKER_KEY}@warn",), "warn"),
+        "error-suffix": Shape((f"external_id_not_in_title:{TRACKER_KEY}@error",), "error"),
+    },
+    cells=roster_refused(),
+    plant=_plant_a_tracker_key_and_a_clean_title,
+)
+
 #: Every member this table drives, by name.
 MEMBERS: dict[str, Member] = {
     m.name: m
@@ -497,6 +532,7 @@ MEMBERS: dict[str, Member] = {
         DESCRIPTION_PRESENT,
         ASSIGNEE_PRESENT,
         SETTLED_REQUIRES_DISCUSSION,
+        EXTERNAL_ID_NOT_IN_TITLE,
     )
 }
 

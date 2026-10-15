@@ -166,6 +166,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "description_present",
         "assignee_present",
         "settled_requires_discussion",
+        "external_id_not_in_title",
     }
 )
 
@@ -199,9 +200,11 @@ COLOR_INTENTS: frozenset[str] = frozenset(
 #: suffix before the catalog lookup (``ValidatorEngine._run_per_item``), same as every other
 #: name. ``subentity_title_max``'s param is its title-length threshold
 #: (``WorkflowSpec.item_subentity_title_max``); ``ref_rule_target_present``'s is the item type
-#: it selects an obligation for (``_services/_validators.py::_ref_rule_target_present``).
+#: it selects an obligation for (``_services/_validators.py::_ref_rule_target_present``);
+#: ``item_title_max``'s is its title-length threshold and ``external_id_not_in_title``'s a
+#: regular expression (``WorkflowSpec.item_title_max``/``item_external_id_pattern``).
 PARAMETERIZED_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"subentity_title_max", "ref_rule_target_present", "item_title_max"}
+    {"subentity_title_max", "ref_rule_target_present", "item_title_max", "external_id_not_in_title"}
 )
 
 #: The subset of :data:`PARAMETERIZED_VALIDATOR_NAMES` whose own runtime resolver **unions**
@@ -228,7 +231,7 @@ MULTI_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset({"ref_rule_target_pr
 #: :func:`_check_ref_rule_targets` refuses on principle for its own member ("refused here rather
 #: than silently doing nothing forever").
 SINGLE_SELECTION_VALIDATOR_NAMES: frozenset[str] = frozenset(
-    {"subentity_title_max", "item_title_max"}
+    {"subentity_title_max", "item_title_max", "external_id_not_in_title"}
 )
 
 assert (
@@ -256,12 +259,15 @@ WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "description_present",
         "assignee_present",
         "settled_requires_discussion",
+        "external_id_not_in_title",
     }
 )
 
 #: Members whose ``:<param>`` is required: a bare entry loads nothing to check, so it is refused
 #: at load (:func:`_check_validator_param`) rather than selecting a check that never fires.
-REQUIRED_PARAM_VALIDATOR_NAMES: frozenset[str] = frozenset({"item_title_max"})
+REQUIRED_PARAM_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {"item_title_max", "external_id_not_in_title"}
+)
 
 #: What a bare ``subentity_title_max`` selection resolves to; a type's own
 #: ``subentity_title_max:<n>`` entry names a different number. ``_interactions.TITLE_ADVISORY_MAX``
@@ -289,8 +295,9 @@ _LEVEL_RANK: dict[str, int] = {"warn": 0, "error": 1}
 #: The separator between a validator name (with its optional ``:<param>``) and an optional
 #: declared level. ``@`` rather than a second ``:`` — ``:`` is already the param separator, and
 #: reusing it would make ``name:param:level`` ambiguous about which half is which. ``@`` cannot
-#: appear in a validator name (plain identifiers) or in ``subentity_title_max``'s param (an
-#: integer, enforced by :func:`_check_validator_param`), and it is a different namespace from
+#: appear in a validator name (plain identifiers) or in a title-length threshold (an integer,
+#: enforced by :func:`_check_validator_param`), is refused in an ``external_id_not_in_title``
+#: pattern (a literal ``@`` is written ``\\x40``), and it is a different namespace from
 #: the unrelated place a bare ``@`` already means something in this codebase (an ``@mention``
 #: inside discussion prose — comment text, never spec vocabulary).
 #:
@@ -384,6 +391,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "description_present": "warn",
     "assignee_present": "warn",
     "settled_requires_discussion": "warn",
+    "external_id_not_in_title": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -1472,16 +1480,30 @@ def _check_validator_param(
     t: str, entry: str, bare: str, param: str | None, errors: list[str]
 ) -> None:
     """The meaningful params: a title-length threshold (``subentity_title_max:<n>``,
-    ``item_title_max:<n>``) must parse as a positive integer, and a member in
+    ``item_title_max:<n>``) must parse as a positive integer, ``external_id_not_in_title``'s
+    must compile as a regular expression, and a member in
     :data:`REQUIRED_PARAM_VALIDATOR_NAMES` must carry one at all. Resolvable without the whole
-    ``[items.*]`` table (a threshold needs no cross-type lookup)."""
+    ``[items.*]`` table (nothing here needs a cross-type lookup)."""
     if bare in REQUIRED_PARAM_VALIDATOR_NAMES and not param:
+        shape = "<regex>" if bare == "external_id_not_in_title" else "<n>"
         errors.append(
             f"item {t!r}: validators entry {entry!r} is missing its required parameter — "
-            f"name it as '{bare}:<n>', or drop the validator; without a parameter it never fires"
+            f"name it as '{bare}:{shape}', or drop the validator; "
+            "without a parameter it never fires"
         )
         return
-    if param is None or bare not in ("subentity_title_max", "item_title_max"):
+    if param is None:
+        return
+    if bare == "external_id_not_in_title":
+        try:
+            re_compile(param)
+        except re.error as exc:
+            errors.append(
+                f"item {t!r}: validators entry {entry!r} names an invalid regular expression "
+                f"{param!r}: {exc}"
+            )
+        return
+    if bare not in ("subentity_title_max", "item_title_max"):
         return
     if parse_positive_int(param) is None:
         errors.append(
@@ -1575,7 +1597,14 @@ def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) 
             else:
                 _check_validator_param(t, entry, bare, param, errors)
             if level is not None:
-                _check_validator_level(t, entry, bare, level, errors)
+                if bare == "external_id_not_in_title" and level not in VALIDATOR_LEVELS:
+                    errors.append(
+                        f"item {t!r}: validators entry {entry!r} reads {level!r} as its level — "
+                        "'@' separates the pattern from the level ('error' or 'warn') and cannot "
+                        "appear in the pattern; write a literal '@' as \\x40"
+                    )
+                else:
+                    _check_validator_level(t, entry, bare, level, errors)
             key = validator_selection_key(entry)
             if key in seen:
                 errors.append(_repeat_selection_message(t, bare, seen[key], entry))
@@ -1937,6 +1966,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "description_present",
         "assignee_present",
         "settled_requires_discussion",
+        "external_id_not_in_title",
     }
 )
 
@@ -2595,6 +2625,19 @@ class WorkflowSpec(BaseModel):
             bare, param, _level = parse_validator_entry(entry)
             if bare == "item_title_max" and param is not None:
                 return parse_positive_int(param)
+        return None
+
+    def item_external_id_pattern(self, item_type: str) -> str | None:
+        """The ``external_id_not_in_title`` pattern *item_type* selects, or ``None`` when it does
+        not select the check (or the type is not declared). The whole text after the entry's
+        first colon, further colons included."""
+        ts = self.items.get(item_type)
+        if ts is None:
+            return None
+        for entry in ts.validators:
+            bare, param, _level = parse_validator_entry(entry)
+            if bare == "external_id_not_in_title":
+                return param
         return None
 
     def item_extra_fields(self, item_type: str) -> list[str]:

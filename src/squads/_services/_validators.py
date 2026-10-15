@@ -692,6 +692,29 @@ def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
+def _external_id_not_in_title(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose title matches the regular expression its type's
+    ``external_id_not_in_title:<regex>`` entry names, reporting the first match. The pattern is
+    the adopter's own and is searched with no flags and no bound on its cost; a type that does
+    not select the check has no pattern and reports nothing."""
+    item = ctx.item
+    pattern = ctx.spec.item_external_id_pattern(item.type)
+    if pattern is None:
+        return []
+    found = re.search(pattern, item.title)
+    if found is None:
+        return []
+    level = _resolved_level(ctx, "external_id_not_in_title")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"title holds `{found.group(0)}` (matches the external-id pattern `{pattern}`)"
+            " — keep tracker ids out of the title",
+        )
+    ]
+
+
 def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_status_banners``: an item whose body or description opens with a
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
@@ -904,6 +927,7 @@ CATALOG: dict[str, Validator] = {
     "description_present": _description_present,
     "assignee_present": _assignee_present,
     "settled_requires_discussion": _settled_requires_discussion,
+    "external_id_not_in_title": _external_id_not_in_title,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 

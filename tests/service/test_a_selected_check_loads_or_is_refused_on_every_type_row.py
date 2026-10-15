@@ -41,9 +41,9 @@ async def test_the_plain_entry_loads_or_is_refused_as_the_registry_decides(
         return
     text = " ".join(f"{f[1]} {f[2]}" for f in errors)
     assert row.type in text
-    assert member.plain[0] in text
+    assert repr(member.plain[0]) in text
     assert refusal in text
     with pytest.raises(SquadsError) as raised:
         service.open_service()
-    assert member.plain[0] in str(raised.value)
+    assert repr(member.plain[0]) in str(raised.value)
     assert refusal in str(raised.value)
