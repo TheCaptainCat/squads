@@ -15,7 +15,7 @@ from squads import _sections as sections
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
-from squads._errors import RoleNotFoundError, SquadsError
+from squads._errors import IndexFullError, RoleNotFoundError, SquadsError
 from squads._index._reconcile import (
     ReconcileResult,
     carry_forward_indexed_timestamps,
@@ -916,6 +916,20 @@ def _is_legacy_skill_body(md: Path, item_type: str, spec: WorkflowSpec) -> bool:
     return not md.name.startswith(skill_prefix)
 
 
+def _index_full_refusal(exc: IndexFullError, schema: str) -> str:
+    """The refusal for a pending runner that needs an id the index has none left to give: the
+    way out is a release that can widen the padding, then this command again."""
+    release = release_reading_schema(schema)
+    reader = f"a squads release that reads schema v{schema}" + (
+        f" (v{release} is one)" if release else ""
+    )
+    return (
+        f"the index is full: all {exc.capacity:,} ids at padding {exc.padding} are used up, "
+        f"and a pending migration needs another. Widen the padding with {reader}, then "
+        "upgrade and re-run `sq migrate up`. The schema is unchanged."
+    )
+
+
 def _unindexable_refusal(result: ReconcileResult, reader: str) -> str:
     """The refusal for files at the squad's item locations that cannot be given an index entry
     of their own: each file with its cause, and the remedy there is."""
@@ -1693,14 +1707,23 @@ class MaintenanceMixin(ServiceCore):
                 raise SquadsError(refusal)
             if not reconciled.had_index:
                 await self._keep_reconciled(built, reconciled, disk)
-        for m in applied:
-            outcome = await m.run(ctx)
-            changed[m.to_schema] = outcome.count
-            if outcome.skipped:
-                skipped[m.to_schema] = list(outcome.skipped)
         repaired: RepairResult | None = None
+        try:
+            for m in applied:
+                outcome = await m.run(ctx)
+                changed[m.to_schema] = outcome.count
+                if outcome.skipped:
+                    skipped[m.to_schema] = list(outcome.skipped)
+            if applied:
+                repaired = await self.repair(rerun="`sq migrate up`")
+        except IndexFullError as exc:
+            raise SquadsError(_index_full_refusal(exc, disk)) from exc
+        except SquadsError as exc:
+            raise SquadsError(
+                f"{exc}\nThe squad is still at schema v{disk}: fix the cause, then re-run "
+                "`sq migrate up`, which rebuilds the index from the files first."
+            ) from exc
         if applied:
-            repaired = await self.repair()
             await self._stamp_schema(SCHEMA_VERSION)
             # Reflog: log the migration batch after repair has completed.
             sid, psid = actor.current_session()
@@ -2225,7 +2248,7 @@ class MaintenanceMixin(ServiceCore):
             max_filename_width,
         )
 
-    def _raise_unless_vocab_valid(self, item: Item, md: Path) -> None:
+    def _raise_unless_vocab_valid(self, item: Item, md: Path, rerun: str) -> None:
         """Load-boundary vocab validation for :meth:`_rebuild_index_from_disk`: reject an item
         with an unknown type, status, or sub-entity status before it enters the rebuilt index.
         Uses ``self.spec`` — the Service-owned spec (possibly an override) — so repair respects
@@ -2234,12 +2257,12 @@ class MaintenanceMixin(ServiceCore):
         if item.type not in self.spec.items:
             raise SquadsError(
                 f"item {item.id} has unknown type {item.type!r} in {md.name}; "
-                f"fix the frontmatter before running `sq repair`"
+                f"fix the frontmatter before running {rerun}"
             )
         if item.status not in self.spec.statuses:
             raise SquadsError(
                 f"item {item.id} has unknown status {item.status!r} in {md.name}; "
-                f"fix the frontmatter before running `sq repair`"
+                f"fix the frontmatter before running {rerun}"
             )
         # Sub-entity statuses share the same vocabulary.
         for sub in item.subentities:
@@ -2247,7 +2270,7 @@ class MaintenanceMixin(ServiceCore):
                 raise SquadsError(
                     f"item {item.id} sub-entity {sub.local_id} has unknown status "
                     f"{sub.status!r} in {md.name}; fix the frontmatter before "
-                    f"running `sq repair`"
+                    f"running {rerun}"
                 )
 
     async def _backfill_roster_body_tags(
@@ -2327,6 +2350,7 @@ class MaintenanceMixin(ServiceCore):
         previous_counter: int,
         previous_padding: int,
         known_corpus: SquadsDB | None = None,
+        rerun: str = "`sq repair`",
     ) -> tuple[SquadsDB, list[str], list[str], list[str]]:
         """Scan every item file fresh and commit a rebuilt index — the core of :meth:`repair`,
         factored out so :meth:`renumber` can reuse it *without* repair's previous-snapshot /
@@ -2491,7 +2515,7 @@ class MaintenanceMixin(ServiceCore):
                 )
                 continue
             carry_forward_indexed_timestamps(item, data, known_corpus)
-            self._raise_unless_vocab_valid(item, md)
+            self._raise_unless_vocab_valid(item, md, rerun)
             _record_pending_rewrite(
                 pending, md, text, data, item, body_tag=self._repair_body_tag(item), spec=self.spec
             )
@@ -2536,7 +2560,7 @@ class MaintenanceMixin(ServiceCore):
         await self.store.overwrite(db)
         return db, unreadable, pending.canonicalized, pending.stripped
 
-    async def repair(self, *, renumber: bool = False) -> RepairResult:
+    async def repair(self, *, renumber: bool = False, rerun: str = "`sq repair`") -> RepairResult:
         """Rebuild the index from the markdown frontmatter, and sweep the corpus while walking
         it (:meth:`_rebuild_index_from_disk`).
 
@@ -2600,6 +2624,7 @@ class MaintenanceMixin(ServiceCore):
             await self._renumber()
 
         db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
+            rerun=rerun,
             previous_counter=previous_counter,
             previous_padding=previous_padding,
             known_corpus=known_corpus,

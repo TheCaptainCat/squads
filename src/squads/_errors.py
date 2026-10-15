@@ -58,3 +58,12 @@ class PlaybookConfigError(SquadsError):
     check``) can tell a playbook failure apart from a workflow-spec failure and name the
     actually-broken file rather than pointing at ``sq workflow lint``, which never reads
     ``.overrides/playbook.toml`` at all."""
+
+
+class IndexFullError(SquadsError):
+    """Every id the index's padding can name is used up."""
+
+    def __init__(self, message: str, *, capacity: int, padding: int) -> None:
+        super().__init__(message)
+        self.capacity = capacity
+        self.padding = padding

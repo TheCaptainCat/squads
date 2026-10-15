@@ -3,7 +3,7 @@ id: TASK-954
 sequence_id: 954
 type: task
 title: Give a behind-schema squad a reconcile path the gate permits
-status: InProgress
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -18,24 +18,24 @@ description: sq migrate up is the only exit for a behind-schema squad, yet a sta
 subentities:
 - local_id: ST1
   title: Name only permitted commands in remedies behind the gate
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Reconcile the index before the runners; refuse unindexable files
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Drive migrate up end to end over mismatched squad shapes
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Run migrate up under the squad's vocabulary, checked up front
-  status: Todo
+  status: Done
 - local_id: ST5
   title: Let only migrate up, help and chlog past the gate, by direction
-  status: Todo
+  status: Done
 - local_id: ST6
   title: Open every runner's index under the run's resolved vocabulary
   status: Done
 created_at: '2026-09-15T08:41:13Z'
-updated_at: '2026-10-11T21:04:05Z'
+updated_at: '2026-10-15T19:19:49Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -329,6 +329,19 @@ three verbs are refused there. No runner imports `skew_message`.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-15T18:21:27Z] Elias Python:
+  - Inventory of remedies reachable from `sq migrate up` on a squad left behind (read from the code; each row is pinned by a refusal row in `tests/integration/test_a_refused_migrate_up_names_only_commands_the_gate_permits.py` or by the meta guard).
+    
+    | Site | Fires when | Permitted? | Resolution |
+    |---|---|---|---|
+    | `IndexStore` load refusals (missing, corrupt, undeclared type/status) | a runner opens an index the reconcile did not repair | no, names `sq repair` | unreachable after the reconcile and the pre-runner check; wording kept; the closing line covers a stray escape |
+    | `_raise_unless_vocab_valid` (three messages) | trailing `repair()` meets an unknown type, status or sub-entity status | no | takes the command to re-run as `rerun`; `run_pending_migrations` passes the migrate form |
+    | `_corpus_alignment_refusals` text in trailing `repair()` | spec re-foldered/re-prefixed against the corpus | names no command | unchanged |
+    | `spec_refusal`, `validate_against_index_fail_closed` (`sq workflow lint`) | override does not load or does not fit the index | no | `migrate up` composes its own refusal (file, cause, "re-run `sq migrate up`"); the shared text still serves ordinary callers |
+    | `SquadsDB.allocate_id` capacity refusal (`sq migrate repad`) | a pending runner allocates an id at a full index | no | raises `IndexFullError`; `run_pending_migrations` composes the refusal naming the release that reads the stamped schema |
+    | any other `SquadsError` out of a runner or the trailing repair | a runner or the repair stops | n/a | re-raised with one closing line: the squad is still at schema X, fix the cause, re-run `sq migrate up` |
+    | `skew_message`, `ensure_no_skew` | `rename_type`/`rename_status` on a behind squad | n/a | unreachable once the gate refuses those verbs; no runner imports them (meta guard) |
+    | module docstrings in `_index/_store.py` and `_migrations/_v0_14_to_v0_15.py` | n/a | n/a | state which command heals in which state; the runner's paragraph says it can raise and a stopped run is resumed by `sq migrate up` |
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -964,4 +977,330 @@ The two newest runners also resolve the spec and the playbook a second time each
     F3: the hash file is replaced by reviewed copies of every file the run adds or changes, as text, under tests/goldens/migrated_corpus/<corpus>/ with a REMOVED.txt per corpus. A mismatch prints a unified diff. Regenerate with UPDATE_GOLDENS=1 (the repo's existing switch). Docstring states it covers squads without overrides only. The copies were recorded from the current tree, which had already matched the earlier digests captured on the unchanged code.
     F4: CLAUDE.md line 169 (one line, outside the generated region) and the 0.5 to 0.7 docstring now state the two runner shapes.
     Also: first falsification count is 42 red, not 41. tests/_helpers.py imports are now under TYPE_CHECKING with the runtime ones local, matching the file's convention.
+- [2026-10-11T21:36:29Z] Elias Python:
+  - @manager F6 closed and ST2 built and set Done; uncommitted in the working tree.
+    
+    F6: a file several corpora write identically is stored once under tests/goldens/migrated_corpus/_shared and named in each corpus's SHARED.txt; a corpus keeps its own copy only of what differs (319 files down to 88). A mismatch prints a unified diff; UPDATE_GOLDENS=1 regenerates through one test. The reconstructed expectation equals the old goldens for all eleven corpora. Proof: one written field changed (author of the seeded skills in the 0.11 to 0.14 runner) turned 9 corpora red; one rendered line changed (a heading in the CLAUDE.md template) turned the same 9 red with the diff shown.
+    
+    ST2: new src/squads/_index/_reconcile.py (reconcile_index, ReconcileResult, Unindexable; takes the squad directory, the store and the corpus schema, no spec; imports nothing from the five vocabulary packages). run_pending_migrations calls it before the first runner whenever a runner applies, and stops with a SquadsError naming each unindexable file with its cause, the remedy being only correct or move the file and re-run sq migrate up, plus what the rebuild indexed and dropped. MigrationRun.reconcile carries the result; migrate_up prints one line only when something was indexed or dropped; the migrate reflog line gains delta.reconcile {indexed, missing}. Item.from_frontmatter_verbatim is the fold-free constructor beside from_frontmatter; INVENTED_WHEN_ABSENT moved to _models/_item.py; carry_forward_indexed_timestamps and fold_stem_into_floor moved into the new module and imported by _maintenance.
+    Recognition: a name PREFIX-DIGITS-slug.md (prefix = hyphen-joined letter-led segments) and an id PREFIX-DIGITS; a missing sequence_id is read from the id. Walk skips dot-directories; a directory named like an item counts as a candidate so a refused read is reported. A name-shaped file whose frontmatter parses without a usable id is reported only when a previous entry stands for it (by path, then by file-name number only if that entry's own file is gone).
+    Tests: tests/service/test_index_reconcile_entry_rules.py (index state x file shape, not-item rows, project-root boundary rows, content-neutral at three schemas, vocabulary-blind over five spec variants, convergence over every corpus), tests/integration/test_migrate_up_reconciles_before_the_runners.py (service and CLI: index states, refusal rows on a file a runner reads and one none reads, resume after fixing or moving the file, convergence with the routine stubbed, current schema untouched), tests/meta/test_index_reconcile_resolves_no_vocabulary.py.
+    Pinned test rewritten: tests/cli/test_migrate_up_bare_subprocess_exit_parity.py, the unreadable-file test, now asserts the refusal (exit 1, schema and item files unchanged, file named with cause, only sq migrate up named). Also changed: two tests in test_milestone_roll_up_tag_migration.py that pinned a runner skipping an item whose file is gone; the rebuild now drops that entry first, so they assert it is reported as missing instead.
+    Falsified (red tests): no reconcile call 38; stamp SCHEMA_VERSION 14; folding constructor 1 (legacy ref_kinds); entry dropped on unindexable 12 (the unindexable-carried table, duplicate-id rows, refusal-carries-entry); refusal removed 27 (service and CLI refusal rows, bare-subprocess test); id key alone 1 (the not-item table).
+    Body vs code: the subtask puts the walk "under the squad directory" and says unreadable files are reported; a refused read is only reachable as a name-shaped directory under test, handled as above. An item lacking created_at/updated_at and any previous entry gets the loader's invented now, as repair does. A file whose id number disagrees with its sequence_id is reported unindexable.
+    Adopter-visible: sq migrate up on a behind squad no longer stops on a missing, corrupt or stale index and no longer skips a file the index did not know; it prints "index reconciled with the files: indexed ...; dropped ..." when it changed anything; it refuses (exit 1, nothing migrated, schema unchanged) when an item file cannot be read, parsed or identified, or two files claim one id, naming each file and cause; the migrate reflog line has a reconcile key; with the squad directory at the project root, another tool's file whose name and id both look like an item and lacks squads fields now blocks the run.
+    Not covered: no scratch-squad drive of a real aged project beyond the corpora; remedies elsewhere (ST1) and the gate (ST5) untouched. ruff check . also reports a long line in .claude/worktrees/agent-a240571530eba5b43 (another agent's worktree, not mine); src and tests are clean.
+- [2026-10-11T21:42:51Z] Elias Python:
+  - @manager the three ST2 suite failures are fixed (tests only; no source change).
+    
+    1. tests/cli/test_repair_corridor_message_and_exit_parity.py, migrate-up unreadable row: pinned that migrate up reuses repair's "carried forward as-is; fix the file" sentence. It now asserts the file is named, exit 1 (the parity that still holds with repair), "no migration has run" present and the repair sentence absent; the module docstring says migrate up shares the exit code but refuses before migrating, so its wording is its own. The repair, sync and adopt rows still pin the shared wording.
+    2. tests/cli/test_milestone_roll_up_tag_migration_cli.py: the damaged milestone there is a deleted file, not an unparseable one. It was pinning "a runner skips an item it cannot read and carries on"; for a missing file the rebuild now drops the entry first, so the test (renamed) asserts the id is named as "dropped MILE-n", exit 0, schema 0.15, check clean. I added the other half: a milestone whose frontmatter does not parse exits 1, is named, says "no migration has run" and leaves the schema at 0.14.
+    3. tests/service/test_type_invalid_frontmatter_load_boundary.py: the stand-in _boom now accepts **kwargs; the new keyword only keeps ref_kinds in the verbatim constructor path, so which errors from_frontmatter relabels is unchanged and the test again proves a KeyError escapes.
+    Skip-and-carry-on pinned elsewhere: the full wide run found only these tests plus the two service milestone tests and the bare-subprocess test I rewrote earlier; no other test pinned it. The behaviour is gone for unreadable, undecodable and unparseable item files (all refuse); a file that is simply gone is dropped and named; a runner skip on an item it can read but cannot act on (moved tag, no body region) is unchanged.
+    Wide run: every test file mentioning migrate up, run_pending_migrations, carried forward, skipped, from_frontmatter or unreadable, plus tests/meta, tests/integration, tests/cli, tests/service in one run: 4352 passed, 14 skipped, 0 FAILED. Gates (ruff with --exclude .claude/worktrees): pyright 0 errors, ruff check passed, ruff format clean.
+- [2026-10-11T22:11:52Z] Elias Python:
+  - @manager F8, F10, F11 and the code and tests of F13 are fixed; F7, F9, F12 untouched (walk, recognition and clash handling unchanged, their table rows kept). Uncommitted.
+    
+    F8: floors now move only for an item accepted by the routine (note() moved from reject/read into settle for the single accepted claimant). Rows: a table of four rejected shapes with huge file-name numbers (no type, malformed YAML, undecodable, id claimed twice) leaves counter and padding unchanged; a service-level and a CLI refused-then-fixed equivalence (the ADR-20240115 record from the finding: refused leaves 11/6, after the remedy the squad ends 11/6, equal to a first run on the fixed squad). Falsified (note() back in reject): 6 red - the CLI refused-run floor test, the CLI refused-then-fixed test, 3 of the 4 table rows, the service refused-then-fixed test.
+    F10: run_pending_migrations appends a migrate reflog line (delta from_schema + reconcile {indexed, missing}) right after the index is written whenever something was indexed or dropped; the final migrate line no longer carries the key. Row: refuse, fix, complete, and the dropped TASK-3 is on exactly one migrate line, and sq reflog --json parses. The earlier dropped-id CLI test now finds the line by its key. Falsified (call removed): 2 red - that CLI test and the new stopped-run test.
+    F11: entry_prefix/entry_name in the routine: a prefixless entry (index before ids were stored) takes its prefix from the recorded file name and is reported as e.g. TASK-3 (else its path); prior() uses entry_prefix. Rows on the 0.1 and 0.5 corpora: dropped entry is named TASK-3; a moved file that cannot be indexed keeps its entry. Falsified: naming back to entry.id 2 red; prior() back to entry.prefix 2 red.
+    F13: the two skip texts (_cli/_migrate.py, 0.14 to 0.15 manual) no longer mention a missing file; the bare-subprocess docstring is corrected; the runner-skips-every-item case is back (one milestone with no body region, one with a moved tag: both skipped, zero changed, stamp 0.15) beside the missing-file test. docs/ lines remain for the writer.
+    UPDATE_GOLDENS: the comparison rows are skipped while it is set, so only the regeneration test touches the folder.
+    Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter or unreadable, plus tests/meta, integration, cli, service): 4398 passed, 14 skipped, 0 FAILED. Gates: pyright 0 errors, ruff check passed, ruff format clean (excluding .claude/worktrees). No disagreement with the findings.
+- [2026-10-11T22:19:04Z] Robert Architect:
+  - 2026-10-12: ADR-955 rules on REV-995 findings 7, 9 and 12 (A8 to A10, under **Amendments — 2026-10-12**). What ST2 changes, for @tech-lead and @python-dev. Nothing below was driven by me; each expected outcome is from the ruling and is yours to prove.
+    
+    **Code, `_index/_reconcile.py` and its call site**
+    - `reconcile_index` takes one more keyword: the declared locations, as plain pairs of squad-relative folder and prefix. `run_pending_migrations` builds them from the run's own spec (the one `MigrationContext` carries). The module still imports nothing that holds a spec, so the meta-test stands.
+    - Locations are those pairs plus, for every previous entry, the directory and the file-name prefix of its recorded path. Parse the prefix from the path's file name, not from `entry.prefix`, which a pre-0.7 index does not carry.
+    - `_candidates` stops walking the tree. It lists each location's directory, not recursively, and keeps the names `<that prefix>-<digits>-...` (prefix compared exactly). No other directory is listed.
+    - In `_Scan.read`, the branch "no usable id, reported only when a previous entry stands for it" goes. At a location every candidate that cannot become an entry is rejected, entry or no entry.
+    - Same-id detection widens inside location directories only: a markdown file there that is not named for an item is opened to read its `id`, and joins the duplicate group when an item carries the same one. Unreadable or id-less, it is left alone. This mirrors `_id_carriers`.
+    - `settle` separates two cases: one id in two files ("is also claimed by") and one number under two ids ("number 15 is used by TASK-15 (path) and BUG-15 (path); the index holds one item per number").
+    - `_unindexable_refusal`: the remedy reads "correct each file, or, when it is not one of the squad's items, move it out of the folder it sits in". For a shared number it gives the hand renumber: the next free number (counter plus one, printed), the file name, `id`, `sequence_id`, the references to the old id. It may add that the release the squad is stamped for can renumber it, naming the release, without printing a command to run here.
+    - The module docstring and `test_a_new_item_file_is_indexed_wherever_it_sits` state the withdrawn rule; both invert.
+    
+    **Test rows through `sq migrate up`, each completing with exit 0, schema stamped, counter and padding as a squad without the file, the file byte-identical and named nowhere**
+    - an archived milestone the index never held (`squads/archive/`, number 30);
+    - a copy of an indexed item in `squads/archive/`;
+    - a milestone moved by hand into `squads/archive/`: as above, plus its entry reported dropped as missing and absent from the final index;
+    - squad at the project root: a `backup-2025/tasks/` copy, a nested fixture tree repeating the squad's ids, a lone `tests/fixtures/sample/tasks/TASK-000042-sample.md`, `docs/decisions/ADR-20240115-use-postgres.md`, `docs/lesson-2-verbes.md` in Latin-1, `docs/chapter-1-getting-started.md` with a non-YAML block;
+    - `tasks/BUG-000050-x.md` carrying `id: BUG-50` (another type's prefix inside a type's folder, an id of its own);
+    - no index at all beside the archived milestone: every item in the type folders indexed, the archive ignored.
+    
+    **Rows that stop before any item file changes, schema unchanged, and complete after the remedy**
+    - at a location, never indexed: undecodable bytes, frontmatter that does not parse, frontmatter with no `id`;
+    - the same three with a previous entry (entry carried forward);
+    - one id in two files inside the type folders, including a second copy under a name that is not an item's;
+    - a task and a bug sharing a number: the new cause, the printed next free number, and a re-run that completes after the hand renumber.
+    
+    **Kept as built**: a file with no entry in a folder the index knows gains one; a custom type's items are found through their entries and through the override's folder and prefix (add the row with no entry yet for that type); rename and retype interrupted between two locations.
+    
+    **Pipeline invariants over the whole table**: no run that reaches its first runner is refused by the trailing `repair` for where a file sits; no file on disk before the run appears in the trailing `repair`'s unreadable report. A shape that breaks either comes back to ADR-955. The eleven corpus fixtures still reconcile with nothing reported and migrate to the same result.
+    
+    **Changes to tests already written**: the vocabulary-blind table now holds the handed-in pairs constant, or asserts that different pairs change the index only by files found in a declared location the index did not know. The three rows of `test_a_file_that_cannot_be_indexed_is_reported_and_its_entry_carried` that pin a report for a look-alike outside the type folders invert. The reviewer's "backup copy or nested fixture tree is refused" becomes "ignored".
+    
+    **ST4, the check before the first runner**: add the row the reviewer asked for, which can now only come from the previous index: an entry whose recorded path is outside its type's declared folder, on a squad with no override. Refused before any runner, saying where the file is and where its type's items live, blaming no override.
+    
+    @manager ADR-955's discussion carries the two points for op-pierre's confirmation (the declared locations handed to the reconcile, and the refusal on a shared number); repeated here because an inbox lists open items only.
+- [2026-10-12T04:49:42Z] Elias Python:
+  - @manager third pass on ST2 (ADR-955 A8, A9, A10) built; F7, F9, F12 marked Fixed. Uncommitted.
+    
+    Module (_index/_reconcile.py): the tree is no longer walked. Locations = (directory, prefix) pairs from the previous index (directory and file-name prefix of each entry's recorded path, not entry.prefix) plus the declared pairs; only those directories are listed (not recursively), and only names with exactly that prefix are candidates. Everything outside is never opened, indexed, counted towards the counter or padding, or reported. The "no id, reported only if an entry stands" branch is gone: any candidate that cannot become an entry is rejected. Other markdown files in a location's directory (any name, any prefix) are opened only to read an id and join a duplicate group; unreadable or id-less ones are left alone. settle separates one id in two files ("is also claimed by") from one number under two ids (cause names the number, both ids, both paths, "the index holds one item per number"; Unindexable.shared_number). ReconcileResult carries the counter. Call site (_maintenance.run_pending_migrations): passes declared=[(folder, prefix)] from self.spec.items; the refusal remedy now reads "correct each file, or, when it is not one of the squad's items, move it out of the folder it sits in", and for a shared number adds the by-hand renumber (counter+1 printed; file name, id, sequence_id, references; the stamped release can also renumber; no command printed).
+    The seam: _locations() in _index/_reconcile.py is the one place the declared pairs enter. The strictly blind alternative (no declared pairs; with no readable index, recognise every item-shaped file in the tree) is that function plus the declared= argument at the call site.
+    
+    Rows (all through the service and sq migrate up where stated; * = owed by the amendment, driven, all came out as the amendment expected):
+    - ignored, completes, floors as a squad without it, file byte-identical, named nowhere: archived milestone the index never held, copy of an indexed item in archive/, backup-2025/tasks copy, nested fixture tree, lone tests/fixtures/sample/tasks file, ADR-20240115 record, Latin-1 documents and a non-YAML block (never opened asserted), tasks/BUG-50 with an id of its own*, and the trailing repair never refusing any of them and reporting nothing unreadable.
+    - milestone moved by hand into archive/: file untouched, entry dropped and named, absent from the index, completes.
+    - no index / corrupt index beside strays*: declared folders indexed, strays ignored, floors 11/6.
+    - file with no entry in a known folder gains one; custom type found through its entries and through the declared pair (no entry yet); hyphenated prefix and digit-leading slug at a location.
+    - refusals (schema unchanged, files hash-identical, resumes after the remedy): undecodable, unparseable, no id, no frontmatter at a location, never indexed and with an entry; one id in two files incl. a copy under a non-item name; task and bug sharing number 3: new cause, printed number 12, no renumber command, completes after the hand renumber.
+    - agreement with repair*: repair reports the id-less file in a type folder and the copy under any name, and does not see another type's prefix inside a type folder (all three agree with the reconcile).
+    Inverted rows (kept, flipped): test_a_new_item_file_is_indexed_wherever_it_sits (now at-a-location indexed / outside-every-location ignored); the look-alike rows (name-and-id item-shaped doc, shape with no frontmatter, id of another shape, id gone) now assert never opened; the no-frontmatter, id-line-gone, id-malformed shape rows now report without an entry; duplicate copies now live inside type folders; entry-at-an-old-path split into rename within a folder (path updates) and moved out of every location (dropped, named); the floor rows moved to tasks/. The vocabulary-blind table keeps the pairs constant; a new row shows different pairs change the index only by the file in the declared location.
+    Falsified (red): tree walked again (A8) 50 red across the ignored/strays/repair-agreement/never-opened/moved-by-hand/no-index rows; reported-only-with-an-entry branch back (A9) 5 red (the never-indexed location rows and the shape table); the copy-detection reading only parseable ids (A9) 1 red; the shared-number case folded into "also claimed" (A10) 2 red. Refused-then-fixed equivalence and the counter rows from the last pass re-run green under the new rule.
+    Nothing in the amendment failed when driven; ST4's out-of-folder-entry row is not built.
+    Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter or unreadable, plus tests/meta, integration, cli, service): 4455 passed, 14 skipped, 0 FAILED. Gates: pyright 0 errors, ruff check passed, ruff format clean (excluding .claude/worktrees). After the interruption I re-ran the reconcile files and tests/meta: 495 passed.
+    Adopter sees differently: only the folders the squad keeps items in (from its index and its declared types) are read; an archive folder, a backup copy, a nested fixture tree or another tool's records at a project-root squad are ignored and never block the run, and an item moved by hand out of its folder is dropped from the index and named; a file named for an item in an item folder that cannot be read, parsed or identified stops the run (with or without an earlier entry), remedy: correct it or move it out of that folder; one id in two files in an item folder (any file name) stops the run; two ids sharing a number stop the run with the number, ids and paths named and a by-hand renumber spelled out.
+- [2026-10-12T05:22:01Z] Robert Architect:
+  - 2026-10-12: ADR-955 A11 withdraws A8's second source on the operator's decision. The routine stays blind. What changes in what is built, for @python-dev and @tech-lead. A9's rules at a location, A10 and every with-index row stand as built.
+    
+    **Code, `_index/_reconcile.py` and the call site**
+    - `_locations()` loses `declared`, `reconcile_index` loses the `declared=` keyword, and `run_pending_migrations` stops passing pairs. Locations are the directory and file-name prefix of each previous entry's recorded path, nothing else.
+    - With no readable previous index there are no locations: walk the tree (dot-directories skipped) and take every file with an item's name. One that parses with a well-formed `id` becomes an entry. One that parses without a well-formed `id` is passed over, since no entry can stand for it. One that cannot be read or parsed is rejected. Two files carrying one id are rejected wherever they sit. The any-name copy check (other markdown files opened for their id) stays a with-index rule; do not open every markdown file in the tree.
+    - `ReconcileResult` says whether a previous index was read. The check before the first runner needs it for its cause, and the next rule needs it.
+    - A run refused before its first runner with no readable previous index leaves no index behind: no file where there was none, the unparseable one untouched, no reflog line for an index that is not kept. Build then commit, or withdraw, is yours. With an index, a refused run keeps the reconciled index as now.
+    - Remedy text when there was no readable index: restore the index (from version control, or with the index rebuild of the release the squad is stamped for, named, no command printed) and re-run; otherwise correct the file or move it out of the squad directory. With an index the remedy stays as built.
+    - The module docstring and the vocabulary-blind meta-test go back to "nothing declared reaches the routine".
+    
+    **Rows that flip**
+    - No index or corrupt index beside strays (was: declared folders indexed, strays ignored, floors 11/6). Now: the archived item is recognised; the run is refused before any runner by the check's first question, with the true cause; no item file changes; no index is left; a second run behaves the same; after the index is restored the run completes and the stray is never opened. Until that check exists this row ends in the strand REV-995 F7 found, so ST2 must not ship ahead of ST4's first question.
+    - Custom type found through its declared pair with no entry yet (was: indexed). Now: not seen by the reconcile; refused before any runner by the check's second question; completes once the stamped release has indexed the file. The same row for the first item of a bundled type.
+    - The vocabulary-blind table: the pairs column goes, the index bytes are identical under every vocabulary again, and the row "different pairs change the index only by the file in the declared location" is removed.
+    
+    **New rows owed, each through `sq migrate up`, all with no readable index**
+    - a clean squad: completes, every item indexed, counter and padding as the files give them;
+    - beside a look-alike document that cannot be read (project root): refused, no index left; completes after the index is restored;
+    - beside another tool's numbered record with no `type`: refused, counter not raised, no index left;
+    - beside a backup copy repeating an id: refused with both paths, no index left;
+    - a parse-clean look-alike with no well-formed `id` (`RFC-2119-keywords.md`, `CVE-2024-1234.md`): passed over, run completes.
+    
+    **ST4, the check before the first runner, now carries the invariant**
+    - First question: every entry of the reconciled index sits at a declared location (its directory is a declared folder and its file name carries that type's prefix). Otherwise refuse. Two causes: with a previous index, the file is where the index knows it and where no declared type lives (name the override only when the squad has one); with none, there was no readable index, so every item-shaped file under the squad directory was taken for an item, and these sit where no type lives.
+    - Second question: every file named for an item at a declared location has an entry in the reconciled index. Otherwise refuse, naming the file. Remedy: move it out of the folder when it is not the squad's item; when it is, the release the squad is stamped for indexes it, then re-run.
+    - Its refusals in the no-index state fall under "no index left behind".
+    - Pipeline invariants over the whole table, unchanged in wording: no run that reaches its first runner is refused by the trailing `repair` for where a file sits, and no file on disk before the run reaches the trailing `repair`'s unreadable report. One known limit, to pin and not to fix: a copy under a name that is not an item's, in a declared folder the index has never held an item in.
+    - Both questions pass over the eleven corpus fixtures.
+    
+    @manager ADR-955's discussion carries the cost of the decision in the no-index state and one point for op-pierre to reconsider; repeated here because an inbox lists open items only.
+- [2026-10-12T05:39:36Z] Elias Python:
+  - @manager A11 and ST4 built; ST4 set Done; F7, F9, F12 stay Fixed (a comment on each names the rule). Uncommitted.
+    
+    Reconcile (_index/_reconcile.py): the declared pairs are gone from _locations(), the signature and the call site. New plan_reconcile() builds the index without writing and returns (db, result); reconcile_index() is plan + write, for the tests. With a readable index a location is an entry's directory and file-name prefix, nothing else. With none the tree is walked (dot-directories skipped) and every item-named file is a candidate: a well-formed id makes an entry, a file that parses without one is passed over, an unreadable/unparseable one is rejected, a shared id is rejected wherever it sits; the any-name copy check stays a with-index rule. ReconcileResult.had_index says which state. A prefixless (pre-0.7) entry that is carried is given its prefix from its recorded name, so a written index no longer holds UNRESOLVED ids.
+    Call site (_services/_maintenance.run_pending_migrations): with an index the rebuilt one is written first and the reflog line follows (as before); with none nothing is written until every check passes, so a refusal leaves no index (or the unparseable one untouched) and no reflog line. The unindexable refusal's remedy for the no-index state: restore the index (version control, or the index rebuild of the stamped release, named, no command printed), or correct/move the file out of the squad directory.
+    ST4: new _services/_corpus_fit.py, run after the reconcile and the unindexable refusal and before the first runner. Question one (every entry sits at a declared (folder, prefix)) and question two (every file named for an item at a declared location has an entry) with the two causes and remedies A11 gives, then the vocabulary cross-check (validate_against_index under the run's spec, override hint dropped when there is no override). Override named only when the squad has one; remedies only hand fixes and `sq migrate up`. migrate_up now builds through get_service_bypassing_index_cross_check(bundled_fallback=False): no bundled substitute, an override or playbook override that does not load stops the run with the file and the loader's cause before the reconcile (index untouched), and the service carries resolve_playbook(...) (the trap); sq repair's accessor behaviour is unchanged (a row pins it).
+    Seam: the declared pairs were the only thing the routine took; it now takes nothing. The check in _corpus_fit.py is where the spec lives.
+    
+    Flipped rows: no index beside strays (now recognised by the walk, refused before any runner by question one, no index left, second run identical, completes once the index is restored with the stray never opened); the first item of a bundled/custom type with no entry (not seen by the routine; refused by question two; completes once indexed); the vocabulary-blind table lost nothing but its pairs; the hyphenated-prefix, custom-type, archive and deep rows now sit under the no-index walk; the entry-less shape/duplicate/timestamp rows keep tasks/ a location through an anchor entry; "different pairs" row removed.
+    New rows (all through sq migrate up unless stated; * owed by A11): no-index clean squad completes with 11 items, counter 11 / padding 6 (missing and corrupt)*; archived item, unreadable look-alike, another tool's numbered record, backup copy repeating an id: each refused before any runner, cause names "no readable index", no index left / unparseable one byte-identical, no reflog line, files unchanged, second run identical, counter 11 after restore*; RFC-2119-keywords.md / CVE-2024-1234.md passed over*; with an index: an entry where no type lives refused (override not named), unindexed first item of a bundled and of a custom type refused by question two and completing once indexed*; both questions pass over all eleven corpora and the trailing repair never refuses a run the checks let through, nothing unreadable (strays with an index); the known limit (non-item-named copy in a never-held declared folder) pinned. Vocabulary table (service + CLI, hand remedy then completes, only `sq migrate up` named, no item file changed, stamp unchanged): override drops a type, re-prefixes, re-folders, shrinks a badge collection a value names; no override with an undeclared status, type, sub-entity status; consistent overrides complete; override conflicting only with a stale entry completes; override with its own type and an item completes at 0.14; override not TOML, failing validation, playbook override failing beside a valid workflow one: refused before the index is touched, naming the file and cause; bound: each refused row is also refused later with the check stubbed. F5: both routes (pre-0.7 squad with an override and a hand-edited status; and with an unreadable bug file) now stop once, leave no UNRESOLVED ids, and the re-run after the fix completes - so ST2+ST4 do remove F5; ST3 still owes its table row.
+    Did not survive driving: dropping a status through an override cannot be built (the override does not load while a lifecycle uses the status), so that family is covered by the hand-edited status rows; after the first refusal with an index the rebuilt index has already dropped an entry whose file was moved by hand, so the remedy for a misplaced file also needs its entry rebuilt (the message says so, naming the stamped release). Otherwise A11 and A6 held as written.
+    Falsified (red): routine no longer walks with no index 31; always walks 58; index kept on a no-index refusal 8 (stray refusal rows); question one removed 7; question two removed 4; vocabulary check removed 8 (undeclared status/type/sub-entity status, badge); migrate_up back on get_service() 8 (stale-entry, non-loading overrides, the pre-0.7 row, remedies); bundled fallback let through 2 (non-loading override rows).
+    Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter, unreadable, bypass, plus tests/meta, integration, cli, service, unit): 7052 passed, 14 skipped, 0 FAILED. Gates: pyright 0, ruff check passed, ruff format clean (excluding .claude/worktrees). sq check clean.
+    Adopter sees differently: with no readable index the whole tree under the squad directory is read for item-named files, and a stray (archived item, backup copy, another tool's record, an unreadable look-alike) stops the run before anything is written, leaving the squad exactly as found, with the remedy to restore the index or move the file out of the squad directory; with an index, an indexed file where no type lives, or a file named for an item where a type lives with no entry, stops the run (remedy: move it, or have the stamped release rebuild the index); a corpus that does not fit the vocabulary the squad declares (undeclared type/status/sub-entity status, re-prefixed or re-foldered type, shrunk badge collection) is refused before any item file is written, with the items and the override named; an override or playbook override that does not load stops sq migrate up with the file and cause and without the old sq workflow lint advice, and sq migrate up no longer falls back to the bundled vocabulary; an index written before ids were stored no longer ends up with UNRESOLVED ids.
+- [2026-10-12T06:23:33Z] Robert Architect:
+  - 2026-10-12: ruling on REV-995 finding 17, recorded as a dated note in ADR-955 at A11. For @python-dev. Read, not driven; every row below is yours to prove.
+    
+    **The prefix grammar as the code has it.** There is none in the spec: `ItemSpec.prefix` is a bare `str`, and load checks it for uniqueness only. Three other readers each have their own idea: `prefix_from_id` (everything before the last hyphen), `_NAME_NUMBER` in `_duplicate_ids.py` (anything, then the first hyphen-digits), and `repair`'s scan (a glob on the declared prefix, literally). The reconcile's `_PREFIX` is a fourth and the narrowest.
+    
+    **The ruling.**
+    - With an index, no pattern recognises a prefix. A location's prefix is the spelling the entry records: its id's prefix when the recorded file name starts with it, otherwise what stands before the entry's own number in that name. Files in the location's directory are matched against that spelling literally (spelling, hyphen, digits, then a hyphen and slug or the extension).
+    - An `id` is well formed when the model's own parser reads a non-empty prefix and a number from it, not when `_PREFIX` matches.
+    - With no index the walk keeps one shape, widened to word characters: hyphen-joined segments of letters, digits and underscores, each holding at least one character that is not a digit, the first segment of digits alone being the number.
+    - The invariant does not rest on that shape. The second question of the check lists by each declared prefix exactly as declared (your fix in progress), so an item the walk misses is refused before any runner.
+    
+    **Code**
+    - `_locations()` and `entry_prefix()` stop reading the prefix through `_NAME_RE`; they take the entry's spelling as above. `_scan_directories` matches candidates by literal prefix, not by the pattern.
+    - `_identity_problem`, `_normalized` and `_ID_RE` use the model's id parsing.
+    - `_PREFIX` widens as above and is used by the tree walk only.
+    - In `_corpus_fit.py`, both questions compare by the declared spelling: the first question's `item_name_parts` test has the same gap as the second had.
+    
+    **Rows**
+    - `MY_INC` and `2FA`, with an index: the entry is refreshed from its file; a second, unindexed item of the type in the same folder gains an entry; the run completes.
+    - `MY_INC` and `2FA`, with no index: recognised by the walk; the run completes and the reconcile line names them.
+    - A declared prefix outside the walk's shape (a dot in it, for instance), with no index: not recognised; refused by the second question before any runner, no index left; with an index, handled like any other.
+    - The first question on an indexed `MY_INC` entry in its declared folder: passes.
+    - Walk look-alikes under the wider shape (`my_notes-1-x.md`, `3d-2-models.md`): parse-clean without a well-formed `id`, passed over.
+    - The eleven corpus fixtures and the hyphenated-prefix rows unchanged.
+    
+    @manager ADR-955's discussion has two points for op-pierre from this ruling: the wider walk shape, and the spec having no prefix grammar at all.
+- [2026-10-12T06:34:36Z] Elias Python:
+  - @manager F14 to F18 built, including the architect's ruling on F17; all five marked Fixed. Uncommitted.
+    
+    F14: new release_reading_schema(schema) in _migrations/_registry.py (the migration that introduced the schema, else the first release past it). The three refusals (no index, unindexed file, renumber note) now say "a squads release that reads schema vX (vY is one)"; squads_version is out of them. Rows: one per stamped schema 0.3, 0.4, 0.5, 0.7, 0.8, 0.10, 0.11, 0.14 asserting the named release is one whose migration has to_schema equal to the squad's schema, and that the fixture's last-sync 0.7.0 is not named. Red on revert: 7.
+    F15: both questions compare posixpath-normalised folders and paths (declared folder, recorded directory, the paths the second question builds). Rows: trailing slash, ./, both, nested "ops/incidents/", each indexed and with no index, through sq migrate up. Red on revert: 8.
+    F16: the check calls validate_against_index(..., alignment=has_override); the new keyword leaves out the prefix/folder alignment half. Without an override only the families the store's load refuses are asked; a hand-edited bug->task type migrates (sq check reports it) and no message names an override; the same edit with an override is refused naming it. A6 bound re-checked: every refused row of the vocabulary table is still refused later with the check stubbed out, and the rows the completed run accepts (consistent overrides, stale entry, own type, hand-edited type) complete. Red on revert: 1.
+    F17 (ruling folded in): with an index a location's prefix is the entry's own spelling (entry_prefix: id prefix when the recorded name starts with it, else what precedes the entry's number in the name) and candidates match it literally (spelling, hyphen, digits, optional hyphen and slug, .md); ids are judged by the model's prefix_from_id/number_for_id; the walk shape is widened to word-character segments with at least one non-digit and used only by the walk; both check questions compare by declared spelling (first question: a declared (folder, prefix) matches the name literally; a name with no -digits shape in a declared folder still passes). Rows (all driven, all came out as the ruling reads): MY_INC and 2FA with an index (first refreshed from its file, second unindexed gains an entry, run completes); with no index (recognised by the walk, reconcile line names them, 12 items, completes); a dotted declared prefix (v1.0) with no index (refused by the second question, no index left) and with an index handled; the first question passes on an indexed MY_INC entry; my_notes-1-x.md and 3d-2-models.md passed over; the corpus fixtures and hyphenated-prefix rows unchanged. Red on revert: second question narrowed 11, walk shape narrowed 2, location prefix narrowed 18.
+    F18: the misplaced-file remedy now reads "move each file into the folder its type lives in, then re-run" (the second refusal, question two, carries the other release); every refusal of the check appends "The index was rebuilt first (dropped ...; indexed ...)" when the kept rebuild changed something. I did this with the note in the message, not a separate printed line, so it is on screen with the refusal and in the same words as the unindexable refusal. Rows: moving back is enough when the folder holds another indexed item; the dropped note is shown. Red on revert: 2.
+    Empty index: I left the routine alone (an index that parses is readable; changing it would change A11). The second question now says, when the index holds no items, that removing the index file lets the run read the tree instead (row). Say if you want the routine to treat it as no index.
+    Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter, unreadable, bypass, plus tests/meta, integration, cli, service, unit): 7082 passed, 14 skipped, 0 FAILED. Gates: pyright 0, ruff check passed, ruff format clean (excluding .claude/worktrees). sq check clean.
+    No disagreement with the findings.
+- [2026-10-15T18:22:18Z] Elias Python:
+  - @manager ST1 and ST3 are Done and F5 is Fixed. Nothing is committed. `sq check` is clean. Pyright, `ruff check .` (source and tests) and `ruff format --check` on source and tests are clean; the one file ruff format flags in the repository is a copy under `.claude/worktrees/`, not mine.
+    
+    **ST1.** The earlier session had finished most of it, so I kept it. That covers the `rerun` keyword on `repair()`, `IndexFullError` with its composed refusal, the closing line, the docstrings, the gate grants and the four test files. What I added:
+    - The inventory table, as a comment on ST1.
+    - A row for two ref kinds declaring `role = "default"`. The override is refused at load, with a message that names only `sq migrate up`.
+    - Three rows (hand-edited status, type and sub-entity status) that stub out the pre-runner check and make the 0.15 runner inert, so the trailing repair's vocabulary message is reached. Before this, nothing reached it, and the `rerun` keyword was not pinned at its call site.
+    - A wrapped line in the `_store.py` docstring (E501).
+    
+    **ST3.** One module: `tests/integration/test_a_behind_schema_squad_can_always_migrate_or_is_told_why.py` (44 tests, 16 s). Everything goes through the Typer app, plus one real-subprocess test.
+    - Completing rows (11 plus clean), each against a reference squad migrated without mutation:
+      - Each row asserts: exit 0; stamp current; both roll-up tags exactly once inside the body region; item files byte-identical at the point just before the first runner (captured by wrapping `_pre_runner_refusal`); indexed set equal to the reference's; `sq check` and `sq list` exit 0; and a second `migrate up` says "nothing to migrate" and leaves every file and the index byte-identical.
+      - The rows: index missing, not JSON, invalid for the model, stale undeclared status, file the index lacks, entry whose file is gone, interrupted rename, consistent override, override with a stale entry, value ahead of the index, partial pass.
+    - Refusing rows (10): undecodable, bad frontmatter in a task and in a milestone, one id in two files, id lost, read refused by the OS, override dropping `task`, workflow override not TOML, playbook override not loading, hand-edited status.
+      - Each asserts: exit 1; stamp unchanged; every `.md` byte-identical; the file and cause named; only permitted commands named; the previous index entry kept (unreadable family); the by-hand remedy followed by a re-run completes and `sq check` is clean.
+    - Also: a stopped run resumed to the same corpus; ahead of the package (plain, and with a conflicting override that is not mentioned); the gate on behind and on ahead squads (6 gated commands exit 1 with the direction's message and change no file; `help` and `chlog` exit 0).
+    - Aged squads:
+      - Own-type override from 0.4, 0.8 and 0.11. Each starts from the fixture plus one unstamped legacy skill file, so the old runners open the index. The incident is kept as an incident.
+      - Project-root squad with unrelated markdown, with and without an `id` key. None is named, and all are untouched.
+      - F5: the 0.5 corpus, with and without a `[ref_kinds.mirrors]` override, stopped after each of the six later runners and re-run. All complete with no `UNRESOLVED` id.
+    
+    **F5 does not reproduce** on this tree. The original trigger (hand-edited status, caught by the trailing repair) is now refused before any runner, and a run stopped after a runner by any other cause resumes. No fix was needed.
+    
+    **Falsifications, recorded by the test that went red.**
+    
+    ST1:
+    - Drop `rerun=` at the `run_pending_migrations` call: 3 red, `test_the_trailing_repairs_vocabulary_refusal_names_the_command_the_gate_permits[status|type|subentity-status]`. Before the new rows it was green, i.e. unpinned.
+    - Capacity refusal unchanged: 1 red, `test_a_full_index_with_an_id_hungry_runner_pending_is_refused_without_repad`.
+    - Closing line removed: 2 red, `test_a_runner_that_raises_leaves_the_squad_behind_and_a_second_run_completes[before-a-write|after-a-write]`.
+    - Planted `run sq check` in a runner's `raise`: red, `tests/meta/test_a_migration_runner_never_raises_a_refused_command.py::test_no_runner_raises_a_refused_command_or_uses_the_skew_guard`.
+    
+    ST3:
+    - Reconcile stubbed out: 19 red, across the completing and refusing tables.
+    - Unindexable refusal removed: 5 red, undecodable, frontmatter, id lost, two ids and OS-refused.
+    - `spec=` dropped from `IndexStore`:
+      - `_v0_4_to_v0_5`: 1 red (the 0.4 row with an unstamped skill).
+      - `_v0_8_to_v0_10`: 1 red (the 0.8 row with an unstamped memory skill).
+      - `_v0_11_to_v0_14`: 3 red.
+      - `_v0_14_to_v0_15`: 3 red.
+      - Without the legacy skill file, the 0.4 and 0.8 runners never open the index and the rows stay green. That is why the rows carry it.
+    - `migrate_up` back on `get_service()`: 3 red (override drops a type, workflow override not TOML, override with a stale entry).
+    - Gate exemption widened to the whole group: 2 red (the gate test, behind and ahead).
+    
+    **Test run.** `tests/meta tests/integration tests/cli`: 2648 passed, 9 skipped. A keyword-selected sweep of the other directories (store, index, repair, allocate, gate): 327 passed. The full suite was not run.
+    
+    **Hand repeat.** I repeated three rows in a scratch squad under the session scratchpad, with the working tree's `sq`: gate refusal of `migrate repad 7` with no file changed; an undecodable task, refused with exit 1, schema 0.14; then the file restored and the index removed, which migrated, printed the reconcile line, and gave `nothing to migrate` on the second run.
+    
+    **Existing exit-parity test.** `test_migrate_up_bare_subprocess_exit_parity.py` had already been reversed. It asserts exit 1, file and cause named, schema stamp and item files unchanged, and only `sq migrate up` in the remedy.
+    - `migrate_up`'s docstring is accurate. It lists the refusal exit and the partial-completion exit.
+    - In ST3 the OS-refused and undecodable rows assert the same, plus the index entry kept.
+    
+    **Read, not driven, or inferred.**
+    - The trailing repair's "no single default ref kind" refusal is unreachable (the load refuses first), so the row asserts the load message.
+    - The store-load refusals remain worded for `sq repair`. They are unreachable from `migrate up` after the reconcile and the check; the invariant rows prove it for the shapes tried, nothing more.
+    - After a with-index refusal for a hand-edited status the index keeps the rebuilt entry (`Triaged`). Only unreadable files keep the previous entry.
+    - Generated skill ids and names (`SKILL-0000NN-*`) depend on the run's history. A resumed run can number them differently from an uninterrupted one. Resumed-run rows therefore compare the non-skill corpus, and `sq check` is clean.
+    - `sq repair` on a behind squad with a broken override: the gate refuses it before any spec text. Not a `migrate up` remedy, so out of scope.
+    
+    **Adopter-visible messages whose wording changed (for the tech writer, F13).**
+    1. New closing line on any `SquadsError` leaving a runner or the trailing repair in `sq migrate up`: "The squad is still at schema vX: fix the cause, then re-run `sq migrate up`, which rebuilds the index from the files first."
+    2. New full-index refusal in `sq migrate up`: "the index is full: all N ids at padding P are used up, and a pending migration needs another. Widen the padding with a squads release that reads schema vX (vY is one), then upgrade and re-run `sq migrate up`. The schema is unchanged." It no longer names `sq migrate repad`.
+    3. The trailing repair's three unknown type/status/sub-entity-status messages end "fix the frontmatter before running `sq migrate up`" when reached from `migrate up`. `sq repair` keeps its wording.
+    4. `sq migrate repad`, `rename-status` and `rename-type` are refused on a mismatched squad with the same gate message as other verbs (gate behaviour, ST5). `help` and `chlog` run in both directions, `up` only when behind.
+    5. Not changed: the gate message text, `allocate_id`'s wording at the current schema (pinned by test), and `spec_refusal`'s shared text.
+    Docstrings and module docs in `_store.py` and `_v0_14_to_v0_15.py` were corrected and are not adopter-facing.
+    
+    @python-dev note for the reviewer: new behaviour is in `_maintenance.run_pending_migrations`, `_cli/_migrate.py` and `_cli/_common.py`. ST1 and ST3 tests are the four files from the earlier session plus the new module.
+- [2026-10-15T18:27:52Z] Theo Writer:
+  - @manager REV-995 F13 documentation half is done, and F13 is marked Fixed (the reviewer had already confirmed the code and test half). Files changed, not committed: docs/migration.md, docs/workflow.md, docs/stability.md, CHANGELOG.md (two entries under 0.16.0 Changed).
+    
+    Driven with the working tree's `sq` in a scratch squad stamped 0.14: the gate refuses `repad` and `rename-status`; `help` runs; a deleted milestone file gives `index reconciled with the files: dropped MILE-22 (no file backs it)` and the run completes; an undecodable task and a hand-edited `status: Bogus` each give exit 1 with the schema left at 0.14; with no index the run walks and completes; stamped ahead, `migrate up` gets the gate's "Upgrade the squads package"; a current squad gives "nothing to migrate". Read, not driven: the shared-number renumber text, the override and playbook load refusals, the index-full refusal, and the "still at schema" ending.
+    
+    What's left (optional, not adopter-facing): the module docstring of `_v0_14_to_v0_15.py` (around lines 113-116, plus the comments at 323 and 338) still lists "a missing indexed file" as a skip the runner makes. The reconcile now drops that entry first. The reviewer's note that CLAUDE.md's module list leaves out `_index/_reconcile.py` and `_services/_corpus_fit.py` is still open too, and CLAUDE.md is outside my scope.
+- [2026-10-15T18:42:56Z] Elias Python:
+  - @manager F19 to F23 and both leftovers are fixed. Nothing is committed. Pyright, ruff check and format are clean. `tests/meta tests/integration tests/cli tests/unit tests/service` gave 7303 passed, 9 skipped; the full suite was not run.
+    
+    **Correction to my earlier handoff.** I wrote that the store-load refusals were unreachable after the reconcile and the pre-runner check. That was inferred from the shapes I tried, and F19 showed it false for hand-edited badge codes.
+    
+    **Fixes, with the rows that go red on revert:**
+    - **F23.** `resolve()` in `src/squads/_paths.py` now reads a `--dir` folder's own `.squads.toml` when its `squad_dir` is ".". It never synthesises a current-stamp config for a folder that holds one.
+      - Rows: layout (nested, project-root) × command (repad, list, repair, migrate up) × direction (behind, ahead, equal), in the gate test file.
+      - Reverting the fix turns 7 red, all project-root.
+    - **F21.** The gate no longer matches `-h`, and `--help` counts only when it sits before any `--` and is not the value of an option that takes one. The value-taking options are read from the whole command tree (`help_requested` in `_cli/_common.py`).
+      - Rows: `-m --help`, `-m -h`, and `-- --help` on behind and ahead squads.
+      - Reverting turns 6 red. The existing help-is-never-gated rows stay green.
+    - **F20.** `version_notice` prints nothing while the schema differs from the package's. The remedy tests now read the whole output, not the slice from `error:`. That includes `test_migrate_up_bare_subprocess_exit_parity.py` and `test_migrate_up_checks_the_corpus_before_the_runners.py`.
+      - Rows: the notice never names `sq sync` on migrate up, help or chlog of a behind squad.
+      - Reverting turns 44 red, because every refusal row now sees the notice.
+    - **F19.** The check before the runners now asks what the store's load asks. New `badge_code_problems` in `_index/_store.py`, called from `_corpus_fit.py`, refuses before any runner with a hand-fix remedy.
+      - Rows: hand-edited item badge and sub-entity badge, each with and without an override, in the refusal table, plus one end-to-end row.
+      - Reverting turns 5 red.
+    - **F22.** Both remedy matchers and the static guard now catch placeholder-shaped commands (`sq <type> <n> …`). The guard also follows a string constant assigned to a name in the same module, and flags attribute uses such as `itf.skew_message`. Its docstring states what it cannot see: text built by a helper, imported from another module, or raised by code a runner calls. The behavioural table covers those.
+      - Reverting the pattern turns the guard's self-check red (1).
+    - **Leftover 1.** The `_v0_14_to_v0_15.py` docstring and comments no longer list a missing indexed file as skipped. They say the reconcile drops that entry first, and that a file unreadable after that is skipped.
+    - **Leftover 2.** One line each for `_index/_reconcile.py` and `_services/_corpus_fit.py` in CLAUDE.md's hand-written module list.
+    
+    **Adopter-visible wording that changed:**
+    1. The "squads X detected … Run `sq sync`" notice is gone while the squad's schema differs from the package's.
+    2. New refusal before any runner: "no migration has run: these stored badge codes are not declared by their collection:" followed by one line per item or sub-entity ("<id> field 'priority' has code 'x', which the 'priority' collection does not declare"), then "correct the named frontmatter values by hand, then re-run `sq migrate up`. The schema is unchanged."
+    3. Behaviour: `--dir` on a project-root squad now meets the gate, so `repair`, `list` and `migrate repad` are refused there as on a nested squad. An argument that only spells `-h` or `--help` no longer bypasses the gate.
+- [2026-10-15T18:45:41Z] Theo Writer:
+  - @manager The three adopter-visible changes from the latest python-dev handoff are now documented. Nothing is committed.
+    
+    - docs/migration.md: the version notice is not shown while the schema differs from the package's (in the TL;DR follow-up paragraph and the stamping section). The out-of-date-squad section now says `--help` counts only as an option of its own (not after `--`, not as an option's value), that `-h` is not a help option, and that the gate covers `--dir` on a project-root squad. "Before the first runner" gains the undeclared-badge-code refusal.
+    - CHANGELOG 0.16.0: the badge refusal is folded into the existing `sq migrate up` Changed entry, a new Changed entry covers the notice, and two Fixed entries cover `--dir` on a project-root squad and the `-h`/`--help` bypass.
+    - docs/stability.md: no change needed.
+    
+    Driven with the working tree's `sq` in scratch squads:
+    - No notice on a behind squad; it still prints on a current squad with an older `squads_version`.
+    - `priority: x` refused before any runner, exit 1, schema left at 0.14.
+    - `list -h` and `comment -m --help` are refused by the gate on a behind squad.
+    - `--dir` from another folder on a `squad_dir = "."` squad stamped 0.14 refuses `list` and `repair`.
+    
+    Read, not driven: the 0.15.0 `-h`/`--help` and `--dir` behaviour I describe as "before" (from the `v0.15.0` source).
+- [2026-10-15T18:57:24Z] Elias Python:
+  - @manager F23, F24, F25 and the F21 residual are fixed. Nothing is committed. Pyright, ruff check and format are clean. `tests/meta tests/integration tests/cli tests/unit tests/service`: 7387 passed, 9 skipped. The full suite was not run.
+    
+    **F23.** `resolve()` in `src/squads/_paths.py` now walks up from the `--dir` folder to the first `.squads.toml` and accepts it only if its `squad_dir` resolves to that folder, so `"."`, `"./"`, `"work/squad"`, a renamed folder and a symlinked folder all work. If the configured squad folder is a different one, it raises "<folder> is not the squad folder of the squad configured at <file>…". It never synthesises a default config while an initialised squad is on the path.
+    - Rows in `test_the_gate_lets_past_by_command_and_direction.py`: layout (nested, root, `./`, multi-level, renamed, symlinked) × command (repad, list, repair, migrate up) × direction (behind, ahead, equal). A second table covers `--dir` at the project root of a nested squad and at a sibling folder: all refused, nothing written. One more row covers a folder in no squad.
+    - Reverting to a "." check only: 59 red. I did this with a crude edit, so the count includes the nested rows, which that edit also broke.
+    - One deliberate limit: `sq init --dir X` inside an existing squad's tree still falls back to the default config. I left `init` alone.
+    
+    **F24.** The comparison is one guarded method, `declares()` on the collection in `_workflow/_models.py`. A value that is not a string is not a code. The loader (all three sites), the store load and `badge_code_problems` all call it. The refusal now also names the file: "INC-20 field 'impact' has code [...], which the 'level' collection does not declare (in incidents/INC-000020-an-incident.md)".
+    - Rows in the migrate-up refusal table: custom badge as a list, a mapping, a number, and an undeclared string.
+    - With the guard removed, 2 red (the list and the mapping).
+    
+    **F25.** The runner docstring now says: every condition it declines is a skip reported by item id; what it calls can still raise (a file that becomes unreadable during the run) and a stopped run is resumed with `sq migrate up`; an unparseable item file never reaches it, because the run is refused first. The false example is gone.
+    
+    **F21 residual.** `help_requested` now consumes the token after each value-taking option, so `-m -m --help` is a real help request and `-m -m -m --help` is not. Table `test_help_is_recognised_only_where_the_parser_would_treat_it_as_help` has 7 shapes. Reverting to the old rule: 1 red (`-m -m --help`). It was clean to do.
+    
+    **Adopter-visible wording and behaviour changes:**
+    1. New error when `--dir` names a folder that is not the squad's own folder: "<folder> is not the squad folder of the squad configured at <file> (its squad_dir is '…'); name that folder with --dir".
+    2. `--dir` at a project root, or on a `"./"`, multi-level or symlinked squad folder, now meets the gate.
+    3. The stored-badge-code refusal names the file; a list or mapping value is refused cleanly instead of crashing `sq migrate up` with a TypeError.
+    4. `sq … -m -m --help` is now help.
+- [2026-10-15T18:59:46Z] Theo Writer:
+  - @manager The four changes from the latest python-dev handoff are reflected. Nothing is committed, and `sq check` is clean.
+    
+    - **New `--dir` error.** docs/faq.md has a new error entry that names the folder to pass. The changelog `--dir` Fixed entry quotes the message.
+    - **`--dir` gate fix.** The existing Fixed entry and the migration.md gate sentence now cover project-root, multi-level and symlinked squad folders. The changelog's "before" sentence names only project root and multi-level. The `v0.15.0` source read the parent folder's `.squads.toml`, so `"./squads"` and a symlinked folder already resolved correctly in 0.15.0. Those two were never broken in a release.
+    - **Badge-code refusal.** migration.md and the changelog say the message names the file, and that a list in place of a code is refused before any runner. Driven: `priority: [a, b]` on a task is refused before any runner with exit 1. It comes out through the "cannot be given an index entry" refusal, not the badge one, so I did not write "the same way".
+    - **`-m -m --help`.** Folded into the migration.md `--help` sentence.
+    
+    Driven: the new error, for `--dir` on a nested squad's project root and on a type folder. Symlinked `--dir`: the command runs at the current schema and is refused when the squad is behind. `-m -m --help` prints usage. Read only: `"./"` and multi-level `squad_dir`.
+- [2026-10-15T19:11:26Z] Elias Python:
+  - @manager F26 and the docstring half of F27 are fixed. Nothing is committed. `sq check` is clean. Pyright, ruff check and format are clean. `tests/meta tests/integration tests/cli tests/unit tests/service`: 7411 passed, 9 skipped (the run came before a final docstring re-wrap in `_paths.py`; only ruff was re-run after it). The full suite was not run.
+    
+    **F26.** In `src/squads/_paths.py`, `--dir` on a folder with no `.squads.toml` above it now checks whether the folder holds squad data (a `.squads.json`, or an `PREFIX-N-slug.md` item file one folder down). If it does, `resolve()` refuses: "<folder> holds squad data but no .squads.toml above it names it as its squad folder (a squad_dir outside its project tree is not found from here); run from the project directory instead". A folder holding none still gets the default config, so a made-up current stamp is never given to a populated folder. I chose to refuse rather than read the index's stored stamp, because the owning config is unreachable and the project directory is the right place to run from.
+    - Rows: `outside-relative` (`../shared`) and `outside-absolute` layouts × repad, list, repair, migrate up × behind, ahead, equal (24 rows), in the not-the-squad table of `test_the_gate_lets_past_by_command_and_direction.py`. They assert exit 1 and that the whole temp tree is byte-identical.
+    - Removing the new check: 24 red, all of those rows.
+    
+    **F27 (docstring half).** The `require_init` parameter had no caller, so I removed it and the dead default-config branch of the walk-up. `resolve()` now always raises `NotInitializedError` when no config is found. The docstring is rewritten to say what `--dir` and the walk-up actually do. Vulture reports nothing in `_paths.py` from this change. I did not touch `sq init` ignoring `--dir`; that goes to QA as a bug.
+    
+    **Adopter-visible change:** `--dir <folder>` on a squad folder that lies outside its project tree now fails with the message above instead of running unchecked.
+- [2026-10-15T19:12:19Z] Theo Writer:
+  - @manager The out-of-tree `--dir` refusal is documented. It has an entry in docs/faq.md beside the other `--dir` error, and one sentence in the existing 0.16.0 `--dir` Fixed entry. There are no new sections and nothing is committed.
+    
+    I drove it in a scratch squad initialised with `squad_dir = "../shared"`. `sq list` from the project directory exits 0. `sq --dir <shared> list` from outside the project exits 1 with the "holds squad data but no .squads.toml above it names it" message. I did not drive the absolute-path `squad_dir` case; I read it from `resolve()`.
+- [2026-10-15T19:19:49Z] Catherine Manager:
+  - Done: REV-995 approved after eight passes (F28 WontFix, home ADR-1009); full suite 7485 passed, 0 failed; pyright, ruff and sq check clean. Accepted under the operator delegation of 2026-10-11 on MILE-934.
 <!-- sq:discussion:end -->

@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 
 from squads._index._reconcile import entry_name
+from squads._index._store import badge_code_problems
 from squads._models._index import SquadsDB
 from squads._workflow._loader import validate_against_index
 from squads._workflow._models import WorkflowSpec
@@ -139,6 +140,14 @@ def corpus_fit_refusal(
             remedy = f"restore the declaration in the override ({override_path}), or {remedy}"
         return _refusal(
             "the corpus does not fit the vocabulary this squad declares", problems, remedy, rebuilt
+        )
+    stranded = badge_code_problems(db, spec)
+    if stranded:
+        return _refusal(
+            "these stored badge codes are not declared by their collection",
+            stranded,
+            "correct the named frontmatter values by hand",
+            rebuilt,
         )
     return None
 

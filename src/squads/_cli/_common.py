@@ -1,6 +1,7 @@
 """Shared CLI helpers: console, error handling, service resolution, value parsing."""
 
 import contextlib
+import enum
 import functools
 import json
 import sys
@@ -1460,6 +1461,8 @@ def version_notice() -> None:
         sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
     except SquadsError:
         return  # not initialized yet (e.g. before `sq init`)
+    if sp.config.schema_version != SCHEMA_VERSION:
+        return  # `sq sync` is refused until the schema matches
     recorded = sp.config.squads_version
     if recorded and version_tuple(__version__) > version_tuple(recorded):
         err_console.print(
@@ -1469,12 +1472,91 @@ def version_notice() -> None:
         )
 
 
-def require_current_schema(subcommand: str | None) -> None:
-    """Hard-stop when the squad's on-disk schema mismatches this build — except for migrate/help.
+class Ground(enum.StrEnum):
+    """Why a command may run on a squad whose schema differs from the package's."""
 
-    Behind → tell the user to run ``sq migrate``; ahead → tell them to upgrade the package.
-    """
-    if subcommand in (None, "migrate") or "--help" in sys.argv or "-h" in sys.argv:
+    #: It is the migration: it advances the corpus, so it runs only on a squad that is behind.
+    MIGRATION = "is the migration"
+    #: It reads the package's own registry and touches no squad state.
+    NO_SQUAD_STATE = "touches no squad state"
+    #: It holds the reconcile licence. The reconcile is a routine, not a command.
+    LICENCE = "holds the reconcile licence"
+
+
+@dataclass(frozen=True)
+class GateGrant:
+    """A command's declaration: the ground it gets past the gate on, and the directions."""
+
+    ground: Ground
+    behind: bool
+    ahead: bool
+
+    def covers(self, *, behind: bool) -> bool:
+        return self.behind if behind else self.ahead
+
+
+_GRANT_ATTR = "__sq_gate_grant__"
+
+
+def past_the_gate[F: Callable[..., Any]](
+    ground: Ground, *, behind: bool = False, ahead: bool = False
+) -> Callable[[F], F]:
+    """Declare that a command runs on a squad whose schema differs from the package's, on
+    *ground*, for the directions given. A command without the declaration is refused there."""
+
+    def _mark(fn: F) -> F:
+        setattr(fn, _GRANT_ATTR, GateGrant(ground, behind, ahead))
+        return fn
+
+    return _mark
+
+
+def gate_grant(fn: Callable[..., Any]) -> GateGrant | None:
+    """The declaration on *fn*, or ``None``."""
+    grant = getattr(fn, _GRANT_ATTR, None)
+    return grant if isinstance(grant, GateGrant) else None
+
+
+def _value_options() -> frozenset[str]:
+    """Every option spelling, across the whole command tree, that consumes the next token."""
+    import typer.main
+    from typer.core import TyperGroup, TyperOption
+
+    from squads._cli import app
+
+    names: set[str] = set()
+    pending: list[_click.Command] = [typer.main.get_command(app)]
+    while pending:
+        command = pending.pop()
+        for param in command.params:
+            if isinstance(param, TyperOption) and not param.is_flag and not param.count:
+                names.update(param.opts, param.secondary_opts)
+        if isinstance(command, TyperGroup):
+            pending.extend(command.commands.values())
+    return frozenset(names)
+
+
+def help_requested(argv: list[str]) -> bool:
+    """Whether *argv* carries ``--help`` as an option of its own: before any ``--`` and not the
+    value of an option that takes one. ``-h`` is not a help option of this CLI."""
+    values = _value_options()
+    consumed = False
+    for token in argv:
+        if consumed:
+            consumed = False
+        elif token == "--":
+            return False
+        elif token == "--help":
+            return True
+        else:
+            consumed = token in values
+    return False
+
+
+def apply_gate(grant: GateGrant | None) -> None:
+    """Hard-stop when the squad's on-disk schema mismatches this build, unless *grant* covers the
+    direction. Behind: tell the user to run ``sq migrate up``; ahead: tell them to upgrade."""
+    if help_requested(sys.argv[1:]):
         return
     try:
         sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
@@ -1483,7 +1565,10 @@ def require_current_schema(subcommand: str | None) -> None:
     disk = sp.config.schema_version
     if disk == SCHEMA_VERSION:
         return
-    if schema_tuple(disk) < schema_tuple(SCHEMA_VERSION):
+    behind = schema_tuple(disk) < schema_tuple(SCHEMA_VERSION)
+    if grant is not None and grant.covers(behind=behind):
+        return
+    if behind:
         err_console.print(
             f"[red]error:[/red] this squad is at schema v{disk}; squads {__version__} "
             f"expects v{SCHEMA_VERSION}. Run [bold]sq migrate up[/bold] to upgrade it "
@@ -1497,6 +1582,15 @@ def require_current_schema(subcommand: str | None) -> None:
             soft_wrap=True,
         )
     raise typer.Exit(1)
+
+
+def require_current_schema(subcommand: str | None) -> None:
+    """The root gate: every command outside the ``migrate`` group is refused on a squad whose
+    schema differs from this build. ``migrate`` decides for its own commands, by the grants they
+    declare (see its group callback)."""
+    if subcommand in (None, "migrate"):
+        return
+    apply_gate(None)
 
 
 def _article(word: str) -> str:

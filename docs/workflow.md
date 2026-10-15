@@ -466,10 +466,16 @@ that document's tag. That includes an `sq-<type>` skill whose text you wrote you
 a runbook into a skill of its own before upgrading. The run reports how many files it changed. An
 empty body, a body that already carries its tag, and a custom skill are left as they are.
 
-A document the migration cannot safely rewrite is skipped rather than aborting the run, and named
-by id in its output:
+Before it rewrites anything, `sq migrate up` rebuilds the index from the item files. An indexed
+milestone whose file is gone is dropped from the index there, and named on the run's
+`index reconciled with the files` line. An item file the run cannot read or parse stops it before
+any document is rewritten, with the schema unchanged (see
+[migration.md § "Before the first runner"](migration.md#before-the-first-runner)).
 
-- a milestone whose file is missing, or whose body has no `sq:body` region;
+A document the migration reads but cannot safely rewrite is skipped rather than aborting the
+run, and named by id in its output:
+
+- a milestone whose body has no `sq:body` region;
 - a milestone whose tag you had already moved outside `sq:body` by hand. `sq check` warns that
   the tag never renders there, and `view add` refuses while it is out of region, but the next
   body write places a second copy inside the body and `sq check` then reports a duplicate. Move
@@ -478,8 +484,8 @@ by id in its output:
 - a role or skill body holding marker-shaped content the migration does not recognise.
 
 `sq check` then reports each skipped document that still lacks its tag, at error level. For a
-milestone, the error names two single-command remedies — restore the file or its `sq:body`
-region first if that is what is missing:
+milestone, the error names two single-command remedies — restore its `sq:body` region first if
+that is what is missing:
 
 ```
 error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
@@ -1437,7 +1443,8 @@ different vocabulary, use the on-demand **data migration commands**:
 These are **audited data rewrites** — atomic per type, designed to preserve referential integrity,
 and audited item by item: each writes **one reflog line per item moved**, not one line for the run,
 so `sq reflog --op rename-type` reconstructs exactly which items a past rename touched. Always
-verify with `sq check` after.
+verify with `sq check` after. Both run only on a squad at the package's schema: on one that is
+behind, run `sq migrate up` first.
 
 **Use case:** You released your squad with the built-in `task` type but later realize you want to call
 them `job` instead. Declare a `job` type in your workflow override, then run `sq migrate rename-type

@@ -96,14 +96,10 @@ shape — chosen deliberately, not forced by any cycle, because it inlines the i
 mutate → write sequence itself and avoids N separate lock acquisitions and N separate index
 commits for what is, in practice, a handful of items.
 
-**Nothing this runner meets aborts the run — every condition it cannot act on is a skip,
-reported by item id, never a raise.** A run that always completes always reaches the ``async
-with store.transaction() as db:`` block's own exit, which is the only place the schema stamp
-that follows gets written — so a run that can raise is a run that can leave a squad with
-markdown ahead of an uncommitted index and no working command to reconcile the two with
-(``sq repair`` needs the very stamp a raised transaction never writes). Skip-and-report closes
-that off structurally: there is no path left on which this runner raises, so there is no
-partial-pass state to reach.
+**Every condition this runner declines to act on is a skip, reported by item id.** What it calls
+can still raise (a file that becomes unreadable during the run, say); a run stopped that way is
+resumed by re-running ``sq migrate up``, which rebuilds the index from the files first. An item
+file that cannot be parsed never reaches this runner: the run is refused before any runner.
 
 Conditions this runner meets and does not act on, each a skip rather than a refusal:
 
@@ -114,18 +110,18 @@ Conditions this runner meets and does not act on, each a skip rather than a refu
   consequence differs: this runner skips the whole pair and moves to the next one, rather than
   raising for the entire run. An adopter who dropped a bundled view through
   ``[selected].views`` is not a corpus defect to halt on; they said they do not want that view.
-- **A missing indexed file, or a body with no ``sq:body`` region** (either step) —
-  :func:`~squads._itemfile.read_item_text` raises for the former;
-  :func:`~squads._sections.get_section` answers ``None`` for the latter. Caught and turned into
-  the same per-item skip. A hand-adopted corpus, or a hand-edited item, can carry either shape
-  without it being a defect this migration should decide anything about.
+- **A body with no ``sq:body`` region** (either step) — :func:`~squads._sections.get_section`
+  answers ``None``. Turned into a per-item skip: a hand-adopted corpus, or a hand-edited item,
+  can carry that shape without it being a defect this migration should decide anything about.
+  The index is rebuilt from the files before this runner, so an entry whose file is gone is
+  already dropped; a file that cannot be read after that is skipped the same way.
 - **The tag already present, but outside ``sq:body``** (step one) — the placement routine only
   ever reads and writes inside the region, so a copy an author moved outside it by hand is
   invisible to it; asked here, once, before the routine ever runs, so this runner never seeds a
   second, in-region copy alongside one already live elsewhere in the file (which `sq check`'s
   duplicate-marker finding would then report). Skipping here, rather than inserting blindly,
   keeps a migration's own write from leaving the corpus failing `sq check` the moment it is
-  current enough to run — the same disposition as a missing file, and the same remedy once the
+  current enough to run — the same disposition as an unreadable file, and the same remedy once the
   squad is current: place or disable the tag explicitly.
 - **A role/permanently-system-skill/per-item-type-skill body carrying marker-shaped content**
   (step two only) — this reclaim has no model for what that is (another tag, a nested region,
@@ -324,8 +320,8 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
                 try:
                     text = await read_item_text(path, it.id)
                 except SquadsError:
-                    # A missing indexed file — this item's own problem, not this migration's
-                    # to raise the whole run over. Left untouched on disk; the pass moves on.
+                    # A file that became unreadable after the index was rebuilt — this item's own
+                    # problem, not this migration's to raise the whole run over.
                     skipped.append(it.id)
                     continue
                 if any(_tag_present_outside_region(text, markers.BODY, n) for n in names):
@@ -339,7 +335,7 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
                 region = get_section(text, markers.BODY)
                 if region is None:
                     # No sq:body region to place the tag in (a hand-adopted or hand-edited
-                    # file). Same disposition as the missing-file case above.
+                    # file). Same disposition as the unreadable-file case above.
                     skipped.append(it.id)
                     continue
                 # `get_section` returns the region padded with its own opening/closing

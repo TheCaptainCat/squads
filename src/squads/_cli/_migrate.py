@@ -39,7 +39,26 @@ def _reconcile_line(result: ReconcileResult) -> str:
     return f"  index reconciled with the files: {'; '.join(parts)}"
 
 
+@migrate_app.callback()
+def migrate_gate(ctx: typer.Context) -> None:
+    """Gate each ``sq migrate`` command by the grant it declares; one without a grant is
+    refused on a squad whose schema differs from the package's."""
+    if ctx.invoked_subcommand is not None:
+        common.apply_gate(migrate_grants().get(ctx.invoked_subcommand))
+
+
+def migrate_grants() -> dict[str, common.GateGrant]:
+    """The grant each ``sq migrate`` command declares, by command name."""
+    found: dict[str, common.GateGrant] = {}
+    for info in migrate_app.registered_commands:
+        grant = common.gate_grant(info.callback) if info.callback is not None else None
+        if info.name is not None and grant is not None:
+            found[info.name] = grant
+    return found
+
+
 @migrate_app.command("up")
+@common.past_the_gate(common.Ground.MIGRATION, behind=True)
 @common.command
 async def migrate_up():
     """Run the automatic migration(s) to bring this squad to the current schema version.
@@ -126,6 +145,7 @@ async def migrate_up():
 
 
 @migrate_app.command("help")
+@common.past_the_gate(common.Ground.NO_SQUAD_STATE, behind=True, ahead=True)
 @handle_errors
 def migrate_help():
     """Show the migration changelog index (every shipped migration, newest schema last)."""
@@ -143,6 +163,7 @@ def migrate_help():
 
 
 @migrate_app.command("chlog")
+@common.past_the_gate(common.Ground.NO_SQUAD_STATE, behind=True, ahead=True)
 @handle_errors
 def migrate_chlog(
     span: str = typer.Argument(

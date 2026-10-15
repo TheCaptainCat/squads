@@ -25,8 +25,11 @@ The on-disk format — item frontmatter, markers, and folder layout — is locke
 The format is versioned with a dotted string (e.g., `"0.3"`) that names the release introducing the
 schema. Comparisons use `schema_tuple()`, never raw-string `<` or `>`; so `"0.10" > "0.2"` holds.
 Post-1.0, a schema change ships only with a MAJOR release of squads. The upgrade path is always
-`sq migrate up`, which applies the ordered migration runners, rebuilds the index, and stamps the new
-version (see [migration.md](migration.md)).
+`sq migrate up`, which rebuilds the index from the item files, applies the ordered migration
+runners, rebuilds the index again, and stamps the new version. It never stamps past an item file
+it cannot index: such a file, or a squad that does not fit its declared vocabulary, stops it
+with exit `1` before any runner, with nothing migrated and the schema unchanged (see
+[migration.md](migration.md#before-the-first-runner)).
 
 ### ID numbering, padding, and exhaustion
 
@@ -284,7 +287,9 @@ mentions) are rewritten in the same transaction. `sq check` stays clean.
 
 The `sq migrate` sub-app's frozen surface:
 
-- `sq migrate up` — run every pending automatic migration, rebuild the index, stamp the new schema
+- `sq migrate up` — rebuild the index from the item files, run every pending automatic migration,
+  rebuild the index, stamp the new schema; refused with exit `1`, nothing migrated, when an item
+  file cannot be indexed or the squad does not fit its declared vocabulary
 - `sq migrate help` — the changelog index
 - `sq migrate chlog vA..vB` — manual steps for migrations shipped in `(vA, vB]`
 - `sq migrate repad <width>` — raise the filename-padding width (see Tier 1)
@@ -293,6 +298,10 @@ The `sq migrate` sub-app's frozen surface:
   have items in
 - `sq migrate rename-status <type> <old> <new>` — bulk-relabel one type's items from one status
   name to another; a relabel, not a workflow move
+
+On a squad whose schema differs from the package's, only `up` (on a squad behind the package),
+`help` and `chlog` run; `repad`, `rename-type` and `rename-status` are refused like every other
+command (see [migration.md](migration.md#what-runs-on-an-out-of-date-squad)).
 
 Runner modules are private; never use `python -m`; `sq migrate` is the only entry point.
 

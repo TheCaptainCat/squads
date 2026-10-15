@@ -9,6 +9,17 @@ You're not inside a squad. Either `cd` into a project that has `.squads.toml` (s
 it), pass `--dir <path>` to point at a squad folder explicitly, or `sq init` / `sq adopt` to create
 one.
 
+### "… is not the squad folder of the squad configured at … ; name that folder with --dir"
+`--dir` named a folder inside a project whose `.squads.toml` keeps its squad somewhere else: the
+project root of a nested squad, say, or one of the squad's own type folders. Pass the folder the
+message names as `squad_dir` (relative to that `.squads.toml`), for example
+`sq --dir path/to/project/squads …`.
+
+### "… holds squad data but no .squads.toml above it names it as its squad folder …"
+`--dir` named a squad folder that sits outside its project tree (a `squad_dir` such as
+`../shared` or an absolute path), so no `.squads.toml` above it says whose it is. Run `sq` from
+the project directory instead.
+
 ### "corrupt index … run `sq repair`"
 `.squads.json` failed to parse or validate (often a bad git merge). The frontmatter is the source of
 truth, so just rebuild: `sq repair` — on a clean working tree, since it

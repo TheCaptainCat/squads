@@ -697,6 +697,10 @@ class Collection(BaseModel):
     def badge_codes(self) -> frozenset[str]:
         return frozenset(b.code for b in self.badges)
 
+    def declares(self, value: object) -> bool:
+        """Whether *value* is one of this collection's codes; anything but a string is not."""
+        return isinstance(value, str) and value in self.badge_codes
+
 
 class Field(BaseModel):
     """A type's or sub-entity-kind's binding to a collection.

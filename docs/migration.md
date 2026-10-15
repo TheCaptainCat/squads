@@ -16,7 +16,7 @@ about moving an *existing squad* from one squads version to the next.
 pip install -U squads                  # or: uvx squads@<new> …
 git switch -c chore/upgrade-squads     # clean rollback point
 
-sq migrate up                          # if the squad is behind: runs the schema runners, repair, restamp
+sq migrate up                          # if the squad is behind: reindex, check, run the schema runners, repair, restamp
 sq migrate chlog v<old>..v<new>        # any manual (LLM-assisted) steps for that release range
 sq check                               # validate FIRST — see below; fix anything it reports
 sq sync                                # then regenerate tool-owned files (.claude/, CLAUDE.md, skills)
@@ -40,7 +40,9 @@ out from an agent that has stopped being spawnable.
 You don't need to track when a migration is due: on an out-of-date squad **`sq` stops every command
 and tells you to run `sq migrate up`**. If the squad is current, `sq migrate up` is a no-op. The
 version notice you see on an ordinary command points at `sq sync`, since refreshing the managed
-files is the usual case; when you are moving between versions, use the order above.
+files is the usual case; it is not shown while the squad's schema differs from the package's,
+because `sq sync` is refused until it matches. When you are moving between versions, use the order
+above.
 
 ---
 
@@ -48,12 +50,81 @@ files is the usual case; when you are moving between versions, use the order abo
 
 | Command | Does |
 |---------|------|
-| `sq migrate up` | Runs every **automatic** migration whose target schema is newer than the squad's, in order; rebuilds the index; stamps the new `schema_version`. Then prints which (if any) leave **manual** steps. |
+| `sq migrate up` | Rebuilds the index from the item files and checks the squad can be migrated (see [below](#before-the-first-runner)); runs every **automatic** migration whose target schema is newer than the squad's, in order; rebuilds the index; stamps the new `schema_version`. Then prints which (if any) leave **manual** steps. On a squad already at the current schema it changes nothing. |
 | `sq migrate help` | The **changelog index** — every shipped migration: release, schema bump, one-line summary, and whether it has manual steps. |
 | `sq migrate chlog vFROM..vTO` | The **complete manual steps** for migrations shipped in `(vFROM, vTO]` (release versions, exclusive-low; a prerelease bound such as `v0.14.0rc1` sorts below its release). This is the canonical place those runbooks live — not buried in prose. |
 
-`sq migrate *` are the only commands exempt from the schema gate, so they always run even on an
-out-of-date squad — read the steps *before* applying them.
+### What runs on an out-of-date squad
+
+On a squad whose `schema_version` differs from the package's, `sq` refuses every command except
+these three, and `--help` on any command. `--help` counts only as an option of its own: not after
+`--`, and not as the value of another option (`-m --help` is a message, and is gated like the rest
+of the command; in `-m -m --help` the message is `-m` and `--help` is help). `-h` is not a help
+option of `sq`. The gate applies however the squad is addressed, including through `--dir`,
+wherever its folder sits: at the project root (`squad_dir = "."`), several levels down, or behind a
+symlink.
+
+| Command | Squad behind the package | Squad ahead of the package |
+|---------|--------------------------|----------------------------|
+| `sq migrate up` | runs | refused: upgrade the squads package |
+| `sq migrate help`, `sq migrate chlog` | run | run |
+
+`help` and `chlog` let you read the steps *before* applying them. `sq migrate repad`, `sq migrate rename-type` and
+`sq migrate rename-status` are maintenance commands for a squad at the current schema, and are
+refused like any other command until `sq migrate up` has run. If `sq migrate up` refuses because
+your workflow override no longer declares a type or status your items still use, restore the
+declaration, migrate, rename at the current schema, then drop it.
+
+### Before the first runner
+
+`sq migrate up` first rebuilds the index (`.squads.json`) from the item files, so the runners see
+the squad as its files describe it. An item file the index did not hold gains an entry, and an
+entry whose file is gone is dropped. When either happens, the output says so on one line:
+
+```
+  index reconciled with the files: dropped MILE-<n> (no file backs it)
+```
+
+With a readable index, the rebuild looks only where the index already keeps items. With no index,
+or one that does not parse, it takes every item-shaped file under the squad directory for an item.
+
+The run then stops with exit `1` when it cannot migrate the whole squad. Nothing is migrated and
+the schema is unchanged. The message names each file or item and says what to do:
+
+- **An item file cannot be indexed.** Its bytes are not valid UTF-8, its frontmatter does not
+  parse, it has no usable `id`, two files carry the same id, or two different ids share one
+  number. Correct each file, or, when it is not one of the squad's items, move it out of the
+  folder it sits in. For a shared number the message gives the steps of a renumber by hand.
+- **The squad does not fit its own vocabulary.** An item has a type or status your workflow
+  spec (bundled plus override) does not declare, an indexed file sits where no type of the squad
+  lives, or a file named for an item, where the squad keeps items of its type, has no index
+  entry. Restore the declaration in the override, correct the frontmatter, or move the file, as
+  the message says.
+- **A stored badge code is not declared by its collection.** An item's or sub-entity's badge
+  field (a `priority` or `severity`, say) holds a code its collection does not list. The message
+  names each item, field, code and file; correct the frontmatter value by hand. A value that is
+  not a single code, such as a list, is refused before any runner too.
+- **The workflow override or playbook override does not load.** `sq migrate up` never falls
+  back to the bundled vocabulary. Correct the file.
+
+```
+error: no migration has run: the corpus does not fit the vocabulary this squad declares:
+  - item TASK-<n> has status 'Bogus' which is not declared in the workflow spec
+correct the named frontmatter by hand, then re-run `sq migrate up`. The schema is unchanged.
+```
+
+Fix the cause and run `sq migrate up` again. When there was a readable index, the rebuilt index
+is kept even when the run stops, so `.squads.json` may show a change; no item file has been
+touched. When there was none, a refused run writes no index. If the refusal is about files the
+rebuild took for items, the message offers to restore the index first: from version control, or
+with the index rebuild of a squads release that reads the squad's schema (the message names
+one).
+
+Two refusals can come later, once runners have started, and both leave the schema unchanged. A
+runner that needs a new id when every id at the current padding is used stops the run: widen the
+padding with a release that reads the squad's schema, then upgrade and re-run. Any other error
+from a runner or from the closing index rebuild ends with *"The squad is still at schema vX: fix
+the cause, then re-run `sq migrate up`, which rebuilds the index from the files first."*
 
 ---
 
@@ -67,7 +138,8 @@ squads records **two** independent version numbers (in `.squads.toml` and `.squa
 | `schema_version` | The **durable-format contract** (see `_models/_schema.py` for the current value, or `sq migrate help` for the full changelog). While alpha it tracks the release that introduced the schema. | Only when the on-disk frontmatter / markers / layout change incompatibly. |
 
 `squads_version` drives a **non-fatal** notice (`version_notice`): *"squads X detected … run `sq
-sync`"* — about regenerating tool-owned files, not data. `schema_version` is the **hard gate**
+sync`"* — about regenerating tool-owned files, not data. It is printed only while the schema
+matches. `schema_version` is the **hard gate**
 (`require_current_schema`): if the squad's value differs from the build's `SCHEMA_VERSION` it stops
 the command — behind → *"run `sq migrate up`"*, ahead → *"upgrade the squads package"*.
 

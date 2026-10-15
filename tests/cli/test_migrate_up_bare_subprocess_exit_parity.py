@@ -41,7 +41,7 @@ def test_migrate_up_refuses_bare_when_an_item_file_cannot_be_read(tmp_path: Path
     assert "could not be read" in proc.stderr
     assert "no migration has run" in proc.stderr
     assert "carried forward" not in proc.stderr
-    refusal = proc.stderr[proc.stderr.index("error:") :]
+    refusal = proc.stderr
     assert re.findall(r"`sq [^`]*`", refusal) == ["`sq migrate up`"]
     assert (dst / ".squads.toml").read_bytes() == stamp_before
     undo()

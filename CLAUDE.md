@@ -43,6 +43,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   (`Item.sequence_id`, a stored field; the formatted `id` is a `@computed_field` from `type` +
   `sequence_id`). Both `id` and `sequence_id` are persisted in `.md` frontmatter; `get`/`add`
   accept/use the formatted id transparently, and a `model_validator` normalizes legacy full-id keys.
+- `_index/_reconcile.py` — rebuilds the index from the item files for `sq migrate up` before its first
+  runner: what it indexed, dropped or could not index, with no writes to item files.
 - `_sections.py` / `_itemfile.py` — marker-safe edits and frontmatter↔Item mapping.
 - `_specs/` — the bundled vocabulary as package-data TOML: `workflow.toml` (types/statuses/
   lifecycles/collections), `roles.toml` (the role catalog), `playbook.toml` (the team playbook).
@@ -85,6 +87,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   composes them into the flat `Service` façade and holds `init`/`adopt`/`open_service`;
   `_results.py` has the result dataclasses. Non-mixin helpers live alongside: `_validators.py`
   (the `sq check` rules), `_retirement.py`, `_config_integrity.py`, `_import_model.py`.
+- `_services/_corpus_fit.py` — the check before the first migration runner: whether the reconciled index
+  fits the vocabulary the run resolved (file locations, unindexed files, declared values).
 - `_discussion.py` — top-level, not under `_services/`: comment formatting + `@mention` extraction,
   and the prose/presentation of a sub-entity block for **any** declared kind — `kind` is a parameter
   throughout and its prefix/placeholder/columns resolve from the spec, so don't reintroduce a

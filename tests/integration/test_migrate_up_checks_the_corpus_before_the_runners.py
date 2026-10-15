@@ -685,7 +685,7 @@ async def test_an_override_that_does_not_load_stops_the_run_before_the_index_is_
     out = " ".join(refused.output.split())
     assert refused.exit_code == 1, refused.output
     assert file in out
-    assert set(_sq_commands(out[out.index("error:") :])) == {"`sq migrate up`"}
+    assert set(_sq_commands(out)) == {"`sq migrate up`"}
     assert (squad / ".squads.json").read_bytes() == index_before
     assert _md(squad) == files_before and _stamp(squad) == "0.14"
     shutil.rmtree(squad / ".overrides")
