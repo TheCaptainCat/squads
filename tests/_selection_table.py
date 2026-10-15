@@ -12,6 +12,13 @@ from typing import Any
 from _helpers import create_item
 from squads import __version__
 from squads._services import _service as service
+from squads._workflow import bundled_spec
+from squads._workflow._models import (
+    DEFAULT_VALIDATOR_LEVEL,
+    WorkflowSpec,
+    effective_validator_names,
+    parse_validator_entry,
+)
 
 #: Bundled types whose spec ships its own ``validators`` list: a selection on them must open
 #: with the splat of it, or the bundled entry is silently lost.
@@ -548,3 +555,39 @@ ALL_FRAGMENTS: dict[str, str] = {
 def member_findings(issues: list[Any], member: Member) -> list[tuple[str, str, str]]:
     """The findings among *issues* that carry *member*'s fragment, as (level, item, message)."""
     return [(i.level, i.item, i.message) for i in issues if member.fragment in i.message]
+
+
+def two_check_override(*, older_checks: bool = False) -> str:
+    """The override text a squad writes to select ``item_title_max:120`` and ``body_written`` on
+    every bundled ``work`` and ``records`` type, built from the bundled spec: each table opens
+    with the splat of the type's bundled list where it ships one. The roster types get no
+    table. With *older_checks* it also selects ``no_status_banner`` on every type, roster ones
+    included, and ``subentity_title_max:120`` on the ``work`` types."""
+    base = bundled_spec()
+    tables: list[str] = []
+    for type_name, spec in base.items.items():
+        roster = spec.category == "roster"
+        if roster and not older_checks:
+            continue
+        entries: list[str] = []
+        if spec.validators:
+            entries.append(f'"$(*items.{type_name}.validators)"')
+        if not roster:
+            entries += ['"item_title_max:120"', '"body_written"']
+        if older_checks:
+            entries.append('"no_status_banner"')
+            if spec.category == "work":
+                entries.append('"subentity_title_max:120"')
+        if entries:
+            tables.append(f"[items.{type_name}]\nvalidators = [{', '.join(entries)}]\n")
+    return "\n".join(tables)
+
+
+def effective_triples(spec: WorkflowSpec, item_type: str) -> set[tuple[str, str | None, str]]:
+    """*item_type*'s effective validators as (name, parameter, resolved level)."""
+    ts = spec.items[item_type]
+    triples: set[tuple[str, str | None, str]] = set()
+    for entry in effective_validator_names(ts.category, extra=tuple(ts.validators)):
+        bare, param, level = parse_validator_entry(entry)
+        triples.add((bare, param, level or DEFAULT_VALIDATOR_LEVEL[bare]))
+    return triples

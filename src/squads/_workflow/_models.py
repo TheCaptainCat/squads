@@ -297,7 +297,7 @@ _LEVEL_RANK: dict[str, int] = {"warn": 0, "error": 1}
 #: reusing it would make ``name:param:level`` ambiguous about which half is which. ``@`` cannot
 #: appear in a validator name (plain identifiers) or in a title-length threshold (an integer,
 #: enforced by :func:`_check_validator_param`), is refused in an ``external_id_not_in_title``
-#: pattern (a literal ``@`` is written ``\\x40``), and it is a different namespace from
+#: pattern (a literal ``@`` is written ``\x40``), and it is a different namespace from
 #: the unrelated place a bare ``@`` already means something in this codebase (an ``@mention``
 #: inside discussion prose — comment text, never spec vocabulary).
 #:
