@@ -3,7 +3,7 @@ id: FEAT-1015
 sequence_id: 1015
 type: feature
 title: Select the squad with git-style -C, not --dir
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - ADR-1009:implements
@@ -15,24 +15,24 @@ description: -C runs sq as if started in PATH; --dir is refused naming -C; BUG-1
 subentities:
 - local_id: US1
   title: As an adopter, I want git-style -C to pick where sq runs
-  status: InProgress
+  status: Done
 - local_id: US2
   title: As an adopter, I want -C threaded, never a chdir
-  status: InProgress
+  status: Done
 - local_id: US3
   title: As an adopter, I want init and adopt to honour -C
-  status: InProgress
+  status: Done
 - local_id: US4
   title: As an adopter, I want --dir refused and one resolver left
-  status: InProgress
+  status: Done
 - local_id: US5
   title: As a maintainer, I want -C proven equal to cd
-  status: InProgress
+  status: Done
 - local_id: US6
   title: As an adopter, I want the docs and changelog to say -C
-  status: InProgress
+  status: Done
 created_at: '2026-10-15T20:12:57Z'
-updated_at: '2026-10-15T20:20:36Z'
+updated_at: '2026-10-15T21:35:46Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision on selecting the squad with a git-style `-C <path>`. The decision is the spec; the stories cite its numbered sections and add acceptance only. It replaces the global `--dir` and closes the `sq init` defect that ignored it.

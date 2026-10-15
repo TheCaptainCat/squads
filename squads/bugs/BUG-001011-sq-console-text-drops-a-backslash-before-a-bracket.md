@@ -3,13 +3,13 @@ id: BUG-1011
 sequence_id: 1011
 type: bug
 title: sq console text drops a backslash before a bracket
-status: Open
+status: Fixed
 author: qa
 refs:
 - TASK-1001
 description: e() is plain rich escape, so a \[ in user text prints without its backslash
 created_at: '2026-10-15T19:27:50Z'
-updated_at: '2026-10-15T19:27:50Z'
+updated_at: '2026-10-15T20:33:19Z'
 ---
 <!-- sq:body -->
 ## Reproduction

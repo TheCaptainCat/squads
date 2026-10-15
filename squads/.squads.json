@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1019,
+  "counter": 1023,
   "padding": 6,
   "items": {
     "12": {
@@ -43257,7 +43257,7 @@
       "subentities": [],
       "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
       "created_at": "2026-06-12T14:25:59Z",
-      "updated_at": "2026-06-12T14:28:33Z",
+      "updated_at": "2026-10-15T20:49:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {
@@ -44464,7 +44464,7 @@
       "type": "bug",
       "title": "sq init ignores --dir and initialises the cwd",
       "slug": "sq-init-ignores-dir-and-initialises-the-cwd",
-      "status": "Open",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -44478,7 +44478,7 @@
       "subentities": [],
       "path": "bugs/BUG-001008-sq-init-ignores-dir-and-initialises-the-cwd.md",
       "created_at": "2026-10-15T19:08:38Z",
-      "updated_at": "2026-10-15T19:08:38Z",
+      "updated_at": "2026-10-15T20:44:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44628,7 +44628,7 @@
       "type": "bug",
       "title": "sq console text drops a backslash before a bracket",
       "slug": "sq-console-text-drops-a-backslash-before-a-bracket",
-      "status": "Open",
+      "status": "Fixed",
       "description": "e() is plain rich escape, so a \\[ in user text prints without its backslash",
       "parent": null,
       "author": "qa",
@@ -44642,7 +44642,7 @@
       "subentities": [],
       "path": "bugs/BUG-001011-sq-console-text-drops-a-backslash-before-a-bracket.md",
       "created_at": "2026-10-15T19:27:50Z",
-      "updated_at": "2026-10-15T19:27:50Z",
+      "updated_at": "2026-10-15T20:33:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44653,7 +44653,7 @@
       "type": "bug",
       "title": "body -m on a file with no body region raises a KeyError",
       "slug": "body-m-on-a-file-with-no-body-region-raises-a-keyerror",
-      "status": "Open",
+      "status": "Fixed",
       "description": "Raw traceback instead of a SquadsError when the body region is missing",
       "parent": null,
       "author": "qa",
@@ -44667,7 +44667,7 @@
       "subentities": [],
       "path": "bugs/BUG-001012-body-m-on-a-file-with-no-body-region-raises-a-keyerror.md",
       "created_at": "2026-10-15T19:27:55Z",
-      "updated_at": "2026-10-15T19:27:55Z",
+      "updated_at": "2026-10-15T20:33:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44735,7 +44735,7 @@
       "type": "feature",
       "title": "Select the squad with git-style -C, not --dir",
       "slug": "select-the-squad-with-git-style-c-not-dir",
-      "status": "InProgress",
+      "status": "Done",
       "description": "-C runs sq as if started in PATH; --dir is refused naming -C; BUG-1008 closed",
       "parent": null,
       "author": "product-owner",
@@ -44753,7 +44753,7 @@
         {
           "local_id": "US1",
           "title": "As an adopter, I want git-style -C to pick where sq runs",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44762,7 +44762,7 @@
         {
           "local_id": "US2",
           "title": "As an adopter, I want -C threaded, never a chdir",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44771,7 +44771,7 @@
         {
           "local_id": "US3",
           "title": "As an adopter, I want init and adopt to honour -C",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44780,7 +44780,7 @@
         {
           "local_id": "US4",
           "title": "As an adopter, I want --dir refused and one resolver left",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44789,7 +44789,7 @@
         {
           "local_id": "US5",
           "title": "As a maintainer, I want -C proven equal to cd",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44798,7 +44798,7 @@
         {
           "local_id": "US6",
           "title": "As an adopter, I want the docs and changelog to say -C",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44807,7 +44807,7 @@
       ],
       "path": "features/FEAT-001015-select-the-squad-with-git-style-c-not-dir.md",
       "created_at": "2026-10-15T20:12:57Z",
-      "updated_at": "2026-10-15T20:20:36Z",
+      "updated_at": "2026-10-15T21:35:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45046,7 +45046,7 @@
       "type": "task",
       "title": "Replace --dir with git-style -C and one resolver",
       "slug": "replace-dir-with-git-style-c-and-one-resolver",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Root -C threaded as client_cwd; --dir refused naming -C; resolve() is the walk-up only; init/adopt honour -C",
       "parent": "FEAT-1015",
       "author": "tech-lead",
@@ -45064,7 +45064,7 @@
         {
           "local_id": "ST1",
           "title": "Root -C option and the effective-directory helper",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US1",
@@ -45073,7 +45073,7 @@
         {
           "local_id": "ST2",
           "title": "Thread -C into client_cwd, pre-callback lookups and --file",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US2",
@@ -45082,7 +45082,7 @@
         {
           "local_id": "ST3",
           "title": "init and adopt create at the -C directory",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US3",
@@ -45091,7 +45091,7 @@
         {
           "local_id": "ST4",
           "title": "Refuse --dir and delete the backwards inference",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US4",
@@ -45100,7 +45100,7 @@
         {
           "local_id": "ST5",
           "title": "Differential -C vs cd test and the process-cwd guard",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US5",
@@ -45109,7 +45109,7 @@
         {
           "local_id": "ST6",
           "title": "Docs, changelog and contributor prose say -C",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US6",
@@ -45118,7 +45118,7 @@
       ],
       "path": "tasks/TASK-001018-replace-dir-with-git-style-c-and-one-resolver.md",
       "created_at": "2026-10-15T20:19:04Z",
-      "updated_at": "2026-10-15T20:20:39Z",
+      "updated_at": "2026-10-15T21:35:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45146,7 +45146,7 @@
         {
           "local_id": "ST1",
           "title": "Make e() round-trip backslashes before brackets",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -45155,7 +45155,7 @@
         {
           "local_id": "ST2",
           "title": "Fail body writes cleanly on a missing body region",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -45164,11 +45164,234 @@
       ],
       "path": "tasks/TASK-001019-fix-console-backslash-loss-and-the-missing-body-region-keyer.md",
       "created_at": "2026-10-15T20:23:28Z",
-      "updated_at": "2026-10-15T20:25:21Z",
+      "updated_at": "2026-10-15T20:53:40Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-1019"
+    },
+    "1020": {
+      "sequence_id": 1020,
+      "type": "review",
+      "title": "TASK-1019: console escaping and missing body region",
+      "slug": "task-1019-console-escaping-and-missing-body-region",
+      "status": "Approved",
+      "description": "Review of the e() round-trip fix and the missing-body-region guard and check",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1019:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "e() is still context-dependent: a later ] drops text or crashes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Sub-entity body write still raises a raw KeyError",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "CHANGELOG entries overclaim and were not written by the writer",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "check is silent on a custom skill or reversed pair that body refuses",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001020-task-1019-console-escaping-and-missing-body-region.md",
+      "created_at": "2026-10-15T20:47:00Z",
+      "updated_at": "2026-10-15T20:57:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1020"
+    },
+    "1021": {
+      "sequence_id": 1021,
+      "type": "bug",
+      "title": "Custom-type command cache leaks between in-process runs",
+      "slug": "custom-type-command-cache-leaks-between-in-process-runs",
+      "status": "Open",
+      "description": "Class-level cache keeps one squad's custom type and aliases for later -C runs",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1018"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001021-custom-type-command-cache-leaks-between-in-process-runs.md",
+      "created_at": "2026-10-15T20:51:06Z",
+      "updated_at": "2026-10-15T20:51:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1021"
+    },
+    "1022": {
+      "sequence_id": 1022,
+      "type": "bug",
+      "title": "Sub-entity body write raises KeyError; check silent",
+      "slug": "sub-entity-body-write-raises-keyerror-check-silent",
+      "status": "Open",
+      "description": "Missing subtask body/block or discussion region: raw traceback on write, no check finding",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1020"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001022-sub-entity-body-write-raises-keyerror-check-silent.md",
+      "created_at": "2026-10-15T20:51:12Z",
+      "updated_at": "2026-10-15T20:51:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1022"
+    },
+    "1023": {
+      "sequence_id": 1023,
+      "type": "review",
+      "title": "Review TASK-1018: -C and one resolver",
+      "slug": "review-task-1018-c-and-one-resolver",
+      "status": "Approved",
+      "description": "Shape attack on the -C option, the --dir refusal, the gate through -C, init/adopt and the cwd guard",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1018:addresses",
+        "FEAT-1015:addresses",
+        "MILE-934:targets",
+        "BUG-1021"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Custom-type command cache leaks between in-process runs (driven)",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Bare --dir hoist captures an option value or a token after -- (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "workflow lint omits the -C directory from not-initialised (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "cwd guard misses imported, implicit and environment reads (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Shell completion prints the -C and --dir refusals to stderr (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "-C resolves paths that cd refuses: missing hop, no search bit (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "-C after --help or --version is ignored (driven)",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "cwd guard still misses relative literals, aliases and implicit reads (driven)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "value_options rebuilds the command tree twice per run (driven)",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001023-review-task-1018-c-and-one-resolver.md",
+      "created_at": "2026-10-15T21:03:20Z",
+      "updated_at": "2026-10-15T21:33:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1023"
     }
   }
 }

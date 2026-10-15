@@ -3,13 +3,13 @@ id: BUG-1012
 sequence_id: 1012
 type: bug
 title: body -m on a file with no body region raises a KeyError
-status: Open
+status: Fixed
 author: qa
 refs:
 - REV-1010
 description: Raw traceback instead of a SquadsError when the body region is missing
 created_at: '2026-10-15T19:27:55Z'
-updated_at: '2026-10-15T19:27:55Z'
+updated_at: '2026-10-15T20:33:21Z'
 ---
 <!-- sq:body -->
 ## Reproduction
