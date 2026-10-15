@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1023,
+  "counter": 1024,
   "padding": 6,
   "items": {
     "12": {
@@ -7415,7 +7415,7 @@
       "type": "feature",
       "title": "Comment headers carry the author's permanent slug",
       "slug": "comment-headers-carry-the-author-s-permanent-slug",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -7433,7 +7433,7 @@
         {
           "local_id": "US1",
           "title": "As a reader, I want comment headers that name the author's slug",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7442,7 +7442,7 @@
         {
           "local_id": "US2",
           "title": "As an operator, I want slugs permanent on every write path",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7451,7 +7451,7 @@
         {
           "local_id": "US3",
           "title": "As an adopter, I want legacy headers migrated once, fail-loud",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7460,7 +7460,7 @@
         {
           "local_id": "US4",
           "title": "As a tool author, I want author_slug in the discussion JSON",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7478,7 +7478,7 @@
       ],
       "path": "features/FEAT-000980-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:58:15Z",
-      "updated_at": "2026-10-12T06:31:58Z",
+      "updated_at": "2026-10-15T21:43:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44258,7 +44258,7 @@
       "type": "task",
       "title": "Put the author's slug in comment headers and migrate the corpus",
       "slug": "put-the-author-s-slug-in-comment-headers-and-migrate-the-cor",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "One header grammar and parser, author_slug in JSON, reserved role slugs, and the 0.16 migration step with the comment-header rewrite as its first contribution",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44337,7 +44337,7 @@
       ],
       "path": "tasks/TASK-001004-put-the-author-s-slug-in-comment-headers-and-migrate-the-cor.md",
       "created_at": "2026-10-12T06:46:55Z",
-      "updated_at": "2026-10-12T06:54:13Z",
+      "updated_at": "2026-10-15T21:43:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44373,7 +44373,7 @@
       ],
       "path": "tasks/TASK-001005-accept-and-show-author-slug-on-comments-in-the-vs-code-clien.md",
       "created_at": "2026-10-12T06:48:44Z",
-      "updated_at": "2026-10-12T06:55:29Z",
+      "updated_at": "2026-10-15T21:43:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45392,6 +45392,123 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1023"
+    },
+    "1024": {
+      "sequence_id": 1024,
+      "type": "feature",
+      "title": "The --help surface follows one rule",
+      "slug": "the-help-surface-follows-one-rule",
+      "status": "Draft",
+      "description": "Every command's help answers what it does, what to type and what comes back, in one dialect with every flag described.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-958:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a contributor, I want the help rule written where I read it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, I want help free of maintainer reasoning and private names",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As a script author, I want the JSON field reference in the docs, not in help",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As a user, I want every option and argument described",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As a user, I want the same flag to read the same everywhere",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As a user, I want one exit-code form in help",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "As a user, I want one markup dialect that survives an 80-column terminal",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "As a reader, I want summaries that state the outcome and flags described once",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "As a maintainer, I want a guard that holds help to the rule",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US10",
+          "title": "As an adopter, I want the docs and changelog to match the new help",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001024-the-help-surface-follows-one-rule.md",
+      "created_at": "2026-10-15T21:43:01Z",
+      "updated_at": "2026-10-15T21:43:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1024"
     }
   }
 }

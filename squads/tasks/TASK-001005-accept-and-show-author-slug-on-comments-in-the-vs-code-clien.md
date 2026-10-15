@@ -19,7 +19,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-10-12T06:48:44Z'
-updated_at: '2026-10-12T06:55:29Z'
+updated_at: '2026-10-15T21:43:33Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -137,4 +137,6 @@ result reported with the `sq` it ran against.
   - 2026-10-12: authored for the VS Code clause of story 4 of FEAT-980. Left in Draft, no developer briefed. Depends on TASK-1004 (ST2 emits the key). Showing the slug in the preview goes one step past the story, which asks for the optional field only; the point is raised on TASK-1004 for the operator.
 - [2026-10-12T06:55:29Z] Pierre Chat:
   - 2026-10-12: keep the slug in the VS Code comment preview, beyond the optional field story 4 asks for.
+- [2026-10-15T21:43:33Z] Catherine Manager:
+  - Also in scope: the doc comment at clients/vscode/src/domain/squadDir.ts:129-131 still names --dir. Suggested text from the writer: Resolve the active squad directory for workspaceRoot, or undefined when no .squads.toml is found (mirrors _paths.py::resolve, the .squads.toml walk-up).
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: FEAT-980
 sequence_id: 980
 type: feature
 title: Comment headers carry the author's permanent slug
-status: Ready
+status: InProgress
 author: product-owner
 refs:
 - ADR-979:implements
@@ -13,21 +13,21 @@ refs:
 subentities:
 - local_id: US1
   title: As a reader, I want comment headers that name the author's slug
-  status: Todo
+  status: InProgress
 - local_id: US2
   title: As an operator, I want slugs permanent on every write path
-  status: Todo
+  status: InProgress
 - local_id: US3
   title: As an adopter, I want legacy headers migrated once, fail-loud
-  status: Todo
+  status: InProgress
 - local_id: US4
   title: As a tool author, I want author_slug in the discussion JSON
-  status: Todo
+  status: InProgress
 - local_id: US5
   title: As an adopter, I want the header grammar documented
   status: Todo
 created_at: '2026-09-29T14:58:15Z'
-updated_at: '2026-10-12T06:31:58Z'
+updated_at: '2026-10-15T21:43:29Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision on comment headers: each header names the author's permanent slug, so attribution survives a display-name change. The decision is the spec; the stories below cite its numbered decisions and add acceptance only.
