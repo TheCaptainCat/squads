@@ -19,13 +19,13 @@ import typer.core
 import typer.main
 from rich.console import Console, Group, RenderableType
 from rich.markdown import Markdown
-from rich.markup import escape
 from rich.panel import Panel
 from rich.text import Text
 
 from squads import __version__
 from squads import _badges as badges
 from squads import _discussion as discussion
+from squads._cli._markup import escape_markup
 from squads._context import get_context, rebind
 from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
@@ -535,7 +535,7 @@ def unreadable_report(msg: str) -> str:
 
 def e(value: object) -> str:
     """Escape a dynamic string so Rich does not interpret ``[...]`` as markup."""
-    return escape(str(value))
+    return escape_markup(str(value))
 
 
 def view_disable_result_message(
