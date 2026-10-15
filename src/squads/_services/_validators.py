@@ -663,6 +663,18 @@ def _description_present(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
+def _assignee_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item resting in a status whose role declares ``live`` while nobody is assigned. The
+    reading is the role's flag, the engine's own definition of an active status, never a role
+    or status name; a status with no declared role resolves to the fallback role, which is not
+    live."""
+    item = ctx.item
+    if item.assignee or not ctx.spec.role_for(item.status).live:
+        return []
+    level = _resolved_level(ctx, "assignee_present")
+    return [CheckIssue(level, item.id, f"status is {item.status} but nobody is assigned")]
+
+
 def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_status_banners``: an item whose body or description opens with a
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
@@ -873,6 +885,7 @@ CATALOG: dict[str, Validator] = {
     "ref_rule_target_typed": _ref_rule_target_typed,
     "body_written": _body_written,
     "description_present": _description_present,
+    "assignee_present": _assignee_present,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 

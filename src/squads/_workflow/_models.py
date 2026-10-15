@@ -164,6 +164,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "ref_rule_target_typed",
         "body_written",
         "description_present",
+        "assignee_present",
     }
 )
 
@@ -252,6 +253,7 @@ WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "ref_rule_target_typed",
         "body_written",
         "description_present",
+        "assignee_present",
     }
 )
 
@@ -378,6 +380,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "ref_rule_target_typed": "warn",
     "body_written": "warn",
     "description_present": "warn",
+    "assignee_present": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -1634,13 +1637,20 @@ def _check_ref_rule_targets(items: dict[str, ItemSpec], errors: list[str]) -> No
                 )
 
 
-def _check_selections_that_cannot_fire(items: dict[str, ItemSpec], errors: list[str]) -> None:
+def _check_selections_that_cannot_fire(
+    items: dict[str, ItemSpec],
+    lifecycles: dict[str, Lifecycle],
+    statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
+    errors: list[str],
+) -> None:
     """Plane-1: a selected check that the spec's own declarations make unable to fire is
     refused here, so it is never a silent no-op and never depends on what the corpus holds.
     Each message names the type, the entry and the declaration that is missing.
 
     A member of :data:`WORK_POLICY_VALIDATOR_NAMES` is about the work an item tracks, so naming
-    it on a ``roster`` type is refused.
+    it on a ``roster`` type is refused. ``ref_rule_target_typed`` also needs a ref rule with a
+    target on the type, and ``assignee_present`` a lifecycle holding a status of a live role.
     """
     for t, ts in items.items():
         for entry in ts.validators:
@@ -1660,6 +1670,18 @@ def _check_selections_that_cannot_fire(items: dict[str, ItemSpec], errors: list[
                     f"target, and {t!r} declares none (a rule whose target type was dropped "
                     "through [selected] is removed with it) — declare "
                     "{ kind = ..., target = ... } in its ref_rules, or drop the entry"
+                )
+            lifecycle = lifecycles.get(ts.lifecycle)
+            if (
+                bare == "assignee_present"
+                and lifecycle is not None
+                and not any(_status_live(st, statuses, roles) for st in lifecycle.states)
+            ):
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} needs a status of a role declaring "
+                    f"live = true, and the lifecycle {ts.lifecycle!r} of {t!r} holds none — "
+                    "without one it never fires; drop the entry or give the lifecycle a status "
+                    "of a live role"
                 )
 
 
@@ -1910,6 +1932,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "ref_rule_target_typed",
         "body_written",
         "description_present",
+        "assignee_present",
     }
 )
 
@@ -2974,7 +2997,9 @@ class WorkflowSpec(BaseModel):
         _check_ref_rule_targets(self.items, errors)
 
         # A selected check the spec's own declarations make unable to fire is refused.
-        _check_selections_that_cannot_fire(self.items, errors)
+        _check_selections_that_cannot_fire(
+            self.items, self.lifecycles, self.statuses, self.roles, errors
+        )
 
         # Every capability a type declares must be reachable under the validators its own
         # category turns on — a category reassignment that contradicts itself fails here.

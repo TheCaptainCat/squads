@@ -411,10 +411,65 @@ DESCRIPTION_PRESENT = Member(
     plant=_plant_without_and_with_a_summary,
 )
 
+NO_LIVE_STATUS = "needs a status of a role declaring live = true"
+#: Rows whose bundled lifecycle holds no status of a live role.
+_NO_LIVE_ROWS = frozenset({"decision", "guide"})
+_LIVE_EXTRA_ROWS: tuple[TypeRow, ...] = (
+    TypeRow("decision+live", "decision", declaration='lifecycle = "work"\n'),
+    TypeRow("guide+live", "guide", declaration='lifecycle = "work"\n'),
+)
+
+
+async def _plant_unassigned_and_assigned_active_items(
+    svc: service.Service, row: TypeRow
+) -> Planted:
+    status = svc.spec.first_active_status(row.type)
+    assert status is not None
+    offender = (await create_item(svc, row.type, "unassigned")).item
+    await svc.update(offender.id, status=status, force=True)
+    clean = (await create_item(svc, row.type, "assigned", assignee="manager")).item
+    await svc.update(clean.id, status=status, force=True)
+    return Planted(offender.id, clean.id, f"status is {status} but nobody is assigned")
+
+
+ASSIGNEE_PRESENT = Member(
+    name="assignee_present",
+    fragment="nobody is assigned",
+    can_refuse=True,
+    plain=("assignee_present",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape(("assignee_present",), "warn"),
+        "warn-suffix": Shape(("assignee_present@warn",), "warn"),
+        "error-suffix": Shape(("assignee_present@error",), "error"),
+    },
+    cells={
+        **{
+            r.id: (
+                ROSTER_REFUSAL
+                if r.type in ROSTER_TYPES
+                else NO_LIVE_STATUS
+                if r.id in _NO_LIVE_ROWS
+                else None
+            )
+            for r in ALL_ROWS
+        },
+        **{r.id: None for r in _LIVE_EXTRA_ROWS},
+    },
+    plant=_plant_unassigned_and_assigned_active_items,
+    extra_rows=_LIVE_EXTRA_ROWS,
+)
+
 #: Every member this table drives, by name.
 MEMBERS: dict[str, Member] = {
     m.name: m
-    for m in (ITEM_TITLE_MAX, REF_RULE_TARGET_TYPED, BODY_WRITTEN_MEMBER, DESCRIPTION_PRESENT)
+    for m in (
+        ITEM_TITLE_MAX,
+        REF_RULE_TARGET_TYPED,
+        BODY_WRITTEN_MEMBER,
+        DESCRIPTION_PRESENT,
+        ASSIGNEE_PRESENT,
+    )
 }
 
 #: The fixed message fragments of every check that is selected rather than always on.
