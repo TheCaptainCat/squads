@@ -91,7 +91,7 @@ def _catalog_squad_dir() -> Path | None:
     """
     ctx = get_context()
     try:
-        return resolve_squad_paths(ctx.active_dir, client_cwd=ctx.client_cwd).squad_dir
+        return resolve_squad_paths(client_cwd=ctx.client_cwd).squad_dir
     except SquadsError:
         return None
 

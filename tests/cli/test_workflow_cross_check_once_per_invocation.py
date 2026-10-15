@@ -150,9 +150,9 @@ async def test_build_plain_service_always_uses_the_currently_bound_spec(
 
     captured: list[object] = []
 
-    def spy(dir_override, *, client_cwd=None, resolved_spec=None):
+    def spy(*, client_cwd=None, resolved_spec=None):
         captured.append(resolved_spec)
-        return open_service(dir_override, client_cwd=client_cwd, resolved_spec=resolved_spec)
+        return open_service(client_cwd=client_cwd, resolved_spec=resolved_spec)
 
     monkeypatch.setattr(common, "open_service", spy)
 
@@ -186,7 +186,7 @@ async def test_open_service_direct_call_ignores_an_unrelated_ambient_spec(
     try:
         bind_context(replace(prior, active_spec=bundled_spec(), spec_error=None))
         with pytest.raises(SquadsError) as exc_info:
-            open_service(str(project.squad_dir))
+            open_service(client_cwd=project.squad_dir)
     finally:
         bind_context(prior)
     assert result.item.id in str(exc_info.value)
@@ -199,7 +199,7 @@ async def test_repeated_open_service_calls_on_one_directory_all_refuse(project, 
 
     for _ in range(3):
         with pytest.raises(SquadsError) as exc_info:
-            open_service(str(project.squad_dir))
+            open_service(client_cwd=project.squad_dir)
         assert result.item.id in str(exc_info.value)
 
 

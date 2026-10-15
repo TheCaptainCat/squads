@@ -2103,7 +2103,7 @@ to customize what appears in `.claude/`, override the templates that generate it
 
 Yes. Each squad folder has its own `.overrides/` directory, so teams can maintain different
 customisations per squad. The overrides are discovered relative to your active squad folder
-(via `--dir` or `.squads.toml`).
+(the `.squads.toml` found by walking up from where `sq` runs, or from the folder `-C` names).
 
 **Q: What if I want to add a *new* field to a role that isn't in the bundled definition?**
 

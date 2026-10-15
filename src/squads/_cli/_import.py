@@ -15,7 +15,6 @@ command, so a subcommand-local option of the same name could never actually rece
 
 import json
 import sys
-from pathlib import Path
 from typing import Any
 
 import typer
@@ -32,7 +31,7 @@ def _read_import_text(file: str) -> str:
     if file == "-":
         return sys.stdin.read()
     try:
-        return Path(file).read_text(encoding="utf-8")
+        return common.client_path(file).read_text(encoding="utf-8")
     except OSError as exc:
         raise SquadsError(f"cannot read import file {file!r}: {exc.strerror or exc}") from exc
 

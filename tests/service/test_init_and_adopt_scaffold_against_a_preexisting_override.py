@@ -57,7 +57,7 @@ async def test_init_does_not_scaffold_a_type_the_preexisting_override_drops(
 
     from squads._services._service import open_service
 
-    svc = open_service(dir_override=str(squad_dir))
+    svc = open_service(client_cwd=squad_dir)
     assert "guide" not in svc.spec.items
     skill_slugs = {i.extra.get("slug") for i in await svc.list_items(item_type="skill")}
     assert "sq-guide" not in skill_slugs  # no orphan skill seeded for a type that never existed
@@ -92,7 +92,7 @@ lifecycle = "$(items.guide.lifecycle)"
 
     from squads._services._service import open_service
 
-    svc = open_service(dir_override=str(squad_dir))
+    svc = open_service(client_cwd=squad_dir)
     assert "howto" in svc.spec.items
     assert svc.spec.items["howto"].folder == "howtos"
 
@@ -173,7 +173,7 @@ lifecycles = {kept_lifecycles!r}
 
     # Must not raise: every roster item this call activated has to carry a status the
     # merged spec actually declares.
-    svc = open_service(dir_override=str(squad_dir))
+    svc = open_service(client_cwd=squad_dir)
     roles = await svc.list_items(item_type="role")
     assert roles
     for role in roles:

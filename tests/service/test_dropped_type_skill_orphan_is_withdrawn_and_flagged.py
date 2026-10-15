@@ -34,7 +34,7 @@ async def test_dropping_a_type_withdraws_its_bundled_skills_pointer_on_sync(proj
     _drop_type(project.squad_dir, "guide")
     from squads._services._service import open_service
 
-    dropped_svc = open_service(dir_override=str(project.squad_dir))
+    dropped_svc = open_service(client_cwd=project.squad_dir)
     notices = await dropped_svc.sync()
     assert any("sq-guide" in n and "guide" in n for n in notices)
     assert not pointer.exists()
@@ -51,7 +51,7 @@ async def test_check_flags_a_live_skill_whose_type_the_active_spec_no_longer_dec
 
     from squads._services._service import open_service
 
-    dropped_svc = open_service(dir_override=str(project.squad_dir))
+    dropped_svc = open_service(client_cwd=project.squad_dir)
     await dropped_svc.sync()
     issues = await dropped_svc.check()
     matches = [i for i in issues if "sq-guide" in i.message]
@@ -67,13 +67,13 @@ async def test_restoring_the_dropped_type_re_materialises_the_skill_with_no_manu
 
     from squads._services._service import open_service
 
-    dropped_svc = open_service(dir_override=str(project.squad_dir))
+    dropped_svc = open_service(client_cwd=project.squad_dir)
     await dropped_svc.sync()
     pointer = project.root / ".claude" / "skills" / "sq-guide"
     assert not pointer.exists()
 
     (project.squad_dir / ".overrides" / "workflow.toml").unlink()
-    restored_svc = open_service(dir_override=str(project.squad_dir))
+    restored_svc = open_service(client_cwd=project.squad_dir)
     notices = await restored_svc.sync()
     # No *manual* reconciliation step is required — the pointer comes straight back — but this
     # sync did have to regenerate a pointer that was genuinely absent a moment ago, and that is
@@ -113,7 +113,7 @@ async def test_a_still_current_type_skill_is_untouched(project):
 
     from squads._services._service import open_service
 
-    dropped_svc = open_service(dir_override=str(project.squad_dir))
+    dropped_svc = open_service(client_cwd=project.squad_dir)
     await dropped_svc.sync()
     assert (project.root / ".claude" / "skills" / "sq-task").is_dir()
     issues = await dropped_svc.check()

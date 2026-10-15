@@ -59,7 +59,7 @@ async def test_load_wraps_a_corrupt_index_in_squads_error(tmp_path):
 
 async def test_load_wraps_a_missing_index_in_squads_error(tmp_path):
     """No `.squads.json` on disk at all (a fresh clone of a gitignored index, a wrong
-    ``--dir``, a half-finished adopt) is just as unusable as a corrupt one -- it must raise
+    wrong directory, a half-finished adopt) is just as unusable as a corrupt one -- it must raise
     the same clean SquadsError naming `sq repair`, not let FileNotFoundError escape raw."""
     path = tmp_path / ".squads.json"
     store = IndexStore(path, tmp_path / ".squads.json.lock")

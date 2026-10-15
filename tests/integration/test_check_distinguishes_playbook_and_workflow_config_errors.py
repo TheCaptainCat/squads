@@ -76,7 +76,7 @@ async def test_open_service_raises_playbook_config_error_with_no_workflow_overri
     anywhere, must still raise the distinct exception, not a plain ``SquadsError``."""
     _write_playbook_override(project.squad_dir, _BROKEN_PLAYBOOK)
     with pytest.raises(PlaybookConfigError):
-        open_service(dir_override=str(project.squad_dir))
+        open_service(client_cwd=project.squad_dir)
 
 
 async def test_open_service_raises_playbook_config_error_alongside_a_valid_workflow_override(
@@ -88,7 +88,7 @@ async def test_open_service_raises_playbook_config_error_alongside_a_valid_workf
     )
     _write_playbook_override(project.squad_dir, _BROKEN_PLAYBOOK)
     with pytest.raises(PlaybookConfigError):
-        open_service(dir_override=str(project.squad_dir))
+        open_service(client_cwd=project.squad_dir)
 
 
 async def test_open_service_never_raises_playbook_config_error_for_a_broken_workflow_override(
@@ -96,7 +96,7 @@ async def test_open_service_never_raises_playbook_config_error_for_a_broken_work
 ) -> None:
     _write_workflow_override(project.squad_dir, _BROKEN_WORKFLOW)
     with pytest.raises(SquadsError) as exc_info:
-        open_service(dir_override=str(project.squad_dir))
+        open_service(client_cwd=project.squad_dir)
     assert not isinstance(exc_info.value, PlaybookConfigError)
     assert "sq workflow lint" in str(exc_info.value)
 

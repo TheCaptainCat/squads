@@ -431,7 +431,7 @@ class IndexStore:
             db = SquadsDB.model_validate_json(raw)
         except FileNotFoundError as exc:
             # No index on disk at all — a different operator story from a corrupt one
-            # (fresh clone of a gitignored index, wrong --dir, half-finished adopt), but
+            # (fresh clone of a gitignored index, wrong directory, half-finished adopt), but
             # the same cause (an unusable index) and the same remedy, so the wording is
             # this message's sibling rather than a distinct case.
             raise SquadsError(

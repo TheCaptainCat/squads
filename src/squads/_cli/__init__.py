@@ -3,7 +3,6 @@
 import io
 import sys
 from datetime import datetime
-from pathlib import Path
 from typing import Any, ClassVar
 
 import typer
@@ -275,11 +274,16 @@ def _resolve_clock_override(at: str | None, prior: RequestContext) -> datetime |
 @app.callback()
 def main_callback(
     ctx: typer.Context,
-    dir: str | None = typer.Option(
-        None,
-        "--dir",
-        help="Operate on the squad folder at PATH (overrides config/walk-up).",
+    change_dir: list[str] = typer.Option(
+        [],
+        "-C",
+        help="Run as if sq was started in PATH (repeatable; relative to the previous -C).",
         metavar="PATH",
+        callback=common.check_change_dir,
+        is_eager=True,
+    ),
+    removed_dir: str | None = typer.Option(
+        None, "--dir", hidden=True, callback=common.refuse_dir_option
     ),
     at: str | None = typer.Option(
         None,
@@ -294,13 +298,13 @@ def main_callback(
     from squads._context import bind_context, get_context
 
     # The CLI edge: bind ONE fresh RequestContext per invocation, assembled from this
-    # invocation's inputs (--dir/--at) plus the ambient values that carry forward
+    # invocation's inputs (-C/--at) plus the ambient values that carry forward
     # (see _resolve_clock_override). Not a hybrid of separate set_*() mutations against
     # whatever the previous invocation left behind — every field is freshly computed here.
     prior = get_context()
     session_id, parent_session_id = actor.session_from_env()
-    client_cwd = Path.cwd()
-    active_spec, spec_error = common.bind_active_spec(dir, client_cwd)
+    client_cwd = common.effective_dir(change_dir)
+    active_spec, spec_error = common.bind_active_spec(client_cwd)
     bind_context(
         RequestContext(
             clock_override=_resolve_clock_override(at, prior),
@@ -308,11 +312,12 @@ def main_callback(
             session_id=session_id,
             parent_session_id=parent_session_id,
             active_spec=active_spec,
-            active_dir=dir,
             client_cwd=client_cwd,
+            client_cwd_chosen=bool(change_dir),
             spec_error=spec_error,
         )
     )
+    common.mark_root_callback_ran(ctx)
     common.require_current_schema(ctx.invoked_subcommand)
     common.version_notice()
 
@@ -374,7 +379,7 @@ app.add_typer(
 # this gives byte-identical --help output for non-custom squads.  Types added later by
 # a project's own .overrides/workflow.toml (not present in the bundled spec at import time,
 # so impossible to register statically) are handled lazily by _CustomTypeGroup.get_command,
-# which fires AFTER --dir is resolved and the active spec is bound.
+# which fires once the root group's -C values are parsed and the active spec is bound.
 _spec = bundled_spec()
 # Deterministic registration order: each type's explicit ItemSpec.order (ascending), the
 # type-name string breaking ties. This is an explicit, documented ordering key — independent
@@ -403,21 +408,40 @@ def _hoist_global_options(args: list[str]) -> list[str]:
     """Move global value-options (--at/--dir, + their value) to the front, wherever they appear.
 
     Safe because no subcommand defines these names and option *values* use the ``--opt=value``
-    form, so a bare ``--at``/``--dir`` token is always the global option.
+    form. A token that is the value of the option before it, or follows ``--``, is not an
+    option and stays where it is. A trailing ``--dir`` with no value is hoisted as ``--dir=``
+    so it reaches the same refusal.
     """
     hoisted: list[str] = []
     rest: list[str] = []
+    previous = ""
     i = 0
     while i < len(args):
         tok = args[i]
+        if tok == "--":
+            rest += args[i:]
+            break
+        candidate = tok in _GLOBAL_VALUE_OPTS or tok.startswith(("--at=", "--dir="))
+        if candidate and previous in common.value_options():
+            rest.append(tok)
+            previous = ""
+            i += 1
+            continue
         if tok in _GLOBAL_VALUE_OPTS and i + 1 < len(args):
             hoisted += [tok, args[i + 1]]
+            previous = ""
             i += 2
+        elif tok == "--dir":
+            hoisted.append("--dir=")
+            previous = ""
+            i += 1
         elif tok.startswith(("--at=", "--dir=")):
             hoisted.append(tok)
+            previous = ""
             i += 1
         else:
             rest.append(tok)
+            previous = tok
             i += 1
     return hoisted + rest
 

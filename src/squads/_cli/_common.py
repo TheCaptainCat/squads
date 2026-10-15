@@ -4,10 +4,11 @@ import contextlib
 import enum
 import functools
 import json
+import os
 import sys
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any, ClassVar
 
 import anyio
@@ -26,7 +27,7 @@ from squads import __version__
 from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._context import get_context, rebind
-from squads._errors import RoleNotFoundError, SquadsError
+from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
 from squads._interactions import allowed_create_types, is_dev_slug
 from squads._models._extras import ExtraKey as X
@@ -103,14 +104,107 @@ def report_omissions(omissions: list[Omission], *, json_out: bool) -> None:
     raise typer.Exit(4)
 
 
-# The active squad folder and per-invocation WorkflowSpec are ambient RequestContext fields
-# (squads._context) now, not module globals — set once per invocation by the root callback's
-# single bind_context(RequestContext(...)) call. These setters/getter keep their public
-# names/signatures so the ~15 call sites below and in tests are unaffected by the move.
+# The per-invocation WorkflowSpec and client working directory are ambient RequestContext
+# fields (squads._context), set once per invocation by the root callback's single
+# bind_context(RequestContext(...)) call.
 
 
-def set_active_dir(value: str | None) -> None:
-    rebind(active_dir=value)
+#: The root command's parameter name for ``-C``, read from the parsed params before the root
+#: callback runs.
+CHANGE_DIR_PARAM = "change_dir"
+
+_ROOT_CALLBACK_RAN_KEY = "squads.root_callback_ran"
+
+
+class ChangeDirError(Exception):
+    """A ``-C`` value that ``chdir`` would refuse; the message names the path and the reason."""
+
+
+def _enter(path: Path, part: str) -> Path:
+    """Step from *path* into *part* the way ``chdir`` does, one component at a time."""
+    if part == "..":
+        return path.parent
+    candidate = path / part
+    try:
+        resolved = candidate.resolve(strict=True)
+    except FileNotFoundError:
+        raise ChangeDirError(f"{candidate} does not exist") from None
+    except OSError as exc:
+        reason = "permission denied" if isinstance(exc, PermissionError) else exc.strerror
+        raise ChangeDirError(f"{candidate} cannot be entered: {reason}") from None
+    if not resolved.is_dir():
+        raise ChangeDirError(f"{candidate} is not a directory")
+    if not os.access(resolved, os.X_OK):
+        raise ChangeDirError(f"{candidate} cannot be entered: permission denied")
+    return resolved
+
+
+def effective_dir(values: Sequence[str]) -> Path:
+    """The directory ``-C`` selects: the process directory, then each value entered in order
+    as ``chdir`` would (an absolute value replaces what came before, an empty one changes
+    nothing, a link is followed before a ``..``). Raises :class:`ChangeDirError` for a
+    component that is missing, not a directory, or not searchable. The one place the CLI
+    reads the process directory."""
+    path = Path.cwd().resolve()
+    for value in values:
+        pure = PurePath(value)
+        parts = pure.parts
+        if pure.is_absolute():
+            path, parts = Path(pure.anchor), parts[1:]
+        for part in parts:
+            if part != ".":
+                path = _enter(path, part)
+    return path
+
+
+def root_effective_dir(ctx: Any) -> Path:
+    """The effective directory for the invocation *ctx* belongs to, from the root command's
+    parsed ``-C`` values — usable before the root callback has bound a context."""
+    root = ctx.find_root() if ctx is not None and hasattr(ctx, "find_root") else None
+    values = root.params.get(CHANGE_DIR_PARAM) if root is not None else None
+    return effective_dir(values or [])
+
+
+def check_change_dir(ctx: typer.Context, values: list[str] | None) -> list[str]:
+    """Option callback for ``-C``: refuse, with exit 2, a directory ``chdir`` would refuse.
+    Silent while the shell is completing, which must not write to the terminal."""
+    if ctx.resilient_parsing:
+        return values or []
+    try:
+        effective_dir(values or [])
+    except ChangeDirError as exc:
+        err_console.print(f"[red]error:[/red] -C {e(exc)}", soft_wrap=True)
+        raise typer.Exit(2) from None
+    return values or []
+
+
+def refuse_dir_option(ctx: typer.Context, value: str | None) -> None:
+    """Option callback for the removed ``--dir``: refuse naming its replacement, exit 2.
+    Silent while the shell is completing."""
+    if value is not None and not ctx.resilient_parsing:
+        err_console.print(
+            "[red]error:[/red] --dir is no longer supported; use -C <path> to run sq as if "
+            "started in <path> (the project directory, or any folder inside it)",
+            soft_wrap=True,
+        )
+        raise typer.Exit(2)
+
+
+def mark_root_callback_ran(ctx: Any) -> None:
+    """Record on the Click invocation that the root callback has bound this invocation's
+    context, so the ambient context is known not to be a previous invocation's."""
+    ctx.meta[_ROOT_CALLBACK_RAN_KEY] = True
+
+
+def _root_callback_ran(ctx: Any) -> bool:
+    return bool(ctx.meta.get(_ROOT_CALLBACK_RAN_KEY)) if hasattr(ctx, "meta") else False
+
+
+def error_text(exc: SquadsError) -> str:
+    """The message for *exc*, naming the searched directory when ``-C`` chose it."""
+    if isinstance(exc, NotInitializedError):
+        return exc.describe(named=get_context().client_cwd_chosen)
+    return str(exc)
 
 
 def set_active_spec(spec: WorkflowSpec | None) -> None:
@@ -147,10 +241,9 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
     1. The already-bound per-invocation spec (:func:`get_active_spec`) — set by the root
        callback's :func:`bind_active_spec`, and the fast path for ordinary subcommand dispatch
        (the callback fires before subcommand resolution).
-    2. ``ctx.params["dir"]`` — the hoisted ``--dir`` value parsed on the root group's own
-       params before its callback fires (covers ``sq --help`` and shell completion, where
-       Click walks the command tree via ``list_commands``/``get_command`` without ever
-       invoking the callback chain).
+    2. The squad found from the root group's own ``-C`` values, parsed before its callback
+       fires (covers ``sq --help`` and shell completion, where Click walks the command tree
+       via ``list_commands``/``get_command`` without ever invoking the callback chain).
     3. The bundled spec, so a non-customized squad's ``--help``/completion stays
        byte-identical to before this existed.
 
@@ -163,13 +256,10 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
     to the parser that decides whether a word is a command.
     """
     try:
-        active = get_context().active_spec
-        if active is not None:
-            return active
-
-        dir_override: str | None = None
-        if ctx is not None and hasattr(ctx, "params"):
-            dir_override = ctx.params.get("dir")
+        if ctx is None or _root_callback_ran(ctx):
+            active = get_context().active_spec
+            if active is not None:
+                return active
 
         from squads._paths import resolve
         from squads._workflow._loader import (
@@ -178,7 +268,7 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
             validate_against_index_fail_closed,
         )
 
-        sp = resolve(dir_override, client_cwd=get_context().client_cwd)
+        sp = resolve(client_cwd=root_effective_dir(ctx))
         override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
         if not override_path.is_file():
             return bundled_spec()
@@ -291,9 +381,7 @@ def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
     return leaf
 
 
-def bind_active_spec(
-    dir_override: str | None, client_cwd: Path | None
-) -> tuple[WorkflowSpec | None, str | None]:
+def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str | None]:
     """Resolve the WorkflowSpec for this invocation (does not bind it — the caller does, as
     part of the single per-invocation ``RequestContext``).
 
@@ -318,17 +406,15 @@ def bind_active_spec(
     module, and :func:`_pending_spec_error` needs the same resolution at the root group,
     where the callback that would have bound it has not run yet.
 
-    ``client_cwd`` is threaded straight into ``resolve()`` — the same value the sibling
-    ``_CustomTypeGroup._resolve_spec_for_ctx`` path uses (``get_context().client_cwd``) —
-    so both spec-resolution paths agree on their resolution base rather than one of them
-    silently falling back to ``resolve()``'s own ``Path.cwd()`` default.
+    ``client_cwd`` is threaded straight into ``resolve()``, so every spec-resolution path
+    agrees on its resolution base.
     """
     from squads._paths import resolve
     from squads._workflow import bundled_spec
     from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, spec_refusal
 
     try:
-        sp = resolve(dir_override, client_cwd=client_cwd)
+        sp = resolve(client_cwd=client_cwd)
         override_path = sp.squad_dir / WORKFLOW_OVERRIDE_FILENAME
         has_override = override_path.is_file()
     except Exception:  # pylint: disable=broad-except
@@ -368,13 +454,10 @@ def _pending_spec_error(ctx: Any) -> str | None:
     from squads._context import get_context
 
     bound = get_context()
-    if bound.spec_error is not None:
-        return bound.spec_error
-    if bound.active_spec is not None or ctx is None:
-        return None  # the callback ran and reported no refusal — the spec is fine
+    if ctx is None or _root_callback_ran(ctx):
+        return bound.spec_error  # the callback ran: its verdict is the whole answer
     try:
-        dir_override = ctx.params.get("dir") if hasattr(ctx, "params") else None
-        _spec, error = bind_active_spec(dir_override, bound.client_cwd)
+        _spec, error = bind_active_spec(root_effective_dir(ctx))
     except Exception:  # pylint: disable=broad-except
         return None
     return error
@@ -941,13 +1024,19 @@ def print_subentity(detail: SubentityDetail, kind: str) -> None:
     console.print(e(detail.discussion) if detail.discussion else "[dim](none)[/dim]")
 
 
+def client_path(file: str) -> Path:
+    """*file* as a path: a relative one is taken against the client's working directory."""
+    base = get_context().client_cwd
+    return base / file if base is not None else Path(file)
+
+
 def _read_source_file(file: str) -> str:
     """Read --file content: '-' reads stdin, anything else a real path. Shared by every
     content-source resolver (body, comment) so '-' and read errors behave identically."""
     if file == "-":
         return sys.stdin.read().strip("\n")
     try:
-        return Path(file).read_text(encoding="utf-8").strip("\n")
+        return client_path(file).read_text(encoding="utf-8").strip("\n")
     except OSError as exc:
         raise SquadsError(f"cannot read file {file!r}: {exc.strerror or exc}") from exc
 
@@ -1303,7 +1392,7 @@ def _build_plain_service() -> Service:
     ctx = get_context()
     if ctx.spec_error is not None:
         raise SquadsError(ctx.spec_error)
-    return open_service(ctx.active_dir, client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec)
+    return open_service(client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec)
 
 
 def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) -> Service:
@@ -1359,7 +1448,7 @@ def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) ->
 
 def _build_bypass_fallback_service(*, bundled_fallback: bool = True) -> Service:
     ctx = get_context()
-    sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
+    sp = resolve(client_cwd=ctx.client_cwd)
     from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
 
     try:
@@ -1389,7 +1478,7 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
         try:
             return fn(*args, **kwargs)
         except SquadsError as exc:
-            err_console.print(f"[red]error:[/red] {e(exc)}", soft_wrap=True)
+            err_console.print(f"[red]error:[/red] {e(error_text(exc))}", soft_wrap=True)
             raise typer.Exit(1) from exc
 
     return wrapper
@@ -1438,7 +1527,7 @@ def command[**P](fn: Callable[P, Awaitable[None]]) -> Callable[P, None]:
         try:
             anyio.run(functools.partial(fn, *args, **kwargs))
         except SquadsError as exc:
-            err_console.print(f"[red]error:[/red] {e(exc)}", soft_wrap=True)
+            err_console.print(f"[red]error:[/red] {e(error_text(exc))}", soft_wrap=True)
             raise typer.Exit(1) from exc
 
     return wrapper
@@ -1458,7 +1547,7 @@ def _close_read_scope(root: _click.core.Context) -> None:
 def version_notice() -> None:
     """Print a non-fatal notice if the installed squads is newer than the managed files."""
     try:
-        sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
+        sp = resolve(client_cwd=get_context().client_cwd)
     except SquadsError:
         return  # not initialized yet (e.g. before `sq init`)
     if sp.config.schema_version != SCHEMA_VERSION:
@@ -1517,8 +1606,11 @@ def gate_grant(fn: Callable[..., Any]) -> GateGrant | None:
     return grant if isinstance(grant, GateGrant) else None
 
 
-def _value_options() -> frozenset[str]:
-    """Every option spelling, across the whole command tree, that consumes the next token."""
+@functools.cache
+def value_options() -> frozenset[str]:
+    """Every option spelling, across the whole static command tree, that consumes the next
+    token. The tree is built from the bundled spec and does not vary by squad, so the result
+    is computed once per process."""
     import typer.main
     from typer.core import TyperGroup, TyperOption
 
@@ -1539,7 +1631,7 @@ def _value_options() -> frozenset[str]:
 def help_requested(argv: list[str]) -> bool:
     """Whether *argv* carries ``--help`` as an option of its own: before any ``--`` and not the
     value of an option that takes one. ``-h`` is not a help option of this CLI."""
-    values = _value_options()
+    values = value_options()
     consumed = False
     for token in argv:
         if consumed:
@@ -1559,7 +1651,7 @@ def apply_gate(grant: GateGrant | None) -> None:
     if help_requested(sys.argv[1:]):
         return
     try:
-        sp = resolve(get_context().active_dir, client_cwd=get_context().client_cwd)
+        sp = resolve(client_cwd=get_context().client_cwd)
     except SquadsError:
         return  # not initialized yet — nothing to gate
     disk = sp.config.schema_version

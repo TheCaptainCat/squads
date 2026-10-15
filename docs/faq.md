@@ -6,19 +6,24 @@ Install on 3.14, or run via uv which provisions it: `uvx --from squads sq …`.
 
 ### "no .squads.toml found … run `sq init`"
 You're not inside a squad. Either `cd` into a project that has `.squads.toml` (sq walks up to find
-it), pass `--dir <path>` to point at a squad folder explicitly, or `sq init` / `sq adopt` to create
-one.
+it), pass `-C <path>` to run `sq` as if it were started in that folder (the project directory or any
+folder inside it), or `sq init` / `sq adopt` to create one. With `-C`, the message names the folder
+the search started from: `no .squads.toml found in <path> or any parent directory`.
 
-### "… is not the squad folder of the squad configured at … ; name that folder with --dir"
-`--dir` named a folder inside a project whose `.squads.toml` keeps its squad somewhere else: the
-project root of a nested squad, say, or one of the squad's own type folders. Pass the folder the
-message names as `squad_dir` (relative to that `.squads.toml`), for example
-`sq --dir path/to/project/squads …`.
+### "-C … does not exist" / "is not a directory" / "cannot be entered: permission denied"
+`-C` names the folder `sq` should run in, and `sq` enters it one component at a time, as `cd` does:
+every component must exist, be a directory and be enterable, even one a later `..` would undo. The
+path in the message is the first component that failed. `..` is resolved physically, like
+`cd -P` or `git -C`: `-C link/..` is the parent of the link's target, not the folder holding the
+link. `-C` never creates a folder, not even for `sq init`. Fix the path, create the folder, or fix
+its permissions. The command does not run, and exits `2`.
 
-### "… holds squad data but no .squads.toml above it names it as its squad folder …"
-`--dir` named a squad folder that sits outside its project tree (a `squad_dir` such as
-`../shared` or an absolute path), so no `.squads.toml` above it says whose it is. Run `sq` from
-the project directory instead.
+### "--dir is no longer supported; use -C <path> …"
+`--dir` has been replaced by `-C`, and is refused wherever it is written as an option. `-C` does
+not name the squad folder; it names the folder `sq` starts in, and `sq` walks up from there to
+`.squads.toml` as usual. For a squad inside its project, `-C path/to/squads` or `-C path/to/project` both work. For a
+squad kept outside its project tree (`squad_dir = "../shared"` or an absolute path), use
+`-C path/to/project`. See [migration.md](migration.md#upgrading-to-016--c-replaces---dir).
 
 ### "corrupt index … run `sq repair`"
 `.squads.json` failed to parse or validate (often a bad git merge). The frontmatter is the source of
@@ -95,8 +100,10 @@ During a migration, the global **`--at <ISO>`** option forges the time for a com
 history looks real — see [adoption.md](adoption.md).
 
 ### How do I work on several projects / move a squad?
-The squad folder is self-contained (its `.squads.json` lives inside it). Move or copy it freely;
-target any squad with `sq --dir <path> …`. Item paths are stored squad-folder-relative.
+The squad folder is self-contained (its `.squads.json` lives inside it). Move or copy it freely,
+and point `squad_dir` in the project's `.squads.toml` at its new place. Item paths are stored
+squad-folder-relative. To work on another project without changing directory, use
+`sq -C <project> …`.
 
 ### How do I add another agent tool (not Claude Code)?
 Implement a backend — see [backends.md](backends.md) — then `sq init --backend <name>`.
