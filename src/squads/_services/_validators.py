@@ -76,6 +76,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._paths import SquadPaths, number_for_id
+from squads._rendering._engine import scaffold_body
 from squads._roles._resolver import holds_default_designation, resolve_role_for_item
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
@@ -625,6 +626,26 @@ def _item_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
+def _body_written(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose ``sq:body`` is still the scaffold its creation template rendered: the item
+    twin of ``subentity_body_written``. It reads the scaffold through the same derivation and
+    the same "unwritten" predicate the body-overwrite guard uses, so it reports an item exactly
+    when a plain body write would be accepted as a first write."""
+    item = ctx.item
+    body = sections.get_section(ctx.raw_text, markers.BODY) if ctx.raw_text is not None else None
+    if body is None or not views.body_is_unwritten(body, scaffold_body(item, ctx.spec)):
+        return []
+    level = _resolved_level(ctx, "body_written")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            "body is unwritten (still the template scaffold)"
+            f' — write it with `sq {item.type} {item.sequence_id} body -m "..."`',
+        )
+    ]
+
+
 def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_status_banners``: an item whose body or description opens with a
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
@@ -833,6 +854,7 @@ CATALOG: dict[str, Validator] = {
     "item_skill_shadowed": _item_skill_shadowed,
     "item_title_max": _item_title_max,
     "ref_rule_target_typed": _ref_rule_target_typed,
+    "body_written": _body_written,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
@@ -856,6 +878,7 @@ assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATO
 VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "subentity_container_marker": frozenset({ContextRequirement.RAW_TEXT}),
     "subentity_body_written": frozenset({ContextRequirement.RAW_TEXT}),
+    "body_written": frozenset({ContextRequirement.RAW_TEXT}),
     "no_status_banner": frozenset({ContextRequirement.RAW_TEXT}),
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
     "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),

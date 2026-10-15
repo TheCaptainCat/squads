@@ -162,6 +162,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "item_skill_shadowed",
         "item_title_max",
         "ref_rule_target_typed",
+        "body_written",
     }
 )
 
@@ -244,7 +245,13 @@ assert MULTI_SELECTION_VALIDATOR_NAMES.isdisjoint(SINGLE_SELECTION_VALIDATOR_NAM
 #: category (a role, a skill, an operator) is configuration, not tracked work, so naming one of
 #: these on it is refused at load by :func:`_check_selections_that_cannot_fire` instead of
 #: loading and reporting every roster entry.
-WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset({"item_title_max", "ref_rule_target_typed"})
+WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
+    {
+        "item_title_max",
+        "ref_rule_target_typed",
+        "body_written",
+    }
+)
 
 #: Members whose ``:<param>`` is required: a bare entry loads nothing to check, so it is refused
 #: at load (:func:`_check_validator_param`) rather than selecting a check that never fires.
@@ -367,6 +374,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "item_skill_shadowed": "warn",
     "item_title_max": "warn",
     "ref_rule_target_typed": "warn",
+    "body_written": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -1897,6 +1905,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "subentity_title_max",
         "item_title_max",
         "ref_rule_target_typed",
+        "body_written",
     }
 )
 

@@ -357,8 +357,37 @@ REF_RULE_TARGET_TYPED = Member(
     extra_rows=_TYPED_EXTRA_ROWS,
 )
 
+
+async def _plant_unwritten_and_written_body(svc: service.Service, row: TypeRow) -> Planted:
+    offender = (await create_item(svc, row.type, "unwritten")).item
+    clean = (await create_item(svc, row.type, "written", body=BODY_WRITTEN)).item
+    return Planted(
+        offender.id,
+        clean.id,
+        "body is unwritten (still the template scaffold)"
+        f' — write it with `sq {row.type} {offender.sequence_id} body -m "..."`',
+    )
+
+
+BODY_WRITTEN_MEMBER = Member(
+    name="body_written",
+    fragment="still the template scaffold",
+    can_refuse=False,
+    plain=("body_written",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape(("body_written",), "warn"),
+        "warn-suffix": Shape(("body_written@warn",), "warn"),
+        "error-suffix": Shape(("body_written@error",), "error"),
+    },
+    cells=roster_refused(),
+    plant=_plant_unwritten_and_written_body,
+)
+
 #: Every member this table drives, by name.
-MEMBERS: dict[str, Member] = {m.name: m for m in (ITEM_TITLE_MAX, REF_RULE_TARGET_TYPED)}
+MEMBERS: dict[str, Member] = {
+    m.name: m for m in (ITEM_TITLE_MAX, REF_RULE_TARGET_TYPED, BODY_WRITTEN_MEMBER)
+}
 
 #: The fixed message fragments of every check that is selected rather than always on.
 ALL_FRAGMENTS: dict[str, str] = {
