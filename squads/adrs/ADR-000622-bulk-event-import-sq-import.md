@@ -8,11 +8,12 @@ author: architect
 refs:
 - REV-565
 - ADR-955
+- ADR-1009
 description: A JSONL event-import command that replays a project's history in one
   process, with per-event timestamps and attribution, to replace hundreds of per-mutation
   sq calls.
 created_at: '2026-07-23T07:56:31Z'
-updated_at: '2026-10-11T20:19:04Z'
+updated_at: '2026-10-15T20:17:05Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -162,6 +163,10 @@ debt.
   error list on failure.
 - `--at` / `--as` — supply the file-level defaults events inherit when they omit their own.
 - `--dir` — the usual squad selector.
+
+> **Note 2026-10-15 (ADR-1009):** the squad is selected with the root option `-C <path>`, placed
+> before the command (`sq -C <path> import <file>`); `--dir` is refused. A relative `<file>` is read
+> against the `-C` directory. See ADR-1009 sections 1 and 3.
 
 On any validation error: exit non-zero, write nothing, list every error with its line number.
 

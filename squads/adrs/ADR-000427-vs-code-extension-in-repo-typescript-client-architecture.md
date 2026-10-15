@@ -8,12 +8,13 @@ author: architect
 refs:
 - EPIC-99
 - FEAT-100
+- ADR-1007
 description: 'In-repo VS Code extension at clients/vscode/: isolated dev-time TS toolchain,
   pure consumer of frozen sq --json + rendered sq show, workspace-toolchain sq discovery,
   browse-only for 0.10; one release bundle — client built/shipped with the core at
   the unified version (VSIX as a release asset)'
 created_at: '2026-07-16T13:40:12Z'
-updated_at: '2026-07-16T15:38:49Z'
+updated_at: '2026-10-15T20:16:52Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -53,6 +54,14 @@ exactly three surfaces:
     depends on two core surface changes landing first — `sq show --raw` emitting genuinely clean
     markdown (dropping its box-panel header) and `sq show --json` growing the item `body`
     (+ discussion) — specified as a prerequisite core task.
+
+> **Note 2026-10-15 (ADR-1007):** the generic item rows of `sq list --json` and `sq show --json`
+> change shape in 0.16: the `extra` key is removed and each stored attribute appears flat at the top
+> level, present only when stored. This is a breaking change to a frozen shape, made for this
+> release and called out in the 0.16 upgrade notes; it narrows the additive-only rule for these
+> rows. The client reads no `extra` key; its skew canary drops `extra` from `LIST_ROW_KEYS` and
+> checks each non-core key against the type's `attributes` in `sq workflow --json`. See ADR-1007
+> decision 10.
 
   **`sq` discovery.** The extension resolves how to invoke `sq` by auto-detecting the workspace
   toolchain — never PATH-only. Resolution order (first that works wins), against the workspace root:

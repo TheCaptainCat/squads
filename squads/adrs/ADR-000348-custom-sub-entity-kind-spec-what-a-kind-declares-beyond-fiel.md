@@ -11,8 +11,9 @@ refs:
 - ADR-274
 - REV-337:addresses
 - ADR-738
+- ADR-1007
 created_at: '2026-07-09T21:18:55Z'
-updated_at: '2026-08-03T15:36:48Z'
+updated_at: '2026-10-15T20:16:51Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -129,6 +130,10 @@ field (frontmatter round-trips unchanged), and gains a generic field-code→badg
 fields). No parallel storage model: the same badge-code-is-the-authoritative-stored-value discipline
 (ADR-323 §4), so `--json`/no-spec reads work and label/emoji resolve at render time with the graceful
 `_DEFAULT_BADGE` fallback.
+
+> **Note 2026-10-15 (ADR-1007):** on an item, a custom field's badge code is stored top-level under
+> its field code, not in `extra[code]`; the item has no `extra` mapping. The sub-entity store this
+> section rules is unchanged. See ADR-1007 decision 4.
 
 ### 5. Dynamic CLI derivation (approach)
 

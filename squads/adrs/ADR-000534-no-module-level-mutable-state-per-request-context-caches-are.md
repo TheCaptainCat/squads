@@ -13,11 +13,12 @@ refs:
 - ADR-153
 - ADR-249
 - ADR-117
+- ADR-1009
 description: 'Generalize ADR-249 to all ambient request/squad state: no module-level
   mutable state, context resolved per request and threaded; caches hold code/definitions,
   never squad data; a long-lived process is observably identical to N fresh processes.'
 created_at: '2026-07-21T12:44:46Z'
-updated_at: '2026-08-03T12:30:52Z'
+updated_at: '2026-10-15T20:17:05Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -63,6 +64,11 @@ once at the CLI root callback:
 - `_cli/_common.py::_active_dir` — the resolved squad folder.
 - `_paths.py::resolve()` and the `.squads.toml` walk-up defaulting to `Path.cwd()` — the
   client's cwd must be an explicit input to resolution, not read from the process.
+
+> **Note 2026-10-15 (ADR-1009):** the resolved squad folder is not a context field any more:
+> `RequestContext.active_dir` and `_common.set_active_dir` are removed. `client_cwd` carries the
+> effective directory, computed once at the CLI edge from the process working directory and any `-C`
+> values, and squad resolution is the walk-up from it. See ADR-1009 sections 2 and 4.
 
 The `ContextVar` already used for `_rendering/_engine.py::_active_squad_dir` is the sanctioned
 pattern at the CLI/ambient boundary; explicit parameter/attribute threading is preferred below

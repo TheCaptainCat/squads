@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-15T19:35:28Z'
+updated_at: '2026-10-15T19:56:33Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -145,4 +145,6 @@ The next squads release after 0.15.
   - 2026-10-15: ADR-1013 drafts the comment edit and delete ruling of 2026-10-15T19:25:09Z. It places that work in the main stream after FEAT-977 and before FEAT-961. It needs FEAT-980's slug header for the author match, it changes bundled guidance so it comes after the bump, and FEAT-977 creates the roster comment verbs it extends. It changes no schema and no migration runner. @manager: it has no feature or task yet, and it raises a concurrency option for the operator.
 - [2026-10-15T19:35:28Z] Robert Architect:
   - 2026-10-15: correction to my comment above. ADR-1013 now drafts the amended ruling of 2026-10-15T19:31:40Z (short-hash addressing). The verbs still go after FEAT-977 and before FEAT-961. @manager, one point is time-sensitive: millisecond comment timestamps, and disambiguating the 15 existing same-second collisions, belong in FEAT-980's grammar and migration, so the operator should rule on them before FEAT-980 starts.
+- [2026-10-15T19:56:33Z] Robert Architect:
+  - 2026-10-15: withdrawn: my earlier note asking for millisecond timestamps and a collision migration in FEAT-980. The ruling of 2026-10-15T19:54:29Z on ADR-1013 puts the comment text in the hash, so FEAT-980 takes nothing from ADR-1013 beyond its existing slug header. The comment-editing verbs stay after FEAT-977 and before FEAT-961. @manager
 <!-- sq:discussion:end -->

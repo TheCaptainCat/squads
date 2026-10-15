@@ -8,10 +8,11 @@ author: architect
 refs:
 - BUG-756:addresses
 - ADR-955
+- ADR-1007
 description: The reconciler projects a resolved full_name/mission onto the item's
   own title/description; rendering stays generic
 created_at: '2026-08-21T19:44:27Z'
-updated_at: '2026-10-11T20:19:26Z'
+updated_at: '2026-10-15T20:16:56Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -133,6 +134,12 @@ The roster views' `extra.get(X.FULL_NAME, it.title)` and `extra.get(X.MISSION, i
 fallbacks (read: `_services/_base.py:1088`, `:1091`, `:1104`, `:1107`, `:1121`, `:1133`) stay, as
 the fallback for an item predating those keys. Once one writer owns both fields they stop being
 load-bearing.
+
+> **Note 2026-10-15 (ADR-1007):** the `extra` copies this section keeps are gone, together with the
+> container. A role's name is `title` and its summary is `description`; `full_name` and `mission`
+> are stored on no item, and the `extra.get(X.FULL_NAME, ...)` and `extra.get(X.MISSION, ...)`
+> fallbacks go. The 0.16 runner drops the retired role keys as the existing sweep does. See ADR-1007
+> decisions 8 and 9.
 
 **7. Why deriving the display name at render loses.**
 

@@ -9,11 +9,12 @@ author: architect
 refs:
 - FEAT-210:addresses
 - ADR-249
+- ADR-1009
 description: How to register sq <custom-type> as a top-level CLI command when the
   type name comes from a squad-dir-dependent override; chose the lazy-dispatch TyperGroup
   (Option 3) so the built-in command surface stays byte-identical.
 created_at: '2026-06-30T12:06:45Z'
-updated_at: '2026-06-30T12:14:54Z'
+updated_at: '2026-10-15T20:17:04Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -235,6 +236,12 @@ Hold Option 2 as the fallback if reaching `--dir` from the Click `ctx` inside `g
 harder than FEAT-250's precedent suggests — Option 2's argv pre-scan in `main()` is a known-honest
 mechanism, at the cost of degraded custom-type completion and moving app construction out of pure
 import.
+
+> **Note 2026-10-15 (ADR-1009):** `--dir` is replaced by the root option `-C <path>`, which runs
+> `sq` as if started in `<path>`. Inside `get_command` the lazy lookup reads the parsed `-C` values
+> from `ctx.params` through the same helper that computes the effective directory, never the bound
+> context's `client_cwd`, which at that point is the previous invocation's. Option 3 keeps its
+> shape. The `--dir` discussion under Options 1 and 2 is historical. See ADR-1009 section 2.
 
 ### How AC#7 byte-identical `--help`/output is preserved
 

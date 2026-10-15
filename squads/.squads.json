@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1014,
+  "counter": 1017,
   "padding": 6,
   "items": {
     "12": {
@@ -29757,12 +29757,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-14"
+        "FEAT-14",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000085-project-level-overrides-live-under-overrides-with-per-file-p.md",
       "created_at": "2026-06-12T15:29:52Z",
-      "updated_at": "2026-08-03T08:41:58Z",
+      "updated_at": "2026-10-15T20:16:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30251,12 +30252,13 @@
         "FEAT-219:addresses",
         "ADR-214",
         "ADR-85",
-        "ADR-696"
+        "ADR-696",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000221-role-catalog-spec-bundled-roles-toml-loader-golden-locked-en.md",
       "created_at": "2026-06-26T07:33:23Z",
-      "updated_at": "2026-08-03T08:44:26Z",
+      "updated_at": "2026-10-15T20:16:49Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30362,12 +30364,13 @@
       "labels": [],
       "refs": [
         "FEAT-210:addresses",
-        "ADR-249"
+        "ADR-249",
+        "ADR-1009"
       ],
       "subentities": [],
       "path": "adrs/ADR-000263-registering-a-custom-type-s-top-level-cli-command-ahead-of-c.md",
       "created_at": "2026-06-30T12:06:45Z",
-      "updated_at": "2026-06-30T12:14:54Z",
+      "updated_at": "2026-10-15T20:17:04Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30585,12 +30588,13 @@
       "refs": [
         "ADR-322:depends-on",
         "ADR-214",
-        "ADR-232"
+        "ADR-232",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000323-spec-badges-for-priority-severity-reusable-collections-relab.md",
       "created_at": "2026-07-07T10:00:07Z",
-      "updated_at": "2026-07-07T14:35:18Z",
+      "updated_at": "2026-10-15T20:16:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30614,12 +30618,13 @@
         "ADR-323:depends-on",
         "ADR-274",
         "REV-337:addresses",
-        "ADR-738"
+        "ADR-738",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000348-custom-sub-entity-kind-spec-what-a-kind-declares-beyond-fiel.md",
       "created_at": "2026-07-09T21:18:55Z",
-      "updated_at": "2026-08-03T15:36:48Z",
+      "updated_at": "2026-10-15T20:16:51Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30665,12 +30670,13 @@
       "labels": [],
       "refs": [
         "EPIC-99",
-        "FEAT-100"
+        "FEAT-100",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000427-vs-code-extension-in-repo-typescript-client-architecture.md",
       "created_at": "2026-07-16T13:40:12Z",
-      "updated_at": "2026-07-16T15:38:49Z",
+      "updated_at": "2026-10-15T20:16:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30728,12 +30734,13 @@
         "ADR-214",
         "EPIC-99",
         "ADR-604",
-        "ADR-738"
+        "ADR-738",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000474-spec-vocabulary-machine-surface-generic-collections-status-r.md",
       "created_at": "2026-07-18T19:56:06Z",
-      "updated_at": "2026-08-03T15:36:39Z",
+      "updated_at": "2026-10-15T20:16:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30836,12 +30843,13 @@
         "ADR-214",
         "ADR-153",
         "ADR-249",
-        "ADR-117"
+        "ADR-117",
+        "ADR-1009"
       ],
       "subentities": [],
       "path": "adrs/ADR-000534-no-module-level-mutable-state-per-request-context-caches-are.md",
       "created_at": "2026-07-21T12:44:46Z",
-      "updated_at": "2026-08-03T12:30:52Z",
+      "updated_at": "2026-10-15T20:17:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30921,12 +30929,13 @@
       "labels": [],
       "refs": [
         "REV-565",
-        "ADR-955"
+        "ADR-955",
+        "ADR-1009"
       ],
       "subentities": [],
       "path": "adrs/ADR-000622-bulk-event-import-sq-import.md",
       "created_at": "2026-07-23T07:56:31Z",
-      "updated_at": "2026-10-11T20:19:04Z",
+      "updated_at": "2026-10-15T20:17:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -30980,12 +30989,13 @@
         "ADR-534",
         "ADR-249",
         "ADR-153",
-        "ADR-955"
+        "ADR-955",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000663-durability-model-of-the-integrity-core-markdown-ahead-index.md",
       "created_at": "2026-07-27T14:02:48Z",
-      "updated_at": "2026-10-09T20:20:32Z",
+      "updated_at": "2026-10-15T20:16:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31130,12 +31140,13 @@
         "TASK-751",
         "REV-770",
         "ADR-971",
-        "ADR-984"
+        "ADR-984",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000754-dev-role-resolution-takes-an-explicit-base-never-a-regenerat.md",
       "created_at": "2026-08-21T12:47:51Z",
-      "updated_at": "2026-10-09T18:47:49Z",
+      "updated_at": "2026-10-15T20:16:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31156,12 +31167,13 @@
       "labels": [],
       "refs": [
         "BUG-756:addresses",
-        "ADR-955"
+        "ADR-955",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000766-a-role-s-resolved-name-is-written-to-the-item-s-title-not-de.md",
       "created_at": "2026-08-21T19:44:27Z",
-      "updated_at": "2026-10-11T20:19:26Z",
+      "updated_at": "2026-10-15T20:16:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31191,12 +31203,13 @@
         "ADR-777",
         "ADR-781",
         "BUG-827",
-        "ADR-320"
+        "ADR-320",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000775-ref-kinds-are-declared-spec-vocabulary-bound-by-semantic-rol.md",
       "created_at": "2026-08-22T09:28:22Z",
-      "updated_at": "2026-08-26T13:50:58Z",
+      "updated_at": "2026-10-15T20:16:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31225,12 +31238,13 @@
         "ADR-663",
         "ADR-775",
         "ADR-777",
-        "ADR-781"
+        "ADR-781",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000776-derived-views-one-computed-projection-and-no-body-sink.md",
       "created_at": "2026-08-22T09:28:29Z",
-      "updated_at": "2026-09-02T13:13:25Z",
+      "updated_at": "2026-10-15T20:16:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31486,12 +31500,13 @@
         "ADR-754",
         "MILE-934",
         "TASK-969",
-        "ADR-984"
+        "ADR-984",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000971-a-stored-slug-is-identity-slugify-only-proposes-one-at-creat.md",
       "created_at": "2026-09-29T13:41:21Z",
-      "updated_at": "2026-10-09T18:47:52Z",
+      "updated_at": "2026-10-15T20:16:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31513,12 +31528,13 @@
       "refs": [
         "ADR-971",
         "FEAT-977",
-        "MILE-934:targets"
+        "MILE-934:targets",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-09-29T14:57:05Z",
+      "updated_at": "2026-10-15T20:16:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31541,12 +31557,13 @@
         "FEAT-961",
         "ADR-766",
         "ADR-979",
-        "FEAT-977"
+        "FEAT-977",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000981-pronouns-are-roster-item-data-display-preferences-get-a-type.md",
       "created_at": "2026-10-09T15:35:21Z",
-      "updated_at": "2026-10-09T16:53:44Z",
+      "updated_at": "2026-10-15T20:17:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31602,12 +31619,13 @@
         "ADR-133",
         "ADR-181",
         "FEAT-966",
-        "FEAT-976"
+        "FEAT-976",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000983-skill-invocability-a-declared-default-and-a-squad-s-stored-c.md",
       "created_at": "2026-10-09T18:27:22Z",
-      "updated_at": "2026-10-09T19:14:10Z",
+      "updated_at": "2026-10-15T20:17:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31633,12 +31651,13 @@
         "ADR-754",
         "ADR-979",
         "ADR-981",
-        "FEAT-976"
+        "FEAT-976",
+        "ADR-1007"
       ],
       "subentities": [],
       "path": "adrs/ADR-000984-a-developer-is-a-role-that-declares-a-capability-not-a-slug.md",
       "created_at": "2026-10-09T18:30:02Z",
-      "updated_at": "2026-10-09T18:40:01Z",
+      "updated_at": "2026-10-15T20:17:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31894,7 +31913,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-15T19:35:28Z",
+      "updated_at": "2026-10-15T19:56:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44410,7 +44429,7 @@
       "type": "decision",
       "title": "Frontmatter is flat: core keys plus spec-declared attributes",
       "slug": "frontmatter-is-flat-core-keys-plus-spec-declared-attributes",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "No extra block; slug is core; roster keys are pinned spec attributes; unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner",
       "parent": null,
       "author": "architect",
@@ -44434,7 +44453,7 @@
       "subentities": [],
       "path": "adrs/ADR-001007-frontmatter-is-flat-core-keys-plus-spec-declared-attributes.md",
       "created_at": "2026-10-15T18:49:27Z",
-      "updated_at": "2026-10-15T19:09:11Z",
+      "updated_at": "2026-10-15T20:17:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44470,7 +44489,7 @@
       "type": "decision",
       "title": "Select the squad with git-style -C, not --dir",
       "slug": "select-the-squad-with-git-style-c-not-dir",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "-C runs sq as if started in PATH and walks up as ordinary use does; --dir is refused naming -C; the backwards inference goes away",
       "parent": null,
       "author": "architect",
@@ -44489,7 +44508,7 @@
       "subentities": [],
       "path": "adrs/ADR-001009-select-the-squad-with-git-style-c-not-dir.md",
       "created_at": "2026-10-15T19:17:11Z",
-      "updated_at": "2026-10-15T19:19:36Z",
+      "updated_at": "2026-10-15T20:17:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44659,7 +44678,7 @@
       "type": "decision",
       "title": "Comments are edited and removed by short hash, by their author",
       "slug": "comments-are-edited-and-removed-by-short-hash-by-their-autho",
-      "status": "Proposed",
+      "status": "Accepted",
       "description": "How comments are addressed by a derived short hash, edited and removed by their author only",
       "parent": null,
       "author": "architect",
@@ -44679,7 +44698,7 @@
       "subentities": [],
       "path": "adrs/ADR-001013-comments-are-edited-and-removed-by-short-hash-by-their-autho.md",
       "created_at": "2026-10-15T19:31:21Z",
-      "updated_at": "2026-10-15T19:35:27Z",
+      "updated_at": "2026-10-15T20:17:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44710,6 +44729,217 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-1014"
+    },
+    "1015": {
+      "sequence_id": 1015,
+      "type": "feature",
+      "title": "Select the squad with git-style -C, not --dir",
+      "slug": "select-the-squad-with-git-style-c-not-dir",
+      "status": "Draft",
+      "description": "-C runs sq as if started in PATH; --dir is refused naming -C; BUG-1008 closed",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1009:implements",
+        "MILE-934:targets",
+        "BUG-1008:fixes",
+        "TASK-954:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an adopter, I want git-style -C to pick where sq runs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, I want -C threaded, never a chdir",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, I want init and adopt to honour -C",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an adopter, I want --dir refused and one resolver left",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As a maintainer, I want -C proven equal to cd",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an adopter, I want the docs and changelog to say -C",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001015-select-the-squad-with-git-style-c-not-dir.md",
+      "created_at": "2026-10-15T20:12:57Z",
+      "updated_at": "2026-10-15T20:13:58Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1015"
+    },
+    "1016": {
+      "sequence_id": 1016,
+      "type": "feature",
+      "title": "Flat frontmatter: core keys plus declared attributes",
+      "slug": "flat-frontmatter-core-keys-plus-declared-attributes",
+      "status": "Draft",
+      "description": "No extra block; spec-declared attributes; unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1007:implements",
+        "MILE-934:targets",
+        "FEAT-980:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As a reader, I want one flat mapping with slug as a core key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, I want to declare attributes in my spec",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, I want attributes validated, never destroyed",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an adopter, I want no write to remove an untargeted key",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an operator, I want one meaning per name",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "As an adopter, I want old corpora flattened once, fail-loud",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "As a tool author, I want flat --json and a matching canary",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "As an adopter, I want the docs and changelog to say flat",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001016-flat-frontmatter-core-keys-plus-declared-attributes.md",
+      "created_at": "2026-10-15T20:12:57Z",
+      "updated_at": "2026-10-15T20:17:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1016"
+    },
+    "1017": {
+      "sequence_id": 1017,
+      "type": "feature",
+      "title": "Comments are shown, edited and removed by short hash",
+      "slug": "comments-are-shown-edited-and-removed-by-short-hash",
+      "status": "Draft",
+      "description": "Address a comment by derived short hash: comment <hash> show|edit|remove, by its author, on every type",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-1013:implements",
+        "MILE-934:targets",
+        "FEAT-980:depends-on",
+        "FEAT-977:depends-on"
+      ],
+      "subentities": [],
+      "path": "features/FEAT-001017-comments-are-shown-edited-and-removed-by-short-hash.md",
+      "created_at": "2026-10-15T20:17:43Z",
+      "updated_at": "2026-10-15T20:17:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1017"
     }
   }
 }

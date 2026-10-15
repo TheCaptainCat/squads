@@ -14,8 +14,9 @@ refs:
 - EPIC-99
 - ADR-604
 - ADR-738
+- ADR-1007
 created_at: '2026-07-18T19:56:06Z'
-updated_at: '2026-08-03T15:36:39Z'
+updated_at: '2026-10-15T20:16:53Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -203,6 +204,12 @@ treatment. Keeping role catalog-only avoids duplicating a per-status fact onto e
   Adding `role="active"` changes no existing consumer (only `Superseded` set a role before). All of
   this is JSON output / spec-TOML data only: no frontmatter change, no `.squads.json` change, no
   schema-version bump, no migration.
+
+> **Note 2026-10-15 (ADR-1007):** the generic rows no longer keep `extra`. In 0.16 a custom axis is
+> stored and emitted top-level under its field code, like `priority`, and `extra` is removed from
+> `sq list --json` and `sq show --json`; the `badges` map is unchanged. The "no existing key is
+> removed" clause is narrowed for that one key in that release. See ADR-1007 decisions 4 and 10.
+
 - **Per-item values vs. per-spec vocabulary.** Values (badge codes, status names) live on the item
   surfaces; vocabulary (labels, emoji, ordered/default, role, terminal) lives in the catalogs, once
   per spec — never duplicated onto every item.
