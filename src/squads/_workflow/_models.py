@@ -161,6 +161,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "ref_rule_target_present",
         "item_skill_shadowed",
         "item_title_max",
+        "ref_rule_target_typed",
     }
 )
 
@@ -243,7 +244,7 @@ assert MULTI_SELECTION_VALIDATOR_NAMES.isdisjoint(SINGLE_SELECTION_VALIDATOR_NAM
 #: category (a role, a skill, an operator) is configuration, not tracked work, so naming one of
 #: these on it is refused at load by :func:`_check_selections_that_cannot_fire` instead of
 #: loading and reporting every roster entry.
-WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset({"item_title_max"})
+WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset({"item_title_max", "ref_rule_target_typed"})
 
 #: Members whose ``:<param>`` is required: a bare entry loads nothing to check, so it is refused
 #: at load (:func:`_check_validator_param`) rather than selecting a check that never fires.
@@ -365,6 +366,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "ref_rule_target_present": "warn",
     "item_skill_shadowed": "warn",
     "item_title_max": "warn",
+    "ref_rule_target_typed": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -626,8 +628,9 @@ class RefRule(BaseModel):
     expected to point at an item of the named type — e.g. ``feature``'s ``implements`` rule
     targets ``contract``, disambiguating a kind reused for more than one relationship. It is
     **not** an allowlist and restricts nothing on its own (a ``feature`` carrying
-    ``implements`` to a ``decision`` is unaffected); requiredness stays with whatever
-    validator selects it (``ref_rule_target_present``). Referential validation (Plane-1,
+    ``implements`` to a ``decision`` is unaffected unless its type selects
+    ``ref_rule_target_typed``, which reports such an edge); requiredness stays with
+    ``ref_rule_target_present``. Referential validation (Plane-1,
     ``_check_ref_rule_targets``) checks ``target`` names a declared item type —
     ``_parse_ref_rules`` cannot: item types are known only after every ``[items.*]`` block has
     parsed, while it sees the declared ref *kinds* alone. Carried on the same declared-
@@ -1637,6 +1640,16 @@ def _check_selections_that_cannot_fire(items: dict[str, ItemSpec], errors: list[
                     f"{bare} is a policy about tracked work and applies to 'work' and "
                     "'records' types only; drop the entry"
                 )
+                continue
+            if bare == "ref_rule_target_typed" and not any(
+                rr.target is not None for rr in ts.ref_rules
+            ):
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r} needs a ref_rules entry with a "
+                    f"target, and {t!r} declares none (a rule whose target type was dropped "
+                    "through [selected] is removed with it) — declare "
+                    "{ kind = ..., target = ... } in its ref_rules, or drop the entry"
+                )
 
 
 def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
@@ -1871,9 +1884,9 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   each sits in no category bundle and in no floor, so it is only ever effective when a type
 #:   names it, and no category reassignment can take it away. ``subentity_title_max`` is still
 #:   one of the :data:`SUBENTITY_VALIDATOR_NAMES` that satisfy :func:`_clause_subentity_checked`.
-#: - The members of :data:`WORK_POLICY_VALIDATOR_NAMES` (``item_title_max``) are the same shape
-#:   again: in no bundle and no floor, effective only where a type names them, so no category
-#:   reassignment can take one away.
+#: - The members of :data:`WORK_POLICY_VALIDATOR_NAMES` are the same shape again: in no bundle
+#:   and no floor, effective only where a type names them, so no category reassignment can take
+#:   one away.
 UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "no_parent",
@@ -1883,6 +1896,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "no_status_banner",
         "subentity_title_max",
         "item_title_max",
+        "ref_rule_target_typed",
     }
 )
 

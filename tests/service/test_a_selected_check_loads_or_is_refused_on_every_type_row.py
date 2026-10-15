@@ -7,7 +7,6 @@ refuses.
 import pytest
 
 from _selection_table import (
-    ALL_ROWS,
     MEMBERS,
     Member,
     TypeRow,
@@ -20,13 +19,13 @@ from squads._workflow._loader import lint_workflow_spec
 
 pytestmark = pytest.mark.anyio
 
-_CELLS = [(m, r) for m in MEMBERS.values() for r in ALL_ROWS]
+_CELLS = [(m, r) for m in MEMBERS.values() for r in m.all_rows()]
 _IDS = [f"{m.name}-{r.id}" for m, r in _CELLS]
 
 
 def test_every_member_decides_every_row() -> None:
     for member in MEMBERS.values():
-        assert set(member.cells) == {r.id for r in ALL_ROWS}, member.name
+        assert set(member.cells) == {r.id for r in member.all_rows()}, member.name
 
 
 @pytest.mark.parametrize(("member", "row"), _CELLS, ids=_IDS)

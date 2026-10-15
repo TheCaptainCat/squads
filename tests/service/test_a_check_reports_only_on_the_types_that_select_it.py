@@ -43,7 +43,7 @@ async def test_a_type_reports_its_offender_exactly_when_it_selects_the_check(
         assert found == [], name
         return
     assert [(lvl, item) for lvl, item, _ in found] == [(shape.level, planted.offender)]
-    assert found[0][2] == member.message
+    assert found[0][2] == planted.message
     assert planted.clean not in {item for _, item, _ in found}
 
 
@@ -53,7 +53,7 @@ async def test_selecting_the_check_on_another_type_leaves_this_type_silent(
 ) -> None:
     other = next(r for r in member.accepting_rows() if r.type != row.type and r.id != row.id)
     here = await member.plant(service_with(project.squad_dir, override_toml(row, ())), row)
-    toml = override_toml(row, (), others={other.type: member.plain})
+    toml = override_toml(row, ()) + "\n" + override_toml(other, member.plain)
     svc = service_with(project.squad_dir, toml)
     elsewhere = await member.plant(svc, other)
     items = {item for _, item, _ in member_findings(await svc.check(), member)}

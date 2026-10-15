@@ -5,7 +5,7 @@ surfaces, so the rows live in one place.
 """
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -213,10 +213,12 @@ class Shape:
 
 @dataclass(frozen=True)
 class Planted:
-    """The ids of one offender and one clean neighbour planted on a row."""
+    """The ids of one offender and one clean neighbour planted on a row, and the full text the
+    offender's finding carries."""
 
     offender: str
     clean: str
+    message: str
 
 
 @dataclass(frozen=True)
@@ -227,7 +229,7 @@ class Member:
     name to its entries and finding level; *cells* decides every row of :data:`ALL_ROWS`: ``None``
     when the member's plain entry loads there, otherwise the text its load refusal carries;
     *plant* creates an offender and a clean neighbour on a row (under a spec that does not yet
-    select the member); *message* is the full text one planted offender earns.
+    select the member).
     """
 
     name: str
@@ -236,14 +238,19 @@ class Member:
     shapes: dict[str, Shape]
     cells: dict[str, str | None]
     plant: Callable[[service.Service, TypeRow], Awaitable[Planted]]
-    message: str
     plain: tuple[str, ...] = field(default=())
+    extra_rows: tuple[TypeRow, ...] = field(default=())
+
+    def all_rows(self) -> tuple[TypeRow, ...]:
+        """The rows the registry decides: the table's, and those that declare what the member
+        needs (a row from :attr:`extra_rows`)."""
+        return ALL_ROWS + self.extra_rows
 
     def accepting_rows(self) -> tuple[TypeRow, ...]:
-        return tuple(r for r in ALL_ROWS if self.cells[r.id] is None)
+        return tuple(r for r in self.all_rows() if self.cells[r.id] is None)
 
     def refusing_rows(self) -> tuple[TypeRow, ...]:
-        return tuple(r for r in ALL_ROWS if self.cells[r.id] is not None)
+        return tuple(r for r in self.all_rows() if self.cells[r.id] is not None)
 
 
 def roster_refused(accepting: set[str] | frozenset[str] | None = None) -> dict[str, str | None]:
@@ -269,7 +276,12 @@ TITLE_THRESHOLD = 80
 async def _plant_over_and_at_title(svc: service.Service, row: TypeRow) -> Planted:
     over = (await create_item(svc, row.type, "x" * (TITLE_THRESHOLD + 1))).item
     at = (await create_item(svc, row.type, "x" * TITLE_THRESHOLD)).item
-    return Planted(over.id, at.id)
+    return Planted(
+        over.id,
+        at.id,
+        f"advisory: title is {TITLE_THRESHOLD + 1} chars (threshold: {TITLE_THRESHOLD})"
+        " — an item title is a one-line handle; put the detail in the body",
+    )
 
 
 ITEM_TITLE_MAX = Member(
@@ -285,14 +297,68 @@ ITEM_TITLE_MAX = Member(
     },
     cells=roster_refused(),
     plant=_plant_over_and_at_title,
-    message=(
-        f"advisory: title is {TITLE_THRESHOLD + 1} chars (threshold: {TITLE_THRESHOLD})"
-        " — an item title is a one-line handle; put the detail in the body"
-    ),
+)
+
+TYPED_RULE = 'ref_rules = [{ kind = "implements", target = "contract" }]\n'
+
+
+def with_typed_rule(row: TypeRow) -> TypeRow:
+    """*row* whose type also declares a ref rule typing an ``implements`` edge to a contract."""
+    return replace(row, id=f"{row.id}+rule", declaration=row.declaration + TYPED_RULE)
+
+
+#: Rows that already satisfy ``ref_rule_target_typed``'s precondition (the bundled feature) and
+#: the rows that need an override to declare it.
+_TYPED_ACCEPTING = frozenset({"feature"})
+_TYPED_EXTRA_ROWS: tuple[TypeRow, ...] = tuple(
+    with_typed_rule(r) for r in WORK_AND_RECORDS_ROWS if r.id not in _TYPED_ACCEPTING
+)
+TYPED_REFUSAL = "needs a ref_rules entry with a target"
+
+
+async def _plant_misdirected_and_correct_edge(svc: service.Service, row: TypeRow) -> Planted:
+    wrong = (await create_item(svc, "task", "wrong target")).item
+    right = (await create_item(svc, "contract", "right target")).item
+    offender = (await create_item(svc, row.type, "o", refs=[f"{wrong.id}:implements"])).item
+    clean = (await create_item(svc, row.type, "c", refs=[f"{right.id}:implements"])).item
+    return Planted(
+        offender.id,
+        clean.id,
+        f"implements edge to {wrong.id} points at a task, but a {row.type}'s implements refs "
+        "must point at a contract",
+    )
+
+
+REF_RULE_TARGET_TYPED = Member(
+    name="ref_rule_target_typed",
+    fragment="refs must point at a",
+    can_refuse=True,
+    plain=("ref_rule_target_typed",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape(("ref_rule_target_typed",), "warn"),
+        "warn-suffix": Shape(("ref_rule_target_typed@warn",), "warn"),
+        "error-suffix": Shape(("ref_rule_target_typed@error",), "error"),
+    },
+    cells={
+        **{
+            r.id: (
+                ROSTER_REFUSAL
+                if r.type in ROSTER_TYPES
+                else None
+                if r.id in _TYPED_ACCEPTING
+                else TYPED_REFUSAL
+            )
+            for r in ALL_ROWS
+        },
+        **{r.id: None for r in _TYPED_EXTRA_ROWS},
+    },
+    plant=_plant_misdirected_and_correct_edge,
+    extra_rows=_TYPED_EXTRA_ROWS,
 )
 
 #: Every member this table drives, by name.
-MEMBERS: dict[str, Member] = {m.name: m for m in (ITEM_TITLE_MAX,)}
+MEMBERS: dict[str, Member] = {m.name: m for m in (ITEM_TITLE_MAX, REF_RULE_TARGET_TYPED)}
 
 #: The fixed message fragments of every check that is selected rather than always on.
 ALL_FRAGMENTS: dict[str, str] = {

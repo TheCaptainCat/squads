@@ -675,6 +675,14 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
     return []
 
 
+def _outgoing_refs(item: Item, spec: WorkflowSpec) -> list[tuple[str, str]]:
+    """*item*'s outgoing refs as ``(target id, kind)``, an unspelled kind resolved to the
+    spec's default ref kind. The one reading both ref-rule checks use, so an edge written bare
+    and the same edge with the default kind spelled out are one edge."""
+    default = spec.default_ref_kind()
+    return [(rid, kind or default) for rid, kind in map(split_ref, item.refs)]
+
+
 def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
     """A settled item (status resolving to the ``done`` role — never ``InReview``, which
     shares the ``active`` role with every in-flight status, and never the broader ``settled``
@@ -711,8 +719,7 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
     }
     if not accepted or ctx.index is None:
         return []
-    for r in item.refs:
-        rid, kind = split_ref(r)
+    for rid, kind in _outgoing_refs(item, ctx.spec):
         target_item = ctx.index.get(rid)
         if target_item is not None and (kind, target_item.type) in accepted:
             return []
@@ -726,6 +733,38 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
             "functional contract slice may be stale",
         )
     ]
+
+
+def _ref_rule_target_typed(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An outgoing edge whose kind has a typed ref rule on the item's type while the edge points
+    at an item of another type. Only a rule that declares a ``target`` counts: an untyped rule
+    neither makes its kind checked nor widens what a typed rule of the same kind accepts. A
+    target the index does not hold is left to ``dangling_ref``."""
+    item = ctx.item
+    if ctx.index is None:
+        return []
+    allowed: dict[str, set[str]] = {}
+    for rule in ctx.spec.item_ref_rules(item.type):
+        if rule.target is not None:
+            allowed.setdefault(rule.kind, set()).add(rule.target)
+    if not allowed:
+        return []
+    level = _resolved_level(ctx, "ref_rule_target_typed")
+    issues: list[CheckIssue] = []
+    for rid, kind in _outgoing_refs(item, ctx.spec):
+        targets = allowed.get(kind)
+        target_item = ctx.index.get(rid)
+        if not targets or target_item is None or target_item.type in targets:
+            continue
+        issues.append(
+            CheckIssue(
+                level,
+                item.id,
+                f"{kind} edge to {rid} points at a {target_item.type}, but a {item.type}'s "
+                f"{kind} refs must point at a {'/'.join(sorted(targets))}",
+            )
+        )
+    return issues
 
 
 def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
@@ -793,6 +832,7 @@ CATALOG: dict[str, Validator] = {
     "ref_rule_target_present": _ref_rule_target_present,
     "item_skill_shadowed": _item_skill_shadowed,
     "item_title_max": _item_title_max,
+    "ref_rule_target_typed": _ref_rule_target_typed,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
