@@ -45,6 +45,14 @@ _REFUSED = [
     ([f"{_NAME}:user@host"], _AT),
     ([f"{_NAME}:a@b@error"], _AT),
     ([f"{_NAME}:[A-Z]+-[0-9]+@fatal"], _AT),
+    ([f"{_NAME}: "], "missing its required parameter"),
+    ([f"{_NAME}:   \t"], "missing its required parameter"),
+    ([f"{_NAME}:x*"], "matches the empty string"),
+    ([f"{_NAME}:|"], "matches the empty string"),
+    ([f"{_NAME}:^"], "matches the empty string"),
+    ([f"{_NAME}:(?:)"], "matches the empty string"),
+    ([f"{_NAME}:a|b*"], "matches the empty string"),
+    ([f"{_NAME}:[[a]]"], "compiles with a warning"),
     ([f"{_NAME}:[A-Z]+-[0-9]+", f"{_NAME}:GH-[0-9]+"], "selected more than once"),
     ([f"{_NAME}:[A-Z]+-[0-9]+", f"{_NAME}:[A-Z]+-[0-9]+@error"], "selected more than once"),
 ]
@@ -80,6 +88,12 @@ def test_the_missing_parameter_message_shows_the_entry_form() -> None:
 def test_a_compile_error_carries_the_compilers_own_text() -> None:
     with pytest.raises(SquadsError, match=r"invalid regular expression '\[abc': .*unterminated"):
         _load("task", [f"{_NAME}:[abc"])
+
+
+def test_a_pattern_that_needs_a_character_is_not_taken_for_an_empty_match() -> None:
+    for pattern in ("x+", "a|b", r"\bx", "(?=x)x", " "):
+        if pattern.strip():
+            _load("task", [f"{_NAME}:{pattern}"])
 
 
 @pytest.mark.parametrize("suffix", ["", "@warn", "@error"])

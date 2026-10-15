@@ -27,6 +27,7 @@ closed-set ``Priority``/``Severity`` enums.
 
 import math
 import re
+import warnings
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from re import compile as re_compile
@@ -1476,6 +1477,32 @@ def parse_positive_int(text: str) -> int | None:
     return value if value > 0 else None
 
 
+def _check_external_id_pattern(t: str, entry: str, param: str, errors: list[str]) -> None:
+    """*param* must compile without a warning and must not match the empty string, which would
+    report every title (and, at ``@error``, refuse every write of the type)."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        try:
+            compiled = re_compile(param)
+        except re.error as exc:
+            errors.append(
+                f"item {t!r}: validators entry {entry!r} names an invalid regular expression "
+                f"{param!r}: {exc}"
+            )
+            return
+    if caught:
+        errors.append(
+            f"item {t!r}: validators entry {entry!r} names a regular expression {param!r} that "
+            f"compiles with a warning: {caught[0].message} — rewrite it"
+        )
+    elif compiled.search("") is not None:
+        errors.append(
+            f"item {t!r}: validators entry {entry!r} names a regular expression {param!r} that "
+            "matches the empty string, so it would report every title — make it require a "
+            "character"
+        )
+
+
 def _check_validator_param(
     t: str, entry: str, bare: str, param: str | None, errors: list[str]
 ) -> None:
@@ -1484,7 +1511,7 @@ def _check_validator_param(
     must compile as a regular expression, and a member in
     :data:`REQUIRED_PARAM_VALIDATOR_NAMES` must carry one at all. Resolvable without the whole
     ``[items.*]`` table (nothing here needs a cross-type lookup)."""
-    if bare in REQUIRED_PARAM_VALIDATOR_NAMES and not param:
+    if bare in REQUIRED_PARAM_VALIDATOR_NAMES and not (param and param.strip()):
         shape = "<regex>" if bare == "external_id_not_in_title" else "<n>"
         errors.append(
             f"item {t!r}: validators entry {entry!r} is missing its required parameter — "
@@ -1495,13 +1522,7 @@ def _check_validator_param(
     if param is None:
         return
     if bare == "external_id_not_in_title":
-        try:
-            re_compile(param)
-        except re.error as exc:
-            errors.append(
-                f"item {t!r}: validators entry {entry!r} names an invalid regular expression "
-                f"{param!r}: {exc}"
-            )
+        _check_external_id_pattern(t, entry, param, errors)
         return
     if bare not in ("subentity_title_max", "item_title_max"):
         return
