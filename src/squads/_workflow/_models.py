@@ -165,6 +165,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "settled_requires_discussion",
     }
 )
 
@@ -254,6 +255,7 @@ WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "settled_requires_discussion",
     }
 )
 
@@ -381,6 +383,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "body_written": "warn",
     "description_present": "warn",
     "assignee_present": "warn",
+    "settled_requires_discussion": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -1933,6 +1936,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "settled_requires_discussion",
     }
 )
 

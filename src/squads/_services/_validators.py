@@ -675,6 +675,23 @@ def _assignee_present(ctx: ValidatorContext) -> list[CheckIssue]:
     return [CheckIssue(level, item.id, f"status is {item.status} but nobody is assigned")]
 
 
+def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item resting in a status whose role declares ``settled`` while its own discussion holds
+    no comment. Comments are counted by the discussion parser, never by a pattern of this
+    module's, and only the item's own discussion region counts: a comment on one of its stories,
+    subtasks or findings does not. A file with no discussion region holds no comment."""
+    item = ctx.item
+    if ctx.raw_text is None or not ctx.spec.role_for(item.status).settled:
+        return []
+    region = sections.get_section(ctx.raw_text, markers.DISCUSSION) or ""
+    if discussion.split_discussion(region):
+        return []
+    level = _resolved_level(ctx, "settled_requires_discussion")
+    return [
+        CheckIssue(level, item.id, f"status is {item.status} but its discussion holds no comment")
+    ]
+
+
 def _no_status_banner(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_status_banners``: an item whose body or description opens with a
     self-declared status/lifecycle banner. Body text comes from ``ctx.raw_text``;
@@ -886,6 +903,7 @@ CATALOG: dict[str, Validator] = {
     "body_written": _body_written,
     "description_present": _description_present,
     "assignee_present": _assignee_present,
+    "settled_requires_discussion": _settled_requires_discussion,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
@@ -910,6 +928,7 @@ VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "subentity_container_marker": frozenset({ContextRequirement.RAW_TEXT}),
     "subentity_body_written": frozenset({ContextRequirement.RAW_TEXT}),
     "body_written": frozenset({ContextRequirement.RAW_TEXT}),
+    "settled_requires_discussion": frozenset({ContextRequirement.RAW_TEXT}),
     "no_status_banner": frozenset({ContextRequirement.RAW_TEXT}),
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
     "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),

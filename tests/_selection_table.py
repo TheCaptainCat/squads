@@ -460,6 +460,33 @@ ASSIGNEE_PRESENT = Member(
     extra_rows=_LIVE_EXTRA_ROWS,
 )
 
+
+async def _plant_settled_without_and_with_a_comment(svc: service.Service, row: TypeRow) -> Planted:
+    status = svc.spec.first_settled_status(row.type)
+    assert status is not None
+    offender = (await create_item(svc, row.type, "silent")).item
+    await svc.update(offender.id, status=status, force=True)
+    clean = (await create_item(svc, row.type, "discussed")).item
+    await svc.update(clean.id, status=status, force=True)
+    await svc.comment(clean.id, ["Closed out."], as_slug="manager")
+    return Planted(offender.id, clean.id, f"status is {status} but its discussion holds no comment")
+
+
+SETTLED_REQUIRES_DISCUSSION = Member(
+    name="settled_requires_discussion",
+    fragment="discussion holds no comment",
+    can_refuse=False,
+    plain=("settled_requires_discussion",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape(("settled_requires_discussion",), "warn"),
+        "warn-suffix": Shape(("settled_requires_discussion@warn",), "warn"),
+        "error-suffix": Shape(("settled_requires_discussion@error",), "error"),
+    },
+    cells=roster_refused(),
+    plant=_plant_settled_without_and_with_a_comment,
+)
+
 #: Every member this table drives, by name.
 MEMBERS: dict[str, Member] = {
     m.name: m
@@ -469,6 +496,7 @@ MEMBERS: dict[str, Member] = {
         BODY_WRITTEN_MEMBER,
         DESCRIPTION_PRESENT,
         ASSIGNEE_PRESENT,
+        SETTLED_REQUIRES_DISCUSSION,
     )
 }
 
