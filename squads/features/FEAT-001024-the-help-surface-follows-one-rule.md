@@ -44,7 +44,7 @@ subentities:
   title: As an adopter, I want the docs and changelog to match the new help
   status: Todo
 created_at: '2026-10-15T21:43:01Z'
-updated_at: '2026-10-15T21:43:41Z'
+updated_at: '2026-10-15T21:52:05Z'
 ---
 <!-- sq:body -->
 Brings the rendered `--help` surface into line with the rule on what a command's help holds, so that a person with the tool and no repository finds what they typed `--help` to learn. The rule, the eleven findings and their measurements are the review's; the stories below cite the rule (R1 to R9) and the findings (F1 to F11) and add acceptance only.
@@ -75,7 +75,7 @@ Help text touches `_cli/` broadly, so this is built after FEAT-980, after the 0.
 
 ## Open questions for the architect
 
-Stated in the stories that raise them (US3, US6, US9). None is answered here.
+Raised in US3, US6 and US9, and answered there by the architect (ruled in ADR-1025 for US3); each story records the question and its answer.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -124,14 +124,23 @@ Acceptance (F1, R3):
 Acceptance (F3, R5, R6):
 - The 13 listed bodies keep the one-line --json description naming the top-level shape, any don't-misuse sentence (graph: branch on edge_semantic, never edge_kind; tree: anchor true is an invented root for a parent cycle; search: region says where the hit was found) and the pointer 'Fields: sq docs stability'.
 - Nine bodies shrink with no docs change, the docs already carrying their fields.
-- For search, tree, graph and workflow ref-kinds, the field reference lands in docs/stability.md in the same change that removes it from help, and the stability sentence naming help as their authority is corrected.
+- For search, tree, graph and workflow ref-kinds, the field reference lands in docs/stability.md in the same change that removes it from help. The stability sentence naming help as their authority is withdrawn, not reworded to another authority.
+- The docs list each key and mark its value as vocabulary, open set or display, per ADR-1025. Listing a field records the existing freeze and widens nothing; no new tier. edge_semantic, search region and ref-kind role are open sets. The graph --json field list includes badges, which its help omits.
+- The ref-kinds catalog row in docs/stability.md is added.
 - graph is about 8 body lines and search about 6.
-Open question for the architect: writing these fields into the stability document may extend the frozen --json contract from the named commands to every field. The review does not settle which fields are frozen; that ruling is needed before the docs are written.
+
+Question for the architect: writing these fields into the stability document may extend the frozen --json contract from the named commands to every field. Answered in ADR-1025 (awaiting the operator's acceptance, which the docs pass waits for).
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
 
 <!-- sq:story:US3:discussion -->
+- [2026-10-15T21:51:04Z] Robert Architect:
+  - Ruled in ADR-1025 (a contract question, so an ADR). Listing a field in `docs/stability.md` does not freeze it: Tier 3 freezes a shape by command, and the document already says the promise covers every key a shape emits whether enumerated or not (read). So the move changes no promise. `workflow ref-kinds` is a Tier 3 catalog under ADR-738 §8, whose table row was owed and missing; this change discharges it.
+    
+    No new tier. Each key stays frozen in name, type, presence and meaning, and the field reference marks keys whose value is not a fixed squads format as one of: vocabulary (a name the squad declares; read the catalog), open set (squads values that may grow; tolerate unknown), display (human text; never parse). ADR-1025 §3 has the per-shape table for search, tree, graph and ref-kinds.
+    
+    For the writer: the help-as-authority sentence goes; enumerate from the live payload, key for key, not from help. `sq graph --json` emits `badges`, which its help omits (read: golden `graph_feat_json.json`; driven: `sq graph --help`). Add the open-set mark to ref-kind `role` in `docs/workflow.md` too.
 <!-- sq:story:US3:discussion:end -->
 <!-- sq:story:US3:end -->
 
@@ -177,14 +186,22 @@ Acceptance (F8):
 Acceptance (F5, R7):
 - A command with no code of its own says nothing about exit codes.
 - Each of the 11 commands with a code of its own carries one line in the form 'Exit codes: <code> <meaning>. See sq docs faq.'
+- inbox, search, board list and memory list/search each carry exactly: 'Exit codes: 4 partial result; what could be read is printed. See sq docs faq.' The mechanics (stderr line per skipped file, JSON line, unchanged payload) live in the docs only. No contract change.
 - sq import keeps, in two lines, that exit 3 means the work is applied: do not retry, read applied from --json.
 - docs/faq.md's row for code 3 names sq import before import's paragraph shrinks.
-Open question for the architect: whether the exit-4 partial-result contract (stderr line per skipped file, one JSON line, unchanged payload) is stated in help at all on inbox, search, board list and memory list/search, given docs/faq.md and docs/stability.md state it once for all five. The review's standard implies a one-line code and meaning only; the architect confirms.
+
+Question for the architect: whether the exit-4 partial-result contract is stated in help at all, given docs/faq.md and docs/stability.md state it once for all five. Answered: one line, text above.
 <!-- sq:story:US6:body:end -->
 
 #### Discussion
 
 <!-- sq:story:US6:discussion -->
+- [2026-10-15T21:51:05Z] Robert Architect:
+  - Yes, one line, on each of the five, and nothing more. Membership in the partial-result class is per command (ADR-947 §1), and a script author reading one command's help must learn that it can exit non-zero with output worth keeping; that is the one fact a caller misreads. The mechanics (one stderr line per skipped file, the JSON line, the unchanged payload, precedence) live once with the table in the faq and stability docs.
+    
+    Suggested line, 77 characters: `Exit codes: 4 partial result; what could be read is printed. See sq docs faq.` It replaces the paragraph on `inbox`, `search`, `board list`, `memory list` and `memory search` (the last loses its "degrade-signal rule" back-reference). R7's import-style exception does not apply: code 4 is not a mutation that must not be retried.
+    
+    No contract change, so no ADR: help is not contract, and ADR-947 stays as written.
 <!-- sq:story:US6:discussion:end -->
 <!-- sq:story:US6:end -->
 
@@ -229,15 +246,29 @@ Acceptance (F9, F10, R1, R4):
 
 <!-- sq:story:US9:body -->
 Acceptance (F11):
-- A tests/meta module walks the live Click tree in-process, covering per-type and per-kind commands, and asserts for every canonical command: non-empty option and argument descriptions; one-line summary of 72 characters or fewer; no doubled backtick, role or '::' line ending; no bracket tag; no body line over 78 columns; no truncation ellipsis at 80 columns.
+- A tests/meta module walks the live Click tree in-process, covering per-type and per-kind commands, and makes seven assertions for every canonical command:
+  1. non-empty option and argument descriptions;
+  2. one-line summary of 72 characters or fewer;
+  3. no doubled backtick, role or '::' line ending;
+  4. no bracket tag;
+  5. no body line over 78 columns;
+  6. no truncation ellipsis at 80 columns;
+  7. a body over 10 source lines appears in an immutable allowlist of (command path, reason) pairs; an allowlist entry that no longer matches a body over 10 lines fails the test as stale.
+- The line-count rule in assertion 7 is the one stated in the CONTRIBUTING section of US1, and the two agree on what counts as a source line.
+- A second walk runs over a test-local override declaring an awkward custom type, sub-entity kind and ref kind, never the repo's own override, and makes the same assertions.
 - Each assertion is enabled with the story that fixes its finding, not before.
 - The guard runs in the default suite in a few seconds and adds no module-level mutable state.
-Open question for the architect: how the guard encodes an accepted exception to the 10-source-line tripwire (an allowlist or reviewer judgment only), and how it treats project-declared types whose commands exist only under an override.
+
+Question for the architect: how the guard encodes an accepted exception to the 10-source-line tripwire, and how it treats project-declared types. Answered: the immutable allowlist and the second walk above.
 <!-- sq:story:US9:body:end -->
 
 #### Discussion
 
 <!-- sq:story:US9:discussion -->
+- [2026-10-15T21:51:06Z] Robert Architect:
+  - **Over-10-line bodies: an allowlist with reasons, checked both ways.** A tripwire nothing trips is not one, and review alone is how the long bodies REV-958 measured shipped. The guard counts a body's source lines after the summary paragraph and before any form feed, blank lines not counted (my reading of R2; US1's section must state the same count). A body over 10 fails unless its canonical command path is in an immutable module constant, a tuple of (path, reason) pairs, so no mutable-state guard trips. The reason is one line naming what a reader would type or read differently (R2's admission test); "the contract has nowhere else to live" is not one. The guard also fails on a stale entry, whose command is now 10 lines or fewer or no longer exists, so the list cannot outlive its exceptions. The list does not replace the reviewer: adding an entry is a diff the reviewer approves. Enable it after the trims (US2, US3, US8), seeded with what remains. It is a seventh assertion beyond US9's six; @product-owner to add it to the acceptance if accepted.
+    
+    **Project-declared types and kinds: a fixture spec, not the repo's own.** The main walk runs under the bundled spec in a tmp squad, never this repo's `squads/.overrides`, which would tie the guard to the dogfood squad. A second, smaller walk uses a test-local override that declares one custom type with a custom sub-entity kind and ref kind, picked to stress the generators: a vowel-initial name (the article), an irregular plural, a label of realistic length. It walks only what the spec changes (that type's group and kind verbs, its create command, the root listing). Custom types appear only when the resolved spec declares them (read: ADR-263), and tests already drive spec-derived help (read: REV-958 F11). What it holds is every string squads writes, templates around a declared name included. It does not hold the adopter's own declared strings (label, hint, heading): those are their content, and a bound on them would be a workflow-lint question, out of scope here (inferred).
 <!-- sq:story:US9:discussion:end -->
 <!-- sq:story:US9:end -->
 
@@ -263,4 +294,10 @@ Acceptance:
 <!-- sq:discussion -->
 - [2026-10-15T21:43:41Z] Nina Product:
   - @manager FEAT-1024 drafted for REV-958 (F1 to F5, F7 to F11; F6 excluded, needs its own item). 10 stories; open questions for @architect in US3 (fields frozen), US6 (exit-4 in help) and US9 (guard exceptions). Build after FEAT-980, the bump and TASK-989.
+- [2026-10-15T21:51:07Z] Robert Architect:
+  - @manager Architect answers to the three open questions, each also on its story:
+    - US3: ruled in ADR-1025, created in its initial status for acceptance. Listing a field in `docs/stability.md` records the existing Tier 3 freeze and does not widen it. No new tier; each key's value is marked vocabulary, open set or display. The `ref-kinds` catalog row was owed under ADR-738 §8 and missing. Help as authority is withdrawn; `sq graph --json` already emits `badges`, which its help omits.
+    - US6: one line on each of the five commands, the mechanics in the docs only: `Exit codes: 4 partial result; what could be read is printed. See sq docs faq.` No contract change.
+    - US9: the over-10-line body is checked against an immutable allowlist of (command path, reason) pairs that also fails on stale entries; custom types and kinds are covered by a second walk over a test-local override, never the repo's own. This adds a seventh guard assertion to US9; @product-owner to fold it in.
+    - Needs the operator: accept ADR-1025 before the US3 docs pass. It marks edge_semantic, search region and ref-kind role as open sets, which docs/workflow.md's four-value role list comes closest to reading as closed.
 <!-- sq:discussion:end -->

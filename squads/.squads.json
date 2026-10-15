@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1024,
+  "counter": 1025,
   "padding": 6,
   "items": {
     "12": {
@@ -45504,11 +45504,42 @@
       ],
       "path": "features/FEAT-001024-the-help-surface-follows-one-rule.md",
       "created_at": "2026-10-15T21:43:01Z",
-      "updated_at": "2026-10-15T21:43:41Z",
+      "updated_at": "2026-10-15T21:52:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "FEAT-1024"
+    },
+    "1025": {
+      "sequence_id": 1025,
+      "type": "decision",
+      "title": "A listed --json field is recorded, not newly frozen",
+      "slug": "a-listed-json-field-is-recorded-not-newly-frozen",
+      "status": "Proposed",
+      "description": "Listing a field in docs/stability.md records the existing Tier 3 freeze; no new tier, but each key's value is marked vocabulary, open set or display.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1024",
+        "REV-958",
+        "ADR-738",
+        "ADR-775",
+        "ADR-947",
+        "ADR-427",
+        "ADR-459"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001025-a-listed-json-field-is-recorded-not-newly-frozen.md",
+      "created_at": "2026-10-15T21:48:00Z",
+      "updated_at": "2026-10-15T21:51:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-1025"
     }
   }
 }
