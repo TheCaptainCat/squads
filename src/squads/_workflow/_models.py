@@ -36,6 +36,8 @@ from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from squads._models._attributes import ROW_ADDED_KEYS, AttributeSpec
+
 #: The three roster types the engine binds by literal name — the irreducible
 #: structural minimum: the roster, the backends (which write role/skill files), and the
 #: agent lifecycle genuinely reference these by name. NOT a closed type vocabulary — every
@@ -169,6 +171,8 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "assignee_present",
         "settled_requires_discussion",
         "external_id_not_in_title",
+        "attribute_valid",
+        "frontmatter_key_undeclared",
     }
 )
 
@@ -395,6 +399,8 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "assignee_present": "warn",
     "settled_requires_discussion": "warn",
     "external_id_not_in_title": "warn",
+    "attribute_valid": "error",
+    "frontmatter_key_undeclared": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -478,6 +484,7 @@ COMMON_CORE: tuple[str, ...] = (
     "ref_kind_valid",
     "agent_registered",
     "parent_acyclic",
+    "attribute_valid",
 )
 
 #: Per-category default per-item validator-name bundle — the category's *behaviour*, since
@@ -899,11 +906,10 @@ class ItemSpec(BaseModel):
     """Badge-collection bindings this type carries (e.g. priority/severity) — "does this type
     carry field X" is ``X in {f.code for f in fields}``, exposed via ``fields_for()``."""
 
-    extra_fields: list[str] = []
-    """Generic (non-badge) ``extra`` metadata keys (``ExtraKey`` values) this type exposes via
-    ``sq update --set`` — spec-declared identity so a renamed work type (e.g. guide->doc)
-    keeps its settable fields instead of losing them to a hardcoded literal type name. The
-    value kind (str/list/bool) per key is fixed in ``_models/_metadata.py``, not declared here."""
+    attributes: dict[str, AttributeSpec] = {}
+    """The non-badge frontmatter keys this type declares, by name: the value ``kind``, whether
+    ``sq check`` requires it, and whether ``sq update --set`` may write it. A key the file carries
+    that no declaration names is kept untouched. Badge fields stay in ``fields``."""
 
     validators: list[str] = []
     """Per-type additions to the category's default validator bundle (the pluggable-validator
@@ -1999,6 +2005,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "assignee_present",
         "settled_requires_discussion",
         "external_id_not_in_title",
+        "frontmatter_key_undeclared",
     }
 )
 
@@ -2059,20 +2066,14 @@ _FIELD_ELIGIBLE_SUBENTITY_KEYS: frozenset[str] = frozenset({"severity"})
 
 
 def _reserved_item_keys() -> frozenset[str]:
-    """Item frontmatter keys a field code may not shadow.
-
-    Derived from ``Item``'s own model/computed fields (never hand-copied) minus ``path``
-    (model-only, never written to frontmatter) and the field-eligible exemptions.
-
-    ``prefix`` stays reserved even though it, too, is model-only/never written: it is a
-    *tolerated* legacy frontmatter key on read (``Item.id`` always wins over it), so a live
-    field coded ``prefix`` would silently shadow — be read and discarded — exactly the hazard
-    this check exists to catch. Excluding it here, as ``path`` is, would defeat that.
-    """
+    """Names a field code or an attribute may not take: the model's own fields (derived from
+    ``Item``, never hand-copied), the names a ``--json`` row adds, and ``extra``. ``path`` and
+    ``prefix`` are model fields that are not frontmatter, and are refused for the same reason: a
+    key of that name is never read back as the user's value."""
     from squads._models._item import Item
 
     keys = set(Item.model_fields) | set(Item.model_computed_fields)
-    return frozenset(keys - {"path"} - _FIELD_ELIGIBLE_ITEM_KEYS)
+    return frozenset(keys | set(ROW_ADDED_KEYS) | {"extra"})
 
 
 def _reserved_subentity_keys() -> frozenset[str]:
@@ -2106,7 +2107,7 @@ def _check_field_codes(
     reserved_subentity = _reserved_subentity_keys()
     for owner, is_item, fields in _iter_field_owners(items, subentity_kinds):
         seen: set[str] = set()
-        reserved = reserved_item if is_item else reserved_subentity
+        reserved = (reserved_item - _FIELD_ELIGIBLE_ITEM_KEYS) if is_item else reserved_subentity
         for f in fields:
             if f.code in seen:
                 errors.append(f"{owner!r}: duplicate field code {f.code!r}")
@@ -2114,6 +2115,47 @@ def _check_field_codes(
             if f.code in reserved:
                 errors.append(
                     f"{owner!r}: field code {f.code!r} shadows a reserved frontmatter key"
+                )
+
+
+#: The attributes the engine materialises into agent-host files, by roster type, with the kind
+#: each must be declared with. A resolved spec may add attributes to a roster type but may not
+#: drop or re-kind one of these.
+PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
+    ROSTER_ROLE: {
+        "is_default": "bool",
+        "is_dev": "bool",
+        "model": "str",
+        "name_chosen": "bool",
+        "tech": "str",
+    },
+    ROSTER_SKILL: {"allowed_tools": "str", "model": "str", "when_to_use": "str"},
+}
+
+
+def _check_attributes(items: dict[str, ItemSpec], errors: list[str]) -> None:
+    """Attribute names are free of reserved keys and badge codes, and each roster type declares
+    its pinned attributes with the pinned kind."""
+    reserved = _reserved_item_keys()
+    for owner, ts in items.items():
+        codes = {f.code for f in ts.fields}
+        for name in ts.attributes:
+            if name in reserved:
+                errors.append(
+                    f"{owner!r}: attribute {name!r} is a reserved key — pick another name"
+                )
+            elif name in codes:
+                errors.append(f"{owner!r}: attribute {name!r} is also a field code on this type")
+    for owner, pinned in PINNED_ROSTER_ATTRIBUTES.items():
+        ts = items.get(owner)
+        if ts is None:
+            continue
+        for name, kind in pinned.items():
+            declared = ts.attributes.get(name)
+            if declared is None or declared.kind != kind:
+                errors.append(
+                    f"roster type {owner!r} must declare attribute {name!r} with kind {kind!r} "
+                    f'— add `{name} = {{ kind = "{kind}" }}` under [items.{owner}.attributes]'
                 )
 
 
@@ -2670,17 +2712,16 @@ class WorkflowSpec(BaseModel):
                 return param
         return None
 
-    def item_extra_fields(self, item_type: str) -> list[str]:
-        """Declared generic ``extra``-metadata keys for this type (drives ``sq update --set``
-        identity for a renamed/custom type, e.g. guide's ``tags``, review's ``target_ref``)."""
+    def item_attributes(self, item_type: str) -> dict[str, AttributeSpec]:
+        """The attributes *item_type* declares, by name (empty for an undeclared type)."""
         ts = self.items.get(item_type)
-        return list(ts.extra_fields) if ts else []
+        return dict(ts.attributes) if ts else {}
 
     def item_ref_rules(self, item_type: str) -> list[RefRule]:
         """Declared ref-kind rules for the type (e.g. fixes/addresses/supersedes).
 
         Also ``[]`` when *item_type* isn't declared — no rules to report for a
-        dropped/renamed type, same shape as :meth:`item_extra_fields`/:meth:`fields_for`."""
+        dropped/renamed type, same shape as :meth:`item_attributes`/:meth:`fields_for`."""
         ts = self.items.get(item_type)
         return list(ts.ref_rules) if ts else []
 
@@ -3087,6 +3128,9 @@ class WorkflowSpec(BaseModel):
 
         # Field-code uniqueness + reserved-key collision (per item type / sub-entity kind).
         _check_field_codes(self.items, self.subentity_kinds, errors)
+
+        # Attribute names + the pinned roster attributes.
+        _check_attributes(self.items, errors)
 
         # Field->collection referential integrity + default-badge resolution.
         _check_field_collections(self.items, self.subentity_kinds, self.collections, errors)

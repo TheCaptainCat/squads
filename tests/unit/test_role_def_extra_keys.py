@@ -1,5 +1,5 @@
 """``RoleDef``'s stored ``extra``: the short residue a role item still carries, and the exact
-key set exempted from the skew guard (``PERMITTED_EXTRA_SKEW``).
+key set exempted from the skew guard (``PERMITTED_ATTRIBUTE_SKEW``).
 
 A role's *definition* is no longer stored on its item. Title, mission, responsibilities,
 agreements, colour, spawn authority and description are catalog answers resolved on every read,
@@ -13,8 +13,8 @@ the exempt set and the values it is paired with cannot drift apart, and the ``is
 cannot silently shrink the guard's vocabulary.
 """
 
-from squads._itemfile import PERMITTED_EXTRA_SKEW
-from squads._models._extras import ExtraKey as X
+from squads._itemfile import PERMITTED_ATTRIBUTE_SKEW
+from squads._models._attributes import AttributeKey as X
 from squads._roles._catalog import PREDEFINED, RoleDef, dev_role
 
 #: Every key the definition used to be mirrored under. Named once, as a literal, so each
@@ -32,23 +32,23 @@ _REMOVED_FROM_THE_MIRROR = (
 
 
 def test_extra_keys_covers_every_bundled_role_s_to_extra_keys() -> None:
-    exempt = RoleDef.extra_keys()
+    exempt = RoleDef.attribute_keys()
     for role in PREDEFINED:
-        assert set(role.to_extra()) <= exempt, role.slug
+        assert set(role.to_attributes()) <= exempt, role.slug
 
 
 def test_extra_keys_covers_a_dev_role_s_to_extra_keys() -> None:
-    assert set(dev_role("python").to_extra(is_dev=True)) <= RoleDef.extra_keys()
+    assert set(dev_role("python").to_attributes(is_dev=True)) <= RoleDef.attribute_keys()
 
 
 def test_to_extra_stores_none_of_the_definition_fields() -> None:
     """The negative clause the whole change turns on: none of the fields the role catalog
     answers is written back onto the item, for a bundled role or a developer one."""
     for role in PREDEFINED:
-        stored = role.to_extra()
+        stored = role.to_attributes()
         for key in _REMOVED_FROM_THE_MIRROR:
             assert key not in stored, f"{role.slug} still stores {key!r}"
-    dev_stored = dev_role("python").to_extra(is_dev=True)
+    dev_stored = dev_role("python").to_attributes(is_dev=True)
     for key in _REMOVED_FROM_THE_MIRROR:
         assert key not in dev_stored, f"a dev role still stores {key!r}"
 
@@ -57,20 +57,19 @@ def test_model_is_written_for_a_dev_role_and_withheld_from_a_bundled_one() -> No
     """The one conditional key. A developer's model has no catalog answer to resolve from, so
     it is stored; a bundled role's comes from the catalog, so storing it would be a mirror
     again. The flag is the caller's, not a function of the slug's spelling."""
-    assert dev_role("python", model="opus").to_extra(is_dev=True)[X.MODEL] == "opus"
-    assert X.MODEL not in dev_role("python", model="opus").to_extra()
+    assert dev_role("python", model="opus").to_attributes(is_dev=True)[X.MODEL] == "opus"
+    assert X.MODEL not in dev_role("python", model="opus").to_attributes()
     for role in PREDEFINED:
-        assert X.MODEL not in role.to_extra(), role.slug
+        assert X.MODEL not in role.to_attributes(), role.slug
 
 
-def test_slug_is_stored_for_every_role_shape() -> None:
-    for role in PREDEFINED:
-        assert role.to_extra()[X.SLUG] == role.slug
-    assert dev_role("python").to_extra()[X.SLUG] == "python-dev"
+def test_slug_is_a_core_key_not_a_stored_attribute() -> None:
+    for role in (*PREDEFINED, dev_role("python")):
+        assert "slug" not in role.to_attributes(is_dev=True)
 
 
 def test_permitted_extra_skew_membership_is_pinned_exactly() -> None:
-    """Pinned to the literal key names, not re-derived from `RoleDef.extra_keys()` -- that
+    """Pinned to the literal key names, not re-derived from `RoleDef.attribute_keys()` -- that
     would be circular and pass even if the table silently grew a member. This test exists to
     catch an unreviewed **widening**, which is the unsafe direction: a key that leaves the set
     is compared like any other field again, which can only produce a spurious (repair-clearable)
@@ -83,8 +82,8 @@ def test_permitted_extra_skew_membership_is_pinned_exactly() -> None:
     this pin's purpose in the first place and is written only by `sq role set-default`;
     `description` was reconciled but deliberately never exempt, and is no longer written at all.
     A narrower pin can only start failing by catching a widening nobody reviewed."""
-    expected = frozenset({X.SLUG, X.MODEL})
-    assert expected == PERMITTED_EXTRA_SKEW
+    expected = frozenset({X.MODEL})
+    assert expected == PERMITTED_ATTRIBUTE_SKEW
     for key in _REMOVED_FROM_THE_MIRROR:
-        assert key not in PERMITTED_EXTRA_SKEW, key
-    assert X.IS_DEFAULT not in PERMITTED_EXTRA_SKEW
+        assert key not in PERMITTED_ATTRIBUTE_SKEW, key
+    assert X.IS_DEFAULT not in PERMITTED_ATTRIBUTE_SKEW

@@ -4,7 +4,7 @@ consumer).
 
 ``svc.create()``'s ``extra`` kwarg is the generic settable-at-create door (the same one every
 type's ``extra`` metadata already goes through — see ``guide``'s ``--tech``/``--tag`` CLI
-flags, which pass raw values the same way); ``svc.update(set_extra=...)`` is the generic
+flags, which pass raw values the same way); ``svc.update(set_attributes=...)`` is the generic
 settable-afterwards door, and the only one that validates/normalises through
 ``_models._metadata.coerce_extra``.
 """
@@ -15,7 +15,7 @@ import pytest
 
 from _helpers import create_item
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 
 pytestmark = pytest.mark.anyio
 
@@ -53,27 +53,27 @@ async def test_a_milestone_carries_no_parent_and_no_subentities(svc) -> None:
 # --------------------------------------------------------------------------- target date
 
 
-async def test_target_date_is_settable_at_create_through_the_generic_extra_door(svc) -> None:
-    m = await _milestone(svc, extra={X.TARGET_DATE: "2026-12-01"})
-    assert m.extra[X.TARGET_DATE] == "2026-12-01"
+async def test_target_date_is_settable_at_create_through_the_generic_attribute_door(svc) -> None:
+    m = await _milestone(svc, attributes={X.TARGET_DATE: "2026-12-01"})
+    assert m.attribute(X.TARGET_DATE) == "2026-12-01"
     reread = await svc.get(m.id)
-    assert reread.extra[X.TARGET_DATE] == "2026-12-01"
+    assert reread.attribute(X.TARGET_DATE) == "2026-12-01"
 
 
 async def test_target_date_is_settable_afterwards_through_generic_set_and_normalised(svc) -> None:
     m = await _milestone(svc)
-    updated = await svc.update(m.id, set_extra={X.TARGET_DATE: "2026-12-01"})
-    assert updated.extra[X.TARGET_DATE] == "2026-12-01"
+    updated = await svc.update(m.id, set_attributes={X.TARGET_DATE: "2026-12-01"})
+    assert updated.attribute(X.TARGET_DATE) == "2026-12-01"
     reread = await svc.get(m.id)
-    assert reread.extra[X.TARGET_DATE] == "2026-12-01"
+    assert reread.attribute(X.TARGET_DATE) == "2026-12-01"
 
 
 async def test_an_unparseable_target_date_is_refused_naming_the_field_and_not_stored(svc) -> None:
     m = await _milestone(svc)
     with pytest.raises(SquadsError, match="target_date"):
-        await svc.update(m.id, set_extra={X.TARGET_DATE: "not-a-date"})
+        await svc.update(m.id, set_attributes={X.TARGET_DATE: "not-a-date"})
     reread = await svc.get(m.id)
-    assert X.TARGET_DATE not in reread.extra
+    assert X.TARGET_DATE not in reread.attributes
 
 
 # --------------------------------------------------------------------------- membership by targets

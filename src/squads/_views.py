@@ -38,7 +38,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from squads._backends._base import RoleView
 from squads._errors import SquadsError
@@ -51,7 +51,6 @@ from squads._interactions import (
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
     DISPLAY_ID_PADDING,
@@ -196,7 +195,7 @@ def _playbook_subject(item: Item, spec: WorkflowSpec) -> str:
     naming convention was ever meant to describe."""
     if item.type != ROSTER_SKILL:
         return item.type
-    slug = item.extra.get(X.SLUG, item.slug)
+    slug = item.slug
     return item_type_for_skill_slug(slug, spec) or item.type
 
 
@@ -655,14 +654,6 @@ def template_seeded_view_names(item_type: str, spec: WorkflowSpec) -> frozenset[
         for raw, _start, _end in iter_marker_spans(body)
         if (parts := markers.view_tag_parts(raw)) is not None
     )
-
-
-def roster_slug(item_type: str, slug: str, extra: dict[str, Any]) -> str:
-    """The identity a roster host (role or skill) classifies by — a skill's own ``extra.slug``
-    when set, else *slug* unchanged. The one derivation every caller (write-path refusal,
-    ``view rm``, :func:`roster_body_view_name`, the check tier) shares, so a hand-renamed skill
-    file is classified identically everywhere."""
-    return extra.get(X.SLUG, slug) if item_type == ROSTER_SKILL else slug
 
 
 def roster_body_view_name(item_type: str, slug: str, spec: WorkflowSpec) -> str | None:

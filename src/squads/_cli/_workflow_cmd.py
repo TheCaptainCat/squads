@@ -41,7 +41,6 @@ from squads._cli._common import (
     status_text,
 )
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
 from squads._models._schema import SCHEMA_VERSION
 from squads._models._vocab import labels_for
 from squads._paths import number_for_id
@@ -139,7 +138,7 @@ async def _print_cheatsheet(*, raw: bool) -> None:
 
 #: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
 #: tuple so a test can assert the CLI never drifts from the declared contract.
-TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str] = (
+TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str, str] = (
     "type",
     "order",
     "prefix",
@@ -148,6 +147,7 @@ TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str] = (
     "subentity_kind",
     "lifecycle",
     "fields",
+    "attributes",
     "labels",
 )
 
@@ -185,10 +185,12 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     labels. ``lifecycle`` names the machine this type binds — a declared choice, derivable
     from nothing else on the row. Both are references *by name*, never inlined copies.
     ``fields`` is the type's declared field->collection bindings — ``[]`` for a type with no
-    badge fields. ``labels`` is the type's four resolved display-label forms
-    (``singular``/``plural``/``singular_lower``/``plural_lower``), pin-else-derive via
-    ``labels_for`` — a client reads a pretty group header here instead of title-casing the
-    raw type string itself.
+    badge fields. ``attributes`` is the type's declared non-badge frontmatter keys, name to
+    ``{kind, required, settable}`` — ``{}`` for a type that declares none; a client reads
+    here which keys an item row of the type may carry. ``labels`` is the type's four resolved
+    display-label forms (``singular``/``plural``/``singular_lower``/``plural_lower``),
+    pin-else-derive via ``labels_for`` — a client reads a pretty group header here instead of
+    title-casing the raw type string itself.
     """
     types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
     return [
@@ -201,6 +203,10 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "subentity_kind": spec.items[t].subentity_kind,
             "lifecycle": spec.items[t].lifecycle,
             "fields": _field_entries(t, spec),
+            "attributes": {
+                name: {"kind": a.kind, "required": a.required, "settable": a.settable}
+                for name, a in spec.item_attributes(t).items()
+            },
             "labels": labels_for(t, spec),
         }
         for t in types
@@ -223,7 +229,9 @@ def workflow_types(
     ``category == "roster"``); ``subentity_kind`` is the declared sub-entity kind this type
     hosts, or ``null`` — join it to ``sq workflow subentity-kinds --json``; ``lifecycle`` is
     the machine this type binds; ``fields`` is the type's declared field->collection
-    bindings (``[{code, label, collection}]``, ``[]`` if none); ``labels`` is the type's
+    bindings (``[{code, label, collection}]``, ``[]`` if none); ``attributes`` is the type's
+    declared non-badge keys (``{name: {kind, required, settable}}``, ``{}`` if none); ``labels``
+    is the type's
     four resolved display-label forms (``{singular, plural, singular_lower,
     plural_lower}``, pin-else-derive) — all present, never omitted, so the key set is
     stable across every object.
@@ -961,7 +969,7 @@ async def _view_json_payload(
         # The role source's own applicability already guarantees `item` IS the role item —
         # `result` (the already-resolved `RoleDef`) is not reused here because
         # `build_role_json_payload` resolves its own, the same way `show_role` itself does.
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         base_role = role_base_for_show(slug, item, svc.paths.squad_dir)
         return await build_role_json_payload(svc, slug, item.id, item, base_role, slug)
 

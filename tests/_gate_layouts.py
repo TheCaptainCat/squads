@@ -40,7 +40,7 @@ def override(root: Path, kind: str) -> None:
 
 def squad(tmp_path: Path, direction: str, override_kind: str) -> Path:
     root = tmp_path / "squad"
-    shutil.copytree(CORPUS_DIR / ("v0_14" if direction != "equal" else "v0_15"), root)
+    shutil.copytree(CORPUS_DIR / ("v0_14" if direction != "equal" else "v0_16"), root)
     if direction == "ahead":
         stamp(root, "0.99")
     elif direction == "equal":

@@ -30,7 +30,7 @@ async def test_link_role_makes_the_role_pointer_preload_the_skill_immediately(
     role = await svc.activate_role("tech-writer")
     skill = await svc.add_skill("Release Runbook")
 
-    r = await invoke(["skill", str(skill.sequence_id), "link-role", role.extra["slug"]])
+    r = await invoke(["skill", str(skill.sequence_id), "link-role", role.slug])
     assert r.exit_code == 0, r.output
 
     assert "release-runbook" in _pointer_text(seeded_paths, "tech-writer")
@@ -61,7 +61,7 @@ async def test_unlink_role_drops_the_skill_from_the_role_pointer_immediately(
 
     assert "release-runbook" not in _pointer_text(seeded_paths, "tech-writer")
     assert "release-runbook" not in await svc.resolved_skills_for_role("tech-writer")
-    assert role.extra.get("slug") == "tech-writer"  # sanity
+    assert role.slug == "tech-writer"  # sanity
 
 
 async def test_linking_a_nonexistent_role_gives_a_clear_error(seeded_paths, invoke) -> None:

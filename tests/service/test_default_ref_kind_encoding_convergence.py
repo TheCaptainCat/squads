@@ -1,4 +1,4 @@
-"""The default-ref-kind encoding convergence table: five on-disk encodings of one edge, each
+"""The default-ref-kind encoding convergence table: three on-disk encodings of one edge, each
 checked against an index that already holds the canonical form for its kind. This asserts
 CONVERGENCE, not merely the absence of a false-refuse warning -- a fold-level unit test on
 ``fold_legacy_kinds`` in isolation would not have caught the regression this guards, since the
@@ -6,14 +6,11 @@ fold's output is correct as a mechanical function; what broke was which encoding
 and the index in the first place.
 
 Per row: ``frontmatter_skew`` is empty, ``sq repair`` stores the canonical encoding, the next
-ordinary mutation writes it, and ``sq check`` stays clean throughout. The three default-kind
-rows (bare, spelled default, legacy map naming the default) all converge on **bare**; the two
-non-default controls (spelled, legacy map) converge on the spelled form, ``ID:blocks``,
-unchanged -- preserving the leg ``test_legacy_ref_kinds_map_does_not_false_refuse`` was
-narrowed to (see ``test_frontmatter_skew_guard.py``) while this file restores the default-kind
-legs it lost.
+ordinary mutation writes it, and ``sq check`` stays clean throughout. The two default-kind
+rows (bare, spelled default) converge on **bare**; the non-default control (spelled) converges
+on the spelled form, ``ID:blocks``, unchanged.
 
-The load-bearing assertion sits in its own test below: the legacy-map row and the bare row
+The load-bearing assertion sits in its own test below: the spelled-default row and the bare row
 produce byte-identical ``to_frontmatter_dict()`` output -- the property the disk/index split
 actually depends on, asserted rather than relied on as a coincidence.
 """
@@ -30,19 +27,14 @@ from squads._sections import join_frontmatter, split_frontmatter
 pytestmark = pytest.mark.anyio
 
 
-def _plant_disk_refs(
-    svc, item, *, refs: list[str], ref_kinds: dict[str, str] | None = None
-) -> None:
-    """Hand-rewrite *item*'s file frontmatter to an exact ``refs``/``extra.ref_kinds`` wire
-    shape -- bypassing every normalising writer (``add_ref``, ``update_frontmatter``'s own
-    round trip) so the row controls precisely which of the five encodings disk carries,
-    independent of whatever the index already holds for the same edge."""
+def _plant_disk_refs(svc, item, *, refs: list[str]) -> None:
+    """Hand-rewrite *item*'s file frontmatter to an exact ``refs`` wire shape -- bypassing
+    every normalising writer (``add_ref``, ``update_frontmatter``'s own round trip) so the row
+    controls precisely which encoding disk carries, independent of whatever the index already
+    holds for the same edge."""
     path = svc.paths.abspath(item.path)
     fm, body = split_frontmatter(path.read_text(encoding="utf-8"))
     fm["refs"] = refs
-    fm.pop("extra", None)
-    if ref_kinds:
-        fm["extra"] = {"ref_kinds": ref_kinds}
     path.write_text(join_frontmatter(fm, body), encoding="utf-8")
 
 
@@ -57,34 +49,13 @@ async def _seed_canonical_edge(svc, *, kind: str) -> tuple[Any, Any]:
     return a, b
 
 
-# label, disk refs-fn, disk legacy-map-fn, kind passed to add_ref, expected canonical ref
-_ROWS: list[tuple[str, Any, Any, str, Any]] = [
-    ("bare", lambda bid: [bid], lambda bid: None, "related", lambda bid: bid),
-    (
-        "spelled-default",
-        lambda bid: [f"{bid}:related"],
-        lambda bid: None,
-        "related",
-        lambda bid: bid,
-    ),
-    (
-        "legacy-map-default",
-        lambda bid: [bid],
-        lambda bid: {bid: "related"},
-        "related",
-        lambda bid: bid,
-    ),
+# label, disk refs-fn, kind passed to add_ref, expected canonical ref
+_ROWS: list[tuple[str, Any, str, Any]] = [
+    ("bare", lambda bid: [bid], "related", lambda bid: bid),
+    ("spelled-default", lambda bid: [f"{bid}:related"], "related", lambda bid: bid),
     (
         "control-spelled-nondefault",
         lambda bid: [f"{bid}:blocks"],
-        lambda bid: None,
-        "blocks",
-        lambda bid: f"{bid}:blocks",
-    ),
-    (
-        "control-legacy-map-nondefault",
-        lambda bid: [bid],
-        lambda bid: {bid: "blocks"},
         "blocks",
         lambda bid: f"{bid}:blocks",
     ),
@@ -96,20 +67,18 @@ def _no_errors(issues) -> bool:
 
 
 @pytest.mark.parametrize(
-    ("label", "refs_fn", "legacy_fn", "kind", "canonical_fn"),
+    ("label", "refs_fn", "kind", "canonical_fn"),
     _ROWS,
     ids=[row[0] for row in _ROWS],
 )
-async def test_row_converges_on_the_canonical_encoding(
-    svc, label, refs_fn, legacy_fn, kind, canonical_fn
-):
+async def test_row_converges_on_the_canonical_encoding(svc, label, refs_fn, kind, canonical_fn):
     a, b = await _seed_canonical_edge(svc, kind=kind)
     canonical_ref = canonical_fn(b.id)
 
     # sq check is clean on the freshly-seeded, normally-written edge, before any hand-plant.
     assert _no_errors(await svc.check())
 
-    _plant_disk_refs(svc, a, refs=refs_fn(b.id), ref_kinds=legacy_fn(b.id))
+    _plant_disk_refs(svc, a, refs=refs_fn(b.id))
 
     default_kind = svc.spec.default_ref_kind()
     disk_text = svc.paths.abspath(a.path).read_text(encoding="utf-8")
@@ -132,11 +101,11 @@ async def test_row_converges_on_the_canonical_encoding(
     assert _no_errors(await svc.check())
 
 
-async def test_the_legacy_map_row_and_the_bare_row_are_byte_identical_after_the_fold(svc):
-    """The load-bearing property: two on-disk encodings of the SAME semantic edge (bare, and a
-    legacy map naming the declared default) fold to byte-identical ``to_frontmatter_dict()``
-    output -- the property the disk/index split's correctness actually depends on, not a
-    coincidence this suite merely fails to falsify."""
+async def test_the_spelled_default_row_and_the_bare_row_are_byte_identical_after_the_fold(svc):
+    """The load-bearing property: two on-disk encodings of the SAME semantic edge (bare, and
+    spelled with the declared default) fold to byte-identical ``to_frontmatter_dict()`` output
+    -- the property the disk/index split's correctness actually depends on, not a coincidence
+    this suite merely fails to falsify."""
     a, b = await _seed_canonical_edge(svc, kind="related")
     default_kind = svc.spec.default_ref_kind()
 
@@ -148,30 +117,26 @@ async def test_the_legacy_map_row_and_the_bare_row_are_byte_identical_after_the_
         "status": a.status,
         "refs": [b.id],
     }
-    legacy_map_data = {
-        **bare_data,
-        "refs": [b.id],
-        "extra": {"ref_kinds": {b.id: "related"}},
-    }
+    spelled_data = {**bare_data, "refs": [f"{b.id}:related"]}
 
     bare_item = Item.from_frontmatter(bare_data, path=a.path, default_kind=default_kind)
-    legacy_item = Item.from_frontmatter(legacy_map_data, path=a.path, default_kind=default_kind)
+    spelled_item = Item.from_frontmatter(spelled_data, path=a.path, default_kind=default_kind)
 
-    assert bare_item.to_frontmatter_dict() == legacy_item.to_frontmatter_dict()
+    assert bare_item.to_frontmatter_dict() == spelled_item.to_frontmatter_dict()
     assert bare_item.refs == [b.id]  # bare, unspelled -- the shared canonical form
 
 
 async def test_corpus_level_check_repair_check_mutate_check_converges(svc):
-    """One corpus-level row over the whole five-encoding set: check -> repair -> check ->
+    """One corpus-level row over the whole encoding set: check -> repair -> check ->
     mutate EVERY item -> check, catching an asymmetry introduced at any of the three
     ``Item.from_frontmatter`` call sites rather than only at the one a per-row test happens to
     exercise. ``sq repair`` converges rather than oscillates: a second repair back-to-back
     must reproduce byte-identical ``refs`` for every item, not
-    just for the five rows this file plants."""
+    just for the rows this file plants."""
     items: list[tuple[str, Any, Any]] = []
-    for label, refs_fn, legacy_fn, kind, canonical_fn in _ROWS:
+    for label, refs_fn, kind, canonical_fn in _ROWS:
         a, b = await _seed_canonical_edge(svc, kind=kind)
-        _plant_disk_refs(svc, a, refs=refs_fn(b.id), ref_kinds=legacy_fn(b.id))
+        _plant_disk_refs(svc, a, refs=refs_fn(b.id))
         items.append((label, a, canonical_fn(b.id)))
 
     assert _no_errors(await svc.check())
@@ -182,7 +147,7 @@ async def test_corpus_level_check_repair_check_mutate_check_converges(svc):
     assert _no_errors(await svc.check())
 
     # Idempotent: a second repair, run immediately after, reproduces byte-identical refs for
-    # every item in the index -- not just the five this test planted.
+    # every item in the index -- not just the rows this test planted.
     second = await svc.repair()
     refs_first = {seq: it.refs for seq, it in first.db.items.items()}
     refs_second = {seq: it.refs for seq, it in second.db.items.items()}

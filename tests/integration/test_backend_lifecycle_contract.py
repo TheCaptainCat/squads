@@ -16,8 +16,8 @@ import pytest
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
 from squads._backends._claude_code._backend import ClaudeCodeBackend
+from squads._models._attributes import AttributeKey as X
 from squads._models._config import SquadsConfig
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
@@ -104,17 +104,8 @@ def _make_role_item(sequence_id: int, slug: str, squad_dir: Path) -> Item:
         path=f"roles/{filename}",
         created_at=_FIXED_TS,
         updated_at=_FIXED_TS,
-        extra={
-            X.SLUG: slug,
-            X.FULL_NAME: "Catherine Manager",
-            X.TITLE: "Manager",
-            X.MISSION: "Coordinate.",
-            X.RESPONSIBILITIES: [],
-            X.AGREEMENTS: [],
-            X.MODEL: "sonnet",
-            X.COLOR: "blue",
-            X.IS_DEFAULT: True,
-        },
+        slug_in_file=True,
+        attributes={X.MODEL: "sonnet", X.IS_DEFAULT: True},
     )
 
 
@@ -132,7 +123,8 @@ def _make_skill_item(sequence_id: int, slug: str, squad_dir: Path) -> Item:
         path=f"skills/{filename}",
         created_at=_FIXED_TS,
         updated_at=_FIXED_TS,
-        extra={X.SLUG: slug, X.DESCRIPTION: f"The {slug} skill."},
+        description=f"The {slug} skill.",
+        slug_in_file=True,
     )
 
 

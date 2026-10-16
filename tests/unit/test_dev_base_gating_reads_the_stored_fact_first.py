@@ -1,5 +1,5 @@
 """The crash this review round found: two of the three consumers gated the dev-role merge base
-on the slug's ``-dev`` suffix alone, then read ``item.extra[X.TECH]`` with a bare subscript. An
+on the slug's ``-dev`` suffix alone, then read ``item.attribute(X.TECH)`` with a bare subscript. An
 activated role whose slug happens to end in ``-dev`` but is not a developer (e.g. a wholly
 custom ``data-dev`` role) has no ``tech`` key, so that subscript raised an unhandled
 ``KeyError`` instead of resolving through the ordinary path every other role gets.
@@ -25,7 +25,7 @@ from typing import Any
 
 from squads import __version__
 from squads._cli._common import dev_preview_full_name, role_base_for_show
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 from squads._models._item import Item
 from squads._overrides._service import check_override_issues
 from squads._roles._catalog import dev_role
@@ -36,8 +36,6 @@ _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 def _item(slug: str, *, is_dev: bool, extra: dict[str, Any] | None = None) -> Item:
     extra = dict(extra or {})
-    extra.setdefault(X.SLUG, slug)
-    extra.setdefault(X.FULL_NAME, "Whoever Slug")
     if is_dev:
         extra[X.IS_DEV] = True
     return Item(
@@ -45,11 +43,12 @@ def _item(slug: str, *, is_dev: bool, extra: dict[str, Any] | None = None) -> It
         type="role",
         title="Whoever Slug",
         slug=slug,
+        slug_in_file=True,
         status="Active",
         path=f"roles/ROLE-000001-{slug}.md",
         created_at=_NOW,
         updated_at=_NOW,
-        extra=extra,
+        attributes=extra,
     )
 
 
@@ -67,7 +66,7 @@ def test_an_activated_non_dev_role_whose_slug_ends_in_dev_gets_no_dev_base() -> 
     either), and the slug ends in ``-dev``. Must resolve to ``None`` -- not attempt
     ``dev_base_from_item`` and KeyError on the missing ``tech`` key."""
     item = _item("data-dev", is_dev=False)
-    assert X.TECH not in item.extra  # the fact that made the old gate crash
+    assert X.TECH not in item.attributes  # the fact that made the old gate crash
     assert role_base_for_show("data-dev", item) is None
 
 
@@ -107,7 +106,7 @@ def test_a_genuine_dev_role_still_gets_dev_base_from_item() -> None:
     item = _item(
         "python-dev",
         is_dev=True,
-        extra={**role.to_extra(is_dev=True), X.TECH: "python"},
+        extra={**role.to_attributes(is_dev=True), X.TECH: "python"},
     )
     assert role_base_for_show("python-dev", item) == dev_base_from_item(item)
 

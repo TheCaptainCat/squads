@@ -10,7 +10,7 @@ what a corpus sweep would otherwise fight on alternate commands: strip on repair
 sync.
 
 The names below are the definition a role catalog answers. They are listed as a literal rather
-than derived from ``RoleDef.extra_keys()``: deriving them would make this test agree with the
+than derived from ``RoleDef.attribute_keys()``: deriving them would make this test agree with the
 table by construction and pass on a table that silently regrew a member.
 """
 
@@ -20,7 +20,7 @@ from squads import _sections as sections
 from squads._index._resolver import item_file
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 from squads._roles._resolver import resolve_role_for_item
 
 pytestmark = pytest.mark.anyio
@@ -96,14 +96,15 @@ async def test_what_a_role_does_still_store(svc):
 
     bundled = await svc.roster_item("role", "architect")
     assert bundled is not None
-    assert bundled.extra == {X.SLUG: "architect"}
+    assert bundled.attributes == {X.NAME_CHOSEN: False}
+    assert bundled.slug_in_file
 
     dev = await svc.roster_item("role", "rust-dev")
     assert dev is not None
-    assert dev.extra[X.SLUG] == "rust-dev"
-    assert dev.extra[X.IS_DEV] is True
-    assert dev.extra[X.TECH] == "rust"
-    assert dev.extra[X.MODEL]  # a dev's model is stored; a bundled role's is not
+    assert dev.slug == "rust-dev"
+    assert dev.attribute(X.IS_DEV) is True
+    assert dev.attribute(X.TECH) == "rust"
+    assert dev.attribute(X.MODEL)  # a dev's model is stored; a bundled role's is not
 
 
 async def test_a_repair_then_a_sync_restores_nothing(svc):

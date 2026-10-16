@@ -6,7 +6,6 @@ import pytest
 
 from squads._interactions import ITEM_SKILL_VIEW_NAME
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._sections import replace_section
 from squads._services._validators import CATALOG, ValidatorContext
 from squads._workflow import load_workflow_spec
@@ -156,9 +155,7 @@ async def test_is_silent_for_a_permanently_system_skill_even_when_authored(svc):
     await svc.seed_bundled_skills()
     db = await svc.store.load()
     squads_skill = next(
-        it
-        for it in db.items.values()
-        if it.type == "skill" and it.extra.get(X.SLUG, it.slug) == "squads"
+        it for it in db.items.values() if it.type == "skill" and it.slug == "squads"
     )
 
     ctx = ValidatorContext(item=squads_skill, spec=svc.spec, raw_text=_raw_text(svc, squads_skill))

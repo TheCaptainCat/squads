@@ -335,7 +335,7 @@ def _index_slugs(project) -> dict[str, tuple[str, str | None]]:
     """Per roster item in the index: its core slug and its stored slug."""
     items = json.loads((project.squad_dir / ".squads.json").read_text(encoding="utf-8"))["items"]
     return {
-        key: (item["slug"], item["extra"].get("slug"))
+        key: (item["slug"], item["slug"] if item["slug_in_file"] else None)
         for key, item in items.items()
         if item["type"] in ("role", "skill", "operator")
     }

@@ -17,15 +17,21 @@ holds it across the whole corpus before any file is written. The patterns below 
 of the live header grammar and the grammar it replaces: a migration reads what it reads at this
 schema, whatever the live parser later becomes.
 
+The flat-frontmatter contribution lifts the nested ``extra`` block of every item file to
+top-level keys, folds the operator's ``full_name`` into its ``title``, gives every roster file a
+top-level ``slug`` and every role file ``name_chosen``. Its per-file transform,
+:func:`flatten_frontmatter`, is a pure function over a frontmatter mapping, so a contribution
+that follows plans against the shape this one writes.
+
 Invoked by ``sq migrate up`` via ``_migrations._registry`` — never run directly (this module is
 private).
 """
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 from squads import _aio
 from squads._errors import SquadsError
@@ -34,12 +40,13 @@ from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
-from squads._models._item import Item
-from squads._models._participants import roster_slug_breaches, stored_slug
+from squads._models._item import Item, slug_from_stem
+from squads._models._participants import roster_slug_breaches
+from squads._roles._catalog import PREDEFINED, dev_role_from_pool
+from squads._roles._loader import load_role_catalog
 from squads._sections import find_markers, replace_frontmatter
-from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE
+from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, ROSTER_TYPES
 
 # --------------------------------------------------------------------------- contributions
 
@@ -208,7 +215,7 @@ async def _read_roster(ctx: MigrationContext, db: SquadsDB) -> _Roster:
         data = read_frontmatter(text=text, source=it.path)
         extra: dict[str, Any] = data.get("extra") or {}
         slug = str(extra.get("slug") or data.get("slug") or it.slug)
-        stored = it.model_copy(update={"extra": {**it.extra, X.SLUG: slug}})
+        stored = it.model_copy(update={"slug": slug})
         if it.type == ROSTER_OPERATOR:
             name = str(extra.get("full_name") or slug)
             operators.append(stored)
@@ -346,37 +353,321 @@ def _strip_eol(line: str) -> str:
     return "".join(line.splitlines())
 
 
-# --------------------------------------------------------------------------- operator identity
+# --------------------------------------------------------------------------- flat frontmatter
+
+#: The core keys in the order the item writer emits them. A flattened file lists these first, in
+#: this order, then every other top-level key in the file's own order, then the keys lifted from
+#: ``extra``, so loading and writing a migrated file gives the same bytes.
+_CORE_ORDER: tuple[str, ...] = (
+    "id",
+    "sequence_id",
+    "type",
+    "title",
+    "slug",
+    "status",
+    "parent",
+    "author",
+    "assignee",
+    "priority",
+    "severity",
+    "refs",
+    "labels",
+    "description",
+    "subentities",
+    "created_at",
+    "updated_at",
+    "created_session",
+    "modified_session",
+)
+
+#: The keys an earlier release mirrored onto a role from its resolved definition, which no writer
+#: produces any more. They are dropped, not lifted.
+_RETIRED_ROLE_KEYS: frozenset[str] = frozenset(
+    {
+        "title",
+        "mission",
+        "responsibilities",
+        "agreements",
+        "color",
+        "can_spawn",
+        "description",
+        "full_name",
+        "skills",
+    }
+)
+
+_NAME_CHOSEN = "name_chosen"
 
 
-async def _plan_operator_identity(ctx: MigrationContext, db: SquadsDB) -> Planned:
-    """Operators an older release wrote without a stored ``slug`` or ``full_name`` (the importer's
-    shape) are given both, so every reader finds them without a fallback."""
-    gaps: list[tuple[str, dict[str, str]]] = []
-    for it in sorted(db.items.values(), key=lambda it: it.sequence_id):
-        if it.type != ROSTER_OPERATOR:
-            continue
+@dataclass(frozen=True)
+class FlatFrontmatter:
+    """One file's frontmatter after the flattening, and what the transform did to get there.
+
+    ``changed`` is false when the file needs nothing, in which case ``data`` is the input as it
+    stands. ``problems`` are the reasons the file cannot be flattened; ``data`` is then the
+    input unchanged.
+    """
+
+    data: dict[str, Any]
+    changed: bool = False
+    lifted: tuple[str, ...] = ()
+    description_dropped: bool = False
+    path_removed: bool = False
+    retitled: bool = False
+    problems: tuple[str, ...] = ()
+
+
+def _fold_ref_kinds(refs: list[str], legacy: dict[str, str], default_kind: str) -> list[str]:
+    """*refs* with each id's kind from the pre-0.2 ``{id: kind}`` map written inline as
+    ``ID:kind``; the squad's default kind is written bare."""
+    out: list[str] = []
+    for ref in refs:
+        rid, _, kind = ref.partition(":")
+        resolved = legacy.get(rid, kind)
+        out.append(rid if not resolved or resolved == default_kind else f"{rid}:{resolved}")
+    return out
+
+
+@dataclass
+class _Lift:
+    """The working state of one file's flattening."""
+
+    item_type: Any
+    top: dict[str, Any]
+    lifted: dict[str, Any] = field(default_factory=dict[str, Any])
+    problems: list[str] = field(default_factory=list[str])
+    description_dropped: bool = False
+    retitled: bool = False
+
+    def lift_slug(self, stored: Any, file_slug: str, source: str) -> None:
+        roster = self.item_type in ROSTER_TYPES
+        if roster and stored is not None and stored != file_slug:
+            self.problems.append(
+                f"{source}: extra.slug {stored!r} differs from the file name's slug {file_slug!r}"
+            )
+        if "slug" not in self.top:
+            if roster or stored is not None:
+                self.top["slug"] = stored if stored is not None else file_slug
+        elif stored is not None and self.top["slug"] != stored:
+            self.problems.append(
+                f"{source}: extra.slug and the top-level slug hold different values"
+            )
+
+    def fold_legacy(self, legacy_kinds: Any, legacy_severity: Any, default_kind: str) -> None:
+        refs = self.top.get("refs")
+        if isinstance(legacy_kinds, dict) and isinstance(refs, list):
+            self.top["refs"] = _fold_ref_kinds(
+                [str(r) for r in cast("list[Any]", refs)],
+                cast("dict[str, str]", legacy_kinds),
+                default_kind,
+            )
+        if legacy_severity and not self.top.get("severity"):
+            self.top["severity"] = legacy_severity
+
+    def lift(self, key: str, value: Any, source: str) -> None:
+        """Place one `extra` key: lifted as it stands, folded into a core key, or dropped."""
+        if self.item_type == ROSTER_ROLE and key in _RETIRED_ROLE_KEYS:
+            return
+        if self.item_type == ROSTER_OPERATOR and key == "full_name":
+            if isinstance(value, str) and value.strip() and value != self.top.get("title"):
+                self.top["title"] = value
+                self.retitled = True
+            return
+        if self.item_type == ROSTER_SKILL and key == "description":
+            keep = (
+                not self.top.get("description")
+                and isinstance(value, str)
+                and value != self.top.get("title")
+            )
+            if keep:
+                self.top["description"] = value
+            else:
+                self.description_dropped = True
+            return
+        if key in self.top:
+            if self.top[key] != value:
+                self.problems.append(
+                    f"{source}: extra.{key} and the top-level {key} hold different values"
+                )
+            return
+        self.lifted[key] = value
+
+
+def flatten_frontmatter(
+    data: dict[str, Any], *, file_slug: str, default_kind: str, source: str
+) -> FlatFrontmatter:
+    """The flat form of the frontmatter mapping *data* of one item file.
+
+    Each ``extra`` key is lifted to the top level with its value unchanged, except ``ref_kinds``
+    (folded into inline refs), ``severity`` (the top-level value wins), ``slug`` (the file's slug,
+    written for every roster file), a skill's ``description`` (dropped when the top-level one is
+    non-empty, else kept unless it equals the title), an operator's ``full_name`` (dropped, and
+    ``title`` takes its value when they differ) and the keys listed in ``_RETIRED_ROLE_KEYS`` on
+    a role (dropped). The top-level ``path`` a skill file carries is removed, and ``extra`` with
+    it. *file_slug* is the slug the file name spells; *source* names the file in a problem.
+    Never raises: a file that cannot be flattened comes back with ``problems`` and its input.
+    """
+    item_type = data.get("type")
+    raw_extra = data.get("extra")
+    path_present = item_type == ROSTER_SKILL and "path" in data
+    needs_slug = item_type in ROSTER_TYPES and "slug" not in data
+    if "extra" not in data and not path_present and not needs_slug:
+        return FlatFrontmatter(data)
+    if raw_extra is not None and not isinstance(raw_extra, dict):
+        return FlatFrontmatter(data, problems=(f"{source}: extra is not a mapping",))
+    extra = dict(cast("dict[str, Any]", raw_extra or {}))
+
+    work = _Lift(
+        item_type,
+        {k: v for k, v in data.items() if k != "extra" and not (path_present and k == "path")},
+    )
+    work.lift_slug(extra.pop("slug", None), file_slug, source)
+    work.fold_legacy(extra.pop("ref_kinds", None), extra.pop("severity", None), default_kind)
+    for key, value in extra.items():
+        work.lift(key, value, source)
+    if work.problems:
+        return FlatFrontmatter(data, problems=tuple(work.problems))
+    return FlatFrontmatter(
+        _in_writer_order({**work.top, **work.lifted}),
+        changed=True,
+        lifted=tuple(work.lifted),
+        description_dropped=work.description_dropped,
+        path_removed=path_present,
+        retitled=work.retitled,
+    )
+
+
+def _in_writer_order(data: dict[str, Any]) -> dict[str, Any]:
+    """*data* with the core keys first, in the item writer's order, then the rest as they stand."""
+    core = {k: data[k] for k in _CORE_ORDER if k in data}
+    return {**core, **{k: v for k, v in data.items() if k not in core}}
+
+
+def name_was_chosen(
+    data: dict[str, Any], *, dev_names: frozenset[str], bundled_names: dict[str, str]
+) -> bool:
+    """Whether the role whose frontmatter is *data* carries a name its operator chose.
+
+    A bundled role is unchosen when its stored name is the bundled catalog's name for its slug,
+    a developer role when it is a name from the resolved pool followed by its tech, and a
+    project-defined role is always unchosen; any other stored name is chosen. A role file that
+    already holds ``name_chosen`` keeps it.
+    """
+    existing = data.get(_NAME_CHOSEN)
+    if isinstance(existing, bool):
+        return existing
+    title = data.get("title")
+    if not isinstance(title, str) or not title.strip():
+        return False
+    if data.get("is_dev") is True:
+        return title not in dev_names
+    return title != bundled_names.get(str(data.get("slug")), title)
+
+
+@dataclass
+class _FlatTally:
+    files: list[tuple[str, FlatFrontmatter]] = field(
+        default_factory=list[tuple[str, FlatFrontmatter]]
+    )
+    chosen: dict[str, bool] = field(default_factory=dict[str, bool])
+    slugs: dict[str, str] = field(default_factory=dict[str, str])
+    failures: list[str] = field(default_factory=list[str])
+
+
+def _file_slug(ctx: MigrationContext, item: Item) -> str:
+    """The slug the item's file name spells, after the prefix the squad's spec declares."""
+    declared = ctx.spec.items.get(item.type)
+    prefix = declared.prefix if declared is not None else item.prefix
+    return slug_from_stem(ctx.paths.abspath(item.path).stem, prefix)
+
+
+async def _plan_flat_frontmatter(ctx: MigrationContext, db: SquadsDB) -> Planned:
+    tally = _FlatTally()
+    default_kind = ctx.spec.default_ref_kind()
+    try:
+        pool = load_role_catalog(ctx.paths.squad_dir).dev
+    except SquadsError as exc:
+        return Planned(failures=(f"the role catalog does not load: {exc}",))
+    bundled = {r.slug: r.full_name for r in PREDEFINED}
+    for it in sorted(db.items.values(), key=lambda i: i.sequence_id):
         text = (await _aio.read_bytes(ctx.paths.abspath(it.path))).decode("utf-8")
-        extra: dict[str, Any] = read_frontmatter(text=text, source=it.path).get("extra") or {}
-        fill = {
-            key: value
-            for key, value in ((X.SLUG, stored_slug(it)), (X.FULL_NAME, it.title))
-            if not extra.get(key)
-        }
-        if fill:
-            gaps.append((it.path, fill))
-    report = (f"{len(gaps)} operator(s) given a stored slug or full name",)
+        data = read_frontmatter(text=text, source=it.path)
+        flat = flatten_frontmatter(
+            data,
+            file_slug=_file_slug(ctx, it),
+            default_kind=default_kind,
+            source=it.path,
+        )
+        tally.failures.extend(flat.problems)
+        if it.type == ROSTER_ROLE and not flat.problems:
+            tech = str(flat.data.get("tech") or "")
+            dev_names = frozenset(
+                dev_role_from_pool(tech, pool, seq=i).full_name
+                for i in range(len(pool.name_pool))
+                if tech
+            )
+            decided = name_was_chosen(flat.data, dev_names=dev_names, bundled_names=bundled)
+            tally.chosen[it.path] = decided
+            if _NAME_CHOSEN not in flat.data:
+                flat = FlatFrontmatter(
+                    {**flat.data, _NAME_CHOSEN: decided},
+                    changed=True,
+                    lifted=flat.lifted,
+                    description_dropped=flat.description_dropped,
+                    path_removed=flat.path_removed,
+                    retitled=flat.retitled,
+                )
+        if flat.changed:
+            tally.files.append((it.path, flat))
+            tally.slugs[it.path] = _file_slug(ctx, it)
+    if tally.failures:
+        return Planned(failures=tuple(tally.failures), notes=(_FLAT_REMEDY,))
 
     async def write(wctx: MigrationContext) -> int:
-        for rel, fill in gaps:
-            path = wctx.paths.abspath(rel)
-            text = (await _aio.read_bytes(path)).decode("utf-8")
-            data = read_frontmatter(text=text, source=rel)
-            data["extra"] = {**(data.get("extra") or {}), **fill}
-            await write_text(path, replace_frontmatter(text, data))
-        return len(gaps)
+        return await _write_flat(wctx, tally, default_kind)
 
-    return Planned(report=report, write=write if gaps else None)
+    return Planned(report=_flat_report(tally), write=write if tally.files else None)
+
+
+_FLAT_REMEDY = (
+    "Correct each file by hand (a stray `extra:` that is not a mapping, a key that exists both "
+    "under `extra:` and at the top level with different values, a role or operator whose "
+    "`extra.slug` differs from its file name), then run `sq migrate up` again; "
+    "`sq migrate chlog v0.15.0..v0.16.0` has the steps."
+)
+
+
+def _flat_report(tally: _FlatTally) -> tuple[str, ...]:
+    flats = [flat for _path, flat in tally.files]
+    per_key = Counter(key for flat in flats for key in flat.lifted)
+    keys = ", ".join(f"{k} {n}" for k, n in sorted(per_key.items())) or "none"
+    lines = [
+        f"{len(flats)} file(s) flattened; {sum(per_key.values())} key(s) lifted ({keys}); "
+        f"{sum(f.description_dropped for f in flats)} skill description(s) dropped; "
+        f"{sum(f.path_removed for f in flats)} `path:` key(s) removed",
+        f"{sum(f.retitled for f in flats)} operator title(s) set from the stored full name",
+        *(f"  {path}" for path, flat in tally.files if flat.retitled),
+        f"{sum(tally.chosen.values())} role(s) marked as named explicitly, "
+        f"{len(tally.chosen) - sum(tally.chosen.values())} as never named",
+    ]
+    return tuple(lines)
+
+
+async def _write_flat(ctx: MigrationContext, tally: _FlatTally, default_kind: str) -> int:
+    """Rewrite each planned file's frontmatter, re-read at write time so it composes with the
+    comment-header writer on the same file."""
+    for rel, _flat in tally.files:
+        path = ctx.paths.abspath(rel)
+        text = (await _aio.read_bytes(path)).decode("utf-8")
+        data = read_frontmatter(text=text, source=rel)
+        flat = flatten_frontmatter(
+            data, file_slug=tally.slugs[rel], default_kind=default_kind, source=rel
+        )
+        out = flat.data
+        if rel in tally.chosen and _NAME_CHOSEN not in out:
+            out = {**out, _NAME_CHOSEN: tally.chosen[rel]}
+        await write_text(path, replace_frontmatter(text, out, source=rel))
+    return len(tally.files)
 
 
 # --------------------------------------------------------------------------- the step
@@ -387,13 +678,16 @@ _HEADER_MANUAL = """\
 Every comment header changes from `- [<timestamp>] <name>:` to
 `` - [<timestamp>] `<slug>` <name>: ``. `sq migrate up` rewrites the header line of every
 comment, in each item's discussion and in each story's, subtask's and finding's, and nothing
-else: a comment's own lines stay byte for byte and no frontmatter changes. It reports how many
-headers it rewrote and in how many files. Review the diff before you commit it.
+else in a discussion: a comment's own lines stay byte for byte. It reports how many headers it
+rewrote and in how many files. The next section changes the frontmatter. Review the diff before
+you commit it.
 
 The slug is found from the name. Each name is looked up among the squad's roles and operators,
 retired ones included, and the two names sq writes itself (`Operator` and `squads`). A role is
-known by its name (the `Name` column of `sq role list`); an operator by its full name, or by its
-slug when it has none, which is what the earlier release wrote in its comments. Every name is
+known by its name (the `Name` column of `sq role list`); an operator by the full name its file
+stores under `extra:`, or by its slug when it stores none, which is what the earlier release
+wrote in its comments. The next section then makes that full name the operator's `title`.
+Every name is
 resolved before any file is written. If one cannot be, this step writes nothing, the schema stamp
 is unchanged and the command exits 1 with one line per header, then a count, then one line per
 distinct name:
@@ -416,8 +710,10 @@ What to do for each, before running `sq migrate up` again:
   header lines by hand.
 - **A name that matches several entries.** Two entries share that name, and every header with it
   will belong to one of them. Give the other a distinct name for the run by editing its file:
-  `title:` for a role, `full_name:` under `extra:` for an operator. After the migration, edit it
-  back and run `sq repair`.
+  `title:` for a role, `full_name:` under `extra:` for an operator (the file still has the
+  earlier shape). The run keeps a role's `title:` and makes the operator's `full_name` its
+  `title:`, so the name typed for the run stays until you edit the `title:` line back to the real
+  name and run `sq repair`.
 - **A timestamp sq does not write.** The line starts at the left margin inside a discussion and
   looks like a header. If it is text that was pasted there, indent it under its comment. If it
   is a header, correct its timestamp to the form `2026-06-07T10:00:00Z`.
@@ -467,14 +763,54 @@ again:
   that breaks a rule above, or the one you can spare, the same way.
 """
 
-_OPERATOR_IDENTITY_MANUAL = """\
-### Every operator carries a stored slug and full name
+_FLAT_MANUAL = """\
+### The frontmatter is flat
 
-An operator that an earlier release's importer created has neither a `slug` nor a `full_name`
-under `extra:` in its file, so the rest of sq could not tell it was an operator. `sq migrate up`
-writes both: the slug is the one the operator already answers to, and the full name is its title.
-Only the frontmatter of those operators changes. The run reports how many it filled in; an
-operator that already had both is not touched.
+An item file keeps its fields as top-level keys; the nested `extra:` block is gone. `sq migrate
+up` lifts each key of `extra:` to the top level with its value unchanged, in every item file, and
+rewrites nothing in the file but its frontmatter. The exceptions:
+
+- `slug` becomes the top-level `slug`, written on every role, skill and operator file. A roster
+  file that stores none (an operator an earlier importer created) gets the slug its file name
+  spells.
+- A skill's `description` under `extra:` is dropped when its top-level `description` is not
+  empty, and otherwise becomes the `description` unless it is the skill's title.
+- An operator's `full_name` is dropped. The operator's `title` takes its value when the two
+  differ, because that is the name every operator surface showed; the run lists those files.
+- A role's mirrored definition keys (`title`, `mission`, `responsibilities`, `agreements`,
+  `color`, `can_spawn`, `description`, `full_name`, `skills`) are dropped: the role catalog answers
+  them.
+- `ref_kinds` is folded into the item's refs and `severity` becomes the top-level `severity`
+  when that is absent.
+- The top-level `path:` key that an old release wrote on skill files is removed.
+
+Every other key, one this squad's spec declares or one an adopter added, is kept as written, and
+the `extra:` key is removed. A file that needs nothing is not touched, so a second run changes
+nothing. The run reports how many files it flattened, how many keys it lifted per key, how many
+skill descriptions and `path:` keys it removed, which operators it retitled and how many roles it
+marked in the next paragraph.
+
+Every role file also gets `name_chosen`, which records whether the role's name was chosen
+explicitly. A bundled role whose stored name is the bundled catalog's name for its slug was never
+named (`false`); any other name was chosen (`true`). A developer role whose name is a first name
+from the squad's developer pool followed by its tech was never named; any other is chosen. A role
+the squad defines itself is never named, since its per-slug file is its only name source. A role
+file that already carries `name_chosen` keeps it.
+
+A role that was never named now follows `.overrides/roles.toml` and its per-slug file: the next
+`sq sync` renames it to the most specific name those files declare. A chosen name is never
+changed by either file. To keep a name for a role the run marked as never named, set it as
+`full_name` in `.overrides/roles/<slug>.toml`.
+
+Like the comment headers, the flattening is checked before anything is written. These make the
+step write nothing, leave the schema stamp as it is and exit 1, one line per file:
+
+    tasks/TASK-NNNNNN-add-login.md: extra is not a mapping
+    guides/GUIDE-NNNNNN-notes.md: extra.tech and the top-level tech hold different values
+    agents/roles/ROLE-NNNNNN-qa.md: extra.slug 'quality' differs from the file name's slug 'qa'
+
+Edit the file so the two places agree (drop the one you do not want), then run `sq migrate up`
+again.
 """
 
 CONTRIBUTIONS: tuple[Contribution, ...] = (
@@ -485,10 +821,13 @@ CONTRIBUTIONS: tuple[Contribution, ...] = (
         summary="Comment headers name the author's permanent slug.",
     ),
     Contribution(
-        name="operator-identity",
-        plan=_plan_operator_identity,
-        manual=_OPERATOR_IDENTITY_MANUAL,
-        summary="Every operator carries a stored slug and full name.",
+        name="flat-frontmatter",
+        plan=_plan_flat_frontmatter,
+        manual=_FLAT_MANUAL,
+        summary=(
+            "Item frontmatter is flat: the extra block is lifted to top-level keys, and every "
+            "role records whether its name was chosen."
+        ),
     ),
 )
 

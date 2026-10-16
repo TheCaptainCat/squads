@@ -27,7 +27,6 @@ import pytest
 
 from _helpers import bundled_migration_context
 from squads._migrations._v0_11_to_v0_14 import migrate as migrate_v0_11_to_v0_14
-from squads._models._extras import ExtraKey as X
 from squads._paths import SquadPaths
 from squads._sections import split_frontmatter
 from squads._services import _service as service
@@ -57,7 +56,7 @@ async def _strip_new_type_surface(svc: service.Service, paths: SquadPaths) -> No
             shutil.rmtree(pointer_dir)
 
     async with svc.store.transaction() as db:
-        stale = [seq for seq, it in db.items.items() if it.extra.get(X.SLUG) in _NEW_SKILL_SLUGS]
+        stale = [seq for seq, it in db.items.items() if it.slug in _NEW_SKILL_SLUGS]
         for seq in stale:
             del db.items[seq]
 
@@ -142,7 +141,7 @@ async def test_migrate_seeds_a_skill_item_for_each_new_type(
     await migrate_v0_11_to_v0_14(bundled_migration_context(paths_b))
 
     skills = await svc_b.list_items(item_type=ROSTER_SKILL)
-    slugs = {sk.extra.get(X.SLUG) for sk in skills}
+    slugs = {sk.slug for sk in skills}
     assert set(_NEW_SKILL_SLUGS) <= slugs
 
 

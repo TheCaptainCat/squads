@@ -238,9 +238,7 @@ async def test_a_stray_stripped_copy_is_not_restamped_into_a_second_skill(svc):
     skips = await svc.sync()
 
     assert "id" not in split_frontmatter(stray.read_text())[0]
-    holders = [
-        i for i in await svc.list_items(item_type="skill") if i.extra.get("slug") == "sq-task"
-    ]
+    holders = [i for i in await svc.list_items(item_type="skill") if i.slug == "sq-task"]
     assert len(holders) == 1
     assert any("already" in s and "sq-task" in s for s in skips), skips
 

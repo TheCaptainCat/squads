@@ -25,7 +25,6 @@ from typing import Literal
 
 from squads._interactions import item_skill_name, item_types_for_role, skills_for_role
 from squads._interactions._models import PlaybookSpec
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, ref_id_matches, split_ref
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
@@ -191,7 +190,7 @@ def _always_on_floor(
         return frozenset()
     sets: list[frozenset[str]] = []
     for r in live_roles:
-        slug = r.extra.get(X.SLUG, r.slug)
+        slug = r.slug
         implied = {item_skill_name(t) for t in item_types_for_role(slug, spec, playbook)}
         sets.append(frozenset(skills_for_role(slug, spec, playbook)) - implied)
     floor = sets[0]
@@ -251,7 +250,7 @@ def check_preloaded_skill(
     for skill in index.items.values():
         if skill.type != ROSTER_SKILL or skill.status in live_skill_statuses:
             continue
-        slug = skill.extra.get(X.SLUG, skill.slug)
+        slug = skill.slug
 
         if slug in floor:
             findings.append(
@@ -278,7 +277,7 @@ def check_preloaded_skill(
         scoped_roles: set[str] = set()
         implicating_types: set[str] = set()
         for role in live_roles:
-            role_slug = role.extra.get(X.SLUG, role.slug)
+            role_slug = role.slug
             implicating_types.update(
                 t
                 for t in item_types_for_role(role_slug, spec, playbook)

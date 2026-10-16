@@ -49,7 +49,8 @@ from squads._interactions import (
     is_system_skill,
     orphaned_skill_item_type,
 )
-from squads._models._extras import ExtraKey as X
+from squads._models import _attributes as attrs
+from squads._models._attributes import AttributeKey
 from squads._models._item import split_ref
 from squads._models._schema import version_drifted
 
@@ -123,7 +124,7 @@ async def skill_show(
     item_id: str = ctx.obj["id"]
     svc = get_service()
     it = await svc.get(item_id)
-    slug = it.extra.get(X.SLUG, it.slug)
+    slug = it.slug
     system = is_system_skill(slug, svc.spec)
     if json_out:
         print_json_clean(
@@ -133,9 +134,9 @@ async def skill_show(
                     "slug": slug,
                     "title": it.title,
                     "status": it.status,
-                    "description": it.extra.get(X.DESCRIPTION, ""),
-                    "when_to_use": it.extra.get(X.WHEN_TO_USE, ""),
-                    "allowed_tools": it.extra.get(X.ALLOWED_TOOLS, ""),
+                    "description": it.description,
+                    "when_to_use": attrs.string_attribute(it, AttributeKey.WHEN_TO_USE) or "",
+                    "allowed_tools": attrs.string_attribute(it, AttributeKey.ALLOWED_TOOLS) or "",
                     "path": it.path,
                     "system": system,
                     # Tag-expanded, same as an ordinary item's `show --json` body field.
@@ -157,8 +158,9 @@ async def skill_show(
         f"[bold]status:[/bold] {it.status}",
         f"[bold]file:[/bold] {it.path}",
     ]
-    if it.extra.get(X.WHEN_TO_USE):
-        rows.append(f"[bold]when to use:[/bold] {e(it.extra[X.WHEN_TO_USE])}")
+    when_to_use = attrs.string_attribute(it, AttributeKey.WHEN_TO_USE)
+    if when_to_use:
+        rows.append(f"[bold]when to use:[/bold] {e(when_to_use)}")
     console.print(Panel("\n".join(rows), expand=False))
     # Every skill's body reads through the same shared boundary (`read_body`, tag-expanded for
     # a system-owned body off its seeded `sq:view:<name>` tag; authored content unchanged for a

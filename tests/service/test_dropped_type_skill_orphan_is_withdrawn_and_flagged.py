@@ -40,7 +40,7 @@ async def test_dropping_a_type_withdraws_its_bundled_skills_pointer_on_sync(proj
     assert not pointer.exists()
 
     skills = await dropped_svc.list_items(item_type="skill")
-    skill = next(s for s in skills if s.extra.get("slug") == "sq-guide")
+    skill = next(s for s in skills if s.slug == "sq-guide")
     assert skill.status == "Active"  # the item's own record is untouched, only the file is
 
 

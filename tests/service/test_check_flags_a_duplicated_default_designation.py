@@ -16,6 +16,7 @@ convergence behaviour, unchanged here) and
 
 import pytest
 
+from _helpers import plant_attribute
 from squads._services._results import CheckIssue
 
 pytestmark = pytest.mark.anyio
@@ -28,7 +29,7 @@ def _messages(issues: list[CheckIssue], needle: str) -> list[CheckIssue]:
 async def test_check_flags_two_live_roles_carrying_the_default_designation(svc):
     qa = await svc.activate_role("qa")
     manager = await svc.roster_item("role", "manager")
-    await svc.update(qa.id, set_extra={"is_default": "true"})  # manager still carries it too
+    await plant_attribute(svc, qa.id, "is_default", True)  # manager still carries it too
 
     issues = await svc.check()
 
@@ -53,7 +54,7 @@ async def test_check_stays_silent_when_the_second_holder_is_not_live(svc):
     mid-transition (see the two tests below)."""
     qa = await svc.activate_role("qa")
     await svc.set_roster_status(qa.id, "Archived")
-    await svc.update(qa.id, set_extra={"is_default": "true"})
+    await plant_attribute(svc, qa.id, "is_default", True)
 
     issues = await svc.check()
 
@@ -65,7 +66,7 @@ async def test_check_stays_silent_when_the_second_holder_is_not_live(svc):
 
 async def test_retiring_a_role_is_not_refused_by_a_two_holder_default_designation(svc):
     qa = await svc.activate_role("qa")
-    await svc.update(qa.id, set_extra={"is_default": "true"})
+    await plant_attribute(svc, qa.id, "is_default", True)
 
     outcome = await svc.set_roster_status(qa.id, "Archived")
 
@@ -82,7 +83,7 @@ async def test_reactivating_a_role_is_not_refused_by_a_two_holder_default_design
     predicate."""
     qa = await svc.activate_role("qa")
     await svc.set_roster_status(qa.id, "Archived")
-    await svc.update(qa.id, set_extra={"is_default": "true"})  # non-live holder, manager live
+    await plant_attribute(svc, qa.id, "is_default", True)  # non-live holder, manager live
 
     outcome = await svc.set_roster_status(qa.id, "Active")
 

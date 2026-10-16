@@ -115,7 +115,7 @@ async def test_a_skill_sharing_the_roles_slug_gains_no_memory_signal_or_children
     slugified to the *same* string as the role's own slug (`add_skill("Manager")` -> "manager")
     must still get no glance suffix and no children, while the role keeps both."""
     skill = await svc.add_skill("Manager")
-    assert skill.extra["slug"] == _ROLE_SLUG  # the collision this test depends on
+    assert skill.slug == _ROLE_SLUG  # the collision this test depends on
     await svc.memory_add(_ROLE_SLUG, "a fact belonging to the role, not the skill")
 
     app = SquadsApp(svc)

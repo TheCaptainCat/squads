@@ -8,15 +8,16 @@ sees no holder on the catalog's own role, which is exactly the blind spot that l
 two live defaults standing.
 
 The projection resolves the designation by first match over the roster and nothing validates a
-single holder at item level, so a plain set (the generic ``update(set_extra=...)`` seam already
+single holder at item level, so a plain set (the generic ``update(set_attributes=...)`` seam already
 allows writing the key directly) can silently leave two holders and an arbitrary winner — the
 move clears every other holder in the same transaction instead.
 """
 
 import pytest
 
+from _helpers import plant_attribute
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 
 pytestmark = pytest.mark.anyio
 
@@ -28,7 +29,7 @@ async def _default_holders(svc) -> list[str]:
     Reading ``extra.is_default`` raw would miss the catalog's own designated role, which stores
     nothing until something overrides it, and so would pass on a roster carrying two live
     defaults."""
-    by_slug = {it.extra.get(X.SLUG, it.slug): it.id for it in await svc.list_roles()}
+    by_slug = {it.slug: it.id for it in await svc.list_roles()}
     return sorted(by_slug[r.slug] for r in await svc.roster_all() if r.is_default)
 
 
@@ -49,8 +50,8 @@ async def test_move_designates_the_target_and_clears_the_previous_holder(svc):
     assert result.changed
     assert result.item.id == qa.id
     assert result.cleared == [manager.id]
-    assert (await svc.get(qa.id)).extra.get(X.IS_DEFAULT) is True
-    assert not (await svc.get(manager.id)).extra.get(X.IS_DEFAULT)
+    assert (await svc.get(qa.id)).attribute(X.IS_DEFAULT) is True
+    assert not (await svc.get(manager.id)).attribute(X.IS_DEFAULT)
 
 
 async def test_move_leaves_exactly_one_holder(svc):
@@ -138,7 +139,7 @@ async def test_the_move_repairs_a_pre_existing_two_holder_state(svc):
     Designating either one must converge the roster to a single holder."""
     manager = await svc.roster_item("role", "manager")
     qa = await svc.activate_role("qa")
-    await svc.update(qa.id, set_extra={"is_default": "true"})  # hand-plant a second holder
+    await plant_attribute(svc, qa.id, "is_default", True)  # hand-plant a second holder
     assert await _default_holders(svc) == sorted([manager.id, qa.id])  # sanity: two holders
 
     result = await svc.set_default_role(qa.id)
@@ -154,7 +155,7 @@ async def test_redesignating_the_current_holder_still_clears_a_stray_second_hold
     is still cleared even though the target's own flag does not change value."""
     manager = await svc.roster_item("role", "manager")
     qa = await svc.activate_role("qa")
-    await svc.update(qa.id, set_extra={"is_default": "true"})  # manager AND qa both carry it now
+    await plant_attribute(svc, qa.id, "is_default", True)  # manager AND qa both carry it now
 
     result = await svc.set_default_role(manager.id)  # manager already holds it
 
@@ -168,7 +169,7 @@ async def test_redesignating_the_current_holder_still_clears_a_stray_second_hold
 
 async def test_a_plain_set_without_the_move_leaves_two_holders(svc):
     """Characterizes the exact gap that makes a move-semantics verb necessary: the generic
-    ``update(set_extra=...)`` seam already lets a caller write ``is_default`` directly, and it
+    ``update(set_attributes=...)`` seam already lets a caller write ``is_default`` directly, and it
     does nothing to clear any
     existing holder — so a plain set (never routed through ``set_default_role``) silently
     produces two holders and an arbitrary winner. This pins that the gap is structural (the
@@ -177,6 +178,6 @@ async def test_a_plain_set_without_the_move_leaves_two_holders(svc):
     manager = await svc.roster_item("role", "manager")
     qa = await svc.activate_role("qa")
 
-    await svc.update(qa.id, set_extra={"is_default": "true"})
+    await plant_attribute(svc, qa.id, "is_default", True)
 
     assert await _default_holders(svc) == sorted([manager.id, qa.id])  # two, arbitrary winner

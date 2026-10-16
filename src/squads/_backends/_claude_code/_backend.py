@@ -19,7 +19,6 @@ from squads._backends._claude_code._frontmatter import (
     oneline,
 )
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
@@ -357,7 +356,7 @@ class ClaudeCodeBackend(AgentBackend):
         (:meth:`_write_managed_skill`/:meth:`_write_item_skills`) is what runs *last* in a full
         ``sync`` and so is this slug's real current content, not *item*'s own (possibly
         seed-time-stale — nothing refreshes a ``SKILL`` item's ``description`` the way
-        ``_refresh_catalog_extra`` refreshes a role's) description. :meth:`render_skill_entry`
+        ``_refresh_catalog_attributes`` refreshes a role's) description. :meth:`render_skill_entry`
         (question 5) must answer with whichever of the two is actually this slug's last writer,
         or a system skill whose bundled description text moved since it was seeded would read
         as permanently drifted. An author-defined (non-system) skill has only one writer
@@ -368,7 +367,7 @@ class ClaudeCodeBackend(AgentBackend):
         spec = ctx.spec if ctx.spec is not None else bundled_spec()
         if interactions.is_system_skill(slug, spec):
             return interactions.skill_description(slug)
-        return item.extra.get(X.DESCRIPTION) or item.description or item.title
+        return item.description or item.title
 
     def _render_skill_pointer(self, slug: str, description: str) -> str:
         """The one place ``pointer_skill.md.j2`` is rendered for an item-scoped skill entry —
@@ -380,10 +379,10 @@ class ClaudeCodeBackend(AgentBackend):
         return render("claude/pointer_skill.md.j2", slug=slug, description=oneline(description))
 
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / slug / _SKILL_FILE
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
-        description = item.extra.get(X.DESCRIPTION) or item.description or item.title
+        description = item.description or item.title
         await _aio.write_text(pointer, self._render_skill_pointer(slug, description))
         return Artifact(ctx.rel(pointer), "skill_pointer", self.name)
 
@@ -406,11 +405,11 @@ class ClaudeCodeBackend(AgentBackend):
         """Question 5 for a skill — see :meth:`_render_skill_pointer`/
         :meth:`_skill_pointer_description`, the shared render and description resolution this
         reuses verbatim."""
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         return self._render_skill_pointer(slug, self._skill_pointer_description(ctx, item, slug))
 
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         cdir = ctx.root / _CLAUDE_DIR
         if item.type == ROSTER_SKILL:
             skill_dir = cdir / _SKILLS / slug

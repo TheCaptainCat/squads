@@ -10,7 +10,6 @@ from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
     Item,
@@ -499,7 +498,7 @@ class RefsMixin(ServiceCore):
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; link-role targets a role")
         updated = await self.add_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
-        await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
+        await self._resync_role_skills(role.slug)
         return updated
 
     async def unlink_role(self, skill_id: str, role_id: str) -> Item:
@@ -518,7 +517,7 @@ class RefsMixin(ServiceCore):
         if role.type != ROSTER_ROLE:
             raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
         updated = await self.rm_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
-        await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
+        await self._resync_role_skills(role.slug)
         return updated
 
     async def refs_out(self, item_id: str) -> list[tuple[str, str]]:

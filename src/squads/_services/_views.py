@@ -72,7 +72,7 @@ class ViewsMixin(ServiceCore):
             # `changed` is False, which would silently discard the reinstatement.
             if not reinstating and views.view_tag_settled(current, name, disabled=False):
                 return text, False
-            slug = views.roster_slug(item.type, item.slug, item.extra)
+            slug = item.slug
             addr: int | str = (
                 slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
             )
@@ -116,7 +116,7 @@ class ViewsMixin(ServiceCore):
             # See `add_view`'s matching comment: a reinstated region always counts as changed.
             if not reinstating and views.view_tag_settled(current, name, disabled=True):
                 return text, False
-            slug = views.roster_slug(item.type, item.slug, item.extra)
+            slug = item.slug
             addr: int | str = (
                 slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
             )

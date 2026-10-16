@@ -279,4 +279,4 @@ async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_and_lists_it
     run = await reopen(project.root).run_pending_migrations()
 
     assert [m.to_schema for m in run.applied] == ["0.16"]
-    assert [c.name for c in step.CONTRIBUTIONS] == ["comment-headers", "operator-identity"]
+    assert [c.name for c in step.CONTRIBUTIONS] == ["comment-headers", "flat-frontmatter"]

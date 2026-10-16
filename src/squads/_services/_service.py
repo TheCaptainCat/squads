@@ -14,7 +14,6 @@ from squads._interactions import get_playbook_spec
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
 from squads._interactions._models import PlaybookSpec
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
-from squads._models._extras import ExtraKey as X
 from squads._paths import SquadPaths, load_config, process_dir, resolve
 from squads._roles._catalog import RoleDef, get_catalog, resolve_roles
 from squads._services._board import BoardMixin
@@ -244,9 +243,7 @@ async def adopt(
     svc = Service(sp, spec=effective_spec, playbook=resolve_playbook(effective_spec, sp.squad_dir))
     # Import any existing squads-native .md files (sets counter from them).
     repair_result = await svc.repair()
-    existing_roles = {
-        it.extra.get(X.SLUG) for it in repair_result.db.items.values() if it.type == ROSTER_ROLE
-    }
+    existing_roles = {it.slug for it in repair_result.db.items.values() if it.type == ROSTER_ROLE}
 
     if not no_claude:
         await svc.scaffold_backend()

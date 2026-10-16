@@ -196,6 +196,18 @@ def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> l
     items_section = raw_override.get("items")
     if isinstance(items_section, dict):
         for type_name, table in cast(RawMapping, items_section).items():
+            if isinstance(table, dict) and "extra_fields" in cast(RawMapping, table):
+                violations.append(
+                    MergeViolation(
+                        origin,
+                        f"items.{type_name}.extra_fields",
+                        "'extra_fields' is not a declared key — a type's keys are declared in "
+                        "an `attributes` table",
+                        f"replace it with `[items.{type_name}.attributes]` and one "
+                        '`<name> = { kind = "str" }` line per key (kind is str, list, bool '
+                        "or date).",
+                    )
+                )
             if isinstance(table, dict) and _RETIRED_ITEM_VIEWS_KEY in cast(RawMapping, table):
                 violations.append(
                     MergeViolation(
@@ -925,11 +937,7 @@ def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]
     A **bare** (unspelled) ref carries no literal kind at all — it decodes through the merged
     spec's own declared ``default`` (:meth:`WorkflowSpec.default_ref_kind`), so renaming which
     kind carries that role relabels those edges rather than stranding them; only a kind
-    actually spelled here can ever appear in the result. That is ordinarily also "spelled by
-    hand", but a legacy ``extra.ref_kinds``-mapped edge whose recorded kind no longer equals
-    the live default folds to a spelled form too, at the fold's input — nothing was typed by
-    an adopter. `sq repair` canonicalises such an edge back to bare, on the index and (see its
-    own docstring) the file, closing the gap on its next run.
+    actually spelled here can ever appear in the result. That is "spelled by hand".
 
     ``spec`` is accessed duck-typed for ``ref_kinds`` (``getattr`` with an empty default),
     matching :func:`_collect_badge_alignment_errors`'s own contract of accepting a minimal

@@ -64,6 +64,7 @@ def test_common_core_and_category_bundles_are_populated() -> None:
         "ref_kind_valid",
         "agent_registered",
         "parent_acyclic",
+        "attribute_valid",
     }
     assert set(CATEGORY_BUNDLES) == {"roster", "work", "records"}
     assert CATEGORY_BUNDLES["roster"] == ()

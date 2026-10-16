@@ -30,7 +30,8 @@ from squads._context import get_context, rebind
 from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
 from squads._interactions import allowed_create_types, is_dev_slug
-from squads._models._extras import ExtraKey as X
+from squads._models import _attributes as attrs
+from squads._models._attributes import AttributeKey
 from squads._models._item import (
     DISPLAY_ID_PADDING,
     Item,
@@ -45,7 +46,12 @@ from squads._models._subentity import SubEntity
 from squads._paths import resolve
 from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
-from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base, role_base_from_item
+from squads._roles._resolver import (
+    dev_base_for_slug,
+    pinned_name_of,
+    resolve_role_with_base,
+    role_base_from_item,
+)
 from squads._services._results import BlockResult, SelfRemedied, SubentityDetail
 from squads._services._service import Service, open_service, resolve_playbook
 from squads._util import version_tuple
@@ -660,14 +666,14 @@ def print_comments(comments: list[discussion.Comment]) -> None:
 def _milestone_target_date_row(it: Item) -> str | None:
     """The one-off panel row for a milestone's ``target_date``, or ``None`` when unset.
 
-    Not the generic `extra_fields`-on-panel rendering — a type's declared `extra_fields`
+    Not a generic attributes-on-panel rendering — a type's declared `attributes`
     (e.g. review's `target_ref`, guide's `tags`/`tech`) is a bare list of keys with no
     declared label/formatting, so a generic renderer would need spec vocabulary this
     codebase doesn't carry yet. `target_date` alone is worth the one-off: it is a
     milestone's one distinguishing attribute and docs/workflow.md teaches setting it."""
     if it.type != "milestone":
         return None
-    target_date = it.extra.get(X.TARGET_DATE)
+    target_date = it.attribute(AttributeKey.TARGET_DATE)
     return f"[bold]target date:[/bold] {e(str(target_date))}" if target_date else None
 
 
@@ -884,7 +890,7 @@ def _raw_metadata_lines(it: Item) -> list[str]:
             rendered = badges.badge_render(field.collection, val, spec)
             lines.append(f"- **{field.code}:** {rendered}")
     if it.type == "milestone":  # one-off; see _build_item_panel_rows' comment on why
-        target_date = it.extra.get(X.TARGET_DATE)
+        target_date = it.attribute(AttributeKey.TARGET_DATE)
         if target_date:
             lines.append(f"- **target date:** {target_date}")
     if it.assignee:
@@ -1184,7 +1190,7 @@ async def build_item_json(svc: Service, it: Item) -> str:
     ``--raw``/``--comments``/``--full`` still holds. Nothing existing is renamed or removed.
     """
     spec = get_active_spec()
-    payload: dict[str, Any] = json.loads(it.model_dump_json())
+    payload: dict[str, Any] = it.to_row()
     payload["body"] = await svc.read_body(it.id)
     payload["discussion"] = [
         discussion.comment_json(cmt)
@@ -1258,7 +1264,9 @@ async def build_role_json_payload(
     data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
     skills = await svc.resolved_skills_for_role(slug)
     try:
-        r = resolve_role_with_base(slug, svc.paths.squad_dir, base=base_role)
+        r = resolve_role_with_base(
+            slug, svc.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(it)
+        )
         data.update(
             {
                 "full_name": dev_preview_full_name(r, base_role, it),
@@ -1277,23 +1285,22 @@ async def build_role_json_payload(
         # no dev base, and no override file — and only that. A broader catch also swallowed an
         # *invalid* project role override — the refusal disappeared and the card rendered from
         # the stored item, so a squad answered as though the broken override were not there.
-        # Nothing resolves for this shape, so what can be rebuilt comes from the uniform
-        # record (`item.title`/`item.description`) where one exists, and from whatever the
-        # item's own `extra` still carries for the rest — a corpus written before the
-        # definition stopped being mirrored there answers these; one written since reports the
-        # absence honestly rather than inventing a catalog answer there is none of.
+        # Nothing resolves for this shape, so what can be rebuilt comes from the item's own
+        # fields (`title`, `description`, the stored `model` and `is_default`) and the card
+        # reports the absence of the rest honestly rather than inventing a catalog answer
+        # there is none of.
         if it is None:
             raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
         data.update(
             {
                 "full_name": it.title,
-                "title": it.extra.get(X.TITLE, ""),
+                "title": "",
                 "mission": it.description,
-                "model": it.extra.get(X.MODEL),
-                "is_default": it.extra.get(X.IS_DEFAULT, False),
-                "can_spawn": it.extra.get(X.CAN_SPAWN, False),
+                "model": attrs.model(it),
+                "is_default": attrs.is_default(it) is True,
+                "can_spawn": False,
                 "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
-                "responsibilities": it.extra.get(X.RESPONSIBILITIES, []),
+                "responsibilities": [],
                 "skills": skills,
             }
         )

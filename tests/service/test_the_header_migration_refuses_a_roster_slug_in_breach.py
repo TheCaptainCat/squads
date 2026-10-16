@@ -115,8 +115,12 @@ async def test_a_breaching_entry_refuses_the_run_once_and_writes_nothing(
     message = str(raised.value)
     rel = path.relative_to(project.squad_dir).as_posix()
     lines = [ln for ln in message.splitlines() if ln.startswith(f"{rel}: ")]
-    assert len(lines) == 1, message
-    assert fragment in lines[0]
+    breach = [ln for ln in lines if fragment in ln]
+    assert len(breach) == 1, message
+    # the edit also leaves the stored slug unlike the file name's, which the flattening names
+    assert [ln for ln in lines if ln not in breach] <= [
+        ln for ln in lines if "differs from the file name's slug" in ln
+    ], message
     assert ("'Nobody Known' matches no roster entry" in message) is beside_a_header_failure
     assert "This step wrote nothing and the schema stamp is unchanged." in message
 
@@ -130,7 +134,10 @@ async def test_every_breach_is_listed_in_one_report_with_the_count(project, svc)
     with pytest.raises(SquadsError) as raised:
         await reopen(project.root).run_pending_migrations()
 
-    assert "2 problem(s) found." in str(raised.value)
+    message = str(raised.value)
+    # each edit is a breach and leaves its stored slug unlike the file name's: two lines apiece
+    assert "4 problem(s) found." in message
+    assert message.count("differs from the file name's slug") == 2
 
 
 async def test_a_compliant_roster_migrates(project, svc) -> None:
@@ -164,7 +171,6 @@ async def test_a_group_verb_slug_does_not_refuse_the_run(project, svc, monkeypat
             "Verb Holder",
             slug=slug,
             author="manager",
-            extra={"slug": slug, "full_name": "Verb Holder"},
         )
     stamp_behind(project.root)
 

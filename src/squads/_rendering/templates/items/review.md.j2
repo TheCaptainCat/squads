@@ -2,9 +2,9 @@
 ## Scope
 
 _TODO: what is under review?_
-{% if extra.get('target_ref') %}
+{% if item.target_ref is defined and item.target_ref %}
 
-**Target:** `{{ extra.get('target_ref') }}`
+**Target:** `{{ item.target_ref }}`
 {% endif %}
 <!-- sq:body:end -->
 

@@ -86,26 +86,10 @@ from pydantic import ValidationError
 
 from squads import _aio
 from squads._errors import SquadsError, UndecodableFileError
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._workflow._models import Field, WorkflowSpec
-
-
-def _backfill_severity(db: SquadsDB) -> None:
-    """Backfill top-level ``Item.severity`` from the legacy ``extra[X.SEVERITY]`` location
-    for any item indexed before item-level severity became a top-level badge field.
-
-    In-memory only, mirroring the old ``_propagate_prefix`` pattern: the corrected value
-    reaches disk on the next write to that item (or ``sq repair``) — a dedicated one-way
-    migration that walks every file to relocate it on disk is a separate, later step.
-    """
-    for item in db.items.values():
-        if item.severity is None:
-            legacy = item.extra.pop(X.SEVERITY, None)
-            if legacy:
-                item.severity = legacy
 
 
 def _check_field_codes(
@@ -117,7 +101,7 @@ def _check_field_codes(
     — so **every** declared field code is checked, not only the two (``priority``/``severity``)
     that happen to have a same-named model attribute. A dynamic attribute read keyed on the
     field's own code would silently skip every adopter-declared field, whose value lives in the
-    generic ``extra`` store (``tests/meta`` forbids that shape outright): the
+    item's attributes: the
     same operation (shrinking a collection out from under a live corpus) would fail closed on
     ``priority`` and pass clean on a declared ``impact``, indefinitely. The accessor is the
     same one ``_workflow._loader._badge_field_mismatches`` reads through, so the load
@@ -451,7 +435,6 @@ class IndexStore:
         max_seq = max((item.sequence_id for item in db.items.values()), default=0)
         if db.counter < max_seq:
             db.counter = max_seq
-        _backfill_severity(db)
         if validate_vocab:
             _validate_item_vocab(db, self._spec)
             _validate_badge_codes(db, self._spec)

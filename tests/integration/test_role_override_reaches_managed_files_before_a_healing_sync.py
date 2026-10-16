@@ -1,5 +1,5 @@
 """With the roster held constant, every managed file resolves a role through the role catalog
-rather than through the item's own stored ``extra`` mirror.
+rather than through the item's own stored attributes.
 
 A sync-then-diff cannot tell that claim apart from "converges eventually": the reconciler heals
 a stale mirror on its next `sq sync`, so a squad that syncs *after* an override lands looks
@@ -33,12 +33,11 @@ def _write_role_override(squad_dir: Path, slug: str, body: str) -> None:
     assert path.is_file()
 
 
-def _index_role_extra(paths: Any, slug: str) -> dict[str, Any]:
+def _index_role_attributes(paths: Any, slug: str) -> dict[str, Any]:
     raw = json.loads(paths.index_path.read_text(encoding="utf-8"))
     for entry in raw["items"].values():
-        extra = entry.get("extra", {})
-        if extra.get("slug") == slug:
-            return extra
+        if entry["type"] == "role" and entry["slug"] == slug:
+            return entry["attributes"]
     raise AssertionError(f"no role item for {slug!r} in the index")
 
 
@@ -51,7 +50,7 @@ async def test_a_post_sync_override_reaches_every_managed_file_with_no_sync(tmp_
     svc = service.Service(paths)
     await svc.sync()  # baseline: mirror and every managed file carry the bundled definition
 
-    baseline_extra = _index_role_extra(paths, "reviewer")
+    baseline_attributes = _index_role_attributes(paths, "reviewer")
     baseline_pointer = (paths.root / ".claude" / "agents" / "reviewer.md").read_text(
         encoding="utf-8"
     )
@@ -92,8 +91,8 @@ async def test_a_post_sync_override_reaches_every_managed_file_with_no_sync(tmp_
     assert _OVERRIDDEN_TITLE in pointer_text
 
     # The item's own stored state is STILL untouched — nothing above ever wrote it. (There is
-    # no stored title to compare any more; the whole `extra` is the assertion instead.)
-    assert _index_role_extra(paths, "reviewer") == baseline_extra
+    # no stored title to compare any more; the whole attribute mapping is the assertion instead.)
+    assert _index_role_attributes(paths, "reviewer") == baseline_attributes
     on_disk_md = (paths.abspath(reviewer_item.path)).read_text(encoding="utf-8")
     assert _OVERRIDDEN_TITLE not in on_disk_md
 
@@ -116,7 +115,7 @@ async def test_sq_role_set_default_survives_sq_sync(tmp_path, monkeypatch):
 
     await svc.sync()
 
-    # Resolved, not read off `extra.is_default`: the stored key is an override on a catalog
+    # Resolved, not read off the stored `is_default`: the stored key is an override on a catalog
     # answer, so the catalog's own designated role holds the designation with nothing stored —
     # and a raw read would report one holder for a roster generating config with two.
     default_holders = sorted(r.slug for r in await svc.roster_all() if r.is_default)

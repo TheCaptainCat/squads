@@ -43,14 +43,17 @@ from squads._cli._common import (
 from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._interactions import ROLE_DEFINITION_VIEW_NAME, allowed_create_types
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._models._schema import version_drifted
 from squads._paths import resolve as resolve_squad_paths
 from squads._roles._catalog import PREDEFINED, RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._models import RoleSpec
-from squads._roles._resolver import resolve_role_for_item, resolve_role_with_base
+from squads._roles._resolver import (
+    pinned_name_of,
+    resolve_role_for_item,
+    resolve_role_with_base,
+)
 from squads._workflow import ROSTER_ROLE
 
 #: The bundled catalog's own slugs — used by ``sq role catalog`` to tell a project-declared or
@@ -360,7 +363,7 @@ async def show_role(
     if item_id is not None:
         # Activated role: resolve slug from the item.
         it = await svc.get(item_id)
-        slug: str = it.extra.get(X.SLUG, it.slug)
+        slug: str = it.slug
     else:
         # Bundled-only role: the addr IS the slug (slug resolution fell through without finding it).
         slug = addr
@@ -384,7 +387,9 @@ async def show_role(
     # definition below reuses this exact resolution rather than resolving a second time.
     r: RoleDef | None = None
     try:
-        r = resolve_role_with_base(slug, svc.paths.squad_dir, base=base_role)
+        r = resolve_role_with_base(
+            slug, svc.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(it)
+        )
         lane_types = sorted(allowed_create_types(slug, svc.spec, svc.playbook))
         creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
         # A computed projection over the index, not a field of `r` — resolved live for both

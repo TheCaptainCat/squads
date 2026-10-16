@@ -80,6 +80,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "DEFAULT_VALIDATOR_LEVEL",  # fixed catalog-member -> bundled default level table
             "VALIDATOR_LEVEL_FLOOR",  # fixed catalog-member -> floor level table
             "_LEVEL_RANK",  # fixed level -> rank lookup (warn < error) for the floor comparison
+            "PINNED_ROSTER_ATTRIBUTES",  # fixed roster type -> attributes the engine
+            # materialises into agent-host files; the loader refuses a spec that lacks one
         }
     ),
     "src/squads/_rendering/_engine.py": frozenset(
@@ -126,12 +128,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "_manifest_cache",  # lazily-loaded, immutable-once-populated package-data index
             "_store_cache",  # lazily-loaded, immutable-once-populated package-data content store
-        }
-    ),
-    "src/squads/_models/_metadata.py": frozenset(
-        {
-            "EXTRA_FIELDS",  # fixed per-type extra-field catalog
-            "_GENERIC_FIELDS",  # fixed generic (non-badge) extra-field catalog
         }
     ),
     "src/squads/_migrations/_registry.py": frozenset(

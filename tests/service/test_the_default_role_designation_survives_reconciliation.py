@@ -35,13 +35,13 @@ async def _reconcile(svc) -> None:
 
 async def test_the_catalog_designates_exactly_one_role_before_anything_moves(svc):
     """The baseline the two tests below are measured against — and the reason a raw
-    ``extra.is_default`` read is not enough: this holder stores nothing at all."""
+    ``is_default`` attribute read is not enough: this holder stores nothing at all."""
     await svc.activate_role("qa")
     assert await _holders(svc) == ["manager"]
 
     manager = await svc.roster_item("role", "manager")
     assert manager is not None
-    assert "is_default" not in manager.extra
+    assert "is_default" not in manager.attributes
 
 
 async def test_a_designation_moved_onto_a_bundled_role_survives_sync_and_repair(project, svc):
@@ -83,7 +83,9 @@ async def test_the_move_clears_the_catalogs_own_holder_which_stores_nothing(svc)
     manager = await svc.roster_item("role", "manager")
     assert manager is not None
     assert manager.id in result.cleared
-    assert manager.extra["is_default"] is False  # written, not absent — an absence resolves True
+    assert (
+        manager.attributes["is_default"] is False
+    )  # written, not absent — an absence resolves True
     assert await _holders(svc) == ["qa"]
 
 

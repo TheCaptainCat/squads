@@ -59,7 +59,7 @@ async def test_init_does_not_scaffold_a_type_the_preexisting_override_drops(
 
     svc = open_service(client_cwd=squad_dir)
     assert "guide" not in svc.spec.items
-    skill_slugs = {i.extra.get("slug") for i in await svc.list_items(item_type="skill")}
+    skill_slugs = {i.slug for i in await svc.list_items(item_type="skill")}
     assert "sq-guide" not in skill_slugs  # no orphan skill seeded for a type that never existed
     assert result.paths.squad_dir == squad_dir
 
@@ -112,7 +112,7 @@ async def test_init_activates_a_role_at_the_merged_lifecycles_initial_not_the_bu
     _write_override(squad_dir, '[lifecycles.agent]\ninitial = "Archived"\n')
 
     result = await service.init(root=tmp_path, roles_spec="minimal", _skip_skill_seed=True)
-    activated = {r.extra["slug"]: r.status for r in result.roles}
+    activated = {r.slug: r.status for r in result.roles}
     assert activated  # at least one role activated
     assert set(activated.values()) == {"Archived"}, activated
 

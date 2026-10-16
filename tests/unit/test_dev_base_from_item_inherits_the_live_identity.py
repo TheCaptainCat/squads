@@ -12,7 +12,7 @@ honoured_by_sync.py.
 
 from datetime import UTC, datetime
 
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 from squads._models._item import Item
 from squads._roles._catalog import dev_role
 from squads._roles._resolver import dev_base_from_item
@@ -30,12 +30,13 @@ def _dev_item(tech: str, full_name: str, *, model: str | None = "sonnet") -> Ite
         type="role",
         title=full_name,
         slug=slug,
+        slug_in_file=True,
         status="Active",
         path=f"roles/ROLE-000001-{slug}.md",
         created_at=_NOW,
         updated_at=_NOW,
-        extra={
-            **role.to_extra(is_dev=True),
+        attributes={
+            **role.to_attributes(is_dev=True),
             X.IS_DEV: True,
             X.TECH: tech,
         },
@@ -64,36 +65,24 @@ def test_the_slug_matches_the_stored_tech() -> None:
 
 
 def test_the_is_dev_and_tech_markers_are_not_part_of_the_returned_roledef() -> None:
-    """``X.IS_DEV``/``X.TECH`` sit outside ``RoleDef.to_extra()`` by design, so a merge onto the
-    item using this base's ``to_extra()`` output can never erase the markers this very function
-    reads."""
+    """``X.IS_DEV``/``X.TECH`` sit outside ``RoleDef.to_attributes()`` by design, so a merge onto
+    the item using this base's ``to_attributes()`` output can never erase the markers this very
+    function reads."""
     item = _dev_item("go", "Whoever Go")
-    extra = dev_base_from_item(item).to_extra()
+    extra = dev_base_from_item(item).to_attributes()
     assert X.IS_DEV not in extra
     assert X.TECH not in extra
 
 
-def test_the_name_comes_from_item_title_not_extra_full_name() -> None:
-    """A legacy corpus's stored mirror and the uniform record are made to disagree on purpose —
-    proves the read goes through ``item.title``, never ``extra.full_name``."""
-    item = _dev_item("python", "a stale mirrored name")
-    item.extra[X.FULL_NAME] = "a stale mirrored name"  # the shape an older release wrote
-    item.title = "Elias Python"
-    assert dev_base_from_item(item).full_name == "Elias Python"
-
-
-def test_a_developer_role_with_no_extra_full_name_at_all_resolves_from_item_title() -> None:
-    """The shape the write path now produces — nothing stores ``full_name`` any more. The bare
-    subscript this read used to be would raise ``KeyError`` on every developer role; reading
-    ``item.title`` instead makes it a non-raising, self-healing read."""
+def test_the_name_comes_from_item_title() -> None:
     item = _dev_item("python", "Elias Python")
-    assert X.FULL_NAME not in item.extra  # the shape under test, asserted not assumed
+    assert X.FULL_NAME not in item.attributes  # nothing stores a second copy of the name
     assert dev_base_from_item(item).full_name == "Elias Python"
 
 
 def test_the_is_default_designation_is_carried_from_the_item() -> None:
     item = _dev_item("python", "Elias Python")
-    item.extra[X.IS_DEFAULT] = True
+    item.attributes[X.IS_DEFAULT] = True
     assert dev_base_from_item(item).is_default is True
 
 
@@ -101,5 +90,5 @@ def test_with_no_stored_is_default_it_falls_back_to_false() -> None:
     """``is_default`` is written only by ``sq role set-default``, so a developer role created
     and never designated carries no key at all — the shape ``_dev_item`` produces."""
     item = _dev_item("python", "Elias Python")
-    assert X.IS_DEFAULT not in item.extra
+    assert X.IS_DEFAULT not in item.attributes
     assert dev_base_from_item(item).is_default is False

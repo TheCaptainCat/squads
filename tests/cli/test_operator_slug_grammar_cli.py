@@ -146,7 +146,8 @@ async def test_an_imported_operator_stores_its_slug_and_name_the_way_operator_ad
     }
     for name, text in stored.items():
         slug = name.removesuffix(".md")
-        assert f"\n  slug: {slug}\n" in text and "\n  full_name: " in text
+        assert f"\nslug: {slug}\n" in text
+        assert "\nfull_name: " not in text and "\nextra:" not in text
 
 
 @pytest.mark.parametrize(

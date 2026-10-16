@@ -7,7 +7,6 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 
 SLUG_PATTERN = r"[a-z0-9][a-z0-9-]*"
@@ -98,12 +97,6 @@ def operator_slug_suggestion(slug: str) -> str | None:
     return f"{OPERATOR_SLUG_PREFIX}{tail}" if tail else None
 
 
-def stored_slug(item: Item) -> str:
-    """The slug an entry answers to: its stored one, or its own slug for an entry an older
-    release wrote without one."""
-    return item.extra.get(X.SLUG) or item.slug
-
-
 @dataclass(frozen=True)
 class SlugBreach:
     """One role or operator whose slug breaks its grammar or is shared inside the author
@@ -137,10 +130,10 @@ def roster_slug_breaches(
     entries = [("role", it) for it in roles] + [("operator", it) for it in operators]
     holders: dict[str, list[Item]] = defaultdict(list)
     for _kind, it in entries:
-        holders[stored_slug(it)].append(it)
+        holders[it.slug].append(it)
     out: list[SlugBreach] = []
     for kind, it in [*entries, *(("skill", it) for it in skills)]:
-        slug = stored_slug(it)
+        slug = it.slug
         problem = (
             role_slug_problem(slug)
             if kind == "role"

@@ -323,9 +323,9 @@
     "_specs/workflow.toml": "59a27791f0ab888d1dd9d3741d8cd51a1695f158cad653e644dc84b2af19b4b3"
   },
   "0.16.0": {
-    "_rendering/templates/agents/operator.md.j2": "5f2b6962dc47cd36983a9140e8fa310f58d4ec6746a6597c4a473edf5c22fc11",
+    "_rendering/templates/agents/operator.md.j2": "94f21001a42e09c23d3dc2fb98bb9d7a155c7395e8c09a1c231f1faef45ef382",
     "_rendering/templates/agents/role.md.j2": "508cab2ee059960798b3026fcb2628d1287d2f01fc8af4a6182be5ba0cf0b1aa",
-    "_rendering/templates/agents/skill.md.j2": "3d9780f63e59e1b3ce07256e236c63015e78fb43be1e094e01501b27802c5358",
+    "_rendering/templates/agents/skill.md.j2": "d2608b71e8ec5b6e2108c0ff19d35c2fac8e787c7f6bf95816ca225264a989ed",
     "_rendering/templates/agents_md/agents_section.md.j2": "cceb3d3f9c5d2950de06e364238381483cd73fdb25c04959cd84f32110e4f88e",
     "_rendering/templates/claude/claude_section.md.j2": "b82ef1302d98997c6061c20316c8287671dea206bdb206ff221896eb380b0d6c",
     "_rendering/templates/claude/pointer_agent.md.j2": "c5370c7fc6eb13422f7ba2179def74295e73dc4a18eff4253b96688abfaf7963",
@@ -338,7 +338,7 @@
     "_rendering/templates/items/feature.md.j2": "6e374ab9e1f27437da12cc09644cdca156624befd8776c101172ca26a2ecc3cc",
     "_rendering/templates/items/guide.md.j2": "afdd02fe38f564723d38b324ab4ef51a3b0980078073d75e861e04e38f6c6397",
     "_rendering/templates/items/milestone.md.j2": "a50389e4b32eff68ef1c3bbe683abef530ce578ae83e7df2a4756219e244df1a",
-    "_rendering/templates/items/review.md.j2": "d233da72d7cbef2889125ee98756a62371e30a70d232d173fb937509c5b8a69e",
+    "_rendering/templates/items/review.md.j2": "2e4b38f5dd47c2b3fb1755ed0aadc8381e16bd9480b2df6c8bd24fc2aa321eba",
     "_rendering/templates/items/task.md.j2": "3bc9cf9a975472dbef620340998b5c7f6091fcc90b151481838f1a47670ce3b8",
     "_rendering/templates/subentities/block.md.j2": "d11fbbed7b754e9201d0a8d38366894b4d34eb3d362587c57826e3fd30fbd29a",
     "_rendering/templates/subentities/head.md.j2": "aa518f815f6840832c6c148cdcbec1834747ac0fc6974c1c0b476aedb4a744e7",
@@ -353,7 +353,7 @@
     "_rendering/templates/workflow_static.md.j2": "42a6707b57c79ee25fad1539167089e6f3deeeb6183fcb2c01e14b5f7f859708",
     "_specs/playbook.toml": "7a932cb755738a8de3855b24f2a392ad8778db0a24b6c0b995d44bdfa57acbf0",
     "_specs/roles.toml": "4a9ea074f72a67d5f2070932e7973497edd84c6ffb0bdc3ab4b6b5ecd7f33adf",
-    "_specs/workflow.toml": "59a27791f0ab888d1dd9d3741d8cd51a1695f158cad653e644dc84b2af19b4b3"
+    "_specs/workflow.toml": "c8dc20dd7836db8a97cded7bf2960c4f8923baaa400dc5d7e4d90f7138042de7"
   },
   "0.4.0": {
     "_rendering/templates/agents/greeting_skill.md.j2": "ead65be126550ae3826abd2a0f401d3c911e336f41500e97762eab5bd024e4dc",
