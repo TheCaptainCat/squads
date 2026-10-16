@@ -75,7 +75,7 @@ async def test_role_regen_resolves_by_bare_number_and_full_id(project, invoke):
 async def test_role_rm_resolves_by_bare_number(project, invoke):
     await invoke(["role", "activate", "qa"])  # ROLE-2
 
-    result = await invoke(["role", "2", "rm"])
+    result = await invoke(["role", "2", "rm", "--purge"])
     assert result.exit_code == 0, result.output
 
 
@@ -105,7 +105,7 @@ async def test_skill_regen_resolves_by_bare_number_and_full_id(project, invoke):
 async def test_skill_rm_resolves_by_bare_number(project, invoke):
     await invoke(["skill", "add", "removable-skill"])  # SKILL-2
 
-    result = await invoke(["skill", "2", "rm"])
+    result = await invoke(["skill", "2", "rm", "--purge"])
     assert result.exit_code == 0, result.output
 
 
@@ -135,10 +135,10 @@ async def test_operator_rm_resolves_by_bare_number_and_full_id(project, invoke):
     await invoke(["operator", "add", "First User"])  # OP-2
     await invoke(["operator", "add", "Second User"])  # OP-3
 
-    by_number = await invoke(["operator", "2", "rm"])
+    by_number = await invoke(["operator", "2", "rm", "--purge"])
     assert by_number.exit_code == 0, by_number.output
 
-    by_full_id = await invoke(["operator", "OP-000003", "rm"])
+    by_full_id = await invoke(["operator", "OP-000003", "rm", "--purge"])
     assert by_full_id.exit_code == 0, by_full_id.output
 
 

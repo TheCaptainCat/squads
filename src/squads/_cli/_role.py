@@ -9,7 +9,7 @@ Grammar:
   sq role <slug|id|n> set-default    — move the default-role designation here
   sq role <slug|id|n> view add <n>       — place or re-enable a view tag in sq:body
   sq role <slug|id|n> view disable <n>   — disable a view tag in sq:body (kept, not removed)
-  sq role <slug|id|n> rm [--purge]   — remove the role item
+  sq role <slug|id|n> rm --purge     — delete the role item (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (ROLE-1) → bare number → exact slug
@@ -67,7 +67,7 @@ role_app = typer.Typer(
     help="Manage agent roles.",
     epilog=(
         "Address a role:  sq role <slug|id|n> show|regen|rm|status|set-default|view\n"
-        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm\n"
+        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm --purge\n"
         "           sq role manager status Archived   sq role qa set-default\n"
         "           sq role qa view disable role_definition   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
@@ -488,14 +488,16 @@ async def regen_role(ctx: typer.Context) -> None:
 @common.command
 async def rm_role(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
+    purge: bool = typer.Option(
+        False, "--purge", help="Delete the file too; rm refuses without it."
+    ),
 ) -> None:
-    """Remove a role (and its pointer; --purge also deletes the markdown)."""
+    """Delete a role for good; needs --purge (or set its status to Archived)."""
     item_id = _require_id(ctx)
     svc = get_service()
     await svc.remove_item(item_id, purge=purge)
     await svc.refresh_managed()
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {item_id}")
 
 
 @_addr.command("set-default")
