@@ -879,7 +879,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         for (const entry of entries) {
           expect(isSqRoleCatalogEntry(entry)).toBe(true);
           expect(Object.keys(entry)).toEqual(
-            expect.arrayContaining(['role', 'settled', 'hidden', 'color', 'live']),
+            expect.arrayContaining(['role', 'settled', 'hidden', 'color', 'live', 'blocked']),
           );
         }
         // "active" (work in flight): not settled, not hidden, a positive colour intent, and the
@@ -892,7 +892,11 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
           hidden: false,
           color: 'positive',
           live: true,
+          blocked: false,
         });
+        // Required here on purpose: the canary describes what the current `sq` emits, while the
+        // client guard tolerates an older `sq` that omits the key.
+        expect(entries.find((entry) => entry.role === 'blocked')?.blocked).toBe(true);
         // "in_force" (a settled record that stays visible, e.g. Accepted/Published) is the
         // case distinguishing it from "done" (settled AND hidden).
         const inForce = entries.find((entry) => entry.role === 'in_force');
