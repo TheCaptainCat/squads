@@ -3,7 +3,7 @@ id: TASK-992
 sequence_id: 992
 type: task
 title: Write each item file once per transaction in retype and import
-status: Draft
+status: Ready
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -27,7 +27,7 @@ subentities:
   title: Establish the rename_type and repair multi-write cases
   status: Todo
 created_at: '2026-10-09T20:28:05Z'
-updated_at: '2026-10-12T06:34:37Z'
+updated_at: '2026-10-16T21:04:29Z'
 ---
 <!-- sq:body -->
 ## Scope
