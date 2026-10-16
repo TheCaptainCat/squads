@@ -208,3 +208,14 @@ async def test_a_squad_table_that_fails_to_load_is_reported_by_check_like_any_ot
 
     assert result.exit_code == 3
     assert "workflow config invalid" in result.output
+
+
+async def test_an_unknown_selected_section_does_not_offer_squad_as_accepted(project) -> None:
+    _write(project, '[selected]\nbogus = ["x"]\n')
+
+    with pytest.raises(SquadsError, match="unknown \\[selected\\] section 'bogus'") as raised:
+        load_workflow_spec(squad_dir=project.squad_dir)
+
+    assert "'items'" in str(raised.value)
+    assert "'squad'" not in str(raised.value)
+    assert not any("'squad'" in m for m in _lint_errors(project))

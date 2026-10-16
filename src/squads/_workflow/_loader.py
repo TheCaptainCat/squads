@@ -101,9 +101,8 @@ WORKFLOW_OVERRIDE_FILENAME = ".overrides/workflow.toml"
 
 #: The workflow document's closed top-level section-key space — closing what an override may
 #: declare at all — enforced at the raw-mapping layer by the merge engine before any model is
-#: built. Doubles as the ``[selected]``
-#: table's own accepted section-name set — the two are the same vocabulary: every top-level table
-#: an override may declare is a section ``[selected]`` may also name. ``selected`` itself is
+#: built. ``[selected]`` may name
+#: every one of them but ``squad`` (:data:`WORKFLOW_SELECTABLE_SECTIONS`). ``selected`` itself is
 #: accepted unconditionally by the engine and needs no entry here (``_specmerge`` docstring).
 WORKFLOW_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset(
     {
@@ -118,6 +117,10 @@ WORKFLOW_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset(
         "squad",
     }
 )
+
+#: The sections ``[selected]`` may name: every top-level section except ``squad``, whose table
+#: holds one list and has no entries to drop (refused by :func:`_selected_squad_violations`).
+WORKFLOW_SELECTABLE_SECTIONS: frozenset[str] = WORKFLOW_TOP_LEVEL_SECTIONS - {"squad"}
 
 #: Generic fix hint attached to every roster-lock finding in collect mode — the lock has exactly
 #: one remedy shape (revert the key/category change), unlike a structural violation where the
@@ -304,7 +307,7 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
     result = merge_override(
         _bundled_raw(),
         raw_override,
-        WORKFLOW_TOP_LEVEL_SECTIONS,
+        WORKFLOW_SELECTABLE_SECTIONS,
         origin,
         top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
         collect_all=False,
@@ -1443,7 +1446,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
     result = merge_override(
         _bundled_raw(),
         raw_override,
-        WORKFLOW_TOP_LEVEL_SECTIONS,
+        WORKFLOW_SELECTABLE_SECTIONS,
         origin,
         top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
         collect_all=True,
