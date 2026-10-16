@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1085,
+  "counter": 1086,
   "padding": 6,
   "items": {
     "12": {
@@ -48619,7 +48619,7 @@
         {
           "local_id": "ST2",
           "title": "Give every skill a discussion region, in the template and through a 0.16 contribution",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48628,7 +48628,7 @@
         {
           "local_id": "ST3",
           "title": "Add comment and comments to skills, roles and operators",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48664,7 +48664,7 @@
       ],
       "path": "tasks/TASK-001070-give-skills-roles-and-operators-the-item-verbs.md",
       "created_at": "2026-10-16T19:52:27Z",
-      "updated_at": "2026-10-16T22:56:43Z",
+      "updated_at": "2026-10-16T23:10:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49780,6 +49780,59 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-1085"
+    },
+    "1086": {
+      "sequence_id": 1086,
+      "type": "review",
+      "title": "Roster remove, comment and skill discussion region",
+      "slug": "roster-remove-comment-and-skill-discussion-region",
+      "status": "ChangesRequested",
+      "description": "Review of TASK-1070 ST1-ST3: remove/rm, the skill discussion region and its 0.16 contribution, roster comment verbs",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1070"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Roster comments help names show --comments, which roster show lacks",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Remedy and refusal texts still name the hidden rm alias",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Addressed-verb lists are hand-copied per group and drift",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001086-roster-remove-comment-and-skill-discussion-region.md",
+      "created_at": "2026-10-16T23:20:09Z",
+      "updated_at": "2026-10-16T23:21:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1086"
     }
   }
 }
