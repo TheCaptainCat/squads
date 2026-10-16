@@ -66,7 +66,7 @@ subentities:
   assignee: tech-writer
   story: US8
 created_at: '2026-10-16T13:05:35Z'
-updated_at: '2026-10-16T16:16:19Z'
+updated_at: '2026-10-16T16:31:18Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -561,4 +561,6 @@ Rules: present-truth prose with no history; never run bare `ls`.
   - New user-visible text for the writer: report line "N dropped skill description(s) differed from the one kept" plus a file line each; refusal "extra.<key> would become the item's own '<key>'; move it out by hand"; later-step refusal says to rebuild the index with the earlier release repair command. Names equal to any configuration layer count as never named; developers keep pool_name. MANUAL covers all of this.
 - [2026-10-16T16:16:19Z] Pierre Chat:
   - 2026-10-16, supersedes today's earlier rulings on role name precedence and on REV-1063 F3: a role's stored name is its name. At creation it comes from --name when given, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). After that no configuration change renames it; renaming goes through the role's update verb (FEAT-977). The 0.16 migration keeps every stored name as it is. name_chosen and pool_name are removed.
+- [2026-10-16T16:31:18Z] Elias Python:
+  - For the writer (new rule, supersedes my earlier note on name_chosen/pool_name): a role's stored name is its name. At creation it comes from --name, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). No later configuration change renames it, and sq sync never does. The 0.16 migration keeps every stored name and adds no name key. The migration MANUAL says so in one paragraph; the report no longer counts roles as named or never named. Other new text stands: the "N dropped skill description(s) differed from the one kept" report line with a file line each, the refusal "extra.<key> would become the item's own '<key>'; move it out by hand", and the later-step refusal telling the operator to rebuild the index with the earlier release's repair command. The roles.toml scaffold comment describes the creation-time rule.
 <!-- sq:discussion:end -->
