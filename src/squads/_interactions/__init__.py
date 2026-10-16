@@ -697,7 +697,7 @@ def authoring_owner(
     that is also absent from the map has no title in hand, and loses its authoring bullet rather
     than naming a role by its slug.
     """
-    owners = in_lane_owner(item_type, playbook)
+    owners = in_lane_owner(item_type, playbook if playbook is not None else get_playbook_spec())
     if len(owners) != 1:
         return None
     (slug,) = owners

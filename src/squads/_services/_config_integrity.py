@@ -166,7 +166,7 @@ def _scopes_role(skill: Item, role: Item, spec: WorkflowSpec) -> bool:
 
 
 def _always_on_floor(
-    live_roles: Sequence[Item], spec: WorkflowSpec, playbook: PlaybookSpec | None = None
+    live_roles: Sequence[Item], spec: WorkflowSpec, playbook: PlaybookSpec
 ) -> frozenset[str]:
     """Whatever ``skills_for_role`` implies for *every* live role — the un-retirable floor,
     derived rather than a hand-maintained list of names: that formulation survives a rename and
@@ -227,7 +227,7 @@ def check_preloaded_skill(
     index: SquadsDB,
     spec: WorkflowSpec,
     active_backends: Sequence[str],
-    playbook: PlaybookSpec | None = None,
+    playbook: PlaybookSpec,
 ) -> list[ConfigIntegrityFinding]:
     """``preloaded_skill`` — a referenced skill, already broken: a non-live ``skill`` entry
     still named by a live role's resolved preload list. Classified into three kinds — a stored
@@ -328,17 +328,16 @@ def check_all(
     index: SquadsDB,
     spec: WorkflowSpec,
     active_backends: Sequence[str],
-    playbook: PlaybookSpec | None = None,
+    playbook: PlaybookSpec,
 ) -> list[ConfigIntegrityFinding]:
     """Every clause's findings, ``no_live_role`` then ``preloaded_skill`` — the single entry
     point both the reporter and the gate call, rather than each composing the clauses itself.
     This fixed clause order, together with ``check_preloaded_skill``'s declared per-skill kind
     order, is what makes output deterministic wherever more than one finding renders together.
 
-    ``playbook`` defaults to the bundled singleton (``None``) — passed through to
-    ``check_preloaded_skill`` alone, since ``no_live_role`` never reads playbook data. A caller
-    with the active/merged playbook in hand (``Service.playbook``) threads it explicitly so the
-    always-on floor and type-implied kind reflect a project override's guidance changes.
+    ``playbook`` is the active/merged one (``Service.playbook``), passed through to
+    ``check_preloaded_skill`` alone, since ``no_live_role`` never reads playbook data; it makes
+    the always-on floor and type-implied kind reflect a project override's guidance changes.
     """
     return [
         *check_no_live_role(index, spec, active_backends),

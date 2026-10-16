@@ -154,6 +154,7 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
                         "title": r.title,
                         "is_default": _is_default(r),
                         "origin": "bundled" if r.slug in _BUNDLED_SLUGS else "project",
+                        "capabilities": list(dict.fromkeys(r.capabilities)),
                         "default_role": default_role,
                         "default_role_source": default_role_source,
                     }
@@ -217,6 +218,7 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
                         "full_name": role.full_name,
                         "title": role.title,
                         "is_default": role.is_default,
+                        "capabilities": list(role.capabilities),
                         "status": r.status,
                     }
                     for r, role in resolved
@@ -226,13 +228,14 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
         return
     live = svc.spec.live_statuses(ROSTER_ROLE)
     table = Table(box=None, pad_edge=False)
-    for col in ("Slug", "Name", "Title", "Default", "Live"):
+    for col in ("Slug", "Name", "Title", "Capabilities", "Default", "Live"):
         table.add_column(col)
     for r, role in resolved:
         table.add_row(
             e(role.slug),
             e(role.full_name),
             e(role.title),
+            e(", ".join(role.capabilities)),
             "✓" if role.is_default else "",
             "✓" if r.status in live else "",
         )
@@ -411,7 +414,9 @@ async def show_role(
             f"[bold]{e(display_name)}[/bold] (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",
             f"[bold]model:[/bold] {e(r.model or 'inherit')}",
+            f"[bold]color:[/bold] {e(r.color or '—')}",
             f"[bold]can spawn:[/bold] {'yes' if r.can_spawn else 'no'}",
+            f"[bold]capabilities:[/bold] {e(', '.join(r.capabilities) or '—')}",
             f"[bold]creates:[/bold] {e(creates_display)}",
             f"[bold]skills:[/bold] {e(skills_display)}",
         ]

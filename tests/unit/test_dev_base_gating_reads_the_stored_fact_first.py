@@ -23,12 +23,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from _helpers import dev_role
 from squads import __version__
 from squads._cli._common import dev_preview_full_name, role_base_for_show
 from squads._models._attributes import AttributeKey as X
 from squads._models._item import Item
 from squads._overrides._service import check_override_issues
-from squads._roles._catalog import dev_role
 from squads._roles._resolver import dev_base_for_slug, dev_base_from_item
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
@@ -108,7 +108,7 @@ def test_a_genuine_dev_role_still_gets_dev_base_from_item() -> None:
         is_dev=True,
         extra={**role.to_attributes(is_dev=True), X.TECH: "python"},
     )
-    assert role_base_for_show("python-dev", item) == dev_base_from_item(item)
+    assert role_base_for_show("python-dev", item) == dev_base_from_item(item, None)
 
 
 # --------------------------------------------------------------------- shape 4/5: is_dev_slug edges

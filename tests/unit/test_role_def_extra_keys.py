@@ -13,9 +13,10 @@ the exempt set and the values it is paired with cannot drift apart, and the ``is
 cannot silently shrink the guard's vocabulary.
 """
 
+from _helpers import dev_role
 from squads._itemfile import PERMITTED_ATTRIBUTE_SKEW
 from squads._models._attributes import AttributeKey as X
-from squads._roles._catalog import PREDEFINED, RoleDef, dev_role
+from squads._roles._catalog import PREDEFINED, RoleDef
 
 #: Every key the definition used to be mirrored under. Named once, as a literal, so each
 #: assertion below tests the same removal rather than a hand-copied subset of it.

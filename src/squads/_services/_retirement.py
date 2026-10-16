@@ -140,7 +140,7 @@ def enforce(
     active_backends: Sequence[str],
     unlink: bool,
     old_status: str,
-    playbook: PlaybookSpec | None = None,
+    playbook: PlaybookSpec,
 ) -> list[Severance]:
     """Evaluate the clauses against *item*'s already-applied prospective status, scoped to this
     transition's own delta, inside the transaction's own snapshot and before any write.

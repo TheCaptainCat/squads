@@ -46,7 +46,13 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads._errors import SquadsError
-from squads._roles._models import DevPoolSpec, RoleCatalogSpec, RoleSpec
+from squads._roles._models import (
+    CAPABILITY_NAME_PATTERN,
+    DevPoolSpec,
+    RoleCatalogSpec,
+    RoleSpec,
+    malformed_capability_names,
+)
 from squads._specmerge import RawMapping, describe_spec_error, merge_override
 
 VALID_MODELS: frozenset[str] = frozenset({"sonnet", "opus", "haiku", "inherit"})
@@ -250,7 +256,9 @@ def _build_catalog(
     bundled_slugs: frozenset[str] | None = None,
 ) -> RoleCatalogSpec:
     # --- roles ---
-    roles: list[RoleSpec] = [_parse_role(rdata, i) for i, rdata in enumerate(raw.get("roles", []))]
+    roles: list[RoleSpec] = [
+        _parse_role(rdata, i, origin) for i, rdata in enumerate(raw.get("roles", []))
+    ]
 
     # --- bundles ---
     bundles: dict[str, list[str]] = {
@@ -278,14 +286,15 @@ def _build_catalog(
     return spec
 
 
-def _parse_role(data: dict[str, Any], idx: int) -> RoleSpec:
+def _parse_role(data: dict[str, Any], idx: int, origin: str | None) -> RoleSpec:
     ctx = f"roles[{idx}]"
+    where = f"{origin}: " if origin is not None else ""
     try:
         # model_validate so extra="forbid" fires on unknown keys.
         return RoleSpec.model_validate(data)
     except Exception as exc:
         raise SquadsError(
-            f"Invalid role entry {ctx}: {describe_spec_error(exc, RoleSpec)}"
+            f"{where}Invalid role entry {ctx}: {describe_spec_error(exc, RoleSpec)}"
         ) from exc
 
 
@@ -372,6 +381,18 @@ def _check_dev(dev: DevPoolSpec, errors: list[str]) -> None:
         errors.append(f"dev.model {dev.model!r} not in allowed set {sorted(VALID_MODELS)}")
 
 
+def _check_capabilities(roles: list[RoleSpec], dev: DevPoolSpec, errors: list[str]) -> None:
+    """Capability names well-formed, for every role and for the dev pool."""
+    errors.extend(
+        f"{owner}: capability {name!r} must match {CAPABILITY_NAME_PATTERN}"
+        for owner, names in (
+            *((f"role {r.slug!r}", r.capabilities) for r in roles),
+            ("dev", dev.capabilities),
+        )
+        for name in malformed_capability_names(names)
+    )
+
+
 def _check_models(roles: list[RoleSpec], errors: list[str]) -> None:
     """Model whitelist."""
     errors.extend(
@@ -395,6 +416,7 @@ def _validate(
     _check_bundles(bundles, all_slugs, errors, bundled_slugs=bundled_slugs)
     _check_dev(dev, errors)
     _check_models(roles, errors)
+    _check_capabilities(roles, dev, errors)
     if errors:
         raise SquadsError(
             f"{_catalog_error_prefix(origin)}:\n" + "\n".join(f"  - {e}" for e in errors)

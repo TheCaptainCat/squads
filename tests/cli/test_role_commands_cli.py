@@ -39,6 +39,7 @@ async def test_catalog_json_output_is_unaffected_bundled_roles_only(project, inv
             "title",
             "is_default",
             "origin",
+            "capabilities",
             "default_role",
             "default_role_source",
         }

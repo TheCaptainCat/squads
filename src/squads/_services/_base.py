@@ -26,6 +26,7 @@ from squads._interactions import active_skill_slugs, get_playbook_spec, is_live_
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import (
     allowed_create_types,
+    catalog_default_slug,
     in_lane_owner,
     is_lane_exempt,
     laned_types,
@@ -53,6 +54,7 @@ from squads._models._participants import (
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
+from squads._roles._catalog import get_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import (
     holds_default_designation,
@@ -799,7 +801,9 @@ class ServiceCore:
         lane_warning: str | None = None
         if (
             item_type in laned_types(self.playbook)
-            and not is_lane_exempt(author, self._default_role_slug(db))
+            and not is_lane_exempt(
+                author, self._default_role_slug(db) or catalog_default_slug(get_catalog())
+            )
             and item_type not in allowed_create_types(author, self.spec, self.playbook)
         ):
             owners = in_lane_owner(item_type, self.playbook)
@@ -1333,6 +1337,7 @@ class ServiceCore:
             is_default=role.is_default,
             mission=role.mission,
             responsibilities=role.responsibilities,
+            capabilities=role.capabilities,
         )
 
     async def roster(self) -> list[RoleView]:

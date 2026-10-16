@@ -22,6 +22,7 @@ class RoleView:
     is_default: bool
     mission: str = ""
     responsibilities: tuple[str, ...] = ()
+    capabilities: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

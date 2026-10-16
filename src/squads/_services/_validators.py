@@ -66,6 +66,7 @@ from squads._backends._registry import get_backend
 from squads._errors import InvalidIdError, SquadsError
 from squads._interactions import (
     ITEM_SKILL_VIEW_NAME,
+    get_playbook_spec,
     is_live_roster_entry,
     item_type_for_skill_slug,
     orphaned_playbook_guide_message,
@@ -1332,7 +1333,10 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ``config_integrity.render_finding`` — the one place condition and remedy are ever composed,
     so this line never duplicates a phrase the finding's own ``message`` already states."""
     findings = config_integrity.check_all(
-        ctx.index, ctx.spec, ctx.paths.config.active_backends, ctx.playbook
+        ctx.index,
+        ctx.spec,
+        ctx.paths.config.active_backends,
+        ctx.playbook if ctx.playbook is not None else get_playbook_spec(),
     )
     return [
         CheckIssue("error", f.entry, f"config integrity: {config_integrity.render_finding(f)}")

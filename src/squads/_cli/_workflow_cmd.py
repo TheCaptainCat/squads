@@ -837,6 +837,7 @@ def _playbook_json_payload(source: PlaybookSource) -> dict[str, object]:
                 "is_default": rv.is_default,
                 "mission": rv.mission,
                 "responsibilities": list(rv.responsibilities),
+                "capabilities": list(rv.capabilities),
             }
             for rv in source.roster
         ],

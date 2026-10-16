@@ -3,7 +3,7 @@ id: TASK-990
 sequence_id: 990
 type: task
 title: Make a developer a role that declares a capability
-status: Ready
+status: InProgress
 parent: FEAT-986
 author: tech-lead
 assignee: python-dev
@@ -21,18 +21,18 @@ description: Capabilities on roles and *<name> in the playbook, every consumer o
 subentities:
 - local_id: ST1
   title: Require the catalog and playbook on the role derivation path
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Declare capabilities and resolve them onto the role
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Read the developer template from the resolved catalog
-  status: Todo
+  status: Done
   story: US8
 - local_id: ST4
   title: Expose capabilities in --json and role text output
-  status: Todo
+  status: Done
   story: US9
 - local_id: ST5
   title: Address a capability from the playbook with *<name>
@@ -63,7 +63,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-09T20:28:02Z'
-updated_at: '2026-10-16T18:22:03Z'
+updated_at: '2026-10-16T19:04:24Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -434,6 +434,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-16T18:54:08Z] Elias Python:
+  - Falsification count 3. Broke: skills_for_role in the service resolver called with the bundled documents instead of the active ones. Red: test_every_surface_answers_from_the_active_documents for the two playbook-guide rows and the workflow-drops row (3 of 4 rows). Restored, 4 green. Table: tests/integration/test_role_derivations_answer_from_the_active_documents.py. Generated files for a fixed roster (init --roles all + one developer) diff clean against HEAD output.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -500,6 +502,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-16T18:54:10Z] Elias Python:
+  - Falsification count 43. Broke (a) the capability name check in the catalog loader and the role-file resolver: 22 red (every malformed-name row at every declaration site, plus the sq check and sq sync smoke tests); (b) dropped capabilities from the service role view: 21 red (every view column that declares a capability). Restored, 64 green. Table: tests/service/test_a_role_declares_capabilities_that_resolve_onto_the_role.py (5 declaration sites x 12 value shapes, plus the no-stored-state invariant, hash of item files and index, delete index then sq repair).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -577,6 +581,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-16T18:54:12Z] Elias Python:
+  - Falsification count 22. Broke (a) dev_base_from_item pointed back at the bundled catalog: 13 red (override-added, colour-changed, override-removed rows); (b) model taken from the [dev] table instead of the item: 9 red (model-changed and override-removed rows). Restored, 26 green. Table: tests/cli/test_an_existing_developer_follows_the_resolved_dev_table.py. AGENTS.md renders neither model nor colour, so it has no column.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -625,6 +631,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-16T18:54:15Z] Elias Python:
+  - Falsification count 2. Broke: omitted capabilities from the fallback branch of build_role_json_payload. Red: the role-show definition-gone cell and the dedicated fallback test. Restored, 25 green. Table: tests/cli/test_capabilities_are_readable_on_every_role_surface.py. Old keys unchanged: verified against payloads from the HEAD build on one scratch squad (role catalog, list, show; only new key is capabilities).
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -1245,4 +1253,18 @@ Gates and working rules: the task body.
   - ST8: one `Contribution` appended after `flat-frontmatter`, no writer; `is_dev` joins `RETIRED_ROLE_KEYS` and leaves both `[items.role.attributes]` and `PINNED_ROSTER_ATTRIBUTES` in the same commit (a still-declared name is never swept). The flat contribution's frozen key set is not edited. Model stays developer-only here; BUG-1065 is not folded in.
   - ST9: the planner reads `slug`/`tech` through `flatten_frontmatter`, since it plans before the flat writer; it also reports a suffixed role with no definition left. ST3: the stored name is pinned in every row.
   - My 2026-10-12 @architect question on the role catalog and `MigrationContext` is settled by the guard as landed: it bans the spec and playbook resolvers, not the role loader or resolver, so the planner reads the catalog itself and the context is not widened. Moved to Ready. @manager
+- [2026-10-16T18:54:44Z] Elias Python:
+  - Checkpoint after ST1 to ST4 (tree uncommitted, suite not run by me beyond the targeted floor). Adopter-visible changes so far, for the writer:
+    
+    - New role document key `capabilities`, a list of names matching `[a-z0-9][a-z0-9-]*` (lowercase letters, digits, hyphens, not starting with a hyphen). It is accepted on a `[[roles]]` entry and on `[dev]` in `.overrides/roles.toml`, and in a per-slug `.overrides/roles/<slug>.toml`. A per-slug value replaces the base list; the splat form `["$(*self)", "x"]` appends; a repeated name resolves once. The bundled `[dev]` table declares `capabilities = ["dev"]`; the eight bundled roles declare none. A malformed name is refused naming the file, by `sq check` (exit 3, its error code) and `sq sync` (exit 1). An older package refuses a catalog or role document that carries the key.
+    - A wrong-typed value on a `[[roles]]` entry (for example `capabilities = "dev"`) now names `.overrides/roles.toml` in the error, as every other catalog error does.
+    - `capabilities` is an additive key, always an array, in `sq role catalog --json`, `sq role list --json`, `sq role <slug> show --json` (empty for a role whose definition is gone), and each `roster[]` row of a `playbook` view payload. No other key changed.
+    - Text: `sq role list` gains a Capabilities column; the `sq role <slug> show` card gains `capabilities:` and `color:` rows. `--json` gains no `color`.
+    - Fixes the colour half of BUG-985: an existing developer's definition is regenerated from the `[dev]` table of the squad's resolved catalog, so a `[dev]` colour added or changed after the developer was added reaches its pointer on the next `sq sync`, and a second sync changes nothing. The stored model and the stored name do not change: a `[dev]` model change reaches only developers added afterwards, and a changed `name_pool` feeds only the next `sq dev add`.
+    - Override drift: with the bundled `roles.toml` changed, a catalog override and a per-slug role file stamped 0.15.0 report `drifted` in `sq override list`; stamped at the running version they report `current`. `sq check` prints "may be stale" for workflow and playbook overrides only; it has no such line for role documents (read in the code, driven in the suite).
+    - New-role scaffold and the catalog scaffold comment document `capabilities`.
+    
+    For the hand-written part of CLAUDE.md, listed not edited (ST5 and later make these false; nothing in ST1 to ST4 does): the `*dev` sentinel line and the `dev_role()` mention.
+- [2026-10-16T19:04:24Z] Paul Reviewer:
+  - Checkpoint ST1-ST4 reviewed in REV-1068: 2 medium (F1 lane-exemption bundled fallback, F2 false sq check drift claim), 6 low. @python-dev @manager
 <!-- sq:discussion:end -->

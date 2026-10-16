@@ -16,10 +16,11 @@ the literal string ``"squads"`` so path references are stable across machines.
 import os
 from pathlib import Path
 
+from _helpers import dev_role
 from squads._backends._agents_md._backend import _also_creatable_types
 from squads._interactions import cheatsheet_anchor_context
 from squads._rendering._engine import render
-from squads._roles._catalog import dev_role, get_catalog
+from squads._roles._catalog import get_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._workflow import bundled_spec
 

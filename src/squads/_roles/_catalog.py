@@ -35,16 +35,17 @@ class RoleDef:
     color: str | None = None
     is_default: bool = False
     can_spawn: bool = False  # True only for orchestrating roles (manager, tech-lead)
+    capabilities: tuple[str, ...] = ()  # resolved from the catalog; never stored on an item
 
     def __post_init__(self) -> None:
         """Refuse a blank/whitespace-only ``full_name`` at the one point every construction
         path actually goes through: the override merge (:func:`~squads._roles._resolver.
         _apply_override`, via :func:`role_spec_to_def`), ``sq role activate --name`` (via
         ``dataclasses.replace``, which re-invokes ``__post_init__`` on a frozen dataclass same
-        as the constructor), and ``sq dev add --name`` (via :func:`dev_role`'s own constructor
-        call). All three end in a ``RoleDef`` whose ``full_name`` is the operator-supplied
-        string, so this is the single seam that closes the hole for every one of them at once
-        rather than a check repeated at each call site.
+        as the constructor), and ``sq dev add --name`` (via :func:`dev_role_from_pool`'s
+        constructor call). All three end in a ``RoleDef`` whose ``full_name`` is the
+        operator-supplied string, so this is the single seam that closes the hole for every one
+        of them at once rather than a check repeated at each call site.
 
         Only ``full_name`` is checked here — the only field an operator can set directly
         through those two CLI flags. The override path's other string fields (``title``,
@@ -164,6 +165,7 @@ def role_spec_to_def(rs: RoleSpec) -> RoleDef:
         color=rs.color,
         is_default=rs.is_default,
         can_spawn=rs.can_spawn,
+        capabilities=tuple(dict.fromkeys(rs.capabilities)),
     )
 
 
@@ -223,11 +225,8 @@ def dev_role_from_pool(
     seq: int = 0,
     model: str | None = None,
 ) -> RoleDef:
-    """Build a stack-specific developer role from an explicit ``dev`` pool spec — the
-    parameterised form :func:`dev_role` is a thin wrapper over, letting
-    :func:`~squads._roles._resolver.resolve_dev_role` build against a project's own
-    catalog-document ``[dev]`` override (``.overrides/roles.toml``) instead of the
-    bundled singleton's, with the same construction logic either way.
+    """Build a stack-specific developer role from the ``dev`` pool spec of the catalog the
+    caller resolved (the bundled one, or a project's with its ``[dev]`` override merged in).
 
     If ``name`` is omitted (``None``), a first name is taken from ``dev.name_pool`` (by
     ``seq``) and the surname is the tech (→ "Elias Dotnet"); the slug is ``<tech>-dev``.
@@ -260,14 +259,5 @@ def dev_role_from_pool(
         ),
         model=model or dev.model,
         color=dev.color,
+        capabilities=tuple(dict.fromkeys(dev.capabilities)),
     )
-
-
-def dev_role(
-    tech: str, *, name: str | None = None, seq: int = 0, model: str | None = None
-) -> RoleDef:
-    """Build a stack-specific developer role on demand, from the bundled catalog's own ``dev``
-    spec — see :func:`dev_role_from_pool` for the parameterised form and the name
-    pool/model/color source.
-    """
-    return dev_role_from_pool(tech, _CATALOG.dev, name=name, seq=seq, model=model)

@@ -21,8 +21,9 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import dev_role
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._roles._catalog import PREDEFINED, dev_role
+from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import dev_base_for_slug, resolve_role, resolve_role_with_base
 
 

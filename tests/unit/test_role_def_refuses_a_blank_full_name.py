@@ -13,8 +13,9 @@ import dataclasses
 
 import pytest
 
+from _helpers import dev_role
 from squads._errors import SquadsError
-from squads._roles._catalog import PREDEFINED, RoleDef, dev_role
+from squads._roles._catalog import PREDEFINED, RoleDef
 
 
 def _role(full_name: str) -> RoleDef:

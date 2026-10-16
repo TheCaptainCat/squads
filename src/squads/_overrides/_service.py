@@ -449,6 +449,7 @@ mission = "TODO: what this role is responsible for accomplishing"
 # agreements = ["A team agreement this role follows"]
 # model = "sonnet"  # sonnet | opus | haiku | inherit (omit to inherit the project default)
 # color = "teal"
+# capabilities = ["reviewer"]  # names a playbook guide can address as *reviewer
 {can_spawn_line}
 """
 
@@ -672,8 +673,8 @@ _ROLES_CATALOG_SCAFFOLD_BODY = """\
 #   - Top-level keys are limited to: roles, bundles, dev (plus [selected] below).
 #   - [bundles.<name>] fields merge field-by-field over the bundled default; a new bundle
 #     name is simply added.
-#   - [dev] fields (model, color, name_pool) merge field-by-field — override just one without
-#     restating the others.
+#   - [dev] fields (model, color, capabilities, name_pool) merge field-by-field — override
+#     just one without restating the others.
 #   - [[roles]] entries are keyed by their own 'slug': an entry naming a bundled slug
 #     field-merges onto it (write only the field you want to change); an entry naming a new
 #     slug defines a wholly new role (full_name, title, description, mission all required).
@@ -877,7 +878,7 @@ def _diff_template(squad_dir: Path, template_name: str) -> DiffResult:
 
 #: RoleDef fields rendered by :func:`_role_def_as_toml`, in a stable display order.
 _ROLE_DEF_SCALAR_FIELDS = ("full_name", "title", "description", "mission")
-_ROLE_DEF_LIST_FIELDS = ("responsibilities", "agreements")
+_ROLE_DEF_LIST_FIELDS = ("responsibilities", "agreements", "capabilities")
 _ROLE_DEF_OPTIONAL_SCALAR_FIELDS = ("model", "color")
 
 
@@ -1208,7 +1209,7 @@ def _role_override_shadows_bundled(
     """
     item = role_items_by_slug.get(slug)
     if item is not None:
-        return role_base_from_item(item) is not None
+        return role_base_from_item(item, None) is not None
     return _shadowed_bundled_role_toml(slug, squad_dir) is not None
 
 

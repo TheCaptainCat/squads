@@ -326,3 +326,11 @@ async def plant_attribute(svc: Any, item_id: str, key: str, value: Any) -> None:
             item_file(svc.paths, item), item, base, default_kind=svc.spec.default_ref_kind()
         )
         db.add(item)
+
+
+def dev_role(tech: str, *, name: str | None = None, seq: int = 0, model: str | None = None) -> Any:
+    """A developer role built from the bundled catalog's ``[dev]`` table."""
+    from squads._roles._catalog import dev_role_from_pool
+    from squads._roles._loader import load_role_catalog
+
+    return dev_role_from_pool(tech, load_role_catalog().dev, name=name, seq=seq, model=model)

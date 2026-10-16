@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1067,
+  "counter": 1068,
   "padding": 6,
   "items": {
     "12": {
@@ -26425,7 +26425,7 @@
         {
           "local_id": "ST1",
           "title": "Require the catalog and playbook on the role derivation path",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -26434,7 +26434,7 @@
         {
           "local_id": "ST2",
           "title": "Declare capabilities and resolve them onto the role",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -26443,7 +26443,7 @@
         {
           "local_id": "ST3",
           "title": "Read the developer template from the resolved catalog",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -26452,7 +26452,7 @@
         {
           "local_id": "ST4",
           "title": "Expose capabilities in --json and role text output",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US9",
@@ -26524,7 +26524,7 @@
       ],
       "path": "tasks/TASK-000990-make-a-developer-a-role-that-declares-a-capability.md",
       "created_at": "2026-10-09T20:28:02Z",
-      "updated_at": "2026-10-16T18:23:19Z",
+      "updated_at": "2026-10-16T19:04:24Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48267,7 +48267,7 @@
       "type": "review",
       "title": "Five 0.16 bug fixes on the agent worktree branch",
       "slug": "five-0-16-bug-fixes-on-the-agent-worktree-branch",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "BUG-1000, BUG-994, BUG-1057, BUG-1060, BUG-1058 fixes",
       "parent": null,
       "author": "reviewer",
@@ -48286,7 +48286,7 @@
         {
           "local_id": "F1",
           "title": "Removal gate skipped for a live entry with no direct retiring edge",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -48295,7 +48295,7 @@
         {
           "local_id": "F2",
           "title": "Suite regression: catalog-lift test purges the last live role",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -48304,7 +48304,7 @@
         {
           "local_id": "F3",
           "title": "Removal refusal describes an Archived status and a reactivate remedy",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48313,7 +48313,7 @@
         {
           "local_id": "F4",
           "title": "Gate meta guard keeps gated apps parallel to GATED_GROUPS",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48322,7 +48322,7 @@
         {
           "local_id": "F5",
           "title": "Pre-repair check adds a false subtasks-container error",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48331,11 +48331,109 @@
       ],
       "path": "reviews/REV-001067-five-0-16-bug-fixes-on-the-agent-worktree-branch.md",
       "created_at": "2026-10-16T18:41:28Z",
-      "updated_at": "2026-10-16T18:41:55Z",
+      "updated_at": "2026-10-16T18:58:54Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-1067"
+    },
+    "1068": {
+      "sequence_id": 1068,
+      "type": "review",
+      "title": "TASK-990 checkpoint review, ST1 to ST4",
+      "slug": "task-990-checkpoint-review-st1-to-st4",
+      "status": "ChangesRequested",
+      "description": "Capabilities declared and resolved, required documents, role --json additions",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-990"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Lane exemption falls back to the bundled catalog's default role, not the squad's",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Handback says sq check has no may-be-stale line for role documents; it has one, and no test pins it",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Catalog error names the override file but indexes roles[N] into the merged catalog",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Text-output capability assertions are vacuous for three of five shapes",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Scaffold and comments describe *<name> playbook addressing the loader still refuses",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "role catalog --json capabilities ignore per-slug files; [dev] capabilities on no catalog surface",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Explicit None in _role_override_shadows_bundled contradicts its docstring",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "No row pins an existing developer's capabilities after [dev] changes",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001068-task-990-checkpoint-review-st1-to-st4.md",
+      "created_at": "2026-10-16T19:03:52Z",
+      "updated_at": "2026-10-16T19:05:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1068"
     }
   }
 }

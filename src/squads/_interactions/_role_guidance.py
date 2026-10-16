@@ -2,27 +2,19 @@
 lane, the per-role skill sections, and the example assignee a generated command shows.
 
 A slug is judged by its spelling (``<tech>-dev`` addresses the ``*dev`` guides). Every function
-falls back to the bundled playbook when it is handed none.
+takes the workflow spec and playbook it answers from; none falls back to the bundled documents.
 """
 
 from collections.abc import Iterable, Mapping
 from typing import Any
 
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
-from squads._roles._catalog import get_catalog
+from squads._roles._models import RoleCatalogSpec
 from squads._roles._projection import RoleView
-from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 #: Sentinel interacting "role" that expands to every developer role (slug ``<tech>-dev``).
 DEV = "*dev"
-
-
-def _active_playbook(playbook: PlaybookSpec | None) -> PlaybookSpec:
-    """*playbook*, or the bundled one, which the package root defines (read at call time)."""
-    from squads._interactions import get_playbook_spec
-
-    return playbook if playbook is not None else get_playbook_spec()
 
 
 def is_dev_slug(slug: str) -> bool:
@@ -38,25 +30,24 @@ def is_dev_slug(slug: str) -> bool:
 # document an adopter can override.
 
 
-def create_lanes(playbook: PlaybookSpec | None = None) -> dict[str, set[str]]:
+def create_lanes(playbook: PlaybookSpec) -> dict[str, set[str]]:
     """Role slug → the set of item types that slug is in-lane to author, derived from the
-    role guides of *playbook* (defaulting to the bundled singleton) that declare ``authors``.
+    role guides of *playbook* that declare ``authors``.
 
     Computed per call rather than cached in a module constant: the answer depends on the
     active/merged playbook, and a process serves many squads. The ``DEV`` sentinel appears
     here only if some guide declares it an author — the bundled document never does, so a
     ``<tech>-dev`` slug derives an empty lane by declaration, not by a special case.
     """
-    active = _active_playbook(playbook)
     lanes: dict[str, set[str]] = {}
-    for item_type, entry in active.types.items():
+    for item_type, entry in playbook.types.items():
         for guide in entry.roles:
             if guide.authors:
                 lanes.setdefault(guide.slug, set()).add(item_type)
     return lanes
 
 
-def laned_types(playbook: PlaybookSpec | None = None) -> frozenset[str]:
+def laned_types(playbook: PlaybookSpec) -> frozenset[str]:
     """The item types that participate in the create-lane domain at all — every type some
     guide in *playbook* declares an author for.
 
@@ -66,29 +57,25 @@ def laned_types(playbook: PlaybookSpec | None = None) -> frozenset[str]:
     return frozenset(t for lane in create_lanes(playbook).values() for t in lane)
 
 
-def is_lane_exempt(slug: str, default_slug: str | None = None) -> bool:
+def is_lane_exempt(slug: str, default_slug: str | None) -> bool:
     """Return True for slugs that are fully exempt from all advisory lane checks.
 
     Exempt: the squad's **default role** — the orchestrator that authors any type for
     coordination — and any ``op-*`` operator (humans coordinate freely). The default role is
-    resolved from *default_slug* when the caller has the live roster in hand, otherwise from
-    the role catalog's own ``is_default`` designation; it is never a hard-coded slug, so a
-    squad that renamed or reassigned its coordinator keeps the exemption where it declared it.
+    the caller's *default_slug*, never a hard-coded slug, so a squad that renamed or reassigned
+    its coordinator keeps the exemption where it declared it; ``None`` means no default role.
     """
     if slug.startswith("op-"):
         return True
-    resolved = default_slug if default_slug is not None else catalog_default_slug()
-    return resolved is not None and slug == resolved
+    return default_slug is not None and slug == default_slug
 
 
-def catalog_default_slug() -> str | None:
-    """The bundled role catalog's ``is_default`` slug, or ``None`` if none is designated."""
-    return next((r.slug for r in get_catalog().roles if r.is_default), None)
+def catalog_default_slug(catalog: RoleCatalogSpec) -> str | None:
+    """The ``is_default`` slug of *catalog*, or ``None`` if none is designated."""
+    return next((r.slug for r in catalog.roles if r.is_default), None)
 
 
-def allowed_create_types(
-    slug: str, spec: WorkflowSpec | None = None, playbook: PlaybookSpec | None = None
-) -> set[str]:
+def allowed_create_types(slug: str, spec: WorkflowSpec, playbook: PlaybookSpec) -> set[str]:
     """Return the set of item types *slug* is in-lane to author via ``sq create``.
 
     Derived from :func:`create_lanes` over *playbook*.  The ``*dev``/``DEV`` sentinel covers
@@ -100,18 +87,13 @@ def allowed_create_types(
     names that *spec* has dropped (via ``[selected]``, or renamed away to a new key) is
     filtered out here — a role's advertised create-lane never keeps naming a type that no
     longer exists.
-
-    Both default to the bundled documents (``None``) for callers with no live squad in hand
-    (tests, any call before a spec is resolved); production call sites thread the
-    active/merged spec and playbook explicitly.
     """
-    active_spec = spec if spec is not None else bundled_spec()
     lanes = create_lanes(playbook)
     lane = lanes.get(DEV, set()) if is_dev_slug(slug) else lanes.get(slug, set())
-    return {t for t in lane if t in active_spec.items}
+    return {t for t in lane if t in spec.items}
 
 
-def in_lane_owner(item_type: str, playbook: PlaybookSpec | None = None) -> set[str]:
+def in_lane_owner(item_type: str, playbook: PlaybookSpec) -> set[str]:
     """Return the set of role slugs that are in-lane to create *item_type*.
 
     This is the inverse of :func:`allowed_create_types`: which role slug(s)
@@ -124,16 +106,11 @@ def in_lane_owner(item_type: str, playbook: PlaybookSpec | None = None) -> set[s
     }
 
 
-def item_types_for_role(
-    slug: str, spec: WorkflowSpec | None = None, playbook: PlaybookSpec | None = None
-) -> list[str]:
+def item_types_for_role(slug: str, spec: WorkflowSpec, playbook: PlaybookSpec) -> list[str]:
     """Item types this role interacts with (DEV sentinel matches any ``*-dev`` slug).
 
-    ``playbook`` (defaulting to the bundled singleton) is a keyed-by-built-in-type-name view
-    with no override mechanism of its own *unless the caller threads the merged one* — passing
-    the active/merged playbook is what lets a project-added role guide or project-added type
-    entry actually change a role's interacting-type list; passing nothing (the bundled default)
-    gives the bundled answer. Independent of that: a type the playbook still names
+    ``playbook`` is the active (merged) one, so a project-added role guide or type entry changes
+    a role's interacting-type list. A type the playbook still names
     but *spec* has dropped (via ``[selected]``, directly, or by renaming it away to a new key)
     is filtered out here, so a role's preload list never keeps naming a type that no longer
     exists. A type *spec* declares that has no playbook entry at all — a project-declared custom
@@ -141,17 +118,11 @@ def item_types_for_role(
     here (there is no interaction data to derive from), the same "no preload, but the thin
     auto-generated skill still exists and is still loadable by hand" degradation any custom type
     already gets.
-
-    ``spec`` defaults to the bundled spec (``None``) for callers with no live squad in hand
-    (tests, and any call before a spec is resolved); every production call site threads the
-    active/merged spec explicitly.
     """
-    active_spec = spec if spec is not None else bundled_spec()
-    active_playbook = _active_playbook(playbook)
     dev = is_dev_slug(slug)
     out: list[str] = []
-    for item_type, pb in active_playbook.types.items():
-        if item_type not in active_spec.items:
+    for item_type, pb in playbook.types.items():
+        if item_type not in spec.items:
             continue
         slugs = {g.slug for g in pb.roles}
         if slug in slugs or (dev and DEV in slugs):
@@ -159,9 +130,7 @@ def item_types_for_role(
     return out
 
 
-def skills_for_role(
-    slug: str, spec: WorkflowSpec | None = None, playbook: PlaybookSpec | None = None
-) -> list[str]:
+def skills_for_role(slug: str, spec: WorkflowSpec, playbook: PlaybookSpec) -> list[str]:
     """Skill names a role's pointer preloads: the always-on skills + the role's item skills.
 
     See :func:`item_types_for_role` for how *spec*/*playbook* keep this list correct — a

@@ -3,7 +3,7 @@ id: REV-1067
 sequence_id: 1067
 type: review
 title: Five 0.16 bug fixes on the agent worktree branch
-status: ChangesRequested
+status: Approved
 author: reviewer
 assignee: reviewer
 refs:
@@ -16,26 +16,26 @@ description: BUG-1000, BUG-994, BUG-1057, BUG-1060, BUG-1058 fixes
 subentities:
 - local_id: F1
   title: Removal gate skipped for a live entry with no direct retiring edge
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: 'Suite regression: catalog-lift test purges the last live role'
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: Removal refusal describes an Archived status and a reactivate remedy
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F4
   title: Gate meta guard keeps gated apps parallel to GATED_GROUPS
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: Pre-repair check adds a false subtasks-container error
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-16T18:41:28Z'
-updated_at: '2026-10-16T18:41:55Z'
+updated_at: '2026-10-16T18:58:54Z'
 ---
 <!-- sq:body -->
 Review of five bug fixes on branch `worktree-agent-a2f892de06784925e`, one commit each on top of release/0.16 at 2630bf5f:
@@ -100,6 +100,8 @@ Fix direction: when the entry is live, probe with a non-live status of the type'
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-16T18:58:42Z] Paul Reviewer:
+  - Verified fb3e2251: on an Active-Warm-Standby-Archived lifecycle and on one with two non-live statuses (pending and retired), the last live role is refused for plain rm and --purge, also from an intermediate live status, with no reflog write; non-last and already-retired roles and a custom skill are removed; squads refused.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -120,6 +122,8 @@ The `svc` fixture has a single live role, and the test purges it. The commit fix
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-16T18:58:43Z] Paul Reviewer:
+  - Verified fb3e2251: test_validator_catalog_lift passes; targeted selection 642 passed, 0 failed.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -155,6 +159,8 @@ Mechanically, store the dependency phrase on `ConfigIntegrityFinding` separately
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-16T18:58:44Z] Paul Reviewer:
+  - Verified fb3e2251: removal reads "cannot remove X: other entries depend on it" with dependency-only lines for floor, type-implied and scoped skills; archive wording unchanged.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -170,6 +176,8 @@ Fix: assert `set(_GATED_APPS) == GATED_GROUPS` in `test_the_walk_sees_the_whole_
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-16T18:58:45Z] Paul Reviewer:
+  - Verified 550cc116: gated apps derived from app.registered_groups filtered by GATED_GROUPS, with an equality assert.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -191,6 +199,8 @@ Suggested disposition: suppress per-item file checks for numbers in a shared-num
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-16T18:58:45Z] Paul Reviewer:
+  - Verified 312b018b: FEAT/TASK, BUG/FEAT, ADR/ROLE, TASK/SKILL pairs report only the shared-number error, before and after repair; the same-id duplicate error still fires alone and alongside a shared number.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->
@@ -203,4 +213,10 @@ Suggested disposition: suppress per-item file checks for numbers in a shared-num
   - F3 proposes the removal wording; F4 (gate meta guard) and F5 (pre-existing false error next to the BUG-994 report) are low.
   - BUG-1000, BUG-1057 and BUG-1060 drove clean; BUG-994 remedy works as printed.
   - @python-dev F1-F3 on a3f3090b, F4 on fa227fdf; F5 needs a disposition (fix or named home).
+- [2026-10-16T18:53:51Z] Elias Python:
+  - F1-F3 fixed in fb3e2251: removal probes a directly-set non-live status so no lifecycle edge is needed; the refusal is worded as a dependency through a removal mode on render_finding; F2 test given a spare role. Falsification: F1 6 of 6 gated rows fail with the edge-based check; F3 2 of 3 wording rows fail without the removal mode.
+  - F4 fixed in 550cc116: gated apps derived from GATED_GROUPS plus an equality assert; adding a ghost group fails 1 of 3 tests. F5 fixed in 312b018b: per-item checks skip a shared number, which the shared-number error already names; 1 of 3 rows reproduced the false error and fails without the fix.
+  - Full suite on the branch: 11256 passed, 17 skipped, 0 failed, run with a private --basetemp because the default /tmp/pytest-of-pchat was being pruned by concurrent runs.
+- [2026-10-16T18:58:52Z] Paul Reviewer:
+  - Fixes verified (fb3e2251, 550cc116, 312b018b); all five findings Fixed. Recommend Approved.
 <!-- sq:discussion:end -->

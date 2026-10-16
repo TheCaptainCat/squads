@@ -42,10 +42,10 @@ def _without_task() -> WorkflowSpec:
     return spec.model_copy(update={"items": {k: v for k, v in spec.items.items() if k != "task"}})
 
 
-_DOCS: dict[str, tuple[WorkflowSpec | None, PlaybookSpec | None]] = {
-    "bundled": (None, None),
-    "playbook-adds-an-authoring-guide": (None, _with_authoring_guides()),
-    "workflow-drops-a-type": (_without_task(), None),
+_DOCS: dict[str, tuple[WorkflowSpec, PlaybookSpec]] = {
+    "bundled": (bundled_spec(), get_playbook_spec()),
+    "playbook-adds-an-authoring-guide": (bundled_spec(), _with_authoring_guides()),
+    "workflow-drops-a-type": (_without_task(), get_playbook_spec()),
 }
 _ALWAYS = ["squads", "greeting", "sq-memory"]
 _DEV_TYPES = ["task", "bug", "contract", "review"]
@@ -138,7 +138,7 @@ def test_only_the_default_role_and_operators_are_exempt_from_the_lanes(
 def test_the_lane_owners_of_a_type_never_include_the_dev_sentinel(
     playbook: str | None, item_type: str, owners: list[str]
 ) -> None:
-    pb = _with_authoring_guides() if playbook else None
+    pb = _with_authoring_guides() if playbook else get_playbook_spec()
     assert sorted(in_lane_owner(item_type, pb)) == owners
 
 
