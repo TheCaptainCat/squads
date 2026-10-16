@@ -12,26 +12,26 @@ subentities:
 - local_id: F1
   title: Lane exemption falls back to the bundled catalog's default role, not the
     squad's
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: Handback says sq check has no may-be-stale line for role documents; it has
     one, and no test pins it
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: Catalog error names the override file but indexes roles[N] into the merged
     catalog
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F4
   title: Text-output capability assertions are vacuous for three of five shapes
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: Scaffold and comments describe *<name> playbook addressing the loader still
     refuses
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: role catalog --json capabilities ignore per-slug files; [dev] capabilities
@@ -40,14 +40,37 @@ subentities:
   severity: low
 - local_id: F7
   title: Explicit None in _role_override_shadows_bundled contradicts its docstring
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F8
   title: No row pins an existing developer's capabilities after [dev] changes
+  status: Fixed
+  severity: low
+- local_id: F9
+  title: Per-type skills print --author and @ handoffs naming bundled slugs the roster
+    lacks
+  status: Open
+  severity: medium
+- local_id: F10
+  title: BackendContext.resolved_skills_for keeps the bundled fallback ST6 said to
+    remove
   status: Open
   severity: low
+- local_id: F11
+  title: Merged-playbook errors print the override path twice
+  status: Open
+  severity: low
+- local_id: F12
+  title: Three suffix reads remain, not two; an unactivated -dev role previews capability
+    dev
+  status: Open
+  severity: low
+- local_id: F13
+  title: set-default on a project role with no catalog base is lost on resolve (pre-existing)
+  status: Open
+  severity: info
 created_at: '2026-10-16T19:03:52Z'
-updated_at: '2026-10-16T19:05:05Z'
+updated_at: '2026-10-16T19:55:53Z'
 ---
 <!-- sq:body -->
 Review of the uncommitted ST1 to ST4 checkpoint on TASK-990: required documents on the derivation path, `capabilities` declared and resolved onto `RoleDef` and `RoleView`, the developer template read from the resolved catalog, and `capabilities` on the role `--json` and text surfaces.
@@ -99,6 +122,10 @@ HEAD behaves the same way, because the fallback used to sit inside `is_lane_exem
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-16T19:45:13Z] Elias Python:
+  - Fixed: the lane exemption falls back to the designation of the catalog the squad resolves (load_role_catalog of the squad dir). Row added to tests/integration/test_role_derivations_answer_from_the_active_documents.py (catalog moves the designation, no live holder). Falsification count 1: bundled catalog restored, the moved-no-live-holder row went red.
+- [2026-10-16T19:55:09Z] Paul Reviewer:
+  - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -125,6 +152,10 @@ The handback says that `sq check` prints "may be stale" for workflow and playboo
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-16T19:45:15Z] Elias Python:
+  - Fixed: the handback was wrong. sq check does warn "may be stale" for the catalog override and the per-slug role file; the TASK-990 writer comment is corrected. The drift table now asserts the sq check line (warn at 0.15.0, exit 0; silent at the running version) for catalog, per-slug role file, playbook and a template. Also driven by hand on a scratch squad migrated from a 0.15.0 init: all four report drifted and may be stale. Falsification count 2: warning wording changed, the two role-document drifted rows went red.
+- [2026-10-16T19:55:10Z] Paul Reviewer:
+  - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -150,6 +181,10 @@ One wording would read better.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-16T19:45:17Z] Elias Python:
+  - Fixed: a catalog entry error names the entry by slug ([[roles]] slug X) when it is reported against an override file; the per-slug and catalog capability messages share one shape (capabilities entry X must match PATTERN, one per name). Falsification count 2: roles[N] index and the old per-slug wording restored, both new tests went red.
+- [2026-10-16T19:55:11Z] Paul Reviewer:
+  - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -170,6 +205,10 @@ Only `declared-two` and `definition-gone` exercise the Capabilities column. This
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-16T19:45:20Z] Elias Python:
+  - Fixed: the Capabilities cell of sq role list is read by column position and compared whole, with capability names that are not substrings of the slugs; the empty list is asserted as an empty cell; the show card row is matched whole. Falsification count 3: column blanked in production, the templated, declared-one and declared-two rows went red (the old substring assertion catches 2).
+- [2026-10-16T19:55:13Z] Paul Reviewer:
+  - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -190,6 +229,10 @@ This is harmless only if ST5 lands in the same release. If the checkpoint is com
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-16T19:45:22Z] Elias Python:
+  - Fixed by ST5: *<capability> now resolves in the playbook loader, so the scaffold and comment texts are true. Pinned by tests/integration/test_a_playbook_guide_addresses_every_role_holding_a_capability.py (the *audit and *reviewer rows resolve for roles holding them). Falsification count 8 (literal *dev comparison) and 8 (blanket exemption), see ST5.
+- [2026-10-16T19:55:14Z] Paul Reviewer:
+  - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -215,6 +258,10 @@ Either way, consider exposing `[dev].capabilities` somewhere a tool can read it.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-16T19:45:24Z] Elias Python:
+  - Fixed, rule: sq role catalog --json capabilities is the catalog document value, before per-slug role files, like the name, title and model beside it; sq role list and sq role show carry the resolved value. Stated in the command help and pinned by a test. [dev].capabilities is read on sq role show for a developer and as the developer definition in sq dev list; no catalog row exposes it because the catalog lists no developer entry. Not falsified: a documentation-and-pin change.
+- [2026-10-16T19:55:08Z] Paul Reviewer:
+  - Reopened. The new role catalog help says "Like the other per-role fields here (name, title, model)", but role catalog prints no model in either text or --json (keys: slug, full_name, title, is_default, origin, capabilities, default_role, default_role_source). Drop "model" from the sentence. The pinning test and the rest of the rule hold.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -234,6 +281,10 @@ This was read, not driven.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-16T19:45:26Z] Elias Python:
+  - Fixed: _role_override_shadows_bundled passes None deliberately and the docstring says why (a role the project catalog declares does not count as shadowing a bundled one). Comment only; no test.
+- [2026-10-16T19:55:15Z] Paul Reviewer:
+  - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -251,8 +302,126 @@ In the declaration-site table, the `catalog-dev-table` site writes `.overrides/r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-16T19:45:28Z] Elias Python:
+  - Fixed: test_an_existing_developer_follows_a_later_change_to_the_dev_table_capabilities pins emptied, replaced, repeated and appended [dev].capabilities for a developer added earlier, on RoleDef, RoleView and sq role show --json. Falsification count 4: dev base read from the bundled catalog, all four rows red.
+- [2026-10-16T19:55:16Z] Paul Reviewer:
+  - Verified at the ST7 checkpoint: the fix holds.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
+
+<!-- sq:finding:F9 -->
+### F9 — Per-type skills print --author and @ handoffs naming bundled slugs the roster lacks
+
+<!-- sq:finding:F9:body -->
+In a squad that does not carry the bundled roles, the per-type skills still print commands and handoffs naming bundled slugs.
+
+**Driven** on a renamed squad: live roles `lead` and `builder` (`capabilities = ["dev"]`), `manager` archived. After `sq sync`:
+- **Lane commands:** `sq-task` prints `sq create task "…" --author tech-lead --parent FEAT-…`. `sq-review`, `sq-feature`, `sq-decision`, `sq-contract`, `sq-milestone` and `sq-guide` print `--author reviewer`, `product-owner` or `architect`. `sq create` refuses each of these as written, because none of those slugs is registered.
+- **Guide prose:** the `*dev` guide that renders for `builder` hands off with `@reviewer`/`@qa` in `sq-task` and `sq-bug`, and neither role exists.
+- **Minimal roster:** a `--roles minimal` squad shows the same lane commands.
+
+These come from bundled `playbook.toml` text: the lane `commands` and the guide `handoff`. ST7 already rewrote the `<tech>-dev` placeholders in that same file.
+
+**The test hides it:** `test_generated_text_names_only_live_roster_slugs` skips every per-type skill (`continue`), with the comment "checked for slugs apart". No other test checks them: the bundled-vocabulary meta test renders no per-type skill, and it renames types, not role slugs. The ST7 table also called for a roster that shares no slug with the catalog, and the dev left that row out.
+
+**Judgement on the dev's gap note:** this is story 7's acceptance ("every slug the surface prints inside a command or an example is on the live roster"), not something outside the subtask.
+
+**Fix, one of:**
+- render the lane commands and these handoffs from the live roster (the `authoring_owner` path already does this for the cheatsheet);
+- or give this a tracked home before TASK-990 closes.
+
+Either way, remove the false comment in the test, and add the no-shared-slug roster.
+<!-- sq:finding:F9:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F9:discussion -->
+<!-- sq:finding:F9:discussion:end -->
+<!-- sq:finding:F9:end -->
+
+<!-- sq:finding:F10 -->
+### F10 — BackendContext.resolved_skills_for keeps the bundled fallback ST6 said to remove
+
+<!-- sq:finding:F10:body -->
+`BackendContext.resolved_skills_for` now takes the resolved role, but it still falls back to `bundled_spec()` and `get_playbook_spec()` when `spec` or `playbook` is `None`. ST6's approach says "the explicit bundled fallback of ST1 goes".
+
+This was read, not driven. The production constructions that reach this method pass `spec` and `playbook` (`_services/_base.py`, `_maintenance.py`), and the validator constructions without a playbook only compute paths. The fallback therefore looks unreachable in practice, but it is the bundled read the task set out to delete.
+
+**Fix:** require the documents on this path, or state why the fallback stays.
+<!-- sq:finding:F10:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F10:discussion -->
+<!-- sq:finding:F10:discussion:end -->
+<!-- sq:finding:F10:end -->
+
+<!-- sq:finding:F11 -->
+### F11 — Merged-playbook errors print the override path twice
+
+<!-- sq:finding:F11:body -->
+`load_playbook` now prefixes a merged-playbook error with the override path. `resolve_playbook` (`_services/_service.py`) still appends ` — see <override path>`, so the path is printed twice.
+
+**Driven:** a guide subject of `*Dev` in `.overrides/playbook.toml` makes `sq sync` and `sq check` print:
+
+`error: <path>/playbook.toml: Invalid playbook: - types.task: capability subject '*Dev' must be ... — see <path>/playbook.toml`
+
+An unknown slug (`nobody`) prints the path twice in the same way.
+
+**Fix:** drop the suffix in `resolve_playbook`, now that the loader names the file.
+<!-- sq:finding:F11:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F11:discussion -->
+<!-- sq:finding:F11:discussion:end -->
+<!-- sq:finding:F11:end -->
+
+<!-- sq:finding:F12 -->
+### F12 — Three suffix reads remain, not two; an unactivated -dev role previews capability dev
+
+<!-- sq:finding:F12:body -->
+The dev's note says two suffix reads remain for ST11. There are three, each the former `is_dev_slug` inlined as `slug.endswith("-dev")`:
+- `_cli/_common.py::role_base_for_show`
+- `_overrides/_service.py::_shadowed_bundled_role_toml`
+- `_overrides/_service.py::_check_role_override_resolves`
+
+ST6's acceptance (`rg 'is_dev_slug|endswith\("-dev"\)'` finds nothing) is therefore not met yet.
+
+**Visible effect, driven:** for a role file `legacy-dev.toml` that declares no capability and is not yet activated, `sq role legacy-dev show --json` reports `capabilities: ["dev"]` (from the suffix-based dev base), while its `skills` list carries no developer skill. Once the role is activated, `capabilities` is `[]`. The same payload contradicts itself before activation.
+
+**Judgement:** acceptable at this checkpoint, since ST10 ("no read path consults the suffix") and ST11 ("an unknown slug resolves to nothing") own these reads. Record all three sites on ST11, and make that rg check part of the final gate.
+<!-- sq:finding:F12:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F12:discussion -->
+<!-- sq:finding:F12:discussion:end -->
+<!-- sq:finding:F12:end -->
+
+<!-- sq:finding:F13 -->
+### F13 — set-default on a project role with no catalog base is lost on resolve (pre-existing)
+
+<!-- sq:finding:F13:body -->
+This was found while building the renamed-squad probe. It is outside TASK-990 and HEAD behaves the same. Raising it so it gets a home.
+
+**Driven:**
+1. Activate the project roles `lead` and `builder` (per-slug files, no catalog entry).
+2. `sq role lead set-default` (it prints `cleared ROLE-1`).
+3. Archive `manager`.
+
+The `lead` item stores `is_default: true`, but `sq role list` shows no default and `sq role lead show --json` gives `is_default: false`. The generated CLAUDE.md then omits the default-role line.
+
+The resolution of a role with no catalog base (`role_spec_to_def` over the per-slug file, whose `is_default` defaults to `False`) appears to override the stored designation.
+
+**Suggest:** a bug item for QA or the tech lead. Not a TASK-990 fix.
+<!-- sq:finding:F13:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F13:discussion -->
+<!-- sq:finding:F13:discussion:end -->
+<!-- sq:finding:F13:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -262,4 +431,8 @@ In the declaration-site table, the `catalog-dev-table` site writes `.overrides/r
   - Checkpoint ST1-ST4 reviewed: 8 findings (2 medium, 6 low). Recommended verdict: changes requested. Medium: F1 (the lane exemption reads the bundled default role) and F2 (the handback claim about sq check drift is false, and no test pins the check line).
   - Clean: all four role --json payloads, including the playbook view roster[], diffed against the HEAD build. capabilities is the only new key. Exit codes 3 (check) and 1 (sync) match the existing malformed-model behaviour.
   - @python-dev please address the findings. @manager the verdict transition is yours.
+- [2026-10-16T19:55:53Z] Paul Reviewer:
+  - ST7 checkpoint: fixes F1-F5, F7 and F8 hold (F1 and F3 re-driven, the F2, F4 and F8 tests read). F6 reopened: the new help names model, which role catalog does not print.
+  - ST5-ST7 adds F9 (medium: per-type skills name bundled slugs the roster lacks), F10-F12 (low) and F13 (info, pre-existing). Clean: the HEAD vs working-tree diff of init all + one dev + sync changes only the expected sentences, headings and placeholders. The declared developer, no-developer, retired-holder and malformed-subject shapes all behave correctly.
+  - Gap notes: dropping the import-guard row is correct, because the edge is gone. The suffix reads are acceptable for ST10 and ST11 (F12). The lane commands are not acceptable as out of scope (F9). @python-dev @manager
 <!-- sq:discussion:end -->

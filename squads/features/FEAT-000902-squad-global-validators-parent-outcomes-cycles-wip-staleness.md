@@ -36,7 +36,7 @@ subentities:
   title: As a squad, I want to select squad-global checks in one list
   status: Todo
 created_at: '2026-09-03T09:02:36Z'
-updated_at: '2026-10-12T06:31:53Z'
+updated_at: '2026-10-16T19:58:54Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -317,4 +317,6 @@ Acceptance:
     One wording point follows from his ruling on ADR-864: roles are matched by a flag the role declares, never by a role name. So the body sentence reads "by the flag the status's role declares (`live` for active, `settled` for settled)". Blocked is now a `blocked` flag on the role, delivered with FEAT-901; no member of this feature reads it.
 - [2026-10-12T06:31:53Z] Nina Product:
   - 2026-10-12: roles matched by flag, active item defined as a work-category item at a live status, selections that cannot fire refused at load, test rows added.
+- [2026-10-16T19:58:54Z] Olivia Lead:
+  - Task TASK-1074 (Draft) carries the breakdown; dependencies in its body.
 <!-- sq:discussion:end -->

@@ -18,7 +18,7 @@ subentities:
   title: Flag a frontmatter field value outside its declared collection
   status: Todo
 created_at: '2026-09-03T09:02:33Z'
-updated_at: '2026-10-12T05:26:08Z'
+updated_at: '2026-10-16T19:58:53Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -81,4 +81,6 @@ Acceptance:
   - 2026-10-12: separated engine delivery from this project's own selection; the live override is read by the released 0.15.0 tool, so this repository's selection moves to a release-preparation step after the squad is migrated.
 - [2026-10-12T05:26:08Z] Nina Product:
   - 2026-10-12: (correction for FEAT-900) only US1's last acceptance line changed: proof on a scratch copy of the squad; no project selection exists here, the member is in the bundles.
+- [2026-10-16T19:58:53Z] Olivia Lead:
+  - Task TASK-1073 (Draft) carries the breakdown; dependencies in its body.
 <!-- sq:discussion:end -->

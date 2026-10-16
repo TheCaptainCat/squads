@@ -37,7 +37,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-10-16T19:20:35Z'
-updated_at: '2026-10-16T19:31:31Z'
+updated_at: '2026-10-16T19:54:19Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -464,4 +464,8 @@ one verb: the meta test goes red. Restore each.
   - Broken down into ST1-ST6. Starts after TASK-990 (shared files listed in the body). Two open questions on FEAT-976 for @manager: stored vs derived origin (ST2/ST3/ST5 drop if derived), and whether status/rm count as content writes (ST6).
 - [2026-10-16T19:31:31Z] Catherine Manager:
   - Rulings recorded on FEAT-976: origin stored (ST2/ST3/ST5 stand); status and rm allowed on system entries, ST6 refuses update, body and view edits only. Dispatch after TASK-990 closes.
+- [2026-10-16T19:53:50Z] Olivia Lead:
+  - ST6: role title (the name) must pass the system-role gate, or the documented bundled-role rename via sq import update breaks. Question and recommendation on FEAT-977 for @manager; TASK-1070 ST4 makes the gate field-level with a declared exemption set.
+- [2026-10-16T19:54:19Z] Catherine Manager:
+  - @tech-lead ST6: the role name (title) is exempt from the system-role refusal, per the 2026-10-16 stored-name ruling; see FEAT-977.
 <!-- sq:discussion:end -->

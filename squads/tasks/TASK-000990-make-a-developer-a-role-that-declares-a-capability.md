@@ -36,15 +36,15 @@ subentities:
   story: US9
 - local_id: ST5
   title: Address a capability from the playbook with *<name>
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST6
   title: Switch every consumer to the resolved role
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST7
   title: Name roles from the roster in generated text
-  status: Todo
+  status: Done
   story: US7
 - local_id: ST8
   title: Drop the is_dev attribute and add the 0.16 contribution
@@ -63,7 +63,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-09T20:28:02Z'
-updated_at: '2026-10-16T19:04:24Z'
+updated_at: '2026-10-16T19:45:55Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -702,6 +702,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-16T19:45:46Z] Elias Python:
+  - Falsification count 16. Broke (a) a blanket exemption for a *-prefixed subject in orphaned_playbook_guides: 8 red (the override rows with no live holder); (b) the capability test hard-coded to *dev: 8 red (every *audit and *reviewer row). Restored, 25 green. Table: tests/integration/test_a_playbook_guide_addresses_every_role_holding_a_capability.py (3 subjects x holder states x authors; four surfaces compared as one set, plus malformed subjects naming playbook.toml and the silent bundled *dev guides). The DEV constants are gone; no capability name remains in code or templates outside _specs and _migrations.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -771,6 +773,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-16T19:45:49Z] Elias Python:
+  - Falsification count 4. Broke (a) the addresses helper also counting a -dev slug as holding the capability: 2 red (the suffixed rosters); (b) sq dev list filtering on the tech attribute: 2 red (the declared rosters). Restored, 4 green. Table: tests/integration/test_a_declared_developer_is_treated_like_a_templated_one_on_every_surface.py (four rosters; pointer skills, section, create lane, sq dev list, example assignee, delegate examples; developers alike, ordinary roles alike). The derivations take the resolved role; is_dev_slug is deleted. Two suffix reads remain for ST11 (preview of an unadded dev slug in _cli/_common.py and _overrides/_service.py).
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -844,6 +848,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-16T19:45:52Z] Elias Python:
+  - Falsification count 8. Broke (a) example_assignee_slug returning a literal: 4 red (every roster without that slug); (b) the old <tech>-dev sentence put back in the CLAUDE.md template: 4 red. Restored, 5 green. Table: tests/integration/test_generated_text_names_only_live_roster_slugs.py (4 rosters over CLAUDE.md, AGENTS.md, pointers, every skill body; whitespace-collapsed scan validated against the old sentence). Not covered: a roster sharing no slug with the bundled catalog, which tests/meta/test_generated_agent_text_names_no_bundled_vocabulary.py keeps. Per-type skill lane commands still name bundled authoring slugs from the bundled playbook text (--author product-owner); outside this subtask.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -1267,4 +1273,16 @@ Gates and working rules: the task body.
     For the hand-written part of CLAUDE.md, listed not edited (ST5 and later make these false; nothing in ST1 to ST4 does): the `*dev` sentinel line and the `dev_role()` mention.
 - [2026-10-16T19:04:24Z] Paul Reviewer:
   - Checkpoint ST1-ST4 reviewed in REV-1068: 2 medium (F1 lane-exemption bundled fallback, F2 false sq check drift claim), 6 low. @python-dev @manager
+- [2026-10-16T19:45:55Z] Elias Python:
+  - Correction to my ST1 to ST4 note for the writer: `sq check` does warn "may be stale" for role documents. A catalog override (`.overrides/roles.toml`) and a per-slug role file stamped at the previous release warn (exit 0) once the bundled `roles.toml` changed; the same holds for the playbook override and a template override when their bundled counterparts changed. All four also show as `drifted` in `sq override list`; stamped at the running version they are silent.
+    
+    ST5 to ST7, adopter-visible, for the writer:
+    
+    - A playbook guide subject can be `*<name>`: it addresses every live role whose `capabilities` list holds that name. A bundled guide `*dev` is the same form; nothing in the engine knows the name `dev`. Guides addressed to a capability render their section only while a live role holds it, under a heading naming the capability and listing the holders ("## For `*dev`: Elias Python (`python-dev`), ..."); the old heading "For developers" is gone from the per-type skills.
+    - A capability subject is checked at load: `*Dev`, `*`, `* dev` are refused, naming `.overrides/playbook.toml`. Any error in a merged playbook now starts with the override file's path.
+    - `authors = true` on a capability guide puts the type in the create lane of every holder (`sq role <slug> show`, the out-of-lane advisory on `sq create`).
+    - `sq check` and `sq sync` warn about an override guide whose capability no live role holds ("names no live role ... declare `capabilities = [\"<name>\"]` on a live role, or remove the guide"); a bundled capability guide stays silent when nobody holds it.
+    - A developer is a live role holding a capability the `[dev]` table declares: `sq dev list` lists templated and declared developers alike (live ones only), and a role merely named `...-dev` without the capability loses the developer guidance (pointer skills, section, example assignee).
+    - Generated text: the CLAUDE.md sentence "a developer's slug is `<tech>-dev`" is gone; the delegate examples are up to four live roles in roster order (never the default role, a developer included when one is live); the example `--assignee` is a live developer, else the first live role; the six `<tech>-dev` placeholders in the bundled playbook guide text read `<developer>`; the memory skill no longer names `python-dev`.
+    - Hand-written CLAUDE.md sentences made false, not edited: the `_interactions/` bullet ("`*dev` sentinel = any `<tech>-dev` role") should read "a guide subject is a role slug or `*<capability>`"; the `_roles/_catalog.py` bullet loses `dev_role()`. Proposed wording for the first: "which roles interact with each item type (a guide addresses a role slug, or every role holding a capability with `*<capability>`)".
 <!-- sq:discussion:end -->

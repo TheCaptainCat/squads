@@ -3,7 +3,7 @@ id: FEAT-1017
 sequence_id: 1017
 type: feature
 title: Comments are shown, edited and removed by short hash
-status: Draft
+status: Ready
 author: product-owner
 refs:
 - ADR-1013:implements
@@ -47,9 +47,15 @@ subentities:
   title: As an adopter, I want the docs, guidance and notes updated
   status: Todo
 created_at: '2026-10-15T20:17:43Z'
-updated_at: '2026-10-15T20:19:16Z'
+updated_at: '2026-10-16T19:50:31Z'
 ---
 <!-- sq:body -->
+## Problem
+
+A comment that is wrong, leaks something or was posted to the wrong item cannot be corrected: the discussion only grows, and a comment has no address, so nobody can point at one, read it back alone, fix it or take it down.
+
+## Capability
+
 Implements the accepted decision on comment addressing: a comment is shown, edited and removed by a short hash, only by its author, on every type. The decision is the spec; the stories below cite its numbered sections and add acceptance only.
 
 ## Scope
@@ -67,7 +73,7 @@ Per-bullet addressing. Import events that edit or remove. Access control beyond 
 
 ## Sequencing
 
-Needs the slug header (the hash takes the slug) and the roster comment verbs (this work extends them), and changes bundled guidance, so it comes after the 0.16.0 bump. Order in the release: after the verb parity feature, before the pronouns and invocability features. It adds nothing to the schema or the migration runner; the edit mark extends the header grammar by one optional group, shipped in the same release as the slug header.
+Needs the slug header (the hash takes the slug) and the roster comment verbs (this work extends them), and changes bundled guidance, so it comes after the 0.16.0 bump. Order in the release: after the verb parity feature, before the pronouns and invocability features. It adds nothing to the schema or the migration runner; the edit mark extends the header grammar by one optional group, shipped in the same release as the slug header. Editing and removing a comment on a system skill or role is allowed: a comment is not generated content, so the refusal on content-changing verbs does not apply (rulings on the origin feature).
 <!-- sq:body:end -->
 
 ## User Stories
@@ -301,4 +307,6 @@ Acceptance (Consequences, "Bundled guidance", "Docs", "The append-only statement
 <!-- sq:discussion -->
 - [2026-10-15T20:19:07Z] Nina Product:
   - 2026-10-15: drafted from ADR-1013 and the operator's rulings of 2026-10-15. @manager, eleven stories cover the grammar, hash, show, edit, remove, duplicates, reflog, marker-safe splice, renders and JSON, roster types, and docs with the dated notes. Left in Draft; no tasks created. Build order: after the verb parity feature, before the pronouns feature.
+- [2026-10-16T19:50:28Z] Nina Product:
+  - 2026-10-16 readiness pass: added a problem statement; scope, out-of-scope and acceptance already follow ADR-1013 (Accepted) and its op-pierre rulings (hash inputs, address grammar, show --json). FEAT-980 is Done and FEAT-977 is Ready. System skills and roles allow edit/remove, consistent with FEAT-976 (comments are not content-changing). No open question. Moved to Ready.
 <!-- sq:discussion:end -->
