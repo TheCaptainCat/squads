@@ -57,7 +57,7 @@ def effective_prefix(prefix: str) -> str:
     """Return *prefix* if set, else the diagnosable :data:`UNRESOLVED_PREFIX` sentinel.
 
     The one shared "best prefix we have right now, without resolving real vocabulary" helper —
-    every acyclic formatter/matcher that used to fall back to ``item_type.upper()`` (Item.id,
+    every acyclic formatter/matcher that needs a prefix without resolving vocabulary (Item.id,
     ``SquadsDB.format_id``, the ref-matching helpers in ``_services``/``_cli``) routes through
     this instead.
 
@@ -509,8 +509,8 @@ def _empty_list_if_unset(value: Any) -> Any:
     the default ``list(data.get(key, []) or [])``, whose ``or`` swallowed ``""`` too, so a file
     carrying ``labels: ''`` loaded. Tightening that would mean a file that loaded yesterday
     failing today — the wrong direction for a boundary whose job is to keep legacy files
-    readable. A *non-empty* string is a different matter and is now rejected rather than silently
-    exploded into one entry per character, which is what ``list("abc")`` did.
+    readable. A *non-empty* string is a different matter and is rejected rather than silently
+    exploded into one entry per character, as ``list("abc")`` would do.
 
     That rule is only worth stating if it holds over its whole scope, so **all three** list-valued
     frontmatter keys the old coercions covered go through here — ``labels``, ``refs`` and
@@ -579,8 +579,8 @@ def _read_severity(data: dict[str, Any]) -> Any:
 
 
 def _read_extra(data: dict[str, Any], *, keep_ref_kinds: bool = False) -> Any:
-    """Item ``extra``, minus the legacy ``ref_kinds`` (now inline on the refs) and the legacy
-    ``severity`` key (now read top-level via :func:`_read_severity`).
+    """Item ``extra``, minus the legacy ``ref_kinds`` (inline on the refs) and the legacy
+    ``severity`` key (read top-level via :func:`_read_severity`).
 
     Unset (``None`` or ``""``, via :func:`_empty_dict_if_unset`) is an empty mapping. A
     non-mapping ``extra`` (``extra: oops``, ``extra: [1, 2]``) is returned **unchanged** for

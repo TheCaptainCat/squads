@@ -1335,10 +1335,10 @@ def get_service() -> Service:
 
     ``sq <type> <n> <verb>`` crosses the sync/async bridge twice for one user-facing
     invocation — the Typer group's id-resolving callback and the leaf verb, as two sequential
-    ``anyio.run`` calls (see :func:`command`) — and each used to mint its own ``Service`` and
-    its own ``IndexStore``, so the read scope's per-store cache never actually shared a store
-    across them: two reads for one invocation, short of the request-scoped read design's
-    "one invocation observes one index state" promise for that form.
+    ``anyio.run`` calls (see :func:`command`) — and both must share one ``Service`` and
+    one ``IndexStore``, so the read scope's per-store cache is shared across them and the
+    request-scoped read design's "one invocation observes one index state" promise holds for
+    that form.
 
     Memoized on the same anchor the read scope already uses — the Click root context's
     ``meta`` — and gated on the *same* condition that opens the scope

@@ -25,8 +25,7 @@ def _skipped_note(count: int) -> Content:
 
     The service reports unreadable item files per file rather than failing the whole walk, so
     the screen has an answer to show — it just isn't the whole corpus, and silently rendering
-    it as if it were would be the misleading half of the old behaviour rather than the useful
-    half.
+    it as if it were would be misleading.
     """
     files = "file" if count == 1 else "files"
     return Content.from_markup(

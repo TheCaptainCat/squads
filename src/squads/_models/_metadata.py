@@ -4,7 +4,7 @@ Global fields (title/status/parent/author/assignee/labels) are dedicated `update
 covers only the **type-specific** `extra` keys, with the value kind used to coerce the CLI string.
 Identity/derived keys (``slug``, ``is_dev``) are intentionally absent — they're not settable.
 
-Item-level bug severity is no longer one of these ``extra`` keys — it's a top-level, spec-declared
+Item-level bug severity is not one of these ``extra`` keys — it's a top-level, spec-declared
 badge field (``Item.severity``); ``ItemsMixin._apply_extra`` routes ``--set severity=`` onto it
 directly (validated against the spec's ``severity`` collection), a frozen per-axis shim until a
 follow-up generalizes ``--set`` over every declared field.
@@ -40,14 +40,14 @@ class Field:
 #: would accept a value nothing reads and no writer ever refreshes. What is left is the
 #: stored state with no catalog answer — a developer's ``model`` and ``tech``, and the
 #: default-role designation. See :data:`_ROLE_DECLARED_IN_OVERRIDES` for where the rest is
-#: declared now, and :func:`coerce_extra` for the refusal that names it.
+#: declared, and :func:`coerce_extra` for the refusal that names it.
 _ROLE_FIELDS: tuple[Field, ...] = (
     Field(X.MODEL),
     Field(X.IS_DEFAULT, "bool"),
     Field(X.TECH),  # only meaningful for dev roles, harmless elsewhere
 )
 
-#: Role ``extra`` keys that used to be settable here and are now resolved from the role
+#: Role ``extra`` keys that are not settable here because they are resolved from the role
 #: catalog. An operator reaching for one of them has a real intent and there is a real place
 #: to satisfy it, so the refusal names that place rather than reporting an unknown field —
 #: this is the remedy half of the narrowing above, not decoration.
@@ -184,7 +184,7 @@ def _refusal_hint(item_type: str, key: str) -> str:
     the *role's* title in ``extra`` and the role holder's display name at the top level, and
     ``description``/``model`` mean something else again on a skill. Sending an operator to a
     role override document from a skill's refusal, or to the top-level flag for a value that
-    is now a catalog answer, would each be a remedy that does not apply.
+    is a catalog answer, would each be a remedy that does not apply.
     """
     if item_type == "role":
         if key == _ROLE_NAME_KEY:

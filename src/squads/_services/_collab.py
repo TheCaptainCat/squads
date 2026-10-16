@@ -322,9 +322,9 @@ class CollabMixin(ServiceCore):
     ) -> str:
         """Resolve the discussion region to append to.
 
-        ``story``/``subtask``/``finding`` are the built-in kinds' historical named params
-        (kept for existing call sites); ``sub`` is the generic ``(kind, local_id)`` pair the
-        CLI's spec-driven sub-entity comment verb uses for any kind, built-in or custom.
+        ``story``/``subtask``/``finding`` are the built-in kinds' named params;
+        ``sub`` is the generic ``(kind, local_id)`` pair the CLI's
+        spec-driven sub-entity comment verb uses for any kind, built-in or custom.
         """
         if sum(bool(t) for t in (story, subtask, finding, sub)) > 1:
             raise SquadsError("target only one of --story / --subtask / --finding")

@@ -15,7 +15,7 @@ Design note:
   ``SquadPaths.folder_for``/``squad_relative`` which consults the spec. Do NOT
   fold folder resolution in here without a dedicated design decision.
 - A future ``subentity_plural`` accessor could be added to this module when the
-  spec gains that vocabulary; do not pull it forward now.
+  spec gains that vocabulary; it is not needed before then.
 
 ``label_for`` is a second, independent resolver on the same module: a type's
 human-readable display name, in one of four named forms (``singular`` / ``plural`` /

@@ -132,8 +132,8 @@ class ContextRequirement(StrEnum):
     scan per mutation.
 
     Naming them is what makes a validator's non-participation on a given path a **declared**
-    property. It used to be an accident: the gate passed the fields' empty values through and
-    each reader guarded itself into returning nothing, which reads identically whether the
+    property. Without that it would be an accident: a reader that guards itself into
+    returning nothing reads identically whether the
     member was designed to sit that path out or had simply never been considered on it. The
     difference matters because a member that stays silent for want of context is not gating
     anything, whatever level its findings carry.

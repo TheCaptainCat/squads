@@ -94,9 +94,8 @@ def find_markers(text: str) -> list[str]:
     mixed-case sub-entity region tags (``sq:finding:F<n>:body``) that make up the bulk of the
     markers in a real item file.
 
-    **Position is irrelevant, and an earlier version of this docstring said otherwise.** It
-    claimed a reference "written in prose" was not mistaken for a real marker. Driven with a
-    control: a bare well-formed tag matches, the identical tag wrapped in backticks matches, and
+    **Position is irrelevant.** A reference "written in prose" is still matched as a real
+    marker: a bare well-formed tag matches, the identical tag wrapped in backticks matches, and
     so does one inside a fenced code block — backticks and fences sit outside ``MARKER_RE`` in
     both directions and neutralise nothing. What makes the documented ``sq:*`` form safe to write
     in prose is the ``*`` alone, which is not in the tag's character class (word characters, ``:``

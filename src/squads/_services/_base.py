@@ -406,13 +406,11 @@ def reject_markers(text: str, what: str = "body") -> None:
     before any file write. The ``what`` label appears in the message (e.g. ``"body"``,
     ``"comment message"``, ``"title"``).
 
-    **Every label gets the remediation guidance**, including the default ``"body"`` one. It
-    used to get a terse variant, kept that way so existing callers and tests stayed unchanged —
-    a test-compatibility argument, and the worse message was sitting on the busiest path:
-    ``body`` is the default, so the item body, both sub-entity body writers and the shared
-    section-edit core all took it.
+    **Every label gets the remediation guidance**, including the default ``"body"`` one, which is
+    the busiest path: ``body`` is the default, so the item body, both sub-entity body writers
+    and the shared section-edit core all take it.
 
-    The guidance is what makes the refusal defensible rather than merely strict. Now that the
+    The guidance is what makes the refusal defensible rather than merely strict. The
     tag class recognises mixed-case sub-entity region tags, the likeliest way to trip this
     guard is quoting one while *writing about* the marker system — and an author who does that
     reaches for backticks first, which do not help. Telling them what to write instead is the
@@ -446,7 +444,7 @@ def reject_body_overwrite(target: str, current: str) -> None:
     against an unwritten template scaffold never trips it) and, when it does fire, hands back
     the line count and the opening lines of what was at stake **before** anything is written.
     That also makes the default invocation its own dry run: "would this be permitted here?"
-    is now answerable without performing the destruction.
+    is answerable without performing the destruction.
 
     *target* is how the message names the thing being written — an item id on its own for an
     item body, the item id plus the block's local id for a sub-entity's; *current* is the body
@@ -944,9 +942,8 @@ class ServiceCore:
     async def get(self, item_id: str) -> Item:
         """Return *item_id*, always as a deep copy.
 
-        Preserves a contract that already held before the read scope existed: every ``get()``
-        used to come out of a freshly parsed db, so no two callers ever shared an object. With
-        one snapshot now potentially served to many callers in the same invocation (see
+        Guarantees that no two callers ever share an object. With one snapshot
+        potentially served to many callers in the same invocation (see
         ``squads._index._store.read_scope``), the copy at this seam is what keeps that true —
         an in-place mutation of a returned item can never contaminate a later read of the same
         snapshot.
@@ -1538,7 +1535,7 @@ class ServiceCore:
         vocabulary), not the allocation-order union
         (``bundled_skill_slugs() | custom_skill_slugs(spec)``) those two seeding helpers use —
         that union always covers every historically-bundled ``sq-<type>`` slug, so it would
-        keep exempting a dropped/renamed type's stale skill from ever being flagged now that a
+        keep exempting a dropped/renamed type's stale skill from ever being flagged since a
         workflow override can shadow a built-in type instead of only adding to it.
         """
         all_skills = await self.list_items(item_type=ROSTER_SKILL)
@@ -1595,7 +1592,7 @@ class ServiceCore:
         withdrawn. The single place the materialise-or-withdraw predicate and the backend
         calls it drives are expressed — shared by the single-item transition path
         (:meth:`_project_roster_transition`) and ``sync``'s roster sweep
-        (:meth:`MaintenanceMixin.sync`), so the two can no longer disagree on either the
+        (:meth:`MaintenanceMixin.sync`), so the two cannot disagree on either the
         predicate or the context they hand the backend.
 
         The materialise-or-withdraw predicate itself is

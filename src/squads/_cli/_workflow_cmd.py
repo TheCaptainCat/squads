@@ -111,7 +111,7 @@ async def _print_cheatsheet(*, raw: bool) -> None:
     # authors what" answer as CLAUDE.md/the squads skill — never a role this squad doesn't
     # have. `sq workflow` is also a valid reference command *outside* any squad (before
     # `sq init`, or from an unrelated directory), where there is no roster to read; that
-    # case degrades to the historical unfiltered-by-catalog-membership-only behaviour rather
+    # case degrades to the unfiltered-by-catalog-membership-only behaviour rather
     # than failing the whole command.
     roles: list[dict[str, str]] | None = None
     playbook: PlaybookSpec | None = None

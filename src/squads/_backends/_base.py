@@ -256,8 +256,8 @@ class AgentBackend(ABC):
         **error** level, before and after the per-entry rule existed). The honest reason is
         narrower: a per-entry pointer going untracked while the top-level files stayed tracked
         was, before that rule, invisible to ``sq check`` altogether — not error, not warn,
-        nothing. Warn keeps that previously-silent shape's exit code unchanged rather than
-        adding a new error to a patch release.
+        nothing. Warn reports that shape without failing the exit code the way a missing
+        top-level file does.
         """
 
     def managed_entry_paths(self, ctx: BackendContext) -> list[str]:

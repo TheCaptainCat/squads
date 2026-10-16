@@ -141,10 +141,9 @@ def _required_markers_from_bundled(template_name: str) -> set[str]:
     Empty set for templates we cannot read or that carry no markers.
 
     Goes through :func:`~squads._sections.find_markers` — the one marker-recognition
-    primitive — rather than a second regex of its own: the copy that used to live here was a
-    verbatim duplicate, so it inherited the lowercase-only tag class that made every
-    mixed-case sub-entity marker invisible, and would have had to be found and fixed a second
-    time. One definition, one place to widen.
+    primitive — rather than a second regex of its own, which would have to be widened separately
+    whenever the tag class changes (it covers mixed-case sub-entity markers). One definition,
+    one place to widen.
     """
     content = bundled_template_content(template_name)
     if content is None:
@@ -220,8 +219,8 @@ def _role_state(slug: str, path: Path, text: str) -> str:
     Drift is measured against ``roles.toml`` — the document a role override actually
     overrides — not against the role *body template*
     (``agents/role.md.j2``), which is a separate override with its own stamp and its own
-    drift. A change to a bundled role's mission, or a new ``RoleSpec`` field, now drifts a
-    shadowing role override; a cosmetic body-template edit no longer does.
+    drift. A change to a bundled role's mission, or a new ``RoleSpec`` field, drifts a
+    shadowing role override; a cosmetic body-template edit does not.
 
     Role TOML overrides are never 'broken' in the marker sense (TOML has no sq markers).
     """
@@ -261,7 +260,7 @@ def _workflow_state(text: str) -> str:
 
 def _playbook_state(text: str) -> str:
     """Classify the playbook TOML override as current / drifted — mirrors
-    :func:`_workflow_state` exactly (same three-state, now content-gated contract). TOML
+    :func:`_workflow_state` exactly (same three-state, content-gated contract). TOML
     has no sq markers, so a playbook override is never 'broken' in the marker
     sense."""
     stamp = read_toml_stamp(text)
@@ -976,7 +975,7 @@ def _diff_workflow(squad_dir: Path) -> DiffResult:
     override_text = path.read_text(encoding="utf-8")
     base_version = read_toml_stamp(override_text)
 
-    # Δ-mine: override vs the bundled workflow.toml — now that the override can shadow, an
+    # Δ-mine: override vs the bundled workflow.toml — since the override can shadow, an
     # empty reference would describe only "what the team added" and say nothing about a
     # shadowed field, which is exactly the kind of change this diff exists to show.
     delta_mine = _unified_diff(
@@ -986,7 +985,7 @@ def _diff_workflow(squad_dir: Path) -> DiffResult:
         tofile=WORKFLOW_OVERRIDE_FILENAME,
     )
 
-    # Δ-upgrade: now expressible for a spec document — a real diff between the
+    # Δ-upgrade: for a spec document, a real diff between the
     # stamped base revision and the current bundled workflow.toml, resolved from the content
     # store, exactly like every other kind.
     delta_upgrade, base_available = _upgrade_delta(
@@ -1269,7 +1268,7 @@ def _roles_catalog_stamp_finding_gated(
 ) -> tuple[str, str] | None:
     """The stamp obligation for the role catalog document override, content-gated exactly like
     ``squads._workflow._loader.workflow_stamp_finding``/``playbook_stamp_finding`` — the same
-    three-outcome contract every shadowing override kind now shares.
+    three-outcome contract every shadowing override kind shares.
 
     The remediation commands named here name their own object, ``sq override update roles`` /
     ``sq override diff roles``, matching every sibling kind's form (``sq override update
