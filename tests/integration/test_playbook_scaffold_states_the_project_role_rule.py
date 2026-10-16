@@ -33,7 +33,7 @@ def scaffold_text(project) -> str:
     [
         # The three legal slug sources, each named.
         "a bundled catalog role",
-        '"*dev" sentinel',
+        "`*<capability>`",
         ".overrides/roles/<slug>.toml",
         # The ordering constraint the check rule enforces, and where an adopter will meet it.
         "sq role activate <slug>",
@@ -41,7 +41,7 @@ def scaffold_text(project) -> str:
     ],
     ids=[
         "bundled_catalog_is_one_source",
-        "dev_sentinel_is_one_source",
+        "a_capability_is_one_source",
         "a_project_role_file_is_one_source",
         "activation_is_required",
         "check_reports_a_dropped_guide",

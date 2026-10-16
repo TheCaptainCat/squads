@@ -344,7 +344,6 @@ _models -> _errors top
 _models -> _util top
 _overrides -> _aio top
 _overrides -> _errors top
-_overrides -> _interactions local
 _overrides -> _interactions top
 _overrides -> _models top
 _overrides -> _rendering top
@@ -555,7 +554,7 @@ _MEASURED = measure(_src())
         ("_itemfile", "_roles", "top"),
         ("_models", "_clock", "top"),
         ("_backends", "_views", "top"),
-        ("_overrides", "_interactions", "local"),
+        ("_backends", "_interactions", "local"),
         ("_context", "_workflow", "typing"),
     ],
 )

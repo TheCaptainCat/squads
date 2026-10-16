@@ -132,7 +132,7 @@ def _sever_declared_edges(
     return severed
 
 
-def enforce(
+def enforce(  # noqa: PLR0913 — one keyword per input of the gate
     spec: WorkflowSpec,
     db: SquadsDB,
     item: Item,
@@ -141,6 +141,7 @@ def enforce(
     unlink: bool,
     old_status: str,
     playbook: PlaybookSpec,
+    squad_dir: Path,
     purge: bool = False,
 ) -> list[Severance]:
     """Evaluate the clauses against *item*'s already-applied prospective status, scoped to this
@@ -185,17 +186,21 @@ def enforce(
 
     current_status = item.status
     item.status = old_status
-    before_keys = frozenset(_finding_key(f) for f in check_all(db, spec, active_backends, playbook))
+    before_keys = frozenset(
+        _finding_key(f) for f in check_all(db, spec, active_backends, playbook, squad_dir)
+    )
     item.status = current_status
 
     severed: list[Severance] = []
     if unlink:
         prospective = _findings_new_since(
-            check_all(db, spec, active_backends, playbook), before_keys
+            check_all(db, spec, active_backends, playbook, squad_dir), before_keys
         )
         severed = _sever_declared_edges(item, prospective, spec)
 
-    after = _findings_new_since(check_all(db, spec, active_backends, playbook), before_keys)
+    after = _findings_new_since(
+        check_all(db, spec, active_backends, playbook, squad_dir), before_keys
+    )
     if after:
         # --unlink is only ever a real option on THIS command when it is a retirement of the
         # finding's own entry — never on a finding rendered here about some other item (e.g. a

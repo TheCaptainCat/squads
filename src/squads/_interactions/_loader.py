@@ -60,16 +60,18 @@ from squads._interactions._models import (
     PlaybookSpec,
     RoleGuideSpec,
 )
+from squads._interactions._role_guidance import CAPABILITY_SUBJECT_PREFIX
 from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
-from squads._roles._models import RoleCatalogSpec
+from squads._roles._models import (
+    CAPABILITY_NAME_PATTERN,
+    RoleCatalogSpec,
+    malformed_capability_names,
+)
 from squads._roles._resolver import project_role_slugs
 from squads._specmerge import RawMapping, describe_spec_error, merge_override
 from squads._workflow import bundled_spec
 from squads._workflow._loader import as_entry_list, as_table
 from squads._workflow._models import WorkflowSpec
-
-#: The DEV sentinel — exempt from role-catalog slug validation.
-DEV = "*dev"
 
 #: Canonical location for the project playbook override (relative to squad_dir).
 PLAYBOOK_OVERRIDE_FILENAME = ".overrides/playbook.toml"
@@ -205,6 +207,7 @@ def load_playbook(
         spec = bundled_spec()
 
     raw = _base_raw_for(spec)
+    origin: str | None = None
     if squad_dir is not None:
         override_path = squad_dir / PLAYBOOK_OVERRIDE_FILENAME
         if override_path.is_file():
@@ -243,7 +246,12 @@ def load_playbook(
         # read overrides for.
         catalog_slugs |= project_role_slugs(squad_dir)
 
-    return _build_spec(raw, catalog_slugs, spec)
+    try:
+        return _build_spec(raw, catalog_slugs, spec)
+    except SquadsError as exc:
+        if origin is None:
+            raise
+        raise SquadsError(f"{origin}: {exc}") from exc
 
 
 def _build_spec(raw: dict[str, Any], catalog_slugs: set[str], spec: WorkflowSpec) -> PlaybookSpec:
@@ -289,13 +297,20 @@ def _check_slugs(
     catalog_slugs: set[str],
     errors: list[str],
 ) -> None:
-    """Cross-spec slug referential integrity (*dev sentinel exempt)."""
-    errors.extend(
-        f"types.{item_type}: role slug {guide.slug!r} not in role catalog"
-        for item_type, entry in types.items()
-        for guide in entry.roles
-        if guide.slug != DEV and guide.slug not in catalog_slugs
-    )
+    """Cross-spec slug referential integrity. A capability subject (``*<name>``) names no
+    catalog slug and is exempt; a malformed one is refused."""
+    for item_type, entry in types.items():
+        for guide in entry.roles:
+            if guide.slug.startswith(CAPABILITY_SUBJECT_PREFIX):
+                name = guide.slug[len(CAPABILITY_SUBJECT_PREFIX) :]
+                if malformed_capability_names([name]):
+                    errors.append(
+                        f"types.{item_type}: capability subject {guide.slug!r} must be "
+                        f"{CAPABILITY_SUBJECT_PREFIX}<name>, with a name matching "
+                        f"{CAPABILITY_NAME_PATTERN}"
+                    )
+            elif guide.slug not in catalog_slugs:
+                errors.append(f"types.{item_type}: role slug {guide.slug!r} not in role catalog")
 
 
 def _check_duplicate_slugs(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:

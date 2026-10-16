@@ -234,8 +234,11 @@ def _apply_override(base: RoleDef | None, data: RawMapping, slug: str, origin: s
     bad_capabilities = malformed_capability_names(spec.capabilities)
     if bad_capabilities:
         raise SquadsError(
-            f"invalid role override {origin}: capabilities {bad_capabilities} must each match "
-            f"{CAPABILITY_NAME_PATTERN}"
+            f"invalid role override {origin}: "
+            + "; ".join(
+                f"capabilities entry {name!r} must match {CAPABILITY_NAME_PATTERN}"
+                for name in bad_capabilities
+            )
         )
     return role_spec_to_def(spec)
 
@@ -421,6 +424,20 @@ def resolve_role_for_item(item: Item, squad_dir: Path | None) -> RoleDef:
             item.slug, squad_dir, base=base, pinned_name=pinned_name_of(item)
         )
     except RoleNotFoundError:
+        return RoleDef.from_item(item)
+
+
+def resolve_role_tolerantly(item: Item, squad_dir: Path | None) -> RoleDef:
+    """:func:`resolve_role_for_item`, or the item's own :meth:`RoleDef.from_item` when a role
+    document refuses to load.
+
+    For derivations that must keep answering next to a broken override (a lane check, a
+    preload list, a config-integrity scan): the refusal is already a ``sq check`` finding in its
+    own right, and these callers report on or act on other things.
+    """
+    try:
+        return resolve_role_for_item(item, squad_dir)
+    except SquadsError:
         return RoleDef.from_item(item)
 
 

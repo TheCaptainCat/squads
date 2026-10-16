@@ -202,3 +202,55 @@ async def test_a_malformed_capability_name_is_refused_and_names_the_file(
     result = await invoke(command)
     assert result.exit_code == expected_exit, result.output
     assert "architect.toml" in result.output.replace("\n", "")
+
+
+#: [dev] capabilities declared after the developer exists -> what the developer resolves to.
+_DEV_TABLE_CHANGES = {
+    "emptied": ("[]", ()),
+    "replaced": ('["builder"]', ("builder",)),
+    "repeated": ('["builder", "builder"]', ("builder",)),
+    "appended": ('["$(*self)", "builder"]', ("dev", "builder")),
+}
+
+
+@pytest.mark.parametrize("change", list(_DEV_TABLE_CHANGES))
+async def test_an_existing_developer_follows_a_later_change_to_the_dev_table_capabilities(
+    change: str, project, svc, invoke
+) -> None:
+    value, expected = _DEV_TABLE_CHANGES[change]
+    item = await svc.add_dev("rust")
+    assert resolve_role_for_item(item, project.squad_dir).capabilities == ("dev",)
+    _write_dev_table(project.squad_dir, f"capabilities = {value}\n")
+
+    assert resolve_role_for_item(item, project.squad_dir).capabilities == expected
+    assert svc._role_view(item).capabilities == expected
+    shown = await invoke(["role", "rust-dev", "show", "--json"])
+    assert shown.exit_code == 0, shown.output
+    assert json.loads(shown.output)["capabilities"] == list(expected)
+
+
+async def test_a_catalog_entry_error_names_the_entry_by_slug_not_by_a_merged_index(
+    project, svc
+) -> None:
+    (_overrides(project.squad_dir) / "roles.toml").write_text(
+        '[[roles]]\nslug = "reviewer"\ncapabilities = "dev"\n', encoding="utf-8"
+    )
+    with pytest.raises(SquadsError) as excinfo:
+        await svc.activate_role("reviewer")
+    message = str(excinfo.value)
+    assert "roles.toml" in message
+    assert "slug 'reviewer'" in message
+    assert "roles[" not in message
+
+
+async def test_the_two_malformed_name_messages_read_alike(project, svc) -> None:
+    architect = await svc.activate_role("architect")
+    _write_dev_table(project.squad_dir, 'capabilities = ["Bad"]\n')
+    with pytest.raises(SquadsError) as catalog_error:
+        await svc.add_dev("rust")
+    (project.squad_dir / ".overrides" / "roles.toml").unlink()
+    _write_slug_file("architect")(project.squad_dir, 'capabilities = ["Bad"]\n')
+    with pytest.raises(SquadsError) as file_error:
+        resolve_role_for_item(architect, project.squad_dir)
+    assert "capabilities entry 'Bad' must match" in str(catalog_error.value)
+    assert "capabilities entry 'Bad' must match" in str(file_error.value)

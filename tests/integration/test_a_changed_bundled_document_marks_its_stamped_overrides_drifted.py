@@ -32,9 +32,41 @@ def _role_file(squad_dir: Path, stamp: str) -> None:
     )
 
 
+def _playbook(squad_dir: Path, stamp: str) -> None:
+    overrides = squad_dir / ".overrides"
+    overrides.mkdir(exist_ok=True)
+    (overrides / "playbook.toml").write_text(
+        f"# squads:override-base:{stamp}\n"
+        '[types.task]\nroles = ["$(*self)", { slug = "architect", do = ["review the design"] }]\n',
+        encoding="utf-8",
+    )
+
+
+def _template(squad_dir: Path, stamp: str) -> None:
+    from squads._overrides._manifest import bundled_template_content
+    from squads._overrides._stamp import write_template_stamp
+
+    path = squad_dir / ".overrides" / "templates" / "claude" / "claude_section.md.j2"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        write_template_stamp(bundled_template_content("claude/claude_section.md.j2") or "", stamp),
+        encoding="utf-8",
+    )
+
+
 _DOCUMENTS = {
     "role-catalog": (_catalog, "roles"),
     "per-slug-role-file": (_role_file, "architect"),
+    "playbook": (_playbook, "playbook"),
+    "template": (_template, "claude/claude_section.md.j2"),
+}
+
+
+_CHECK_LABEL = {
+    "role-catalog": ".overrides/roles.toml: role catalog override",
+    "per-slug-role-file": ".overrides/roles/architect.toml: role override",
+    "playbook": ".overrides/playbook.toml: playbook override",
+    "template": ".overrides/templates/claude/claude_section.md.j2: override",
 }
 
 
@@ -56,3 +88,7 @@ async def test_the_state_follows_whether_the_bundled_document_changed_since_the_
     assert listed.exit_code == 0, listed.output
     row = next(line for line in listed.output.splitlines() if name in line.split())
     assert expected in row
+    checked = await invoke(["check"])
+    assert checked.exit_code == 0, checked.output
+    text = " ".join(checked.output.split())
+    assert (f"{_CHECK_LABEL[document]} may be stale" in text) is (expected == STATE_DRIFTED), text

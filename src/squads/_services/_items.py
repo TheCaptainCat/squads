@@ -128,6 +128,7 @@ class ItemsMixin(ServiceCore):
                 unlink=unlink,
                 old_status=old_status,
                 playbook=self.playbook,
+                squad_dir=self.paths.squad_dir,
             )
             live = self.spec.live_statuses(item.type)
             if old_status in live and item.status not in live:
@@ -737,6 +738,7 @@ class ItemsMixin(ServiceCore):
             unlink=False,
             old_status=item.status,
             playbook=self.playbook,
+            squad_dir=self.paths.squad_dir,
             purge=purge,
         )
 

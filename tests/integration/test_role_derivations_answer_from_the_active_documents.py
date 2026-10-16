@@ -135,3 +135,35 @@ async def test_every_surface_answers_from_the_active_documents(name, project, sv
 
     checked = await invoke(["check"])
     assert ("config integrity" in checked.output) is row.check_flags_archived_skill, checked.output
+
+
+_MOVE_DESIGNATION = """# squads:override-base:{version}
+[[roles]]
+slug = "manager"
+is_default = false
+
+[[roles]]
+slug = "tech-lead"
+is_default = true
+"""
+
+
+@pytest.mark.parametrize(
+    ("moved", "author", "warns"),
+    [(False, "manager", False), (True, "manager", True)],
+    ids=["bundled-designation", "moved-no-live-holder"],
+)
+async def test_the_lane_exemption_follows_the_designation_of_the_resolved_catalog(
+    moved: bool, author: str, warns: bool, project, svc, invoke
+) -> None:
+    """With no live role holding the designation, the exemption goes to the default role of
+    the catalog this squad resolves."""
+    if moved:
+        overrides = project.squad_dir / ".overrides"
+        overrides.mkdir(exist_ok=True)
+        (overrides / "roles.toml").write_text(
+            _MOVE_DESIGNATION.format(version=__version__), encoding="utf-8"
+        )
+    created = await invoke(["create", "task", "A task", "--author", author])
+    assert created.exit_code == 0, created.output
+    assert ("advisory" in created.output) is warns, created.output

@@ -130,6 +130,10 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     show and no holder at all, and a ``"catalog"`` answer is indistinguishable from a squad
     that designates the same slug for real. ``sq role list`` — the roster listing, which
     carries every live role — is still the surface that names a holder in its own rows.
+
+    Like the other per-role fields here (name, title, model), ``capabilities`` is the catalog
+    document's value, before any per-slug role file; ``sq role list`` and ``sq role <addr>
+    show`` carry the resolved value.
     """
     squad_dir = _catalog_squad_dir()
     roles = load_role_catalog(squad_dir).roles
@@ -394,7 +398,7 @@ async def show_role(
         r = resolve_role_with_base(
             slug, svc.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(it)
         )
-        lane_types = sorted(allowed_create_types(slug, svc.spec, svc.playbook))
+        lane_types = sorted(allowed_create_types(r, svc.spec, svc.playbook))
         creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
         # A computed projection over the index, not a field of `r` — resolved live for both
         # an activated role and a bundled-only one (falls back to system membership; see

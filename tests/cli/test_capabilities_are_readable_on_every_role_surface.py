@@ -28,8 +28,8 @@ _NEW_ROLE = (
 _SHAPES: dict[str, tuple[str, list[str]]] = {
     "bundled": ("architect", []),
     "templated-developer": ("rust-dev", ["dev"]),
-    "declared-one": ("auditor", ["audit"]),
-    "declared-two": ("inspector", ["audit", "triage"]),
+    "declared-one": ("auditor", ["review-work"]),
+    "declared-two": ("inspector", ["review-work", "triage"]),
     "definition-gone": ("ghost", []),
 }
 
@@ -45,9 +45,9 @@ def _write_role_file(squad_dir: Path, slug: str, capabilities: list[str]) -> Pat
 async def _build_roster(project, svc) -> None:
     await svc.activate_role("architect")
     await svc.add_dev("rust")
-    _write_role_file(project.squad_dir, "auditor", ["audit"])
+    _write_role_file(project.squad_dir, "auditor", ["review-work"])
     await svc.activate_role("auditor")
-    _write_role_file(project.squad_dir, "inspector", ["audit", "triage"])
+    _write_role_file(project.squad_dir, "inspector", ["review-work", "triage"])
     await svc.activate_role("inspector")
     gone = _write_role_file(project.squad_dir, "ghost", ["vanishing"])
     await svc.activate_role("ghost")
@@ -165,12 +165,28 @@ async def test_the_text_outputs_show_capabilities(shape: str, project, svc, invo
     listing = await invoke(["role", "list"])
     assert listing.exit_code == 0, listing.output
     assert "Capabilities" in listing.output
-    row = next(line for line in listing.output.splitlines() if line.lstrip().startswith(slug))
-    assert all(name in row for name in expected)
+    lines = listing.output.splitlines()
+    header = next(line for line in lines if "Capabilities" in line)
+    start, end = header.index("Capabilities"), header.index("Default")
+    row = next(line for line in lines if line.split()[:1] == [slug])
+    assert row[start:end].strip() == ", ".join(expected)
 
     card = await invoke(["role", slug, "show"])
     assert card.exit_code == 0, card.output
     if shape == "definition-gone":
         assert "capabilities:" not in card.output
     else:
-        assert f"capabilities: {', '.join(expected) or '—'}" in card.output
+        line = next(ln for ln in card.output.splitlines() if "capabilities:" in ln)
+        assert line.strip("│ ").strip() == f"capabilities: {', '.join(expected) or '—'}"
+
+
+async def test_the_catalog_lists_the_document_value_and_the_roster_surfaces_the_resolved_one(
+    project, svc, invoke
+) -> None:
+    """A per-slug file's capabilities reach ``role list`` and ``role show``, not the catalog."""
+    await svc.activate_role("reviewer")
+    _write_role_file(project.squad_dir, "reviewer", ["rev-work"])
+    # The file is a partial override of a bundled role, so only the key under test is checked.
+    assert (await _catalog_row(invoke, "reviewer"))["capabilities"] == []  # type: ignore[index]
+    assert (await _list_row(invoke, "reviewer"))["capabilities"] == ["rev-work"]  # type: ignore[index]
+    assert (await _show(invoke, "reviewer"))["capabilities"] == ["rev-work"]  # type: ignore[index]

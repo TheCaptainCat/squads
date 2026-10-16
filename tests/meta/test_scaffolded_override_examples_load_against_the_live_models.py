@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import role_of
 from squads._interactions import _role_guidance as role_guidance
 from squads._interactions._loader import load_playbook
 from squads._overrides import _service as overrides
@@ -153,7 +154,7 @@ def test_the_playbook_scaffolds_worked_example_loads(tmp_path) -> None:
     # The second worked example puts a role in the type's create-lane; the lane it advertises
     # must actually be the one the engine derives, or the scaffold teaches a no-op.
     assert "[types.bug]" in activated, "the create-lane example is missing from the scaffold"
-    assert "bug" in role_guidance.allowed_create_types("devops", bundled_spec(), playbook)
+    assert "bug" in role_guidance.allowed_create_types(role_of("devops"), bundled_spec(), playbook)
 
 
 @pytest.mark.parametrize("can_spawn", [False, True])

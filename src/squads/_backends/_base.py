@@ -93,7 +93,7 @@ class BackendContext:
         """Root-relative forward-slash path (for Artifact paths and backend-owned references)."""
         return os.path.relpath(path, self.root).replace(os.sep, "/")
 
-    def resolved_skills_for(self, slug: str) -> list[str]:
+    def resolved_skills_for(self, role: RoleDef) -> list[str]:
         """A role's resolved preload-skill list: ``role_skills[slug]`` when populated, else the
         pure system-membership fallback.
 
@@ -101,10 +101,10 @@ class BackendContext:
         ``role_guidance.skills_for_role`` directly, so a data-driven ``scopes`` edge reaches
         every backend uniformly once the service populates ``role_skills`` — never only one.
         """
-        if slug in self.role_skills:
-            return self.role_skills[slug]
+        if role.slug in self.role_skills:
+            return self.role_skills[role.slug]
         return skills_for_role(
-            slug,
+            role,
             self.spec if self.spec is not None else bundled_spec(),
             self.playbook if self.playbook is not None else get_playbook_spec(),
         )

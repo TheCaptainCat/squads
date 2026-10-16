@@ -38,7 +38,6 @@ from squads._interactions._loader import (
     bundled_playbook_toml_text,
     playbook_stamp_finding,
 )
-from squads._interactions._role_guidance import is_dev_slug
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._overrides._manifest import (
@@ -602,8 +601,9 @@ _PLAYBOOK_SCAFFOLD_BODY = """\
 #   - A slug must not appear twice in one type's roles array — roles is keyed by slug (the
 #     generated skill renders one section per slug), so a repeat is rejected at load time, not
 #     merged or rendered twice.
-#   - Every role slug must be one of: a bundled catalog role, the "*dev" sentinel (matching any
-#     <tech>-dev role), or a project role you have defined under .overrides/roles/<slug>.toml.
+#   - Every guide subject must be one of: a bundled catalog role, a project role you have
+#     defined under .overrides/roles/<slug>.toml, or `*<capability>`, which addresses every live
+#     role whose `capabilities` list holds that name.
 #     A project role must also be ACTIVATED (`sq role activate <slug>`) for its guidance to
 #     reach the generated skill — a guide whose slug names no live role loads fine but is
 #     dropped from the skill, and `sq check` warns about it until you activate the role or
@@ -919,7 +919,7 @@ def _shadowed_bundled_role_toml(slug: str, squad_dir: Path | None = None) -> str
     its own, out of scope here."""
     if slug in _BUNDLED_ROLE_SLUGS:
         return _role_def_as_toml(role_by_slug(slug))
-    if is_dev_slug(slug):
+    if slug.endswith("-dev"):
         return _role_def_as_toml(dev_base_for_slug(slug, squad_dir))
     return None
 
@@ -1206,6 +1206,9 @@ def _role_override_shadows_bundled(
     the "skipped for the whole ``-dev`` suffix space" false positive the stored-fact-first fix
     (see ``tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py``) closed for every
     other consumer of a role base.
+
+    The roster item's base is read against the bundled catalog alone (no squad directory), so a
+    role the project catalog declares does not count as shadowing a bundled one.
     """
     item = role_items_by_slug.get(slug)
     if item is not None:
@@ -1509,7 +1512,6 @@ def _check_role_override_resolves(
     would leave a refusable file unreported on the one surface that can still reach it. Hence
     the message names when each consumer refuses rather than asserting both do.
     """
-    from squads._interactions._role_guidance import is_dev_slug
     from squads._roles._resolver import (
         dev_base_for_slug,
         pinned_name_of,
@@ -1521,7 +1523,7 @@ def _check_role_override_resolves(
     if item is not None:
         base_role = role_base_from_item(item, squad_dir)
     else:
-        base_role = dev_base_for_slug(slug, squad_dir) if is_dev_slug(slug) else None
+        base_role = dev_base_for_slug(slug, squad_dir) if slug.endswith("-dev") else None
 
     try:
         resolve_role_with_base(slug, squad_dir, base=base_role, pinned_name=pinned_name_of(item))

@@ -29,13 +29,13 @@ sq <type> <n> ref add REV-… --kind addresses   # from the item that addresses 
 - use `sq review <n> finding <k> comment` for finding-scoped notes (rationale, verification notes, 'agreed — closing this one') — cross-cutting notes and the final verdict go on the review (see the `squads` skill's comment-scoping convention)
 
 **Hand off:**
-- on ChangesRequested, `@<tech>-dev` with the findings
+- on ChangesRequested, `@<developer>` with the findings
 - on Approved, comment the verdict
 
 **Watch for:**
 - severity-tag findings honestly; don't approve with open high findings
 
-## For developers
+## For `*dev`: Elias Python (`python-dev`)
 
 **Enter** — before you act:
 - Read the full item dossier: `sq review <n> show --full --comments` (decisions and

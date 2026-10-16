@@ -11,14 +11,13 @@
    so a dropped or renamed built-in type degrades gracefully instead of crashing. #}
 {% set _roles = roles if (roles is defined and roles is not none) else none %}
 {% set _playbook = playbook if playbook is defined else none %}
-{% set roster_slugs = (_roles | map(attribute="slug") | list) if _roles else none %}
 {% set role_titles = {} %}
 {% for r in _roles or [] %}
 {% set _ = role_titles.update({r.slug: r.title}) %}
 {% endfor %}
 {% for item_type, item_spec in spec.items.items() %}
 {% if item_spec.category != "roster" %}
-{% set owner = authoring_owner(item_type, roster_slugs, _playbook, role_titles) %}
+{% set owner = authoring_owner(item_type, _roles or none, _playbook, role_titles) %}
 {% if owner %}
 {% set parent = spec.item_parent_required(item_type) %}
 {% set subkind = spec.item_subentity_kind(item_type) %}

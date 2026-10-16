@@ -11,9 +11,9 @@ an override-declared authoring role is exercised end to end in
 tests/integration/test_an_override_declared_authoring_role_is_in_lane.py.
 """
 
+from _helpers import role_of
 from squads._interactions import PLAYBOOK, get_playbook_spec
 from squads._interactions._role_guidance import (
-    DEV,
     allowed_create_types,
     catalog_default_slug,
     create_lanes,
@@ -43,7 +43,7 @@ class TestLaneTable:
         assert create_lanes(_PB) == _PRODUCT_TABLE
 
     def test_the_dev_sentinel_declares_no_lane(self) -> None:
-        assert DEV not in create_lanes(_PB)
+        assert "*dev" not in create_lanes(_PB)
 
     def test_every_lane_is_a_declared_authors_guide_in_the_playbook(self) -> None:
         """Forward direction: nothing enters a lane that the document didn't declare."""
@@ -59,32 +59,32 @@ class TestLaneTable:
     def test_a_guide_that_only_reads_a_type_is_not_in_its_lane(self) -> None:
         """Reverse direction: interacting with a type is not the same as authoring it."""
         assert "bug" not in allowed_create_types(
-            "tech-lead", _SPEC, _PB
+            role_of("tech-lead"), _SPEC, _PB
         )  # triages bugs, doesn't file them
         assert "feature" not in allowed_create_types(
-            "qa", _SPEC, _PB
+            role_of("qa"), _SPEC, _PB
         )  # verifies features, doesn't author
         assert "epic" not in allowed_create_types(
-            "architect", _SPEC, _PB
+            role_of("architect"), _SPEC, _PB
         )  # shapes epics, doesn't author
 
 
 class TestAllowedCreateTypes:
     def test_every_product_table_role_derives_its_own_lane(self) -> None:
         for slug, expected in _PRODUCT_TABLE.items():
-            assert allowed_create_types(slug, _SPEC, _PB) == expected, slug
+            assert allowed_create_types(role_of(slug), _SPEC, _PB) == expected, slug
 
     def test_dev_lane_is_empty(self) -> None:
-        assert allowed_create_types("python-dev", _SPEC, _PB) == set()
+        assert allowed_create_types(role_of("python-dev"), _SPEC, _PB) == set()
 
     def test_devops_lane_is_empty(self) -> None:
-        assert allowed_create_types("devops", _SPEC, _PB) == set()
+        assert allowed_create_types(role_of("devops"), _SPEC, _PB) == set()
 
     def test_default_role_lane_is_empty(self) -> None:
         """The coordinator has no lane of its own — it is exempt from the check entirely."""
         default = catalog_default_slug(get_catalog())
         assert default is not None
-        assert allowed_create_types(default, _SPEC, _PB) == set()
+        assert allowed_create_types(role_of(default), _SPEC, _PB) == set()
 
 
 class TestLaneExemptions:
@@ -125,7 +125,7 @@ class TestInLaneOwner:
             for item_type in types:
                 expected.setdefault(item_type, set()).add(slug)
         for item_type, owners in expected.items():
-            assert in_lane_owner(item_type, _PB) == owners, item_type
+            assert in_lane_owner(item_type, _PB, ()) == owners, item_type
 
     def test_a_type_with_no_declared_author_has_no_owner(self) -> None:
-        assert in_lane_owner("role", _PB) == set()
+        assert in_lane_owner("role", _PB, ()) == set()

@@ -1210,7 +1210,7 @@ class MaintenanceMixin(ServiceCore):
             for item_type, slug in orphaned_playbook_guides(
                 self.playbook,
                 self.spec,
-                live_role_slugs={r.slug for r in roster},
+                live_roles=roster,
                 override_guides=playbook_override_guide_pairs(self.paths.squad_dir),
             )
         ]

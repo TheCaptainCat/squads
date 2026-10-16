@@ -81,7 +81,11 @@ from squads._models._metadata import value_problem
 from squads._models._participants import SlugBreach, roster_slug_breaches
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import scaffold_body
-from squads._roles._resolver import holds_default_designation, resolve_role_for_item
+from squads._roles._resolver import (
+    holds_default_designation,
+    resolve_role_for_item,
+    resolve_role_tolerantly,
+)
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
@@ -1337,6 +1341,7 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
         ctx.spec,
         ctx.paths.config.active_backends,
         ctx.playbook if ctx.playbook is not None else get_playbook_spec(),
+        ctx.paths.squad_dir,
     )
     return [
         CheckIssue("error", f.entry, f"config integrity: {config_integrity.render_finding(f)}")
@@ -1470,7 +1475,6 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     live = ctx.spec.live_statuses(ROSTER_ROLE)
     roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE]
     known = frozenset(slug for it in roles if (slug := it.slug))
-    live_slugs = frozenset(slug for it in roles if it.status in live and (slug := it.slug))
     live_initial = ctx.spec.live_initial(ROSTER_ROLE)
     return [
         CheckIssue(
@@ -1483,7 +1487,11 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
         for item_type, slug in orphaned_playbook_guides(
             ctx.playbook,
             ctx.spec,
-            live_role_slugs=live_slugs,
+            live_roles=[
+                resolve_role_tolerantly(it, ctx.paths.squad_dir)
+                for it in roles
+                if it.status in live and it.slug
+            ],
             override_guides=playbook_override_guide_pairs(ctx.paths.squad_dir),
         )
     ]

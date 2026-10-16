@@ -287,7 +287,8 @@ def _build_catalog(
 
 
 def _parse_role(data: dict[str, Any], idx: int, origin: str | None) -> RoleSpec:
-    ctx = f"roles[{idx}]"
+    slug = data.get("slug")
+    ctx = f"roles[{idx}]" if origin is None else f"[[roles]] slug {slug!r}"
     where = f"{origin}: " if origin is not None else ""
     try:
         # model_validate so extra="forbid" fires on unknown keys.
@@ -384,7 +385,7 @@ def _check_dev(dev: DevPoolSpec, errors: list[str]) -> None:
 def _check_capabilities(roles: list[RoleSpec], dev: DevPoolSpec, errors: list[str]) -> None:
     """Capability names well-formed, for every role and for the dev pool."""
     errors.extend(
-        f"{owner}: capability {name!r} must match {CAPABILITY_NAME_PATTERN}"
+        f"{owner}: capabilities entry {name!r} must match {CAPABILITY_NAME_PATTERN}"
         for owner, names in (
             *((f"role {r.slug!r}", r.capabilities) for r in roles),
             ("dev", dev.capabilities),

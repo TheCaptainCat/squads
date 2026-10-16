@@ -84,6 +84,7 @@ def test_the_claude_md_section_also_tracks_the_same_parent_rename() -> None:
         # task's owner (tech-lead) must be on the roster for its authoring bullet — the one
         # this test asserts on — to render at all now that authoring_owner is roster-aware.
         roles=[{"full_name": "Olivia Lead", "title": "Tech lead", "slug": "tech-lead"}],
+        delegate_examples=[],
         operators=[],
         default_role_full_name="Catherine Manager",
         default_role_slug="manager",

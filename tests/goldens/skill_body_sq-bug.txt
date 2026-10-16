@@ -28,7 +28,7 @@ sq bug <n> status InProgress
 **Hand off:**
 - once filed, `@tech-lead` to triage; once the fix lands, verify it and confirm in a comment so the bug can close
 
-## For developers
+## For `*dev`: Elias Python (`python-dev`)
 
 **Enter** — before you act:
 - Read the full item dossier: `sq bug <n> show --full --comments` (decisions and
@@ -58,7 +58,7 @@ sq bug <n> status InProgress
 - triage and prioritise; create the fix task and assign a developer
 
 **Hand off:**
-- once the fix task is created and assigned, `@<tech>-dev` to start the fix
+- once the fix task is created and assigned, `@<developer>` to start the fix
 
 ## For Paul Reviewer (`reviewer`)
 

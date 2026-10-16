@@ -19,6 +19,7 @@ from pathlib import Path
 from _helpers import dev_role
 from squads._backends._agents_md._backend import _also_creatable_types
 from squads._interactions import cheatsheet_anchor_context
+from squads._interactions._role_guidance import delegate_example_slugs
 from squads._rendering._engine import render
 from squads._roles._catalog import get_catalog
 from squads._roles._projection import OperatorView, RoleView
@@ -49,7 +50,11 @@ _PINNED_ROSTER: list[RoleView] = [
         slug="tech-writer", full_name="Theo Writer", title="technical writer", is_default=False
     ),
     RoleView(
-        slug="python-dev", full_name="Elias Python", title="Python developer", is_default=False
+        slug="python-dev",
+        full_name="Elias Python",
+        title="Python developer",
+        is_default=False,
+        capabilities=("dev",),
     ),
 ]
 _PINNED_OPERATORS: list[OperatorView] = [OperatorView(slug="op-alice", full_name="Alice Tester")]
@@ -78,8 +83,17 @@ def test_the_claude_md_managed_section_body_matches_its_pinned_golden() -> None:
         "claude/claude_section.md.j2",
         squad_dir="squads",
         roles=[
-            {"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in _PINNED_ROSTER
+            {
+                "full_name": r.full_name,
+                "title": r.title,
+                "slug": r.slug,
+                "capabilities": list(r.capabilities),
+            }
+            for r in _PINNED_ROSTER
         ],
+        delegate_examples=delegate_example_slugs(
+            _PINNED_ROSTER, _DEFAULT_ROLE.slug, ["python-dev"]
+        ),
         operators=[{"full_name": o.full_name, "slug": o.slug} for o in _PINNED_OPERATORS],
         default_role_full_name=_DEFAULT_ROLE.full_name,
         default_role_slug=_DEFAULT_ROLE.slug,
@@ -111,11 +125,13 @@ def test_the_agents_md_managed_section_body_matches_its_pinned_golden() -> None:
                 "full_name": r.full_name,
                 "title": r.title,
                 "slug": r.slug,
+                "capabilities": list(r.capabilities),
                 "mission": catalog[r.slug][0],
                 "responsibilities": catalog[r.slug][1],
             }
             for r in _PINNED_ROSTER
         ],
+        developer_slugs=["python-dev"],
         operators=[{"full_name": o.full_name, "slug": o.slug} for o in _PINNED_OPERATORS],
         spec=spec,
         also_creatable_types=_also_creatable_types(spec, anchor_ctx["anchor"]),

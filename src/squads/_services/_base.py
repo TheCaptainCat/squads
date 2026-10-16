@@ -25,12 +25,14 @@ from squads._index._store import IndexStore
 from squads._interactions import active_skill_slugs, get_playbook_spec, is_live_roster_entry
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import (
+    RoleLike,
     allowed_create_types,
     catalog_default_slug,
     in_lane_owner,
     is_lane_exempt,
     laned_types,
     skills_for_role,
+    slug_only_role,
 )
 from squads._itemfile import (
     ensure_no_skew,
@@ -54,12 +56,14 @@ from squads._models._participants import (
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
-from squads._roles._catalog import get_catalog
+from squads._roles._catalog import RoleDef
+from squads._roles._loader import load_role_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_role,
     resolve_role_for_item,
+    resolve_role_tolerantly,
 )
 from squads._services._duplicate_ids import (
     DUPLICATE_ID_REMEDY,
@@ -610,6 +614,31 @@ class ServiceCore:
                 fields=fields,
             )
 
+    def _live_role_likes(self, db: SquadsDB) -> list[RoleDef]:
+        """The resolved definition of every live role in *db*, in index order."""
+        live = self.spec.live_statuses(ROSTER_ROLE)
+        return [
+            resolve_role_tolerantly(it, self.paths.squad_dir)
+            for it in db.items.values()
+            if it.type == ROSTER_ROLE and it.status in live
+        ]
+
+    def _role_like(self, db: SquadsDB, slug: str) -> RoleLike:
+        """The live role *slug* resolves to, or a bare role holding no capability when *slug*
+        is not a live role (an operator, or an author the roster does not carry)."""
+        live = self.spec.live_statuses(ROSTER_ROLE)
+        item = next(
+            (
+                it
+                for it in db.items.values()
+                if it.type == ROSTER_ROLE and it.slug == slug and it.status in live
+            ),
+            None,
+        )
+        if item is None:
+            return slug_only_role(slug)
+        return resolve_role_tolerantly(item, self.paths.squad_dir)
+
     def _default_role_slug(self, db: SquadsDB) -> str | None:
         """This squad's own ``is_default`` role slug, read from the live roster in *db*.
 
@@ -617,8 +646,8 @@ class ServiceCore:
         coordinator, not to a slug spelled in the engine — ``sq role <slug> set-default`` moves
         that designation, and the exemption has to move with it. Returns ``None`` when no live
         role holds it, which is what a squad that retired its coordinator gets — a legitimate
-        state, not a gap to paper over; the caller falls back to the role catalog's own
-        designation there (:func:`~squads._interactions._role_guidance.catalog_default_slug`).
+        state, not a gap to paper over; the caller falls back to the designation of the catalog this
+        squad resolves (:func:`~squads._interactions._role_guidance.catalog_default_slug`).
 
         The designation goes through :func:`~squads._roles._resolver
         .holds_default_designation`, not a raw ``is_default`` attribute read: the stored key is an
@@ -802,11 +831,14 @@ class ServiceCore:
         if (
             item_type in laned_types(self.playbook)
             and not is_lane_exempt(
-                author, self._default_role_slug(db) or catalog_default_slug(get_catalog())
+                author,
+                self._default_role_slug(db)
+                or catalog_default_slug(load_role_catalog(self.paths.squad_dir)),
             )
-            and item_type not in allowed_create_types(author, self.spec, self.playbook)
+            and item_type
+            not in allowed_create_types(self._role_like(db, author), self.spec, self.playbook)
         ):
-            owners = in_lane_owner(item_type, self.playbook)
+            owners = in_lane_owner(item_type, self.playbook, self._live_role_likes(db))
             owner_str = (
                 ", ".join(f"'{s}'" for s in sorted(owners)) if owners else "no defined owner"
             )
@@ -923,7 +955,9 @@ class ServiceCore:
             log_delta["lane_warning"] = {
                 "advisory": True,
                 "actor": item.author,
-                "expected": sorted(in_lane_owner(item_type, self.playbook)),
+                "expected": sorted(
+                    in_lane_owner(item_type, self.playbook, self._live_role_likes(db))
+                ),
                 "type": item_type,
             }
         self.store.log(
@@ -1424,7 +1458,12 @@ class ServiceCore:
         then scoped skills in lexical order, so the result is stable and — with no preload
         edges anywhere — byte-identical to the pure function's own output.
         """
-        system = skills_for_role(slug, self.spec, self.playbook)
+        resolved = (
+            slug_only_role(slug)
+            if role is None
+            else resolve_role_tolerantly(role, self.paths.squad_dir)
+        )
+        system = skills_for_role(resolved, self.spec, self.playbook)
         if role is None:
             return system
         role_prefix = effective_prefix(role.prefix)

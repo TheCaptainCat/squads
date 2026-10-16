@@ -29,7 +29,7 @@ from squads._cli._markup import escape_markup
 from squads._context import get_context, rebind
 from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
-from squads._interactions._role_guidance import allowed_create_types, is_dev_slug
+from squads._interactions._role_guidance import allowed_create_types
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import (
@@ -1218,7 +1218,7 @@ def role_base_for_show(slug: str, it: Item | None, squad_dir: Path | None = None
     same base a role card is built from either way, never two independent resolutions."""
     if it is not None:
         return role_base_from_item(it, squad_dir)
-    return dev_base_for_slug(slug, squad_dir) if is_dev_slug(slug) else None
+    return dev_base_for_slug(slug, squad_dir) if slug.endswith("-dev") else None
 
 
 def dev_preview_full_name(r: RoleDef, base_role: RoleDef | None, it: Item | None) -> str | None:
@@ -1275,7 +1275,7 @@ async def build_role_json_payload(
                 "is_default": r.is_default,
                 "can_spawn": r.can_spawn,
                 "capabilities": list(r.capabilities),
-                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
+                "create_lane": sorted(allowed_create_types(r, svc.spec, svc.playbook)),
                 "responsibilities": list(r.responsibilities),
                 "skills": skills,
             }
@@ -1300,7 +1300,9 @@ async def build_role_json_payload(
                 "is_default": attrs.is_default(it) is True,
                 "can_spawn": False,
                 "capabilities": [],
-                "create_lane": sorted(allowed_create_types(slug, svc.spec, svc.playbook)),
+                "create_lane": sorted(
+                    allowed_create_types(RoleDef.from_item(it), svc.spec, svc.playbook)
+                ),
                 "responsibilities": [],
                 "skills": skills,
             }
