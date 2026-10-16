@@ -9,6 +9,7 @@ composing with the comment-header rewrite, and changing nothing the second time.
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -21,6 +22,7 @@ from _legacy_squad import (
     legacy_shape,
     read,
     reopen,
+    roster,
     stamp_behind,
     task,
 )
@@ -28,6 +30,7 @@ from squads._errors import SquadsError
 from squads._index._resolver import item_file
 from squads._migrations._v0_15_to_v0_16 import flatten_frontmatter
 from squads._models._item import Item
+from squads._rendering._engine import invalidate_squad_dir as invalidate
 from squads._sections import replace_frontmatter, split_frontmatter
 
 pytestmark = pytest.mark.anyio
@@ -123,6 +126,12 @@ ROWS = [
         "a-skill-description-is-dropped-when-the-top-level-one-is-set",
         _front("skill", description="Top", extra={"slug": "a-slug", "description": "Stale"}),
         _front("skill", slug="a-slug", description="Top"),
+        flags={"description_dropped": True, "description_differed": True},
+    ),
+    Row(
+        "a-skill-description-equal-to-the-kept-one-is-dropped-unlisted",
+        _front("skill", description="Same", extra={"slug": "a-slug", "description": "Same"}),
+        _front("skill", slug="a-slug", description="Same"),
         flags={"description_dropped": True},
     ),
     Row(
@@ -173,6 +182,32 @@ REFUSED = [
         _front("role", extra={"slug": "other"}),
         "extra.slug 'other' differs from the file name's slug 'a-slug'",
     ),
+    (
+        "a-non-roster-slug-differs-from-the-file-name",
+        _front("guide", extra={"slug": "other"}),
+        "extra.slug 'other' differs from the file name's slug 'a-slug'",
+    ),
+    *[
+        (
+            f"extra-holds-the-core-key-{key}",
+            _front("task", extra={key: value}),
+            f"extra.{key} would become the item's own '{key}'",
+        )
+        for key, value in (("assignee", "qa"), ("parent", "FEAT-9"), ("labels", ["x"]))
+    ],
+    *[
+        (
+            f"extra-holds-the-name-{key}",
+            _front("guide", extra={key: {"a": 1} if key == "extra" else "x"}),
+            f"extra.{key} would become the item's own '{key}'",
+        )
+        for key in ("extra", "path", "prefix")
+    ],
+    (
+        "a-skills-extra-path",
+        _front("skill", extra={"slug": "a-slug", "path": "x.md"}),
+        "extra.path would become the item's own 'path'",
+    ),
 ]
 
 
@@ -192,7 +227,7 @@ def test_the_per_file_transform(row: Row) -> None:
     ).to_frontmatter_dict()
     assert list(flat.data) == list(reloaded)
     assert flat.lifted == row.lifted
-    for flag in ("retitled", "description_dropped", "path_removed"):
+    for flag in ("retitled", "description_dropped", "description_differed", "path_removed"):
         assert getattr(flat, flag) is row.flags.get(flag, False), flag
 
 
@@ -206,7 +241,7 @@ def test_a_file_that_cannot_be_flattened_comes_back_untouched_with_its_problem(
 
     assert flat.data is given
     assert flat.changed is False
-    assert [p for p in flat.problems if fragment in p] == [f"f.md: {fragment}"]
+    assert len([p for p in flat.problems if p.startswith(f"f.md: {fragment}")]) == 1
 
 
 # --------------------------------------------------------------------------- over a squad
@@ -271,6 +306,10 @@ ROLE_ROWS = [
     ("developer-named-from-the-squads-own-pool", "own-pool", False),
     ("project-defined-role", "project", False),
     ("a-role-that-already-records-it", "recorded", True),
+    ("bundled-named-by-roles-toml", "toml-named", False),
+    ("bundled-named-by-a-per-slug-file", "slug-named", False),
+    ("bundled-named-by-hand-while-a-file-names-another", "hand-named", True),
+    ("developer-named-by-a-per-slug-file", "dev-slug-named", False),
 ]
 
 
@@ -293,7 +332,37 @@ async def _project_defined_role(svc, project):
     return await svc.activate_role("compliance")
 
 
+def _write_role_config(project, name: str, *, slug: str, toml: bool) -> None:
+    overrides = project.squad_dir / ".overrides"
+    (overrides / "roles").mkdir(parents=True, exist_ok=True)
+    if toml:
+        (overrides / "roles.toml").write_text(
+            f'[[roles]]\nslug = "{slug}"\nfull_name = "{name}"\n', encoding="utf-8"
+        )
+    else:
+        (overrides / "roles" / f"{slug}.toml").write_text(
+            f'full_name = "{name}"\n', encoding="utf-8"
+        )
+
+
+async def _named_by_configuration(svc, project, how: str):
+    """A role whose stored name is one the configuration gave it, as an earlier sync left it."""
+    if how == "toml-named":
+        _write_role_config(project, "Pam Toml", slug="product-owner", toml=True)
+        return await reopen(project.root).activate_role("product-owner")
+    if how == "hand-named":
+        _write_role_config(project, "Quinn Perslug", slug="qa", toml=False)
+        return await reopen(project.root).activate_role("qa", name="Hand Chosen")
+    slug, tech = ("python-dev", "python") if how == "dev-slug-named" else ("qa", None)
+    role = await (svc.add_dev(tech) if tech else svc.activate_role(slug))
+    _write_role_config(project, "Quinn Perslug", slug=slug, toml=False)
+    await reopen(project.root).sync()
+    return await svc.get(role.id)
+
+
 async def _role(svc, project, how: str):
+    if how in ("toml-named", "slug-named", "hand-named", "dev-slug-named"):
+        return await _named_by_configuration(svc, project, how)
     makers = {
         "bundled": lambda: svc.activate_role("architect"),
         "chosen-bundled": lambda: svc.activate_role("qa", name="Sam Lee"),
@@ -454,3 +523,141 @@ async def test_a_migrated_file_round_trips_through_the_model_and_a_second_run_ch
     assert {k: v for k, v in squad_tree(project.root).items() if k not in index} == {
         k: v for k, v in settled.items() if k not in index
     }
+
+
+# --------------------------------------------------------------------------- line endings
+
+#: (id, what is written in the 0.15 shape, line terminator of the whole file)
+KINDS = ["role", "developer", "operator", "skill", "guide"]
+
+
+async def _legacy_file(svc, kind: str) -> Path:
+    if kind == "role":
+        role = await svc.activate_role("qa", name="Hank Chosen")
+        path = item_file(svc.paths, role)
+        legacy_shape(
+            path, move=("slug", "is_dev", "tech", "model", "is_default"), drop=("name_chosen",)
+        )
+    elif kind == "developer":
+        role = await svc.add_dev("python")
+        path = item_file(svc.paths, role)
+        legacy_shape(
+            path, move=("slug", "is_dev", "tech", "model", "is_default"), drop=("name_chosen",)
+        )
+    elif kind == "operator":
+        path = await add_legacy_operator(svc, "Imp Orted", "op-imp", stored_name="Real Name")
+    elif kind == "skill":
+        skill = await svc.add_skill("Runbook", description="Top", when_to_use="Before a release")
+        path = item_file(svc.paths, skill)
+        legacy_shape(
+            path, move=("when_to_use", "allowed_tools"), extra={"slug": skill.slug}, drop=("slug",)
+        )
+    else:
+        guide = (await svc.create("guide", "Notes", author="manager")).item
+        path = item_file(svc.paths, guide)
+        legacy_shape(path, extra={"tags": ["a", "b"], "tech": "python"})
+    return path
+
+
+@pytest.mark.parametrize("eol", ["\n", "\r\n"], ids=["LF", "CRLF"])
+@pytest.mark.parametrize("kind", KINDS)
+async def test_the_step_flattens_a_file_whatever_its_line_endings_and_keeps_them(
+    project, svc, kind: str, eol: str
+) -> None:
+    path = await _legacy_file(svc, kind)
+    text = (await read(path)).replace("\r\n", "\n").replace("\n", eol)
+    path.write_bytes(text.encode())
+    stamp_behind(project.root)
+
+    run = await reopen(project.root).run_pending_migrations()
+
+    after = await read(path)
+    front = _front_of(after)
+    assert "extra" not in front, "the file was not flattened"
+    assert kind == "guide" or front.get("slug"), "a roster file carries no slug"
+    assert after.count("\n") == after.count(eol if eol == "\r\n" else "\n")
+    if eol == "\r\n":
+        assert "\n" not in after.replace("\r\n", ""), "a bare line feed was written"
+    if kind in ("role", "developer"):
+        assert isinstance(front["name_chosen"], bool)
+    if kind == "guide":
+        assert front["tags"] == ["a", "b"] and front["tech"] == "python"
+    migrated = reopen(project.root)
+    assert not [i for i in await migrated.check() if i.level == "error"]
+    report = [line for lines in run.reports.values() for line in lines]
+    assert any(
+        line.startswith("1 file(s) flattened") or "file(s) flattened" in line for line in report
+    )
+
+
+async def test_a_role_with_crlf_line_endings_keeps_its_chosen_name(project, svc) -> None:
+    role = await svc.activate_role("devops", name="Hank Chosen")
+    path = item_file(svc.paths, role)
+    legacy_shape(
+        path, move=("slug", "is_dev", "tech", "model", "is_default"), drop=("name_chosen",)
+    )
+    path.write_bytes((await read(path)).replace("\n", "\r\n").encode())
+    stamp_behind(project.root)
+
+    await reopen(project.root).run_pending_migrations()
+
+    migrated = reopen(project.root)
+    assert (await migrated.get(role.id)).title == "Hank Chosen"
+    assert (await migrated.roster_item("role", "devops")) is not None
+    await migrated.sync()
+    assert (await migrated.get(role.id)).title == "Hank Chosen"
+
+
+# --------------------------------------------------------------------------- reporting and refusal
+
+
+async def test_a_dropped_skill_description_that_differed_is_listed_by_file(project, svc) -> None:
+    same = await svc.add_skill("Same Text", description="One")
+    differs = await svc.add_skill("Other Text", description="Top")
+    for skill, stale in ((same, "One"), (differs, "Stale")):
+        legacy_shape(
+            item_file(svc.paths, skill),
+            extra={"slug": skill.slug, "description": stale},
+            drop=("slug",),
+        )
+    stamp_behind(project.root)
+
+    run = await reopen(project.root).run_pending_migrations()
+
+    report = [line for lines in run.reports.values() for line in lines]
+    assert "2 skill description(s) dropped" in " ".join(report)
+    assert "1 dropped skill description(s) differed from the one kept" in report
+    listed = report[report.index("1 dropped skill description(s) differed from the one kept") + 1]
+    assert listed == f"  {item_file(svc.paths, differs).relative_to(project.squad_dir).as_posix()}"
+
+
+async def test_a_refused_run_leaves_the_index_as_the_earlier_release_wrote_it(project, svc) -> None:
+    await roster(svc)
+    await inject(svc, await task(svc), f"- [{TS}] Nobody Known:\n  - hi\n")
+    stamp_behind(project.root)
+    index = project.squad_dir / ".squads.json"
+    before = index.read_bytes()
+
+    with pytest.raises(SquadsError):
+        await reopen(project.root).run_pending_migrations()
+
+    assert index.read_bytes() == before
+
+
+async def test_a_developer_never_named_returns_to_its_pool_name_when_a_per_slug_name_is_removed(
+    project, svc
+) -> None:
+    role = await svc.add_dev("python")
+    pooled = role.title
+    per_slug = project.squad_dir / ".overrides" / "roles" / "python-dev.toml"
+    per_slug.parent.mkdir(parents=True, exist_ok=True)
+    per_slug.write_text('full_name = "Trial Name"\n', encoding="utf-8")
+    invalidate(project.squad_dir)
+    await reopen(project.root).sync()
+    assert (await reopen(project.root).get(role.id)).title == "Trial Name"
+
+    per_slug.unlink()
+    invalidate(project.squad_dir)
+    await reopen(project.root).sync()
+
+    assert (await reopen(project.root).get(role.id)).title == pooled

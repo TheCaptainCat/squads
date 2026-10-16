@@ -9,7 +9,6 @@ import pytest
 from squads import __version__
 from squads import _itemfile as itemfile
 from squads._errors import SquadsError
-from squads._models._attributes import AttributeKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._services import _maintenance as maintenance
 from squads._workflow import ROSTER_ROLE
@@ -271,8 +270,8 @@ async def test_a_pre_split_corpus_converges_on_the_next_sync(project, svc):
     current = await svc.get(role.id)
     base = current.model_copy(deep=True)
     stale = current.model_copy(deep=True)
-    stale.attributes[X.FULL_NAME] = "Ada Lovelace"
-    stale.attributes[X.MISSION] = "Secure the whole system."
+    stale.attributes["full_name"] = "Ada Lovelace"
+    stale.attributes["mission"] = "Secure the whole system."
     async with svc.store.transaction() as db:
         await update_frontmatter(
             item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
@@ -281,7 +280,7 @@ async def test_a_pre_split_corpus_converges_on_the_next_sync(project, svc):
 
     split = await svc.get(role.id)
     assert split.title == _BUNDLED_ARCHITECT.full_name
-    assert split.attribute(X.FULL_NAME) == "Ada Lovelace"
+    assert split.attribute("full_name") == "Ada Lovelace"
 
     skipped = await svc.sync()
     assert skipped == [

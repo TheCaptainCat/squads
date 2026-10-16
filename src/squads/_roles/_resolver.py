@@ -59,6 +59,7 @@ from typing import Any, cast
 
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._models import _attributes as attrs
+from squads._models._attributes import AttributeKey
 from squads._models._item import Item
 from squads._roles._catalog import (
     PREDEFINED,
@@ -356,11 +357,15 @@ def dev_base_from_item(item: Item) -> RoleDef:
     call: a stored value for any of them is staleness for the sync to converge, never a
     designation to preserve.
 
-    The stored name is the base whether or not it was chosen. A per-slug file that sets
-    ``full_name`` renames a developer that was never named; a chosen name is pinned over every
-    layer by the caller (:func:`pinned_name_of`).
+    A developer that was never named has its pool draw stored as ``pool_name``, which is the
+    base, so a per-slug name that is later removed leaves the pool name again; otherwise the
+    stored name is the base. A per-slug file that sets ``full_name`` renames a developer that
+    was never named; a chosen name is pinned over every layer by the caller
+    (:func:`pinned_name_of`).
     """
-    stored_name = item.title
+    pool_name = attrs.string_attribute(item, AttributeKey.POOL_NAME)
+    drawn = None if attrs.name_chosen(item) else pool_name
+    stored_name = drawn or item.title
     name = stored_name if stored_name and stored_name.strip() else None
     base = dev_role(
         attrs.tech(item) or "",

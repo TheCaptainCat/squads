@@ -264,6 +264,11 @@
         "required": false,
         "settable": false
       },
+      "pool_name": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      },
       "tech": {
         "kind": "str",
         "required": false,

@@ -88,6 +88,7 @@ class RosterMixin(ServiceCore):
                 AttributeKey.IS_DEV: True,
                 AttributeKey.TECH: tech,
                 AttributeKey.NAME_CHOSEN: name is not None,
+                **({AttributeKey.POOL_NAME: role.full_name} if name is None else {}),
             },
         )
         # Materialise iff live — see the matching comment in activate_role.

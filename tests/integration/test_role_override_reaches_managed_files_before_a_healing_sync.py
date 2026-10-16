@@ -90,8 +90,8 @@ async def test_a_post_sync_override_reaches_every_managed_file_with_no_sync(tmp_
     pointer_text = (paths.root / ".claude" / "agents" / "reviewer.md").read_text(encoding="utf-8")
     assert _OVERRIDDEN_TITLE in pointer_text
 
-    # The item's own stored state is STILL untouched — nothing above ever wrote it. (There is
-    # no stored title to compare any more; the whole attribute mapping is the assertion instead.)
+    # The item's own stored state is untouched — nothing above wrote it. The role stores no
+    # copy of the title, so the whole attribute mapping is the assertion.
     assert _index_role_attributes(paths, "reviewer") == baseline_attributes
     on_disk_md = (paths.abspath(reviewer_item.path)).read_text(encoding="utf-8")
     assert _OVERRIDDEN_TITLE not in on_disk_md

@@ -402,7 +402,8 @@
         "model": "sonnet",
         "is_dev": true,
         "tech": "python",
-        "name_chosen": false
+        "name_chosen": false,
+        "pool_name": "Elias Python"
       },
       "slug_in_file": true,
       "id": "ROLE-5"

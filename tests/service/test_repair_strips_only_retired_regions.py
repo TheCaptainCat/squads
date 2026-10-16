@@ -32,12 +32,12 @@ _SUMMARY_REGION = """<!-- sq:summary -->
 #: The mirror shape a past release stored on every role item, written back here since nothing
 #: produces it any more.
 _RETIRED_MIRROR: dict[str, object] = {
-    X.FULL_NAME: "Stored Name",
-    X.MISSION: "A stored mission.",
-    X.RESPONSIBILITIES: ["Stored responsibility"],
-    X.AGREEMENTS: ["Stored agreement"],
-    X.COLOR: "blue",
-    X.CAN_SPAWN: True,
+    "full_name": "Stored Name",
+    "mission": "A stored mission.",
+    "responsibilities": ["Stored responsibility"],
+    "agreements": ["Stored agreement"],
+    "color": "blue",
+    "can_spawn": True,
     X.MODEL: "opus",
     "skills": ["squads", "sq-task"],
 }
@@ -294,7 +294,7 @@ async def test_an_operator_keeps_a_key_the_role_sweep_retires(svc):
     path = item_file(svc.paths, item)
     text = path.read_text(encoding="utf-8")
     data = read_frontmatter(text=text, source=str(path))
-    data[X.MISSION] = "an operator's own key"
+    data["mission"] = "an operator's own key"
     path.write_text(replace_frontmatter(text, data, source=str(path)), encoding="utf-8")
     await svc.repair()  # adopt the hand edit into the index
     before = path.read_bytes()
@@ -461,3 +461,36 @@ async def test_the_live_write_path_produces_none_of_the_stripped_names(svc):
         assert stored & _RETIRED_MIRROR_KEYS <= ({X.MODEL} if attrs.is_dev(item) else set()), (
             f"the {slug} role carries mirror keys again"
         )
+
+
+# ------------------------------------------------------- a declared name is not a mirror key
+
+
+@pytest.mark.parametrize("name", sorted(_RETIRED_MIRROR_KEYS - {"model"}))
+@pytest.mark.parametrize("declared", [True, False], ids=["declared-on-role", "undeclared"])
+async def test_the_sweep_spares_a_role_attribute_the_squad_declares(project, name, declared):
+    from squads import __version__
+    from squads._rendering._engine import invalidate_squad_dir
+
+    if declared:
+        overrides = project.squad_dir / ".overrides"
+        overrides.mkdir(exist_ok=True)
+        (overrides / "workflow.toml").write_text(
+            f"# squads:override-base:{__version__}\n[items.role.attributes]\n"
+            f'{name} = {{ kind = "str" }}\n',
+            encoding="utf-8",
+        )
+        invalidate_squad_dir(project.squad_dir)
+    svc = service.Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    item = await svc.roster_item("role", "manager")
+    assert item is not None
+    path = item_file(svc.paths, item)
+    text = path.read_text(encoding="utf-8")
+    data = read_frontmatter(text=text, source=str(path))
+    data[name] = "kept?"
+    path.write_text(replace_frontmatter(text, data, source=str(path)), encoding="utf-8")
+
+    await svc.repair()
+
+    stored = read_frontmatter(path=path)
+    assert (stored.get(name) == "kept?") is declared

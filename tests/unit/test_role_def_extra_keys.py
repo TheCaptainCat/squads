@@ -20,14 +20,14 @@ from squads._roles._catalog import PREDEFINED, RoleDef, dev_role
 #: Every key the definition used to be mirrored under. Named once, as a literal, so each
 #: assertion below tests the same removal rather than a hand-copied subset of it.
 _REMOVED_FROM_THE_MIRROR = (
-    X.FULL_NAME,
-    X.TITLE,
-    X.MISSION,
-    X.RESPONSIBILITIES,
-    X.AGREEMENTS,
-    X.COLOR,
-    X.CAN_SPAWN,
-    X.DESCRIPTION,
+    "full_name",
+    "title",
+    "mission",
+    "responsibilities",
+    "agreements",
+    "color",
+    "can_spawn",
+    "description",
 )
 
 

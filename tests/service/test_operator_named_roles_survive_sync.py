@@ -28,7 +28,6 @@ from squads import __version__
 from squads import _itemfile as itemfile
 from squads._context import bind_context, get_context
 from squads._index._reflog import read_lines, reflog_path
-from squads._models._attributes import AttributeKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base
 from squads._services import _service as service
@@ -246,10 +245,10 @@ async def test_catalog_resolution_still_reaches_a_stale_item_alongside_a_preserv
     current = await svc.get(role.id)
     base = current.model_copy(deep=True)
     stale = current.model_copy(deep=True)
-    stale.attributes[X.MISSION] = "a long-obsolete mission statement"
+    stale.attributes["mission"] = "a long-obsolete mission statement"
     stale.description = "a long-obsolete mission statement"
-    stale.attributes[X.RESPONSIBILITIES] = ["an obsolete responsibility"]
-    stale.attributes[X.CAN_SPAWN] = not _BUNDLED_ARCHITECT.can_spawn
+    stale.attributes["responsibilities"] = ["an obsolete responsibility"]
+    stale.attributes["can_spawn"] = not _BUNDLED_ARCHITECT.can_spawn
     async with svc.store.transaction() as db:
         await update_frontmatter(
             item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
@@ -269,7 +268,7 @@ async def test_catalog_resolution_still_reaches_a_stale_item_alongside_a_preserv
     assert list(resolved.responsibilities) == list(_BUNDLED_ARCHITECT.responsibilities)
     assert resolved.can_spawn == _BUNDLED_ARCHITECT.can_spawn
     # The stale copy is inert, not healed -- pinned so a reader knows which of the two it is.
-    assert healed.attribute(X.MISSION) == "a long-obsolete mission statement"
+    assert healed.attribute("mission") == "a long-obsolete mission statement"
     # The operator's own name is untouched by the very same sync.
     assert healed.title == "Ada Lovelace"
 

@@ -46,7 +46,7 @@ def test_every_dedicated_create_flag_attribute_is_settable_via_generic_set() -> 
 
 
 def test_the_scan_would_catch_a_planted_undeclared_key() -> None:
-    planted = "attributes[AttributeKey.MISSION] = mission\n"  # a real key the guide never declares
+    planted = "attributes[AttributeKey.WHEN_TO_USE] = text\n"  # a real key the guide never declares
     keys = _dedicated_attribute_keys(planted)
-    assert keys == [AttributeKey.MISSION]
-    assert AttributeKey.MISSION not in _settable_on_guide()
+    assert keys == [AttributeKey.WHEN_TO_USE]
+    assert AttributeKey.WHEN_TO_USE not in _settable_on_guide()

@@ -11,6 +11,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic_core import to_jsonable_python
 
 from squads import _clock as clock
 from squads._errors import SquadsError
@@ -301,7 +302,7 @@ class Item(BaseModel):
         row = self.model_dump(mode="json", exclude={"attributes", "slug_in_file"})
         flat: dict[str, Any] = self.model_dump(mode="json", include={"attributes"})["attributes"]
         for key, value in flat.items():
-            if key not in row and key not in ROW_ADDED_KEYS:
+            if key not in row and key not in ROW_ADDED_KEYS and key not in NON_FRONTMATTER_KEYS:
                 row[key] = value
         return row
 
@@ -521,11 +522,19 @@ def _frontmatter_payload(
         "modified_session": data.get("modified_session") or None,
         "slug_in_file": "slug" in data,
         "attributes": {
-            key: value
-            for key, value in data.items()
-            if key not in CORE_KEYS and key not in NON_FRONTMATTER_KEYS
+            key: _json_form(value) for key, value in data.items() if key not in CORE_KEYS
         },
     }
+
+
+def _json_form(value: Any) -> Any:
+    """*value* as the index stores it: a YAML date or timestamp as its ISO string, a mapping key
+    as a string. Applying it on load makes the file side of the skew comparison and the index
+    agree on one shape for a value YAML types on its own."""
+    try:
+        return to_jsonable_python(value)
+    except (TypeError, ValueError):  # fmt: skip
+        return value
 
 
 def _empty_list_if_unset(value: Any) -> Any:

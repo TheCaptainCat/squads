@@ -67,16 +67,16 @@ def test_a_non_core_key_is_kept_flat_through_load_write_and_the_index(key: str, 
     assert through_index.to_frontmatter_dict() == written
 
 
-def test_a_core_key_is_never_an_attribute_and_the_model_fields_are_not_frontmatter() -> None:
+def test_a_core_key_is_never_an_attribute_and_path_and_prefix_are_kept_as_unknown_keys() -> None:
     data = _frontmatter(labels=["x"], priority="high", path="stray/path.md", prefix="STRAY")
     item = _load(data)
 
-    assert item.attributes == {}
-    assert item.path == _PATH
+    assert item.attributes == {"path": "stray/path.md", "prefix": "STRAY"}
+    assert item.path == _PATH  # the model's own field is the file's location, not the key
     written = item.to_frontmatter_dict()
-    assert "path" not in written
-    assert "prefix" not in written
-    assert set(written) <= set(CORE_KEYS)
+    assert written["path"] == "stray/path.md" and written["prefix"] == "STRAY"
+    assert set(written) - {"path", "prefix"} <= set(CORE_KEYS)
+    assert "path" not in item.to_row() or item.to_row()["path"] == _PATH
 
 
 #: (id, frontmatter carries slug, roster item, expected slug, slug written back)

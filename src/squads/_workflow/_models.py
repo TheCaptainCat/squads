@@ -36,7 +36,7 @@ from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from squads._models._attributes import ROW_ADDED_KEYS, AttributeSpec
+from squads._models._attributes import ROW_ADDED_KEYS, AttributeKey, AttributeSpec
 
 #: The three roster types the engine binds by literal name — the irreducible
 #: structural minimum: the roster, the backends (which write role/skill files), and the
@@ -2123,13 +2123,18 @@ def _check_field_codes(
 #: drop or re-kind one of these.
 PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
     ROSTER_ROLE: {
-        "is_default": "bool",
-        "is_dev": "bool",
-        "model": "str",
-        "name_chosen": "bool",
-        "tech": "str",
+        AttributeKey.IS_DEFAULT: "bool",
+        AttributeKey.IS_DEV: "bool",
+        AttributeKey.MODEL: "str",
+        AttributeKey.NAME_CHOSEN: "bool",
+        AttributeKey.POOL_NAME: "str",
+        AttributeKey.TECH: "str",
     },
-    ROSTER_SKILL: {"allowed_tools": "str", "model": "str", "when_to_use": "str"},
+    ROSTER_SKILL: {
+        AttributeKey.ALLOWED_TOOLS: "str",
+        AttributeKey.MODEL: "str",
+        AttributeKey.WHEN_TO_USE: "str",
+    },
 }
 
 

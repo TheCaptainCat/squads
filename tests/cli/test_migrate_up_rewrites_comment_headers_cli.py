@@ -172,7 +172,9 @@ async def test_the_diff_of_every_item_file_is_header_lines_and_the_flattened_fro
         for key, value in old_front.items():
             if key != "extra":
                 assert new_front.get(key, value) == value or key == "title", (path, key)
-        assert set(new_front) - set(old_front) <= lifted | {"slug", "name_chosen"}, path
+        assert set(new_front) - set(old_front) <= lifted | {"slug", "name_chosen", "pool_name"}, (
+            path
+        )
     assert changed == _legacy_headers_by_counting(squad)
 
 

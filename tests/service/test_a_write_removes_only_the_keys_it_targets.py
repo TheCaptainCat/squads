@@ -10,10 +10,12 @@ command that does target a key changes it.
 import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic_core import to_jsonable_python
 
 from _helpers import create_item
 from _legacy_squad import reopen, stamp_behind
@@ -35,9 +37,15 @@ SHAPES = [
     ("a-nested-mapping", "nested", {"a": {"b": 1}}, False),
     ("a-list", "listy", ["a", "b"], False),
     ("an-explicit-null", "nothing", None, False),
+    ("an-unquoted-date", "due", date(2026, 10, 20), False),
+    ("an-unquoted-timestamp", "due", datetime(2026, 10, 20, 10, 0, tzinfo=UTC), False),
+    ("a-mapping-with-a-non-string-key", "keyed", {1: "a"}, False),
+    ("named-like-a-model-field-path", "path", "docs/spec.md", False),
+    ("named-like-a-model-field-prefix", "prefix", "X", False),
 ]
 
-JSON_ONLY = {"discussion"}
+#: Names a row or the model owns: the row keeps its own value for them.
+JSON_ONLY = {"discussion", "path", "prefix"}
 
 
 @dataclass
@@ -274,16 +282,21 @@ async def test_a_write_keeps_a_key_it_did_not_target(
     await witness(after)
     item = await after.get(item_id)
     stored, _ = split_frontmatter(project.squad_dir.joinpath(item.path).read_text("utf-8"))
-    assert key in stored and stored[key] == value, "the key left the file or changed"
+    expected = to_jsonable_python(value)  # a date or timestamp is kept as its ISO string
+    # A path that rewrites the frontmatter stores the ISO form; one that does not keeps the
+    # file's own typed value. Either way the key is there and means the same thing.
+    assert key in stored and to_jsonable_python(stored[key]) == expected, (
+        "the key left the file or changed"
+    )
     shown = await invoke(["show", item_id, "--json"])
     assert shown.exit_code == 0, shown.output
     row = json.loads(shown.output)
     if key in JSON_ONLY:
-        assert row[key] != value  # the row's own key keeps its meaning
+        assert row.get(key) != expected  # the row's own key keeps its meaning
     else:
-        assert key in row and row[key] == value, "the key left the --json row"
+        assert key in row and row[key] == expected, "the key left the --json row"
     rebuilt = await after.repair()
-    assert rebuilt.db.get(item_id).attributes[key] == value, "the key left the rebuilt index"  # type: ignore[union-attr]
+    assert rebuilt.db.get(item_id).attributes[key] == expected, "the key left the rebuilt index"  # type: ignore[union-attr]
 
 
 # --------------------------------------------------------------------------- the controls

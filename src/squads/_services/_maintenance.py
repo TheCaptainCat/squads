@@ -287,7 +287,7 @@ def _strip_retired_regions(
     return text
 
 
-def _retired_role_keys(item: Item) -> frozenset[str]:
+def _retired_role_keys(item: Item, spec: WorkflowSpec) -> frozenset[str]:
     """The retired mirror keys *item* still carries as attributes — empty for anything that is
     not a role item, and empty for a role that carries none of them.
 
@@ -307,7 +307,10 @@ def _retired_role_keys(item: Item) -> frozenset[str]:
         return frozenset()
     stored = RoleDef.stored_attribute_keys(is_dev=attrs.is_dev(item))
     retired = (RETIRED_ROLE_KEYS | RoleDef.attribute_keys()) - stored
-    return retired & frozenset(item.attributes)
+    # A name the squad's spec declares on role is the adopter's attribute, not a mirror key; the
+    # one declared name the mirror also used (the stored model) is still swept.
+    declared = frozenset(spec.item_attributes(ROSTER_ROLE)) - RoleDef.attribute_keys()
+    return (retired - declared) & frozenset(item.attributes)
 
 
 @dataclasses.dataclass
@@ -398,7 +401,7 @@ def _record_pending_rewrite(
         text, body_tag=body_tag, spec=spec, item_type=item.type, addr=addr
     )
     stripped = new_text != text
-    retired_keys = _retired_role_keys(item)
+    retired_keys = _retired_role_keys(item, spec)
     for key in retired_keys:
         del item.attributes[key]
     canonicalized = _ref_encoding_is_stale(data, item)
@@ -1665,6 +1668,7 @@ class MaintenanceMixin(ServiceCore):
         reports: dict[str, tuple[str, ...]] = {}
         ctx = MigrationContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
         reconciled: ReconcileResult | None = None
+        original_index: str | None = None
         if applied:
             built, reconciled = await plan_reconcile(
                 self.paths.squad_dir,
@@ -1675,6 +1679,7 @@ class MaintenanceMixin(ServiceCore):
             # With a readable index the rebuilt one is kept even when the run stops; with none,
             # a run refused before its first runner leaves the squad as it found it.
             if reconciled.had_index:
+                original_index = await _aio.read_text(self.paths.index_path)
                 await self._keep_reconciled(built, reconciled, disk)
             refusal = self._pre_runner_refusal(built, reconciled)
             if refusal is not None:
@@ -1698,10 +1703,8 @@ class MaintenanceMixin(ServiceCore):
         except IndexFullError as exc:
             raise SquadsError(_index_full_refusal(exc, disk)) from exc
         except SquadsError as exc:
-            raise SquadsError(
-                f"{exc}\n{_earlier_steps_note(running, applied)}"
-                f"The squad is still at schema v{disk}: fix the cause, then re-run "
-                "`sq migrate up`, which rebuilds the index from the files first."
+            raise await self._refusal_after_runner(
+                exc, running, applied, disk, original_index
             ) from exc
         if applied:
             await self._stamp_schema(SCHEMA_VERSION)
@@ -1728,6 +1731,31 @@ class MaintenanceMixin(ServiceCore):
             reports=reports,
             repair=repaired,
             reconcile=reconciled,
+        )
+
+    async def _refusal_after_runner(
+        self,
+        exc: SquadsError,
+        running: Migration | None,
+        applied: list[Migration],
+        disk: str,
+        original_index: str | None,
+    ) -> SquadsError:
+        """The refusal a failing runner becomes. A first step that fails has changed no file, so
+        the index the earlier release wrote is put back; after earlier steps the run says to
+        repair with that release first."""
+        text = str(exc)
+        if original_index is not None and running is not None:
+            if running is applied[0]:
+                await _aio.atomic_write_text(self.paths.index_path, original_index)
+            else:
+                text += (
+                    f"\nRebuild the index with the repair command of {_reader_phrase(disk)} first."
+                )
+        return SquadsError(
+            f"{text}\n{_earlier_steps_note(running, applied)}"
+            f"The squad is still at schema v{disk}: fix the cause, then re-run "
+            "`sq migrate up`, which rebuilds the index from the files first."
         )
 
     async def _keep_reconciled(self, built: SquadsDB, result: ReconcileResult, schema: str) -> None:

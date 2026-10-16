@@ -76,7 +76,7 @@ def test_the_is_dev_and_tech_markers_are_not_part_of_the_returned_roledef() -> N
 
 def test_the_name_comes_from_item_title() -> None:
     item = _dev_item("python", "Elias Python")
-    assert X.FULL_NAME not in item.attributes  # nothing stores a second copy of the name
+    assert "full_name" not in item.attributes  # nothing stores a second copy of the name
     assert dev_base_from_item(item).full_name == "Elias Python"
 
 

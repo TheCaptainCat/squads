@@ -29,17 +29,10 @@ class AttributeSpec(BaseModel):
 
 class AttributeKey:
     # agent roles
-    FULL_NAME = "full_name"
-    TITLE = "title"
-    MISSION = "mission"
-    RESPONSIBILITIES = "responsibilities"
     MODEL = "model"
-    COLOR = "color"
     IS_DEFAULT = "is_default"
-    CAN_SPAWN = "can_spawn"
-    DESCRIPTION = "description"
-    AGREEMENTS = "agreements"
     NAME_CHOSEN = "name_chosen"
+    POOL_NAME = "pool_name"
     # developers
     IS_DEV = "is_dev"
     TECH = "tech"
@@ -81,7 +74,8 @@ CORE_KEYS: tuple[str, ...] = (
 #: kept in the file and left out of the row.
 ROW_ADDED_KEYS: tuple[str, ...] = ("badges", "body", "discussion", "matched_subentities")
 
-#: Model fields that are not frontmatter and so can never be an attribute name.
+#: Model fields that are not frontmatter: refused as declared attribute names. A hand-added key of
+#: such a name is kept like any unknown key and left out of a ``--json`` row.
 NON_FRONTMATTER_KEYS: tuple[str, ...] = ("path", "prefix")
 
 
