@@ -379,7 +379,7 @@ def _pop_legacy_is_meta(name: str, data: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _as_table(value: Any, what: str) -> dict[str, Any]:
+def as_table(value: Any, what: str) -> dict[str, Any]:
     """*value* as a keyed table, or a clean refusal naming *what* and the shape found."""
     if not isinstance(value, dict):
         raise SquadsError(
@@ -389,7 +389,7 @@ def _as_table(value: Any, what: str) -> dict[str, Any]:
     return cast(dict[str, Any], value)
 
 
-def _as_entry_list(value: Any, what: str) -> list[Any]:
+def as_entry_list(value: Any, what: str) -> list[Any]:
     """*value* as an array of inline tables, or a clean refusal naming *what*.
 
     Also refuses a list holding a non-table element: without this, ``fields = "oops"`` would
@@ -413,8 +413,8 @@ def _as_entry_list(value: Any, what: str) -> list[Any]:
 
 def _section(raw: dict[str, Any], name: str) -> dict[str, dict[str, Any]]:
     """One top-level section as ``{key: table}``, shape-checked at both levels."""
-    section = _as_table(raw.get(name, {}), name)
-    return {key: _as_table(data, f"{name}.{key}") for key, data in section.items()}
+    section = as_table(raw.get(name, {}), name)
+    return {key: as_table(data, f"{name}.{key}") for key, data in section.items()}
 
 
 def _parse_lifecycle(name: str, data: dict[str, Any]) -> Lifecycle:
@@ -444,7 +444,7 @@ def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -
     hint. This validates a declaration *against* the declared set; it never widens it.
     """
     rules: list[RefRule] = []
-    for i, rule_data in enumerate(_as_entry_list(raw_rules, f"{ctx}.ref_rules")):
+    for i, rule_data in enumerate(as_entry_list(raw_rules, f"{ctx}.ref_rules")):
         try:
             rule = RefRule.model_validate(rule_data)
         except Exception as exc:
@@ -462,7 +462,7 @@ def _parse_ref_rules(raw_rules: Any, ctx: str, declared_kinds: frozenset[str]) -
 def _parse_fields(raw_fields: Any, ctx: str) -> list[Field]:
     """Parse a list of field dicts into ``Field`` objects (``extra="forbid"`` per entry)."""
     fields: list[Field] = []
-    for i, field_data in enumerate(_as_entry_list(raw_fields, f"{ctx}.fields")):
+    for i, field_data in enumerate(as_entry_list(raw_fields, f"{ctx}.fields")):
         try:
             fields.append(Field.model_validate(field_data))
         except Exception as exc:
@@ -473,7 +473,7 @@ def _parse_fields(raw_fields: Any, ctx: str) -> list[Field]:
 def _parse_badges(raw_badges: Any, ctx: str) -> list[Badge]:
     """Parse a list of badge dicts into ``Badge`` objects (``extra="forbid"`` per entry)."""
     badges: list[Badge] = []
-    for i, badge_data in enumerate(_as_entry_list(raw_badges, f"{ctx}.badges")):
+    for i, badge_data in enumerate(as_entry_list(raw_badges, f"{ctx}.badges")):
         try:
             badges.append(Badge.model_validate(badge_data))
         except Exception as exc:
@@ -530,7 +530,7 @@ def _parse_view(name: str, data: dict[str, Any]) -> ViewSpec:
     run from ``WorkflowSpec._validate``) — this function only builds the typed value.
     """
     ctx = f"views.{name}"
-    raw_source = _as_table(data.get("source", {}), f"{ctx}.source")
+    raw_source = as_table(data.get("source", {}), f"{ctx}.source")
     try:
         source = ViewSource.model_validate(raw_source)
     except Exception as exc:
@@ -559,10 +559,10 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     or a bundled-plus-override mapping the merge engine has already produced. One parser
     family, run once, regardless of which raw mapping it is handed.
 
-    Every section and entry is read through :func:`_section`/:func:`_as_entry_list`, so a
+    Every section and entry is read through :func:`_section`/:func:`as_entry_list`, so a
     malformed shape anywhere in the document is refused as a clean ``SquadsError`` — the shape
     guards' own comment above says why that matters more than the message quality suggests."""
-    raw = _as_table(raw, "workflow spec")
+    raw = as_table(raw, "workflow spec")
     # --- lifecycles (merged item + sub-entity machines) ---
     lifecycles: dict[str, Lifecycle] = {
         name: _parse_lifecycle(name, data) for name, data in _section(raw, "lifecycles").items()
@@ -1253,8 +1253,12 @@ def validate_against_index(spec: WorkflowSpec, db: Any, *, alignment: bool = Tru
 
 
 def _raw_shadows_bundled(bundled_raw: RawMapping, override_raw: RawMapping) -> bool:
+    def keys(raw: RawMapping, section: str) -> set[str]:
+        value = raw.get(section, {})
+        return set(cast("dict[str, Any]", value)) if isinstance(value, dict) else set()
+
     return any(
-        set(bundled_raw.get(section, {})) & set(override_raw.get(section, {}))
+        keys(bundled_raw, section) & keys(override_raw, section)
         for section in WORKFLOW_TOP_LEVEL_SECTIONS
     )
 

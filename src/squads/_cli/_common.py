@@ -43,7 +43,7 @@ from squads._models._omission import Omission
 from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
-from squads._paths import resolve
+from squads._paths import SquadPaths, resolve
 from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import (
@@ -611,10 +611,9 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
             data["title_advisory"] = res.title_advisory
         print_json_clean(json.dumps(data))
         return
-    kind = res.body_tag.split(":")[0]  # e.g. "subtask:STn:body" → "subtask"
     console.print(f"added [bold]{res.local_id}[/bold] to {parent_id}")
     console.print(
-        f'  set its body:  [cyan]sq {kind} body {parent_id} {res.local_id} -m "…"[/cyan]'
+        f"  set its body:  [cyan]{e(res.body_command)}[/cyan]"
         "  [dim](or --file body.md / --file -)[/dim]",
         soft_wrap=True,
     )
@@ -1686,13 +1685,41 @@ def apply_gate(grant: GateGrant | None) -> None:
     raise typer.Exit(1)
 
 
+#: The command groups that decide the gate for each of their own commands, by the grants those
+#: commands declare. Every other command is refused by the root gate.
+GATED_GROUPS: frozenset[str] = frozenset({"migrate", "override"})
+
+
+def grants_by_command(group: typer.Typer) -> dict[str, GateGrant]:
+    """The grant each command of *group* declares, by command name."""
+    found: dict[str, GateGrant] = {}
+    for info in group.registered_commands:
+        grant = gate_grant(info.callback) if info.callback is not None else None
+        if info.name is not None and grant is not None:
+            found[info.name] = grant
+    return found
+
+
+def gate_group_command(ctx: typer.Context, group: typer.Typer) -> None:
+    """Gate the invoked command of *group* by the grant it declares; one without a grant is
+    refused on a squad whose schema differs from the package's."""
+    if ctx.invoked_subcommand is not None:
+        apply_gate(grants_by_command(group).get(ctx.invoked_subcommand))
+
+
 def require_current_schema(subcommand: str | None) -> None:
-    """The root gate: every command outside the ``migrate`` group is refused on a squad whose
-    schema differs from this build. ``migrate`` decides for its own commands, by the grants they
-    declare (see its group callback)."""
-    if subcommand in (None, "migrate"):
+    """The root gate: every command outside the :data:`GATED_GROUPS` is refused on a squad whose
+    schema differs from this build. Those groups decide for their own commands, by the grants
+    they declare (see their group callbacks)."""
+    if subcommand is None or subcommand in GATED_GROUPS:
         return
     apply_gate(None)
+
+
+def get_squad_paths() -> SquadPaths:
+    """The active squad's paths, resolved without opening its corpus, for a command that reads
+    only files beside the index."""
+    return resolve(client_cwd=get_context().client_cwd)
 
 
 def _article(word: str) -> str:
@@ -1983,8 +2010,13 @@ def register_status_verb(
                     console.print(f"  severed {e(sev.referrer)} → {e(sev.target)} ({sev.kind})")
             else:
                 console.print("  --unlink: no references severed (nothing was severable)")
-        for warning in result.warnings:
-            console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
+        print_warnings(result.warnings)
+
+
+def print_warnings(warnings: list[str]) -> None:
+    """One ``warning:`` line per notice."""
+    for warning in warnings:
+        console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
 
 
 def resolve_local_id(token: str, kind: str) -> str:

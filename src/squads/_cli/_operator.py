@@ -168,9 +168,10 @@ async def operator_rm(
     """Delete an operator for good; needs --purge (or set its status to Archived)."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    await svc.remove_item(item_id, purge=purge)
+    removal = await svc.remove_item(item_id, purge=purge)
     await svc.refresh_managed()
     console.print(f"removed {item_id}")
+    common.print_warnings(removal.warnings)
 
 
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])
