@@ -16,7 +16,7 @@ refs:
 - ADR-776
 - ADR-781
 created_at: '2026-08-22T09:28:30Z'
-updated_at: '2026-08-25T23:00:56Z'
+updated_at: '2026-10-16T16:16:22Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -724,4 +724,6 @@ truth invites exactly the narrowing that produced C1.
   - Amended in place at its own end (C1), with a forward pointer added to A6. REV-808 F7 filed a deadlock between never-prune and the no-orphans guard for an artifact changed and deleted in one release; driving it showed the case is broader and needs no deletion at all - every intermediate revision of an artifact within one release is orphaned by the next regeneration, because the index entry is a wholesale replacement while the store is insert-if-absent. Measured against the shipped documents: one edit plus regen gives one orphan, two gives two, and restoring the shipped content clears neither.
   - Ruling: the orphan assertion does not yield, it is promoted from an assertion about something having gone wrong into an invariant the generator maintains - its steady-state contract gains one clause, drop a blob no index entry references. A1 promise is untouched by construction, since every revision it covers is named by an entry. Drove the sweep: all index-named hashes still resolve and --check is clean.
   - A6 never-deletes is narrowed to what its own stated reason supports rather than overruled: a run rewrites exactly one entry, so the only blobs it can orphan are revisions that entry alone named, and historic entries are never rewritten. Never-prune restated as the sentence to carry forward - no revision an index entry names is ever removed. Rejected the sequencing alternative of making a deletion ride an otherwise-unchanged release, which is unenforceable and answers only one instance while B3 sanctions deletion outright. Ruled on REV-808 F7. @tech-lead
+- [2026-10-16T16:16:22Z] Pierre Chat:
+  - 2026-10-16, supersedes today's earlier rulings on role name precedence and on REV-1063 F3: a role's stored name is its name. At creation it comes from --name when given, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). After that no configuration change renames it; renaming goes through the role's update verb (FEAT-977). The 0.16 migration keeps every stored name as it is. name_chosen and pool_name are removed.
 <!-- sq:discussion:end -->

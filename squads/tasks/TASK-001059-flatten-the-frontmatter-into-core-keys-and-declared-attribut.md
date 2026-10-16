@@ -66,7 +66,7 @@ subentities:
   assignee: tech-writer
   story: US8
 created_at: '2026-10-16T13:05:35Z'
-updated_at: '2026-10-16T15:38:35Z'
+updated_at: '2026-10-16T16:16:19Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -559,4 +559,6 @@ Rules: present-truth prose with no history; never run bare `ls`.
   - ST1-ST8 built in the main tree (uncommitted). Gates green: pyright 0, ruff check/format clean, sq check clean; meta+integration+cli in full plus every test the diff selects: 10408 passed. I did not run the whole suite. Notes for review: (1) ST5 follows the operator's corrected comment (config layers bundled, roles.toml, per-slug; a chosen name is last and no layer changes it). (2) The 0.16 step writes keys in the model writer's order, so 9 system-skill files in this squad also move created_at/updated_at after description, the only frontmatter movement beyond the named changes. (3) is_dev is pinned and declared on role until its removal lands. (4) Because TASK-1001 also edits VALIDATOR_NAMES/DEFAULT_VALIDATOR_LEVEL/UNGUARDED_VALIDATOR_NAMES and the effective-set tests, expect a merge there (mine add attribute_valid to COMMON_CORE and frontmatter_key_undeclared as catalog-only). @manager
 - [2026-10-16T15:38:35Z] Elias Python:
   - New user-visible text for the writer: report line "N dropped skill description(s) differed from the one kept" plus a file line each; refusal "extra.<key> would become the item's own '<key>'; move it out by hand"; later-step refusal says to rebuild the index with the earlier release repair command. Names equal to any configuration layer count as never named; developers keep pool_name. MANUAL covers all of this.
+- [2026-10-16T16:16:19Z] Pierre Chat:
+  - 2026-10-16, supersedes today's earlier rulings on role name precedence and on REV-1063 F3: a role's stored name is its name. At creation it comes from --name when given, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). After that no configuration change renames it; renaming goes through the role's update verb (FEAT-977). The 0.16 migration keeps every stored name as it is. name_chosen and pool_name are removed.
 <!-- sq:discussion:end -->
