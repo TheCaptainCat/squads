@@ -3,7 +3,7 @@ id: TASK-989
 sequence_id: 989
 type: task
 title: Guard the import graph and move role views and derivations
-status: Ready
+status: InProgress
 parent: FEAT-986
 author: tech-lead
 assignee: python-dev
@@ -16,15 +16,15 @@ description: 'Behaviour-neutral: an import-graph guard in tests/meta, the roster
 subentities:
 - local_id: ST1
   title: Record the package import edges in a tests/meta guard
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Move RoleView and OperatorView into _roles
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Move the role derivations out of the _interactions init
-  status: Todo
+  status: Done
 created_at: '2026-10-09T20:27:55Z'
-updated_at: '2026-10-16T17:49:55Z'
+updated_at: '2026-10-16T18:03:26Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -215,6 +215,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-16T17:56:50Z] Elias Python:
+  - Import-edge guard added in tests/meta; CLAUDE.md layering, _models and non-empty-inits passages corrected.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -268,6 +270,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-16T17:56:51Z] Elias Python:
+  - RoleView and OperatorView now in _roles/_projection.py; the two protocols are deleted; goldens and fixed-roster hashes unchanged.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -335,6 +339,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-16T18:03:26Z] Elias Python:
+  - Role derivations moved to _interactions/_role_guidance.py; no new package edge, goldens and fixed-roster hashes unchanged.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 <!-- sq:subtasks:end -->
