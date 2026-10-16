@@ -154,6 +154,10 @@ class ValidatorContext:
     ``supersedes`` sequence numbers, the set of item types with at least one corpus member)
     plus the item's own on-disk markdown text.
 
+    ``dependency_incoming`` is the same shape for the dependency-role ref kinds, and is carried on
+    both call paths: an empty set is a real answer (a squad with no dependency edge), so it is
+    not a :class:`ContextRequirement`.
+
     ``type_present`` backs ``ref_rule_target_present``'s inertness precondition: computed once
     per ``report()`` run, alongside ``supersedes_incoming``, from a full index scan — never
     rescanned per item. ``gate()`` leaves it at its empty default rather than paying that scan
@@ -172,6 +176,7 @@ class ValidatorContext:
     index: SquadsDB | None = None
     registered_slugs: frozenset[str] = frozenset()
     supersedes_incoming: frozenset[int] = frozenset()
+    dependency_incoming: frozenset[int] = frozenset()
     type_present: frozenset[str] = frozenset()
     raw_text: str | None = None
 
@@ -687,6 +692,30 @@ def _assignee_present(ctx: ValidatorContext) -> list[CheckIssue]:
     return [CheckIssue(level, item.id, f"status is {item.status} but nobody is assigned")]
 
 
+def _blocked_has_blocker(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item resting in a status whose role declares ``blocked`` while no edge of a
+    dependency-role ref kind touches it: none of its own refs has such a kind and no item's ref
+    of such a kind points at it. Kinds are matched by their declared role, never by spelling,
+    and an edge counts whether or not its other end exists or is settled."""
+    item = ctx.item
+    if not ctx.spec.role_for(item.status).blocked:
+        return []
+    kinds = ctx.spec.dependency_ref_kinds()
+    if any(kind in kinds for _, kind in _outgoing_refs(item, ctx.spec)):
+        return []
+    if item.sequence_id in ctx.dependency_incoming:
+        return []
+    level = _resolved_level(ctx, "blocked_has_blocker")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"status is {item.status} but no dependency edge is recorded "
+            f"(kinds: {', '.join(sorted(kinds))}) — add the blocker with `ref add`",
+        )
+    ]
+
+
 def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
     """An item resting in a status whose role declares ``settled`` while its own discussion holds
     no comment. Comments are counted by the discussion parser, never by a pattern of this
@@ -939,6 +968,7 @@ CATALOG: dict[str, Validator] = {
     "body_written": _body_written,
     "description_present": _description_present,
     "assignee_present": _assignee_present,
+    "blocked_has_blocker": _blocked_has_blocker,
     "settled_requires_discussion": _settled_requires_discussion,
     "external_id_not_in_title": _external_id_not_in_title,
 }
@@ -1444,19 +1474,39 @@ def registered_slugs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[str]:
     )
 
 
-def supersedes_incoming_seqs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[int]:
-    """Sequence numbers of every item with an incoming edge of a declared ``supersession``
-    kind — what ``supersedes_incoming`` checks a Superseded record's own sequence number
-    against. Resolved through :meth:`WorkflowSpec.supersession_ref_kinds` (zero or more
-    declared kinds), never a fixed ``"supersedes"`` spelling."""
-    kinds = spec.supersession_ref_kinds()
-    seqs: set[int] = set()
+@dataclass(frozen=True)
+class IncomingEdges:
+    """The sequence numbers of every item some ref points at, by edge role: through a declared
+    ``supersession`` kind, and through a declared ``dependency`` kind of either direction."""
+
+    supersedes: frozenset[int]
+    dependency: frozenset[int]
+
+
+def incoming_edges(index: SquadsDB, spec: WorkflowSpec) -> IncomingEdges:
+    """Both incoming-edge sets from one pass over every ref. Kinds are resolved through
+    :meth:`WorkflowSpec.supersession_ref_kinds` and :meth:`WorkflowSpec.dependency_ref_kinds`
+    (zero or more declared), never a fixed spelling, and a target is keyed by sequence number so
+    a ref stored at another id width still matches."""
+    supersession = spec.supersession_ref_kinds()
+    dependency = spec.dependency_ref_kinds()
+    supersedes: set[int] = set()
+    depended: set[int] = set()
     for it in index.items.values():
         for r in it.refs:
             rid, kind = split_ref(r)
-            if kind in kinds:
-                seqs.add(number_for_id(rid))
-    return frozenset(seqs)
+            if kind in supersession:
+                supersedes.add(number_for_id(rid))
+            if kind in dependency:
+                depended.add(number_for_id(rid))
+    return IncomingEdges(frozenset(supersedes), frozenset(depended))
+
+
+def supersedes_incoming_seqs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[int]:
+    """Sequence numbers of every item with an incoming edge of a declared ``supersession``
+    kind — what ``supersedes_incoming`` checks a Superseded record's own sequence number
+    against."""
+    return incoming_edges(index, spec).supersedes
 
 
 def types_present(index: SquadsDB) -> frozenset[str]:
@@ -1506,7 +1556,7 @@ class ValidatorEngine:
         index: SquadsDB,
         *,
         registered: frozenset[str],
-        supersedes: frozenset[int],
+        incoming: IncomingEdges,
         type_present: frozenset[str],
         raw_text: str | None,
         error_level_only: bool = False,
@@ -1523,7 +1573,8 @@ class ValidatorEngine:
             spec=self.spec,
             index=index,
             registered_slugs=registered,
-            supersedes_incoming=supersedes,
+            supersedes_incoming=incoming.supersedes,
+            dependency_incoming=incoming.dependency,
             type_present=type_present,
             raw_text=raw_text,
         )
@@ -1574,7 +1625,7 @@ class ValidatorEngine:
         given, limits the per-item members to the items with those ids.
         """
         registered = registered_slugs(index, self.spec)
-        supersedes = supersedes_incoming_seqs(index, self.spec)
+        incoming = incoming_edges(index, self.spec)
         present = types_present(index)
         bodies = bodies or {}
         issues: list[CheckIssue] = []
@@ -1585,7 +1636,7 @@ class ValidatorEngine:
                 item,
                 index,
                 registered=registered,
-                supersedes=supersedes,
+                incoming=incoming,
                 type_present=present,
                 raw_text=bodies.get(item.sequence_id),
             )
@@ -1624,14 +1675,14 @@ class ValidatorEngine:
         makes no claim about the rest of the catalog that could quietly stop being true.
         """
         registered = registered_slugs(index, self.spec)
-        supersedes = supersedes_incoming_seqs(index, self.spec)
+        incoming = incoming_edges(index, self.spec)
         issues = [
             i
             for i in self._run_per_item(
                 item,
                 index,
                 registered=registered,
-                supersedes=supersedes,
+                incoming=incoming,
                 type_present=frozenset(),
                 raw_text=None,
                 error_level_only=True,

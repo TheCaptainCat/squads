@@ -15,6 +15,7 @@ from squads._services._results import CheckIssue
 from squads._services._validators import (
     CATALOG,
     SQUAD_GLOBAL_CATALOG,
+    IncomingEdges,
     ValidatorContext,
     ValidatorEngine,
 )
@@ -305,7 +306,7 @@ def test_engine_calls_a_members_catalog_function_once_across_two_param_selection
         item,
         db,
         registered=frozenset(),
-        supersedes=frozenset(),
+        incoming=IncomingEdges(frozenset(), frozenset()),
         type_present=frozenset({"contract"}),
         raw_text=None,
     )

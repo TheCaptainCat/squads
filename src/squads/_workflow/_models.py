@@ -167,6 +167,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "blocked_has_blocker",
         "settled_requires_discussion",
         "external_id_not_in_title",
     }
@@ -261,6 +262,7 @@ WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "blocked_has_blocker",
         "settled_requires_discussion",
         "external_id_not_in_title",
     }
@@ -393,6 +395,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "body_written": "warn",
     "description_present": "warn",
     "assignee_present": "warn",
+    "blocked_has_blocker": "warn",
     "settled_requires_discussion": "warn",
     "external_id_not_in_title": "warn",
 }
@@ -1210,6 +1213,17 @@ def _status_live(status: str, statuses: dict[str, StatusSpec], roles: dict[str, 
     return bool(role and role.live)
 
 
+def _status_blocked(
+    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
+) -> bool:
+    """Whether *status* resolves to a role declaring ``blocked`` — the same lookup as
+    ``_status_live``, reading the other flag."""
+    spec = statuses.get(status)
+    role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
+    role = roles.get(role_name)
+    return bool(role and role.blocked)
+
+
 def _check_roster_lifecycle_floor(
     items: dict[str, ItemSpec],
     lifecycles: dict[str, Lifecycle],
@@ -1709,6 +1723,7 @@ def _check_selections_that_cannot_fire(
     lifecycles: dict[str, Lifecycle],
     statuses: dict[str, StatusSpec],
     roles: dict[str, RoleSpec],
+    ref_kinds: dict[str, RefKindSpec],
     errors: list[str],
 ) -> None:
     """Plane-1: a selected check that the spec's own declarations make unable to fire is
@@ -1717,7 +1732,9 @@ def _check_selections_that_cannot_fire(
 
     A member of :data:`WORK_POLICY_VALIDATOR_NAMES` is about the work an item tracks, so naming
     it on a ``roster`` type is refused. ``ref_rule_target_typed`` also needs a ref rule with a
-    target on the type, and ``assignee_present`` a lifecycle holding a status of a live role.
+    target on the type, ``assignee_present`` a lifecycle holding a status of a live role, and
+    ``blocked_has_blocker`` a lifecycle holding a status of a blocked role plus a declared
+    dependency ref kind.
     """
     for t, ts in items.items():
         for entry in ts.validators:
@@ -1750,6 +1767,40 @@ def _check_selections_that_cannot_fire(
                     "without one it never fires; drop the entry or give the lifecycle a status "
                     "of a live role"
                 )
+            if bare == "blocked_has_blocker":
+                errors += _blocked_has_blocker_refusals(
+                    t, ts, entry, lifecycle, statuses, roles, ref_kinds
+                )
+
+
+def _blocked_has_blocker_refusals(
+    t: str,
+    ts: ItemSpec,
+    entry: str,
+    lifecycle: Lifecycle | None,
+    statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
+    ref_kinds: dict[str, RefKindSpec],
+) -> list[str]:
+    """What keeps ``blocked_has_blocker`` from firing on *t*: no status of a blocked role in
+    its lifecycle, or no declared dependency ref kind in the spec."""
+    refusals: list[str] = []
+    if lifecycle is not None and not any(
+        _status_blocked(st, statuses, roles) for st in lifecycle.states
+    ):
+        refusals.append(
+            f"item {t!r}: validators entry {entry!r} needs a status of a role declaring "
+            f"blocked = true, and the lifecycle {ts.lifecycle!r} of {t!r} holds none — "
+            "without one it never fires; drop the entry or give the lifecycle a status of a "
+            "blocked role"
+        )
+    if not any(rk.role == "dependency" for rk in ref_kinds.values()):
+        refusals.append(
+            f"item {t!r}: validators entry {entry!r} needs a declared ref kind with "
+            'role = "dependency", and the spec declares none — without one no edge can '
+            "satisfy it; drop the entry or declare a dependency ref kind"
+        )
+    return refusals
 
 
 def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
@@ -2000,6 +2051,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "blocked_has_blocker",
         "settled_requires_discussion",
         "external_id_not_in_title",
     }
@@ -3086,7 +3138,7 @@ class WorkflowSpec(BaseModel):
 
         # A selected check the spec's own declarations make unable to fire is refused.
         _check_selections_that_cannot_fire(
-            self.items, self.lifecycles, self.statuses, self.roles, errors
+            self.items, self.lifecycles, self.statuses, self.roles, self.ref_kinds, errors
         )
 
         # Every capability a type declares must be reachable under the validators its own
