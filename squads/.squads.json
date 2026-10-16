@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1075,
+  "counter": 1076,
   "padding": 6,
   "items": {
     "12": {
@@ -26488,7 +26488,7 @@
         {
           "local_id": "ST8",
           "title": "Drop the is_dev attribute and add the 0.16 contribution",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -26497,7 +26497,7 @@
         {
           "local_id": "ST9",
           "title": "Report suffix-only -dev roles and pin their transitions",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -26506,7 +26506,7 @@
         {
           "local_id": "ST10",
           "title": "Add sq dev add --slug and stop reading the suffix",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -26515,7 +26515,7 @@
         {
           "local_id": "ST11",
           "title": "Resolve an unknown slug to nothing",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -26524,7 +26524,7 @@
       ],
       "path": "tasks/TASK-000990-make-a-developer-a-role-that-declares-a-capability.md",
       "created_at": "2026-10-09T20:28:02Z",
-      "updated_at": "2026-10-16T19:45:55Z",
+      "updated_at": "2026-10-16T20:23:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48351,13 +48351,14 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "TASK-990"
+        "TASK-990",
+        "BUG-1075"
       ],
       "subentities": [
         {
           "local_id": "F1",
           "title": "Lane exemption falls back to the bundled catalog's default role, not the squad's",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -48366,7 +48367,7 @@
         {
           "local_id": "F2",
           "title": "Handback says sq check has no may-be-stale line for role documents; it has one, and no test pins it",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -48375,7 +48376,7 @@
         {
           "local_id": "F3",
           "title": "Catalog error names the override file but indexes roles[N] into the merged catalog",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48384,7 +48385,7 @@
         {
           "local_id": "F4",
           "title": "Text-output capability assertions are vacuous for three of five shapes",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48393,7 +48394,7 @@
         {
           "local_id": "F5",
           "title": "Scaffold and comments describe *<name> playbook addressing the loader still refuses",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48402,7 +48403,7 @@
         {
           "local_id": "F6",
           "title": "role catalog --json capabilities ignore per-slug files; [dev] capabilities on no catalog surface",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48411,7 +48412,7 @@
         {
           "local_id": "F7",
           "title": "Explicit None in _role_override_shadows_bundled contradicts its docstring",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48420,7 +48421,7 @@
         {
           "local_id": "F8",
           "title": "No row pins an existing developer's capabilities after [dev] changes",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48429,7 +48430,7 @@
         {
           "local_id": "F9",
           "title": "Per-type skills print --author and @ handoffs naming bundled slugs the roster lacks",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -48438,7 +48439,7 @@
         {
           "local_id": "F10",
           "title": "BackendContext.resolved_skills_for keeps the bundled fallback ST6 said to remove",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48447,7 +48448,7 @@
         {
           "local_id": "F11",
           "title": "Merged-playbook errors print the override path twice",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48456,7 +48457,7 @@
         {
           "local_id": "F12",
           "title": "Three suffix reads remain, not two; an unactivated -dev role previews capability dev",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48465,16 +48466,43 @@
         {
           "local_id": "F13",
           "title": "set-default on a project role with no catalog base is lost on resolve (pre-existing)",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "dev add --slug accepts an unactivated catalog slug; the developer inherits that role's guides",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "dev add --slug collision says 'a developer with slug X' for a non-developer role",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "Proposed -dev slug spelling is two literals, not the named constant ST10 asked for",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
           "story": null,
           "extra": {}
         }
       ],
       "path": "reviews/REV-001068-task-990-checkpoint-review-st1-to-st4.md",
       "created_at": "2026-10-16T19:03:52Z",
-      "updated_at": "2026-10-16T20:02:13Z",
+      "updated_at": "2026-10-16T20:56:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48892,7 +48920,7 @@
       "type": "task",
       "title": "Select squad-global validators in a [squad] list",
       "slug": "select-squad-global-validators-in-a-squad-list",
-      "status": "Ready",
+      "status": "InReview",
       "description": "The [squad] validators table, the always-on and selectable tiers with declared levels, and the five selectable members",
       "parent": "FEAT-902",
       "author": "tech-lead",
@@ -48908,7 +48936,7 @@
         {
           "local_id": "ST1",
           "title": "Add the typed [squad] table with an empty bundled validators list",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -48917,7 +48945,7 @@
         {
           "local_id": "ST2",
           "title": "Partition squad-global members into tiers with one default-level table",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -48926,7 +48954,7 @@
         {
           "local_id": "ST3",
           "title": "Refuse invalid [squad] selections at spec load and in workflow lint",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -48935,7 +48963,7 @@
         {
           "local_id": "ST4",
           "title": "Run always-on plus selected members in sq check with one clock read",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -48944,7 +48972,7 @@
         {
           "local_id": "ST5",
           "title": "Add children_settled_with_parent",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48953,7 +48981,7 @@
         {
           "local_id": "ST6",
           "title": "Add dependency_acyclic",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48962,7 +48990,7 @@
         {
           "local_id": "ST7",
           "title": "Add wip_limit with the shared active-item helper",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -48971,7 +48999,7 @@
         {
           "local_id": "ST8",
           "title": "Add unassigned_active",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -48980,7 +49008,7 @@
         {
           "local_id": "ST9",
           "title": "Add stale_active against the run's single clock instant",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -48989,7 +49017,7 @@
         {
           "local_id": "ST10",
           "title": "Prove the selection on a scratch copy of this repository's squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -48998,7 +49026,7 @@
       ],
       "path": "tasks/TASK-001074-select-squad-global-validators-in-a-squad-list.md",
       "created_at": "2026-10-16T19:58:12Z",
-      "updated_at": "2026-10-16T20:07:11Z",
+      "updated_at": "2026-10-16T20:50:17Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49028,6 +49056,86 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-1075"
+    },
+    "1076": {
+      "sequence_id": 1076,
+      "type": "review",
+      "title": "Review TASK-1074: squad-global validator selection",
+      "slug": "review-task-1074-squad-global-validator-selection",
+      "status": "Approved",
+      "description": "Review of the [squad] table, the tiers and the five selectable squad-global members",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1074"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "No-selection invariant test compares against the same build, not a recorded baseline",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "SquadGlobalContext.now is optional and stale_active silently skips without it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "[selected] squad is refused by two mechanisms; SELECTABLE_SECTIONS never decides",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "dependency_acyclic reports cycles among settled items as blocking",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Handoff lacks the US1-US6 bullet-to-test map; ST10's 26 issues are copy artifacts",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Plural and table-shape wording in squad-global messages",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001076-review-task-1074-squad-global-validator-selection.md",
+      "created_at": "2026-10-16T20:43:08Z",
+      "updated_at": "2026-10-16T20:53:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1076"
     }
   }
 }

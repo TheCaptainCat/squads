@@ -3,7 +3,7 @@ id: TASK-1074
 sequence_id: 1074
 type: task
 title: Select squad-global validators in a [squad] list
-status: Ready
+status: InReview
 parent: FEAT-902
 author: tech-lead
 refs:
@@ -14,46 +14,46 @@ description: The [squad] validators table, the always-on and selectable tiers wi
 subentities:
 - local_id: ST1
   title: Add the typed [squad] table with an empty bundled validators list
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST2
   title: Partition squad-global members into tiers with one default-level table
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST3
   title: Refuse invalid [squad] selections at spec load and in workflow lint
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST4
   title: Run always-on plus selected members in sq check with one clock read
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST5
   title: Add children_settled_with_parent
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST6
   title: Add dependency_acyclic
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST7
   title: Add wip_limit with the shared active-item helper
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST8
   title: Add unassigned_active
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST9
   title: Add stale_active against the run's single clock instant
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST10
   title: Prove the selection on a scratch copy of this repository's squad
-  status: Todo
+  status: Done
   story: US6
 created_at: '2026-10-16T19:58:12Z'
-updated_at: '2026-10-16T20:07:11Z'
+updated_at: '2026-10-16T20:50:17Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -191,6 +191,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-16T20:31:48Z] Elias Python:
+  - Done in c4c413d8 on worktree-agent-a4a6de4545a741fbd. Falsification: SquadSpec extra=ignore turns 1 new test red (unknown-key row).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -221,6 +223,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-16T20:31:50Z] Elias Python:
+  - Done in c4c413d8. Falsification: a level literal back in wip_limit turns 2 new tests red (AST guard); dropping roster_slug_valid from the always-on set fails the import-time asserts.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -255,6 +259,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-16T20:31:52Z] Elias Python:
+  - Done in c4c413d8. Falsification: dropping the active-item cannot-fire check turns 3 new tests red; dropping the dependency one turns 1 red.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -283,6 +289,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-16T20:31:54Z] Elias Python:
+  - Done in c4c413d8. Falsification: running selectable members whether or not selected turns 6 new tests red. Squad-global members never run at the gate: gate() holds none and a counting member is never called.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -310,6 +318,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-16T20:31:56Z] Elias Python:
+  - Done in c4c413d8. Falsification: matching the status name Done turns 2 new tests red; counting sub-entities as children turns 1 red.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -337,6 +347,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-16T20:31:58Z] Elias Python:
+  - Done in c4c413d8. Falsification: skipping orientation turns 1 new test red (mixed blocks/depends-on); including every ref kind turns 2 red. A 2,000-node cycle completes (iterative SCC).
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -364,6 +376,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-16T20:32:00Z] Elias Python:
+  - Done in c4c413d8. Falsification: counting active by status name turns 12 new tests red.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -392,6 +406,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
+- [2026-10-16T20:32:02Z] Elias Python:
+  - Done in c4c413d8. Falsification: at-least instead of more-than turns 13 new tests red.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
 
@@ -419,6 +435,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
+- [2026-10-16T20:32:04Z] Elias Python:
+  - Done in c4c413d8. Falsification: calling clock.now() inside the member turns 2 new tests red; report() reads the clock once per run (tested).
 <!-- sq:subtask:ST9:discussion:end -->
 <!-- sq:subtask:ST9:end -->
 
@@ -440,6 +458,8 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-16T20:32:06Z] Elias Python:
+  - Done. Scratch copy of this squad, migrated with the dev build: sq check with nothing selected = 26 issues; with [squad] validators = splat + children_settled_with_parent + dependency_acyclic = 26 issues, diff empty (no settled parent with open children, no dependency cycle). workflow lint reports the override valid. Live squads/ untouched.
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 <!-- sq:subtasks:end -->
@@ -451,4 +471,9 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
   - Broken down into ST1-ST10. No migration (bundled spec gains an empty [squad] table; golden and manifest regenerate). Depends on TASK-1073. The always-on tier is every existing squad-global member: six today, since roster_slug_valid joined the catalog after FEAT-902 was written, so US6 lists of five read as six. The live override selection stays the manager release-prep step. @manager
 - [2026-10-16T20:06:38Z] Elias Python:
   - Not started: sequenced after TASK-1073, which is stopped on a duplicate-check finding (see its last comment).
+- [2026-10-16T20:32:08Z] Elias Python:
+  - Delivered in c4c413d8 (worktree-agent-a4a6de4545a741fbd). The body mentions no field_value_declared, so nothing to drop (TASK-1073 was cancelled). Always-on: index_reconciled, backend_reconciled, roster_config_integrity, default_designation_duplicated, roster_slug_valid (error), playbook_guide_role_live (warn). Selectable, default warn: children_settled_with_parent, dependency_acyclic, wip_limit:<n> (more than n per assignee, n>=1), unassigned_active:<n> (more than n, n>=0), stale_active:<days> (days>=1). At this scope @error only changes the sq check exit code. Override: [squad] validators replaced whole; the splat "$(*squad.validators)" extends. Full suite 11699 passed. The content-store orphan was cleared with seed_content_store --rebuild; regenerate the manifest at merge.
+- [2026-10-16T20:50:17Z] Elias Python:
+  - Review fixes in the follow-up commit on worktree-agent-a4a6de4545a741fbd. ST10 correction: the 26 issues in my dry run came from the copy having no .claude/ or CLAUDE.md (backend_reconciled errors and pointer warnings); after sync there are none, so 26 is not a baseline. The selection added nothing on the copy.
+  - US-to-test map (tests/service unless noted): US1 children_settled_with_parent -> test_squad_global_members_by_shape: test_parent_status_by_children, test_the_open_children_are_named_in_the_message_and_counted, test_a_parent_is_reported_once_however_many_children_are_open. US2 dependency_acyclic -> same file: test_graph_shape_by_cycles, test_a_two_thousand_node_chain_closing_on_itself_is_one_cycle, test_a_cycle_among_settled_items_is_reported_like_any_other, test_a_group_larger_than_its_path_names_the_other_items. US3 wip_limit -> test_active_item_counting_by_measure, test_wip_limit_boundary_is_more_than_the_limit, test_two_assignees_over_the_cap_give_two_findings_in_slug_order. US4 unassigned_active -> test_active_item_counting_by_measure, test_unassigned_active_boundary_is_more_than_the_limit. US5 stale_active -> test_stale_active_boundary_is_more_than_the_days, test_stale_active_reads_the_instant_it_is_handed_and_calls_no_clock, and in test_squad_selection_in_sq_check: test_the_clock_is_read_once_per_run_and_every_item_is_measured_against_it. US6 -> test_squad_table_in_the_workflow_document (shape and entry tables, repeats, reciprocal, check fallback), tests/unit/test_squad_global_tiers_and_levels (tiers, defaults, no level literal), test_squad_selection_in_sq_check (selection by run, exit codes, writes never change, gate never runs squad-global, recorded baseline, two runs agree).
 <!-- sq:discussion:end -->
