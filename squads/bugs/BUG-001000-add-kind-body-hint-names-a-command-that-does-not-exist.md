@@ -3,13 +3,13 @@ id: BUG-1000
 sequence_id: 1000
 type: bug
 title: add-<kind> body hint names a command that does not exist
-status: Fixed
+status: Verified
 author: qa
 priority: medium
 refs:
 - MILE-934:targets
 created_at: '2026-10-12T05:38:08Z'
-updated_at: '2026-10-16T18:23:27Z'
+updated_at: '2026-10-16T19:08:33Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -59,4 +59,6 @@ Actual: the hinted command exits 2 with "No such command" for every kind. An age
   - Fixed in f47c926a: the hint is built service-side beside the title advisory as sq <type> <n> <kind> <k> body. Table test over story, subtask, finding runs the hinted command; falsification 3 of 3 fail on the old line.
 - [2026-10-16T18:23:27Z] Elias Python:
   - Commit f47c926a on branch worktree-agent-a2f892de06784925e.
+- [2026-10-16T19:08:33Z] Catherine Manager:
+  - Verified: fix approved on REV-1067 and merged into release/0.16 at 977730ec; full suite 11471 passed, 0 failed.
 <!-- sq:discussion:end -->

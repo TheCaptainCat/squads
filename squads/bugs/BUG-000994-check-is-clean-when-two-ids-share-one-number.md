@@ -3,14 +3,14 @@ id: BUG-994
 sequence_id: 994
 type: bug
 title: check is clean when two ids share one number
-status: Fixed
+status: Verified
 author: qa
 priority: medium
 refs:
 - MILE-934:targets
 - BUG-993
 created_at: '2026-10-11T20:18:04Z'
-updated_at: '2026-10-16T18:23:28Z'
+updated_at: '2026-10-16T19:08:31Z'
 ---
 <!-- sq:body -->
 ## Reproduction
@@ -43,4 +43,6 @@ Two distinct ids (task and bug), valid files, one copied across. `repair --renum
   - Fixed in the commit "Made check report a number carried under different ids": check now errors on one number under different ids, naming every file, with the repair --renumber remedy. Table over task+bug, bug+task, task+feature, three-way plus a clean case; falsification 4 of 4 fail without the check.
 - [2026-10-16T18:23:28Z] Elias Python:
   - Commit 05f2328f on branch worktree-agent-a2f892de06784925e.
+- [2026-10-16T19:08:31Z] Catherine Manager:
+  - Verified: fix approved on REV-1067 and merged into release/0.16 at 977730ec; full suite 11471 passed, 0 failed.
 <!-- sq:discussion:end -->
