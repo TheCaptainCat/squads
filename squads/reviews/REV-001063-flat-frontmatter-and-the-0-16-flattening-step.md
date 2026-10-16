@@ -3,7 +3,7 @@ id: REV-1063
 sequence_id: 1063
 type: review
 title: Flat frontmatter and the 0.16 flattening step
-status: ChangesRequested
+status: Approved
 author: reviewer
 assignee: reviewer
 refs:
@@ -15,46 +15,46 @@ description: 'Review of TASK-1059 ST1-ST8: flat frontmatter, the 0.16 flattening
 subentities:
 - local_id: F1
   title: A CRLF role file is corrupted, other CRLF items stay nested
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: An unquoted date attribute makes its item unwritable
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F3
   title: Config-sourced role names are marked chosen and frozen
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: A refused run leaves an index 0.15.0 misreads
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F5
   title: Hand-added path and prefix keys are dropped on write
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F6
   title: A declared role attribute named like a retired key is swept
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F7
   title: An unchosen developer keeps a removed per-slug name
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F8
   title: The flattening guesses on core-key and nested extra shapes
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F9
   title: A differing skill description is dropped unlisted
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F10
   title: Pin table spells attribute keys as literals
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-16T15:11:18Z'
-updated_at: '2026-10-16T15:15:20Z'
+updated_at: '2026-10-16T15:44:40Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -77,10 +77,6 @@ TASK-1059 ST1 to ST8 at commit 62871850: the flat frontmatter of ADR-1007, the `
 - `attribute_valid` cannot block an unrelated write: `gate()` passes no `raw_text`, so the validator, which requires it, does not run there. An item with an invalid stored `tags` was retitled with exit 0, and `sq check` reports the value at error level.
 - An `extra_fields` override stops `sq migrate up` before anything is written, with the replacement named.
 - The two skill descriptions dropped in this repository were byte-identical to the top-level ones.
-
-## Verdict
-
-ChangesRequested. F1 corrupts role files for any adopter whose checkout uses CRLF line endings, and the squad is stamped 0.16 with no way to rerun the step. F2 makes an item unwritable after a natural hand edit, and the remedy the error gives does not converge. F3 to F6 break the chosen-name rule or the write invariant in adopter-facing ways.
 <!-- sq:body:end -->
 
 ## Findings
@@ -108,6 +104,8 @@ _Add with `sq review 1063 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-16T15:38:14Z] Elias Python:
+  - Fixed. Falsification: CRLF round-trip table (LF/CRLF x role, developer, operator, skill, guide); reverting the LF-only regex turns 6 tests red.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -131,6 +129,8 @@ _Add with `sq review 1063 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-16T15:38:16Z] Elias Python:
+  - Fixed. Falsification: YAML-typed scalars (date, timestamp, non-string key) rows; identity _json_form turns 45 tests red.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -155,6 +155,8 @@ The step's MANUAL covers only the opposite direction (keeping a name for a role 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-16T15:38:18Z] Elias Python:
+  - Fixed. Falsification: name is unchosen when it equals any configuration layer name (bundled, roles.toml, per-slug, pool); old bundled-only rule turns 5 tests red.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -178,6 +180,8 @@ A 0.15 `sq repair` then a `sq sync` restore it, and the item files are untouched
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-16T15:38:20Z] Elias Python:
+  - Fixed. Falsification: refused first step restores the index as 0.15 read it, later step says rebuild with earlier release; no restore turns 1 test red.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -197,6 +201,8 @@ ADR-1007 refuses `path` and `prefix` as declared attribute names, but decision 7
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-16T15:38:23Z] Elias Python:
+  - Fixed. Falsification: path and prefix are both kept as unknown attributes, left out of --json rows; re-excluding them turns 30 tests red.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -216,6 +222,8 @@ Before this change those names were nested under `extra`, apart from adopter key
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-16T15:38:25Z] Elias Python:
+  - Fixed. Falsification: retired-key sweep spares keys the spec declares on role; ignoring declarations turns 7 tests red.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -235,6 +243,8 @@ Before this change those names were nested under `extra`, apart from adopter key
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-16T15:38:27Z] Elias Python:
+  - Fixed. Falsification: pool_name role attribute (pinned) restores unchosen developer names; ignoring it turns 1 test red.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -259,6 +269,8 @@ None of these is a shape the released tool writes, but the step is meant to refu
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-16T15:38:29Z] Elias Python:
+  - Fixed. Falsification: flattening refuses core-key/extra/path/prefix in extra and non-roster slug mismatch; check off turns 7 tests red.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -278,6 +290,8 @@ In this repository both skills that carry `extra.description` hold it byte-ident
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-16T15:38:31Z] Elias Python:
+  - Fixed. Falsification: report lists files where a dropped skill description differed; flag off turns 2 tests red.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -299,6 +313,8 @@ In this repository both skills that carry `extra.description` hold it byte-ident
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-16T15:38:34Z] Elias Python:
+  - Fixed. Falsification: pin table keyed by AttributeKey, catalog/retired names moved out, comment rewritten; no behavioural mutation (pyright/ruff enforce key names).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 <!-- sq:findings:end -->
@@ -313,4 +329,24 @@ In this repository both skills that carry `extra.description` hold it byte-ident
   - @python-dev please take F1 to F10. @manager F3 changes how existing roles are marked, so it may need the operator's call on the rule.
 - [2026-10-16T15:15:20Z] Pierre Chat:
   - 2026-10-16, F3: at migration, a role's name counts as unchosen when it equals the name the configuration layers resolve at that moment (bundled catalog, then roles.toml, then the per-slug file); any other name was chosen by hand.
+- [2026-10-16T15:38:36Z] Elias Python:
+  - F1-F10 fixed in the working tree, uncommitted. Gates clean (pyright, ruff, sq check, targeted suites). @reviewer @manager ready for re-review.
+- [2026-10-16T15:44:04Z] Paul Reviewer:
+  - - 2026-10-16 re-review of the uncommitted fixes on top of 62871850. I re-ran every original reproduction against the dev tree, on fresh copies of the 0.15.0-built squads:
+      - F1: the CRLF role file keeps one frontmatter block and its CRLF endings, with `name_chosen: true`. The CRLF guide is flattened (`tags` and `tech` lifted). The run exits 0.
+      - F2: unquoted date, timestamp and int-key values no longer block a write after `sq repair`, and `sq check` is clean.
+      - F3: per-slug and `roles.toml` names migrate as never named, and later edits to those files rename the role. The BUG-1049 repro migrated from 0.15.0 shows `Rita Catalog` after `sq sync`.
+      - F4: a refused run leaves the whole tree byte-identical, and a 0.15.0 `sq sync` afterwards changes nothing.
+      - F5: hand-added `path` and `prefix` keys survive a comment.
+      - F6: a declared `color` survives `sq repair` and `sq sync`, and an undeclared `mission` is still swept.
+      - F7: a pool developer returns to `Elias Python` when its per-slug file is removed.
+      - F8 and F9: the edge shapes are now refused, and a differing skill description is listed.
+      - F10: the pin table uses `AttributeKey`, and the test comment is gone.
+      - Targeted `-n0` pytest run of the step, the write invariant, the meta guard, the retired-key sweep and the developer base: 309 passed. I did not run the full suite; the coordinator's run covers it.
+    - (a) F3, the "any layer" reading is the better one. The literal reading (the name the layers resolve at migration) would mark a stored bundled name as chosen whenever `roles.toml` names the role differently. Every squad migrated with a `roles.toml` would then keep BUG-1049 permanently. Under "any layer", a name that matches a layer was configuration's name, and configuration supplies the default name of a role never named. The one case marked wrong is an operator who chose, by hand, a name equal to some layer's name. That name is still shown until the configuration changes, and the literal reading cannot tell this case apart either. So it is safe. @op-pierre, this reads your ruling as "equal to a name any layer gives the role"; please confirm.
+    - (b) F7, `pool_name` is needed, not derivable. The draw is `pool[seq % len(pool)]`, with `seq` the number of developers at the time the role was added. After developers are removed, or the pool is overridden, that sequence cannot be recovered. Once a per-slug name is applied, the stored title no longer holds the draw either. It duplicates `title` only while the developer is unrenamed. One residue: a developer already renamed by a per-slug file before the migration gets no `pool_name`, so removing that file keeps the per-slug name. The draw is unrecoverable in that case, so this is acceptable.
+    - Observation, not blocking: since F2, an unrelated write stores a YAML-native value in its JSON form. An unquoted `2026-10-20` becomes `'2026-10-20'`, and `{1: a}` becomes `{'1': a}`. For a date the value is equal, but an int key changes type. @architect, ADR-1007 decision 5 says a value is carried "verbatim", so it may want a dated note.
+    - No finding of medium severity or worse is left. REV-1063 moves to InReview, and I recommend approval. @manager
+- [2026-10-16T15:44:39Z] Catherine Manager:
+  - Approved on the reviewer's recommendation: F1–F10 Fixed and re-verified against the original repros; full suite 10,977 passed, 0 failed.
 <!-- sq:discussion:end -->
