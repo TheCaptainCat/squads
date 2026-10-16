@@ -61,7 +61,11 @@ from squads._overrides._stamp import (
 )
 from squads._rendering._engine import invalidate_squad_dir
 from squads._roles._catalog import PREDEFINED, RoleDef, role_by_slug
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME, bundled_roles_toml_text
+from squads._roles._loader import (
+    ROLES_OVERRIDE_FILENAME,
+    bundled_roles_toml_text,
+    load_role_catalog,
+)
 from squads._roles._resolver import dev_base_for_slug, role_base_from_item
 from squads._sections import find_markers
 from squads._util import version_tuple
@@ -1288,6 +1292,18 @@ def _roles_catalog_stamp_finding_gated(
     return None
 
 
+def _roles_catalog_invalid_issue(squad_dir: Path) -> tuple[str, str, str] | None:
+    """The error finding when the merged role catalog refuses to load, else ``None``. The
+    catalog loads lazily, so ``open_service`` never surfaces an invalid merge."""
+    if not _roles_catalog_override_path(squad_dir).is_file():
+        return None
+    try:
+        load_role_catalog(squad_dir)
+    except SquadsError as exc:
+        return ("error", ROLES_OVERRIDE_FILENAME, f"role catalog override is invalid: {exc}")
+    return None
+
+
 def _check_roles_catalog_override_issues(squad_dir: Path) -> list[tuple[str, str, str]]:
     """Return check issues for the role catalog document override (if present) — mirrors
     :func:`_check_workflow_override_issues`/:func:`_check_playbook_override_issues` exactly."""
@@ -1298,11 +1314,14 @@ def _check_roles_catalog_override_issues(squad_dir: Path) -> list[tuple[str, str
     display = ROLES_OVERRIDE_FILENAME
     text = rc_path.read_text(encoding="utf-8")
     stamp = read_toml_stamp(text)
+    issues: list[tuple[str, str, str]] = []
+    invalid = _roles_catalog_invalid_issue(squad_dir)
+    if invalid is not None:
+        issues.append(invalid)
     finding = _roles_catalog_stamp_finding_gated(squad_dir, stamp)
-    if finding is None:
-        return []
-    level, message = finding
-    return [(level, display, message)]
+    if finding is not None:
+        issues.append((finding[0], display, finding[1]))
+    return issues
 
 
 # ─── check helpers (used by _services/_maintenance.py) ────────────────────────
@@ -1325,9 +1344,16 @@ def check_override_issues(
     to load, so the caller (``Service.check``, which already has the index in hand) supplies it.
     """
     role_items_by_slug = role_items_by_slug or {}
+    # Per-slug role overrides resolve against the merged catalog, so with it invalid they can
+    # only repeat its refusal; the catalog finding alone is reported.
+    catalog_invalid = _roles_catalog_invalid_issue(squad_dir) is not None
     return [
         *_check_template_override_issues(squad_dir),
-        *_check_role_toml_override_issues(squad_dir, role_items_by_slug),
+        *(
+            []
+            if catalog_invalid
+            else _check_role_toml_override_issues(squad_dir, role_items_by_slug)
+        ),
         *_check_workflow_override_issues(squad_dir),
         *_check_playbook_override_issues(squad_dir),
         *_check_roles_catalog_override_issues(squad_dir),
