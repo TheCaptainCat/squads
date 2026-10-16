@@ -4,7 +4,7 @@ Grammar:
   sq operator add <name> [--slug SLUG]  — register a human operator
   sq operator <slug|id|n> show           — show an operator's metadata panel
   sq operator <slug|id|n> status <S>     — transition the operator's status
-  sq operator <slug|id|n> rm [--purge]   — remove an operator
+  sq operator <slug|id|n> rm --purge     — delete an operator (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (OPER-000001) → bare number → exact slug (op-<first>)
@@ -164,14 +164,14 @@ async def operator_show(
 @common.command
 async def operator_rm(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
+    purge: bool = typer.Option(False, "--purge", help="Required: delete the file too."),
 ) -> None:
-    """Remove an operator (--purge also deletes the markdown)."""
+    """Delete an operator for good; needs --purge (or set its status to Archived)."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     await svc.remove_item(item_id, purge=purge)
     await svc.refresh_managed()
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {item_id}")
 
 
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])

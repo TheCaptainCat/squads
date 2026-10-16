@@ -700,7 +700,11 @@ class ItemsMixin(ServiceCore):
         return discussion.split_discussion(await self.read_discussion(item_id))
 
     async def remove_item(self, item_id: str, *, purge: bool = False) -> Item:
-        """Remove an agent-type item (role/skill/operator) from the index.
+        """Remove an agent-type item (role/skill/operator): index entry, file and pointers.
+
+        Refuses without *purge*: the markdown is the source of truth, so removing only the index
+        entry would leave a file ``sq check`` flags and ``sq repair`` re-indexes. Archiving is
+        the non-destructive retirement.
 
         For **work items** (feature/task/bug/decision/review/epic/guide), use
         :meth:`remove_work_item` instead — it enforces ref/child safety, always unlinks the
@@ -708,14 +712,20 @@ class ItemsMixin(ServiceCore):
         """
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
+            if not purge:
+                raise SquadsError(
+                    f"cannot remove {item.id} without --purge: the markdown file would stay on "
+                    "disk and `sq check` would flag it. To delete it for good, run "
+                    f"`sq {item.type} {item.id} rm --purge`; to retire it and keep it on "
+                    f"record, run `sq {item.type} {item.id} status Archived`."
+                )
             del db.items[item.sequence_id]
             # Unlink BEFORE the index commit (same direction as remove_work_item): a crash here
             # leaves the file gone with the index still referencing it, which `sq repair` heals
             # by dropping the orphan entry. Unlinking after the commit (the previous shape) is
             # the lossy direction — a crash there leaves the index without the entry and the
             # file still on disk, which `sq repair` re-indexes, resurrecting the removed item.
-            if purge:
-                await _aio.path_unlink(item_file(self.paths, item), missing_ok=True)
+            await _aio.path_unlink(item_file(self.paths, item), missing_ok=True)
         if self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
             ctx = self._ctx
             for backend in self._backends():

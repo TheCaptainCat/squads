@@ -13,7 +13,7 @@ Grammar:
   sq skill <slug|id|n> status <S>       — transition the skill's status
   sq skill <slug|id|n> view add <name>       — place or re-enable a view tag in sq:body
   sq skill <slug|id|n> view disable <name>   — disable a view tag in sq:body (kept, not removed)
-  sq skill <slug|id|n> rm [--purge]     — remove the skill item
+  sq skill <slug|id|n> rm --purge     — delete the skill item (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (SKILL-1) → bare number → exact slug
@@ -357,13 +357,13 @@ async def skill_regen(ctx: typer.Context) -> None:
 @common.command
 async def skill_rm(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
+    purge: bool = typer.Option(False, "--purge", help="Required: delete the file too."),
 ) -> None:
-    """Remove a skill (and its pointer; --purge also deletes the markdown)."""
+    """Delete a skill for good; needs --purge (or set its status to Archived)."""
     item_id: str = ctx.obj["id"]
     svc = get_service()
     await svc.remove_item(item_id, purge=purge)
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {item_id}")
 
 
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])

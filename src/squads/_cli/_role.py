@@ -9,7 +9,7 @@ Grammar:
   sq role <slug|id|n> set-default    — move the default-role designation here
   sq role <slug|id|n> view add <n>       — place or re-enable a view tag in sq:body
   sq role <slug|id|n> view disable <n>   — disable a view tag in sq:body (kept, not removed)
-  sq role <slug|id|n> rm [--purge]   — remove the role item
+  sq role <slug|id|n> rm --purge     — delete the role item (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (ROLE-1) → bare number → exact slug
@@ -486,14 +486,14 @@ async def regen_role(ctx: typer.Context) -> None:
 @common.command
 async def rm_role(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Also delete the markdown file."),
+    purge: bool = typer.Option(False, "--purge", help="Required: delete the file too."),
 ) -> None:
-    """Remove a role (and its pointer; --purge also deletes the markdown)."""
+    """Delete a role for good; needs --purge (or set its status to Archived)."""
     item_id = _require_id(ctx)
     svc = get_service()
     await svc.remove_item(item_id, purge=purge)
     await svc.refresh_managed()
-    console.print(f"removed {item_id}" + (" (purged)" if purge else ""))
+    console.print(f"removed {item_id}")
 
 
 @_addr.command("set-default")
