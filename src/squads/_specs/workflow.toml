@@ -9,7 +9,7 @@
 # enums); "does type/kind X carry field Y" is a fields_for(X) lookup.
 #
 # [roles.*] is the role catalog — the sole explicit status axis. Every status below names one
-# role via `role`; the role object carries `settled`/`hidden`/`color`/`live` (terminal/
+# role via `role`; the role object carries `settled`/`hidden`/`color`/`live`/`blocked` (terminal/
 # is_open/default-visibility/materialisation are all derived from the referenced role, never
 # stored per-status). `badge` stays its own independent per-status field.
 
@@ -167,6 +167,7 @@ color = "danger"
 settled = false
 hidden = false
 color = "danger"
+blocked = true
 
 [roles.in_force]
 settled = true

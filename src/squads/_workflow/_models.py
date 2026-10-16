@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from re import compile as re_compile
 from typing import Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
 
 #: The three roster types the engine binds by literal name — the irreducible
 #: structural minimum: the roster, the backends (which write role/skill files), and the
@@ -1079,6 +1079,8 @@ class RoleSpec(BaseModel):
       *consequence* of this flag for the roster, not what it names — the flag lives in
       vocabulary every item type shares, so it has to read sensibly on an ordinary work status
       too, not only a roster one.
+    - ``blocked`` — do the role's statuses mean the item is waiting on something else? Defaults
+      ``False``; unlike the other booleans it accepts only a TOML boolean.
 
     Roles are an OPEN vocabulary (an adopter may declare custom roles); colour intent is a
     CLOSED palette so every client can render any role safely with a neutral fallback.
@@ -1090,6 +1092,7 @@ class RoleSpec(BaseModel):
     hidden: bool = False
     color: str
     live: bool = False
+    blocked: StrictBool = False
 
 
 class StatusSpec(BaseModel):
@@ -2786,6 +2789,14 @@ class WorkflowSpec(BaseModel):
             return frozenset()
         machine = self.machine_for(item_type)
         return frozenset(s for s in machine.states if self.role_for(s).live)
+
+    def blocked_statuses(self, item_type: str) -> frozenset[str]:
+        """States of *item_type*'s own lifecycle whose resolved role carries the ``blocked``
+        flag, or ``frozenset()`` when *item_type* isn't declared."""
+        if item_type not in self.items:
+            return frozenset()
+        machine = self.machine_for(item_type)
+        return frozenset(s for s in machine.states if self.role_for(s).blocked)
 
     def _machine_for_type_or_kind(self, type_or_kind: str) -> Lifecycle | None:
         """The lifecycle machine bound to *type_or_kind* — an item type or a sub-entity kind,
