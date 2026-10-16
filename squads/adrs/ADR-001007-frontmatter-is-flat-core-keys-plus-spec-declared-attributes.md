@@ -20,7 +20,7 @@ refs:
 description: No extra block; slug is core; roster keys are pinned spec attributes;
   unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner
 created_at: '2026-10-15T18:49:27Z'
-updated_at: '2026-10-16T16:14:44Z'
+updated_at: '2026-10-16T16:15:34Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -207,6 +207,15 @@ A declared attribute whose stored value fails validation is therefore **kept on 
 write**: an unrelated write carries it through verbatim, and only a command that targets that key
 can replace it, with a value that passes. The core-key row is unchanged from today because the
 engine cannot build an item without those.
+
+**Note 2026-10-16.** "Verbatim" means the same JSON-representable value, not the same YAML
+type. An attribute value is kept in its JSON form: on load, a YAML-only type is normalized
+(`_json_form` in `_models/_item.py`), and the next write of the item stores that form. An
+unquoted date or timestamp becomes the string of the same value, in ISO form
+(`2026-10-20` becomes `'2026-10-20'`), and a non-string mapping key becomes a string key. The
+reason: the index and `--json` carry JSON, and a YAML-typed value made an item unwritable
+(REV-1063 F2). The one visible change of value is a key type: `{1: a}` is written back as
+`{'1': a}`. Core keys keep their own handling, as above.
 
 ### 6. Unknown keys are kept, in the same mapping as declared ones
 
