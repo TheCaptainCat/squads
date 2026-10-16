@@ -47695,7 +47695,7 @@
         {
           "local_id": "ST1",
           "title": "Model: one attribute mapping, slug as a core key, AttributeKey and the accessor",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US1",
@@ -47704,7 +47704,7 @@
         {
           "local_id": "ST2",
           "title": "Spec: the attributes grammar, pinned roster attributes and the refused names",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US2",
@@ -47713,7 +47713,7 @@
         {
           "local_id": "ST3",
           "title": "Validation: attribute kinds in sq check, --set and import; opt-in undeclared check",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US3",
@@ -47722,7 +47722,7 @@
         {
           "local_id": "ST4",
           "title": "Write invariant: the write-path by key-shape table and its falsification",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US4",
@@ -47731,7 +47731,7 @@
         {
           "local_id": "ST5",
           "title": "One meaning per name: skill description, operator title, tech",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US5",
@@ -47740,7 +47740,7 @@
         {
           "local_id": "ST6",
           "title": "The flat-frontmatter contribution of the 0.16 step, absorbing operator-identity",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US6",
@@ -47749,7 +47749,7 @@
         {
           "local_id": "ST7",
           "title": "Run the 0.16 step on a scratch copy of this repository's squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US6",
@@ -47758,7 +47758,7 @@
         {
           "local_id": "ST8",
           "title": "Flat --json rows, workflow attributes and flat render contexts",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US7",
@@ -47785,7 +47785,7 @@
       ],
       "path": "tasks/TASK-001059-flatten-the-frontmatter-into-core-keys-and-declared-attribut.md",
       "created_at": "2026-10-16T13:05:35Z",
-      "updated_at": "2026-10-16T13:22:49Z",
+      "updated_at": "2026-10-16T14:56:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
