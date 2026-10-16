@@ -27,7 +27,7 @@ subentities:
   title: Establish the rename_type and repair multi-write cases
   status: Done
 created_at: '2026-10-09T20:28:05Z'
-updated_at: '2026-10-16T21:50:27Z'
+updated_at: '2026-10-16T22:02:33Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -397,4 +397,6 @@ Gates and working rules: the task body.
   - Built on release/0.16 (worktree branch worktree-agent-a0f8c17233ea0ade9, commits 4a8bdc9d, 22fa82b6, 15b80785, 4417bdee). Gates: pyright 0 errors, ruff check and format clean; tests/service, integration, cli, meta, unit, tui each run once and green (full suite left to the merge). Beyond the four named: rename_status also writes frontmatter then comment (allowlisted, not fixed). Repair rebuild did not reproduce, so no entry. Adopter-visible: an import that fails mid-apply now leaves no item file written (previously a prefix of the events had landed); output, files, index and reflog are otherwise byte-identical. Tech writer: no doc change needed beyond that.
 - [2026-10-16T21:50:27Z] Elias Python:
   - rename_status now composes in memory and writes once (commit before c520f5a3); falsification: a restored separate write turns 4 tests red plus 5 errors. Allowlist mechanism removed entirely.
+- [2026-10-16T22:02:33Z] Paul Reviewer:
+  - Reviewed in REV-1083: ChangesRequested (2 medium, 2 low, 1 info). Output is byte-identical to the previous commit; BUG-1081 verified.
 <!-- sq:discussion:end -->
