@@ -60,9 +60,8 @@ def laned_types(playbook: PlaybookSpec | None = None) -> frozenset[str]:
     """The item types that participate in the create-lane domain at all — every type some
     guide in *playbook* declares an author for.
 
-    A function, not a module constant: computed once at import off the bundled document, a
-    renamed or project-declared type could never enter the domain, so the lane check
-    short-circuited and lane discipline went dark for every type an adopter declared.
+    Computed per call from *playbook*, so a renamed or project-declared type enters the domain
+    when some guide declares an author for it.
     """
     return frozenset(t for lane in create_lanes(playbook).values() for t in lane)
 
@@ -134,7 +133,7 @@ def item_types_for_role(
     with no override mechanism of its own *unless the caller threads the merged one* — passing
     the active/merged playbook is what lets a project-added role guide or project-added type
     entry actually change a role's interacting-type list; passing nothing (the bundled default)
-    reproduces today's behaviour exactly. Independent of that: a type the playbook still names
+    gives the bundled answer. Independent of that: a type the playbook still names
     but *spec* has dropped (via ``[selected]``, directly, or by renaming it away to a new key)
     is filtered out here, so a role's preload list never keeps naming a type that no longer
     exists. A type *spec* declares that has no playbook entry at all — a project-declared custom
@@ -191,12 +190,10 @@ def item_skill_role_sections(
     renders for one item type — empty for a type the active playbook does not cover (the thin
     skill's "no role sections" degradation).
 
-    Registered as a Jinja filter (``_rendering/_engine.py``) rather than reimplemented in a
-    template, per the source-widening decision's guard: a lookup over the roster stays pure
-    Python, exposed, never accreted into template logic.
+    Registered as a Jinja filter (``_rendering/_engine.py``), so the roster lookup stays in
+    Python rather than in template logic.
 
-    Two filters, both roster-dependent, which is why a before/after diff of generated skill
-    text only means anything with the roster held constant:
+    Two rules depend on the roster:
 
     - the shared ``developers`` section (the ``*dev`` sentinel guide) renders only when the
       roster carries at least one ``<tech>-dev`` role, so a squad with no developer yet does

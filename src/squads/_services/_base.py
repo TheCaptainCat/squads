@@ -616,7 +616,7 @@ class ServiceCore:
         that designation, and the exemption has to move with it. Returns ``None`` when no live
         role holds it, which is what a squad that retired its coordinator gets — a legitimate
         state, not a gap to paper over; the caller falls back to the role catalog's own
-        designation there (:func:`~squads._interactions.catalog_default_slug`).
+        designation there (:func:`~squads._interactions._role_guidance.catalog_default_slug`).
 
         The designation goes through :func:`~squads._roles._resolver
         .holds_default_designation`, not a raw ``is_default`` attribute read: the stored key is an

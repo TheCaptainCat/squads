@@ -17,7 +17,7 @@ uv build                # wheel/sdist (templates ship as package data)
 
 ```
 _cli → _services → (index store, backends, rendering, roles, interactions, …)
-_models  shared; imports only the leaf modules _clock, _errors and _util
+_models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
 ```
 
 Every package-to-package import edge, with where it runs (module top, inside a function, or
