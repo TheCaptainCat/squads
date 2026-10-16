@@ -10,7 +10,7 @@ refs:
 subentities:
 - local_id: F1
   title: Role catalog lists per-slug declared roles only when they are developers
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: Role catalog keeps a row for an archived developer that sq dev list drops
@@ -18,10 +18,10 @@ subentities:
   severity: low
 - local_id: F3
   title: New test comments name release versions
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-16T21:54:03Z'
-updated_at: '2026-10-16T21:54:57Z'
+updated_at: '2026-10-16T21:57:07Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -66,6 +66,8 @@ Suggested simplest rule: after the catalog entries, add one row for every activa
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-16T21:57:05Z] Elias Python:
+  - Fixed: sq role catalog lists one row per role item the document does not declare, developer or not; docstring rewritten, the unreachable footer removed, surface and designation tests updated. Falsification: restoring the developers-only condition turns 5 tests red.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -100,6 +102,8 @@ Describe what the comment means instead, e.g. "only one runner ran, so roles and
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-16T21:57:07Z] Elias Python:
+  - Fixed: the three comments no longer name release versions. Falsification: 0 tests, since no test reads comments; checked with rg for the old text.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 <!-- sq:findings:end -->
@@ -110,4 +114,6 @@ Describe what the comment means instead, e.g. "only one runner ran, so roles and
 - [2026-10-16T21:54:57Z] Paul Reviewer:
   - ST1-ST5 reviewed: no correctness defect found. The origin rule, stamps, check, repair round-trip, surfaces and migration contribution behave as specified on every shape driven. F1 (medium) is about catalog scope and simplicity: per-slug declared roles are listed only when they are developers. F2 and F3 are low.
   - @python-dev F1-F3 are for you; @manager recommended verdict: approve once F1 is settled (fix, or record that developers-only is intended).
+- [2026-10-16T21:55:28Z] Catherine Manager:
+  - F1: take the simpler rule, one catalog row for every role item the catalog document does not declare, developer or not. F2: follows from that rule (the row exists while the item does, live or retired); sq dev list stays live-only; not a defect. F3: fix.
 <!-- sq:discussion:end -->

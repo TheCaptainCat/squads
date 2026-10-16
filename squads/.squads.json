@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1082,
+  "counter": 1084,
   "padding": 6,
   "items": {
     "12": {
@@ -26643,7 +26643,7 @@
       ],
       "path": "tasks/TASK-000992-write-each-item-file-once-per-transaction-in-retype-and-impo.md",
       "created_at": "2026-10-09T20:28:05Z",
-      "updated_at": "2026-10-16T21:50:27Z",
+      "updated_at": "2026-10-16T22:02:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49591,7 +49591,7 @@
         {
           "local_id": "F1",
           "title": "Role catalog lists per-slug declared roles only when they are developers",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -49609,7 +49609,7 @@
         {
           "local_id": "F3",
           "title": "New test comments name release versions",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -49618,11 +49618,109 @@
       ],
       "path": "reviews/REV-001082-review-task-1069-st1-st5-role-and-skill-origin.md",
       "created_at": "2026-10-16T21:54:03Z",
-      "updated_at": "2026-10-16T21:54:57Z",
+      "updated_at": "2026-10-16T21:57:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-1082"
+    },
+    "1083": {
+      "sequence_id": 1083,
+      "type": "review",
+      "title": "Write-once item files in retype, rename and import; selected-menu fix",
+      "slug": "write-once-item-files-in-retype-rename-and-import-selected-m",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-992",
+        "BUG-1081",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A failing import that renames a file still moves it on disk; repair is still needed",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Held texts live on the Service, not threaded or on the transaction, with no nesting guard",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "The write guard ignores item-file writes made outside any unit, migration runners included",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "conftest docstring still names a write-guard allowlist that no longer exists",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Selected-menu fix verified; lint stops at a squad refusal and hides other selected errors",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001083-write-once-item-files-in-retype-rename-and-import-selected-m.md",
+      "created_at": "2026-10-16T22:00:50Z",
+      "updated_at": "2026-10-16T22:02:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1083"
+    },
+    "1084": {
+      "sequence_id": 1084,
+      "type": "bug",
+      "title": "workflow lint hides later [selected] errors behind the first",
+      "slug": "workflow-lint-hides-later-selected-errors-behind-the-first",
+      "status": "Open",
+      "description": "",
+      "parent": "MILE-1051",
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1083"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001084-workflow-lint-hides-later-selected-errors-behind-the-first.md",
+      "created_at": "2026-10-16T22:04:16Z",
+      "updated_at": "2026-10-16T22:04:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1084"
     }
   }
 }
