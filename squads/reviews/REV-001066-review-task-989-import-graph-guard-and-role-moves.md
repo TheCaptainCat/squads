@@ -3,7 +3,7 @@ id: REV-1066
 sequence_id: 1066
 type: review
 title: 'Review TASK-989: import-graph guard and role moves'
-status: InReview
+status: Approved
 author: reviewer
 refs:
 - TASK-989
@@ -12,22 +12,22 @@ description: Behaviour-neutral move confirmed and the guard falsified; four low 
 subentities:
 - local_id: F1
   title: CLAUDE.md calls _clock a leaf; it imports _context
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F2
   title: Guard's blind-spot statement is incomplete and partly false
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: Two doc references name a moved function's old home
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F4
   title: Moved docstrings carry history prose into the new module
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-16T18:11:15Z'
-updated_at: '2026-10-16T18:11:53Z'
+updated_at: '2026-10-16T18:14:02Z'
 ---
 <!-- sq:body -->
 Review of the commit "Guarded the package import graph and moved the roster views and role derivations to named modules" (1fd45be5 on release/0.16), against TASK-989 and ADR-984.
@@ -132,4 +132,8 @@ The move copied docstrings verbatim. As a result, the new module `_interactions/
 <!-- sq:discussion -->
 - [2026-10-16T18:11:53Z] Paul Reviewer:
   - Verdict recommended: approve once the four low findings each have a disposition. The move is behaviour-neutral: the playbook fallback is the same object, read through its accessor, and the threaded override path was falsified red in a scratch copy. The guard fails on a planted edge, a deleted row, a phantom row, a new non-empty init and a component change. The managed region of CLAUDE.md is byte-identical. F1 to F3 are small fixes for python-dev; F4 can go to TASK-990, which rewrites the module. Left InReview, not self-approved. @python-dev @manager
+- [2026-10-16T18:13:45Z] Elias Python:
+  - F1 to F4 fixed: CLAUDE.md _clock wording, guard docstring and relative import_module refusal, two stale references, role-guidance docstrings.
+- [2026-10-16T18:14:01Z] Catherine Manager:
+  - Approved: F1–F4 Fixed in 90822b25; behaviour neutrality and guard falsification verified by the reviewer.
 <!-- sq:discussion:end -->
