@@ -88,6 +88,7 @@ from squads._workflow._models import (
     RefKindSpec,
     RefRule,
     RoleSpec,
+    SquadSpec,
     StatusSpec,
     SubentityKindSpec,
     ViewSource,
@@ -114,6 +115,7 @@ WORKFLOW_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset(
         "roles",
         "ref_kinds",
         "views",
+        "squad",
     }
 )
 
@@ -222,6 +224,21 @@ def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> l
     return violations
 
 
+def _selected_squad_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
+    """``[selected]`` naming ``squad``: that table holds one list, so it has no entries to drop."""
+    selected = raw_override.get("selected")
+    if not isinstance(selected, dict) or "squad" not in selected:
+        return []
+    return [
+        MergeViolation(
+            origin,
+            "selected.squad",
+            "the `[squad]` table has no entries to drop — its one key is a list",
+            "replace the list in `[squad]` (`validators = [...]`) instead.",
+        )
+    ]
+
+
 def spec_refusal(override_path: Path | str, cause: object) -> str:
     """The one refusal text every surface prints when the declared workflow override will not
     resolve — composed here, where the file and the loader's own cause are both in hand, so
@@ -277,7 +294,10 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
         raise SquadsError(parse_error[0])
 
     origin = str(override_path)
-    retired_violations = _retired_view_grammar_violations(raw_override, origin)
+    retired_violations = [
+        *_retired_view_grammar_violations(raw_override, origin),
+        *_selected_squad_violations(raw_override, origin),
+    ]
     if retired_violations:
         raise SquadsError("; ".join(str(v) for v in retired_violations))
 
@@ -554,6 +574,19 @@ def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
         ) from exc
 
 
+def _parse_squad(value: Any) -> SquadSpec:
+    """The ``[squad]`` table, with a hint that names its one key."""
+    if not isinstance(value, dict):
+        raise SquadsError(
+            f"squad must be a table (got {type(value).__name__}) — declare it as [squad] "
+            "with one key, validators = [...]"
+        )
+    try:
+        return SquadSpec.model_validate(value)
+    except Exception as exc:
+        raise SquadsError(f"Invalid squad table: {describe_spec_error(exc, SquadSpec)}") from exc
+
+
 def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     """Build and validate a ``WorkflowSpec`` from a raw parsed-TOML mapping — the bundled one,
     or a bundled-plus-override mapping the merge engine has already produced. One parser
@@ -647,6 +680,9 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
         name: _parse_view(name, data) for name, data in _section(raw, "views").items()
     }
 
+    # --- squad (the squad-wide validator selection) ---
+    squad = _parse_squad(raw.get("squad", {}))
+
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
     # Route through model_validate so extra="forbid" fires at construction.
     try:
@@ -662,6 +698,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
                 "roles": roles,
                 "ref_kinds": ref_kinds,
                 "views": views,
+                "squad": squad,
             }
         )
     except SquadsError:
@@ -1390,7 +1427,10 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
 
     # Phase 2 — retired view-grammar keys, checked before splat resolution gets a chance to
     # call one "brand-new" instead.
-    retired_violations = _retired_view_grammar_violations(raw_override, str(override_path))
+    retired_violations = [
+        *_retired_view_grammar_violations(raw_override, str(override_path)),
+        *_selected_squad_violations(raw_override, str(override_path)),
+    ]
     if retired_violations:
         findings.extend(
             ("error", v.path or WORKFLOW_OVERRIDE_FILENAME, v.reason, v.hint)

@@ -114,6 +114,7 @@ from squads._services._validators import (
     live_roster_slugs,
     not_on_disk,
     on_disk_not_indexed,
+    squad_global_level,
 )
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, bundled_spec
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
@@ -3211,7 +3212,12 @@ class MaintenanceMixin(ServiceCore):
         )
         issues += engine.report(index, on_disk, bodies=bodies)
         g_ctx = SquadGlobalContext(
-            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+            now=clock.now(),
+            index=index,
+            on_disk=on_disk,
+            spec=self.spec,
+            paths=self.paths,
+            playbook=self.playbook,
         )
         issues += await self._confirm_cross_source(
             index,
@@ -3392,6 +3398,7 @@ class MaintenanceMixin(ServiceCore):
         # window this confirm round exists to close.
         fresh_index = await self.store.load(fresh=True)
         issues: list[CheckIssue] = []
+        reconciled_level = squad_global_level(self.spec, "index_reconciled")
 
         for seq in sorted(drift_seqs):
             issues += await self._confirm_one_drift_candidate(
@@ -3402,7 +3409,9 @@ class MaintenanceMixin(ServiceCore):
             fid, path, _data = on_disk[seq]
             if not await _aio.path_exists(path):
                 continue  # the file itself is gone since the scan — nothing left to claim
-            issue = on_disk_not_indexed(seq, fid, indexed=seq in fresh_index.items)
+            issue = on_disk_not_indexed(
+                seq, fid, indexed=seq in fresh_index.items, level=reconciled_level
+            )
             if issue is not None:
                 issues.append(issue)
 
@@ -3411,7 +3420,7 @@ class MaintenanceMixin(ServiceCore):
             if fresh_item is None:
                 continue  # removed from the index since the scan — no claim to confirm
             exists = await _aio.path_exists(item_file(self.paths, fresh_item))
-            issue = not_on_disk(fresh_item, on_disk=exists)
+            issue = not_on_disk(fresh_item, on_disk=exists, level=reconciled_level)
             if issue is not None:
                 issues.append(issue)
 
@@ -3435,7 +3444,12 @@ class MaintenanceMixin(ServiceCore):
         two build this state the identical way, off whichever index each is handed.
         """
         g_ctx = SquadGlobalContext(
-            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+            now=clock.now(),
+            index=index,
+            on_disk=on_disk,
+            spec=self.spec,
+            paths=self.paths,
+            playbook=self.playbook,
         )
         live_role_slugs, live_skill_slugs = live_roster_slugs(g_ctx)
         role_items = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
@@ -3561,7 +3575,7 @@ class MaintenanceMixin(ServiceCore):
         if not candidates:
             return []
         fresh_g_ctx = SquadGlobalContext(
-            index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
+            now=clock.now(), index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
         )
         fresh_role_slugs, fresh_skill_slugs = live_roster_slugs(fresh_g_ctx)
         fresh_bctx = BackendContext(
