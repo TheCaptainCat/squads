@@ -13,8 +13,6 @@ updated_at: '2025-05-20T11:04:00Z'
 model: sonnet
 is_dev: true
 tech: python
-name_chosen: false
-pool_name: Elias Python
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->

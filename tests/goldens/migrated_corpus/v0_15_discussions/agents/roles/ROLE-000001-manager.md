@@ -11,7 +11,6 @@ description: 'Be the operator''s first point of contact and run the work loop: u
   each feature to done — keeping everything tracked in squads.'
 created_at: '2026-10-15T22:34:24Z'
 updated_at: '2026-10-15T22:34:24Z'
-name_chosen: false
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->

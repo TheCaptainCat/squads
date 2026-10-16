@@ -664,10 +664,9 @@ _ROLES_CATALOG_SCAFFOLD_BODY = """\
 # document. Precedence: bundled roles.toml -> this document -> a per-slug
 # .overrides/roles/<slug>.toml file, which still wins over this document for the same field.
 #
-# A role's name: a role that was never named takes its `full_name` from these layers on every
-# `sq sync`, the most specific one winning. A name chosen explicitly (`sq role activate --name`,
-# `sq dev add --name`, `sq init --name`) is never changed by any of them; a developer role that
-# was never named keeps its pool name unless a layer sets one.
+# A role's name: a new role takes its `full_name` from these layers when it is created, the most
+# specific one winning, unless `--name` is given (`sq role activate --name`, `sq dev add --name`,
+# `sq init --name`). The name is then stored on the role and no change here renames it.
 #
 # Rules:
 #   - Top-level keys are limited to: roles, bundles, dev (plus [selected] below).

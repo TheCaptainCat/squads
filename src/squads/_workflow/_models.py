@@ -2181,8 +2181,6 @@ PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
         AttributeKey.IS_DEFAULT: "bool",
         AttributeKey.IS_DEV: "bool",
         AttributeKey.MODEL: "str",
-        AttributeKey.NAME_CHOSEN: "bool",
-        AttributeKey.POOL_NAME: "str",
         AttributeKey.TECH: "str",
     },
     ROSTER_SKILL: {

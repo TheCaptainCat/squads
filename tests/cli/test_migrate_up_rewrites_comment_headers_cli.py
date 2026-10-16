@@ -172,9 +172,7 @@ async def test_the_diff_of_every_item_file_is_header_lines_and_the_flattened_fro
         for key, value in old_front.items():
             if key != "extra":
                 assert new_front.get(key, value) == value or key == "title", (path, key)
-        assert set(new_front) - set(old_front) <= lifted | {"slug", "name_chosen", "pool_name"}, (
-            path
-        )
+        assert set(new_front) - set(old_front) <= lifted | {"slug"}, path
     assert changed == _legacy_headers_by_counting(squad)
 
 
@@ -273,7 +271,7 @@ POSTCONDITIONS = {
 
 def _frontmatter_is_flat(root: Path) -> bool:
     """No item file carries `extra`, every roster file a top-level `slug`, no operator file a
-    `full_name`, and every role file `name_chosen`."""
+    `full_name`."""
     for path in root.rglob("*.md"):
         front, _ = split_frontmatter(path.read_text(encoding="utf-8"))
         if not front:
@@ -284,8 +282,6 @@ def _frontmatter_is_flat(root: Path) -> bool:
         if kind in ("role", "skill", "operator") and not front.get("slug"):
             return False
         if kind == "operator" and "full_name" in front:
-            return False
-        if kind == "role" and not isinstance(front.get("name_chosen"), bool):
             return False
     return True
 

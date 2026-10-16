@@ -31,8 +31,6 @@ class AttributeKey:
     # agent roles
     MODEL = "model"
     IS_DEFAULT = "is_default"
-    NAME_CHOSEN = "name_chosen"
-    POOL_NAME = "pool_name"
     # developers
     IS_DEV = "is_dev"
     TECH = "tech"
@@ -114,8 +112,3 @@ def tech(item: Item) -> str | None:
 
 def model(item: Item) -> str | None:
     return string_attribute(item, AttributeKey.MODEL)
-
-
-def name_chosen(item: Item) -> bool:
-    """Whether the role's name was chosen explicitly; unset reads as not chosen."""
-    return flag_attribute(item, AttributeKey.NAME_CHOSEN) is True

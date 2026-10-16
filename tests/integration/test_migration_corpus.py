@@ -372,7 +372,6 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
         kept = {X.MODEL} if stored.get(X.IS_DEV) else set()  # a developer role keeps its model
         assert set(stored) & (_RETIRED_MIRROR_KEYS - kept) == set(), f"{item.id}: mirror survived"
         assert front.get("slug"), f"{item.id}: the dispatch identity was stripped with it"
-        assert isinstance(front.get("name_chosen"), bool), f"{item.id}: no name_chosen"
         body = (get_section(text, markers.BODY) or "").strip()
         if item.sequence_id in skipped_seqs:
             was_body = (get_section(before_text[path.name], markers.BODY) or "").strip()

@@ -115,8 +115,6 @@ ACCESSORS = [
     ("tech-str", AttributeKey.TECH, "go", attrs.tech, "go"),
     ("tech-as-a-list", AttributeKey.TECH, ["go"], attrs.tech, None),
     ("model-empty", AttributeKey.MODEL, "", attrs.model, None),
-    ("chosen-true", AttributeKey.NAME_CHOSEN, True, attrs.name_chosen, True),
-    ("chosen-as-a-string", AttributeKey.NAME_CHOSEN, "true", attrs.name_chosen, False),
 ]
 
 

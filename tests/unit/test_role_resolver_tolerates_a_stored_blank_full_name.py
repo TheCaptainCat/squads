@@ -22,7 +22,6 @@ pure seam-level pin, independent of the corpus-level drive in
 
 import pytest
 
-from squads._models._attributes import AttributeKey as X
 from squads._roles._catalog import PREDEFINED, dev_role
 from squads._roles._resolver import (
     dev_base_from_item,
@@ -83,7 +82,6 @@ async def test_a_real_stored_name_is_kept_by_both_bases(svc):
     assert pinned_name_of(activated) == "Mara Tester"
     assert resolve_role_for_item(activated, svc.paths.squad_dir).full_name == "Mara Tester"
     assert dev_base_from_item(developer).full_name == "Elias Python"
-    assert developer.attribute(X.NAME_CHOSEN) is True
 
 
 async def test_a_role_item_type_still_exists_for_context(svc):

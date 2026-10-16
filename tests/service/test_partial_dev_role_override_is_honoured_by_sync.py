@@ -6,7 +6,7 @@ identity* (:func:`~squads._roles._resolver.dev_base_from_item`), never re-derive
 The rename is the risk, so it is the first test below: a squad's second developer sits at a
 non-zero pool position, and re-deriving the base from the slug alone would silently roll her
 name back to the pool's first entry. Everything else here is the same property from other
-angles -- the omit/declare pair (opposite expectations, so two tests, never one), a complete
+angles -- the omit/declare pair (both leave the name alone), a complete
 override, and the two refusal shapes (an invalid value, a slug/filename mismatch) that must
 still refuse exactly like any other role override does.
 """
@@ -82,20 +82,19 @@ async def test_omitting_full_name_preserves_the_live_name(project, svc):
     assert _on_disk_full_name(svc, reloaded) == second.title
 
 
-async def test_declaring_full_name_renames_the_live_dev_role(project, svc):
-    """A file that *declares* ``full_name`` renames the role -- that is what a declaration
-    means, and it is exactly what a bundled-slug override already does. This is the opposite
-    expectation from the omit case above; one test cannot cover both."""
+async def test_declaring_full_name_does_not_rename_the_live_dev_role(project, svc):
+    """A role's stored name is its name: a file that declares ``full_name`` after the role was
+    created changes the name nowhere."""
     await svc.add_dev("python")
     second = await svc.add_dev("typescript")
-    assert second.title != "Zara Typescript"
 
     _place_dev_toml(project.squad_dir, "typescript-dev", 'full_name = "Zara Typescript"\n')
     await svc.sync()
 
     reloaded = await svc.get(second.id)
-    assert reloaded.title == "Zara Typescript"
-    assert _on_disk_full_name(svc, reloaded) == "Zara Typescript"
+    assert reloaded.title == second.title
+    assert _on_disk_full_name(svc, reloaded) == second.title
+    assert _resolved(svc, reloaded).full_name == second.title
 
 
 async def test_a_complete_dev_override_applies_every_declared_field(project, svc):
@@ -109,9 +108,9 @@ async def test_a_complete_dev_override_applies_every_declared_field(project, svc
     await svc.sync()
 
     reloaded = await svc.get(dev.id)
-    assert reloaded.title == "Priya Rust"
+    assert reloaded.title == dev.title  # the name was set at creation
     resolved = _resolved(svc, reloaded)
-    assert resolved.full_name == "Priya Rust"
+    assert resolved.full_name == dev.title
     assert resolved.title == "Staff Rust developer"
     assert resolved.mission == "Own the Rust surface end to end."
     assert resolved.model == "opus"

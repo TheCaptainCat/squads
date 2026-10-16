@@ -99,7 +99,6 @@ PINNED = [
     ("role-is-default", "role", "is_default", "bool"),
     ("role-is-dev", "role", "is_dev", "bool"),
     ("role-model", "role", "model", "str"),
-    ("role-name-chosen", "role", "name_chosen", "bool"),
     ("role-tech", "role", "tech", "str"),
     ("skill-allowed-tools", "skill", "allowed_tools", "str"),
     ("skill-model", "skill", "model", "str"),

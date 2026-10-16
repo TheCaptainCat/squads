@@ -113,7 +113,9 @@ async def test_a_dev_toml_for_a_tech_with_no_roster_entry_still_resolves(
     assert "Rust wrangler" in result.output
 
 
-async def test_declaring_full_name_renames_via_the_sync_cli_command(project, svc, invoke) -> None:
+async def test_declaring_full_name_renames_nothing_via_the_sync_cli_command(
+    project, svc, invoke
+) -> None:
     await svc.add_dev("python")
     second = await svc.add_dev("typescript")
     _place_dev_toml(project.squad_dir, "typescript-dev", 'full_name = "Zara Typescript"\n')
@@ -122,8 +124,7 @@ async def test_declaring_full_name_renames_via_the_sync_cli_command(project, svc
     shown = await invoke(["role", "typescript-dev", "show", "--json"])
 
     assert result.exit_code == 0, result.output
-    assert json.loads(shown.output)["full_name"] == "Zara Typescript"
-    assert second.title != "Zara Typescript"
+    assert json.loads(shown.output)["full_name"] == second.title
 
 
 async def test_omitting_full_name_preserves_it_via_the_sync_cli_command(

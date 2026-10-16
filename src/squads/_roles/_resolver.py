@@ -44,12 +44,10 @@ into the rendered body — the very idiom the override scaffold teaches.
 The resolver is *stateless*: it reads from disk on every call.  The service layer is already the
 cached / transactional boundary; there is no need to cache here.
 
-A role's name resolves through four layers, lowest to highest: the bundled catalog, the
-project's ``.overrides/roles.toml``, the per-slug ``.overrides/roles/<slug>.toml``, and a name
-chosen explicitly (``sq role activate --name``, ``sq dev add --name``), which the role item
-records as ``name_chosen``. Configuration supplies the name of a role that was never named, and
-no configuration layer changes a chosen one. A developer role that was never named keeps the
-pool name it was given unless a per-slug file sets one.
+A role's name is the one its item stores. Configuration supplies it once, when the role is
+created: ``--name`` when given, otherwise the bundled catalog, the project's
+``.overrides/roles.toml``, the per-slug ``.overrides/roles/<slug>.toml`` (the most specific
+wins) or, for a developer, the pool. No later configuration change renames the role.
 """
 
 import tomllib
@@ -59,7 +57,6 @@ from typing import Any, cast
 
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._models import _attributes as attrs
-from squads._models._attributes import AttributeKey
 from squads._models._item import Item
 from squads._roles._catalog import (
     PREDEFINED,
@@ -309,7 +306,7 @@ def resolve_role_with_base(
     :func:`role_base_from_item` (an item exists), :func:`dev_base_from_item` or
     :func:`dev_base_for_slug`. The per-slug file merges over the base.
 
-    *pinned_name* is a name chosen explicitly (:func:`pinned_name_of`): it is the result's
+    *pinned_name* is the role's stored name (:func:`pinned_name_of`): it is the result's
     ``full_name`` whatever any layer, the per-slug file included, declares.
     """
     predefined = _predefined_for_slug(slug, squad_dir)  # None for a slug neither source declares
@@ -339,9 +336,9 @@ def _pin_name(role: RoleDef, pinned_name: str | None) -> RoleDef:
 
 
 def pinned_name_of(item: Item | None) -> str | None:
-    """The name a role item records as chosen explicitly, or ``None`` when it was never named
-    (or the stored name is blank, which reads as unset)."""
-    if item is None or not attrs.name_chosen(item) or not item.title.strip():
+    """The name a role item stores, or ``None`` when there is no item or the stored name is
+    blank, which reads as unset."""
+    if item is None or not item.title.strip():
         return None
     return item.title
 
@@ -357,16 +354,9 @@ def dev_base_from_item(item: Item) -> RoleDef:
     call: a stored value for any of them is staleness for the sync to converge, never a
     designation to preserve.
 
-    A developer that was never named has its pool draw stored as ``pool_name``, which is the
-    base, so a per-slug name that is later removed leaves the pool name again; otherwise the
-    stored name is the base. A per-slug file that sets ``full_name`` renames a developer that
-    was never named; a chosen name is pinned over every layer by the caller
-    (:func:`pinned_name_of`).
+    The stored name is pinned over every layer by the caller (:func:`pinned_name_of`).
     """
-    pool_name = attrs.string_attribute(item, AttributeKey.POOL_NAME)
-    drawn = None if attrs.name_chosen(item) else pool_name
-    stored_name = drawn or item.title
-    name = stored_name if stored_name and stored_name.strip() else None
+    name = item.title if item.title and item.title.strip() else None
     base = dev_role(
         attrs.tech(item) or "",
         name=name,
@@ -392,8 +382,7 @@ def role_base_from_item(item: Item, squad_dir: Path | None = None) -> RoleDef | 
     - **Bundled role** — the slug's current catalog entry (the bundled catalog with the
       project's ``.overrides/roles.toml`` merged in when *squad_dir* is given), with
       ``is_default`` swapped for the stored designation (``sq role set-default``). The name
-      comes from the catalog layers, so a catalog or ``roles.toml`` change renames a role that
-      was never named; a chosen name is pinned by the caller (:func:`pinned_name_of`).
+      is pinned to the stored name by the caller (:func:`pinned_name_of`).
     - **Anything else** — a role no catalog declares (a project-defined role with no per-slug
       file yet) has no base: ``None``.
 
@@ -415,7 +404,7 @@ def resolve_role_for_item(item: Item, squad_dir: Path | None) -> RoleDef:
     """The one seam every consumer that needs a live role item's full ``RoleDef`` goes
     through — the roster projection, a backend's per-entry render, ``sq check``'s pointer-
     currency comparison. Resolves through the catalog (:func:`role_base_from_item` +
-    :func:`resolve_role_with_base`, with the item's chosen name pinned) so a project override
+    :func:`resolve_role_with_base`, with the item's stored name pinned) so a project override
     or a catalog change reaches every one of them without a prior ``sq sync``.
 
     Falls back to :meth:`RoleDef.from_item` for the one case resolution cannot cover: an

@@ -270,7 +270,7 @@ async def test_a_role_keeps_exactly_the_attributes_a_writer_still_produces(svc, 
 
     await svc.repair()
 
-    retained: dict[str, object] = {X.IS_DEFAULT: True, X.NAME_CHOSEN: is_dev}
+    retained: dict[str, object] = {X.IS_DEFAULT: True}
     if is_dev:
         retained |= {X.MODEL: "opus", X.IS_DEV: True, X.TECH: "rust"}
     assert _stored_attributes(path) == retained

@@ -18,17 +18,17 @@ from squads._workflow import ROSTER_ROLE
 pytestmark = pytest.mark.anyio
 
 
-STALE_TITLE = "A Stale Name"
+STALE_MISSION = "A stale mission."
 
 
 async def _make_role_stale(svc, role_id: str) -> None:
-    """Store a stale name on a role item, simulating "an item created before the catalog said
+    """Store a stale mission on a role item, simulating "an item created before the catalog said
     something else" — the exact scenario ``_refresh_catalog_attributes`` exists to reconcile —
     without going through any of the API that would refuse or refresh it."""
     current = await svc.get(role_id)
     base = current.model_copy(deep=True)
     stale = current.model_copy(deep=True)
-    stale.title = STALE_TITLE
+    stale.description = STALE_MISSION
     async with svc.store.transaction() as db:
         await update_frontmatter(
             item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
@@ -43,20 +43,20 @@ async def test_sync_never_mutates_an_item_a_caller_is_still_holding_from_list_it
     with read_scope():
         before = await svc.list_items(item_type=ROSTER_ROLE)
         held = next(it for it in before if it.id == "ROLE-1")
-        assert held.title == STALE_TITLE  # sanity: genuinely stale within this scope
+        assert held.description == STALE_MISSION  # sanity: genuinely stale within this scope
 
         skipped = await svc.sync()
         assert not skipped, skipped
 
         # The object this test is still holding — handed out by list_items before sync ran —
         # must be exactly as it was. If sync mutated the snapshot's own alias in place (the
-        # bug the copy fixes), this would now carry the reconciled name.
-        assert held.title == STALE_TITLE
+        # bug the copy fixes), this would now carry the reconciled mission.
+        assert held.description == STALE_MISSION
 
-    # The commit itself is real: a fresh read (a new Service, no scope) sees the name
+    # The commit itself is real: a fresh read (a new Service, no scope) sees the mission
     # restored, so the copy is locality-only and changes no observable behaviour.
     refreshed = await service.Service(project).get("ROLE-1")
-    assert refreshed.title != STALE_TITLE
+    assert refreshed.description != STALE_MISSION
 
 
 async def test_sync_output_and_frontmatter_are_unchanged_by_the_copy(project):
@@ -68,12 +68,12 @@ async def test_sync_output_and_frontmatter_are_unchanged_by_the_copy(project):
     scoped_svc = service.Service(project)
     with read_scope():
         scoped_skipped = await scoped_svc.sync()
-    scoped_title = (await service.Service(project).get("ROLE-1")).title
+    scoped_mission = (await service.Service(project).get("ROLE-1")).description
 
     await _make_role_stale(svc, "ROLE-1")
     unscoped_skipped = await service.Service(project).sync()
-    unscoped_title = (await service.Service(project).get("ROLE-1")).title
+    unscoped_mission = (await service.Service(project).get("ROLE-1")).description
 
     assert scoped_skipped == unscoped_skipped
-    assert scoped_title == unscoped_title
-    assert scoped_title != STALE_TITLE
+    assert scoped_mission == unscoped_mission
+    assert scoped_mission != STALE_MISSION

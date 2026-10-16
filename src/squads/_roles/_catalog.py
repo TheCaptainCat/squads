@@ -69,7 +69,7 @@ class RoleDef:
     #: every read (:func:`~squads._roles._resolver.resolve_role_for_item`), and the resolved full
     #: name lands on the item's own ``title`` field via :data:`_ITEM_FIELD_PROJECTION`; storing
     #: any of them again would be a second copy that can only go stale. ``slug`` is a core key
-    #: and ``is_dev``/``tech``/``is_default``/``name_chosen`` are each written by their own verb.
+    #: and ``is_dev``/``tech``/``is_default`` are each written by their own verb.
     _ATTRIBUTE_FIELDS: ClassVar[tuple[tuple[str, Callable[[RoleDef], Any]], ...]] = ()
 
     #: A second table in exactly :data:`_ATTRIBUTE_FIELDS`' shape, written for a **developer**

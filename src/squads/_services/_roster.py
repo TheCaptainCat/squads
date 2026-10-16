@@ -55,7 +55,7 @@ class RosterMixin(ServiceCore):
             description=role.mission,
             slug=role.slug,
             author=role.slug,  # an activated role authors itself
-            attributes={**role.to_attributes(), AttributeKey.NAME_CHOSEN: name is not None},
+            attributes=role.to_attributes(),
         )
         # Materialise iff live: a project whose roster lifecycle's own
         # `initial` is non-live gets a parked-then-activated entry with no files yet —
@@ -87,8 +87,6 @@ class RosterMixin(ServiceCore):
                 **role.to_attributes(is_dev=True),
                 AttributeKey.IS_DEV: True,
                 AttributeKey.TECH: tech,
-                AttributeKey.NAME_CHOSEN: name is not None,
-                **({AttributeKey.POOL_NAME: role.full_name} if name is None else {}),
             },
         )
         # Materialise iff live — see the matching comment in activate_role.

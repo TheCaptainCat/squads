@@ -557,8 +557,6 @@ ref_rules = []
 is_default = { kind = "bool", settable = false }
 is_dev = { kind = "bool", settable = false }
 model = { kind = "str" }
-name_chosen = { kind = "bool", settable = false }
-pool_name = { kind = "str", settable = false }
 tech = { kind = "str", settable = false }
 
 [items.skill]

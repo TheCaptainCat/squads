@@ -203,9 +203,7 @@
       "updated_at": "2025-05-20T11:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {
-        "name_chosen": false
-      },
+      "attributes": {},
       "slug_in_file": true,
       "id": "ROLE-1"
     },

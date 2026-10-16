@@ -259,16 +259,6 @@
         "required": false,
         "settable": true
       },
-      "name_chosen": {
-        "kind": "bool",
-        "required": false,
-        "settable": false
-      },
-      "pool_name": {
-        "kind": "str",
-        "required": false,
-        "settable": false
-      },
       "tech": {
         "kind": "str",
         "required": false,

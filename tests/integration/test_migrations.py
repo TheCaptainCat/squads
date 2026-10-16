@@ -172,7 +172,6 @@ async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_the_head(svc
         legacy_shape(
             svc.paths.abspath(role.path),
             move=("slug", "is_dev", "tech", "model", "is_default"),
-            drop=("name_chosen",),
         )
     sub_path = svc.paths.abspath((await svc.get(task.id)).path)
     assert _meta_compat.has_meta(sub_path.read_text(encoding="utf-8"), "subtask")

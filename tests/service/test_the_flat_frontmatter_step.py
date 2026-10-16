@@ -297,19 +297,14 @@ async def test_an_operator_ends_with_a_slug_and_one_name_and_a_changed_one_is_re
 
 # --------------------------------------------------------------------------- the name of a role
 
-#: (id, how the role is made, expected name_chosen)
+#: (id, how the role is made)
 ROLE_ROWS = [
-    ("bundled-with-the-catalog-name", "bundled", False),
-    ("bundled-with-another-name", "chosen-bundled", True),
-    ("developer-with-a-pool-name", "developer", False),
-    ("developer-with-another-name", "chosen-developer", True),
-    ("developer-named-from-the-squads-own-pool", "own-pool", False),
-    ("project-defined-role", "project", False),
-    ("a-role-that-already-records-it", "recorded", True),
-    ("bundled-named-by-roles-toml", "toml-named", False),
-    ("bundled-named-by-a-per-slug-file", "slug-named", False),
-    ("bundled-named-by-hand-while-a-file-names-another", "hand-named", True),
-    ("developer-named-by-a-per-slug-file", "dev-slug-named", False),
+    ("bundled-with-the-catalog-name", "bundled"),
+    ("bundled-with-another-name", "chosen-bundled"),
+    ("developer-with-a-pool-name", "developer"),
+    ("developer-with-another-name", "chosen-developer"),
+    ("developer-named-from-the-squads-own-pool", "own-pool"),
+    ("project-defined-role", "project"),
 ]
 
 
@@ -332,37 +327,7 @@ async def _project_defined_role(svc, project):
     return await svc.activate_role("compliance")
 
 
-def _write_role_config(project, name: str, *, slug: str, toml: bool) -> None:
-    overrides = project.squad_dir / ".overrides"
-    (overrides / "roles").mkdir(parents=True, exist_ok=True)
-    if toml:
-        (overrides / "roles.toml").write_text(
-            f'[[roles]]\nslug = "{slug}"\nfull_name = "{name}"\n', encoding="utf-8"
-        )
-    else:
-        (overrides / "roles" / f"{slug}.toml").write_text(
-            f'full_name = "{name}"\n', encoding="utf-8"
-        )
-
-
-async def _named_by_configuration(svc, project, how: str):
-    """A role whose stored name is one the configuration gave it, as an earlier sync left it."""
-    if how == "toml-named":
-        _write_role_config(project, "Pam Toml", slug="product-owner", toml=True)
-        return await reopen(project.root).activate_role("product-owner")
-    if how == "hand-named":
-        _write_role_config(project, "Quinn Perslug", slug="qa", toml=False)
-        return await reopen(project.root).activate_role("qa", name="Hand Chosen")
-    slug, tech = ("python-dev", "python") if how == "dev-slug-named" else ("qa", None)
-    role = await (svc.add_dev(tech) if tech else svc.activate_role(slug))
-    _write_role_config(project, "Quinn Perslug", slug=slug, toml=False)
-    await reopen(project.root).sync()
-    return await svc.get(role.id)
-
-
 async def _role(svc, project, how: str):
-    if how in ("toml-named", "slug-named", "hand-named", "dev-slug-named"):
-        return await _named_by_configuration(svc, project, how)
     makers = {
         "bundled": lambda: svc.activate_role("architect"),
         "chosen-bundled": lambda: svc.activate_role("qa", name="Sam Lee"),
@@ -370,73 +335,32 @@ async def _role(svc, project, how: str):
         "chosen-developer": lambda: svc.add_dev("go", name="Ada Gopher"),
         "own-pool": lambda: _own_pool_developer(project),
         "project": lambda: _project_defined_role(svc, project),
-        "recorded": lambda: svc.activate_role("devops"),
     }
     return await makers[how]()
 
 
-@pytest.mark.parametrize(
-    ("how", "expected"), [r[1:] for r in ROLE_ROWS], ids=[r[0] for r in ROLE_ROWS]
-)
-async def test_a_role_is_marked_chosen_or_never_named_from_the_name_its_file_holds(
-    project, svc, how: str, expected: bool
+@pytest.mark.parametrize("how", [r[1] for r in ROLE_ROWS], ids=[r[0] for r in ROLE_ROWS])
+async def test_the_step_keeps_every_stored_role_name_whatever_the_configuration_says(
+    project, svc, how: str
 ) -> None:
     role = await _role(svc, project, how)
+    if how != "project":  # a per-slug file naming the role differently, added after creation
+        per_slug = project.squad_dir / ".overrides" / "roles" / f"{role.slug}.toml"
+        per_slug.parent.mkdir(parents=True, exist_ok=True)
+        per_slug.write_text('full_name = "Changed By Config"\n', encoding="utf-8")
+        invalidate(project.squad_dir)
     path = item_file(svc.paths, role)
-    keep = ("name_chosen",) if how == "recorded" else ()
-    if how == "recorded":
-        text = await read(path)
-        data = _front_of(text)
-        data["name_chosen"] = True  # recorded as chosen although the name is the catalog's
-        path.write_text(replace_frontmatter(text, data), encoding="utf-8")
-    legacy_shape(
-        path,
-        move=("slug", "is_dev", "tech", "model", "is_default"),
-        drop=() if keep else ("name_chosen",),
-    )
+    legacy_shape(path, move=("slug", "is_dev", "tech", "model", "is_default"))
     stamp_behind(project.root)
 
-    run = await reopen(project.root).run_pending_migrations()
-
-    front = _front_of(await read(path))
-    assert front["name_chosen"] is expected
-    assert "extra" not in front and front["slug"] == role.slug
-    marks = [
-        _front_of(p.read_text(encoding="utf-8"))["name_chosen"]
-        for p in sorted((project.squad_dir / "agents" / "roles").glob("ROLE-*.md"))
-    ]
-    report = [line for lines in run.reports.values() for line in lines]
-    assert (
-        f"{sum(marks)} role(s) marked as named explicitly, {len(marks) - sum(marks)} as never named"
-        in report
-    )
-
-
-async def test_after_the_run_an_unnamed_role_follows_roles_toml_and_a_chosen_one_does_not(
-    project, svc
-) -> None:
-    never_named = await svc.activate_role("architect")
-    chosen = await svc.activate_role("qa", name="Sam Lee")
-    for role in (never_named, chosen):
-        legacy_shape(
-            item_file(svc.paths, role),
-            move=("slug", "is_dev", "tech", "model", "is_default"),
-            drop=("name_chosen",),
-        )
-    (project.squad_dir / ".overrides").mkdir(exist_ok=True)
-    (project.squad_dir / ".overrides" / "roles.toml").write_text(
-        '[[roles]]\nslug = "architect"\nfull_name = "Rita Catalog"\n\n'
-        '[[roles]]\nslug = "qa"\nfull_name = "Quinn Catalog"\n',
-        encoding="utf-8",
-    )
-    stamp_behind(project.root)
     await reopen(project.root).run_pending_migrations()
 
+    front = _front_of(await read(path))
+    assert front["title"] == role.title
+    assert "extra" not in front and front["slug"] == role.slug
+    assert "name_chosen" not in front and "pool_name" not in front
     await reopen(project.root).sync()
-
-    after = reopen(project.root)
-    assert (await after.get(never_named.id)).title == "Rita Catalog"
-    assert (await after.get(chosen.id)).title == "Sam Lee"
+    assert (await reopen(project.root).get(role.id)).title == role.title
 
 
 # --------------------------------------------------------------------------- around the transform
@@ -499,7 +423,6 @@ async def test_a_migrated_file_round_trips_through_the_model_and_a_second_run_ch
         legacy_shape(
             item_file(svc.paths, role),
             move=("slug", "is_dev", "tech", "model", "is_default"),
-            drop=("name_chosen",),
         )
     stamp_behind(project.root)
     migrated = reopen(project.root)
@@ -535,15 +458,11 @@ async def _legacy_file(svc, kind: str) -> Path:
     if kind == "role":
         role = await svc.activate_role("qa", name="Hank Chosen")
         path = item_file(svc.paths, role)
-        legacy_shape(
-            path, move=("slug", "is_dev", "tech", "model", "is_default"), drop=("name_chosen",)
-        )
+        legacy_shape(path, move=("slug", "is_dev", "tech", "model", "is_default"))
     elif kind == "developer":
         role = await svc.add_dev("python")
         path = item_file(svc.paths, role)
-        legacy_shape(
-            path, move=("slug", "is_dev", "tech", "model", "is_default"), drop=("name_chosen",)
-        )
+        legacy_shape(path, move=("slug", "is_dev", "tech", "model", "is_default"))
     elif kind == "operator":
         path = await add_legacy_operator(svc, "Imp Orted", "op-imp", stored_name="Real Name")
     elif kind == "skill":
@@ -578,8 +497,6 @@ async def test_the_step_flattens_a_file_whatever_its_line_endings_and_keeps_them
     assert after.count("\n") == after.count(eol if eol == "\r\n" else "\n")
     if eol == "\r\n":
         assert "\n" not in after.replace("\r\n", ""), "a bare line feed was written"
-    if kind in ("role", "developer"):
-        assert isinstance(front["name_chosen"], bool)
     if kind == "guide":
         assert front["tags"] == ["a", "b"] and front["tech"] == "python"
     migrated = reopen(project.root)
@@ -590,12 +507,10 @@ async def test_the_step_flattens_a_file_whatever_its_line_endings_and_keeps_them
     )
 
 
-async def test_a_role_with_crlf_line_endings_keeps_its_chosen_name(project, svc) -> None:
+async def test_a_role_with_crlf_line_endings_keeps_its_name(project, svc) -> None:
     role = await svc.activate_role("devops", name="Hank Chosen")
     path = item_file(svc.paths, role)
-    legacy_shape(
-        path, move=("slug", "is_dev", "tech", "model", "is_default"), drop=("name_chosen",)
-    )
+    legacy_shape(path, move=("slug", "is_dev", "tech", "model", "is_default"))
     path.write_bytes((await read(path)).replace("\n", "\r\n").encode())
     stamp_behind(project.root)
 
@@ -642,22 +557,3 @@ async def test_a_refused_run_leaves_the_index_as_the_earlier_release_wrote_it(pr
         await reopen(project.root).run_pending_migrations()
 
     assert index.read_bytes() == before
-
-
-async def test_a_developer_never_named_returns_to_its_pool_name_when_a_per_slug_name_is_removed(
-    project, svc
-) -> None:
-    role = await svc.add_dev("python")
-    pooled = role.title
-    per_slug = project.squad_dir / ".overrides" / "roles" / "python-dev.toml"
-    per_slug.parent.mkdir(parents=True, exist_ok=True)
-    per_slug.write_text('full_name = "Trial Name"\n', encoding="utf-8")
-    invalidate(project.squad_dir)
-    await reopen(project.root).sync()
-    assert (await reopen(project.root).get(role.id)).title == "Trial Name"
-
-    per_slug.unlink()
-    invalidate(project.squad_dir)
-    await reopen(project.root).sync()
-
-    assert (await reopen(project.root).get(role.id)).title == pooled

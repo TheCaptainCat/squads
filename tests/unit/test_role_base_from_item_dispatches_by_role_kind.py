@@ -3,10 +3,9 @@ item builds its ``resolve_role_with_base`` base through, for a bundled role and 
 role alike. Proven here at the pure-function level, with no service involved.
 
 The item supplies only the facts an operator sets through a dedicated verb (a bundled role's
-``is_default``; a developer role's tech/name/model/``is_default``); every other field, a
-bundled role's name included, comes from the *current* catalog layers. A name chosen explicitly
-is pinned on top of the resolved role by :func:`pinned_name_of`, which the table below crosses
-with the kinds of role.
+``is_default``; a developer role's tech/name/model/``is_default``); every other field comes
+from the *current* catalog layers. The stored name is pinned on top of the resolved role by
+:func:`pinned_name_of`, which the table below crosses with the kinds of role.
 """
 
 from dataclasses import replace
@@ -88,34 +87,32 @@ def test_a_project_catalog_document_reaches_an_already_activated_bundled_role(
 
     assert base is not None
     assert base.title == "Chief Architect"
-    assert base.full_name == "Rita Catalog"  # a role never named follows the catalog document
+    assert base.full_name == "Rita Catalog"  # the base follows the catalog document
     assert base.mission == _BUNDLED_ARCHITECT.mission
 
 
-# ------------------------------------------------------- the chosen name, crossed with the layers
+# ------------------------------------------------------- the stored name, crossed with the layers
 
-#: (id, name_chosen, stored title, roles.toml full_name, per-slug full_name, expected name)
+#: (id, stored title, roles.toml full_name, per-slug full_name, expected name): the stored name
+#: wins over every layer; a blank one reads as unset and the layers answer.
 NAME_ROWS = [
-    ("never-chosen-bundled-catalog-only", False, "Stale Name", None, None, "Robert Architect"),
-    ("never-chosen-roles-toml", False, "Stale Name", "Rita Catalog", None, "Rita Catalog"),
-    ("never-chosen-per-slug", False, "Stale Name", None, "Pat Perslug", "Pat Perslug"),
-    ("never-chosen-both-layers", False, "Stale Name", "Rita Catalog", "Pat Perslug", "Pat Perslug"),
-    ("chosen-catalog-only", True, "Ada Lovelace", None, None, "Ada Lovelace"),
-    ("chosen-roles-toml", True, "Ada Lovelace", "Rita Catalog", None, "Ada Lovelace"),
-    ("chosen-per-slug", True, "Ada Lovelace", None, "Pat Perslug", "Ada Lovelace"),
-    ("chosen-both-layers", True, "Ada Lovelace", "Rita Catalog", "Pat Perslug", "Ada Lovelace"),
-    ("chosen-with-a-blank-stored-name", True, "   ", None, "Pat Perslug", "Pat Perslug"),
+    ("stored-catalog-only", "Ada Lovelace", None, None, "Ada Lovelace"),
+    ("stored-roles-toml", "Ada Lovelace", "Rita Catalog", None, "Ada Lovelace"),
+    ("stored-per-slug", "Ada Lovelace", None, "Pat Perslug", "Ada Lovelace"),
+    ("stored-both-layers", "Ada Lovelace", "Rita Catalog", "Pat Perslug", "Ada Lovelace"),
+    ("blank-catalog-only", "   ", None, None, "Robert Architect"),
+    ("blank-roles-toml", "   ", "Rita Catalog", None, "Rita Catalog"),
+    ("blank-both-layers", "   ", "Rita Catalog", "Pat Perslug", "Pat Perslug"),
 ]
 
 
 @pytest.mark.parametrize(
-    ("chosen", "title", "catalog_name", "slug_name", "expected"),
+    ("title", "catalog_name", "slug_name", "expected"),
     [r[1:] for r in NAME_ROWS],
     ids=[r[0] for r in NAME_ROWS],
 )
-def test_a_bundled_roles_name_follows_the_layers_unless_it_was_chosen(
+def test_a_bundled_roles_stored_name_wins_over_every_layer(
     tmp_path: Path,
-    chosen: bool,
     title: str,
     catalog_name: str | None,
     slug_name: str | None,
@@ -131,7 +128,7 @@ def test_a_bundled_roles_name_follows_the_layers_unless_it_was_chosen(
         (overrides / "roles" / "architect.toml").write_text(
             f'full_name = "{slug_name}"\n', encoding="utf-8"
         )
-    item = _item("architect", {X.NAME_CHOSEN: chosen}, title=title)
+    item = _item("architect", {}, title=title)
 
     resolved = resolve_role_with_base(
         "architect",
@@ -173,30 +170,28 @@ def test_a_developer_roles_is_default_designation_is_carried_from_the_item() -> 
     assert dev_base_from_item(_dev({}, "Ada Typescript")).is_default is False
 
 
-#: (id, name_chosen, per-slug full_name, expected): a developer role that was never named keeps
-#: its pool name unless the per-slug file sets one; a chosen name is pinned over the file.
+#: (id, per-slug full_name, expected): a developer role keeps its stored name whatever a
+#: per-slug file declares.
 DEV_NAME_ROWS = [
-    ("never-chosen-no-file", False, None, "Ada Typescript"),
-    ("never-chosen-per-slug", False, "Pat Perslug", "Pat Perslug"),
-    ("chosen-no-file", True, None, "Ada Typescript"),
-    ("chosen-per-slug", True, "Pat Perslug", "Ada Typescript"),
+    ("no-file", None, "Ada Typescript"),
+    ("per-slug", "Pat Perslug", "Ada Typescript"),
 ]
 
 
 @pytest.mark.parametrize(
-    ("chosen", "slug_name", "expected"),
+    ("slug_name", "expected"),
     [r[1:] for r in DEV_NAME_ROWS],
     ids=[r[0] for r in DEV_NAME_ROWS],
 )
-def test_a_developer_roles_pool_name_is_never_rerolled(
-    tmp_path: Path, chosen: bool, slug_name: str | None, expected: str
+def test_a_developer_roles_stored_name_is_never_rerolled(
+    tmp_path: Path, slug_name: str | None, expected: str
 ) -> None:
     (tmp_path / ".overrides" / "roles").mkdir(parents=True)
     if slug_name:
         (tmp_path / ".overrides" / "roles" / "typescript-dev.toml").write_text(
             f'full_name = "{slug_name}"\n', encoding="utf-8"
         )
-    item = _dev({X.NAME_CHOSEN: chosen}, "Ada Typescript")
+    item = _dev({}, "Ada Typescript")
 
     resolved = resolve_role_with_base(
         "typescript-dev",
@@ -221,23 +216,18 @@ def test_a_non_dev_role_whose_slug_merely_ends_in_dev_returns_none_not_a_crash()
 
 # --------------------------------------------------------------------- pinned_name_of
 
-#: (id, attributes, title, expected)
+#: (id, title, expected)
 PIN_ROWS = [
-    ("chosen", {X.NAME_CHOSEN: True}, "Ada Lovelace", "Ada Lovelace"),
-    ("never-chosen", {X.NAME_CHOSEN: False}, "Ada Lovelace", None),
-    ("flag-absent", {}, "Ada Lovelace", None),
-    ("flag-of-the-wrong-kind", {X.NAME_CHOSEN: "true"}, "Ada Lovelace", None),
-    ("chosen-but-blank", {X.NAME_CHOSEN: True}, "   ", None),
+    ("stored", "Ada Lovelace", "Ada Lovelace"),
+    ("blank", "   ", None),
 ]
 
 
 @pytest.mark.parametrize(
-    ("attributes", "title", "expected"), [r[1:] for r in PIN_ROWS], ids=[r[0] for r in PIN_ROWS]
+    ("title", "expected"), [r[1:] for r in PIN_ROWS], ids=[r[0] for r in PIN_ROWS]
 )
-def test_only_an_explicitly_chosen_non_blank_name_is_pinned(
-    attributes: dict[str, object], title: str, expected: str | None
-) -> None:
-    assert pinned_name_of(_item("architect", attributes, title)) == expected
+def test_a_non_blank_stored_name_is_pinned(title: str, expected: str | None) -> None:
+    assert pinned_name_of(_item("architect", {}, title)) == expected
 
 
 def test_the_bundled_predefined_entry_is_never_mutated_by_building_a_base() -> None:

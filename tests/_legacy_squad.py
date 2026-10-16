@@ -40,7 +40,6 @@ async def roster(svc: Service) -> None:
         legacy_shape(
             item_file(svc.paths, role),
             move=("slug", "is_dev", "tech", "model", "is_default"),
-            drop=("name_chosen",),
         )
 
 

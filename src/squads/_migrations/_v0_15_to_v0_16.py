@@ -19,7 +19,7 @@ schema, whatever the live parser later becomes.
 
 The flat-frontmatter contribution lifts the nested ``extra`` block of every item file to
 top-level keys, folds the operator's ``full_name`` into its ``title``, gives every roster file a
-top-level ``slug`` and every role file ``name_chosen``. Its per-file transform,
+top-level ``slug``. Its per-file transform,
 :func:`flatten_frontmatter`, is a pure function over a frontmatter mapping, so a contribution
 that follows plans against the shape this one writes.
 
@@ -28,11 +28,9 @@ private).
 """
 
 import re
-import tomllib
 from collections import Counter, defaultdict
 from collections.abc import Awaitable, Callable, Sequence
-from dataclasses import dataclass, field, replace
-from pathlib import Path
+from dataclasses import dataclass, field
 from typing import Any, NamedTuple, cast
 
 from squads import _aio
@@ -45,9 +43,6 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, slug_from_stem
 from squads._models._participants import roster_slug_breaches
-from squads._roles._catalog import PREDEFINED, dev_role_from_pool
-from squads._roles._loader import load_role_catalog
-from squads._roles._models import DevPoolSpec
 from squads._sections import find_markers, replace_frontmatter
 from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, ROSTER_TYPES
 
@@ -403,8 +398,6 @@ _RETIRED_ROLE_KEYS: frozenset[str] = frozenset(
 #: that are not frontmatter. An `extra` key of such a name cannot be lifted as it stands.
 _UNLIFTABLE: frozenset[str] = frozenset({"extra", "path", "prefix"})
 
-_NAME_CHOSEN = "name_chosen"
-
 
 @dataclass(frozen=True)
 class FlatFrontmatter:
@@ -565,84 +558,12 @@ def _in_writer_order(data: dict[str, Any]) -> dict[str, Any]:
     return {**core, **{k: v for k, v in data.items() if k not in core}}
 
 
-def name_was_chosen(data: dict[str, Any], *, config_names: frozenset[str]) -> bool:
-    """Whether the role whose frontmatter is *data* carries a name its operator chose by hand.
-
-    A name is not chosen when it is one the squad's configuration supplies: *config_names*,
-    which the caller builds from the bundled catalog, ``roles.toml``, the role's per-slug file
-    and, for a developer, the pool. Any other stored name was chosen. A role file that already
-    holds ``name_chosen`` keeps it.
-    """
-    existing = data.get(_NAME_CHOSEN)
-    if isinstance(existing, bool):
-        return existing
-    title = data.get("title")
-    if not isinstance(title, str) or not title.strip():
-        return False
-    return title not in config_names
-
-
-def _role_keys_to_add(data: dict[str, Any], chosen: bool, pool: DevPoolSpec) -> dict[str, Any]:
-    """The keys a role file gains: ``name_chosen``, and for a developer that was never named and
-    holds a pool name, that name as ``pool_name`` so a per-slug name can later be undone."""
-    added: dict[str, Any] = {}
-    if _NAME_CHOSEN not in data:
-        added[_NAME_CHOSEN] = chosen
-    title = data.get("title")
-    tech = str(data.get("tech") or "")
-    if data.get("is_dev") is True and not chosen and "pool_name" not in data and tech:
-        drawn = {
-            dev_role_from_pool(tech, pool, seq=i).full_name for i in range(len(pool.name_pool))
-        }
-        if title in drawn:
-            added["pool_name"] = title
-    return added
-
-
-def _per_slug_name(squad_dir: Path, slug: str) -> str | None:
-    """The ``full_name`` the role's per-slug override file declares, if the file reads."""
-    path = squad_dir / ".overrides" / "roles" / f"{slug}.toml"
-    try:
-        with path.open("rb") as fh:
-            value = tomllib.load(fh).get("full_name")
-    except (OSError, tomllib.TOMLDecodeError):  # fmt: skip
-        return None
-    return value if isinstance(value, str) else None
-
-
-def _config_names(
-    ctx: MigrationContext, data: dict[str, Any], pool: DevPoolSpec, catalog_names: dict[str, str]
-) -> frozenset[str] | None:
-    """The names the configuration gives the role in *data* (``None`` for a project-defined role,
-    which has none and so is never named): the bundled catalog's, ``roles.toml``'s and the
-    per-slug file's, plus the developer pool's for a developer."""
-    slug = str(data.get("slug"))
-    names: set[str] = set()
-    if data.get("is_dev") is True:
-        tech = str(data.get("tech") or "")
-        if tech:
-            names |= {
-                dev_role_from_pool(tech, pool, seq=i).full_name for i in range(len(pool.name_pool))
-            }
-    elif slug in catalog_names:
-        names.add(catalog_names[slug])
-        names |= {r.full_name for r in PREDEFINED if r.slug == slug}
-    else:
-        return None
-    declared = _per_slug_name(ctx.paths.squad_dir, slug)
-    if declared:
-        names.add(declared)
-    return frozenset(names)
-
-
 @dataclass
 class _FlatTally:
     files: list[tuple[str, FlatFrontmatter]] = field(
         default_factory=list[tuple[str, FlatFrontmatter]]
     )
-    chosen: dict[str, bool] = field(default_factory=dict[str, bool])
     slugs: dict[str, str] = field(default_factory=dict[str, str])
-    added: dict[str, dict[str, Any]] = field(default_factory=dict[str, dict[str, Any]])
     failures: list[str] = field(default_factory=list[str])
 
 
@@ -656,12 +577,6 @@ def _file_slug(ctx: MigrationContext, item: Item) -> str:
 async def _plan_flat_frontmatter(ctx: MigrationContext, db: SquadsDB) -> Planned:
     tally = _FlatTally()
     default_kind = ctx.spec.default_ref_kind()
-    try:
-        merged = load_role_catalog(ctx.paths.squad_dir)
-    except SquadsError as exc:
-        return Planned(failures=(f"the role catalog does not load: {exc}",))
-    pool = merged.dev
-    catalog_names = {r.slug: r.full_name for r in merged.roles}
     for it in sorted(db.items.values(), key=lambda i: i.sequence_id):
         text = (await _aio.read_bytes(ctx.paths.abspath(it.path))).decode("utf-8")
         data = read_frontmatter(text=text, source=it.path)
@@ -672,14 +587,6 @@ async def _plan_flat_frontmatter(ctx: MigrationContext, db: SquadsDB) -> Planned
             source=it.path,
         )
         tally.failures.extend(flat.problems)
-        if it.type == ROSTER_ROLE and not flat.problems:
-            known = _config_names(ctx, flat.data, pool, catalog_names)
-            decided = known is not None and name_was_chosen(flat.data, config_names=known)
-            tally.chosen[it.path] = decided
-            added = _role_keys_to_add(flat.data, decided, pool)
-            if added:
-                tally.added[it.path] = added
-                flat = replace(flat, data={**flat.data, **added}, changed=True)
         if flat.changed:
             tally.files.append((it.path, flat))
             tally.slugs[it.path] = _file_slug(ctx, it)
@@ -714,8 +621,6 @@ def _flat_report(tally: _FlatTally) -> tuple[str, ...]:
         f"{sum(f.description_differed for f in flats)} dropped skill description(s) differed "
         "from the one kept",
         *(f"  {path}" for path, flat in tally.files if flat.description_differed),
-        f"{sum(tally.chosen.values())} role(s) marked as named explicitly, "
-        f"{len(tally.chosen) - sum(tally.chosen.values())} as never named",
     ]
     return tuple(lines)
 
@@ -730,8 +635,7 @@ async def _write_flat(ctx: MigrationContext, tally: _FlatTally, default_kind: st
         flat = flatten_frontmatter(
             data, file_slug=tally.slugs[rel], default_kind=default_kind, source=rel
         )
-        out = {**flat.data, **tally.added.get(rel, {})}
-        await write_text(path, replace_frontmatter(text, out, source=rel))
+        await write_text(path, replace_frontmatter(text, flat.data, source=rel))
     return len(tally.files)
 
 
@@ -852,22 +756,12 @@ rewrites nothing in the file but its frontmatter. The exceptions:
 Every other key, one this squad's spec declares or one an adopter added, is kept as written, and
 the `extra:` key is removed. A file that needs nothing is not touched, so a second run changes
 nothing. The run reports how many files it flattened, how many keys it lifted per key, how many
-skill descriptions and `path:` keys it removed, which operators it retitled and how many roles it
-marked in the next paragraph. When a dropped skill description differed from the one kept, the run
-also lists those files.
+skill descriptions and `path:` keys it removed and which operators it retitled. When a dropped
+skill description differed from the one kept, the run also lists those files.
 
-Every role file also gets `name_chosen`, which records whether the role's name was chosen
-explicitly. A role whose stored name equals a name the configuration resolves for its slug (the
-bundled catalog, `.overrides/roles.toml` or the per-slug file) was never named (`false`); any other
-name was chosen (`true`). A developer role whose name is a first name from the squad's developer
-pool followed by its tech is never named too, and keeps that pool name as `pool_name` so it returns
-to it when a per-slug name is removed. A role the squad defines itself is never named, since its
-per-slug file is its only name source. A role file that already carries `name_chosen` keeps it.
-
-A role that was never named now follows `.overrides/roles.toml` and its per-slug file: the next
-`sq sync` renames it to the most specific name those files declare. A chosen name is never
-changed by either file. To keep a name for a role the run marked as never named, set it as
-`full_name` in `.overrides/roles/<slug>.toml`.
+A role keeps the name it stores, whatever the configuration says: the step changes no name, and
+`sq sync` never renames a role. A new role takes its name from `--name`, else from the
+configuration, when it is created.
 
 Like the comment headers, the flattening is checked before anything is written. These make the
 step write nothing, leave the schema stamp as it is and exit 1, one line per file:
@@ -892,10 +786,7 @@ CONTRIBUTIONS: tuple[Contribution, ...] = (
         name="flat-frontmatter",
         plan=_plan_flat_frontmatter,
         manual=_FLAT_MANUAL,
-        summary=(
-            "Item frontmatter is flat: the extra block is lifted to top-level keys, and every "
-            "role records whether its name was chosen."
-        ),
+        summary=("Item frontmatter is flat: the extra block is lifted to top-level keys."),
     ),
 )
 
