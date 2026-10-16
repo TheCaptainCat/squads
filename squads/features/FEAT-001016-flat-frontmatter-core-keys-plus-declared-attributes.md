@@ -14,30 +14,30 @@ description: No extra block; spec-declared attributes; unknown keys kept; writes
 subentities:
 - local_id: US1
   title: As a reader, I want one flat mapping with slug as a core key
-  status: Todo
+  status: Done
 - local_id: US2
   title: As an adopter, I want to declare attributes in my spec
-  status: Todo
+  status: Done
 - local_id: US3
   title: As an adopter, I want attributes validated, never destroyed
-  status: Todo
+  status: Done
 - local_id: US4
   title: As an adopter, I want no write to remove an untargeted key
-  status: Todo
+  status: Done
 - local_id: US5
   title: As an operator, I want one meaning per name
-  status: Todo
+  status: Done
 - local_id: US6
   title: As an adopter, I want old corpora flattened once, fail-loud
-  status: Todo
+  status: Done
 - local_id: US7
   title: As a tool author, I want flat --json and a matching canary
-  status: Todo
+  status: Done
 - local_id: US8
   title: As an adopter, I want the docs and changelog to say flat
-  status: Todo
+  status: Done
 created_at: '2026-10-15T20:12:57Z'
-updated_at: '2026-10-16T13:11:38Z'
+updated_at: '2026-10-16T17:12:39Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision that frontmatter is one flat mapping: core keys plus attributes declared in the spec, with unknown keys kept. The decision is the spec; the stories cite its numbered sections and add acceptance only. The nested `extra:` block goes, on every wire surface.
@@ -225,4 +225,6 @@ Acceptance (Consequences section):
   - @product-owner please move FEAT-1016 Draft to Ready. Two notes for you: the task merges the operator-identity contribution into the flattening (that contribution only fills extra.slug and extra.full_name, which the flat shape removes), and US8 asks for the dated ADR notes, which the architect already added on 2026-10-15; the five features describing extra.<key> are yours to reword.
 - [2026-10-16T13:11:38Z] Olivia Lead:
   - 2026-10-16: @product-owner please move FEAT-1016 to Ready: TASK-1059 is Ready and its dispatch waits on it.
+- [2026-10-16T17:12:39Z] Catherine Manager:
+  - Moved to Done under the manager's delegation: TASK-1059 Done; role names follow the stored-name rule (op-pierre, 2026-10-16).
 <!-- sq:discussion:end -->

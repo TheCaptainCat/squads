@@ -44838,7 +44838,7 @@
         {
           "local_id": "US1",
           "title": "As a reader, I want one flat mapping with slug as a core key",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44847,7 +44847,7 @@
         {
           "local_id": "US2",
           "title": "As an adopter, I want to declare attributes in my spec",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44856,7 +44856,7 @@
         {
           "local_id": "US3",
           "title": "As an adopter, I want attributes validated, never destroyed",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44865,7 +44865,7 @@
         {
           "local_id": "US4",
           "title": "As an adopter, I want no write to remove an untargeted key",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44874,7 +44874,7 @@
         {
           "local_id": "US5",
           "title": "As an operator, I want one meaning per name",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44883,7 +44883,7 @@
         {
           "local_id": "US6",
           "title": "As an adopter, I want old corpora flattened once, fail-loud",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44892,7 +44892,7 @@
         {
           "local_id": "US7",
           "title": "As a tool author, I want flat --json and a matching canary",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44901,7 +44901,7 @@
         {
           "local_id": "US8",
           "title": "As an adopter, I want the docs and changelog to say flat",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44910,7 +44910,7 @@
       ],
       "path": "features/FEAT-001016-flat-frontmatter-core-keys-plus-declared-attributes.md",
       "created_at": "2026-10-15T20:12:57Z",
-      "updated_at": "2026-10-16T13:11:38Z",
+      "updated_at": "2026-10-16T17:12:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47679,7 +47679,7 @@
       "type": "task",
       "title": "Flatten the frontmatter into core keys and declared attributes",
       "slug": "flatten-the-frontmatter-into-core-keys-and-declared-attribut",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Item.attributes, the attributes grammar, the write invariant, the flattening merged with operator-identity in the 0.16 step, and the chosen-name fix",
       "parent": "FEAT-1016",
       "author": "tech-lead",
@@ -47785,7 +47785,7 @@
       ],
       "path": "tasks/TASK-001059-flatten-the-frontmatter-into-core-keys-and-declared-attribut.md",
       "created_at": "2026-10-16T13:05:35Z",
-      "updated_at": "2026-10-16T17:06:32Z",
+      "updated_at": "2026-10-16T17:12:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48053,7 +48053,7 @@
       "type": "review",
       "title": "Flat frontmatter adopter docs and changelog",
       "slug": "flat-frontmatter-adopter-docs-and-changelog",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "Claim-by-claim re-run of the flat-frontmatter, attributes and stored-role-name docs against the dev build",
       "parent": null,
       "author": "reviewer",
@@ -48068,7 +48068,7 @@
         {
           "local_id": "F1",
           "title": "Unknown keys kept claim omits the retired role-key sweep",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -48077,7 +48077,7 @@
         {
           "local_id": "F2",
           "title": "Hand-added key needs sq repair before the next write",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48086,7 +48086,7 @@
         {
           "local_id": "F3",
           "title": "Frozen item-row shape omits the path key every row carries",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48095,7 +48095,7 @@
         {
           "local_id": "F4",
           "title": "Role model set through import is ignored on a bundled role",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48104,7 +48104,7 @@
         {
           "local_id": "F5",
           "title": "Which name wins uses title for both job title and name",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48113,7 +48113,7 @@
         {
           "local_id": "F6",
           "title": "Duplicate-name remedy for a role omits the final sq sync",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48122,7 +48122,7 @@
         {
           "local_id": "F7",
           "title": "Import rename route reports the pointer as drifted",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -48131,7 +48131,7 @@
         {
           "local_id": "F8",
           "title": "Every item has slug and refs overclaims the file shape",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48140,7 +48140,7 @@
         {
           "local_id": "F9",
           "title": "Unselected-checks list omits blocked_has_blocker",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48158,7 +48158,7 @@
         {
           "local_id": "F11",
           "title": "Repo CLAUDE.md still names ExtraKey and _extras.py",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -48167,7 +48167,7 @@
       ],
       "path": "reviews/REV-001064-flat-frontmatter-adopter-docs-and-changelog.md",
       "created_at": "2026-10-16T17:05:08Z",
-      "updated_at": "2026-10-16T17:07:20Z",
+      "updated_at": "2026-10-16T17:12:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},

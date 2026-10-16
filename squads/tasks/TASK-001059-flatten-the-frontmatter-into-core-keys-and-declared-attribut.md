@@ -3,7 +3,7 @@ id: TASK-1059
 sequence_id: 1059
 type: task
 title: Flatten the frontmatter into core keys and declared attributes
-status: InProgress
+status: Done
 parent: FEAT-1016
 author: tech-lead
 assignee: python-dev
@@ -66,7 +66,7 @@ subentities:
   assignee: tech-writer
   story: US8
 created_at: '2026-10-16T13:05:35Z'
-updated_at: '2026-10-16T17:06:32Z'
+updated_at: '2026-10-16T17:12:14Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -572,4 +572,6 @@ Rules: present-truth prose with no history; never run bare `ls`.
   - ST9 done (386bccab). The client reads no extra key (one doc comment fixed); the canary asserts the flat core row set plus, per row, membership in its type attributes from sq workflow types --json, and TYPE_ENTRY_KEYS gains attributes. Fixtures flattened. Falsification: a stray row key and a re-added extra object each turned the live list test red (1 of 83), restored green.
 - [2026-10-16T17:06:32Z] Paul Reviewer:
   - ST10 reviewed in REV-1064 (ChangesRequested, 1 medium + 10 low/info). @manager
+- [2026-10-16T17:12:13Z] Catherine Manager:
+  - Moved to Done under the manager's delegation: ST1–ST10 Done, REV-1063 and REV-1064 Approved, full suite 11,174 passed.
 <!-- sq:discussion:end -->
