@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1063,
+  "counter": 1064,
   "padding": 6,
   "items": {
     "12": {
@@ -7405,7 +7405,7 @@
       ],
       "path": "features/FEAT-000977-verb-parity-for-skills-roles-and-operators.md",
       "created_at": "2026-09-29T14:19:16Z",
-      "updated_at": "2026-10-09T19:18:32Z",
+      "updated_at": "2026-10-16T17:07:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47785,7 +47785,7 @@
       ],
       "path": "tasks/TASK-001059-flatten-the-frontmatter-into-core-keys-and-declared-attribut.md",
       "created_at": "2026-10-16T13:05:35Z",
-      "updated_at": "2026-10-16T16:54:12Z",
+      "updated_at": "2026-10-16T17:06:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48047,6 +48047,131 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1063"
+    },
+    "1064": {
+      "sequence_id": 1064,
+      "type": "review",
+      "title": "Flat frontmatter adopter docs and changelog",
+      "slug": "flat-frontmatter-adopter-docs-and-changelog",
+      "status": "ChangesRequested",
+      "description": "Claim-by-claim re-run of the flat-frontmatter, attributes and stored-role-name docs against the dev build",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1059"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Unknown keys kept claim omits the retired role-key sweep",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Hand-added key needs sq repair before the next write",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Frozen item-row shape omits the path key every row carries",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Role model set through import is ignored on a bundled role",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Which name wins uses title for both job title and name",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Duplicate-name remedy for a role omits the final sq sync",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Import rename route reports the pointer as drifted",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Every item has slug and refs overclaims the file shape",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Unselected-checks list omits blocked_has_blocker",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "No-update-verb passages go stale when FEAT-977 lands",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Repo CLAUDE.md still names ExtraKey and _extras.py",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001064-flat-frontmatter-adopter-docs-and-changelog.md",
+      "created_at": "2026-10-16T17:05:08Z",
+      "updated_at": "2026-10-16T17:07:20Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1064"
     }
   }
 }

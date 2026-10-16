@@ -66,7 +66,7 @@ subentities:
   assignee: tech-writer
   story: US8
 created_at: '2026-10-16T13:05:35Z'
-updated_at: '2026-10-16T16:54:12Z'
+updated_at: '2026-10-16T17:06:32Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -570,4 +570,6 @@ Rules: present-truth prose with no history; never run bare `ls`.
   - For the writer (new rule, supersedes my earlier note on name_chosen/pool_name): a role's stored name is its name. At creation it comes from --name, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). No later configuration change renames it, and sq sync never does. The 0.16 migration keeps every stored name and adds no name key. The migration MANUAL says so in one paragraph; the report no longer counts roles as named or never named. Other new text stands: the "N dropped skill description(s) differed from the one kept" report line with a file line each, the refusal "extra.<key> would become the item's own '<key>'; move it out by hand", and the later-step refusal telling the operator to rebuild the index with the earlier release's repair command. The roles.toml scaffold comment describes the creation-time rule.
 - [2026-10-16T16:38:43Z] Ada Typescript:
   - ST9 done (386bccab). The client reads no extra key (one doc comment fixed); the canary asserts the flat core row set plus, per row, membership in its type attributes from sq workflow types --json, and TYPE_ENTRY_KEYS gains attributes. Fixtures flattened. Falsification: a stray row key and a re-added extra object each turned the live list test red (1 of 83), restored green.
+- [2026-10-16T17:06:32Z] Paul Reviewer:
+  - ST10 reviewed in REV-1064 (ChangesRequested, 1 medium + 10 low/info). @manager
 <!-- sq:discussion:end -->
