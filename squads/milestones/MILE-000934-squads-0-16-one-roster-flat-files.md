@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-16T12:24:23Z'
+updated_at: '2026-10-16T13:01:10Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -155,4 +155,8 @@ The next squads release after 0.15.
   - 2026-10-16: renamed to 'squads 0.16 - one roster, flat files'; the old title no longer covered the release's content.
 - [2026-10-16T12:24:23Z] Pierre Chat:
   - 2026-10-16: bugs for 0.16 are BUG-994, BUG-1000 (with its duplicate BUG-1037 folded in), BUG-1049, BUG-1057 and BUG-1058. Every other open bug moves to 0.17 (MILE-1051).
+- [2026-10-16T12:54:20Z] Pierre Chat:
+  - 2026-10-16: authorised the manager to do the 0.16.0 version bump. Migrating this repo's squad, pushing and publishing stay mine.
+- [2026-10-16T13:01:10Z] Pierre Chat:
+  - 2026-10-16: 0.16 keeps its full scope as planned; no features move to 0.17.
 <!-- sq:discussion:end -->
