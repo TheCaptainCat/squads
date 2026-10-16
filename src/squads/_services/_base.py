@@ -1183,7 +1183,7 @@ class ServiceCore:
         return any(
             self.spec.item_is_roster(it.type)
             and it.type != ROSTER_SKILL
-            and it.extra.get(X.SLUG) == slug
+            and stored_slug(it) == slug
             for it in db.items.values()
         )
 
@@ -1322,14 +1322,14 @@ class ServiceCore:
             (
                 it
                 for it in db.items.values()
-                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and it.extra.get(X.SLUG) == slug
+                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and stored_slug(it) == slug
             ),
             None,
         )
         if participant is not None:
             if participant.type == ROSTER_ROLE:
                 return participant.title
-            return participant.extra.get(X.FULL_NAME, slug)
+            return participant.extra.get(X.FULL_NAME, participant.title)
         try:
             return resolve_role(slug, self.paths.squad_dir).full_name
         except SquadsError:

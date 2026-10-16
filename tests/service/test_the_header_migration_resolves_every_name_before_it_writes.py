@@ -271,7 +271,7 @@ async def test_a_role_titled_operator_matches_two_entries_with_the_reserved_one(
         await reopen(project.root).run_pending_migrations()
 
 
-async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_with_one_contribution(
+async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_and_lists_its_contributions(
     project, svc
 ) -> None:
     stamp_behind(project.root)
@@ -279,4 +279,4 @@ async def test_the_step_is_the_only_thing_that_runs_on_a_0_15_squad_with_one_con
     run = await reopen(project.root).run_pending_migrations()
 
     assert [m.to_schema for m in run.applied] == ["0.16"]
-    assert [c.name for c in step.CONTRIBUTIONS] == ["comment-headers"]
+    assert [c.name for c in step.CONTRIBUTIONS] == ["comment-headers", "operator-identity"]

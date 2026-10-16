@@ -76,7 +76,7 @@ from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
-from squads._models._participants import SlugBreach, roster_slug_breaches
+from squads._models._participants import SlugBreach, roster_slug_breaches, stored_slug
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import scaffold_body
 from squads._roles._resolver import holds_default_designation, resolve_role_for_item
@@ -1317,6 +1317,8 @@ def _slug_breach_remedy(
     if breach.problem is None:
         culprits = [i for i in breach.held_by if i in breaching_ids]
         if culprits:
+            if len(culprits) == 1:
+                return f"replace {culprits[0]}, which breaks a rule of its own"
             return f"replace {', '.join(culprits)}, which break a rule of their own"
     if breach.kind == "operator":
         name = breach.item.extra.get(X.FULL_NAME) or breach.item.title
@@ -1437,7 +1439,7 @@ def registered_slugs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[str]:
         slug
         for r in index.items.values()
         if r.type in (ROSTER_ROLE, ROSTER_OPERATOR)
-        for slug in (r.extra.get(X.SLUG),)
+        for slug in (stored_slug(r),)
         if slug
     )
 

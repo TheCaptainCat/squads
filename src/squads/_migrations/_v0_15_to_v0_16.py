@@ -37,8 +37,8 @@ from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item
-from squads._models._participants import roster_slug_breaches
-from squads._sections import find_markers
+from squads._models._participants import roster_slug_breaches, stored_slug
+from squads._sections import find_markers, replace_frontmatter
 from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE
 
 # --------------------------------------------------------------------------- contributions
@@ -346,6 +346,39 @@ def _strip_eol(line: str) -> str:
     return "".join(line.splitlines())
 
 
+# --------------------------------------------------------------------------- operator identity
+
+
+async def _plan_operator_identity(ctx: MigrationContext, db: SquadsDB) -> Planned:
+    """Operators an older release wrote without a stored ``slug`` or ``full_name`` (the importer's
+    shape) are given both, so every reader finds them without a fallback."""
+    gaps: list[tuple[str, dict[str, str]]] = []
+    for it in sorted(db.items.values(), key=lambda it: it.sequence_id):
+        if it.type != ROSTER_OPERATOR:
+            continue
+        text = (await _aio.read_bytes(ctx.paths.abspath(it.path))).decode("utf-8")
+        extra: dict[str, Any] = read_frontmatter(text=text, source=it.path).get("extra") or {}
+        fill = {
+            key: value
+            for key, value in ((X.SLUG, stored_slug(it)), (X.FULL_NAME, it.title))
+            if not extra.get(key)
+        }
+        if fill:
+            gaps.append((it.path, fill))
+    report = (f"{len(gaps)} operator(s) given a stored slug or full name",)
+
+    async def write(wctx: MigrationContext) -> int:
+        for rel, fill in gaps:
+            path = wctx.paths.abspath(rel)
+            text = (await _aio.read_bytes(path)).decode("utf-8")
+            data = read_frontmatter(text=text, source=rel)
+            data["extra"] = {**(data.get("extra") or {}), **fill}
+            await write_text(path, replace_frontmatter(text, data))
+        return len(gaps)
+
+    return Planned(report=report, write=write if gaps else None)
+
+
 # --------------------------------------------------------------------------- the step
 
 _HEADER_MANUAL = """\
@@ -434,12 +467,28 @@ again:
   that breaks a rule above, or the one you can spare, the same way.
 """
 
+_OPERATOR_IDENTITY_MANUAL = """\
+### Every operator carries a stored slug and full name
+
+An operator that an earlier release's importer created has neither a `slug` nor a `full_name`
+under `extra:` in its file, so the rest of sq could not tell it was an operator. `sq migrate up`
+writes both: the slug is the one the operator already answers to, and the full name is its title.
+Only the frontmatter of those operators changes. The run reports how many it filled in; an
+operator that already had both is not touched.
+"""
+
 CONTRIBUTIONS: tuple[Contribution, ...] = (
     Contribution(
         name="comment-headers",
         plan=_plan_headers,
         manual=_HEADER_MANUAL,
         summary="Comment headers name the author's permanent slug.",
+    ),
+    Contribution(
+        name="operator-identity",
+        plan=_plan_operator_identity,
+        manual=_OPERATOR_IDENTITY_MANUAL,
+        summary="Every operator carries a stored slug and full name.",
     ),
 )
 

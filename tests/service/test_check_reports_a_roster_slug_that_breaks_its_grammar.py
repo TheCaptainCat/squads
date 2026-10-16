@@ -194,7 +194,7 @@ async def test_a_role_that_breaks_no_rule_is_pointed_at_the_operator_to_replace(
 
     reports = await _reports(svc)
 
-    assert f"remedy: replace {op.id}, which break a rule of their own" in reports[role.id]
+    assert f"remedy: replace {op.id}, which breaks a rule of its own" in reports[role.id]
     assert "rename the project role file" not in reports[role.id]
     assert "rename the project role file" not in reports[op.id]
 
@@ -238,3 +238,33 @@ async def test_a_role_slug_that_is_a_skill_verb_and_a_skill_slug_that_is_a_role_
     await _entry(svc, "skill", "list")
 
     assert await _reports(svc) == {}
+
+
+async def test_the_remedy_agrees_with_the_number_of_holders_that_break_a_rule(
+    svc, unchecked_creation
+) -> None:
+    first = await _entry(svc, "operator", "qa", "Quentin One")
+    second = await _hand_edited(svc, await _entry(svc, "operator", "qa2", "Quentin Two"), "qa")
+    role = await svc.activate_role("qa")
+
+    remedy = (await _reports(svc))[role.id].split("remedy: ")[1]
+
+    assert remedy == f"replace {first.id}, {second.id}, which break a rule of their own"
+
+
+async def test_an_operator_an_older_release_wrote_without_a_stored_slug_is_a_participant(
+    svc,
+) -> None:
+    legacy = await svc.add_operator("Ann Two", slug="op-ann2")
+    legacy = await _hand_edited(svc, legacy, "op-ann", keep_stored_slug=False)
+    async with svc.store.transaction() as db:
+        db.get(legacy.id).extra.pop(X.FULL_NAME, None)
+
+    task = (await svc.create("task", "T", author="manager", assignee="op-ann")).item
+
+    assert task.assignee == "op-ann"
+    assert await svc.author("op-ann") == "Ann Two"
+    issues = await svc.check()
+    assert [
+        i for i in issues if i.item != legacy.id and "is not a registered agent" in i.message
+    ] == []

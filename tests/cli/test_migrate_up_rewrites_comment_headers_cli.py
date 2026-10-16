@@ -253,6 +253,10 @@ POSTCONDITIONS = {
     "comment-headers": lambda root: (
         not re.search(r"^- \[[^\]]+\] [^`]", _discussion_text(root), re.M)
     ),
+    "operator-identity": lambda root: all(
+        re.search(r"^  slug: .+$", text, re.M) and re.search(r"^  full_name: .+$", text, re.M)
+        for text in (p.read_text(encoding="utf-8") for p in (root / "operators").glob("*.md"))
+    ),
 }
 
 
