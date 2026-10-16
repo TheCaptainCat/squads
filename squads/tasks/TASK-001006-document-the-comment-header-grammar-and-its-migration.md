@@ -3,7 +3,7 @@ id: TASK-1006
 sequence_id: 1006
 type: task
 title: Document the comment header grammar and its migration
-status: Draft
+status: Done
 parent: FEAT-980
 author: tech-lead
 assignee: tech-writer
@@ -16,14 +16,14 @@ description: Stability tiers 1 and 3, internals, the 0.16 migration section and 
 subentities:
 - local_id: ST1
   title: State the header grammar and slug permanence in the contract
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST2
   title: Describe the 0.16 migration and write the changelog entries
-  status: Todo
+  status: Done
   story: US5
 created_at: '2026-10-12T06:48:46Z'
-updated_at: '2026-10-12T06:50:47Z'
+updated_at: '2026-10-16T08:39:08Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -203,4 +203,19 @@ Gates and working rules: the task body.
 <!-- sq:discussion -->
 - [2026-10-12T06:50:47Z] Olivia Lead:
   - 2026-10-12: authored for story 5 of FEAT-980. Left in Draft, no writer briefed. Depends on TASK-1004, whose handoff comment is this task's input. It creates the 0.16 section of the migration page; TASK-991 then adds to it, which reverses the sentence in TASK-991's working rules.
+- [2026-10-16T08:19:53Z] Theo Writer:
+  - - @manager ST1 and ST2 done; task to InReview. Nothing committed; no Python or test file edited. Files: `docs/stability.md`, `docs/internals.md`, `docs/migration.md`, `CHANGELOG.md`. Gates: `tests/meta` 356 passed; the doc-reading unit tests and `tests/cli/test_docs_cli.py` 18 passed; anchors checked; `sq check` clean.
+      - **ST1 (stability.md, internals.md).** Tier 1 gains "Comment headers" (three headers pasted from the dev build: role, operator, `--as operator`; the grammar block; left-margin rule; slug is identity and name a snapshot; the reserved `operator` and `squads`; no role may take those or an `op-` slug, with the real refusal) and "A roster slug never changes" (fixed at creation, display names are not identity, an override cannot rename with the real refusal, a purged slug can be taken again). Tier 3 gains a "Discussion entries" bullet for `author_slug`. internals.md's comment line uses the new grammar and says the slug is stored and the name resolved at write time. Nothing from the pending A1-A6 amendment is stated as a rule; the only `op-` statement is the role refusal the code has today, plus the migration report line for an operator without `op-`, described as a report with nothing refused.
+      - **ST2 (migration.md, CHANGELOG).** A new "Upgrading to 0.16: the schema step" section: a step-level intro (checks every part before writing, exits 1 with every problem listed, fix with an earlier release, the below-0.15 case) and a "Comment headers name the author's slug" part. A later part goes in as another `###` under the same `##`, with no new `## Upgrading to 0.16` section. CHANGELOG [0.16.0]: Added `author_slug` and the reserved role slugs; Changed: BREAKING header grammar + migration + `Name (slug)` renders, roster slug permanence (importer retitle keeps slug and file name), importer comment-actor checks, search attribution; Fixed: a `\r` or other line separator in `-m` can no longer start a second comment.
+      - **MANUAL review** posted on TASK-1004 for @python-dev: six wording changes (role matched by name not title; real path shapes; remedy commands; the duplicate-name remedy has no verb in either release, so it is a frontmatter edit; the release sentence below 0.15; a missing bullet for the malformed-marker failure). The migration page already uses the corrected remedies.
+      - **Reader test (driven).** A 0.15.0 squad (comments from role `architect`, operator `op-zo` with an accented name, `--as operator`, and role `qa` on a subtask, `qa` then archived). Following migration.md: `sq migrate up` (exit 0, 4 headers in 1 file), `chlog`, `sq check` clean, `sq sync`, `sq check` clean, diff header lines only. Copy two: 0.15.0 `sq role qa rm --purge`, dev `sq migrate up` refused (exit 1, git tree clean), 0.15.0 `sq role catalog` then `sq role activate qa --name "Mara Tester"`, dev `sq migrate up` exit 0, `check` clean, `sync`, `check` clean.
+      - **Also driven:** all five failure kinds and their remedies (bad timestamp then indent; two entries then frontmatter edit; dev role and operator re-add with `--slug`; unclosed region; shared-line and malformed marker), the below-0.15 refusal and remedy on a copy of the v0_11 corpus, the operator-without-`op-` report line, `comments --json` and item/sub-entity `show --json` keys, `show --raw` and `comments` renders, search JSON identical to 0.15.0 on an unmigrated twin, the search attribution fix (0.15.0 says comment 5 "(Done, x)", the dev build says comment 4), `--as`/importer refusals, importer roster retitle keeping the file name, the override slug refusal, purged-slug reuse. **Read, not driven:** the TUI discussion tab; role refusal through `sq import` and a catalog entry; importer retitle for a skill; a header-shaped line in an item body being left alone; inbox JSON being unchanged against 0.15.0 (the dev build's inbox row has no author field).
+      - **Stale-claim sweep** (docs/, README, CHANGELOG [0.16.0], whitespace-collapsed; each pattern checked against a known positive first): "header is timestamp + full name" was at internals.md (comment line) and is replaced by the new grammar; "the author is resolved from --as to the role's full name" was at internals.md and is replaced by the stored-slug sentence; "a discussion entry is author, ts, body" had no hit in docs/README/CHANGELOG (pattern validated on the earlier wording `{author, ts, body}`); Tier 3 now states the four keys.
+      - **Observed, not changed:** `sq override scaffold --new squads` (and `operator`) writes a role override that `sq role activate` then refuses; the scaffold could refuse the reserved slugs up front. The dev build reports `squads 0.15.0` in its version and the gate message, which is expected before the release bump; the docs quote no version line.
+- [2026-10-16T08:34:59Z] Paul Reviewer:
+  - Reviewed in REV-1031: ChangesRequested on two medium findings (F1 the reserved-slug wording in Tier 1 and the CHANGELOG; F2 the CHANGELOG stamped-release remedy). @tech-writer for F1, F2, F4-F7; @python-dev for F3 (MANUAL example). @manager
+- [2026-10-16T08:38:26Z] Theo Writer:
+  - REV-1031 F1, F2, F4, F5, F6 and F7 fixed (docs/stability.md, CHANGELOG.md, docs/tutorial.md section 4 sentence only) and marked Fixed; F3 and F8 untouched. tests/meta plus the doc tests: 374 passed. New claims driven with the dev build except the VS Code preview rule (read). @reviewer @manager
+- [2026-10-16T08:39:07Z] Catherine Manager:
+  - Moved to Done under the manager's delegation: REV-1031 Approved.
 <!-- sq:discussion:end -->

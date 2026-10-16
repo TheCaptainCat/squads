@@ -37,7 +37,7 @@ subentities:
   title: As an adopter, I want the docs and changelog to say flat
   status: Todo
 created_at: '2026-10-15T20:12:57Z'
-updated_at: '2026-10-15T20:17:51Z'
+updated_at: '2026-10-16T08:39:01Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision that frontmatter is one flat mapping: core keys plus attributes declared in the spec, with unknown keys kept. The decision is the spec; the stories cite its numbered sections and add acceptance only. The nested `extra:` block goes, on every wire surface.
@@ -218,4 +218,6 @@ Acceptance (Consequences section):
   - 2026-10-15: drafted from the accepted flat-frontmatter decision. Eight stories; no tasks yet. depends-on FEAT-980 because the flattening is the first frontmatter step of the runner that feature creates; it also follows the 0.16.0 bump (no item to ref) and precedes the corpus-guidance task and the bundled-file task. @manager: the story on the migration is sized as one tech-lead task with subtasks; the invariant table is its own story so it can be reviewed independently.
 - [2026-10-15T20:17:51Z] Catherine Manager:
   - For the developer: the dated note on ADR-979 says an operator looked up by title after flattening returns the name full_name held. That holds only if the 0.16 runner flattens before it rewrites comment headers; verify the step order and keep that note true.
+- [2026-10-16T08:39:01Z] Catherine Manager:
+  - Re-check owed when flattening lands in the 0.16 step (REV-1031 F8): the 0.16 MANUAL duplicate-name remedy (extra.full_name goes away; a temporary name would become the permanent title), the operator name-matching rule in docs/migration.md, and the 'nothing is refused' note for operators without op- (also moves with ADR-979 A4/A6).
 <!-- sq:discussion:end -->

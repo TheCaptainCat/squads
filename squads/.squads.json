@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1029,
+  "counter": 1031,
   "padding": 6,
   "items": {
     "12": {
@@ -31913,7 +31913,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-15T19:56:33Z",
+      "updated_at": "2026-10-16T08:34:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44337,7 +44337,7 @@
       ],
       "path": "tasks/TASK-001004-put-the-author-s-slug-in-comment-headers-and-migrate-the-cor.md",
       "created_at": "2026-10-12T06:46:55Z",
-      "updated_at": "2026-10-16T08:04:50Z",
+      "updated_at": "2026-10-16T08:22:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44384,7 +44384,7 @@
       "type": "task",
       "title": "Document the comment header grammar and its migration",
       "slug": "document-the-comment-header-grammar-and-its-migration",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Stability tiers 1 and 3, internals, the 0.16 migration section and CHANGELOG entries for slug-bearing comment headers",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44400,7 +44400,7 @@
         {
           "local_id": "ST1",
           "title": "State the header grammar and slug permanence in the contract",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -44409,7 +44409,7 @@
         {
           "local_id": "ST2",
           "title": "Describe the 0.16 migration and write the changelog entries",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -44418,7 +44418,7 @@
       ],
       "path": "tasks/TASK-001006-document-the-comment-header-grammar-and-its-migration.md",
       "created_at": "2026-10-12T06:48:46Z",
-      "updated_at": "2026-10-16T08:06:53Z",
+      "updated_at": "2026-10-16T08:39:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44907,7 +44907,7 @@
       ],
       "path": "features/FEAT-001016-flat-frontmatter-core-keys-plus-declared-attributes.md",
       "created_at": "2026-10-15T20:12:57Z",
-      "updated_at": "2026-10-15T20:17:51Z",
+      "updated_at": "2026-10-16T08:39:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45855,6 +45855,130 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1029"
+    },
+    "1030": {
+      "sequence_id": 1030,
+      "type": "bug",
+      "title": "override scaffold --new accepts reserved role slugs",
+      "slug": "override-scaffold-new-accepts-reserved-role-slugs",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-980"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001030-override-scaffold-new-accepts-reserved-role-slugs.md",
+      "created_at": "2026-10-16T08:24:07Z",
+      "updated_at": "2026-10-16T08:24:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1030"
+    },
+    "1031": {
+      "sequence_id": 1031,
+      "type": "review",
+      "title": "TASK-1006: comment-header docs and the 0.16 MANUAL",
+      "slug": "task-1006-comment-header-docs-and-the-0-16-manual",
+      "status": "Approved",
+      "description": "Claim-by-claim check of the slug-header docs, CHANGELOG and MANUAL against the dev build",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1006:addresses",
+        "FEAT-980:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Reserved-slug rule worded wider than the build enforces",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "CHANGELOG keeps the corrected stamped-release remedy",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "MANUAL example omits a per-name line",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Slug origin stated as derived from the name",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Tier 3 bullet uses release-delta wording",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "CHANGELOG omits the VS Code preview slug",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Tutorial --as developer claim is false",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Remedy text depends on pending decisions",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001031-task-1006-comment-header-docs-and-the-0-16-manual.md",
+      "created_at": "2026-10-16T08:33:42Z",
+      "updated_at": "2026-10-16T08:39:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1031"
     }
   }
 }
