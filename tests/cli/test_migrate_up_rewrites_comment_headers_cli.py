@@ -122,12 +122,12 @@ def _discussion_text(root: Path) -> str:
 async def test_every_comment_reads_back_with_the_slug_of_its_author(squad, invoke) -> None:
     await invoke(["migrate", "up"])
     found: list[tuple[str, str]] = []
-    items = json.loads((await invoke(["list", "-a", "--json"])).output)
+    items = json.loads((await invoke(["list", "-a", "--json"])).stdout)
     for item in items:
         if item["type"] in ("role", "operator"):
             continue
         shown = json.loads(
-            (await invoke([item["type"], item["id"].split("-")[1], "show", "--json"])).output
+            (await invoke([item["type"], item["id"].split("-")[1], "show", "--json"])).stdout
         )
         found += [(c["author"], c["author_slug"]) for c in shown["discussion"]]
         for sub in shown.get("subentities", []):
@@ -172,10 +172,10 @@ async def test_search_and_inbox_return_what_the_released_tool_returned_before(
     for term in ("colons", "Second", "Retiring"):
         r = await invoke(["search", term, "--json"])
         expected = (_REFERENCE / f"search_{term.lower()}.json").read_text(encoding="utf-8")
-        assert json.loads(r.output) == json.loads(expected), term
+        assert json.loads(r.stdout) == json.loads(expected), term
     # The released tool read an indented checkbox inside a comment as a second header and
     # attributed this hit to comment 5, "Done"; the shared parser attributes it to comment 3.
-    nested = json.loads((await invoke(["search", "nested", "--json"])).output)
+    nested = json.loads((await invoke(["search", "nested", "--json"])).stdout)
     (hit,) = nested[0]["hits"]
     assert (hit["region"], hit["snippet"]) == (
         "discussion#3",
@@ -184,7 +184,7 @@ async def test_search_and_inbox_return_what_the_released_tool_returned_before(
     for role in ("python-dev", "reviewer"):
         r = await invoke(["inbox", role, "--json"])
         expected = (_REFERENCE / f"inbox_{role}.json").read_text(encoding="utf-8")
-        assert json.loads(r.output) == json.loads(expected), role
+        assert json.loads(r.stdout) == json.loads(expected), role
 
 
 async def test_check_is_clean_of_errors_after_the_migration(squad, invoke) -> None:
@@ -192,7 +192,7 @@ async def test_check_is_clean_of_errors_after_the_migration(squad, invoke) -> No
 
     r = await invoke(["check", "--json"])
 
-    assert not [i for i in json.loads(r.output) if i["level"] == "error"], r.output
+    assert not [i for i in json.loads(r.stdout) if i["level"] == "error"], r.output
 
 
 # --------------------------------------------------------------------------- refusal
