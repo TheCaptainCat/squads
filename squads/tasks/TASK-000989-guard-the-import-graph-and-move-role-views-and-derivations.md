@@ -3,7 +3,7 @@ id: TASK-989
 sequence_id: 989
 type: task
 title: Guard the import graph and move role views and derivations
-status: Draft
+status: Ready
 parent: FEAT-986
 author: tech-lead
 assignee: python-dev
@@ -24,7 +24,7 @@ subentities:
   title: Move the role derivations out of the _interactions init
   status: Todo
 created_at: '2026-10-09T20:27:55Z'
-updated_at: '2026-10-12T06:34:20Z'
+updated_at: '2026-10-16T17:49:55Z'
 ---
 <!-- sq:body -->
 ## Scope
