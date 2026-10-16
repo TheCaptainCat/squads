@@ -447,6 +447,10 @@ review_due = { kind = "date", required = true }
 - `settable` (default `true`): whether `sq <type> <n> update --set` and an `update` event of
   `sq import` write it. A key a dedicated command owns is declared `settable = false`. Roles,
   skills and operators have no `update` verb, so their attributes are set through `sq import`.
+  A role's definition still comes from the role catalog and its overrides, not from its stored
+  attributes: a bundled or project role's `model` is set in `.overrides/roles/<slug>.toml` or
+  `roles.toml`, and a `model` stored on the role is not read. A developer's `model` is the
+  exception: the stored value is the one it runs on.
 
 `sq workflow types --json` lists each type's attributes with their `kind`, `required` and
 `settable`. The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
@@ -502,7 +506,15 @@ items.task.extra_fields: 'extra_fields' is not a declared key — a type's keys 
 
 **Keys no declaration names are kept.** A key you add to a file by hand, a key a removed
 declaration used to name, and a key from a newer spec are all carried through every write and
-through `sq repair`, with their values. No command removes a key it was not asked to change.
+through `sq repair`, with their values. No command removes a key it was not asked to change, with
+one exception: on a role, `sq repair` removes the role-definition keys the role catalog answers
+(`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`), unless the `role` type declares them as attributes (see
+[adoption.md § "What `sq repair` writes"](adoption.md#what-sq-repair-writes)).
+
+A key you add by hand puts the file ahead of the index, as any hand edit does: run `sq repair`
+before the next write to that item, which is refused until then with a message naming
+`sq repair`. `sq check` reports the drift meanwhile, and reports the key itself once it is
+indexed.
 `--json` item rows carry them too, at the top level beside the core keys, except a key named like
 one `--json` adds (`badges`, `body`, `discussion`, `matched_subentities`), which stays in the file
 and out of the row. A value is kept in the form JSON can carry: a YAML-only value is written back
@@ -550,9 +562,9 @@ list is the only way it ever runs on that type:
 - `subentity_title_max` — a sub-entity title must not be longer than a threshold.
 - `frontmatter_key_undeclared` — every top-level key of an item must be a core key or an attribute
   its type declares. It reports at `warn` and never changes the file; see **Attributes** (above).
-- Seven policy checks about the work an item tracks: `item_title_max`, `external_id_not_in_title`,
-  `description_present`, `assignee_present`, `body_written`, `settled_requires_discussion` and
-  `ref_rule_target_typed`. See "The work-policy checks" below.
+- Eight policy checks about the work an item tracks: `item_title_max`, `external_id_not_in_title`,
+  `description_present`, `assignee_present`, `body_written`, `settled_requires_discussion`,
+  `ref_rule_target_typed` and `blocked_has_blocker`. See "The work-policy checks" below.
 
 The set of names is fixed by the version you are running, and one it does not hold is refused at
 load, naming your entry:
@@ -608,7 +620,7 @@ A title of exactly 120 characters triggers neither. Take the line out and none o
 printed. Either name takes a level; what `@error` changes for each, and what it leaves alone, is
 under "Levels" below.
 
-**The work-policy checks.** Seven more checks hold an item to a team's habits about the work it
+**The work-policy checks.** Eight more checks hold an item to a team's habits about the work it
 tracks. Each reports at `warn` unless you name a level:
 
 | Check | Reports an item when | Parameter |
@@ -620,12 +632,18 @@ tracks. Each reports at `warn` unless you name a level:
 | `body_written` | its body is still the scaffold its template rendered | none |
 | `settled_requires_discussion` | it rests in a settled status and its own discussion holds no comment | none |
 | `ref_rule_target_typed` | an edge whose kind has a typed `ref_rules` entry on the type points at another type | none |
+| `blocked_has_blocker` | it rests in a status whose role carries the `blocked` flag (`sq workflow roles --json`; in the bundled spec, the `blocked` role) and no dependency edge touches it, in either direction | none |
 
 "Live" and "settled" are the status role's flags (`sq workflow roles`), never a status name. A
 comment on one of the item's stories, subtasks or findings does not count for
 `settled_requires_discussion`. And `ref_rule_target_typed` reads only the rules that declare a
 `target`: the bundled feature's `implements` rule is one, so an `implements` edge from a feature
-to a bug is reported.
+to a bug is reported. `blocked_has_blocker` matches a ref kind by its `dependency` role, never by
+its name, and counts an edge whatever the state of the item at its other end:
+
+```
+warn TASK-<n>: status is Blocked but no dependency edge is recorded (kinds: blocks, depends-on) — record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)
+```
 
 The two with a required parameter are refused bare, the same way `ref_rule_target_present` is:
 
@@ -986,9 +1004,10 @@ badges = [
 
 Fields:
 - `label` — required; the human-readable name of the axis
-- `ordered` — optional, defaults `false`; `true` if the badges have a meaningful ranking. **Declare
-  an ordered collection strongest first** — rank follows declaration order, the way the bundled
-  `priority` collection runs urgent → low
+- `ordered` — required in practice: write `ordered = true`. A collection without it (the key
+  defaults to `false`) is refused at load with `collection 'impact': unordered collections are not
+  supported yet`. **Declare the badges strongest first** — rank follows declaration order, the way
+  the bundled `priority` collection runs urgent → low
 - `default` — optional; the badge code used when no value is set
 - `badges` — the badge definitions, each with `code`, `label` and `emoji`
 
@@ -1569,7 +1588,7 @@ and the parameter it runs with — see § "Validators" above for the full gramma
 unselected include `ref_rule_target_present` (squads types the `implements` edge from a feature to a
 contract but never requires it — see [workflow.md](workflow.md#keeping-a-contract-current) §
 "Keeping a contract current"), `parent_present`, `no_status_banner`, `subentity_title_max`,
-`frontmatter_key_undeclared` and the seven work-policy checks listed there.
+`frontmatter_key_undeclared` and the eight work-policy checks listed there.
 
 `sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
 fix hint, where a plain `sq` command stops at the first:
@@ -2218,8 +2237,9 @@ a bundled name, names the roles created after it and leaves the ones you have al
 never changes a name, and the upgrade to a new squads version keeps every stored name.
 
 **What `sq sync` keeps, and what it refreshes.** The name is kept. So is a developer's `--model`,
-the other field `sq dev add` lets you choose. Everything else in a role's definition — its title,
-mission, responsibilities, spawn authority, a bundled role's model, its preloaded skills — is
+the other field `sq dev add` lets you choose. Everything else in a role's definition — its job
+title (the catalog's `title`, not the name stored as the role item's `title`), mission,
+responsibilities, spawn authority, a bundled role's model, its preloaded skills — is
 refreshed from the bundled definition (or from your override) on every sync, so an improvement
 squads ships reaches a role you activated long ago.
 
@@ -2232,7 +2252,9 @@ sq sync
 ```
 
 The rename moves the role's `updated_at` and shows up in `sq reflog` as an update carrying the old
-and new names. `sq sync` then regenerates the role's pointer and the `CLAUDE.md` roster from it.
+and new names. Until `sq sync` runs, `sq check` reports the role's `.claude/` pointer as drifted;
+the sync regenerates the pointer and the `CLAUDE.md` roster from the new name, saying so
+(`had drifted — regenerated by this sync`).
 The slug does not change (see below), and comments the role wrote earlier keep the name they were
 written under.
 

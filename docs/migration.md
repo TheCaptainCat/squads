@@ -163,9 +163,10 @@ templates when read, so a release can change it with no migration.
 
 ### What counts as a breaking change
 
-An item's frontmatter is one flat mapping: the **core keys** every item has (`id`, `type`,
-`title`, `slug`, `status`, `parent`, `refs`, …) and the **attributes** its type declares in the
-workflow spec. A key that is neither is kept as it is, on every read and every write, which
+An item's frontmatter is one flat mapping: the **core keys** the model defines (`id`, `type`,
+`title`, `status`, `created_at`, …, each written when the item has a value for it) and the
+**attributes** its type declares in the workflow spec. A key that is neither is kept as it is, on
+every read and every write (a role's retired definition keys aside), which
 defines compatibility:
 
 - **Non-breaking (no migration):** declaring a new attribute, or adding a top-level key no
@@ -300,8 +301,9 @@ What each line means, and what to do before running `sq migrate up` again:
   drift until `sq repair`, which `sq migrate up` makes unnecessary, since it rebuilds the index from
   the files first. The run keeps a role's `title:` and makes the operator's `full_name` its
   `title:`, so in both cases the name typed for the run is the `title:` afterwards. Edit that
-  `title:` line back to the real name and run `sq repair`; `sq check` reports the edit as drift
-  until you do.
+  `title:` line back to the real name, run `sq repair` (`sq check` reports the edit as drift
+  until you do), then `sq sync`, which brings a role's `.claude/` pointer and the `CLAUDE.md`
+  roster back to the real name.
 - **`'<text>' is not a timestamp sq writes`.** A line at the left margin inside a discussion looks
   like a header, but its bracket does not hold a timestamp sq writes. If it is text pasted into a
   comment, indent it so it sits under that comment. If it is a header, correct its timestamp to
@@ -455,7 +457,7 @@ Correct each file by hand, then run `sq migrate up` again.
 
   See [overrides.md § "Attributes"](overrides.md#attributes-the-keys-a-type-stores).
 - **`--json` item rows carry attributes at the top level.** A row from `list`, `show`, `create` or
-  `mine` has no `extra` key: each attribute the file stores sits beside the core keys. A script
+  `mine` has no `extra` key: each attribute the file stores sits beside the core keys and `path`. A script
   that read `row["extra"]["tags"]` reads `row["tags"]`.
 - **A template reads attributes from `item`.** The `extra` template variable is gone: a template
   override that read `extra.tags` reads `item.tags` (guard it with `item.tags is defined`, since

@@ -85,6 +85,14 @@ An item's frontmatter is one flat mapping, with no nested container:
 - **Unknown keys are kept.** A key no declaration names is carried through every write, `sq
   repair` and every migration, with its value. A write removes or changes only the keys its
   command targets, so a key whose declaration is removed from an override stays in the files.
+  The one exception is a closed set of role-definition keys, which the role catalog answers
+  (`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`): on a role whose type does not declare them as attributes, `sq repair`
+  removes them, as do `sq adopt`, `sq renumber` and `sq migrate up`, which end with the same
+  rescan (see
+  [adoption.md § "What `sq repair` writes"](adoption.md#what-sq-repair-writes)).
+- **A hand edit is indexed before the next write.** A key added or changed by hand puts the file
+  ahead of the index: the next write to that item is refused until `sq repair` has run, and
+  `sq check` reports the drift. The key is kept from then on.
 - **Values are kept in their JSON form.** A YAML-only value is written back as its JSON equivalent
   the next time its item is written: an unquoted date or timestamp becomes the string of the same
   value (`2026-11-01` becomes `'2026-11-01'`), and a mapping key that is not a string becomes one.
@@ -689,6 +697,7 @@ The frozen surface includes:
 
   A graph node carries no `title`.
 - **Item rows:** an item object from `list`, `show`, `create` or `mine` is the item's core keys,
+  `path` (the item file's path relative to the squad folder, such as `tasks/TASK-NNNNNN-x.md`),
   each attribute its file stores, at the top level beside them, and the keys the command adds
   (`badges`, `body`, `discussion`, `matched_subentities`). There is no nested container. An
   attribute appears only when the file stores it, so a reader learns a type's possible attributes
