@@ -3,7 +3,7 @@ id: TASK-1073
 sequence_id: 1073
 type: task
 title: Check field values against their declared collections
-status: Draft
+status: Ready
 parent: FEAT-900
 author: tech-lead
 refs:
@@ -24,7 +24,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-16T19:56:44Z'
-updated_at: '2026-10-16T19:58:49Z'
+updated_at: '2026-10-16T20:00:13Z'
 ---
 <!-- sq:body -->
 ## Scope

@@ -3,7 +3,7 @@ id: TASK-1074
 sequence_id: 1074
 type: task
 title: Select squad-global validators in a [squad] list
-status: Draft
+status: Ready
 parent: FEAT-902
 author: tech-lead
 refs:
@@ -54,7 +54,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-16T19:58:12Z'
-updated_at: '2026-10-16T19:58:50Z'
+updated_at: '2026-10-16T20:00:14Z'
 ---
 <!-- sq:body -->
 ## Scope

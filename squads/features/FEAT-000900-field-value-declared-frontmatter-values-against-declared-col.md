@@ -3,7 +3,7 @@ id: FEAT-900
 sequence_id: 900
 type: feature
 title: 'field_value_declared: frontmatter values against declared collections'
-status: Ready
+status: InProgress
 parent: EPIC-540
 author: product-owner
 priority: low
@@ -18,7 +18,7 @@ subentities:
   title: Flag a frontmatter field value outside its declared collection
   status: Todo
 created_at: '2026-09-03T09:02:33Z'
-updated_at: '2026-10-16T19:58:53Z'
+updated_at: '2026-10-16T20:00:15Z'
 ---
 <!-- sq:body -->
 ## Why
