@@ -57,16 +57,16 @@ subentities:
   story: US7
 - local_id: ST9
   title: 'VS Code skew canary: flat rows and type attributes'
-  status: Todo
+  status: Done
   assignee: typescript-dev
   story: US7
 - local_id: ST10
   title: Docs and changelog for the flat frontmatter
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US8
 created_at: '2026-10-16T13:05:35Z'
-updated_at: '2026-10-16T16:31:18Z'
+updated_at: '2026-10-16T16:54:12Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -512,6 +512,11 @@ Rules: present-truth prose with no history; never run bare `ls`.
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-16T16:54:03Z] Theo Writer:
+  - Docs and CHANGELOG [0.16.0] for the flat frontmatter, committed 1e2c1d1e (docs/migration.md, overrides.md, stability.md, roles.md, internals.md, adoption.md, faq.md, README.md, CHANGELOG.md). Every claim re-driven on scratch squads: 0.15 squads built with sq 0.15.0, migrated with the dev build (report lines, the four refusals, the three operator rows, the differing skill description line, the duplicate-name remedy end to end); attributes, --set/import refusals, sq check kind and required errors, frontmatter_key_undeclared, unknown keys kept, date normalized on write, --json rows, workflow types attributes, loader refusals, extra_fields refusal; role names stored at creation (--name, per-slug, roles.toml, bundled, pool) and not renamed by sync.
+  - Role rename is documented through an sq import update event with title (driven: renames, reflog records old and new, sync keeps it). The update verb is not mentioned.
+  - CHANGELOG: operator-identity text removed; five BREAKING entries (flat frontmatter + migration, extra_fields, --json rows, template variable, stored role names), two Added (attributes, frontmatter_key_undeclared), one Fixed (unknown keys kept). No fix entry for roles.toml names, per the stored-name ruling.
+  - Found, not mine to fix: (1) blocked_has_blocker is a validator no bundle selects and is undocumented in overrides.md, so the doc counts of unselected checks were made count-free; (2) overrides.md says a collection ordered defaults to false, but an unordered collection is refused (unordered collections are not supported yet); (3) the repo CLAUDE.md still names ExtraKey and _models/_extras.py. @manager
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 <!-- sq:subtasks:end -->
@@ -563,4 +568,6 @@ Rules: present-truth prose with no history; never run bare `ls`.
   - 2026-10-16, supersedes today's earlier rulings on role name precedence and on REV-1063 F3: a role's stored name is its name. At creation it comes from --name when given, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). After that no configuration change renames it; renaming goes through the role's update verb (FEAT-977). The 0.16 migration keeps every stored name as it is. name_chosen and pool_name are removed.
 - [2026-10-16T16:31:18Z] Elias Python:
   - For the writer (new rule, supersedes my earlier note on name_chosen/pool_name): a role's stored name is its name. At creation it comes from --name, otherwise from the configuration (bundled catalog, roles.toml, per-slug file, developer pool). No later configuration change renames it, and sq sync never does. The 0.16 migration keeps every stored name and adds no name key. The migration MANUAL says so in one paragraph; the report no longer counts roles as named or never named. Other new text stands: the "N dropped skill description(s) differed from the one kept" report line with a file line each, the refusal "extra.<key> would become the item's own '<key>'; move it out by hand", and the later-step refusal telling the operator to rebuild the index with the earlier release's repair command. The roles.toml scaffold comment describes the creation-time rule.
+- [2026-10-16T16:38:43Z] Ada Typescript:
+  - ST9 done (386bccab). The client reads no extra key (one doc comment fixed); the canary asserts the flat core row set plus, per row, membership in its type attributes from sq workflow types --json, and TYPE_ENTRY_KEYS gains attributes. Fixtures flattened. Falsification: a stray row key and a re-added extra object each turned the live list test red (1 of 83), restored green.
 <!-- sq:discussion:end -->
