@@ -108,7 +108,9 @@ That's squads. The rest of this page is the extension.
 - **Records** — the durable side: architecture decisions, guides, and any other record type your
   project declares, each in its own bucket.
 - **Roster** — who is on the team. Roles and the skills attached to them, plus the human operators
-  registered alongside the agents.
+  registered alongside the agents. Each role and operator shows how many memory entries it keeps
+  and how recently the newest was written; expand it to list them, and select one to read it in
+  full.
 
 Item icons are coloured from the workflow's own semantics rather than a fixed palette: work in
 flight stands out, blocked items are flagged, finished ones are dimmed. Hover any row for its
@@ -129,6 +131,12 @@ Select an item and it opens in a dedicated panel — a real dossier, not a raw f
   points back), as mermaid diagrams. Click a node to open that item.
 - **Workflow cheatsheet** — one button prints your project's actual state machine: which statuses
   each item type has, and which transitions are legal.
+
+## The team board
+
+The squad's bulletin board — the notices posted for the whole team — opens in its own panel from
+the **Work Items** title bar or **Squads: Open Team Board** in the command palette, newest notice
+first, each with its author, its posting date and, when it has one, its expiry.
 
 ## It updates while you work
 

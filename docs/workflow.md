@@ -52,7 +52,7 @@ version of the first; this is the full reference. The rules are enforced — at 
 ### Commands at a glance
 
 ```bash
-# product owner  (--author is required on every create, and must name a registered role)
+# product owner  (--author is required on every create, and must name a registered role or operator)
 sq create feature "User authentication" --author product-owner --parent EPIC-<n>
 sq feature 2 add-story "As a user, I want to log in"
 
@@ -60,17 +60,26 @@ sq feature 2 add-story "As a user, I want to log in"
 sq create task "Validate token" --author tech-lead --parent FEAT-<n>
 sq task 3 add-subtask "Check expiry" --story USn
 sq task 3 ref add BUG-<n> --kind fixes        # or REV-… --kind addresses
+sq task 3 ref add TASK-<n> --kind depends-on  # sq blocked lists task 3 while TASK-<n> is open
 
 # everyone
 sq task 3 status InProgress
 sq task 3 comment --as reviewer -m "@qa please verify the redirect"
-sq inbox qa
+sq inbox qa                                    # open items whose discussion @mentions qa
+sq mine qa                                     # items assigned to qa, directly or via a sub-entity
+sq blocked                                     # open items waiting on another open item
+sq workload                                    # open/closed counts per assignee
 
 # humans (operators) are participants too
 sq operator add "Alice Tester"                # → op-alice
+sq create task "Sign off" --author op-alice --parent FEAT-<n>   # a person authors an item
 sq task 3 update --assignee op-alice           # assign a manual step to a person
 sq task 3 comment --as op-alice -m "approved"  # record the human's own words
 ```
+
+`sq inbox` and `sq mine` answer different questions, so read both: an item can mention you without
+being assigned to you, and the reverse. `sq blocked` keys on the dependency kinds — `depends-on`
+from the waiting item, `blocks` from the blocker (see [§ "Ref kinds"](#ref-kinds)).
 
 ---
 
@@ -192,7 +201,8 @@ the machine permits; `--force` overrides. New items start at the machine's initi
 work items (epic · feature · task)
     Draft ──▶ Ready ──▶ InProgress ──▶ InReview ──▶ Done ┄┄▶ (reopen) InProgress
                           ▲                └──────────┘ rework
-    Blocked  ⇄  Ready / InProgress / InReview          Cancelled ◀── any open state
+    Ready / InProgress / InReview ──▶ Blocked ──▶ Ready / InProgress
+    any open state ──▶ Cancelled ──▶ Draft
 
 bug              Open ──▶ InProgress ──▶ Fixed ──▶ Verified ┄┄▶ (reopen) InProgress
                  (InProgress ⇄ Blocked ; Open / InProgress / Blocked ─▶ WontFix, Cancelled)
@@ -200,7 +210,7 @@ bug              Open ──▶ InProgress ──▶ Fixed ──▶ Verified �
 ADR (decision)   Proposed ──▶ Accepted ──▶ Superseded     (Proposed ─▶ Rejected ; Accepted ─▶ Deprecated)
 contract (PRD)   Draft ─────▶ Active ────▶ Superseded     (Active ─▶ Deprecated ─▶ Active)
 milestone        Draft ─────▶ InProgress ─▶ Done          (Draft / InProgress ─▶ Cancelled ; Done ─▶ InProgress)
-review           Requested ─▶ InReview ─▶ Approved        (InReview ⇄ ChangesRequested ; any ─▶ Rejected)
+review           Requested ─▶ InReview ─▶ Approved        (InReview ⇄ ChangesRequested ─▶ Approved ; any open state ─▶ Rejected)
 guide            Draft ──▶ Published ──▶ Deprecated        (⇄ both directions)
 
 roster entries (role · skill · operator)
@@ -220,7 +230,7 @@ out-of-vocabulary, not as a bad transition.
 | decision (ADR) | `Proposed` | Proposed→{Accepted, Rejected}; Accepted→{Superseded, Deprecated}; Rejected→{Proposed} |
 | contract (PRD) | `Draft` | Draft→{Active}; Active→{Superseded, Deprecated}; Deprecated→{Active} |
 | milestone | `Draft` | Draft→{InProgress, Cancelled}; InProgress→{Done, Cancelled}; Done→{InProgress}; Cancelled→{Draft} |
-| review | `Requested` | Requested→{InReview, Rejected}; InReview→{ChangesRequested, Approved, Rejected}; ChangesRequested→{InReview, Rejected} |
+| review | `Requested` | Requested→{InReview, Rejected}; InReview→{ChangesRequested, Approved, Rejected}; ChangesRequested→{InReview, Approved, Rejected} |
 | guide | `Draft` | Draft→{Published}; Published→{Deprecated, Draft}; Deprecated→{Published} |
 | role / skill / operator | `Active` | Active→{Archived}; Archived→{Active} |
 
@@ -317,9 +327,11 @@ frontmatter already answers, and the two go out of step silently.
 
 **`--json` gives the data, not the display.** It emits the resolved source in the shape that
 source's kind already has a shape for — a `ref`/`subtree` source matches `sq tree --json`'s
-per-node rows, a `subentity` source matches the per-kind list `--json`, `role`/`self` match their
-own `show --json`, and `playbook` carries its lane plus the live roster — and skips presentation
-entirely. That is the supported way to build on a view; the CLI's own rendering is one
+per-node rows, a `subentity` source matches the per-kind list `--json`, `role` matches `sq role
+<slug> show --json`, `self` matches the host item's `sq show <id> --json` plus a `spec` key
+(`schema_version`, `override`, and a `digest` to compare for equality only — see
+[stability.md](stability.md)), and `playbook` carries its lane plus the live roster — and skips
+presentation entirely. That is the supported way to build on a view; the CLI's own rendering is one
 presentation over the same data, never a second source of truth for it.
 
 The bundled spec declares one *relation*-sourced view, `milestone_rollup` — see below — plus five
@@ -442,14 +454,17 @@ on.
 
 ### The result
 
-`sq milestone <n> show` renders the roll-up in place, computed fresh on every read — for a
-milestone with one linked feature:
+With the minimal template from step 2 in place, `sq milestone <n> show` renders the roll-up in
+place, computed fresh on every read — for a milestone with one linked feature:
 
 ```
 ### feature
 - **FEAT-<n>** ⚪ Draft — Ship the widget
 Outstanding: 1
 ```
+
+The bundled template renders the same milestone in three buckets instead — see
+[§ "Milestones"](#milestones).
 
 ### After `sq migrate up`: seeded views
 
@@ -575,6 +590,21 @@ status name, so a milestone can hold items of several types on several lifecycle
 group them correctly — and a milestone whose remaining members are all settled reports zero
 outstanding rather than carrying them forever. Like every derived view it is computed on each
 request — `--json` included — so it is current by construction and there is nothing to refresh.
+For a milestone with one linked feature still in `Draft`, the bundled rendering under the body is:
+
+```
+## Delivered (0)
+
+_(none yet)_
+
+## Outstanding (1)
+
+- **FEAT-<n>** (feature) Draft — Ship the widget
+
+## Settled without delivering (0)
+
+_(none)_
+```
 
 ```bash
 sq milestone <n> show                            # the roll-up, rendered
@@ -835,12 +865,11 @@ Lifecycles are identified by name. You may reference a built-in lifecycle (e.g. 
 
 #### Statuses
 
-A status is a valid state in a lifecycle. Each status definition must specify:
+A status is a valid state in a lifecycle. A status definition takes:
 - `role` — the name of a status role (from the role catalog) that governs this status's
   terminal/hidden/color attributes. Squads derives terminal-ness, visibility, and color from
-  the role. See **Status roles** (below) for the full catalog.
-
-Optional:
+  the role. Optional; it defaults to `pending`, which never settles, so declare it explicitly for
+  any status that should. See **Status roles** (below) for the full catalog.
 - `badge` — emoji displayed in sub-entity roll-up tables (used only for sub-entities)
 
 ```toml
@@ -875,7 +904,7 @@ Every status references a **role**, which is a catalog entry governing four attr
   recoverable, wrongly treating one as live writes an agent into a host's config.
 
 Squads ships with a bundled role catalog. In your override, you can reference built-in roles or
-define new ones. Every status must declare a role; if omitted, it defaults to `pending`.
+define new ones. A status that names no role resolves to `pending`.
 
 **Bundled roles:**
 
@@ -940,14 +969,15 @@ lifecycle = "incident"
 Squads recognizes two item categories:
 
 - **`"work"`** (default) — ephemeral items flowing towards completion: epics, features, tasks,
-  bugs, reviews. Work items can be parents/children in a hierarchy, appear in `sq inbox`, and
-  are tracked as effort.
+  bugs, reviews. Work items can be parents/children in a hierarchy, and drop out of `sq list` once
+  they reach a hidden settled status (`Done`, `Cancelled`, …).
 - **`"records"`** — durable reference documents: decisions/ADRs, guides, contracts, standards,
   postmortems. Records have no parents, no hierarchy, and exist for reference, not active tracking.
 
 The bundled records types are `decision` (ADR), `contract` (PRD), `milestone` and `guide`. When you
-define a custom records type, squads treats it like a decision: it takes no parent, lives in its own
-folder, and never appears in `sq inbox` (it's always available for reference, not active work).
+define a custom records type, squads treats it like a decision: it takes no parent and lives in its
+own folder. Like any item, it shows in `sq inbox` while it is open and its discussion @mentions the
+role.
 
 **When to use records category:**
 
@@ -966,9 +996,12 @@ category = "records"
 lifecycle = "guide"              # reuse the guide lifecycle or define your own
 ```
 
-This creates items like `PM-1`, `PM-2`, etc., stored in `squads/postmortems/`. Records never
-have parents, so the `parents` field is ignored for records-category types. Use `sq list -t postmortem`
-to view all postmortems (they're shown at all times, unlike work items filtered by `sq inbox`).
+This creates items like `PM-<n>`, stored in `squads/postmortems/` — the number comes from the
+squad-wide counter shared by every type, so the first one is not `PM-1`. Records never have
+parents: a records type must not declare `parents`, and the spec is refused at load if it does
+(every `sq` command stops until the key is removed). `sq list -t postmortem` lists them; a records
+item stays listed while its status is settled but not hidden (`Accepted`, `Published`) and drops out
+once retired (`Superseded`, `Deprecated`, `Rejected`, `Cancelled`) — `--all` brings those back.
 
 #### Collections
 
@@ -1011,7 +1044,8 @@ refusal lists the affected IDs.
 
 A ref kind is the label on a link between two items — the `--kind` in
 `sq <type> <n> ref add <id> --kind <kind>`. The kinds are declared vocabulary like everything else
-in this file, so a squad may add its own, relabel a bundled one, or drop one it doesn't use.
+in this file, so a squad may add its own, relabel a bundled one, or drop one it doesn't use (see
+[§ "What the override may and may not change"](#what-the-override-may-and-may-not-change) for the kinds another declaration names).
 
 ```toml
 [ref_kinds.escalates]
@@ -1046,6 +1080,11 @@ The four `role` values are what the engine actually reads — the `dependency` p
 `sq check`'s incoming-supersedes rule, and `default` is both the no-`--kind` fallback and the
 on-disk encoding for it. Behaviour never keys off a kind's spelling, which is why renaming a bundled
 kind keeps its behaviour. Read your own merged set back with `sq workflow ref-kinds`.
+
+These four are the roles squads defines today, not a closed list: `role` is an **open set**, so a
+later release may add one. A script reading `role` from `sq workflow ref-kinds --json`, or
+`edge_semantic` from `sq graph --json`, handles a value it does not recognise without failing (see
+[stability.md](stability.md#tier-3---json-output-shapes-stable-additive-changes-only)).
 
 The full field reference — the floor a merged set must satisfy, the refusals, and a worked
 adopter-declared kind — is in
@@ -1301,7 +1340,11 @@ token-shaped key, an exceeded nesting bound) are catalogued in
   graph`/`refs` traverse the edge and report no declared semantic, and `sq repair` and the ref-removal
   verb both still run. Restore the entry, or remove those refs with `sq <type> <n> ref rm`; run `sq
   repair` first if the edge is a legacy-mapped encoding you'd rather canonicalise onto the current
-  default than remove. A kind no edge uses may be dropped or renamed freely.
+  default than remove. A kind no edge uses may be dropped or renamed freely — unless another
+  declaration names it. With the bundled spec that is `implements` (named by the feature type's
+  `ref_rules`) and `targets` (named by the `milestone_rollup` view's `source`): dropping either is
+  refused at load, edges or not, until that declaration is shadowed or dropped in the same
+  override.
 
 Unrecognised top-level keys — a mistyped section name being the usual case — are rejected by name at
 load time, so the spec is fail-closed rather than silently doing nothing.
@@ -1326,18 +1369,21 @@ If valid, the output is:
 workflow spec OK — no errors or warnings.
 ```
 
-If there are errors, `sq workflow lint` prints each one with context and a fix hint:
+If there are errors, `sq workflow lint` prints each one with context and a fix hint, then a count —
+here for an `[items.incident]` naming a lifecycle the file never declares:
 
 ```
-                          workflow spec errors                          
-┌────────────────────────────────────┬──────────────────────────────────┬──────────────────────────┐
-│ location                           │ error                            │ fix hint                 │
-├────────────────────────────────────┼──────────────────────────────────┼──────────────────────────┤
-│ .overrides/workflow.toml           │ Invalid workflow spec: lifecy-   │ Fix the TOML at          │
-│                                    │ cle 'incident' not found         │ .overrides/workflow.toml │
-│                                    │ (referenced in items.incident)   │ and re-run `sq workflow  │
-│                                    │                                  │ lint`.                   │
-└────────────────────────────────────┴──────────────────────────────────┴──────────────────────────┘
+                                        workflow spec errors
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ location                 ┃ error                             ┃ fix hint                          ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ .overrides/workflow.toml │ item 'incident': lifecycle        │ Fix the referenced key in         │
+│                          │ 'incident' not declared in        │ .overrides/workflow.toml, or add  │
+│                          │ lifecycles                        │ it back (directly or via          │
+│                          │                                   │ `selected`), and re-run `sq       │
+│                          │                                   │ workflow lint`.                   │
+└──────────────────────────┴───────────────────────────────────┴───────────────────────────────────┘
+1 error(s) — fix the errors above then re-run `sq workflow lint`.
 ```
 
 ### Worked example: incident type
@@ -1387,9 +1433,9 @@ Once the override is defined and validated with `sq workflow lint`, the custom t
 `sq <type> <n> …` surface, exactly like a bundled type:
 
 ```bash
-sq create incident "Auth outage" --author manager   # → INC-1
+sq create incident "Auth outage" --author manager   # → INC-<n> (the squad-wide counter)
 sq list -t incident                                 # list all incidents
-sq incident 1 show                                  # addressed show/update/status/body/comment/…
+sq incident <n> show                                # addressed show/update/status/body/comment/…
 ```
 
 ### Checking the override state

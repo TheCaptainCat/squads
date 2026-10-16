@@ -10,11 +10,13 @@ its timestamps from `--at` instead of the wall clock. A human or an LLM driving 
 therefore forge the historical dates so the imported history looks real.
 
 ```bash
-sq --at 2024-01-15            create task "Fix login"      # created_at = that date
+sq --at 2024-01-15            create task "Fix login" --author tech-lead   # created_at = that date
 sq --at 2024-01-15T09:30:00Z  task 2 status InProgress
 ```
-`--at` accepts an ISO-8601 date or datetime (a bare date is midnight; naïve values are UTC). It is
-a **global** option, so it goes *before* the subcommand and applies to that one invocation.
+Every `create` needs `--author`, the slug of a registered role (or `op-<slug>` for a human
+operator). `--at` accepts an ISO-8601 date or datetime (a bare date is midnight; naïve values are
+UTC). It is a **global** option, so it goes *before* the subcommand and applies to that one
+invocation.
 
 ---
 
@@ -36,10 +38,9 @@ sq adopt                        # non-destructive: see below
   [What `sq repair` writes](#what-sq-repair-writes));
 - activates the bundled roles it doesn't already have.
 
-Run it as often as you like; it never clobbers a body you wrote through `sq` — with the one
-exception every index rebuild shares, described under
-[What `sq repair` writes](#what-sq-repair-writes). Use `--squad-dir`, `--roles`, `--no-claude`
-exactly like `init`.
+Run it as often as you like; it never clobbers a body you wrote. What an index rebuild does rewrite
+is described under [What `sq repair` writes](#what-sq-repair-writes). Use `--squad-dir`, `--roles`,
+`--no-claude` exactly like `init`.
 
 Once the squad exists, consider opening it with the optional interview — see
 [agents.md](agents.md#opening-a-new-squad-the-interview).
@@ -95,8 +96,8 @@ For each legacy artifact (an old ticket, spec, ADR, …):
 
 1. **Recreate it as a squads item at its original date.** `create` prints the new file path:
    ```bash
-   sq --at 2024-01-15 create feature "User authentication" --parent EPIC-1
-   # → created FEAT-7 → squads/features/FEAT-7-user-authentication.md
+   sq --at 2024-01-15 create feature "User authentication" --parent EPIC-1 --author product-owner
+   # → created FEAT-7 → squads/features/FEAT-000007-user-authentication.md
    ```
 2. **Move the legacy content into the body** with `sq <type> <n> body` (`--file` is easiest for
    existing prose); for features, scaffold the user stories; for tasks, the subtasks:
@@ -192,21 +193,23 @@ squads now computes on every read rather than stores:
 
 - the sub-entity roll-up table and each sub-entity block's badge line, from any item file that
   carries them;
-- a **role's** stored body — emptied, not deleted: the `sq:body` marker pair stays and only its
-  contents go. `sq role <slug> show` renders the definition fresh from the role catalog and your
-  own role overrides, so make sure a role you defined yourself still has its
-  `.overrides/roles/<slug>.toml`;
 - the `extra` keys a role item mirrored from its definition (`full_name`, `title`, `mission`,
   `responsibilities`, `agreements`, `color`, `can_spawn`, `description`, `skills`). A role keeps
   its `slug`, its default-role designation, and a developer role's `model`, `is_dev` and `tech`.
 
-It also canonicalises any legacy ref encoding it finds. On a corpus that carries any of this, one
+It also canonicalises any legacy ref encoding it finds, and fills an **empty** body region on a
+role or a generated skill (`squads`, `greeting`, `sq-memory`, `sq-<type>`) with the view tag
+that `sq role <slug> show` / `sq skill <slug> show` render the definition into. That definition
+comes from the role catalog, the bundled templates and your own overrides, so make sure a role you
+defined yourself has its `.overrides/roles/<slug>.toml`. On a corpus that carries any of this, one
 `sq repair` can touch every file you just imported.
 
-**No skill body is touched** — not one you wrote, and not a template-owned one either; on disk the
-two cannot be told apart, so both are left alone. Neither is any other item's body, any
-sub-entity's body or discussion, any operator item, or any frontmatter field on anything that is
-not a role.
+**No body that carries prose is touched** — a role or skill body with content in it is left as it
+is, and a skill you added yourself is never touched, empty or not. A role or generated-skill body
+left holding prose fails `sq check` with a missing seeded view tag error, whose message gives the
+steps that restore the rendered definition. Neither is any other item's
+body, any sub-entity's body or discussion, any operator item, or any frontmatter field on anything
+that is not a role.
 
 Three consequences for an adoption run:
 

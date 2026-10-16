@@ -10,17 +10,19 @@ or later with `sq role activate <slug>`, which is also where you get to name the
 
 | Name | Slug | Title | Model | Color | Item skills it manages |
 |------|------|-------|-------|-------|------------------------|
-| Catherine Manager | `manager` | manager *(default)* | opus | cyan | — (triages & routes; `squads` skill only) |
+| Catherine Manager | `manager` | manager *(default)* | opus | cyan | — (triages & routes) |
 | Robert Architect | `architect` | architect | opus | blue | `sq-epic`, `sq-decision`, `sq-contract`, `sq-guide` |
 | Olivia Lead | `tech-lead` | tech lead | opus | purple | `sq-epic`, `sq-feature`, `sq-task`, `sq-bug`, `sq-decision`, `sq-contract`, `sq-milestone`, `sq-guide` |
 | Paul Reviewer | `reviewer` | code reviewer | opus | red | `sq-task`, `sq-bug`, `sq-review` |
 | Mara Tester | `qa` | QA engineer | sonnet | green | `sq-feature`, `sq-task`, `sq-bug` |
-| Hugo Ops | `devops` | DevOps engineer | sonnet | orange | — (`squads` skill only) |
+| Hugo Ops | `devops` | DevOps engineer | sonnet | orange | — |
 | Nina Product | `product-owner` | product owner | sonnet | yellow | `sq-epic`, `sq-feature`, `sq-contract`, `sq-milestone` |
 | Theo Writer | `tech-writer` | technical writer | haiku | pink | `sq-guide` |
 
-Every role also gets the general **`squads`** skill (how to use the CLI). A role that doesn't manage
-an item type doesn't get that type's skill — that's why the manager and devops carry only `squads`.
+Every role also gets three general skills: **`squads`** (how to use the CLI), **`greeting`** (the
+start-of-session ritual) and **`sq-memory`** (its memory notebook and the team board). A role that
+doesn't manage an item type doesn't get that type's skill — that's why the manager and devops carry
+only those three.
 
 ## Bundles
 
@@ -49,9 +51,9 @@ sq dev list
 
 If you omit `--name`, a first name is taken from a pool and the surname is the tech (so `--tech
 dotnet` → *Elias Dotnet*); the slug is always `<tech>-dev`, with the tech slugified (`--tech
-Node.js` → `node-js-dev`). Every developer manages `sq-task`, `sq-bug`, and `sq-review`. The
-name, the slug and the `--model` you choose here are kept as they are by every later `sq sync`;
-the rest of the developer's definition is refreshed from the bundled one — see
+Node.js` → `node-js-dev`). Every developer manages `sq-task`, `sq-bug`, `sq-contract` and
+`sq-review`. The name, the slug and the `--model` you choose here are kept as they are by every
+later `sq sync`; the rest of the developer's definition is refreshed from the bundled one — see
 [overrides.md § "Which name wins"](overrides.md#which-name-wins).
 
 A developer's fields are overridable like any other role's, and the override merges onto the
@@ -105,9 +107,10 @@ sq role activate security-analyst
 
 ## Managing skills
 
-Skills are the instruction files a role preloads. Every role carries the general `squads` skill plus
-one `sq-<type>` skill per item type it manages; those are generated and kept in step for you. You can
-add skills of your own and scope them to whichever roles should carry them:
+Skills are the instruction files a role preloads. Every role carries the general `squads`,
+`greeting` and `sq-memory` skills plus one `sq-<type>` skill per item type it manages; those are
+generated and kept in step for you. You can add skills of your own and scope them to whichever roles
+should carry them:
 
 ```bash
 sq list -t skill                        # the skills this squad has (there's no dedicated list verb)
@@ -139,6 +142,11 @@ sq operator list
 sq operator OP-000002 status Archived [--force] [--unlink]   # transition its Active/Archived status
 sq operator OP-000002 rm [--purge]
 ```
+
+`rm` works the same way for a role, a skill and an operator: it drops the entry from the index
+(and a role's or skill's generated pointer) but leaves the item file on disk, which `sq check`
+then reports as an error (on disk but not in the index). Pass `--purge` to delete the item file
+too.
 
 A slug is derived once, when the entry is created: lowercased, accented Latin letters spelled out
 (`Élodie Martin` → `op-elodie`, `ß` → `ss`), and each run of any other characters turned into
@@ -243,11 +251,11 @@ both against state already on disk, naming the entry, the condition, and a remed
 
 ## How roles, skills, and items connect
 
-Roles ↔ item types is the **playbook** (`squads._interactions`). It drives two things: which roles
-appear as sections in each `sq-<type>` skill, and which skills a role's pointer preloads
-(`skills_for_role`). It is customisable: `.overrides/playbook.toml` reworks a type's guidance, or
-gives a role you defined yourself a section in a type's skill — see
-[overrides.md](overrides.md#playbook-overrides-role-guidance-per-item-type). See
-[workflow.md](workflow.md) for the team flow and
-[internals.md](internals.md#8-roles-and-the-playbook) for the
-mechanics. Role/dev metadata is stored on the role item's `extra` (keys in `ExtraKey`).
+Roles ↔ item types is the **playbook**. It drives two things: which roles appear as sections in each
+`sq-<type>` skill, and which skills a role's pointer preloads. It is customisable:
+`.overrides/playbook.toml` reworks a type's guidance, or gives a role you defined yourself a section
+in a type's skill — see [overrides.md](overrides.md#playbook-overrides-role-guidance-per-item-type).
+See [workflow.md](workflow.md) for the team flow and
+[internals.md](internals.md#8-roles-and-the-playbook) for the mechanics. A role item stores its slug
+and name (and a developer's model and tech); the rest of its definition is resolved from the catalog
+and your overrides when `sq role <slug> show` runs.
