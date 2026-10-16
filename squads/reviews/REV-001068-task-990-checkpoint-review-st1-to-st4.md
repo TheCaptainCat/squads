@@ -70,7 +70,7 @@ subentities:
   status: Open
   severity: info
 created_at: '2026-10-16T19:03:52Z'
-updated_at: '2026-10-16T19:55:53Z'
+updated_at: '2026-10-16T20:02:13Z'
 ---
 <!-- sq:body -->
 Review of the uncommitted ST1 to ST4 checkpoint on TASK-990: required documents on the derivation path, `capabilities` declared and resolved onto `RoleDef` and `RoleView`, the developer template read from the resolved catalog, and `capabilities` on the role `--json` and text surfaces.
@@ -435,4 +435,6 @@ The resolution of a role with no catalog base (`role_spec_to_def` over the per-s
   - ST7 checkpoint: fixes F1-F5, F7 and F8 hold (F1 and F3 re-driven, the F2, F4 and F8 tests read). F6 reopened: the new help names model, which role catalog does not print.
   - ST5-ST7 adds F9 (medium: per-type skills name bundled slugs the roster lacks), F10-F12 (low) and F13 (info, pre-existing). Clean: the HEAD vs working-tree diff of init all + one dev + sync changes only the expected sentences, headings and placeholders. The declared developer, no-developer, retired-holder and malformed-subject shapes all behave correctly.
   - Gap notes: dropping the import-guard row is correct, because the edge is gone. The suffix reads are acceptable for ST10 and ST11 (F12). The lane commands are not acceptable as out of scope (F9). @python-dev @manager
+- [2026-10-16T20:02:13Z] Mara Tester:
+  - F13 reproduced on 0.15.0 and the dev build; filed as BUG-1075 (MILE-1051, pre-existing, not a 0.16 blocker).
 <!-- sq:discussion:end -->

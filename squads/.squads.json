@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1074,
+  "counter": 1075,
   "padding": 6,
   "items": {
     "12": {
@@ -48474,7 +48474,7 @@
       ],
       "path": "reviews/REV-001068-task-990-checkpoint-review-st1-to-st4.md",
       "created_at": "2026-10-16T19:03:52Z",
-      "updated_at": "2026-10-16T19:55:53Z",
+      "updated_at": "2026-10-16T20:02:13Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48839,7 +48839,7 @@
       "type": "task",
       "title": "Check field values against their declared collections",
       "slug": "check-field-values-against-their-declared-collections",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "The field_value_declared member: error level, work and records bundles, item and sub-entity fields",
       "parent": "FEAT-900",
       "author": "tech-lead",
@@ -48881,7 +48881,7 @@
       ],
       "path": "tasks/TASK-001073-check-field-values-against-their-declared-collections.md",
       "created_at": "2026-10-16T19:56:44Z",
-      "updated_at": "2026-10-16T20:00:13Z",
+      "updated_at": "2026-10-16T20:01:03Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49004,6 +49004,31 @@
       "modified_session": null,
       "extra": {},
       "id": "TASK-1074"
+    },
+    "1075": {
+      "sequence_id": 1075,
+      "type": "bug",
+      "title": "set-default on a catalog-less project role is lost on resolve",
+      "slug": "set-default-on-a-catalog-less-project-role-is-lost-on-resolv",
+      "status": "Open",
+      "description": "",
+      "parent": "MILE-1051",
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1068"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001075-set-default-on-a-catalog-less-project-role-is-lost-on-resolv.md",
+      "created_at": "2026-10-16T20:02:07Z",
+      "updated_at": "2026-10-16T20:02:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1075"
     }
   }
 }
