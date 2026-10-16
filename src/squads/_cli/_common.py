@@ -2008,8 +2008,13 @@ def register_status_verb(
                     console.print(f"  severed {e(sev.referrer)} → {e(sev.target)} ({sev.kind})")
             else:
                 console.print("  --unlink: no references severed (nothing was severable)")
-        for warning in result.warnings:
-            console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
+        print_warnings(result.warnings)
+
+
+def print_warnings(warnings: list[str]) -> None:
+    """One ``warning:`` line per notice."""
+    for warning in warnings:
+        console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
 
 
 def resolve_local_id(token: str, kind: str) -> str:

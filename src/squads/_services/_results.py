@@ -598,6 +598,15 @@ class ReflogEntry:
 
 
 @dataclass(frozen=True)
+class RosterRemoval:
+    """Outcome of ``Service.remove_item()``: the removed entry and the board-hygiene warnings
+    that warn without refusing (open assigned work, a lost default-role designation)."""
+
+    item: Item
+    warnings: list[str]
+
+
+@dataclass(frozen=True)
 class RosterStatusResult:
     """Outcome of ``Service.set_roster_status()`` — the roster ``status`` verb's richer
     counterpart to the generic ``Service.set_status()``, carrying what only a roster transition

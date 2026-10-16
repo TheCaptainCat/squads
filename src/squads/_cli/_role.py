@@ -500,9 +500,10 @@ async def rm_role(
     """Delete a role for good; needs --purge (or set its status to Archived)."""
     item_id = _require_id(ctx)
     svc = get_service()
-    await svc.remove_item(item_id, purge=purge)
+    removal = await svc.remove_item(item_id, purge=purge)
     await svc.refresh_managed()
     console.print(f"removed {item_id}")
+    common.print_warnings(removal.warnings)
 
 
 @_addr.command("set-default")
