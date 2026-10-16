@@ -3,7 +3,7 @@ id: TASK-990
 sequence_id: 990
 type: task
 title: Make a developer a role that declares a capability
-status: Draft
+status: Ready
 parent: FEAT-986
 author: tech-lead
 assignee: python-dev
@@ -16,7 +16,8 @@ refs:
 - TASK-954:depends-on
 - TASK-1004:depends-on
 description: Capabilities on roles and *<name> in the playbook, every consumer on
-  the resolved role, extra.is_dev dropped through the 0.16 migration step
+  the resolved role, the is_dev attribute dropped through a contribution to the 0.16
+  step
 subentities:
 - local_id: ST1
   title: Require the catalog and playbook on the role derivation path
@@ -46,7 +47,7 @@ subentities:
   status: Todo
   story: US7
 - local_id: ST8
-  title: Drop extra.is_dev and add it to the 0.16 migration step
+  title: Drop the is_dev attribute and add the 0.16 contribution
   status: Todo
   story: US4
 - local_id: ST9
@@ -62,36 +63,52 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-09T20:28:02Z'
-updated_at: '2026-10-12T06:58:50Z'
+updated_at: '2026-10-16T18:22:03Z'
 ---
 <!-- sq:body -->
 ## Scope
 
-"Is this role a developer?" has two answers today, a stored marker (`extra.is_dev`) and a slug
-spelling (`slug.endswith("-dev")`), and they disagree for the same role in one squad. This
+"Is this role a developer?" has two answers today, a stored role attribute (`is_dev`) and a
+slug spelling (`slug.endswith("-dev")`), and they disagree for the same role in one squad. This
 task replaces both with one declared, resolved fact (ADR-984, order of work, steps 4 to 6):
 
 - a role declares `capabilities`; the playbook addresses a capability with `*<name>`;
 - the capability is computed once, in `resolve_role_for_item`, and travels on `RoleDef` and
   `RoleView`; nothing below the resolver decides anything from a slug string;
-- a developer is either templated (`sq dev add`, selected by `extra.tech`) or declared (a
-  role file with the capability), and both are treated alike on every surface;
-- `extra.is_dev` is removed and existing squads are migrated by the release's one
-  0.15 to 0.16 step, to which this task adds its contribution.
+- a developer is either templated (`sq dev add`, selected by the `tech` attribute) or declared
+  (a role file with the capability), and both are treated alike on every surface;
+- the `is_dev` attribute is removed, with its pinned declaration, and existing squads are
+  migrated by the release's one 0.15 to 0.16 step, to which this task adds one contribution.
 
 It fixes the colour half of BUG-985 (a developer's model stays as stored, by decision) and
 covers stories 1 to 9 of FEAT-986. Story 10 (documentation) is TASK-991.
 
-## Before the first edit
+## The code this task starts from
 
-- TASK-989 is merged: the import-graph guard exists, `RoleView` lives in `_roles/`, and the
-  role derivations live in their own module.
-- TASK-954 and TASK-1004 are merged: `run_pending_migrations` reconciles and checks the
-  corpus before the first runner, and the 0.16 step, its schema and its report channel
-  exist. "Migration" below says what this task adds to them.
-- **The working version reads 0.16.0.** It is bumped once TASK-1004 is in and before this
-  task, and no bundled file is changed before the bump. If `pyproject.toml` still reads
-  0.15.0, the bump has not happened yet: change no bundled file until it has.
+- **Item metadata is flat** (ADR-1007). A role's `is_dev`, `tech` and `model` are top-level
+  frontmatter keys, declared under `[items.role.attributes]` in `_specs/workflow.toml` and read
+  through `_models/_attributes.py` (`AttributeKey`, and the accessors `attrs.is_dev`,
+  `attrs.tech`, `attrs.model`). `tech` is already declared `settable = false`, so `sq update
+  --set tech=...` on a role is refused today. `ExtraKey`, `X.IS_DEV` and `extra.<key>` no longer
+  exist; this body names attributes by their top-level key.
+- **`is_dev` is a pinned role attribute** (`PINNED_ROSTER_ATTRIBUTES` in
+  `_workflow/_models.py`), kept only because the engine still reads it. ST8 removes the pin and
+  the declaration with the last reader.
+- **The roster views and the role derivations have moved** (TASK-989): `RoleView` and
+  `OperatorView` are in `_roles/_projection.py`; `DEV`, `is_dev_slug`, `create_lanes`,
+  `allowed_create_types`, `item_types_for_role`, `skills_for_role`, `item_skill_role_sections`
+  and `example_assignee_slug` are in `_interactions/_role_guidance.py`. The import-graph guard
+  is `tests/meta/test_package_import_edges_match_the_recorded_table.py`.
+- **The 0.16 step is a list of contributions** in `_migrations/_v0_15_to_v0_16.py`
+  (`CONTRIBUTIONS`: `comment-headers`, then `flat-frontmatter`). This task appends one.
+- **The working version reads 0.16.0.**
+- **Two rulings of 2026-10-16 bound this task:**
+  - *A role's stored name is its name* (op-pierre, on TASK-1059 and ADR-777). It is set at
+    creation and no configuration change renames it. No subtask here renames a role: a `[dev]`
+    or per-slug change reaches an existing developer's colour and definition, never its name.
+  - *Every role needs its model* (op-pierre, on BUG-1065). Fixing that is BUG-1065's, not this
+    task's. This task keeps a developer's stored model as it is (ST3) and does not widen or
+    restructure the developer-only model column (ST8).
 - Not built in parallel with FEAT-961 (pronouns) or the `[defaults]` table of ADR-981: they
   extend the same role models and the same closed key space.
 
@@ -116,13 +133,19 @@ after ST7, and at the end. At each, the suite is green.
 
 **Storage, fallbacks and the migration.**
 
-- **ST8, drop `extra.is_dev` and add the retirement to the 0.16 migration step** (US4).
+- **ST8, drop the `is_dev` attribute and add the contribution to the 0.16 step** (US4).
 - **ST9, a suffix-only `-dev` role is ordinary, and the migration reports it** (US3).
 - **ST10, `sq dev add --slug`, and no read path consults the suffix** (US5).
 - **ST11, an unknown slug resolves to nothing** (US6).
 
 One developer, one pass: every subtask edits the same three modules
 (`_interactions/_role_guidance.py`, `_roles/_resolver.py`, `_roles/_catalog.py`).
+
+**New state, and why.** The task adds no stored key to any item and nothing to the index.
+It adds one key to the role documents (`capabilities`, ST2), which is the decision itself, and
+one field to `RoleDef` and `RoleView` carrying the resolved value, because the functions that
+answer for a role receive a `RoleDef` or the roster of `RoleView`s and must not re-resolve it.
+It removes one stored key (`is_dev`, ST8).
 
 ## The shape-by-surface table
 
@@ -140,81 +163,74 @@ and ST10 add columns or rows to it instead of writing a test per branch.
   a suffixed role; no developer at all.
 - **Invariant, asserted for every row:** templated and declared give identical answers on
   every surface, and suffixed and bundled give identical answers on every surface.
-- It starts from the characterisation tables of TASK-989; the rows this task changes are the
-  suffixed and declared ones.
+- It starts from the characterisation tables TASK-989 wrote for the moved derivations; the
+  rows this task changes are the suffixed and declared ones.
 
 ## Migration
 
-- **The step is TASK-1004's.** It creates `SCHEMA_VERSION = "0.16"`, the module
-  `_migrations/_v0_15_to_v0_16.py`, the one `MIGRATIONS` entry, `migrate()` and the report
-  channel (`MigrationOutcome.report`, carried by `MigrationRun`, printed by `sq migrate up`).
-  This task edits none of them. Its whole change to the migration is one contribution
-  appended to the module's tuple and one row in the runner's test table.
-- **How the step runs a contribution.** Every contribution's planning function runs first and
-  reads only. If any plan carries a failure the run refuses with nothing written by this
-  step. Otherwise the writing functions run in tuple order, each re-reading the files it
-  changes, and the report lines of every plan are printed under the step's line. `MANUAL`
-  and the summary are assembled from the contributions.
+- **The step exists.** `SCHEMA_VERSION = "0.16"`, the `MIGRATIONS` entry, `migrate()`,
+  `run_contributions`, `Planned` and the report channel (`MigrationOutcome.report`, printed by
+  `sq migrate up`) are in place. This task edits none of them. Its whole change to the
+  migration is one `Contribution` appended to `CONTRIBUTIONS`, after `flat-frontmatter`, and its
+  rows in the contribution tests.
+- **How the step runs it.** Every planning function runs first and reads only. If any plan
+  carries a failure the run refuses with nothing written by this step. Otherwise the writers
+  run in tuple order and the report lines of every plan are printed under the step's line.
+  `MANUAL` and `SUMMARY` are assembled from the contributions.
 - **This task's contribution.**
-  - *Planning function:* the read-only report of suffix-only roles (ST9). Every role item
-    whose stored slug ends in `-dev`, carries no `extra.tech`, and whose resolved definition
-    holds none of the capabilities the squad's resolved `[dev]` table declares becomes one
-    report line. The plan carries no failure for such a role: a role that needs a hand edit
-    does not stop a migration. No override file is read for writing or rewritten. A
-    migration runner is the one place that may know the retired spelling.
-  - *Writing function:* none. `extra.is_dev` joins the closed list of retired role keys in
-    `_models/_metadata.py`, and the rebuild that `run_pending_migrations` runs after the
-    runners strips it from every role file and from the index (see "What was driven"). The
-    contribution's postcondition, that no role item carries the key, is therefore true
-    after `sq migrate up` and not after `migrate()` alone. If the runner's test table checks
-    a postcondition straight after `migrate()`, report it; do not move the removal into a
-    writer to fit.
+  - *Planning function:* the read-only report of suffix-only roles (ST9). It carries no
+    failure: a role that needs a hand edit does not stop a migration. No override file is
+    opened for writing. A migration runner is the one place that may know the retired
+    spelling.
+  - *Writing function:* none. The `flat-frontmatter` writer lifts `extra.is_dev` to a
+    top-level `is_dev` like any other key. ST8 adds `is_dev` to `RETIRED_ROLE_KEYS`
+    (`_models/_metadata.py`) and removes its declaration from the bundled role type, so the
+    rebuild that `run_pending_migrations` runs after the runners strips it from every role file
+    and from the index, as it strips the other retired role keys. The contribution's
+    postcondition (no role item carries `is_dev`) therefore holds after `sq migrate up`, not
+    after `migrate()` alone. If a contribution test checks a postcondition straight after
+    `migrate()`, report it; do not move the removal into a writer to fit.
+  - *The frozen key set of `flat-frontmatter`* (`_RETIRED_ROLE_KEYS` in the step module) is
+    that contribution's and is not edited.
   - *`MANUAL` section.* Its facts are acceptance and its wording is the tech writer's to
     tighten, through a comment on this task: a developer is now a role that declares a
     capability; `sq migrate up` removes a stored marker from developer items and changes
-    nothing else in them; a role it reports keeps working as an ordinary role and regains
-    the developer guidance when its role file declares the capability and `sq sync` runs,
-    and there is no automatic fix; an override file written for a developer not yet added
-    is now reported by `sq check`, and the ways out are `sq dev add` or removing the file;
-    an existing developer picks up a project `[dev]` colour on the next `sq sync` and keeps
-    the model it was created with; a stamped catalog, playbook or per-slug role override
-    reports "may be stale" because the bundled documents changed (`sq override diff`, then
-    `sq override update`).
-  - *Summary clause:* the developer marker is dropped from role items, and roles named
-    `-dev` that declare no capability are reported.
-- **What the contribution may assume from the steps that run before it** (ADR-955 as
-  amended, built by TASK-954; re-read both when this task is promoted):
-  - *One context.* The planning function is handed the run's `MigrationContext`: the paths,
-    the workflow spec and the playbook the run resolved. It resolves neither document
-    itself, and `tests/meta` holds the guard. The context carries no role catalog. The
-    report needs the `[dev]` table's capabilities and each candidate role's resolved
-    definition, and reads both inside the planning function, through the role loader and
-    the role resolver given the context's squad directory. The catalog has already loaded
-    once by then: resolving the playbook reads it for its list of role slugs (read, not
-    driven). If the runner guard refuses those two names, report; do not add an exemption
-    and do not widen the context here.
+    nothing else in them; a role it reports keeps working as an ordinary role and regains the
+    developer guidance when its role file declares the capability and `sq sync` runs, and there
+    is no automatic fix; an override file written for a developer not yet added is now
+    reported by `sq check`, and the ways out are `sq dev add` or removing the file; an existing
+    developer picks up a project `[dev]` colour on the next `sq sync` and keeps the model and
+    the name it was created with; a stamped catalog, playbook, workflow or per-slug role
+    override reports "may be stale" because the bundled documents changed (`sq override diff`,
+    then `sq override update`).
+  - *Summary clause:* the developer marker is dropped from role items, and roles named `-dev`
+    that declare no capability are reported.
+- **What the planning function is given, and reads for itself.**
+  - *The run's `MigrationContext`*: the paths, the workflow spec and the playbook the run
+    resolved. It carries no role catalog. The report needs the `[dev]` table's capabilities and
+    each candidate role's resolved definition, and reads both through the role loader and the
+    role resolver given `ctx.paths.squad_dir`. The runner guard
+    (`tests/meta/test_migration_runners_use_the_runs_resolved_vocabulary.py`) bans the spec and
+    playbook resolvers, not these two. Do not widen the context; if the guard refuses them,
+    report and add no exemption.
   - *A reconciled index.* Before the first runner the index is rebuilt from the item files,
     and a file that cannot be given an entry has already stopped the run. The planning
-    function takes its list of role items from that index and reads `extra.slug` and
-    `extra.tech` from each role file's own frontmatter, as the comment-header contribution
-    reads names, because an index entry can trail its file while a chain of runners is in
-    flight. It reuses the module's roster read if one fits, and writes no second one.
-  - *A corpus that fits the vocabulary.* A check before the first runner has already
-    refused a type, status, prefix, folder or badge code the resolved vocabulary does not
-    declare. This contribution retires an `extra` key, which is none of those, so the
-    runner still declares nothing for that check. Confirm that against the check as
-    landed, and confirm that `tech` leaving the role's settable fields makes neither the
-    load boundary nor that check refuse a developer item.
-  - *A refusal.* When another contribution's plan fails, this step writes nothing, the
-    trailing rebuild does not run, and the key stays until the re-run. Steps before this one
-    have been applied when the squad was stamped below 0.15.
-  - *The remedy rule.* Text printed while the squad is still behind names only commands
-    permitted then. Report lines are printed only for a run that completes, so the report
-    may name `sq sync`. The `MANUAL` text is read through `sq migrate chlog`, which is
-    permitted in both directions.
-- **Fixtures.** No frozen corpus fixture holds a developer today (read: none carries
-  `is_dev` or `tech`). ST8 adds one written by the released tool, and regenerates the
-  `v0_16` fixture TASK-1004 created.
+    function takes its list of role items from that index.
+  - *Files not yet flattened.* Planning runs before the `flat-frontmatter` writer, so each
+    role file still holds its keys under `extra`. The planner reads each role file's
+    frontmatter and passes it through `flatten_frontmatter` (with `_file_slug`), the pure
+    per-file transform that contribution exposes, then reads top-level `slug` and `tech` from
+    the result. It writes no second file reader and parses no `extra` itself.
+  - *A corpus that fits the vocabulary* has been checked before the first runner. This
+    contribution retires an attribute, which that check does not judge, so it declares nothing
+    for it.
+  - *The remedy rule.* Report lines are printed only for a run that completes, so the report
+    may name `sq sync`. The `MANUAL` text is read through `sq migrate chlog`.
+- **Fixtures.** `tests/fixtures/corpus/v0_15_discussions/` holds one templated developer
+  (`python-dev`, added without `--model`); its migrated copy under
+  `tests/goldens/migrated_corpus/v0_15_discussions/` carries `is_dev: true` today, and loses
+  that line in ST8. ST8 adds a frozen 0.15 corpus written by the released tool for the shapes
+  that one lacks, and regenerates the `v0_16` fixture by its README's rule.
 - **This repository's own squad.** It is migrated once, by the operator, at release
   preparation, after FEAT-976 has added its contribution. The developer never runs
   `sq migrate up`, `sq repair` or `sq sync` on it, with any build, and does not run the dev
@@ -227,7 +243,7 @@ and ST10 add columns or rows to it instead of writing a test per branch.
 
 The working version reads 0.16.0, which has no tag, so the manifest is maintained in the
 ordinary way while this task changes bundled bytes (`_specs/roles.toml`,
-`_specs/playbook.toml`, templates under `_rendering/templates/`).
+`_specs/playbook.toml`, `_specs/workflow.toml`, templates under `_rendering/templates/`).
 
 - **Regenerate with each change.** A commit that changes a bundled document or template
   also carries the result of `scripts/gen_template_manifest.py`. The generator replaces the
@@ -237,45 +253,45 @@ ordinary way while this task changes bundled bytes (`_specs/roles.toml`,
   passes, and so does `scripts/gen_template_manifest.py --check`, which is what the CI
   `manifest freshness` step runs.
 - **A file changed twice leaves a blob behind (read, not run).** The generator never deletes
-  from the content store. When an artifact changes a second time at 0.16.0, the first
-  revision is referenced by no entry and
-  `test_every_stored_blob_is_referenced_by_at_least_one_index_entry` fails. The remedy is
-  the store rebuild, `scripts/seed_content_store.py --rebuild`, which reads the release
-  tags and takes 0.16.0 from the working tree. If it refuses, report; do not edit either
-  JSON file by hand. The release gate (`--release-gate`) stays a release-preparation step.
+  from the content store. `workflow.toml` and several templates already changed at 0.16.0, so
+  this task's first change to any of them leaves the earlier 0.16.0 revision referenced by no
+  entry, and `test_every_stored_blob_is_referenced_by_at_least_one_index_entry` fails. The
+  remedy is the store rebuild, `scripts/seed_content_store.py --rebuild`, which reads the
+  release tags and takes 0.16.0 from the working tree. If it refuses, report; do not edit
+  either JSON file by hand. The release gate (`--release-gate`) stays a release-preparation
+  step.
 - **Override drift is observable with this build.** An override stamped 0.15.0 reports
   `drifted` in `sq override list` and "may be stale" in `sq check` once its bundled
   counterpart changes. Prove it in the suite, with overrides stamped 0.15.0 and the control
   stamped at the running version (`current`, silent), for the catalog, the playbook, a
   per-slug role file and (ST7) a template; and once by hand on a scratch squad that the
   released tool initialised and scaffolded, run with the dev build.
-- **Upgrade fixtures come from the released tool** (`~/.local/bin/sq`, in a scratch squad):
-  a squad and its overrides as 0.15.0 wrote them are what an adopter upgrades from.
+- **Upgrade fixtures come from the released tool** (`~/.local/bin/sq`, 0.15.0, in a scratch
+  squad): a squad and its overrides as 0.15.0 wrote them are what an adopter upgrades from.
 
 ## What was driven, and what is left to confirm
 
-Driven in scratch squads on 2026-10-09, with the dev build at `d07b0e50` and a scratch copy
-of the package carrying the stated one-line change.
+Driven in scratch squads on 2026-10-09, with the dev build at `d07b0e50` (before the flat
+frontmatter) and a scratch copy of the package carrying the stated one-line change.
 
-- **The retired-key sweep removes `is_dev` with no runner code (driven).** With `"is_dev"`
-  added to `RETIRED_ROLE_EXTRA_KEYS`, `sq repair` (the rebuild `run_pending_migrations`
-  calls) removed the key from two developer files and from the index and kept `tech` and
-  `model`.
-- **A second rebuild then deletes `extra.model` (driven).** `_retired_role_extra_keys` reads
-  `extra.is_dev` to decide whether `model` is a stored key. Once the marker is gone the
-  developer reads as a non-developer and the next rebuild strips `model` (an operator's
-  `--model opus` was lost). With that one read changed to "carries `extra.tech`", two
-  rebuilds left `model` in place and the second wrote nothing (identical tree hash). ST8
-  changes all three shape reads in the same commit as the retired key.
+- **The retired-key sweep removes `is_dev` with no runner code (driven, nested shape).** With
+  the key added to the retired role keys, `sq repair` removed it from two developer files and
+  from the index and kept `tech` and `model`.
+- **A second rebuild then deletes `model` (driven, nested shape).** The sweep reads `is_dev` to
+  decide whether `model` is a stored key (today `_retired_role_keys` in
+  `_services/_maintenance.py`, through `RoleDef.stored_attribute_keys(is_dev=...)`). Once the
+  marker is gone the developer reads as a non-developer and the next rebuild strips `model` (an
+  operator's `--model opus` was lost). With that read changed to "carries `tech`", two rebuilds
+  left `model` in place and the second wrote nothing. ST8 changes every shape read in the same
+  commit as the retired key.
 - **Changed bundled bytes make a stamped override report drift (driven).** Catalog and
   playbook overrides stamped 0.15.0, bundled `roles.toml` and `playbook.toml` each changed by
   one line: at running version 0.16.0, `sq override list` shows both as `drifted` and
-  `sq check` warns "may be stale" for each, exit 0. At running version 0.15.0 the same bytes
-  report `current` and no warning.
-- **Not driven:** `sq migrate up` end to end (no 0.16 runner existed then); the per-slug role
-  override stamp and the template override stamp, which use the same predicate (read,
-  `_overrides/_service.py`); `sq sync`'s wording for the same drift. ST8 and ST7 confirm
-  these as their first step, with the unpatched build.
+  `sq check` warns "may be stale" for each, exit 0.
+- **Not driven:** any of this on the flat shape; `sq migrate up` end to end with this
+  contribution; the per-slug role override stamp and the template override stamp, which use the
+  same predicate (read, `_overrides/_service.py`); `sq sync`'s wording for the same drift. ST8
+  and ST7 confirm these as their first step, with the unpatched build.
 
 ## Acceptance (whole task)
 
@@ -287,6 +303,8 @@ of the package carrying the stated one-line change.
 - Not acceptance of this task: the migration of this repository's own squad, which is the
   operator's step at release preparation. Story 4's bullet about it is met on the scratch
   copy.
+- Story 4's bullet that `tech` is not settable through the update verbs is already met by the
+  flat frontmatter's `settable = false`; ST8 keeps a row that pins it and adds no code for it.
 - Each subtask's own acceptance holds, and every acceptance bullet of stories 1 to 9 is
   pinned by a named test. The handoff maps bullet to test.
 - **Table-driven tests over named shape families**, as each subtask lists, with the
@@ -294,8 +312,8 @@ of the package carrying the stated one-line change.
   through the same assertions as its neighbours.
 - **Pipeline-level invariants**, each stated in its subtask: sync is a fixed point; migrate
   then sync converges on what a fresh init produces for the same roster; migrate is
-  idempotent and never touches `extra.tech` or `extra.model`; the index is rebuildable from
-  the files with identical values.
+  idempotent and never touches `tech`, `model` or the stored name; the index is rebuildable
+  from the files with identical values.
 - **A falsified test per subtask.** Break the change on purpose, watch the new test go red,
   restore it, watch it go green. The handoff records what was broken and the name of the
   test that went red, for each subtask.
@@ -307,7 +325,7 @@ of the package carrying the stated one-line change.
   then `sq sync` on a squad the previous release initialised. The two must be byte-identical
   to each other, and their diff against the previous release's output must contain only the
   changes the subtask names.
-- `rg -n 'endswith\("-dev"\)|removesuffix\("-dev"\)|is_dev_slug|X\.IS_DEV|dev_base_for_slug|"\*dev"' src/squads`
+- `rg -n 'endswith\("-dev"\)|removesuffix\("-dev"\)|is_dev_slug|AttributeKey\.IS_DEV|attrs\.is_dev|dev_base_for_slug|"\*dev"' src/squads`
   finds nothing outside `_migrations/` and `_specs/`, checked against the known positives of
   the commit before. The scan also collapses wrapped lines, or it proves nothing.
 
@@ -324,7 +342,7 @@ of the package carrying the stated one-line change.
 - Run `uv run --all-extras pytest tests/meta` whenever a module-level constant is added (the
   mutable-state guard), a bundled document or template changes (the manifest freshness
   guard, after regenerating), the migration module changes, or an import edge changes (the
-  guard of TASK-989).
+  import-graph guard).
 - Comments and docstrings are one or two sentences, with no release versions, ticket ids or
   history. The migration runner is the one exception for versions. Several docstrings on
   this path explain the marker at length; they are rewritten to what the code does now, not
@@ -333,8 +351,8 @@ of the package carrying the stated one-line change.
 - `type X = ...` for aliases. A multi-exception handler is parenthesised and carries
   `# fmt: skip`. No `from __future__ import annotations`. Time goes through `clock`.
 - User-facing errors are `SquadsError` subclasses. Dynamic text printed to the console goes
-  through `e()`. `Item.extra` keys come from `ExtraKey`; a retired key that loses its member
-  is spelled once, by name, beside the retired-key list.
+  through `e()`. Attribute keys come from `AttributeKey`; a retired key that loses its member
+  is spelled once, by name, beside `RETIRED_ROLE_KEYS`.
 - Durable text of the `CLAUDE.md` managed region is edited in
   `templates/claude/claude_section.md.j2`, never in the rendered file.
 - Do not edit `CHANGELOG.md` or anything under `docs/`. The handoff lists every
@@ -384,8 +402,8 @@ changes.
   `paths.squad_dir`). Test call sites pass `bundled_spec()` and the bundled playbook
   explicitly, which is what they mean. No assertion changes.
 - Three production constructions build a `Service` with no playbook
-  (`_cli/_common.py:1363`, `_cli/_main.py:1607` and `:1614`: `sq repair` and the degraded
-  `sq check` paths). They are not changed here. If a row of the table below, or of the
+  (the `Service(sp, spec=...)` calls in `_cli/_common.py` and `_cli/_main.py`: `sq repair`
+  and the degraded `sq check` paths). They are not changed here. If a row of the table below, or of the
   shape-by-surface table later, answers wrongly on those paths, report it; do not widen the
   scope.
 
@@ -444,8 +462,8 @@ validated at load, and resolved once onto `RoleDef` and `RoleView`. No consumer 
   dump. One definition of the pattern, used by both.
 - `_roles/_catalog.py`: `RoleDef.capabilities: tuple[str, ...] = ()`. `role_spec_to_def`
   carries it; `dev_role_from_pool` takes it from the pool spec it is given;
-  `from_extra_or_item` yields none. It is **not** added to `_EXTRA_FIELD_KEYS`: nothing new
-  is stored on an item.
+  `RoleDef.from_item` yields none. It is **not** added to `_ATTRIBUTE_FIELDS` and no role
+  attribute is declared for it: nothing new is stored on an item.
 - `_roles/_projection.py`: `RoleView.capabilities`. `ServiceCore._role_view` copies it from
   the role `resolve_role_for_item` returned, which stays the one place it is computed.
 - A per-slug override merges over its base through the shared engine, so `capabilities` in a
@@ -501,9 +519,12 @@ longer reverts on `sq sync`.
   for no squad.
 - `_roles/_catalog.py`: `dev_role()`, the shim bound to the bundled catalog, is deleted with
   its imports. `dev_role_from_pool` is the only constructor.
+- The stored name stays the developer's name (op-pierre, 2026-10-16): `dev_base_from_item`
+  keeps passing the item's `title` as the name, so no pool is drawn for an existing developer,
+  and the stored name stays pinned over every layer, a per-slug `full_name` included.
 - The developer's capabilities now arrive from `[dev].capabilities` of the resolved catalog
   by the same path, which is what ST6 relies on.
-- `extra.model` stays the stored value for a developer (ADR-984, "Left out"; story 8):
+- The `model` attribute stays the stored value for a developer (ADR-984, "Left out"; story 8):
   `sq dev add` stores the catalog default when `--model` is omitted, and the resolver reads
   it back. A `[dev]` override therefore reaches an existing developer for what the template
   supplies (colour) and never changes its model; only a developer added afterwards takes a
@@ -519,8 +540,9 @@ longer reverts on `sq sync`.
 - Table, added to the shape-by-surface file: `[dev]` override state when the developer is
   added (none; colour and model) by what changes afterwards (nothing; override added;
   colour changed; model changed; override removed) by per-slug role file (absent; sets
-  colour; sets model). Columns: pointer `model` and `color` after one sync and after two,
-  and the same two values on `sq role <slug> show`.
+  colour; sets model; sets `full_name`). Columns: pointer `model` and `color` after one sync
+  and after two, the same two values on `sq role <slug> show`, and the stored name, which is
+  unchanged in every row.
 - The same rows once more with a project catalog that changes `name_pool`: a developer added
   earlier keeps its name, and the next `sq dev add` draws from the project pool.
 - Invariants: sync is a fixed point (the second sync changes no file, by hash), and for
@@ -539,7 +561,7 @@ instead of from the item: the "model changed" rows go red. Restore.
     after the developer was created is on its pointer after the next `sq sync`, a second
     sync changes nothing, and `sq role <slug> show` prints the same colour.
   - **the stored model does not change.** Changing `[dev].model` (haiku to opus) leaves each
-    existing developer's `extra.model`, its pointer and its `sq role <slug> show` on the
+    existing developer's stored `model`, its pointer and its `sq role <slug> show` on the
     stored model across two syncs. Only a developer added afterwards gets opus.
 - The colour lines of BUG-985's reproduction pass. Its model rows are behaviour by decision:
   they are pinned as written above, not changed.
@@ -593,8 +615,8 @@ a role with no definition left goes red. Restore.
 
 **Acceptance**
 
-- Story 9, except the bullet about `extra.is_dev` leaving the generic `show` and `list`
-  payloads, which ST8 pins once the key is gone from the corpus.
+- Story 9, except the bullet about `is_dev` leaving the generic `show` and `list` item
+  rows, which ST8 pins once the key is gone from the corpus.
 - The handoff lists the four payloads and the two text outputs for the writer.
 
 Gates and working rules: the task body.
@@ -724,7 +746,7 @@ surfaces, and the spelling test is deleted.
   suffixed role: its pointer loses the developer skills.
 
 **Falsify.** In the helper, treat a slug ending in `-dev` as holding the capability: the
-suffixed rows go red on every surface. Then make `sq dev list` filter on `extra.tech`: the
+suffixed rows go red on every surface. Then make `sq dev list` filter on the `tech` attribute: the
 declared row goes red. Restore each.
 
 **Acceptance**
@@ -818,61 +840,74 @@ Gates and working rules: the task body.
 <!-- sq:subtask:ST7:end -->
 
 <!-- sq:subtask:ST8 -->
-### ST8 — Drop extra.is_dev and add it to the 0.16 migration step
+### ST8 — Drop the is_dev attribute and add the 0.16 contribution
 
 <!-- sq:subtask:ST8:body -->
-**Goal.** No role item carries `extra.is_dev`. "Templated" is derived: a role item that
-carries `extra.tech`. Existing squads lose the key through the release's 0.16 migration
-step, to which this subtask adds the retirement's contribution.
+**Goal.** No role item carries `is_dev`, and the engine neither declares nor pins it.
+"Templated" is derived: a role item that carries the `tech` attribute. Existing squads lose the
+key through the release's 0.16 step, to which this subtask appends the contribution.
 
-**First step: confirm what was driven.** The task body records two results from a patched
-scratch copy: the retired-key sweep strips `is_dev` with no runner code, and a second
-rebuild deletes `extra.model` unless the role's shape is read from `extra.tech`. Reproduce
-both on the real change: one `sq migrate up` on a scratch squad the released tool
-initialised with two developers (one added with `--model opus`), then a second `sq repair`,
-hashing the tree after each. Record the output in a subtask comment.
+**First step: confirm what was driven, on the flat shape.** The task body records two results
+driven before the flat frontmatter: the retired-key sweep strips `is_dev` with no runner code,
+and a second rebuild deletes `model` unless the role's shape is read from `tech`. Reproduce
+both on the real change: one `sq migrate up` on a scratch squad the released tool initialised
+with two developers (one added with `--model opus`), then a second `sq repair`, hashing the
+tree after each. Record the output in a subtask comment.
 
 **Approach**
 
-- Storage (`_models/_extras.py`, `_models/_metadata.py`, `_roles/_catalog.py`):
-  - `ExtraKey.IS_DEV` is deleted. The retired key is spelled once, by name, beside
-    `RETIRED_ROLE_EXTRA_KEYS`, and joins that set (the pattern `extra.skills` already
-    follows).
-  - `Field(X.TECH)` leaves `_ROLE_FIELDS`: `extra.tech` is no longer settable on a role
-    item, and the refusal names `sq dev add`. The generic field of the same name for work
-    types stays.
-  - `RoleDef.to_extra`, `stored_extra_keys` and the developer-only key table are renamed
-    off "dev" (suggested: `templated`), since the question they answer is "is `model` a
-    stored key for this role".
-- The three shape reads change together, in the same commit as the retired key, to "the
-  item carries `extra.tech`": `_services/_maintenance.py::_retired_role_extra_keys`, the
-  `to_extra` call in `_refresh_catalog_extra`, and `_itemfile.py::_exempt_extra_keys`. So do
-  the resolver's branch in `role_base_from_item` and the name-pool count in
-  `Service.add_dev`, which stops writing the marker.
-- The migration contribution, as the task body's "Migration" section settles it: one
-  contribution appended to the tuple in `_migrations/_v0_15_to_v0_16.py`, with no writing
-  function, its `MANUAL` section and its summary clause. The planning function is ST9's;
-  until ST9 lands it returns an empty plan. Nothing else in the migration is edited: not
-  `migrate()`, the registry, `SCHEMA_VERSION`, `MigrationOutcome`, `MigrationRun` or
+- **Storage.**
+  - `_models/_attributes.py`: `AttributeKey.IS_DEV` and the `is_dev` accessor are deleted. If a
+    named predicate for "carries `tech`" reads better than `attrs.tech(item) is not None` at the
+    call sites below, it replaces the accessor in the same module; no other new helper.
+  - `_models/_metadata.py`: `is_dev` joins `RETIRED_ROLE_KEYS`, spelled once, by name, beside
+    it (the pattern the retired `skills` key already follows).
+  - `_specs/workflow.toml`: the `is_dev` line leaves `[items.role.attributes]`.
+    `_workflow/_models.py`: `is_dev` leaves `PINNED_ROSTER_ATTRIBUTES`. These two go in the
+    same commit as the retired key: `_retired_role_keys` keeps any name the squad's spec
+    declares on `role`, so a still-declared `is_dev` would never be swept.
+  - `_roles/_catalog.py`: the keyword of `RoleDef.to_attributes` and `stored_attribute_keys`
+    is renamed off "dev" (suggested: `templated`), with its docstrings, since the question it
+    answers is "is `model` a stored key for this role". The developer-only `model` column
+    (`_DEV_ATTRIBUTE_FIELDS`) keeps its meaning: making a model take effect on every role is
+    BUG-1065's, and is not done here.
+- **Every shape read changes together**, in the same commit as the retired key, to "the item
+  carries `tech`": `_services/_maintenance.py::_retired_role_keys`, the `to_attributes` call
+  in `_refresh_catalog_attributes`, `_itemfile.py::_exempt_attribute_keys`, the branch in
+  `_roles/_resolver.py::role_base_from_item`, and the name-pool count in
+  `_services/_roster.py::add_dev`, which also stops writing the marker. (`sq dev list` already
+  reads the ST6 helper.)
+- **The contribution.** One `Contribution` appended to `CONTRIBUTIONS` in
+  `_migrations/_v0_15_to_v0_16.py`, after `flat-frontmatter`, as the task body's "Migration"
+  section settles it: no writing function, its `MANUAL` section and its summary clause. The
+  planning function is ST9's; until ST9 lands it returns an empty `Planned`. Nothing else in
+  the migration is edited: not `migrate()`, `run_contributions`, the registry,
+  `SCHEMA_VERSION`, `MigrationOutcome`, `flatten_frontmatter` or its frozen key set, or
   `_cli/_migrate.py`.
-- The removal itself is the retired key above plus the rebuild that runs after the runners,
+- **The removal itself** is the retired key plus the rebuild that runs after the runners,
   under the same resolved vocabulary. The contribution adds no index or frontmatter write.
-- A frozen 0.15 squad that holds developers, `tests/fixtures/corpus/v0_15_developers/`,
-  built the way TASK-1004 built its discussions fixture: by the released tool
-  (`~/.local/bin/sq`) in a scratch squad under the session scratchpad, clock pinned on the
-  corpus's convention, committed as written minus the reflog, never hand-edited, its build
-  commands in the fixture README. It holds a developer added with `--model`, one added
-  without, one with a per-slug override, a retired developer, a project role whose slug
-  ends in `-dev` created from a role file, the same retired, and a project role with
-  another slug. `tests/integration/test_migration_corpus.py` gains its case.
-- The `v0_16` fixture is regenerated by its README's rule, and the migrated-corpus goldens
-  through their own switch on their own module. Expected diff, confirmed line by line in
-  the handoff: a new directory for the new corpus, in which the marker line is gone from
-  each developer file and nothing else differs; no change to `v0_16` or to any existing
-  corpus from this contribution, since none holds a developer. Any other change is a
-  finding to explain before it is committed.
-- A build with this change reads a role item that still carries the marker: the key is
-  ignored, the item resolves through `extra.tech`, and `sq check` is clean for it.
+- **A frozen 0.15 squad that holds developers**, `tests/fixtures/corpus/v0_15_developers/`,
+  built the way `v0_15_discussions` was: by the released tool (`~/.local/bin/sq`) in a scratch
+  squad under the session scratchpad, clock pinned on the corpus's convention, committed as
+  written minus the reflog, never hand-edited, its build commands in the fixture README. It
+  holds what `v0_15_discussions` lacks: a developer added with `--model`, one with a per-slug
+  override, a retired developer, a project role whose slug ends in `-dev` created from a role
+  file, the same retired, and a project role with another slug.
+  `tests/integration/test_migration_corpus.py` gains its case. The migrated-output golden
+  module (`tests/integration/test_migrate_up_output_is_unchanged_for_every_corpus.py`) covers
+  squads without overrides only: if the new corpus cannot sit there as it stands, report it
+  rather than dropping the override shapes.
+- **Goldens and the `v0_16` fixture.** The `v0_16` fixture is regenerated by its README's rule,
+  and the migrated-corpus goldens with `UPDATE_GOLDENS=1` on their module. Expected diff,
+  confirmed line by line in the handoff: the `is_dev: true` line leaves
+  `tests/goldens/migrated_corpus/v0_15_discussions/agents/roles/ROLE-000005-python-dev.md`;
+  the new corpus gains its goldens, with no `is_dev` line in any developer file; `v0_16`
+  does not change, since `v0_15` holds no developer. Any other change is a finding to explain
+  before it is committed.
+- **An un-migrated 0.16 file reads correctly.** A role file stamped 0.16 that still carries
+  `is_dev: true` (as a pre-change dev build or the old `v0_16` fixture wrote it) keeps the key
+  as an undeclared attribute until the next rebuild sweeps it, resolves through `tech`, and
+  `sq check` is clean for it with the default validators.
 
 **Tests**
 
@@ -880,51 +915,55 @@ hashing the tree after each. Record the output in a subtask comment.
   one with `--model`; a developer with a per-slug override; a developer whose stored title
   is blank; a retired developer; a declared developer; a suffixed role. Steps:
   `sq migrate up`; a second `sq migrate up`; `sq repair`; delete the index then `sq repair`.
-  Columns: which files changed (hash them), the `extra` of each role in the file and in the
-  index, the schema stamp, exit code and printed lines.
+  Columns: which files changed (hash them), the attributes of each role in the file and in
+  the index, the schema stamp, exit code and printed lines.
 - Two rows whose outcome belongs to the steps before the runner, asserted here only for
   what this contribution adds to them. A developer file on disk but missing from the index:
   the reconcile gives it an entry and the key is stripped like any other. A role file with
   unreadable YAML beside a healthy developer: the run stops before the first runner,
   nothing is written and the healthy developer still carries the key; after the file is
   corrected a re-run strips it.
-- Invariants, for every row: `extra.tech` and `extra.model` are byte-identical before and
-  after every step; the second and later steps change no file; the index after "delete then
-  repair" equals the index before; no key appears in `.squads.json` that the files do not
-  carry.
-- The runner's contribution table gains this feature's row, driven on the developers
-  fixture: after one `sq migrate up` no role item carries the marker, in file or index. The
-  table's "every contribution in one run" assertion then covers the comment-header
-  contribution and this one together without being edited.
-- The assembled `MANUAL` holds this section once, after the comment-header section, and the
-  summary holds this clause; `sq migrate chlog v0.15.0..v0.16.0` prints both sections.
-- Un-migrated read: a squad stamped at the current schema whose developer file and index
-  both still carry the marker resolves as a developer on every surface of the
-  shape-by-surface table, and `sq check` is clean.
-- Generic payloads: after migration the `extra` object of `sq list -t role --json` and of the
-  generic `show --json` carries no `is_dev`, and no other key changed (story 9).
-- `sq role <slug> update`-style writes of `tech` are refused with exit 1; `sq dev add` still
-  writes it.
+- Invariants, for every row: `tech`, `model` and the stored name are byte-identical before
+  and after every step; the second and later steps change no file; the index after "delete
+  then repair" equals the index before; no key appears in `.squads.json` that the files do
+  not carry.
+- The contribution tests gain this contribution's row, driven on the developers fixture:
+  after one `sq migrate up` no role item carries `is_dev`, in file or index; every
+  contribution runs in that one run.
+- The assembled `MANUAL` holds this section once, after the flat-frontmatter section, and the
+  summary holds this clause; `sq migrate chlog v0.15.0..v0.16.0` prints every section.
+- Un-migrated read: the 0.16 file of the approach above resolves as a developer on every
+  surface of the shape-by-surface table, and `sq check` is clean.
+- Spec: the bundled `role` type declares no `is_dev`; a workflow override that omits it loads;
+  `sq workflow types --json` lists no `is_dev` among the role attributes
+  (`tests/cli/test_workflow_types_cli.py` updated, nothing else in the payload changed).
+- Generic payloads: after migration the item rows of `sq list -t role --json` and of the
+  generic `show --json` carry no `is_dev`, and no other key changed (story 9).
+- `sq update --set tech=...` on a role is still refused with exit 1 and `sq dev add` still
+  writes `tech` (already true; pinned here as one row).
 - Generated files are diffed as the task body describes (init against migrate then sync).
 - A copy of this repository's squad, in scratch: `migrate up`, `sync`, `check`. Record which
   files changed and that `sq check` is clean. Never the live squad, with any build: the
   operator migrates it once, at release preparation.
 
-**Falsify.** Leave `_retired_role_extra_keys` reading the marker: the "second step changes
-no file" invariant and the `model` invariant go red on the `--model` row. Then remove the
-key from the retired set: the "no role item carries the key" column goes red. Restore each.
+**Falsify.** Leave `_retired_role_keys` reading the marker: the "second step changes no file"
+invariant and the `model` invariant go red on the `--model` row. Then remove the key from the
+retired set: the "no role item carries the key" column goes red. Then leave `is_dev` declared
+on the bundled `role` type: the same column goes red. Restore each.
 
 **Acceptance**
 
 - Story 4, all bullets. The bullet about a squad carrying every contribution is met here
-  for the comment-header contribution and this one; FEAT-976 adds its row. The bullet about
-  this repository's squad is met here on the scratch copy.
-- `tests/meta` passes: the guard that a runner uses the run's resolved vocabulary, the
-  migration-import guard and the `from_frontmatter` call-site table.
+  for the comment-header, flat-frontmatter and this contribution; FEAT-976 adds its row. The
+  bullet about this repository's squad is met here on the scratch copy.
+- `tests/meta` passes: the runner guard, the migration-import guard, the `from_frontmatter`
+  call-site table and the import-graph guard.
 - The diff of this subtask under `src/squads/_migrations/` and `src/squads/_cli/_migrate.py`
   is the appended contribution and nothing else.
-- Adopter-visible, for the handoff: the `MANUAL` text, the summary clause and the refusal
-  on `tech`.
+- `rg -n 'AttributeKey\.IS_DEV|attrs\.is_dev|is_dev=' src/squads` finds nothing, checked
+  against the commit before.
+- Adopter-visible, for the handoff: the `MANUAL` text, the summary clause, and `is_dev`
+  leaving the role attributes (`sq workflow types --json`, the pinned set).
 
 Gates and working rules: the task body.
 <!-- sq:subtask:ST8:body:end -->
@@ -947,17 +986,18 @@ changes, and rewrites nothing for them.
 
 - The behaviour itself is ST6's (the suffixed row of the shape-by-surface table). This
   subtask pins the transitions and adds the migration report.
-- The report is the planning function of this feature's contribution to the 0.16 runner.
-  For every role item, live or retired, whose stored slug ends in `-dev`, which carries no
-  `extra.tech`, and whose resolved definition holds none of the capabilities the squad's
+- The report is the planning function of the contribution ST8 appends to the 0.16 step.
+  For every role item, live or retired, whose slug ends in `-dev`, which carries no `tech`, and whose resolved definition holds none of the capabilities the squad's
   resolved `[dev]` table declares, it emits one line naming the slug and the line to add to
   its role file. A retired role is reported too, marked as retired, since it would come
   back without the guidance. The capability names come from the resolved catalog, so the
-  line is right for a project that renamed them. The suffix literal lives in the runner and
-  nowhere else.
+  line is right for a project that renamed them. A role with no definition at all (no catalog
+  entry, no per-slug file) holds no capability and is reported the same way. The suffix the
+  report reads lives in the runner; ST10's proposed-slug constant is the only other copy, and
+  nothing reads it.
 - Its inputs, as the task body's "Migration" section sets them out: the list of role items
-  from the index the run reconciled; `extra.slug` and `extra.tech` from each role file's own
-  frontmatter; the `[dev]` capabilities through the role loader and each candidate's
+  from the index the run reconciled; `slug` and `tech` from each role file's frontmatter
+  passed through `flatten_frontmatter`, since the files are not flattened yet when it plans; the `[dev]` capabilities through the role loader and each candidate's
   definition through the role resolver, both given the context's squad directory. It
   resolves no workflow spec and no playbook.
 - Its plan carries report lines and no failure. A per-slug role file that does not load does
@@ -978,7 +1018,7 @@ changes, and rewrites nothing for them.
   declares the capability.
 - Report table: role shape (suffixed and live; suffixed and retired; suffixed with the
   capability already declared; templated; a bundled role; a suffixed role whose role file no
-  longer loads) by catalog (bundled `[dev]`; a project `[dev]` declaring another capability
+  longer loads; a suffixed role with no definition left) by catalog (bundled `[dev]`; a project `[dev]` declaring another capability
   name) by run outcome (completes; refused by another contribution's planning function).
   Columns: reported or not, the printed line, exit code, and a hash of everything under
   `.overrides/` before and after.
@@ -990,7 +1030,7 @@ changes, and rewrites nothing for them.
 - CLI smoke: `sq migrate up` prints the slug; `sq migrate chlog` over the step prints the
   remedy.
 
-**Falsify.** Drop the "no `extra.tech`" clause: the templated row is reported and goes red.
+**Falsify.** Drop the "no `tech`" clause: the templated row is reported and goes red.
 Then report only live roles: the retired row goes red. Then return the lines as failures
 instead of report lines: the completed-run rows go red, since the run now refuses. Restore
 each.
@@ -1028,18 +1068,20 @@ change, and no read path consults the suffix.
   says it is a proposed spelling.
 - An explicit slug is compared exactly, as `sq operator add --slug` does. The reserved-slug
   refusal (`operator`, `squads`, anything starting with `op-`) already sits at the seam
-  every role creation passes through, built by TASK-1004. This subtask writes no check of
+  every role creation passes through (`reserved_role_slug_problem` in `_models/_participants.py`,
+  called from the create path in `_services/_base.py`). This subtask writes no check of
   its own: it makes sure the explicit slug reaches that seam, and pins the refusal for the
   new flag.
-- TASK-1004 also walks the command table and fails on any `--slug` option under the roster
-  groups outside an allowlist of creation verbs. `dev add` joins that allowlist, in the same
+- `test_no_roster_verb_but_a_creation_verb_declares_a_slug_option`
+  (`tests/cli/test_a_roster_slug_is_fixed_at_creation_cli.py`) fails on any `--slug` option under
+  the roster groups outside an allowlist of creation verbs. `dev add` joins that allowlist, in the same
   commit as the flag.
 - The per-slug override file merged at creation is the one named after the slug actually
   used, explicit or proposed.
 - The duplicate check stays `_refuse_duplicate_slug`: an explicit slug is checked as given;
   a proposed one also against the earlier slug rule, as today. A second developer for one
   tech succeeds with `--slug`.
-- The name-pool position counts the role items that carry `extra.tech` (ST8).
+- The name-pool position counts the role items that carry the `tech` attribute (ST8).
 
 **Tests**
 
@@ -1047,7 +1089,7 @@ change, and no read path consults the suffix.
   `--slug` (absent; a fresh slug; the slug of an existing developer; the slug of an existing
   bundled role; `operator`; `squads`; `op-x`; an uppercase or spaced value) by squad state
   (no developer for that tech; one already). Columns: exit code, message, the stored
-  `extra`, the pointer file name, the full name drawn from the pool.
+  attributes, the pointer file name, the full name drawn from the pool.
 - `--name`, `--model` and the pool behave as before: the rows without `--slug` produce the
   same stored item and pointer as the previous release (compare against output generated by
   the commit before).
@@ -1196,4 +1238,11 @@ Gates and working rules: the task body.
     
     1. ADR-955 A5 says the vocabulary is resolved once, before the first write, together with every other document a pending runner loads. Does the role catalog have to travel on `MigrationContext` for that to hold? If so the change is to the context and to `run_pending_migrations`, outside the contribution, and per-slug role files would still be read by the resolver at planning time.
     2. Should the static guard on runners ban the role loader and resolver as it bans the spec and playbook resolvers? As written, the task tells the developer to report, not to add an exemption, if it does.
+- [2026-10-16T18:21:55Z] Olivia Lead:
+  - 2026-10-16: refreshed against today's release/0.16 (flat frontmatter, the contributions-based 0.16 step, TASK-989's moves, the stored-name rule, the BUG-1065 model ruling). Scope unchanged; no new stored state.
+  - Removed as done: the merge and version-bump preconditions (TASK-989, TASK-954, TASK-1004 Done; working version 0.16.0); `tech` leaving the settable role fields (already `settable = false`, ST8 keeps one pinning row); the claim that no corpus fixture holds a developer (`v0_15_discussions` has `python-dev`, whose migrated golden loses `is_dev: true` in ST8).
+  - Re-pointed: `extra.*`/`ExtraKey`/`X.IS_DEV` to top-level attributes, `AttributeKey` and `attrs.*` in `_models/_attributes.py`; `RETIRED_ROLE_KEYS`, `_retired_role_keys`, `_refresh_catalog_attributes`, `_exempt_attribute_keys`, `to_attributes`/`stored_attribute_keys`, `RoleDef.from_item`, `_ATTRIBUTE_FIELDS`; ST1 drops stale line numbers; ST10 names the reserved-slug seam and the `--slug` allowlist test.
+  - ST8: one `Contribution` appended after `flat-frontmatter`, no writer; `is_dev` joins `RETIRED_ROLE_KEYS` and leaves both `[items.role.attributes]` and `PINNED_ROSTER_ATTRIBUTES` in the same commit (a still-declared name is never swept). The flat contribution's frozen key set is not edited. Model stays developer-only here; BUG-1065 is not folded in.
+  - ST9: the planner reads `slug`/`tech` through `flatten_frontmatter`, since it plans before the flat writer; it also reports a suffixed role with no definition left. ST3: the stored name is pinned in every row.
+  - My 2026-10-12 @architect question on the role catalog and `MigrationContext` is settled by the guard as landed: it bans the spec and playbook resolvers, not the role loader or resolver, so the planner reads the catalog itself and the context is not widened. Moved to Ready. @manager
 <!-- sq:discussion:end -->
