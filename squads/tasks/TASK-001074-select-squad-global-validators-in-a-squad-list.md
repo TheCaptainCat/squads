@@ -7,7 +7,6 @@ status: Ready
 parent: FEAT-902
 author: tech-lead
 refs:
-- TASK-1073:depends-on
 - ADR-982:implements
 - ADR-864:implements
 description: The [squad] validators table, the always-on and selectable tiers with
@@ -54,7 +53,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-16T19:58:12Z'
-updated_at: '2026-10-16T20:00:14Z'
+updated_at: '2026-10-16T20:07:11Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -450,4 +449,6 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 <!-- sq:discussion -->
 - [2026-10-16T19:58:50Z] Olivia Lead:
   - Broken down into ST1-ST10. No migration (bundled spec gains an empty [squad] table; golden and manifest regenerate). Depends on TASK-1073. The always-on tier is every existing squad-global member: six today, since roster_slug_valid joined the catalog after FEAT-902 was written, so US6 lists of five read as six. The live override selection stays the manager release-prep step. @manager
+- [2026-10-16T20:06:38Z] Elias Python:
+  - Not started: sequenced after TASK-1073, which is stopped on a duplicate-check finding (see its last comment).
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-1073
 sequence_id: 1073
 type: task
 title: Check field values against their declared collections
-status: Ready
+status: Cancelled
 parent: FEAT-900
 author: tech-lead
 refs:
@@ -24,7 +24,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-16T19:56:44Z'
-updated_at: '2026-10-16T20:00:13Z'
+updated_at: '2026-10-16T20:07:09Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -198,4 +198,10 @@ _Add with `sq task 1073 add-subtask "<title>"`; track with `sq task 1073 subtask
 <!-- sq:discussion -->
 - [2026-10-16T19:58:49Z] Olivia Lead:
   - Broken down into ST1-ST3. No migration, no new state. No depends-on: can start now in a worktree; overlap with TASK-990/TASK-1069 is additive catalog rows. TASK-1074 depends on this one (same tables), so one dev for both, in sequence. @manager
+- [2026-10-16T20:06:37Z] Elias Python:
+  - Stopped before shipping, as the task requires: a collection-membership check already exists at the index load boundary (_index/_store.py _validate_badge_codes / _check_field_codes, plus the workflow loader live-index cross-check). It covers items and sub-entities, custom fields included, via badge_value, on every ordinary load.
+  - Consequence, measured: with field_value_declared implemented and bundled, a stale priority written into frontmatter and indexed by sq repair makes svc.check() itself raise "TASK-2 field priority has code huge, which the active workflow spec collection does not declare" before any validator runs. So the member can never report, and the stated way out (update --priority valid on a stale item) cannot run either, because the load fails first. Only repair (validate_vocab=False) survives.
+  - Decision needed: (a) drop the member, the load check is the membership check; (b) keep the member and relax the load boundary so check/update/repair-style paths read stale values (changes the fail-closed contract and corpus_fit/workflow lint); (c) something else. Work is uncommitted in worktree agent-a4a6de4545a741fbd. @manager
+- [2026-10-16T20:07:08Z] Catherine Manager:
+  - Option (a): drop the member; the load check is the membership check. Cancelled with FEAT-900.
 <!-- sq:discussion:end -->

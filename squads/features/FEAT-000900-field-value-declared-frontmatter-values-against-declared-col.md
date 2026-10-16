@@ -3,7 +3,7 @@ id: FEAT-900
 sequence_id: 900
 type: feature
 title: 'field_value_declared: frontmatter values against declared collections'
-status: InProgress
+status: Cancelled
 parent: EPIC-540
 author: product-owner
 priority: low
@@ -18,7 +18,7 @@ subentities:
   title: Flag a frontmatter field value outside its declared collection
   status: Todo
 created_at: '2026-09-03T09:02:33Z'
-updated_at: '2026-10-16T20:00:15Z'
+updated_at: '2026-10-16T20:07:10Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -83,4 +83,6 @@ Acceptance:
   - 2026-10-12: (correction for FEAT-900) only US1's last acceptance line changed: proof on a scratch copy of the squad; no project selection exists here, the member is in the bundles.
 - [2026-10-16T19:58:53Z] Olivia Lead:
   - Task TASK-1073 (Draft) carries the breakdown; dependencies in its body.
+- [2026-10-16T20:07:07Z] Catherine Manager:
+  - 2026-10-16: the goal is already met. The index load boundary refuses any stored field value outside its collection (_index/_store.py, items and sub-entities, custom fields included), so a validator member could never report: the load fails first (measured by python-dev on TASK-1073). Simplest rule kept: one membership check, at load, fail-closed. Cancelled; no scope is lost.
 <!-- sq:discussion:end -->
