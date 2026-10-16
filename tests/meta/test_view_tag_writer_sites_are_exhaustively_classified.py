@@ -114,7 +114,7 @@ CLASSIFICATIONS: dict[tuple[str, str], tuple[str, str]] = {
         "(`view add`, via resolve_view_target) applies its own gate before ever calling this, "
         "never inside it",
     ),
-    ("squads/_services/_items.py", "_reject_unwritable_body"): (
+    ("squads/_services/_base.py", "_refuse_classified_roster_write"): (
         "not-a-writer",
         "composes the bare tag for the roster refusal's own error message only; writes nothing",
     ),

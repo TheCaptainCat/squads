@@ -43,7 +43,7 @@ from squads._cli._common import (
 from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._interactions import ROLE_DEFINITION_VIEW_NAME, role_origin
-from squads._interactions._role_guidance import allowed_create_types, developer_roles
+from squads._interactions._role_guidance import allowed_create_types
 from squads._models import _attributes as attrs
 from squads._models._item import Item
 from squads._models._schema import version_drifted
@@ -114,18 +114,13 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     default-role line is compiled from, so the two never disagree. Outside a squad — where
     there is no roster to ask — it falls back to the catalog's own declared designation.
 
-    Not every holder is expressible here: the catalog lists bundled and project-declared
-    entries plus the squad's templated developers, so a holder that is none of these appears in
-    no row and the column is correctly blank throughout. The plain listing names that holder in
-    its footer, and ``--json`` carries the same disclosure as ``default_role`` — the slug that
-    holds it, whether or not any row is that slug, and ``null`` when no live role holds it at
-    all. ``default_role_source`` says where that answer came from: ``"roster"`` for the active
-    squad's designation, ``"catalog"`` for the document's own declaration outside a squad,
-    where there is no roster to ask. Both repeat on every row, since this payload is a bare
-    array. Without them an all-false column is ambiguous between a holder this listing cannot
-    show and no holder at all, and a ``"catalog"`` answer is indistinguishable from a squad
-    that designates the same slug for real. ``sq role list`` — the roster listing, which
-    carries every live role — is still the surface that names a holder in its own rows.
+    Inside a squad the catalog also lists every activated role the document does not declare (a
+    templated developer, a role declared by a per-slug file), so the designation holder always
+    has a row. ``default_role`` carries the holder as a slug (``null`` when no live role holds
+    it) and ``default_role_source`` says where that answer came from: ``"roster"`` for the
+    active squad's designation, ``"catalog"`` for the document's own declaration outside a
+    squad, where there is no roster to ask. Both repeat on every row, since this payload is a
+    bare array. ``sq role list`` is the roster listing and carries every live role.
 
     Like the other per-role fields here (name, title), ``capabilities`` is the catalog
     document's value, before any per-slug role file; ``sq role list`` and ``sq role <addr>
@@ -143,18 +138,24 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     def _origin(slug: str) -> str:
         return (attrs.origin(items[slug]) if slug in items else role_origin(slug)) or ""
 
-    # One row per catalog entry, then one per activated developer the catalog does not declare.
+    # One row per catalog entry, then one per activated role the catalog does not declare.
     rows = [
         (r.slug, r.full_name, r.title, _is_default(r.slug, r.is_default), r.capabilities)
         for r in roles
     ]
     declared = {r.slug for r in roles}
-    resolved = [resolve_role_for_item(it, squad_dir) for it in items.values()]
-    rows.extend(
-        (dev.slug, dev.full_name, dev.title, _is_default(dev.slug, False), list(dev.capabilities))
-        for dev in developer_roles(resolved, load_role_catalog(squad_dir))
-        if dev.slug not in declared
-    )
+    for it in items.values():
+        if it.slug not in declared:
+            role = resolve_role_for_item(it, squad_dir)
+            rows.append(
+                (
+                    role.slug,
+                    role.full_name,
+                    role.title,
+                    _is_default(role.slug, False),
+                    list(role.capabilities),
+                )
+            )
 
     # The holder as a slug, not as a mark on a row — the boolean column can only answer for
     # the rows that exist, and the holder need not be one of them.
@@ -186,12 +187,6 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     for slug, full_name, title, is_default, _capabilities in rows:
         table.add_row(e(slug), e(full_name), e(title), "✓" if is_default else "", _origin(slug))
     console.print(table)
-    if live_default is not None and all(row[0] != live_default for row in rows):
-        console.print(
-            f"\n[dim]The default role is [cyan]{e(live_default)}[/cyan], which this catalog "
-            "does not list \u2014 run [cyan]sq role list[/cyan] to see it.[/dim]",
-            soft_wrap=True,
-        )
     console.print(
         "\n[dim]Need a wholly custom non-dev role (not in this catalog)? "
         "Run [cyan]sq override scaffold --new <slug>[/cyan], fill in the essentials, "

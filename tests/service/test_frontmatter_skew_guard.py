@@ -236,9 +236,9 @@ async def test_a_permitted_extra_key_ahead_of_the_index_is_never_falsely_refused
 
     # Must not raise -- disk is ahead of the index on a permitted key; the guard cannot and
     # must not tell a legacy-lag key apart from one a live writer just resynced.
-    await svc.update(role.id, description="mutated after a permitted-key skew")
+    await svc.update(role.id, title="Renamed after a permitted-key skew")
     reloaded = await svc.get(role.id)
-    assert reloaded.description == "mutated after a permitted-key skew"
+    assert reloaded.title == "Renamed after a permitted-key skew"
 
 
 async def test_a_catalog_field_merged_by_sync_reaches_the_index_and_never_false_refuses(svc):
@@ -281,9 +281,9 @@ async def test_a_catalog_field_merged_by_sync_reaches_the_index_and_never_false_
     assert reloaded.description == on_disk["description"]
 
     # Must not raise -- the two sides agree, so an unrelated seam mutates cleanly right after.
-    await svc.update(role.id, assignee=None, description="mutated after a catalog reconcile")
+    await svc.update(role.id, title="Renamed after a catalog reconcile")
     final = await svc.get(role.id)
-    assert final.description == "mutated after a catalog reconcile"
+    assert final.title == "Renamed after a catalog reconcile"
 
 
 async def test_a_project_override_role_under_a_new_slug_is_not_falsely_refused_after_sync(svc):
@@ -326,9 +326,9 @@ async def test_a_project_override_role_under_a_new_slug_is_not_falsely_refused_a
 
     # Must not raise -- the reconcile behaves the same for an override-defined role as for a
     # role the bundled catalog itself recognizes.
-    await svc.update(role.id, assignee=None, description="mutated after an override reconcile")
+    await svc.update(role.id, title="Renamed after an override reconcile")
     final = await svc.get(role.id)
-    assert final.description == "mutated after an override reconcile"
+    assert final.title == "Renamed after an override reconcile"
 
 
 async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_refusing(svc):
@@ -353,8 +353,8 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
     assert "model" not in (await svc.get(role.id)).attributes
 
     # Must not raise: an unrelated seam mutating a role a stale index lags on.
-    await svc.update(role.id, description="mutated against a lagging index")
-    assert (await svc.get(role.id)).description == "mutated against a lagging index"
+    await svc.update(role.id, title="Renamed against a lagging index")
+    assert (await svc.get(role.id)).title == "Renamed against a lagging index"
 
     # That mutation's own pointer regen resolves the role through the catalog rather than the
     # still-lagging index, so the pointer it wrote already carries the real title — never the
@@ -375,38 +375,3 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
 # fields for a dev role -- a REAL skew on them must refuse like any other field, not slide
 # through.
 # ---------------------------------------------------------------------------------------------
-
-
-async def test_interrupting_a_dev_roles_set_model_then_editing_elsewhere_refuses_not_reverts(
-    svc, monkeypatch
-):
-    """The counterpart to the two false-refusal cases above: this key-name collides with a
-    catalog role's exempt `model`, but a dev role's own catalog fields are not exempt, so
-    nothing here is permitted skew. Interrupting `--set model=` must be treated as the real
-    skew it is -- refusing the next mutation through any other seam. Letting it through is the
-    loss this guards: the stale index-loaded value silently overwrites the committed one."""
-    dev = await svc.add_dev("python")
-
-    await _crash_the_index_commit(
-        svc, monkeypatch, lambda: svc.update(dev.id, set_attributes={"model": "haiku"})
-    )
-
-    # Markdown ahead of the index: the file carries the new model, the index doesn't.
-    on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(dev.path))
-    assert on_disk["model"] == "haiku"
-    reloaded = await svc.get(dev.id)
-    assert reloaded.attributes.get("model") != "haiku"
-
-    # An unrelated edit refuses -- before writing anything -- rather than silently reverting
-    # the committed model back to the stale index-loaded value.
-    with pytest.raises(SquadsError, match=rf"{dev.id}.*repair"):
-        await svc.update(dev.id, description="mutated after an interrupted --set")
-
-    still_on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(dev.path))
-    assert still_on_disk["model"] == "haiku"  # not reverted by the refused attempt
-
-    await svc.repair()
-    await svc.update(dev.id, description="mutated after repair")
-    final = await svc.get(dev.id)
-    assert final.attributes.get("model") == "haiku"
-    assert final.description == "mutated after repair"

@@ -57,21 +57,17 @@ async def test_set_and_unset_a_badge_field_by_key_routes_through_set_badge_value
     assert cleared.severity is None
 
 
-async def test_setting_a_role_extra_field_regenerates_its_claude_pointer(svc, project):
-    """``model`` is settable on a role because a *developer's* model has no catalog answer, so
-    a generic ``--set`` still lands on the item's own ``extra`` — the write itself is
-    unaffected. For a **bundled** role the catalog does answer it, and the pointer regen this
-    triggers resolves the role rather than reading the stored value back, so the catalog's own
-    answer is what reaches the pointer. That is not stale: the reconciler (``sq sync``, via
-    ``_refresh_catalog_extra``) already treats a generically ``--set`` field on a bundled role
-    as staleness to ignore, never a designation to preserve, and the regen agreeing with it
-    from the start is a currency win, not a bug."""
-    # the minimal roster registers `manager` as ROLE-000001 with a generated .claude pointer.
-    await svc.update("ROLE-000001", set_attributes={"model": "haiku"})
-    assert (await svc.get("ROLE-000001")).attributes["model"] == "haiku"  # the write itself lands
-    pointer = (project.root / ".claude" / "agents" / "manager.md").read_text(encoding="utf-8")
-    assert "model: opus" in pointer  # the catalog's own answer, not the ad-hoc extra write
-    assert "model: haiku" not in pointer
+async def test_setting_a_role_field_is_refused_and_the_pointer_is_unchanged(svc, project):
+    """A role's content is authored in its role document, so a generic ``--set`` on a role is
+    refused and the generated pointer keeps the catalog's answer."""
+    pointer_path = project.root / ".claude" / "agents" / "manager.md"
+    before = pointer_path.read_text(encoding="utf-8")
+
+    with pytest.raises(SquadsError, match="authoring surface"):
+        await svc.update("ROLE-000001", set_attributes={"model": "haiku"})
+
+    assert "model" not in (await svc.get("ROLE-000001")).attributes
+    assert pointer_path.read_text(encoding="utf-8") == before
 
 
 async def test_a_role_field_that_moved_to_the_catalog_is_refused_with_where_it_lives_now(svc):
@@ -86,9 +82,8 @@ async def test_a_role_field_that_moved_to_the_catalog_is_refused_with_where_it_l
 
 
 async def test_a_roles_name_is_refused_with_the_verb_that_actually_sets_it(svc):
-    """``full_name`` is the one moved key whose home is not an override document: the name is
-    the item's own ``title``, set through the activate/add verbs."""
-    with pytest.raises(SquadsError, match="the item's own `title` field"):
+    """A role's content verbs are refused with its authoring surface, ``full_name`` included."""
+    with pytest.raises(SquadsError, match="authoring surface"):
         await svc.update("ROLE-000001", set_attributes={"full_name": "Someone Else"})
 
 

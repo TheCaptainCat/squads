@@ -97,22 +97,21 @@ async def test_the_catalog_default_column_survives_sync_and_repair(project, invo
         assert await _designations(invoke, ["role", "catalog"]) == {"qa"}
 
 
-async def test_a_holder_without_a_catalog_row_leaves_no_catalog_row_marked(
+async def test_a_holder_the_document_does_not_declare_has_its_own_marked_catalog_row(
     project, svc, invoke
 ) -> None:
-    """A role whose definition is gone has no catalog row, so the honest catalog answer is
-    "none of these" — never the shipped designation on a role that no longer holds it. The
-    plain listing names the holder it cannot show."""
+    """A role whose definition is gone is not in the catalog document, and still gets the
+    row that carries the designation."""
     await _make_ghost_the_default(project, svc, invoke)
 
-    assert await _designations(invoke, ["role", "catalog"]) == set()
+    assert await _designations(invoke, ["role", "catalog"]) == {"ghost"}
     plain = await invoke(["role", "catalog"])
+    assert "✓" in _catalog_row(plain.output, "ghost")
     assert "✓" not in _catalog_row(plain.output, "manager")
-    assert "ghost" in plain.output
 
     for maintenance in (["sync"], ["repair"]):
         assert (await invoke(maintenance)).exit_code == 0
-        assert await _designations(invoke, ["role", "catalog"]) == set()
+        assert await _designations(invoke, ["role", "catalog"]) == {"ghost"}
 
 
 async def test_a_developer_holding_the_designation_has_its_own_marked_catalog_row(
@@ -159,40 +158,30 @@ async def test_outside_a_squad_the_catalog_reports_its_own_declared_designation(
     assert await _designations(invoke, ["role", "catalog"]) == {"manager"}
 
 
-async def test_the_catalog_payload_names_a_holder_that_matches_no_row(project, svc, invoke) -> None:
-    """The footer's disclosure, on the wire: a role with no definition holds it, no row can be
-    marked, and the payload names the holder anyway — a program branching on the boolean alone
-    would read "nobody is the default here", which is false."""
+async def test_the_catalog_payload_names_the_holder_and_a_row_carries_it(
+    project, svc, invoke
+) -> None:
     assert await _disclosure(invoke) == ("manager", "roster")
 
     await _make_ghost_the_default(project, svc, invoke)
 
-    assert await _designations(invoke, ["role", "catalog"]) == set()
-    holder, source = await _disclosure(invoke)
-    assert (holder, source) == ("ghost", "roster")
-
-    r = await invoke(["role", "catalog", "--json"])
-    assert all(row["slug"] != holder for row in json.loads(r.output)), (
-        "the point of the field is that the holder need not be one of the rows"
-    )
+    assert await _disclosure(invoke) == ("ghost", "roster")
+    assert await _designations(invoke, ["role", "catalog"]) == {"ghost"}
 
 
-async def test_the_catalog_payload_tells_an_unshowable_holder_from_no_holder(
-    project, invoke
-) -> None:
-    """The two states the boolean column collapses: a holder this listing cannot show, and no
-    live holder at all. Both leave every row false; only the disclosure separates them."""
+async def test_the_catalog_payload_tells_an_held_holder_from_no_holder(project, invoke) -> None:
+    """A live holder and no live holder at all are told apart on the wire."""
     assert (await invoke(["dev", "add", "--tech", "python"])).exit_code == 0
     assert (await invoke(["role", "python-dev", "set-default"])).exit_code == 0
-    unshowable = await invoke(["role", "catalog", "--json"])
+    held = await invoke(["role", "catalog", "--json"])
     assert await _disclosure(invoke) == ("python-dev", "roster")
 
     assert (await invoke(["role", "python-dev", "status", "Archived"])).exit_code == 0
-    none_live = await invoke(["role", "catalog", "--json"])
+    unheld = await invoke(["role", "catalog", "--json"])
     assert await _designations(invoke, ["role", "catalog"]) == set()
     assert await _disclosure(invoke) == (None, "roster")
 
-    assert json.loads(unshowable.output) != json.loads(none_live.output), (
+    assert json.loads(held.output) != json.loads(unheld.output), (
         "two different squad states must not produce one payload"
     )
 

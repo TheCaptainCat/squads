@@ -145,16 +145,6 @@ def _panel_origin(output: str) -> str:
     return match.group(1)
 
 
-#: The shapes the catalog lists: the bundle's roles and every developer.
-CATALOG_SHAPES = {
-    "bundled",
-    "bundled-with-a-project-override",
-    "bundled-and-retired",
-    "templated-developer",
-    "declared-developer",
-    "bundled-with-a-stored-origin-the-rule-would-not-give",
-}
-
 ROLE_SURFACES = [
     "role list --json",
     "role list",
@@ -205,7 +195,6 @@ async def test_every_role_shape_prints_its_stored_origin_on_every_surface(
         (shape, surface): await _read(invoke, surface, "role", ROLES[shape][0])
         for shape in ROLES
         for surface in ROLE_SURFACES
-        if shape in CATALOG_SHAPES or not surface.startswith("role catalog")
     }
     expected = {(shape, surface): ROLES[shape][1] for shape, surface in printed}
     assert {shape: _file_origin(squad, "role", ROLES[shape][0]) for shape in ROLES} == {
@@ -236,7 +225,7 @@ async def test_the_catalog_names_no_bundled_origin(squad, invoke) -> None:
     assert {r["origin"] for r in rows} == {"system", "project"}, "a declared developer is project"
     slugs = {r["slug"] for r in rows}
     assert slugs >= {"rust-dev", "auditor-dev"}
-    assert not slugs & {"security-analyst", "sandbox-dev"}
+    assert slugs >= {"security-analyst", "sandbox-dev"}
 
 
 async def test_a_skill_show_payload_carries_origin_and_no_system_flag(squad, invoke) -> None:

@@ -87,9 +87,9 @@ async def test_update_set_origin_is_refused_whatever_is_stored(kind, shape, svc)
     _store(path, line)
     before = path.read_bytes()
 
-    with pytest.raises(SquadsError, match="not a settable field"):
+    with pytest.raises(SquadsError, match=r"not a settable field|authoring surface"):
         await svc.update(item.id, set_attributes={"origin": "project"})
-    with pytest.raises(SquadsError, match="not a settable field"):
+    with pytest.raises(SquadsError, match=r"not a settable field|authoring surface"):
         await svc.update(item.id, unset_attributes=["origin"])
 
     assert path.read_bytes() == before

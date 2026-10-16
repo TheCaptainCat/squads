@@ -109,8 +109,7 @@ async def _populate(svc: service.Service) -> None:
         await svc.update(desc_banner.id, description=BANNER)
         clean = (await create_item(svc, item_type, f"{item_type} clean", slug=f"{slug}-c")).item
         await svc.set_body(clean.id, MENTION)
-    role = (await create_item(svc, "role", "role description", slug="role-a")).item
-    await svc.update(role.id, description=BANNER)
+    await create_item(svc, "role", "role description", slug="role-a", description=BANNER)
 
     feature = (await create_item(svc, "feature", "feature hosting stories")).item
     await svc.add_story(feature.id, OVER, body=WRITTEN)

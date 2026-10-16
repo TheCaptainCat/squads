@@ -178,8 +178,10 @@ async def test_a_display_update_changes_the_title_and_never_the_identity(
 ) -> None:
     before = _identities(project)
     events = tmp_path / "u.jsonl"
+    # A role's definition lives in its role document, so only its name changes here.
+    fields = {} if kind.endswith("role") else {"description": "New words."}
     events.write_text(
-        _update_event(ROSTER_ADDR[kind], title="A Completely New Title", description="New words."),
+        _update_event(ROSTER_ADDR[kind], title="A Completely New Title", **fields),
         encoding="utf-8",
     )
 
@@ -209,7 +211,8 @@ async def test_an_import_cannot_set_or_clear_a_stored_slug_through_the_extra_fie
     r = await invoke(["import", str(events)])
 
     assert r.exit_code == 1, r.output
-    assert "is not a settable field" in r.output
+    refusal = "authoring surface" if kind.endswith("role") else "is not a settable field"
+    assert refusal in r.output
     assert _identities(project) == before, r.output
 
 

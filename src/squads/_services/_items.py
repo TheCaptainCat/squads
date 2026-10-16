@@ -19,7 +19,6 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
 from squads._paths import number_for_id
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
@@ -270,6 +269,24 @@ class ItemsMixin(ServiceCore):
         (see :func:`~squads._itemfile.ensure_no_skew`).
         """
         item = require_item(db, item_id)
+        content = (
+            description,
+            assignee,
+            priority,
+            author,
+            parent,
+            add_labels,
+            rm_labels,
+            set_attributes,
+            unset_attributes,
+        )
+        if (
+            any(v is not None for v in content)
+            or clear_priority
+            or clear_parent
+            or (title is not None and item.type != ROSTER_ROLE)
+        ):
+            self._refuse_classified_roster_write(item_id, item, "An update")
         base = item.model_copy(deep=True)
         delta: dict[str, object] = {}
         rename_paths: tuple[Path, Path] | None = None
@@ -539,9 +556,9 @@ class ItemsMixin(ServiceCore):
           (:func:`~squads._views.skill_authoring_surface`, resolved from the view's own
           declared source rather than the skill's slug) — and body prose would be a second,
           unvalidated one. The escape is spec-level, not a per-write flag: drop the view from
-          ``[selected]`` and the document leaves the classification. ``view disable`` stays
-          admitted on such a host even so (it never writes prose); the document then renders an
-          empty definition.
+          ``[selected]`` and the document leaves the classification. A metadata update and a
+          ``view disable`` on such a host go through the same gate
+          (:meth:`~squads._services._base.ServiceCore._refuse_classified_roster_write`).
         - **Either, on a project-declared roster type outside role/skill/operator**: refused
           unconditionally — its body is generated from its fields, not a view question, and
           this branch is untouched by the one above.
@@ -553,27 +570,7 @@ class ItemsMixin(ServiceCore):
         (:func:`~squads._views.place_view_tags`) inserts it — the routine holds exactly-once,
         by construction, inside the region, and its only refusal is the conflicting-state
         one."""
-        slug = item.slug
-        roster_view = (
-            views.roster_body_view_name(item.type, slug, self.spec)
-            if item.type in (ROSTER_ROLE, ROSTER_SKILL)
-            else None
-        )
-        if roster_view is not None:
-            verb = "Append" if append else "A replace"
-            authoring_surface = (
-                f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml` for a "
-                "project-defined role)"
-                if item.type == ROSTER_ROLE
-                else views.skill_authoring_surface(roster_view, slug, self.spec, self.playbook)
-            )
-            tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
-            raise SquadsError(
-                f"{item_id}'s body renders through its declared {tag} tag, and "
-                f"its content already has one validated authoring surface: {authoring_surface}. "
-                f"{verb} is refused — `--force` does not lift this. Drop the view from "
-                "`[selected]` to author this body directly instead."
-            )
+        self._refuse_classified_roster_write(item_id, item, "Append" if append else "A replace")
         if self.spec.item_is_roster(item.type) and item.type not in (
             ROSTER_ROLE,
             ROSTER_SKILL,

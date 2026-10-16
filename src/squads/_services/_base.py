@@ -63,7 +63,7 @@ from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
 from squads._roles._catalog import RoleDef
-from squads._roles._loader import load_role_catalog
+from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import (
     holds_default_designation,
@@ -684,6 +684,35 @@ class ServiceCore:
             it.type == ROSTER_OPERATOR and it.slug == slug for it in db.items.values()
         ):
             raise SquadsError(f"an operator with slug {slug!r} already exists")
+
+    def _refuse_classified_roster_write(self, item_id: str, item: Item, verb: str) -> None:
+        """Raise when *item* is a role or skill whose body renders through a declared view: its
+        content already has one validated authoring surface, and *verb* would be a second.
+
+        The one place a write verb asks the question, so the body write, the metadata update, the
+        view edit and the bulk importer's simulation never disagree. ``--force`` does not lift it;
+        dropping the view from ``[selected]`` takes the document out of the classification.
+        """
+        roster_view = (
+            views.roster_body_view_name(item.type, item.slug, self.spec)
+            if item.type in (ROSTER_ROLE, ROSTER_SKILL)
+            else None
+        )
+        if roster_view is None:
+            return
+        authoring_surface = (
+            f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml` for a "
+            "project-defined role)"
+            if item.type == ROSTER_ROLE
+            else views.skill_authoring_surface(roster_view, item.slug, self.spec, self.playbook)
+        )
+        tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
+        raise SquadsError(
+            f"{item_id}'s body renders through its declared {tag} tag, and "
+            f"its content already has one validated authoring surface: {authoring_surface}. "
+            f"{verb} is refused — `--force` does not lift this. Drop the view from "
+            "`[selected]` to author this directly instead."
+        )
 
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
         self,

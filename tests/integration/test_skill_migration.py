@@ -154,7 +154,7 @@ async def test_repair_after_migration_rebuilds_the_index_cleanly(
     svc = service.Service(paths)
     await svc.repair()
     issues = await svc.check()
-    # Only the 0.4 to 0.5 runner ran, so the 0.16 origin stamp is still to come.
+    # Only one runner ran, so roles and skills carry no origin yet.
     assert not [
         i
         for i in issues
