@@ -3,7 +3,7 @@ id: TASK-1002
 sequence_id: 1002
 type: task
 title: Document the eight opt-in per-item checks
-status: InProgress
+status: Done
 parent: FEAT-901
 author: tech-lead
 assignee: tech-writer
@@ -16,18 +16,18 @@ description: 'Story 10: validators reference, release note and roles reference f
 subentities:
 - local_id: ST1
   title: Add the eight checks to the validators reference
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST2
   title: Write the release note for the eight checks
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST3
   title: Document the blocked flag and the role catalog's sixth key
-  status: Todo
+  status: Done
   story: US10
 created_at: '2026-10-12T05:46:28Z'
-updated_at: '2026-10-16T22:32:12Z'
+updated_at: '2026-10-16T22:50:28Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -294,4 +294,15 @@ keys, in order.
   - 2026-10-12: drafted with TASK-1001, which carries the breakdown note. Draft and unassigned; it starts after TASK-1001 is built and TASK-997 has landed.
 - [2026-10-12T06:48:33Z] Olivia Lead:
   - 2026-10-12: brought in line with story 10. ST1 and ST2 now map to it, ST3 added for the roles reference and the stability table. It needs all of TASK-1001, the blocked flag included, so it starts after that task's second part. TASK-997 is Done and its text is the base.
+- [2026-10-16T22:49:32Z] Theo Writer:
+  - Docs written, not committed. Build used: an archive of HEAD e56f7a18 (0.16.0), run as `uv run --project <export> sq -C <scratch squad>`, scratch squads under the session scratchpad. @manager
+    
+    - **ST1, docs/overrides.md § Validators.** "The work-policy checks" is rewritten: one entry per check in the order titles, content, status, refs, each with who it is for, what it reports and what clears it; the existing feature example kept; the other four messages; a worked example (`item_title_max:120` + `body_written` on feature and on epic with the splat); the `body_written` limit; where the eight apply with the roster refusal; the four cannot-fire refusals; both parameters with every refusal (missing, non-positive, compile error, empty match, compile warning, `@`, the TOML basic-string backslash error); the pattern warning; a per-check `@error` table with the refused verb and the way out; and "a check selected at `warn` is not evaluated on a write", also added under the gate paragraph.
+    - **ST2, CHANGELOG `## [0.16.0]`.** Added: the eight checks; the `blocked` flag and the sixth catalog key. Changed: `warn` checks are not evaluated on a write. Fixed: a default-kind ref rule satisfied by a bare edge; `subentity_title_max:²` refused by name.
+    - **ST3.** `blocked` bullet, table column, own-roles passage (refusal, the line to add, the loading override) and catalog output in overrides.md § Status roles; the same bullet and column in docs/workflow.md; `blocked` added to the stability.md row and the sentence beside it.
+    - **Driven** (exit codes in brackets): unselected squad with a 144-char title, unwritten body and no summary prints no issues [0]; the documented lines report each [0]; one of the eight on `role` is refused by lint [1] and by `sq list` [1]. Every quoted message and refusal was produced by a run. Worked example falsified: without the lines, no issues; without the splat, `epic update --parent` is accepted [0], with it refused [1]. Door table: every refusal and every way out [1]/[0]; body_written and settled at error: transition accepted, `sq check` [3]; import pre-pass refusal [1], import with a body_written error finding [3]. Pattern warning: `(a+)+$` at warn, create returns in 0.8 s while `sq check` and an import hang (killed at the timeout, [124]); at `@error` the create hangs [124]. NFC count, `\x40`, `(?i)`, alternation, `foo@warn`, repeat refusal, bundled accept/refuse cells, and `blocked = "yes"` / `1` refusals all driven. BUG-1003 compared with the released 0.15.0 (reported) and the export (silent).
+    - **Read, not driven:** the write holds the index lock while the pattern runs; the review-target case of the body_written limit.
+    - **Stale-claim sweep** (whitespace-collapsed, each pattern checked first on the old wording): "The other five take part in the write gate" was wrong, six do, and the passage is replaced; the four-key role lists (workflow.md cheatsheet line and "four attributes", the stability.md row and the sentence beside it, both bundled-role tables) now carry `blocked`. Nothing found in README, PYPI.md or the unreleased CHANGELOG.
+    - **Where the docs follow the build, not the handoff:** "clearing [the assignee] refused" cannot be driven through the CLI. `update --assignee ""` prints "updated" and leaves the assignee unchanged, and no other verb clears one. The table lists only the move to a live status. @qa that no-op may need a bug.
+    - Not run, per my brief: `pytest tests/meta`.
 <!-- sq:discussion:end -->

@@ -149,9 +149,15 @@ sq import history.jsonl --dry-run
 missing parent, …), the whole file is rejected with a line-numbered error report. Fix the file
 and re-run — there is nothing to recover because nothing was written.
 
-**Recovering from a mid-apply I/O failure.** A rare I/O crash mid-apply can leave some item
-files written but the index commit uncommitted, leaving the index out of sync. If an import
-command fails partway through:
+**A refusal while the file is applied writes nothing either.** Some refusals come only once an
+event is applied, such as a `body` event without `"force": true` on an item whose body is already
+written. The import then stops with that error and leaves every item file and the index as they
+were: no item is created, written or renamed.
+
+**Recovering from a crash while the files are written.** An import writes its item files at the
+end, then commits the index. If the process is killed, or the disk fails, between those writes,
+some item files can be on disk with the index uncommitted, leaving the index out of sync. If that
+happens:
 
 1. Run `sq repair` immediately:
    ```bash

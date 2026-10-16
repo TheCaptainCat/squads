@@ -115,7 +115,7 @@ sq workflow types              # every declared item type in the active spec
 sq workflow subentity-kinds    # every declared sub-entity kind: its fields, plural, local-id prefix
 sq workflow collections        # every declared badge collection (priority, severity, or custom)
 sq workflow statuses           # every declared status, with the role each resolves to
-sq workflow roles              # every declared status role: settled / hidden / colour / live
+sq workflow roles              # every declared status role: settled / hidden / colour / live / blocked
 sq workflow lifecycles         # every declared lifecycle: initial state, states, transitions
 sq workflow ref-kinds          # every declared ref kind: its label, hint and semantic role
 sq workflow views              # every declared derived view: its source, fields, grouping, ordering
@@ -683,7 +683,7 @@ All statuses you define in a custom lifecycle must be declared in the `[statuses
 
 #### Status roles: terminal/hidden/color governance
 
-Every status references a **role**, which is a catalog entry governing four attributes:
+Every status references a **role**, which is a catalog entry governing five attributes:
 
 - **`settled`** — boolean; `true` means the status is terminal (work is done; hidden from `sq inbox`
   by default).
@@ -698,22 +698,28 @@ Every status references a **role**, which is a catalog entry governing four attr
   spawned, loaded, cited, and assigned — it is what gets written into an agent host's generated
   config. The default is deliberately fail-safe-withheld: wrongly withholding an entry is
   recoverable, wrongly treating one as live writes an agent into a host's config.
+- **`blocked`** — boolean, defaults `false`; `true` means an item at the status is waiting on
+  something else. The bundled `blocked` role is the only bundled role that declares it. It is read
+  by the opt-in `blocked_has_blocker` check and by nothing else: `sq blocked` comes from dependency
+  edges. An override that replaces the bundled roles with its own adds `blocked = true` to its
+  waiting role before it can select that check (see
+  [overrides.md](overrides.md#status-roles-terminalhiddencolor-attributes) § "Status roles").
 
 Squads ships with a bundled role catalog. In your override, you can reference built-in roles or
 define new ones. A status that names no role resolves to `pending`.
 
 **Bundled roles:**
 
-| Role | `settled` | `hidden` | `color` | `live` | Typical use |
-|------|-----------|----------|---------|-----------|------------|
-| `pending` | `false` | `false` | `neutral` | `false` | Draft, Proposed, Requested — awaiting action |
-| `active` | `false` | `false` | `positive` | `true` | InProgress, InReview, ChangesRequested — actively being worked |
-| `attention` | `false` | `false` | `danger` | `false` | Open issues, failing tests, urgent needs |
-| `blocked` | `false` | `false` | `danger` | `false` | Blocked — stopped by a dependency |
-| `in_force` | `true` | `false` | `info` | `false` | Accepted, Published — in effect, terminal but shown |
-| `done` | `true` | `true` | `positive` | `false` | Done, Verified, Approved — complete and hidden by default |
-| `retired` | `true` | `true` | `muted` | `false` | Cancelled, Deprecated, Rejected — terminal and hidden |
-| `superseded` | `true` | `true` | `muted` | `false` | Superseded — replaced by a newer item, terminal and hidden |
+| Role | `settled` | `hidden` | `color` | `live` | `blocked` | Typical use |
+|------|-----------|----------|---------|--------|-----------|------------|
+| `pending` | `false` | `false` | `neutral` | `false` | `false` | Draft, Proposed, Requested — awaiting action |
+| `active` | `false` | `false` | `positive` | `true` | `false` | InProgress, InReview, ChangesRequested — actively being worked |
+| `attention` | `false` | `false` | `danger` | `false` | `false` | Open issues, failing tests, urgent needs |
+| `blocked` | `false` | `false` | `danger` | `false` | `true` | Blocked — stopped by a dependency |
+| `in_force` | `true` | `false` | `info` | `false` | `false` | Accepted, Published — in effect, terminal but shown |
+| `done` | `true` | `true` | `positive` | `false` | `false` | Done, Verified, Approved — complete and hidden by default |
+| `retired` | `true` | `true` | `muted` | `false` | `false` | Cancelled, Deprecated, Rejected — terminal and hidden |
+| `superseded` | `true` | `true` | `muted` | `false` | `false` | Superseded — replaced by a newer item, terminal and hidden |
 
 **Defining a custom role:**
 

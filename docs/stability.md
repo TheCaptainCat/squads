@@ -717,7 +717,7 @@ The frozen surface includes:
   | `sq workflow subentity-kinds --json` | sub-entity kind | `subentity_kind`, `lifecycle`, `plural`, `local_prefix`, `container_heading`, `completion`, `maps_parent_story`, `fields` |
   | `sq workflow collections --json` | badge collection | `collection`, `label`, `ordered`, `default`, `badges` |
   | `sq workflow statuses --json` | status | `status`, `role`, `badge` |
-  | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live` |
+  | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
   | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name` |
   | `sq workflow ref-kinds --json` | ref kind | `kind` (vocabulary), `label` (display), `hint` (display), `role` (open set), `direction` |
@@ -727,7 +727,7 @@ The frozen surface includes:
   a reference always carries the identity key name of the row it points at: a type's or kind's
   `fields[].collection` keys into the collection catalog, a type's `subentity_kind` keys into the
   sub-entity kind catalog, and a status's `role` keys into the role catalog — that's where
-  `settled` / `hidden` / `color` / `live` live. `role` is always the *resolved* role name, never
+  `settled` / `hidden` / `color` / `live` / `blocked` live. `role` is always the *resolved* role name, never
   null, so `null` stays available to a client meaning "not loaded yet". `terminal` and `is_open`
   are deliberately not fields anywhere: they are `settled` / `not settled` on the role catalog.
   A ref kind's `role` is its semantic role (`null` on a navigational kind), and `direction` is its

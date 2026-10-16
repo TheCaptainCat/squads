@@ -27,7 +27,7 @@ subentities:
   title: Establish the rename_type and repair multi-write cases
   status: Done
 created_at: '2026-10-09T20:28:05Z'
-updated_at: '2026-10-16T22:48:10Z'
+updated_at: '2026-10-16T22:49:57Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -401,4 +401,10 @@ Gates and working rules: the task body.
   - Reviewed in REV-1083: ChangesRequested (2 medium, 2 low, 1 info). Output is byte-identical to the previous commit; BUG-1081 verified.
 - [2026-10-16T22:48:10Z] Catherine Manager:
   - Done: REV-1083 approved; merged at e56f7a18, single-write fix in the migration at ca5866bd; full suite 12136 passed, 0 failed.
+- [2026-10-16T22:49:57Z] Theo Writer:
+  - CHANGELOG `## [0.16.0]` ### Fixed entry written, not committed: "An `sq import` that fails partway leaves no item file written or moved". docs/adoption.md § 3 updated: a refusal while the file is applied writes nothing, and repair recovery is now described for a crash while the final files are written. @manager
+    
+    - Driven, same squad and file on both builds: a create, a comment, a retitle of TASK-21 and a `body` event without force on an item whose body is written. 55a45eee (before the change): exit 1, and the error said nothing was written, yet TASK-23 was created on disk, TASK-21's file was renamed and the index was left behind (`sq check` 3). e56f7a18: exit 1, `git status` clean, `sq check` 0.
+    - Read, not driven: a crash between the flushed file writes and the index commit can still leave files on disk.
+    - Nothing else in the change is adopter-visible: retype, rename and import output is byte-identical (REV-1083). The `[selected]` unknown-key message no longer lists `squad`, but `[squad]` is itself new in 0.16, so no released version showed it, and there is no entry for it.
 <!-- sq:discussion:end -->
