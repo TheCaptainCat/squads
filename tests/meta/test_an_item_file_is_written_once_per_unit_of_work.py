@@ -187,11 +187,6 @@ async def test_every_item_file_write_seam_is_observed(svc, write_ledger, seam):
 
 
 # ----------------------------------------------------------------- the allowlist is exact
-async def _drive_rename_type(svc: Any) -> None:
-    await create_item(svc, "task", "t")
-    await svc.rename_type("task", "bug")
-
-
 async def _drive_rename_status(svc: Any) -> None:
     await create_item(svc, "task", "t")
     await svc.rename_status("task", "Draft", "Ready")
@@ -206,7 +201,6 @@ async def _drive_import(svc: Any) -> None:
 
 
 DRIVERS: dict[str, Callable[[Any], Awaitable[None]]] = {
-    "rename_type": _drive_rename_type,
     "rename_status": _drive_rename_status,
     "_apply_import": _drive_import,
 }

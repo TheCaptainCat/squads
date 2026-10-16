@@ -28,7 +28,6 @@ from squads._services._maintenance import MaintenanceMixin
 #: Service methods whose unit still writes one item file more than once, each with the reason.
 #: A method leaves this table when its fix lands; ``test_*_still_double_writes`` pins the rest.
 ALLOWED_DOUBLE_WRITERS: dict[str, str] = {
-    "rename_type": "per-item rewrite, id remap and comment are separate writes",
     "_apply_import": "every event writes its own file",
     "rename_status": "frontmatter and comment are separate writes",
 }

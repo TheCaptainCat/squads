@@ -20,6 +20,7 @@ from squads._index._resolver import item_file
 from squads._itemfile import (
     frontmatter_skew,
     read_item_text,
+    remap_ids_text,
     rewrite_ids,
     skew_message,
     update_frontmatter,
@@ -193,12 +194,14 @@ class RenameMixin(ServiceCore):
             _check_batch_skew(old_items, snapshot, default_kind=default_kind)
             try:
                 # Per-item self-rewrite (id/prefix/file/frontmatter; status carried
-                # unconditionally).
+                # unconditionally). Each renamed file's text stays in memory and is written
+                # once, below, after the id remap and the audit comment.
                 pairs: list[tuple[str, Item]] = []
+                composed: dict[int, tuple[Path, str]] = {}
                 remap: dict[str, str] = {}
                 for item in old_items:
                     old_id = item.id
-                    new_path, composed = await apply_type_change(
+                    composed[item.sequence_id] = await apply_type_change(
                         self.paths,
                         self.spec,
                         db,
@@ -207,14 +210,16 @@ class RenameMixin(ServiceCore):
                         carry_status=True,
                         text=snapshot[item.sequence_id][1],
                     )
-                    await write_text(new_path, composed)
                     remap[old_id] = item.id
                     pairs.append((old_id, item))
 
-                # Single batched pass across every squad file (renamed items included — their
-                # `item.path` already reflects the new location at this point).
-                all_paths = [item_file(self.paths, it) for it in db.items.values()]
-                touched = await rewrite_ids(all_paths, remap)
+                # Single batched pass across every other squad file.
+                other_paths = [
+                    item_file(self.paths, it)
+                    for it in db.items.values()
+                    if it.sequence_id not in composed
+                ]
+                changed = set(await rewrite_ids(other_paths, remap))
 
                 # Not excluding the renamed items themselves: two renamed items of the same
                 # old_type may ref each other, and that cross-reference needs remapping too
@@ -225,8 +230,13 @@ class RenameMixin(ServiceCore):
                 ids: list[tuple[str, str]] = []
                 for old_id, item in pairs:
                     db.add(item)
-                    new_path = item_file(self.paths, item)
-                    await _append_rename_comment(new_path, old_id, item.id, item)
+                    new_path, text = composed[item.sequence_id]
+                    remapped = remap_ids_text(text, remap)
+                    if remapped != text:
+                        changed.add(new_path)
+                    await write_text(
+                        new_path, _with_rename_comment(remapped, old_id, item.id, item)
+                    )
                     self.store.log(
                         "rename-type",
                         item.id,
@@ -238,6 +248,9 @@ class RenameMixin(ServiceCore):
                         },
                     )
                     ids.append((old_id, item.id))
+                touched = [
+                    p for it in db.items.values() if (p := item_file(self.paths, it)) in changed
+                ]
             except Exception:
                 await _rollback_files(self.paths, db, snapshot)
                 raise
@@ -318,15 +331,14 @@ class RenameMixin(ServiceCore):
         return RenameResult(renamed=len(matching), ids=ids, rewritten=rewritten_names)
 
 
-async def _append_rename_comment(path: Path, old_id: str, new_id: str, item: Item) -> None:
-    """Append a system comment recording the rename to the item's discussion."""
+def _with_rename_comment(text: str, old_id: str, new_id: str, item: Item) -> str:
+    """*text* with a system comment recording the rename appended to its discussion."""
     now_iso = clock.iso(clock.now())
     msg = f"renamed {old_id} → {new_id}; status carried as {item.status}"
     entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
-    text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
-        text = sections.append_to_section(text, markers.DISCUSSION, entry)
-        await write_text(path, text)
+        return sections.append_to_section(text, markers.DISCUSSION, entry)
+    return text
 
 
 async def _append_rename_status_comment(path: Path, old_status: str, new_status: str) -> None:
