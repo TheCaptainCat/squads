@@ -122,6 +122,7 @@ async def test_ref_kind_valid_flags_an_unknown_kind(svc):
 
 async def test_agent_registered_flags_a_deregistered_author(svc):
     task = (await svc.create("task", "t", author="manager")).item
+    await svc.activate_role("architect")  # the last live role cannot be removed
     await svc.remove_item((await svc.get("ROLE-000001")).id, purge=True)
     db = await svc.store.load()
     ctx = ValidatorContext(

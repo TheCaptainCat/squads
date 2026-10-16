@@ -96,6 +96,8 @@ class ConfigIntegrityFinding:
     remedy: str | None = None
     kind: Kind | None = None
     severable_targets: frozenset[str] = frozenset()
+    dependency: str = ""
+    removal_remedy: str | None = None
 
 
 #: ``scoped_edge``'s remedy when the caller is not a retirement of the finding's own ``entry`` —
@@ -108,7 +110,9 @@ _SCOPED_EDGE_NO_UNLINK_REMEDY = (
 )
 
 
-def render_finding(finding: ConfigIntegrityFinding, *, unlink_available: bool = False) -> str:
+def render_finding(
+    finding: ConfigIntegrityFinding, *, unlink_available: bool = False, removal: bool = False
+) -> str:
     """The finding's condition, plus its remedy when one exists — the single place
     ``message``/``remedy`` are ever concatenated, so the two halves are joined exactly once and
     never twice, and every caller renders the identical *condition* text for the same finding:
@@ -124,6 +128,13 @@ def render_finding(finding: ConfigIntegrityFinding, *, unlink_available: bool = 
     Only ``scoped_edge``'s stored remedy ever varies by it — every other kind's remedy already
     holds regardless of direction.
     """
+    if removal:
+        # A removal leaves the entry live in its own right: only the dependency and the step
+        # that clears it apply, never a status the entry would reach or a way to reactivate it.
+        text = finding.dependency or finding.message
+        if finding.removal_remedy is not None:
+            return f"{text} — remedy: {finding.removal_remedy}"
+        return text
     remedy = finding.remedy
     if finding.kind == SCOPED_EDGE and not unlink_available:
         remedy = _SCOPED_EDGE_NO_UNLINK_REMEDY
@@ -218,6 +229,7 @@ def check_no_live_role(
                 "are active — the generated config can present no agent"
             ),
             remedy="activate another role first",
+            removal_remedy="activate another role first",
         )
     ]
 
@@ -264,6 +276,10 @@ def check_preloaded_skill(
                     ),
                     remedy=None,  # no code path from which one could ever be offered
                     kind=ALWAYS_ON_FLOOR,
+                    dependency=(
+                        "every role preloads it unconditionally; it is part of the roster's "
+                        "permanent floor and cannot be removed"
+                    ),
                 )
             )
             continue
@@ -299,6 +315,8 @@ def check_preloaded_skill(
                     remedy="pass --unlink, or run `sq skill <addr> unlink-role <role>` first",
                     kind=SCOPED_EDGE,
                     severable_targets=frozenset(scoped_role_ids),
+                    dependency=f"scoped to live role(s): {_cap_and_join(scoped_roles)}",
+                    removal_remedy="run `sq skill <addr> unlink-role <role>` first",
                 )
             )
         if implicating_types:
@@ -318,6 +336,10 @@ def check_preloaded_skill(
                         "`[selected]` in .overrides/workflow.toml"
                     ),
                     kind=TYPE_IMPLIED,
+                    dependency=f"implied by declared type(s): {_cap_and_join(implicating_types)}",
+                    removal_remedy=(
+                        "drop the type via `[selected]` in .overrides/workflow.toml first"
+                    ),
                 )
             )
     return findings

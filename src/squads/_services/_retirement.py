@@ -204,14 +204,16 @@ def enforce(
         offer_unlink = is_retirement and not purge
         lines = [
             f"{f.entry or item.id}: "
-            f"{render_finding(f, unlink_available=offer_unlink and f.entry == item.id)}"
+            + render_finding(f, unlink_available=offer_unlink and f.entry == item.id, removal=purge)
             for f in after
         ]
-        action = f"remove {item.id}" if purge else f"move {item.id} to {item.status!r}"
-        raise ConfigIntegrityError(
-            f"cannot {action}: the resulting projection would be structurally invalid:\n- "
-            + "\n- ".join(lines)
+        header = (
+            f"cannot remove {item.id}: other entries depend on it:"
+            if purge
+            else f"cannot move {item.id} to {item.status!r}: the resulting projection would be "
+            "structurally invalid:"
         )
+        raise ConfigIntegrityError(header + "\n- " + "\n- ".join(lines))
     return severed
 
 

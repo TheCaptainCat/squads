@@ -722,11 +722,13 @@ class ItemsMixin(ServiceCore):
     def _enforce_retirement(
         self, db: SquadsDB, item: Item, target: str, *, purge: bool = False
     ) -> None:
-        """Hold *item*, moved to the non-live *target* on a copy of *db*, to the retirement gate.
-        Raises when the move would leave the squad structurally invalid."""
+        """Hold *item*, standing at the non-live *target* on a copy of *db*, to the retirement
+        gate. The target is set directly rather than reached by a lifecycle edge, so a custom
+        lifecycle cannot route around the check. Raises when the result would leave the squad
+        structurally invalid."""
         trial = db.model_copy(deep=True)
         probe = trial.items[item.sequence_id]
-        self._apply_status(probe, target, force=False)
+        probe.status = target
         retirement.enforce(
             self.spec,
             trial,
@@ -737,6 +739,14 @@ class ItemsMixin(ServiceCore):
             playbook=self.playbook,
             purge=purge,
         )
+
+    def _non_live_status(self, item: Item) -> str | None:
+        """A non-live status of *item*'s lifecycle while it is live, else ``None``."""
+        live = self.spec.live_statuses(item.type)
+        if item.status not in live:
+            return None
+        others = sorted(self.spec.machine_for(item.type).states - live)
+        return others[0] if others else None
 
     def _retiring_targets(self, item: Item) -> list[str]:
         """The non-live statuses *item* can move to from its live status; empty when it is not
@@ -791,12 +801,12 @@ class ItemsMixin(ServiceCore):
         warnings: list[str] = []
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
-            targets = self._retiring_targets(item)
-            if targets:
-                self._enforce_retirement(db, item, targets[0], purge=True)
+            non_live = self._non_live_status(item)
+            if non_live is not None:
+                self._enforce_retirement(db, item, non_live, purge=True)
             if not purge:
                 raise SquadsError(self._purge_required_message(db, item))
-            if targets:
+            if non_live is not None:
                 warnings = self._retirement_warnings(db, item, purged=True)
             del db.items[item.sequence_id]
             # Unlink BEFORE the index commit (same direction as remove_work_item): a crash here
