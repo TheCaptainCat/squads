@@ -24,7 +24,7 @@ subentities:
   title: Move the role derivations out of the _interactions init
   status: Done
 created_at: '2026-10-09T20:27:55Z'
-updated_at: '2026-10-16T18:03:26Z'
+updated_at: '2026-10-16T18:11:54Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -356,4 +356,6 @@ Gates and working rules: the task body.
   - 2026-10-11: brought in line with op-pierre's ruling of the same date. Correcting `CLAUDE.md`'s layering diagram, its `_models` statement and its list of non-empty inits is now part of ST1, checked again at the end of ST3; only the hand-written part above the managed region is edited. ST1's guard also records the non-empty package inits, so the corrected list has a test behind it. The reviewer's measuring script is gone from disk (the session scratchpad was cleared), so ST1 now describes what it did instead of pointing at it. Still Draft.
 - [2026-10-12T06:34:20Z] Olivia Lead:
   - 2026-10-12: ordering brought in line with op-pierre's ruling of this date on MILE-934. The body now says it is built after TASK-954, FEAT-980 and the bump to 0.16.0, and before TASK-990. Nothing in it depended on the working version: it changes no bundled file. ST1 tells the developer to work from `CLAUDE.md` as it stands, since the file has changed since the subtask was written; the three passages to correct are the same. ST2 notes that the released runner whose import line it edits now takes the run's context. Still Draft.
+- [2026-10-16T18:11:54Z] Paul Reviewer:
+  - Reviewed in REV-1066: behaviour-neutral and the guard falsified; four low findings, no medium or worse. @manager
 <!-- sq:discussion:end -->
