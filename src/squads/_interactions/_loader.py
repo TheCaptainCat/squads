@@ -65,6 +65,7 @@ from squads._roles._models import RoleCatalogSpec
 from squads._roles._resolver import project_role_slugs
 from squads._specmerge import RawMapping, describe_spec_error, merge_override
 from squads._workflow import bundled_spec
+from squads._workflow._loader import as_entry_list, as_table
 from squads._workflow._models import WorkflowSpec
 
 #: The DEV sentinel — exempt from role-catalog slug validation.
@@ -246,11 +247,13 @@ def load_playbook(
 
 
 def _build_spec(raw: dict[str, Any], catalog_slugs: set[str], spec: WorkflowSpec) -> PlaybookSpec:
-    types_raw: dict[str, Any] = raw.get("types", {})
+    types_raw = as_table(raw.get("types", {}), "types")
     types: dict[str, ItemPlaybookSpec] = {}
 
-    for name, data in types_raw.items():
-        roles = [_parse_role_guide(r, name, i) for i, r in enumerate(data.get("roles", []))]
+    for name, entry_raw in types_raw.items():
+        data = as_table(entry_raw, f"types.{name}")
+        role_tables = as_entry_list(data.get("roles", []), f"types.{name}.roles")
+        roles = [_parse_role_guide(r, name, i) for i, r in enumerate(role_tables)]
         try:
             # Route through model_validate so extra="forbid" fires on unknown keys.
             entry = ItemPlaybookSpec.model_validate({**data, "roles": roles})
