@@ -192,6 +192,7 @@ const TYPE_ENTRY_KEYS = [
   'lifecycle',
   'fields',
   'labels',
+  'attributes',
 ] as const;
 
 /** Same idea as `flattenTree`, for the single-root `sq graph --json` shape. */
@@ -237,18 +238,19 @@ function assertExactGraphNodeKeys(node: object): void {
 }
 
 /**
- * Every key one `sq list --json` row carries, as an exact set rather than a floor — same
+ * The core keys every `sq list --json` row carries, as an exact set rather than a floor — same
  * rationale as `TREE_NODE_KEYS` above.
  *
- * `sq list --json` dumps the full `Item` model (`i.model_dump(mode="json")`) plus the resolved
- * `badges` map, not a hand-trimmed row — so four of these (`created_session`, `modified_session`,
- * `extra`, `subentities`) are genuinely emitted but are **not** modelled on the client's own
- * `SqListItem`, per the same `types.ts` hand-trim policy noted on `GRAPH_NODE_KEYS`: nothing in
- * `domain/listView.ts` or the list-driven views reads them. They stay in this set anyway, so
- * `sq` dropping one of them still reddens this canary even though the shape guard does not
- * check them.
+ * A row is the whole `Item` plus the resolved `badges` map, not a hand-trimmed row — so three of
+ * these (`created_session`, `modified_session`, `subentities`) are genuinely emitted but are
+ * **not** modelled on the client's own `SqListItem`, per the same `types.ts` hand-trim policy
+ * noted on `GRAPH_NODE_KEYS`. They stay in this set anyway, so `sq` dropping one of them still
+ * reddens this canary even though the shape guard does not check them.
+ *
+ * Each attribute a type declares is a flat key beside these, present only when the item stores
+ * it; `assertListRowKeys` checks those against the type's `attributes`.
  */
-const LIST_ROW_KEYS = [
+const LIST_ROW_CORE_KEYS = [
   'id',
   'sequence_id',
   'type',
@@ -269,12 +271,28 @@ const LIST_ROW_KEYS = [
   'badges',
   'created_session',
   'modified_session',
-  'extra',
   'subentities',
 ] as const;
 
-function assertExactListRowKeys(row: object): void {
-  assertExactKeys(row, LIST_ROW_KEYS);
+/** One type's declared attribute names, from `sq workflow types --json`, keyed by type. */
+type AttributeNamesByType = ReadonlyMap<string, ReadonlySet<string>>;
+
+function attributeNamesByType(
+  entries: readonly { type: string; attributes: object }[],
+): AttributeNamesByType {
+  return new Map(entries.map((entry) => [entry.type, new Set(Object.keys(entry.attributes))]));
+}
+
+/** A row carries exactly the core keys plus, flat, some subset of its type's declared
+ * attributes: a key outside both is drift, and so is a retired nested `extra` object. */
+function assertListRowKeys(row: object, attributes: AttributeNamesByType): void {
+  const keys = Object.keys(row);
+  const type = (row as { type: string }).type;
+  const declared = attributes.get(type);
+  expect(declared, `no declared attributes for type ${type}`).toBeDefined();
+  const core: ReadonlySet<string> = new Set(LIST_ROW_CORE_KEYS);
+  expect(keys.filter((key) => core.has(key)).sort()).toEqual([...LIST_ROW_CORE_KEYS].sort());
+  expect(keys.filter((key) => !core.has(key) && !(declared?.has(key) ?? false))).toEqual([]);
 }
 
 /** The ADR-427 #2/US2 contract for `sq show --raw`: an H1 title, then a metadata block of
@@ -414,40 +432,59 @@ describe('the list-row key assertion', () => {
     badges: {},
     created_session: null,
     modified_session: null,
-    extra: {},
     subentities: [],
   };
+  const attributes: AttributeNamesByType = attributeNamesByType([
+    { type: 'task', attributes: {} },
+    { type: 'guide', attributes: { tech: {}, tags: {} } },
+  ]);
+  const { subentities: _subentities, ...withoutSubentities } = modelled;
+  const guide = { ...modelled, type: 'guide' };
 
-  it('accepts exactly the key set the client models', () => {
-    expect(isSqListItem(modelled)).toBe(true);
-    expect(() => {
-      assertExactListRowKeys(modelled);
-    }).not.toThrow();
+  const shapes: readonly { name: string; payload: object; passes: boolean }[] = [
+    { name: 'the core set', payload: modelled, passes: true },
+    {
+      name: 'the core set in reverse key order',
+      payload: Object.fromEntries([...Object.entries(modelled)].reverse()),
+      passes: true,
+    },
+    { name: 'a declared attribute, flat', payload: { ...guide, tech: 'python' }, passes: true },
+    { name: 'every declared attribute', payload: { ...guide, tech: 'a', tags: [] }, passes: true },
+    {
+      name: 'a key the type does not declare',
+      payload: { ...modelled, path_only: false },
+      passes: false,
+    },
+    {
+      name: 'a key declared on another type',
+      payload: { ...modelled, tech: 'python' },
+      passes: false,
+    },
+    { name: 'the retired nested extra object', payload: { ...modelled, extra: {} }, passes: false },
+    { name: 'a core key dropped', payload: withoutSubentities, passes: false },
+    {
+      name: 'a type with no declared attributes entry',
+      payload: { ...modelled, type: 'nope' },
+      passes: false,
+    },
+  ];
+
+  it.each(shapes)('$name', ({ payload, passes }) => {
+    // The shape guard is happy with every one of these: unknown keys are ignored, not rejected,
+    // and nothing else in the client would notice a stray field, which is the whole problem.
+    const run = (): void => {
+      assertListRowKeys(payload, attributes);
+    };
+    if (passes) {
+      expect(run).not.toThrow();
+    } else {
+      expect(run).toThrow();
+    }
   });
 
-  it('fails on a key the client does not model — the drift it exists to catch', () => {
-    const withUnmodelledKey = { ...modelled, path_only: false };
-    // The shape guard is happy: unknown keys are ignored, not rejected. Nothing else in the
-    // client would notice this field either, which is the whole problem.
-    expect(isSqListItem(withUnmodelledKey)).toBe(true);
-    expect(() => {
-      assertExactListRowKeys(withUnmodelledKey);
-    }).toThrow();
-  });
-
-  it('fails when a modelled key stops being emitted, including subentities', () => {
-    const { subentities: _subentities, ...withoutSubentities } = modelled;
-    expect(isSqListItem(withoutSubentities)).toBe(true);
-    expect(() => {
-      assertExactListRowKeys(withoutSubentities);
-    }).toThrow();
-  });
-
-  it('does not care about key order', () => {
-    const reordered = Object.fromEntries([...Object.entries(modelled)].reverse());
-    expect(() => {
-      assertExactListRowKeys(reordered);
-    }).not.toThrow();
+  it('the shape guard accepts a stray key and an older sq nested extra object', () => {
+    expect(isSqListItem({ ...modelled, path_only: false })).toBe(true);
+    expect(isSqListItem({ ...modelled, extra: { slug: 'a-task' } })).toBe(true);
   });
 });
 
@@ -489,6 +526,7 @@ describe('the type-entry key assertion', () => {
   );
   const { labels: _labels, ...withoutLabels } = full;
   const { lifecycle: _lifecycle, ...withoutLifecycle } = full;
+  const { attributes: _attributes, ...withoutAttributes } = full;
   const { labels: _renamed, ...rest } = full;
 
   const shapes: readonly { name: string; payload: object; passes: boolean }[] = [
@@ -500,6 +538,7 @@ describe('the type-entry key assertion', () => {
     },
     { name: 'labels missing', payload: withoutLabels, passes: false },
     { name: 'lifecycle missing', payload: withoutLifecycle, passes: false },
+    { name: 'attributes missing', payload: withoutAttributes, passes: false },
     { name: 'an extra key', payload: { ...full, extra_key: null }, passes: false },
     { name: 'a renamed key', payload: { ...rest, label: null }, passes: false },
   ];
@@ -676,9 +715,14 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
 
         const rows = parsed as SqListItem[];
         expect(rows.length).toBeGreaterThan(0);
+        const types = JSON.parse(runSq(['workflow', 'types', '--json'])) as {
+          type: string;
+          attributes: object;
+        }[];
+        const attributes = attributeNamesByType(types);
         for (const row of rows) {
           expect(isSqListItem(row)).toBe(true);
-          assertExactListRowKeys(row);
+          assertListRowKeys(row, attributes);
           // See the `sq tree --json` case above — same removal, same reason.
           expect(row).not.toHaveProperty('is_open');
         }
@@ -698,14 +742,19 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         const parsed = JSON.parse(runSq(['workflow', 'types', '--json'])) as unknown;
         expect(Array.isArray(parsed)).toBe(true);
 
-        const entries = parsed as SqTypeCatalogEntry[];
+        const entries = parsed as (SqTypeCatalogEntry & { attributes: Record<string, object> })[];
         // Every declared type, work and reserved alike — at least the bundled defaults
         // (epic/feature/task/bug/decision/review/guide) plus the 3 reserved meta types.
         expect(entries.length).toBeGreaterThanOrEqual(10);
         for (const entry of entries) {
           expect(isSqTypeCatalogEntry(entry)).toBe(true);
           assertExactKeys(entry, TYPE_ENTRY_KEYS);
+          // Each attribute is `{kind, required, settable}`; the row assertion joins on the names.
+          for (const attribute of Object.values(entry.attributes)) {
+            assertExactKeys(attribute, ['kind', 'required', 'settable']);
+          }
         }
+        expect(entries.some((entry) => Object.keys(entry.attributes).length > 0)).toBe(true);
         // Present on every row, `null` where the type hosts no kind — the client joins on it and
         // an omitted key would silently degrade every sub-entity badge to its raw field code.
         expect(entries.every((entry) => entry.subentity_kind !== undefined)).toBe(true);

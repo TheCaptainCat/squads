@@ -26,8 +26,8 @@ export const NO_ROLE_DIRECTORY: RoleDirectory = new Map();
 
 /** The hover/title text for one role: its name + slug, plus its mission when it has one (`sq
  * list --json`'s `description` field on a role row) — "useful specifics from the role" per the
- * bug report, without reaching into the fuller `extra.responsibilities` a plain hover can't
- * usefully lay out. */
+ * bug report, without reaching into the fuller `responsibilities` a plain hover can't usefully
+ * lay out. */
 function hoverTextFor(role: SqListItem): string {
   const mission = role.description.trim();
   return mission === ''

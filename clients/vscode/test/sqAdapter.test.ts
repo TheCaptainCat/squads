@@ -530,11 +530,12 @@ describe('getTypeCatalog', () => {
       reserved: false,
       category: 'work',
       // Present and `null`: an epic hosts no sub-entity kind. `lifecycle` is published too and
-      // deliberately unmodelled — see `SqTypeCatalogEntry`.
+      // deliberately unmodelled, as are the declared `attributes` — see `SqTypeCatalogEntry`.
       subentity_kind: null,
       lifecycle: 'work',
       fields: [{ code: 'priority', label: 'Priority', collection: 'priority' }],
       labels: { singular: 'Epic', plural: 'Epics', singular_lower: 'epic', plural_lower: 'epics' },
+      attributes: {},
     });
     expect(outcome.data.some((entry) => entry.reserved)).toBe(true);
   });
