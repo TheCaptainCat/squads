@@ -3,7 +3,7 @@ id: BUG-1060
 sequence_id: 1060
 type: bug
 title: Schema gate refuses sq override update and diff on a behind squad
-status: Open
+status: Fixed
 author: qa
 priority: low
 refs:
@@ -11,7 +11,7 @@ refs:
 description: Override stamp/diff verbs unreachable exactly when an upgrade makes overrides
   drift
 created_at: '2026-10-16T13:33:13Z'
-updated_at: '2026-10-16T13:35:11Z'
+updated_at: '2026-10-16T18:23:30Z'
 ---
 <!-- sq:body -->
 On a squad behind the package's schema, the schema gate refuses `sq override update` and `sq override diff`. These are the documented way to re-stamp an override's base version (`squads:override-base:<version>`) and to see what an upgrade changed under it. An upgrade is exactly when overrides drift, and a behind-schema squad is exactly when the gate refuses them, so the documented workflow is unavailable when it is needed. (Hand-editing the stamp is legitimate, since override files are user-owned. The defect is only that the convenient, checked command is blocked.)
@@ -51,4 +51,8 @@ Side observation: the dev tree (working tree and HEAD) fails to import with `Mod
 <!-- sq:discussion -->
 - [2026-10-16T13:35:11Z] Pierre Chat:
   - 2026-10-16: targets 0.16.
+- [2026-10-16T18:14:31Z] Elias Python:
+  - Fixed in the commit "Let override list, diff and update past the schema gate on a behind squad": the override group now gates each command by its declared grant (list, diff, update behind-only; scaffold and ahead stay refused) and the three read the squad paths without opening the corpus. Table over 6 verbs x 4 override states (none, valid, conflicting, does-not-load) plus ahead and scaffold controls; falsification 24 of 32 fail on the old gate (8 are the refusal controls). docs/migration.md updated.
+- [2026-10-16T18:23:30Z] Elias Python:
+  - Commit fa227fdf on branch worktree-agent-a2f892de06784925e.
 <!-- sq:discussion:end -->

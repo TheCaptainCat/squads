@@ -3,14 +3,14 @@ id: BUG-1057
 sequence_id: 1057
 type: bug
 title: Playbook loader crashes on wrong-typed overrides shapes
-status: Open
+status: Fixed
 author: qa
 priority: medium
 refs:
 - REV-1050
 - MILE-934:targets
 created_at: '2026-10-16T12:21:17Z'
-updated_at: '2026-10-16T12:23:58Z'
+updated_at: '2026-10-16T18:23:29Z'
 ---
 <!-- sq:body -->
 The playbook loader raises an uncaught `AttributeError` on a wrong-typed top-level shape in `.overrides/playbook.toml`, so `sq check` prints a traceback and exits 1 instead of reporting a clean error. Same crash class the role catalog loader just fixed.
@@ -31,4 +31,8 @@ Note: on this build `statuses = 3` in `.overrides/workflow.toml` also crashes `s
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-16T18:08:22Z] Elias Python:
+  - Fixed in the commit "Rejected wrong-typed playbook and workflow override shapes without a traceback". Playbook build now shape-checks types, each entry and its roles; the workflow drift check skips non-table sections. Probing also found roles = 3 (playbook) and items/collections/lifecycles = 3 (workflow) crashing; all fixed. Table of 13 shapes; falsification 11 of 13 fail on the old loaders (2 were already clean controls).
+- [2026-10-16T18:23:29Z] Elias Python:
+  - Commit 501e42d7 on branch worktree-agent-a2f892de06784925e.
 <!-- sq:discussion:end -->

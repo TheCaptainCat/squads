@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1066,
+  "counter": 1067,
   "padding": 6,
   "items": {
     "12": {
@@ -26405,7 +26405,7 @@
       "type": "task",
       "title": "Make a developer a role that declares a capability",
       "slug": "make-a-developer-a-role-that-declares-a-capability",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Capabilities on roles and *<name> in the playbook, every consumer on the resolved role, the is_dev attribute dropped through a contribution to the 0.16 step",
       "parent": "FEAT-986",
       "author": "tech-lead",
@@ -26524,7 +26524,7 @@
       ],
       "path": "tasks/TASK-000990-make-a-developer-a-role-that-declares-a-capability.md",
       "created_at": "2026-10-09T20:28:02Z",
-      "updated_at": "2026-10-16T18:22:03Z",
+      "updated_at": "2026-10-16T18:23:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29499,7 +29499,7 @@
       "subentities": [],
       "path": "bugs/BUG-000994-check-is-clean-when-two-ids-share-one-number.md",
       "created_at": "2026-10-11T20:18:04Z",
-      "updated_at": "2026-10-16T18:00:23Z",
+      "updated_at": "2026-10-16T18:23:28Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44044,7 +44044,7 @@
       "subentities": [],
       "path": "bugs/BUG-001000-add-kind-body-hint-names-a-command-that-does-not-exist.md",
       "created_at": "2026-10-12T05:38:08Z",
-      "updated_at": "2026-10-16T17:55:00Z",
+      "updated_at": "2026-10-16T18:23:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47642,7 +47642,7 @@
       "subentities": [],
       "path": "bugs/BUG-001057-playbook-loader-crashes-on-wrong-typed-overrides-shapes.md",
       "created_at": "2026-10-16T12:21:17Z",
-      "updated_at": "2026-10-16T18:08:22Z",
+      "updated_at": "2026-10-16T18:23:29Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47653,7 +47653,7 @@
       "type": "bug",
       "title": "Roster rm --purge skips the archive gate, warnings, reflog",
       "slug": "roster-rm-purge-skips-the-archive-gate-warnings-reflog",
-      "status": "Open",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -47668,7 +47668,7 @@
       "subentities": [],
       "path": "bugs/BUG-001058-roster-rm-purge-skips-the-archive-gate-warnings-reflog.md",
       "created_at": "2026-10-16T12:21:18Z",
-      "updated_at": "2026-10-16T12:23:59Z",
+      "updated_at": "2026-10-16T18:23:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47810,7 +47810,7 @@
       "subentities": [],
       "path": "bugs/BUG-001060-schema-gate-refuses-sq-override-update-and-diff-on-a-behind.md",
       "created_at": "2026-10-16T13:33:13Z",
-      "updated_at": "2026-10-16T18:14:31Z",
+      "updated_at": "2026-10-16T18:23:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48261,6 +48261,81 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1066"
+    },
+    "1067": {
+      "sequence_id": 1067,
+      "type": "review",
+      "title": "Five 0.16 bug fixes on the agent worktree branch",
+      "slug": "five-0-16-bug-fixes-on-the-agent-worktree-branch",
+      "status": "ChangesRequested",
+      "description": "BUG-1000, BUG-994, BUG-1057, BUG-1060, BUG-1058 fixes",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1000",
+        "BUG-994",
+        "BUG-1057",
+        "BUG-1060",
+        "BUG-1058"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Removal gate skipped for a live entry with no direct retiring edge",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Suite regression: catalog-lift test purges the last live role",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Removal refusal describes an Archived status and a reactivate remedy",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Gate meta guard keeps gated apps parallel to GATED_GROUPS",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Pre-repair check adds a false subtasks-container error",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001067-five-0-16-bug-fixes-on-the-agent-worktree-branch.md",
+      "created_at": "2026-10-16T18:41:28Z",
+      "updated_at": "2026-10-16T18:41:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1067"
     }
   }
 }
