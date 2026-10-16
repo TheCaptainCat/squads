@@ -611,10 +611,9 @@ def print_block(parent_id: str, res: BlockResult, json_out: bool) -> None:
             data["title_advisory"] = res.title_advisory
         print_json_clean(json.dumps(data))
         return
-    kind = res.body_tag.split(":")[0]  # e.g. "subtask:STn:body" → "subtask"
     console.print(f"added [bold]{res.local_id}[/bold] to {parent_id}")
     console.print(
-        f'  set its body:  [cyan]sq {kind} body {parent_id} {res.local_id} -m "…"[/cyan]'
+        f"  set its body:  [cyan]{e(res.body_command)}[/cyan]"
         "  [dim](or --file body.md / --file -)[/dim]",
         soft_wrap=True,
     )

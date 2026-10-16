@@ -157,6 +157,7 @@ class BlockResult:
     start_line: int | None
     end_line: int | None
     title_advisory: str | None = None
+    body_command: str = ""
 
 
 @dataclass
