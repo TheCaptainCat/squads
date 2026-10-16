@@ -70,7 +70,7 @@ async def test_an_entry_outside_its_grammar_is_reported_once_with_its_remedy(
 
     assert list(reports) == [item.id]
     assert fragment in reports[item.id]
-    assert f"sq {kind} {item.id} rm --purge" in reports[item.id]
+    assert f"sq {kind} {item.id} remove --purge" in reports[item.id]
     assert "sq operator add" in reports[item.id] or "sq role activate" in reports[item.id]
 
 
@@ -223,7 +223,7 @@ async def test_a_role_or_skill_holding_a_group_verb_is_reported_with_a_remedy(
 
     assert list(reports) == [item.id]
     assert f"{kind} slug '{slug}' is a verb of `sq {kind}`" in reports[item.id]
-    assert f"sq {kind} {item.id} rm --purge" in reports[item.id]
+    assert f"sq {kind} {item.id} remove --purge" in reports[item.id]
 
 
 async def test_a_role_slug_that_is_a_skill_verb_and_a_skill_slug_that_is_a_role_verb_pass(

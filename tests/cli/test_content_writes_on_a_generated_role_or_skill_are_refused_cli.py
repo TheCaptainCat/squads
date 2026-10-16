@@ -32,6 +32,12 @@ items = [
   "review", "role", "skill", "operator",
 ]
 views = ["milestone_rollup", "role_definition", "squads_skill", "memory_skill", "item_skill"]
+
+[items.role.attributes]
+shift = { kind = "str" }
+
+[items.skill.attributes]
+shift = { kind = "str" }
 """
 
 #: shape -> (kind, slug, view the host renders through, whether its body is generated)
@@ -50,6 +56,9 @@ VERBS = [
     "update-title",
     "update-description",
     "update-field",
+    "update-project-attribute",
+    "update-project-and-pinned-attribute",
+    "update-title-and-description",
     "body",
     "body-force",
     "body-append",
@@ -119,6 +128,13 @@ async def _args(squad, verb: str, kind: str, slug: str, view: str) -> list[str]:
         "update-title": lambda: event(op="update", title="A New Name"),
         "update-description": lambda: event(op="update", description="New words."),
         "update-field": lambda: event(op="update", fields={"model": "opus"}),
+        "update-project-attribute": lambda: event(op="update", fields={"shift": "night"}),
+        "update-project-and-pinned-attribute": lambda: event(
+            op="update", fields={"shift": "night", "model": "opus"}
+        ),
+        "update-title-and-description": lambda: event(
+            op="update", title="A New Name", description="New words."
+        ),
         "body": lambda: event(op="body", body="Hand written."),
         "body-force": lambda: (
             ["skill", slug, "body", "-m", "Hand written.", "--force"]
@@ -147,6 +163,8 @@ def _refused(verb: str, kind: str, generated: bool) -> bool:
     return verb in {
         "update-description",
         "update-field",
+        "update-project-and-pinned-attribute",
+        "update-title-and-description",
         "body",
         "body-force",
         "body-append",
@@ -176,6 +194,7 @@ async def test_a_generated_host_refuses_content_verbs_and_keeps_the_open_ones(
         if verb in (
             "update-title",
             "update-description",
+            "update-project-attribute",
             "body",
             "update-labels",
             "update-assignee",
@@ -193,6 +212,15 @@ async def test_a_skills_origin_and_refusal_agree_except_where_the_view_or_type_i
     dropped = shape in ("skill-whose-view-is-dropped", "skill-of-a-dropped-type")
 
     assert (origin == "system") == (generated or dropped)
+
+
+def test_the_exempt_fields_are_the_declared_set_and_nothing_broader() -> None:
+    from squads._services._base import ROSTER_UPDATE_EXEMPT
+
+    assert {k: set(v) for k, v in ROSTER_UPDATE_EXEMPT.items()} == {
+        "role": {"title"},
+        "skill": set(),
+    }
 
 
 def test_only_the_gate_asks_the_classification_for_a_write() -> None:

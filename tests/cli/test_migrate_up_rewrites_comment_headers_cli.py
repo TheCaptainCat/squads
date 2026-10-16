@@ -278,7 +278,19 @@ POSTCONDITIONS = {
         )
     ),
     "origin": lambda root: _roster_files_carry_an_origin(root),
+    "skill-discussion": lambda root: _skill_files_carry_a_discussion(root),
 }
+
+
+def _skill_files_carry_a_discussion(root: Path) -> bool:
+    """Every skill file has a top-level discussion region."""
+    for path in root.rglob("*.md"):
+        text = path.read_text(encoding="utf-8")
+        if split_frontmatter(text)[0].get("type") == "skill" and not (
+            "<!-- sq:discussion -->" in text and "<!-- sq:discussion:end -->" in text
+        ):
+            return False
+    return True
 
 
 def _roster_files_carry_an_origin(root: Path) -> bool:

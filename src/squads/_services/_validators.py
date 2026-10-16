@@ -1436,7 +1436,7 @@ def _slug_breach_remedy(
     if breach.kind == "operator":
         name = breach.item.title
         text = (
-            f'sq operator {breach.item.id} rm --purge, then sq operator add "{name}" '
+            f'sq operator {breach.item.id} remove --purge, then sq operator add "{name}" '
             "--slug <compliant slug>"
         )
         if breach.item.status not in live:
@@ -1445,11 +1445,11 @@ def _slug_breach_remedy(
     if breach.kind == "skill":
         return (
             "add the skill again under another name with sq skill add, "
-            f"then sq skill {breach.item.id} rm --purge"
+            f"then sq skill {breach.item.id} remove --purge"
         )
     return (
         "rename the project role file to a compliant slug, run sq role activate <slug>, "
-        f"then sq role {breach.item.id} rm --purge"
+        f"then sq role {breach.item.id} remove --purge"
     )
 
 

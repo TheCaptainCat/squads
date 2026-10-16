@@ -1,4 +1,4 @@
-"""`sq role …` — manage agent roles (catalog/activate/show/regen/rm/status/set-default/view).
+"""`sq role …` — manage agent roles (catalog/activate/show/regen/remove/status/set-default/view).
 
 Grammar:
   sq role catalog                    — show the role catalog for the active squad
@@ -9,7 +9,7 @@ Grammar:
   sq role <slug|id|n> set-default    — move the default-role designation here
   sq role <slug|id|n> view add <n>       — place or re-enable a view tag in sq:body
   sq role <slug|id|n> view disable <n>   — disable a view tag in sq:body (kept, not removed)
-  sq role <slug|id|n> rm --purge     — delete the role item (or set status Archived)
+  sq role <slug|id|n> remove --purge — delete the role item (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (ROLE-1) → bare number → exact slug
@@ -19,7 +19,6 @@ Address resolution order (exact match, no fuzzy):
 
 import json
 from pathlib import Path
-from typing import ClassVar
 
 import typer
 from rich.panel import Panel
@@ -35,6 +34,8 @@ from squads._cli._common import (
     get_service,
     is_full_id_shape,
     print_json_clean,
+    register_comment_verbs,
+    register_remove_verb,
     register_status_verb,
     render_body_text,
     resolve_agent_addr,
@@ -59,15 +60,15 @@ from squads._workflow import ROSTER_ROLE
 
 
 class _RoleDispatchGroup(AddressDispatchGroup):
-    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status|set-default|view"
+    """Routes an address token to the hidden addressed subgroup."""
 
 
 role_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent roles.",
     epilog=(
-        "Address a role:  sq role <slug|id|n> show|regen|rm|status|set-default|view\n"
-        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm --purge\n"
+        "Address a role:  sq role <slug|id|n> {verbs}\n"
+        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 remove --purge\n"
         "           sq role manager status Archived   sq role qa set-default\n"
         "           sq role qa view disable role_definition   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
@@ -294,7 +295,7 @@ async def _resolve_addr(
 
     Stores ``{"addr": <raw>, "id": <resolved_or_None>}`` in ctx.obj.  The resolved id is None
     when the token is a slug that exists only in the bundled catalog (not yet activated).  Commands
-    that require a live DB item (``regen``, ``rm``) must call ``_require_id()``; ``show`` handles
+    that require a live DB item (``regen``, ``remove``) call ``_require_id()``; ``show`` handles
     the None case by rendering a bundled catalog card with an activation hint.
     """
     svc = get_service()
@@ -361,6 +362,9 @@ async def show_role(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
     json_out: bool = typer.Option(False, "--json"),
+    comments: bool = typer.Option(
+        False, "--comments", help="Append the discussion as comments (text output)."
+    ),
 ) -> None:
     """Show a role's catalog card plus active item body.
 
@@ -481,6 +485,8 @@ async def show_role(
             raw=raw,
             empty_hint=empty_hint,
         )
+        if comments:
+            common.print_comments(await svc.comments(it.id))
     else:
         console.print()
         console.print(
@@ -498,23 +504,6 @@ async def regen_role(ctx: typer.Context) -> None:
     svc = get_service()
     await svc.regen(item_id)
     console.print(f"regenerated pointer for {item_id}")
-
-
-@_addr.command("rm")
-@common.command
-async def rm_role(
-    ctx: typer.Context,
-    purge: bool = typer.Option(
-        False, "--purge", help="Delete the file too; rm refuses without it."
-    ),
-) -> None:
-    """Delete a role for good; needs --purge (or set its status to Archived)."""
-    item_id = _require_id(ctx)
-    svc = get_service()
-    removal = await svc.remove_item(item_id, purge=purge)
-    await svc.refresh_managed()
-    console.print(f"removed {item_id}")
-    common.print_warnings(removal.warnings)
 
 
 @_addr.command("set-default")
@@ -540,6 +529,23 @@ async def set_default_role(ctx: typer.Context) -> None:
         console.print(f"  cleared {e(cleared_id)}")
 
 
+@_addr.command("update")
+@common.command
+async def update_role(
+    ctx: typer.Context,
+    title: str | None = typer.Option(None, "--title", help="The role's name."),
+) -> None:
+    """Rename a role; its slug, file and pointer directory never change."""
+    common.require_update_fields(title=title)
+    item_id = _require_id(ctx)
+    svc = get_service()
+    await svc.update(item_id, title=title)
+    await svc.refresh_managed()
+    console.print(f"updated {item_id}")
+
+
+register_remove_verb(_addr, _require_id, refresh_managed=True)
+register_comment_verbs(_addr, _require_id)
 register_status_verb(_addr, _require_id)
 
 
@@ -592,3 +598,5 @@ async def role_view_disable(
 _addr.add_typer(_view_app, name="view")
 
 role_app.add_typer(_addr, name="_addr", hidden=True)
+
+role_app.info.epilog = (role_app.info.epilog or "").replace("{verbs}", common.addr_verbs(_addr))

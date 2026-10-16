@@ -28,7 +28,7 @@ async def test_remove_item_names_only_purge_for_an_archived_entry(svc):
     with pytest.raises(SquadsError) as exc:
         await svc.remove_item(skill.id, purge=False)
 
-    assert "rm --purge" in str(exc.value)
+    assert "remove --purge" in str(exc.value)
     assert "status" not in str(exc.value)
 
 
@@ -40,4 +40,4 @@ async def test_remove_item_names_the_gate_when_the_archive_gate_would_refuse(svc
         await svc.remove_item(skill.id, purge=False)
 
     assert f"cannot remove {skill.id}" in str(exc.value)
-    assert "rm --purge" not in str(exc.value)
+    assert "remove --purge" not in str(exc.value)

@@ -1,5 +1,6 @@
 """Item lifecycle: status transitions, edits, links, regen, removal."""
 
+import dataclasses
 from collections.abc import Callable
 from datetime import datetime
 from functools import cache
@@ -19,13 +20,14 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
 from squads._paths import number_for_id
+from squads._roles._catalog import RoleDef
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
 from squads._services._results import RemoveResult, RosterRemoval, RosterStatusResult
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
-from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, bundled_spec
 
 
 class ItemsMixin(ServiceCore):
@@ -227,9 +229,39 @@ class ItemsMixin(ServiceCore):
                 set_attributes=set_attributes,
                 unset_attributes=unset_attributes,
             )
-        if self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
+        if (
+            self.spec.item_is_roster(item.type)
+            and item.type != ROSTER_OPERATOR
+            and item.status in self.spec.live_statuses(item.type)
+        ):
             await self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
         return item
+
+    def _gate_roster_update(
+        self,
+        item_id: str,
+        item: Item,
+        title: str | None,
+        description: str | None,
+        set_attributes: dict[str, str] | None,
+        unset_attributes: list[str] | None,
+    ) -> None:
+        """Ask the gate about the fields an update changes on a role or skill: its title and
+        description and the attributes the bundled spec declares (for a role, also the fields
+        its role document supplies). A project-declared attribute is not in the set, so writing
+        it shadows no override file's content."""
+        if item.type in (ROSTER_ROLE, ROSTER_SKILL):
+            touched = {*(set_attributes or {}), *(unset_attributes or [])}
+            supplied = set(bundled_spec().item_attributes(item.type))
+            if item.type == ROSTER_ROLE:
+                supplied |= {f.name for f in dataclasses.fields(RoleDef)}
+            changed = {
+                name
+                for name, given in (("title", title), ("description", description))
+                if given is not None
+            } | (touched & supplied)
+            if changed:
+                self._refuse_classified_roster_write(item_id, item, "An update", fields=changed)
 
     def _update_model(  # noqa: PLR0913 — mirrors `update`'s own keyword surface
         self,
@@ -268,10 +300,11 @@ class ItemsMixin(ServiceCore):
         """
         item = require_item(db, item_id)
         # Only what the role document or playbook supplies is gated; tracking metadata
-        # (labels, assignee, parent, priority, author) stays writable.
-        supplied = (description, set_attributes, unset_attributes)
-        if any(v is not None for v in supplied) or (title is not None and item.type != ROSTER_ROLE):
-            self._refuse_classified_roster_write(item_id, item, "An update")
+        # (labels, assignee, parent, priority, author) and project-declared attributes stay
+        # writable.
+        self._gate_roster_update(
+            item_id, item, title, description, set_attributes, unset_attributes
+        )
         base = item.model_copy(deep=True)
         delta: dict[str, object] = {}
         rename_paths: tuple[Path, Path] | None = None
@@ -389,7 +422,12 @@ class ItemsMixin(ServiceCore):
                 old_text = await self._read_item_file(item, old_path)
                 ensure_no_skew(old_text, base, default_kind=default_kind)
                 await self._move_item_file(old_path, new_path)
-        await self._update_item_frontmatter(item, base)
+        await self._update_item_frontmatter(
+            item,
+            base,
+            rescaffold=self.spec.item_is_roster(item.type)
+            and ("title" in delta or "description" in delta),
+        )
         self.store.log("update", item.id, delta)
         return item
 
@@ -753,7 +791,7 @@ class ItemsMixin(ServiceCore):
         message = (
             f"cannot remove {item.id} without --purge: the markdown file would stay on disk "
             "and `sq check` would flag it. To delete it for good, run "
-            f"`sq {item.type} {item.id} rm --purge`"
+            f"`sq {item.type} {item.id} remove --purge`"
         )
         target = self._retire_status(db, item)
         if target is None:

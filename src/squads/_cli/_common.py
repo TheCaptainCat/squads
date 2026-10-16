@@ -9,7 +9,7 @@ import sys
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import Any, ClassVar
+from typing import Any
 
 import anyio
 import typer
@@ -23,6 +23,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from squads import __version__
+from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._cli._markup import escape_markup
@@ -1859,17 +1860,14 @@ class AddressDispatchGroup(typer.core.TyperGroup):
     callback can consume the address token as its ``ADDR`` positional argument.
 
     Used by ``role_app``, ``skill_app``, and ``operator_app`` to provide the
-    ``sq role <addr> show|regen|rm`` surface alongside group-level verbs.
-
-    Set ``_ADDR_VERBS`` to the pipe-separated verb list used in missing-verb error messages.
+    ``sq role <addr> <verb>`` surface alongside group-level verbs. The verbs named in the
+    missing-verb error are the ``_addr`` subgroup's registered, non-hidden commands.
 
     Note: a role/skill/operator slugged exactly like a named group verb (``add``,
     ``catalog``, ``activate``) is unaddressable by slug — the named verb wins in
     ``get_command`` before ``_addr`` is tried.  Number/full-ID always work as the
     escape hatch.
     """
-
-    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status"
 
     def _click_resolve_command(self, ctx: Any, args: list[str]) -> Any:  # type: ignore[override]
         cmd_name = args[0]
@@ -1885,11 +1883,14 @@ class AddressDispatchGroup(typer.core.TyperGroup):
             # If no verb follows the address token, give a helpful error immediately
             # rather than falling through to _addr's "Missing command" usage error.
             remaining = args[1:]
+            registered: dict[str, Any] = getattr(addr_cmd, "commands", {})
+            verbs = "|".join(n for n, c in registered.items() if not c.hidden)
             has_verb = any(a for a in remaining if not a.startswith("-"))
             if not has_verb and "--help" not in remaining:
                 err_console.print(
                     f"[red]error:[/red] missing verb after address {cmd_name!r}. "
-                    f"Usage: sq {ctx.info_name} <slug|id|n> {self._ADDR_VERBS}",
+                    f"Usage: sq {ctx.info_name} <slug|id|n> "
+                    f"{verbs}",
                     soft_wrap=True,
                 )
                 raise typer.Exit(1)
@@ -1897,6 +1898,14 @@ class AddressDispatchGroup(typer.core.TyperGroup):
             # "sq role <slug|id|n>" rather than "sq role _addr".
             return "<slug|id|n>", addr_cmd, args
         return super()._click_resolve_command(ctx, args)
+
+
+def addr_verbs(addr_app: typer.Typer) -> str:
+    """The verbs registered on an addressed subgroup, hidden aliases left out, as ``a|b|c`` for
+    a group's help epilog."""
+    names = [c.name for c in addr_app.registered_commands if c.name and not c.hidden]
+    names += [g.name for g in addr_app.registered_groups if g.name and not g.hidden]
+    return "|".join(names)
 
 
 def spec_aware_command_cls(
@@ -2001,6 +2010,85 @@ def register_status_verb(
             else:
                 console.print("  --unlink: no references severed (nothing was severable)")
         print_warnings(result.warnings)
+
+
+def register_remove_verb(
+    addr_app: typer.Typer,
+    id_from_ctx: Callable[[typer.Context], str],
+    *,
+    refresh_managed: bool = False,
+) -> None:
+    """Register ``remove`` on an addressed roster subgroup, with ``rm`` as its hidden alias.
+
+    Both names are one command: ``Service.remove_item`` with the ``--purge`` guard, the same
+    confirmation line and the same warnings. ``refresh_managed`` re-renders the managed
+    ``CLAUDE.md`` roster afterwards (roles and operators appear in it; skills do not).
+    ``id_from_ctx`` is the caller's address convention, as for :func:`register_status_verb`.
+    """
+
+    @command
+    async def remove(
+        ctx: typer.Context,
+        purge: bool = typer.Option(
+            False, "--purge", help="Delete the file too; remove refuses without it."
+        ),
+    ) -> None:
+        """Delete for good; needs --purge (or set the status to Archived)."""
+        item_id = id_from_ctx(ctx)
+        svc = get_service()
+        removal = await svc.remove_item(item_id, purge=purge)
+        if refresh_managed:
+            await svc.refresh_managed()
+        console.print(f"removed {item_id}")
+        print_warnings(removal.warnings)
+
+    addr_app.command("remove")(remove)
+    addr_app.command("rm", hidden=True)(remove)
+
+
+def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Context], str]) -> None:
+    """Register ``comment`` and ``comments`` on an addressed subgroup: a work item's, or a
+    role's, skill's or operator's. One body for all of them, so a comment has the same author,
+    header and ``@mention`` rules wherever it is written. ``id_from_ctx`` is the caller's own
+    address convention, as for :func:`register_status_verb`."""
+
+    @app.command("comment")
+    @command
+    async def comment(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+        ctx: typer.Context,
+        message: list[str] = typer.Option(None, "-m", "--message", help="A talking point."),
+        file: str | None = typer.Option(None, "--file", help="Comment from a file ('-' = stdin)."),
+        as_: str | None = typer.Option(
+            None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
+        ),
+    ) -> None:
+        """Append a timestamped comment to the discussion."""
+        svc = get_service()
+        slug = await resolve_actor_or_raise(require_as(as_), svc)
+        actor.set_actor(slug)
+        item_id = id_from_ctx(ctx)
+        await svc.comment(item_id, resolve_comment_messages(message or None, file), as_slug=slug)
+        console.print(f"commented on {item_id} as {slug}")
+
+    @app.command("comments")
+    @command
+    async def comments(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
+        ctx: typer.Context, json_out: bool = typer.Option(False, "--json")
+    ) -> None:
+        """Read back the top-level discussion (the dedicated, machine-readable verb --
+        `show --comments` renders the same discussion inline alongside the rest)."""
+        cmt_list = await get_service().comments(id_from_ctx(ctx))
+        if json_out:
+            print_json_clean(json.dumps([discussion.comment_json(c) for c in cmt_list]))
+            return
+        print_comments(cmt_list)
+
+
+def require_update_fields(**given: object) -> None:
+    """Refuse an ``update`` that names no field, listing the options it takes."""
+    if all(v is None for v in given.values()):
+        options = ", ".join(f"--{k.replace('_', '-')}" for k in given)
+        raise SquadsError(f"nothing to update (pass at least one of {options})")
 
 
 def print_warnings(warnings: list[str]) -> None:

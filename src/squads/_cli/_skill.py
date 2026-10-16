@@ -1,4 +1,4 @@
-"""`sq skill …` — manage agent skills (add/show/regen/rm/refs/view).
+"""`sq skill …` — manage agent skills (add/show/regen/remove/refs/view).
 
 Grammar:
   sq skill add <name> [options]        — create a skill item + pointer
@@ -13,7 +13,7 @@ Grammar:
   sq skill <slug|id|n> status <S>       — transition the skill's status
   sq skill <slug|id|n> view add <name>       — place or re-enable a view tag in sq:body
   sq skill <slug|id|n> view disable <name>   — disable a view tag in sq:body (kept, not removed)
-  sq skill <slug|id|n> rm --purge     — delete the skill item (or set status Archived)
+  sq skill <slug|id|n> remove --purge — delete the skill item (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (SKILL-1) → bare number → exact slug
@@ -22,7 +22,6 @@ Address resolution order (exact match, no fuzzy):
 # pyright: reportUnusedFunction=false
 
 import json
-from typing import ClassVar
 
 import typer
 from rich.panel import Panel
@@ -36,6 +35,8 @@ from squads._cli._common import (
     e,
     get_service,
     print_json_clean,
+    register_comment_verbs,
+    register_remove_verb,
     register_status_verb,
     render_body_text,
     resolve_agent_addr,
@@ -56,15 +57,15 @@ from squads._models._schema import version_drifted
 
 
 class _SkillDispatchGroup(AddressDispatchGroup):
-    _ADDR_VERBS: ClassVar[str] = "show|regen|rm|status|view"
+    """Routes an address token to the hidden addressed subgroup."""
 
 
 skill_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent skills.",
     epilog=(
-        "Address a skill:  sq skill <slug|id|n> show|regen|rm|status|view\n"
-        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm --purge\n"
+        "Address a skill:  sq skill <slug|id|n> {verbs}\n"
+        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 remove --purge\n"
         "           sq skill squads status Archived\n"
         "           sq skill squads view disable squads_skill   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (add) is unaddressable by slug; "
@@ -119,6 +120,9 @@ async def skill_show(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
     json_out: bool = typer.Option(False, "--json"),
+    comments: bool = typer.Option(
+        False, "--comments", help="Append the discussion as comments (text output)."
+    ),
 ) -> None:
     """Show a skill's metadata panel and body."""
     item_id: str = ctx.obj["id"]
@@ -212,6 +216,8 @@ async def skill_show(
         raw=raw,
         empty_hint=empty_hint,
     )
+    if comments:
+        common.print_comments(await svc.comments(it.id))
 
 
 @_addr.command("body")
@@ -351,22 +357,30 @@ async def skill_regen(ctx: typer.Context) -> None:
     console.print(f"regenerated pointer for {item_id}")
 
 
-@_addr.command("rm")
+@_addr.command("update")
 @common.command
-async def skill_rm(
+async def skill_update(
     ctx: typer.Context,
-    purge: bool = typer.Option(
-        False, "--purge", help="Delete the file too; rm refuses without it."
-    ),
+    title: str | None = typer.Option(None, "--title", help="The skill's display title."),
+    desc: str | None = typer.Option(None, "--desc", help="One-line description."),
+    when_to_use: str | None = typer.Option(None, "--when-to-use", help="When to reach for it."),
 ) -> None:
-    """Delete a skill for good; needs --purge (or set its status to Archived)."""
+    """Edit a skill's display fields; its slug, file and pointer directory never change."""
+    common.require_update_fields(title=title, desc=desc, when_to_use=when_to_use)
     item_id: str = ctx.obj["id"]
-    svc = get_service()
-    removal = await svc.remove_item(item_id, purge=purge)
-    console.print(f"removed {item_id}")
-    common.print_warnings(removal.warnings)
+    await get_service().update(
+        item_id,
+        title=title,
+        description=desc,
+        set_attributes=(
+            {AttributeKey.WHEN_TO_USE: when_to_use} if when_to_use is not None else None
+        ),
+    )
+    console.print(f"updated {item_id}")
 
 
+register_remove_verb(_addr, lambda ctx: ctx.obj["id"])
+register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])
 
 
@@ -411,3 +425,5 @@ async def skill_view_disable(
 _addr.add_typer(_view_app, name="view")
 
 skill_app.add_typer(_addr, name="_addr", hidden=True)
+
+skill_app.info.epilog = (skill_app.info.epilog or "").replace("{verbs}", common.addr_verbs(_addr))

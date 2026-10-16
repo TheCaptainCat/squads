@@ -4,7 +4,7 @@ Grammar:
   sq operator add <name> [--slug SLUG]  — register a human operator
   sq operator <slug|id|n> show           — show an operator's metadata panel
   sq operator <slug|id|n> status <S>     — transition the operator's status
-  sq operator <slug|id|n> rm --purge     — delete an operator (or set status Archived)
+  sq operator <slug|id|n> remove --purge — delete an operator (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):
   full-ID shape (OPER-000001) → bare number → exact slug (op-<first>)
@@ -13,7 +13,6 @@ Address resolution order (exact match, no fuzzy):
 # pyright: reportUnusedFunction=false
 
 import json
-from typing import ClassVar
 
 import typer
 from rich.panel import Panel
@@ -26,6 +25,8 @@ from squads._cli._common import (
     e,
     get_service,
     print_json_clean,
+    register_comment_verbs,
+    register_remove_verb,
     register_status_verb,
     render_body_text,
     resolve_agent_addr,
@@ -33,15 +34,15 @@ from squads._cli._common import (
 
 
 class _OperatorDispatchGroup(AddressDispatchGroup):
-    _ADDR_VERBS: ClassVar[str] = "show|rm|status"
+    """Routes an address token to the hidden addressed subgroup."""
 
 
 operator_app = typer.Typer(
     no_args_is_help=True,
     help="Manage human operators.",
     epilog=(
-        "Address an operator:  sq operator <slug|id|n> show|rm|status\n"
-        "Examples:  sq operator op-alice show   sq operator 2 rm --purge\n"
+        "Address an operator:  sq operator <slug|id|n> {verbs}\n"
+        "Examples:  sq operator op-alice show   sq operator 2 remove --purge\n"
         "           sq operator op-alice status Archived\n"
         "Note: a slug matching a group verb (add, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
@@ -122,6 +123,9 @@ async def operator_show(
     ctx: typer.Context,
     raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
     json_out: bool = typer.Option(False, "--json"),
+    comments: bool = typer.Option(
+        False, "--comments", help="Append the discussion as comments (text output)."
+    ),
 ) -> None:
     """Show an operator's metadata panel and body."""
     item_id: str = ctx.obj["id"]
@@ -155,25 +159,31 @@ async def operator_show(
         raw=raw,
         empty_hint="(empty — run `sq sync` to regenerate the operator definition)",
     )
+    if comments:
+        common.print_comments(await svc.comments(it.id))
 
 
-@_addr.command("rm")
+@_addr.command("update")
 @common.command
-async def operator_rm(
+async def operator_update(
     ctx: typer.Context,
-    purge: bool = typer.Option(
-        False, "--purge", help="Delete the file too; rm refuses without it."
-    ),
+    title: str | None = typer.Option(None, "--title", help="The operator's display name."),
 ) -> None:
-    """Delete an operator for good; needs --purge (or set its status to Archived)."""
+    """Rename an operator; its slug, file and id never change."""
+    common.require_update_fields(title=title)
     item_id: str = ctx.obj["id"]
     svc = get_service()
-    removal = await svc.remove_item(item_id, purge=purge)
+    await svc.update(item_id, title=title)
     await svc.refresh_managed()
-    console.print(f"removed {item_id}")
-    common.print_warnings(removal.warnings)
+    console.print(f"updated {item_id}")
 
 
+register_remove_verb(_addr, lambda ctx: ctx.obj["id"], refresh_managed=True)
+register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
 register_status_verb(_addr, lambda ctx: ctx.obj["id"])
 
 operator_app.add_typer(_addr, name="_addr", hidden=True)
+
+operator_app.info.epilog = (operator_app.info.epilog or "").replace(
+    "{verbs}", common.addr_verbs(_addr)
+)
