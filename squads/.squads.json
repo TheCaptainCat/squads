@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1068,
+  "counter": 1069,
   "padding": 6,
   "items": {
     "12": {
@@ -7341,7 +7341,7 @@
       ],
       "path": "features/FEAT-000976-store-role-and-skill-origin-lock-system-skills.md",
       "created_at": "2026-09-29T14:19:13Z",
-      "updated_at": "2026-10-16T13:10:24Z",
+      "updated_at": "2026-10-16T19:32:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48434,6 +48434,86 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1068"
+    },
+    "1069": {
+      "sequence_id": 1069,
+      "type": "task",
+      "title": "Store and show role and skill origin, refuse writes on system ones",
+      "slug": "store-and-show-role-and-skill-origin-refuse-writes-on-system",
+      "status": "Draft",
+      "description": "One origin rule, stored as a pinned attribute, stamped at creation and by a 0.16 contribution, shown everywhere; system writes refused via the body classification",
+      "parent": "FEAT-976",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-990:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Define one origin rule for roles and skills",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Declare and pin the origin attribute, report bad values in check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Stamp origin on every creation path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Show origin on every role and skill surface",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Stamp existing squads through a 0.16 contribution",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Refuse content writes on system roles and skills",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001069-store-and-show-role-and-skill-origin-refuse-writes-on-system.md",
+      "created_at": "2026-10-16T19:20:35Z",
+      "updated_at": "2026-10-16T19:31:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1069"
     }
   }
 }
