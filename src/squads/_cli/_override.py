@@ -16,7 +16,17 @@ import json
 import typer
 from rich.table import Table
 
-from squads._cli._common import console, e, get_service, handle_errors, print_json_clean
+from squads._cli._common import (
+    Ground,
+    console,
+    e,
+    gate_group_command,
+    get_service,
+    get_squad_paths,
+    handle_errors,
+    past_the_gate,
+    print_json_clean,
+)
 from squads._overrides._service import (
     STATE_BROKEN,
     STATE_CURRENT,
@@ -42,6 +52,12 @@ override_app = typer.Typer(
         "you merge by hand, then update re-stamps to clear the drift warning."
     ),
 )
+
+
+@override_app.callback()
+def override_gate(ctx: typer.Context) -> None:
+    """Gate each ``sq override`` command by the grant it declares."""
+    gate_group_command(ctx, override_app)
 
 
 # ─── scaffold ──────────────────────────────────────────────────────────────────
@@ -199,6 +215,7 @@ def scaffold(
 
 
 @override_app.command(name="list")
+@past_the_gate(Ground.NO_SQUAD_STATE, behind=True)
 @handle_errors
 def list_overrides(
     json_out: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
@@ -210,8 +227,7 @@ def list_overrides(
 
     ``--json`` emits an array of {name, kind, base_version, state} objects.
     """
-    svc = get_service()
-    entries = scan_overrides(svc.paths.squad_dir)
+    entries = scan_overrides(get_squad_paths().squad_dir)
 
     if json_out:
         print_json_clean(
@@ -266,6 +282,7 @@ def _state_color(state: str) -> str:
 
 
 @override_app.command("diff")
+@past_the_gate(Ground.NO_SQUAD_STATE, behind=True)
 @handle_errors
 def diff(
     name: str | None = typer.Argument(
@@ -312,8 +329,7 @@ def diff(
     ``--json`` emits an array of {name, kind, base_version, base_available, delta_mine,
     delta_upgrade}.
     """
-    svc = get_service()
-    squad_dir = svc.paths.squad_dir
+    squad_dir = get_squad_paths().squad_dir
 
     results: list[DiffResult] = []
 
@@ -395,6 +411,7 @@ def _print_diff_result(result: DiffResult) -> None:
 
 
 @override_app.command("update")
+@past_the_gate(Ground.NO_SQUAD_STATE, behind=True)
 @handle_errors
 def update(
     name: str | None = typer.Argument(
@@ -432,8 +449,7 @@ def update(
     structurally-valid override (bulk acknowledge). Broken overrides (missing required
     markers) are skipped — fix them first.
     """
-    svc = get_service()
-    squad_dir = svc.paths.squad_dir
+    squad_dir = get_squad_paths().squad_dir
 
     if role is not None:
         stamped = update_stamp(squad_dir, name=role, kind="role")

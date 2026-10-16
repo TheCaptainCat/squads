@@ -1,8 +1,9 @@
 """The set of commands that get past the schema gate on a mismatched squad is, for each
 direction, exactly the set whose declared grant covers that direction. Every top-level command
-and group of the app and every verb of ``sq migrate`` is invoked on a squad stamped behind and
-on one stamped ahead, and the ones the gate does not refuse are collected. The two literal sets
-below are the only place the expectation is written, so adding a grant is a visible change here.
+and group of the app and every verb of ``sq migrate`` and ``sq override`` is invoked on a squad
+stamped behind and on one stamped ahead, and the ones the gate does not refuse are collected. The
+two literal sets below are the only place the expectation is written, so adding a grant is a
+visible change here.
 """
 
 import shutil
@@ -13,13 +14,25 @@ import pytest
 from typer.testing import CliRunner
 
 from squads._cli import app
-from squads._cli._migrate import migrate_app, migrate_grants
+from squads._cli._common import GATED_GROUPS, grants_by_command
+from squads._cli._migrate import migrate_app
+from squads._cli._override import override_app
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
 _GATE_MESSAGES = ("Run sq migrate up to upgrade it", "Upgrade the squads package")
 
-_PAST_WHEN_BEHIND = {"migrate up", "migrate help", "migrate chlog"}
+_PAST_WHEN_BEHIND = {
+    "migrate up",
+    "migrate help",
+    "migrate chlog",
+    "override list",
+    "override diff",
+    "override update",
+}
 _PAST_WHEN_AHEAD = {"migrate help", "migrate chlog"}
+
+
+_GATED_APPS = {"migrate": migrate_app, "override": override_app}
 
 
 def _name(info_name: str | None, callback_name: str | None) -> str:
@@ -31,18 +44,20 @@ def _every_command() -> list[tuple[str, ...]]:
         (_name(info.name, getattr(info.callback, "__name__", None)),)
         for info in app.registered_commands
     ]
-    groups = [(str(g.name),) for g in app.registered_groups if g.name != "migrate"]
+    groups = [(str(g.name),) for g in app.registered_groups if g.name not in GATED_GROUPS]
     verbs = [
-        ("migrate", _name(info.name, getattr(info.callback, "__name__", None)))
-        for info in migrate_app.registered_commands
+        (group, _name(info.name, getattr(info.callback, "__name__", None)))
+        for group, group_app in _GATED_APPS.items()
+        for info in group_app.registered_commands
     ]
     return [*top, *groups, *verbs]
 
 
 def _declared(direction: str) -> set[str]:
     return {
-        f"migrate {name}"
-        for name, grant in migrate_grants().items()
+        f"{group} {name}"
+        for group, group_app in _GATED_APPS.items()
+        for name, grant in grants_by_command(group_app).items()
         if (grant.behind if direction == "behind" else grant.ahead)
     }
 
