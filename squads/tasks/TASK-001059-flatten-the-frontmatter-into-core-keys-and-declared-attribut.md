@@ -3,7 +3,7 @@ id: TASK-1059
 sequence_id: 1059
 type: task
 title: Flatten the frontmatter into core keys and declared attributes
-status: Ready
+status: InProgress
 parent: FEAT-1016
 author: tech-lead
 assignee: python-dev
@@ -66,7 +66,7 @@ subentities:
   assignee: tech-writer
   story: US8
 created_at: '2026-10-16T13:05:35Z'
-updated_at: '2026-10-16T13:21:23Z'
+updated_at: '2026-10-16T13:22:49Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -515,4 +515,6 @@ Rules: present-truth prose with no history; never run bare `ls`.
   - Moved Draft to Ready; dispatch waits on FEAT-1016 Ready.
 - [2026-10-16T13:21:23Z] Pierre Chat:
   - 2026-10-16: role name precedence, lowest to highest: bundled catalog, roles.toml, the chosen name (--name at activation, name_chosen), the per-slug override file. A per-slug full_name still renames a chosen role; the chosen name only protects against catalog and roles.toml changes. This supersedes the ST5 reading that a chosen name ignores the per-slug file.
+- [2026-10-16T13:22:49Z] Pierre Chat:
+  - 2026-10-16: correction to the earlier precedence comment. Role name precedence, lowest to highest: bundled catalog, roles.toml, the per-slug override file, the chosen name. A chosen name (set by activate --name, or by sq role <slug> update once FEAT-977 lands; stored with name_chosen) is never changed by configuration; it is renamed only through update. Configuration supplies the default name of a role never named. This is the reading ST5 already carries.
 <!-- sq:discussion:end -->

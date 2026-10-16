@@ -47915,7 +47915,7 @@
         {
           "local_id": "F7",
           "title": "A hand-written self edge satisfies the check",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -47924,7 +47924,7 @@
       ],
       "path": "reviews/REV-001062-blocked-flag-and-blocked-has-blocker-part-two.md",
       "created_at": "2026-10-16T13:40:55Z",
-      "updated_at": "2026-10-16T13:41:41Z",
+      "updated_at": "2026-10-16T13:42:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
