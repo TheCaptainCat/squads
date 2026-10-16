@@ -1,0 +1,15 @@
+[
+  {
+    "id": "TASK-16",
+    "title": "Quote a header",
+    "type": "task",
+    "status": "Draft",
+    "hits": [
+      {
+        "region": "discussion#5",
+        "location": "discussion \u2014 comment 5 (Done, x)",
+        "snippet": "[x] Done: - nested bullet"
+      }
+    ]
+  }
+]

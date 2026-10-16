@@ -5,7 +5,8 @@ Each :class:`Migration` ties together the **schema** transition (drives ``up`` a
 on-disk ``schema_version``), the **release** that shipped it (the axis ``help``/``chlog`` report
 on), a one-line ``summary``, the deterministic ``run`` step, and any ``manual`` (LLM-assisted)
 steps that ``up`` can't do. Adding a step = drop a ``_vNtoM.py`` runner, append it here, and bump
-``_models._schema.SCHEMA_VERSION``.
+``_models._schema.SCHEMA_VERSION``. A step may be built as a list of contributions: a later
+change to the same release appends a contribution to the step's tuple instead of adding a runner.
 
 Runner functions are async — ``Callable[[MigrationContext], Awaitable[MigrationOutcome]]``, and
 receive the one :class:`~squads._migrations._context.MigrationContext` the run resolved. A sync
@@ -29,6 +30,7 @@ from squads._migrations import (
     _v0_10_to_v0_11,
     _v0_11_to_v0_14,
     _v0_14_to_v0_15,
+    _v0_15_to_v0_16,
 )
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
@@ -182,6 +184,14 @@ MIGRATIONS: list[Migration] = [
         ),
         run=_v0_14_to_v0_15.migrate,
         manual=_v0_14_to_v0_15.MANUAL,
+    ),
+    Migration(
+        version="0.16.0",
+        from_schema="0.15",
+        to_schema="0.16",
+        summary=_v0_15_to_v0_16.SUMMARY,
+        run=_v0_15_to_v0_16.migrate,
+        manual=_v0_15_to_v0_16.MANUAL,
     ),
 ]
 

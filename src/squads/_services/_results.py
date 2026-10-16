@@ -347,6 +347,8 @@ class MigrationRun:
     that has nothing to skip (every one but the 0.14→0.15 milestone tag seed, as of this
     writing): a runner that never raises has nothing that needed skipping instead of aborting.
 
+    ``reports`` is each applied migration's printable report lines, keyed like ``changed``.
+
     ``reconcile`` is what the index rebuild before the first runner did (ids newly indexed, ids
     dropped because no file backs them); ``None`` exactly when ``applied`` is empty.
     """
@@ -354,6 +356,9 @@ class MigrationRun:
     applied: list[Migration]
     changed: dict[str, int] = field(default_factory=lambda: dict[str, int]())
     skipped: dict[str, list[str]] = field(default_factory=lambda: dict[str, list[str]]())
+    reports: dict[str, tuple[str, ...]] = field(
+        default_factory=lambda: dict[str, tuple[str, ...]]()
+    )
     repair: RepairResult | None = None
     reconcile: ReconcileResult | None = None
 

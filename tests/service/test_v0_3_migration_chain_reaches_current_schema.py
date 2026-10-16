@@ -11,6 +11,7 @@ import tomllib
 import pytest
 
 from squads import _aio
+from squads._migrations._registry import MIGRATIONS
 from squads._models._config import SquadsConfig
 from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
@@ -26,7 +27,7 @@ def test_the_v0_3_to_v0_4_migration_runner_is_a_noop() -> None:
 
 
 def test_schema_version_is_the_current_release_schema() -> None:
-    assert SCHEMA_VERSION == "0.15"
+    assert MIGRATIONS[-1].to_schema == SCHEMA_VERSION
 
 
 async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_current(
@@ -53,6 +54,7 @@ async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_
         "0.10",
         "0.11",
         "0.14",
+        "0.15",
     ]
     assert [a.to_schema for a in applied] == [
         "0.4",
@@ -63,6 +65,7 @@ async def test_running_pending_migrations_from_v0_3_walks_every_step_and_stamps_
         "0.11",
         "0.14",
         "0.15",
+        "0.16",
     ]
 
     with cfg_path.open("rb") as fh:

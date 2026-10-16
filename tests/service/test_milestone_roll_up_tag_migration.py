@@ -13,6 +13,7 @@ from squads import __version__, _aio
 from squads import _sections as sections
 from squads._models import _markers as markers
 from squads._models._config import SquadsConfig
+from squads._models._schema import SCHEMA_VERSION
 from squads._paths import SquadPaths
 from squads._rendering._engine import invalidate_squad_dir
 from squads._services._service import Service, resolve_playbook
@@ -328,7 +329,7 @@ async def test_a_deselected_view_over_a_corpus_with_milestones_still_reaches_cur
         assert body is not None
         assert _TAG_MARKER not in body
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
     await down.check()
 
 
@@ -342,7 +343,7 @@ async def test_a_deselected_view_over_zero_milestones_still_reaches_current(proj
 
     assert run.changed.get("0.15", 0) == 0
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
     await down.check()
 
 
@@ -374,7 +375,7 @@ async def test_a_name_the_template_still_seeds_with_no_resolvable_view_skips_tha
 
     assert run.changed.get("0.15", 0) == 0
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
     await down.check()
 
 
@@ -443,7 +444,7 @@ async def test_a_damaged_item_at_the_lower_sequence_id_is_skipped_the_healthy_on
     assert healthy_body is not None
     assert _TAG_MARKER in healthy_body
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
     errors = [i for i in await down.check() if i.level == "error"]
     if damage is _make_no_body_region:
         assert [i.message.startswith("missing sq:body region") for i in errors] == [True]
@@ -499,7 +500,7 @@ async def test_every_item_the_runner_cannot_act_on_is_skipped_and_the_run_still_
     assert run.changed.get("0.15", 0) == 0
     assert set(run.skipped.get("0.15", [])) == {m1.id, m2.id}
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
 
 
 async def test_every_eligible_item_missing_its_file_still_reaches_current_and_reports_zero_changed(
@@ -520,4 +521,4 @@ async def test_every_eligible_item_missing_its_file_still_reaches_current_and_re
     assert set(run.reconcile.missing) == {m1.id, m2.id}
     assert run.skipped.get("0.15", []) == []
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION

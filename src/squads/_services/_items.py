@@ -18,7 +18,7 @@ from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
-from squads._models._metadata import coerce_extra
+from squads._models._metadata import coerce_extra, require_settable
 from squads._paths import number_for_id
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import resolve_role_for_item
@@ -408,6 +408,7 @@ class ItemsMixin(ServiceCore):
             if field is not None:
                 item.set_badge_value(field.code, None)
             else:
+                require_settable(item.type, key, self.spec.item_extra_fields(item.type))
                 item.extra.pop(key, None)
 
     def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
@@ -429,13 +430,17 @@ class ItemsMixin(ServiceCore):
             )
         item.status = status
 
-    def _rename(self, db: SquadsDB, item: Item, new_title: str) -> tuple[Path, Path]:
+    def _rename(self, db: SquadsDB, item: Item, new_title: str) -> tuple[Path, Path] | None:
         """Pure half of a title rename: computes the new slug/path and mutates *item*'s
         title/slug/path fields — no file I/O (see :meth:`_update_model`'s docstring for why).
 
         Returns ``(old_path, new_path)``; the caller (:meth:`_update_core`) performs the actual
-        file move through the ``_aio`` helpers.
+        file move through the ``_aio`` helpers. A roster entry's slug is permanent, so only its
+        display title changes and nothing moves (``None``).
         """
+        if self.spec.item_is_roster(item.type):
+            item.title = new_title
+            return None
         new_slug = slugify(new_title)
         old_path = item_file(self.paths, item)
         # Filename stem must stay padded even though item.id is unpadded — format it

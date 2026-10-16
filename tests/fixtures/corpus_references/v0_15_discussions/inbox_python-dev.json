@@ -1,0 +1,12 @@
+[
+  {
+    "id": "TASK-10",
+    "title": "Wire login",
+    "lines": [
+      "- @python-dev please check with @reviewer"
+    ],
+    "regions": [
+      null
+    ]
+  }
+]

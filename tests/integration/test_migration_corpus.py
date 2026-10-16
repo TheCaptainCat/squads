@@ -16,7 +16,7 @@ from squads._models import _markers as markers
 from squads._models._config import SquadsConfig
 from squads._models._extras import ExtraKey as X
 from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
-from squads._models._schema import SCHEMA_VERSION
+from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import SquadPaths
 from squads._sections import find_markers, get_section, has_section, replace_section
 from squads._services._service import Service
@@ -42,6 +42,8 @@ _CORPUS_CASES: list[tuple[str, str]] = [
     ("0.11", "v0_11"),
     ("0.14", "v0_14"),
     ("0.15", "v0_15"),
+    ("0.15", "v0_15_discussions"),
+    ("0.16", "v0_16"),
 ]
 
 
@@ -280,6 +282,14 @@ async def test_every_template_owned_skills_stored_body_converges_onto_its_tag(
         path.name: _body_region(path.read_text(encoding="utf-8"))
         for path in _md_files(paths.squad_dir)
     }
+    owned_before = [
+        name
+        for name in before
+        if name.startswith("SKILL-")
+        and is_system_skill(name.split("-", 2)[2].removesuffix(".md"), svc.spec)
+    ]
+    if not owned_before:
+        pytest.skip(f"{corpus_name!r} carries no template-owned skill before the run")
 
     run = await svc.run_pending_migrations()
     applied = run.applied
@@ -350,9 +360,11 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
         text = path.read_text(encoding="utf-8")
         stored = read_frontmatter(text=text, source=str(path)).get("extra", {})
         was = before[path.name]
-        assert set(was.get("extra", {})) & _RETIRED_MIRROR_KEYS
+        if schema_tuple(schema_label) < (0, 15):
+            assert set(was.get("extra", {})) & _RETIRED_MIRROR_KEYS
         assert has_section(text, markers.BODY), f"{item.id}: the body markers were deleted"
-        assert set(stored) & _RETIRED_MIRROR_KEYS == set(), f"{item.id}: the mirror survived"
+        kept = {X.MODEL} if stored.get(X.IS_DEV) else set()  # a developer role keeps its model
+        assert set(stored) & (_RETIRED_MIRROR_KEYS - kept) == set(), f"{item.id}: mirror survived"
         assert stored.get(X.SLUG), f"{item.id}: the dispatch identity was stripped with it"
         body = (get_section(text, markers.BODY) or "").strip()
         if item.sequence_id in skipped_seqs:

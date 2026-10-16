@@ -43,6 +43,12 @@ from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
+from squads._models._participants import (
+    ANONYMOUS_NAME,
+    ANONYMOUS_SLUG,
+    require_valid_slug,
+    reserved_role_slug_reason,
+)
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
@@ -453,6 +459,19 @@ def reject_body_overwrite(target: str, current: str) -> None:
     )
 
 
+def _check_roster_slug(
+    item_type: str, is_roster: bool, slug: str, extra: dict[str, Any] | None
+) -> None:
+    """Raise when a roster entry would be created with a slug outside the grammar, or a role
+    with one reserved for the anonymous author, system entries or operators."""
+    if not is_roster:
+        return
+    for candidate in {slug, (extra or {}).get(X.SLUG, slug)}:
+        require_valid_slug(candidate, action=f"create this {item_type}")
+        if item_type == ROSTER_ROLE and (reason := reserved_role_slug_reason(candidate)):
+            raise SquadsError(f"{reason}; a role needs another slug")
+
+
 class ServiceCore:
     def __init__(
         self,
@@ -670,6 +689,7 @@ class ServiceCore:
                 "declare this type. Declare it in .overrides/workflow.toml or check for a typo."
             )
         slug = slug or slugify(title)
+        _check_roster_slug(item_type, self.spec.item_is_roster(item_type), slug, extra)
         if refs:
             # Validate every declared kind, then rewrite the set to the canonical wire form —
             # the same normalisation `add_ref`/the bulk importer's `_resolve_refs` already
@@ -1262,8 +1282,8 @@ class ServiceCore:
         needlessly expensive for a lookup this cheap. An operator participant is untouched —
         it keeps reading ``extra.full_name``, its only home.
         """
-        if slug == "operator":
-            return "Operator"
+        if slug == ANONYMOUS_SLUG:
+            return ANONYMOUS_NAME
         participant = next(
             (
                 it

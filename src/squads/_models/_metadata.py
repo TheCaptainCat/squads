@@ -158,13 +158,19 @@ def coerce_extra(item_type: str, key: str, raw: str, extra_keys: Iterable[str] =
     *extra_keys* is the spec-resolved list of generic extra-field keys this type advertises
     (``WorkflowSpec.item_extra_fields``) — passed in by the caller, which holds the spec.
     """
+    return coerce(require_settable(item_type, key, extra_keys), raw)
+
+
+def require_settable(item_type: str, key: str, extra_keys: Iterable[str] = ()) -> Field:
+    """The settable field named ``key`` on ``item_type``, or a ``SquadsError`` listing the valid
+    ones — the one check ``set`` and ``unset`` share."""
     fields = settable(item_type, extra_keys)
     field = fields.get(key)
     if field is None:
         valid = ", ".join(sorted(fields)) or "(none)"
         hint = _refusal_hint(item_type, key)
         raise SquadsError(f"{key!r} is not a settable field on a {item_type}{hint}; valid: {valid}")
-    return coerce(field, raw)
+    return field
 
 
 def _refusal_hint(item_type: str, key: str) -> str:

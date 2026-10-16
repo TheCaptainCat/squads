@@ -28,6 +28,7 @@
       "discussion": [
         {
           "author": "Catherine Manager",
+          "author_slug": "manager",
           "ts": "2026-06-07T10:00:00Z",
           "body": "- @manager please double check this subtask"
         }
@@ -45,6 +46,7 @@
   "discussion": [
     {
       "author": "Catherine Manager",
+      "author_slug": "manager",
       "ts": "2026-06-07T10:00:00Z",
       "body": "- @manager please review the login handler"
     }
