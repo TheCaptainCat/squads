@@ -3,7 +3,7 @@ id: FEAT-980
 sequence_id: 980
 type: feature
 title: Comment headers carry the author's permanent slug
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - ADR-979:implements
@@ -13,21 +13,21 @@ refs:
 subentities:
 - local_id: US1
   title: As a reader, I want comment headers that name the author's slug
-  status: InProgress
+  status: Done
 - local_id: US2
   title: As an operator, I want slugs permanent on every write path
-  status: InProgress
+  status: Done
 - local_id: US3
   title: As an adopter, I want legacy headers migrated once, fail-loud
-  status: InProgress
+  status: Done
 - local_id: US4
   title: As a tool author, I want author_slug in the discussion JSON
-  status: InProgress
+  status: Done
 - local_id: US5
   title: As an adopter, I want the header grammar documented
   status: Todo
 created_at: '2026-09-29T14:58:15Z'
-updated_at: '2026-10-15T21:43:29Z'
+updated_at: '2026-10-16T14:38:52Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision on comment headers: each header names the author's permanent slug, so attribution survives a display-name change. The decision is the spec; the stories below cite its numbered decisions and add acceptance only.
@@ -134,4 +134,6 @@ Acceptance (Consequences, Docs; authored by the tech writer): docs/stability.md 
   - 2026-10-09 readiness pass: checked every story against the Accepted ADR-979 text (grammar, reserved slugs, migration failure kinds, author_slug, docs). Matched. Added the explicit slug-reuse-after-purge non-guard (Pierre's ruling in the ADR) and the sub-entity scan scope to the migration acceptance. Moved to Ready.
 - [2026-10-12T06:31:58Z] Nina Product:
   - 2026-10-12: build order reversed: this feature creates the release's migration step and the 0.16 schema; story 3 and the sequencing section say so.
+- [2026-10-16T14:38:51Z] Catherine Manager:
+  - Moved to Done under the manager's delegation: TASK-1004, 1005, 1006 and 1048 Done, their reviews approved, the VS Code preview checked by op-pierre in the dev host on 2026-10-16.
 <!-- sq:discussion:end -->
