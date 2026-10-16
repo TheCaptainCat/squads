@@ -507,7 +507,7 @@ def dependency_kinds_text(spec: WorkflowSpec) -> str:
 
 
 async def _plant_blocked_without_and_with_an_edge(svc: service.Service, row: TypeRow) -> Planted:
-    (status,) = svc.spec.blocked_statuses(row.type)
+    (status,) = (s for s in svc.spec.machine_for(row.type).states if svc.spec.role_for(s).blocked)
     target = (await create_item(svc, row.type, "blocker")).item
     offender = (await create_item(svc, row.type, "stranded")).item
     await svc.update(offender.id, status=status, force=True)
@@ -517,7 +517,8 @@ async def _plant_blocked_without_and_with_an_edge(svc: service.Service, row: Typ
         offender.id,
         clean.id,
         f"status is {status} but no dependency edge is recorded "
-        f"(kinds: {dependency_kinds_text(svc.spec)}) — add the blocker with `ref add`",
+        f"(kinds: {dependency_kinds_text(svc.spec)}) "
+        "— record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)",
     )
 
 

@@ -63,6 +63,7 @@ from squads import _sections as sections
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
+from squads._errors import InvalidIdError
 from squads._interactions import (
     ITEM_SKILL_VIEW_NAME,
     is_live_roster_entry,
@@ -711,7 +712,8 @@ def _blocked_has_blocker(ctx: ValidatorContext) -> list[CheckIssue]:
             level,
             item.id,
             f"status is {item.status} but no dependency edge is recorded "
-            f"(kinds: {', '.join(sorted(kinds))}) — add the blocker with `ref add`",
+            f"(kinds: {', '.join(sorted(kinds))}) "
+            "— record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)",
         )
     ]
 
@@ -1495,10 +1497,16 @@ def incoming_edges(index: SquadsDB, spec: WorkflowSpec) -> IncomingEdges:
     for it in index.items.values():
         for r in it.refs:
             rid, kind = split_ref(r)
+            if kind not in supersession and kind not in dependency:
+                continue
+            try:
+                number = number_for_id(rid)
+            except InvalidIdError:
+                continue  # `dangling_ref` reports an id that does not parse
             if kind in supersession:
-                supersedes.add(number_for_id(rid))
+                supersedes.add(number)
             if kind in dependency:
-                depended.add(number_for_id(rid))
+                depended.add(number)
     return IncomingEdges(frozenset(supersedes), frozenset(depended))
 
 

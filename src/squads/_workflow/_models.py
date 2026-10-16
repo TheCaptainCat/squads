@@ -2842,14 +2842,6 @@ class WorkflowSpec(BaseModel):
         machine = self.machine_for(item_type)
         return frozenset(s for s in machine.states if self.role_for(s).live)
 
-    def blocked_statuses(self, item_type: str) -> frozenset[str]:
-        """States of *item_type*'s own lifecycle whose resolved role carries the ``blocked``
-        flag, or ``frozenset()`` when *item_type* isn't declared."""
-        if item_type not in self.items:
-            return frozenset()
-        machine = self.machine_for(item_type)
-        return frozenset(s for s in machine.states if self.role_for(s).blocked)
-
     def _machine_for_type_or_kind(self, type_or_kind: str) -> Lifecycle | None:
         """The lifecycle machine bound to *type_or_kind* — an item type or a sub-entity kind,
         the same dual-namespace resolution :meth:`fields_for` already uses (the two never

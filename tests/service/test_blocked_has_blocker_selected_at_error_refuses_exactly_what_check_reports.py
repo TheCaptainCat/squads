@@ -188,3 +188,11 @@ async def test_an_import_create_at_blocked_is_refused_with_nothing_written(proje
         json.dumps({**event, "status": "Blocked", "refs": ["TASK-000999:depends-on"]})
     )
     assert applied.applied is not None, applied.plan.issues
+
+
+async def test_the_create_door_message_names_the_ref_option_not_the_ref_verb(project) -> None:
+    toml = override_toml(_TASK, _AT_ERROR) + "\n[roles.pending]\nblocked = true\n"
+    svc = service_with(project.squad_dir, toml)
+    with pytest.raises(SquadsError) as raised:
+        await create_item(svc, "task", "t")
+    assert "`--ref <id>:<kind>` on create" in str(raised.value)

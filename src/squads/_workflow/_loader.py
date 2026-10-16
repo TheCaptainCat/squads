@@ -482,7 +482,12 @@ def _parse_collection(code: str, data: dict[str, Any]) -> Collection:
 
 
 def _parse_role(code: str, data: dict[str, Any]) -> RoleSpec:
-    """Parse one ``[roles.<code>]`` table into a ``RoleSpec`` (``extra="forbid"`` fires here)."""
+    """Parse one ``[roles.<code>]`` table into a ``RoleSpec`` (``extra="forbid"`` fires here).
+    ``blocked`` accepts only a TOML boolean, refused here in the loader's own words."""
+    if "blocked" in data and not isinstance(data["blocked"], bool):
+        raise SquadsError(
+            f"Invalid role {code!r}: blocked must be true or false, got {data['blocked']!r}"
+        )
     try:
         return RoleSpec.model_validate(data)
     except Exception as exc:

@@ -143,7 +143,9 @@ WontFix = ["Open"]
 # `settled` is the old `terminal`; `hidden` is default-visibility; `color` is a semantic
 # colour intent from the closed palette (positive/danger/warning/muted/neutral/info),
 # mapped to a concrete colour per client (not here). `live` (defaults false) is the
-# materialisation axis — the one bundled live role is `active`. `warning` is unused by
+# materialisation axis — the one bundled live role is `active`. `blocked` (defaults false)
+# marks statuses that wait on something else — the one bundled flagged role is `blocked`.
+# `warning` is unused by
 # the bundled defaults — reserved for adopters.
 # ---------------------------------------------------------------------------
 

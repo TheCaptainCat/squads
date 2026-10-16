@@ -126,7 +126,8 @@ async def test_the_message_names_the_status_and_the_declared_dependency_kinds(pr
     ]
     assert messages == [
         "status is Blocked but no dependency edge is recorded "
-        "(kinds: blocks, depends-on) — add the blocker with `ref add`"
+        "(kinds: blocks, depends-on) "
+        "— record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)"
     ]
 
 

@@ -35,7 +35,8 @@ def test_any_non_boolean_is_refused_naming_the_role_and_the_key(written: object)
         _parse_role("waiting", {**_BASE, "blocked": written})
     text = str(raised.value)
     assert "'waiting'" in text
-    assert "blocked" in text
+    assert "blocked must be true or false" in text
+    assert "pydantic" not in text
 
 
 def test_the_model_refuses_a_non_boolean_too() -> None:
@@ -46,24 +47,3 @@ def test_the_model_refuses_a_non_boolean_too() -> None:
 def test_exactly_the_bundled_blocked_role_declares_the_flag() -> None:
     spec = bundled_spec()
     assert sorted(name for name, role in spec.roles.items() if role.blocked) == ["blocked"]
-
-
-@pytest.mark.parametrize(
-    ("item_type", "expected"),
-    [
-        ("epic", {"Blocked"}),
-        ("feature", {"Blocked"}),
-        ("task", {"Blocked"}),
-        ("bug", {"Blocked"}),
-        ("review", set()),
-        ("decision", set()),
-        ("contract", set()),
-        ("milestone", set()),
-        ("guide", set()),
-        ("undeclared-type", set()),
-    ],
-)
-def test_the_accessor_lists_the_statuses_whose_role_is_flagged(
-    item_type: str, expected: set[str]
-) -> None:
-    assert bundled_spec().blocked_statuses(item_type) == frozenset(expected)

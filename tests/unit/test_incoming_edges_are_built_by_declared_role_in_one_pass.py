@@ -78,3 +78,14 @@ def test_a_spec_declaring_no_dependency_kind_yields_an_empty_dependency_set() ->
     )
     found = incoming_edges(db, without)
     assert (found.supersedes, found.dependency) == ({3}, set())
+
+
+@pytest.mark.parametrize("kind", ["supersedes", "blocks", "depends-on"])
+def test_a_ref_whose_id_does_not_parse_is_skipped_and_the_rest_still_count(kind: str) -> None:
+    db = _index(
+        _task(1, [f"TASK-abc:{kind}", "TASK-000002:supersedes", "TASK-000003:blocks"]),
+        _task(2, []),
+        _task(3, []),
+    )
+    found = incoming_edges(db, bundled_spec())
+    assert (found.supersedes, found.dependency) == ({2}, {3})
