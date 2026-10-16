@@ -3,7 +3,7 @@ id: TASK-992
 sequence_id: 992
 type: task
 title: Write each item file once per transaction in retype and import
-status: InProgress
+status: Done
 author: tech-lead
 assignee: python-dev
 priority: medium
@@ -27,7 +27,7 @@ subentities:
   title: Establish the rename_type and repair multi-write cases
   status: Done
 created_at: '2026-10-09T20:28:05Z'
-updated_at: '2026-10-16T22:02:33Z'
+updated_at: '2026-10-16T22:48:10Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -399,4 +399,6 @@ Gates and working rules: the task body.
   - rename_status now composes in memory and writes once (commit before c520f5a3); falsification: a restored separate write turns 4 tests red plus 5 errors. Allowlist mechanism removed entirely.
 - [2026-10-16T22:02:33Z] Paul Reviewer:
   - Reviewed in REV-1083: ChangesRequested (2 medium, 2 low, 1 info). Output is byte-identical to the previous commit; BUG-1081 verified.
+- [2026-10-16T22:48:10Z] Catherine Manager:
+  - Done: REV-1083 approved; merged at e56f7a18, single-write fix in the migration at ca5866bd; full suite 12136 passed, 0 failed.
 <!-- sq:discussion:end -->

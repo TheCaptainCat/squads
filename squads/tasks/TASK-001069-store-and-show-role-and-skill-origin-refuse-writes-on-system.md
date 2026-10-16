@@ -3,7 +3,7 @@ id: TASK-1069
 sequence_id: 1069
 type: task
 title: Store and show role and skill origin, refuse writes on system ones
-status: InProgress
+status: Done
 parent: FEAT-976
 author: tech-lead
 priority: high
@@ -37,7 +37,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-10-16T19:20:35Z'
-updated_at: '2026-10-16T22:19:55Z'
+updated_at: '2026-10-16T22:48:08Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -505,4 +505,8 @@ one verb: the meta test goes red. Restore each.
     Error text: "<ID>'s body renders through its declared sq:view:<name> tag, and its content already has one validated authoring surface: <surface>. <An update|A view edit|A replace|Append> is refused - --force does not lift this. Drop the view from [selected] to author this directly instead." Exit 1.
     Existing tests changed because role updates by description/--set/view disable are now refused: skew guard, drifted-sync, selection-table banner planting (role description set at creation), slug-fixed import tests, view add/disable CLI and service tests, retirement update seam, generic extra field. One test removed: interrupting a developer's --set model (the write is no longer reachable).
     Not changed, for the tech writer: sq role/skill have no update verb; update is reachable through sq import. Adopter-visible: update (except a role's title), body, view disable refused on role and generated-skill hosts; sq role catalog lists every activated role the document does not declare.
+- [2026-10-16T22:43:59Z] Elias Python:
+  - F4-F7 fixed. Also: the origin stamp is now written inside the flatten write for files that flatten rewrites (the write-once-per-transaction rule from the merged work flagged the double write on the v0_15 corpus in the -C migrate tests); the origin writer only handles files flatten leaves alone.
+- [2026-10-16T22:48:08Z] Catherine Manager:
+  - Done: REV-1082 approved; ca5866bd; full suite 12136 passed, 0 failed.
 <!-- sq:discussion:end -->

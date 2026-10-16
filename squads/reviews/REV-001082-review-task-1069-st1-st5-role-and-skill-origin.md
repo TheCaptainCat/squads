@@ -3,7 +3,7 @@ id: REV-1082
 sequence_id: 1082
 type: review
 title: 'Review TASK-1069 ST1-ST5: role and skill origin'
-status: Requested
+status: Approved
 author: reviewer
 refs:
 - TASK-1069
@@ -22,23 +22,23 @@ subentities:
   severity: low
 - local_id: F4
   title: view add places foreign view tags in a generated body that no verb can remove
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F5
   title: Update gate locks labels, assignee, parent and priority on roles and generated
     skills
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F6
   title: Check and view remedies still offer view disable on classified hosts
-  status: Open
+  status: Verified
   severity: low
 - local_id: F7
   title: Changed tests dropped coverage of still-reachable skew and hint branches
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-10-16T21:54:03Z'
-updated_at: '2026-10-16T22:28:37Z'
+updated_at: '2026-10-16T22:48:03Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -140,6 +140,8 @@ I agree that `view add` of the host's **own** classified view must stay open, be
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-16T22:43:52Z] Elias Python:
+  - Fixed: view add on a gated role or skill is refused unless the name is the host's own view (gate takes allow_view). Rows added to the refusal table. Falsification: removing the gate call from add_view turns 5 tests red.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -159,6 +161,8 @@ Checked and fine: every role definition field still has a path. A developer's mo
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-16T22:43:54Z] Elias Python:
+  - Fixed: the update gate covers description, set/unset attributes, and a skill's title only; labels, assignee, parent, priority and author stay writable. Rows added. Falsification: gating assignee and labels again turns 10 tests red.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -178,6 +182,8 @@ In each case `view add` works, so nobody is stranded, but half of the advice end
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-16T22:43:56Z] Elias Python:
+  - Fixed: the missing-region, missing-tag, duplicate-tag and conflicting-state remedies name only view add for a role or skill. New test table over those shapes. Falsification: restoring view disable in the missing-tag remedy turns 1 test red.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -196,6 +202,8 @@ The other changed tests look legitimate: description edits became title edits on
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-16T22:43:58Z] Elias Python:
+  - Fixed: the developer-model skew test is rewritten through a hand edit of the file, and the full_name hint is covered with role_definition dropped from [selected]. Falsification: disabling the skew refusal turns 3 tests red; renaming the hint key turns 1 red.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->
@@ -213,4 +221,10 @@ The other changed tests look legitimate: description edits became title edits on
   - ST6: the gate itself holds on every shape driven (system/project roles, generated/project skills, dropped view, dropped type, --force, body/append/update/view disable refused; status, rm, role title open). Every role definition field, a developer model included, still changes through the per-slug file plus sync. Agree view add of the host own view stays open.
   - New: F4 (medium) view add of a foreign view is unremovable; F5 (medium) the gate locks labels/assignee/parent/priority with no surface; F6 (low) remedies still offer view disable; F7 (low) two test edits dropped coverage of reachable branches.
   - @python-dev F4-F7 are yours. @manager recommended verdict: request changes on F4 and F5 (or a recorded ruling that F5 is intended); review stays Requested.
+- [2026-10-16T22:29:53Z] Catherine Manager:
+  - F4: refuse view add on a gated role or skill unless the name is the host's own view. F5: gate only what config supplies (description and attributes); labels, assignee, parent and priority stay writable on every role and skill. F6: drop view disable from those remedies. F7: rewrite the removed skew test and restore coverage of the full_name hint.
+- [2026-10-16T22:47:43Z] Paul Reviewer:
+  - F4-F7 verified on the dev build. F4: view add of a foreign view is refused on a role and a generated skill, the host own view is accepted, and a project skill takes any view. F5: labels (add and rm) and assignee import on a role and a system skill; description, attributes (with --force too) and a skill title are refused; a role title is open. F6: the duplicate, missing-tag and absent-region remedies on a role offer only view add. F7: the rewritten developer-model skew test and the full_name hint test (role_definition dropped) are present and pass.
+  - Migration: HEAD and dev migrated output is byte-identical (diff -r) on a fresh copy of the real squad, on v0_15 and on v0_15_developers, and the stamp counts match. Only the changed-file count drops (981 to 957 on the real squad), because a file is no longer counted twice. The real copy syncs, and sq check is clean.
+  - Targeted tests (changed files, refusal table, migration and meta): 701 passed. ruff clean. @manager recommend Approved.
 <!-- sq:discussion:end -->

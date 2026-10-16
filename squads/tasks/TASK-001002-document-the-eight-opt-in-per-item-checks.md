@@ -3,9 +3,10 @@ id: TASK-1002
 sequence_id: 1002
 type: task
 title: Document the eight opt-in per-item checks
-status: Draft
+status: InProgress
 parent: FEAT-901
 author: tech-lead
+assignee: tech-writer
 priority: low
 refs:
 - TASK-1001:depends-on
@@ -26,7 +27,7 @@ subentities:
   status: Todo
   story: US10
 created_at: '2026-10-12T05:46:28Z'
-updated_at: '2026-10-12T06:48:33Z'
+updated_at: '2026-10-16T22:32:12Z'
 ---
 <!-- sq:body -->
 ## Scope
