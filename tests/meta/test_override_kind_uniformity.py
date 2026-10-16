@@ -185,9 +185,7 @@ def _place_roles_catalog_shadowing(squad_dir: Path) -> None:
 def _place_roles_catalog_add_only(squad_dir: Path) -> None:
     path = _shadowing_path(squad_dir, ROLES_OVERRIDE_FILENAME)
     path.write_text(
-        '[[roles]]\nslug = "uniformity-probe-role"\nfull_name = "Sam Probe"\n'
-        'title = "Uniformity Prober"\ndescription = "Exists to be new."\n'
-        'mission = "Prove add-only stays silent."\n',
+        '[bundles]\nuniformity-probe = ["manager"]\n',
         encoding="utf-8",
     )
 
