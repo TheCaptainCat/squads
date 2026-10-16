@@ -3,7 +3,7 @@ id: TASK-990
 sequence_id: 990
 type: task
 title: Make a developer a role that declares a capability
-status: InProgress
+status: Done
 parent: FEAT-986
 author: tech-lead
 assignee: python-dev
@@ -63,7 +63,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-10-09T20:28:02Z'
-updated_at: '2026-10-16T20:23:28Z'
+updated_at: '2026-10-16T21:01:48Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1305,4 +1305,6 @@ Gates and working rules: the task body.
     - Merged-playbook errors name the override file once; `sq role catalog --json` capabilities are the catalog document's value.
     
     Hand-written CLAUDE.md sentences these make false (not edited): line 88 "`dev_role()`" (gone; developers are built from the `[dev]` table of the resolved catalog); lines 89-90 "`*dev` sentinel = any `<tech>-dev` role" (proposed: "a guide subject is a role slug, or `*<capability>` for every role holding it"). The `<tech>-dev` sentences at lines 309 and 341 are inside the managed region and regenerate on the next `sq sync`.
+- [2026-10-16T21:01:48Z] Catherine Manager:
+  - Done: REV-1068 approved; committed fce1019d; merged suite 11742 passed, 0 failed (8cc6d3b5).
 <!-- sq:discussion:end -->

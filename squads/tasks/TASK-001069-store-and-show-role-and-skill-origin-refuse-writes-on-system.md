@@ -3,7 +3,7 @@ id: TASK-1069
 sequence_id: 1069
 type: task
 title: Store and show role and skill origin, refuse writes on system ones
-status: Draft
+status: Ready
 parent: FEAT-976
 author: tech-lead
 priority: high
@@ -37,7 +37,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-10-16T19:20:35Z'
-updated_at: '2026-10-16T19:54:19Z'
+updated_at: '2026-10-16T21:02:07Z'
 ---
 <!-- sq:body -->
 ## Scope

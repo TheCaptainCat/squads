@@ -14,7 +14,7 @@ refs:
 description: What a complete validator catalog looks like, which members are floor
   vs opt-in, and why adopter-supplied Python is not built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-10-12T06:53:21Z'
+updated_at: '2026-10-16T20:58:39Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -740,4 +740,6 @@ validator nobody bundles is not dead code; it is the tier that makes the catalog
     - Status roles: a role declares what it means with a flag. Active is a role with `live = true`. Blocked becomes a `blocked` flag on the role, uniform with `live`, and `blocked_has_blocker` takes no parameter. No role name is hard-wired in the engine. This replaces the note's required `:<role>` parameter.
     - A selected check that the squad's own vocabulary makes unable to fire is refused at load, as the note says.
     - `external_id_not_in_title` takes a regular expression, as this decision first said. The template grammar of the note is not adopted; the cost of a bad pattern is the adopter's own configuration risk.
+- [2026-10-16T20:58:39Z] Pierre Chat:
+  - 2026-10-16: the validator 'tiers' are not understandable. Drop the word for validators everywhere (this ADR's title and tiering-test heading, code docstrings, docs) and use plain terms: always on, on by default for a category, opt-in, and file checks for the raw scan. Wording only, no behaviour change. Recorded as a task for later, not 0.16.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: FEAT-902
 sequence_id: 902
 type: feature
 title: 'Squad-global validators: parent outcomes, cycles, WIP, staleness'
-status: Ready
+status: Done
 parent: EPIC-540
 author: product-owner
 priority: low
@@ -36,7 +36,7 @@ subentities:
   title: As a squad, I want to select squad-global checks in one list
   status: Todo
 created_at: '2026-09-03T09:02:36Z'
-updated_at: '2026-10-16T19:58:54Z'
+updated_at: '2026-10-16T21:01:59Z'
 ---
 <!-- sq:body -->
 ## Why

@@ -3,7 +3,7 @@ id: TASK-1074
 sequence_id: 1074
 type: task
 title: Select squad-global validators in a [squad] list
-status: InReview
+status: Done
 parent: FEAT-902
 author: tech-lead
 refs:
@@ -53,7 +53,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-10-16T19:58:12Z'
-updated_at: '2026-10-16T20:50:17Z'
+updated_at: '2026-10-16T21:01:49Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -476,4 +476,6 @@ _Add with `sq task 1074 add-subtask "<title>"`; track with `sq task 1074 subtask
 - [2026-10-16T20:50:17Z] Elias Python:
   - Review fixes in the follow-up commit on worktree-agent-a4a6de4545a741fbd. ST10 correction: the 26 issues in my dry run came from the copy having no .claude/ or CLAUDE.md (backend_reconciled errors and pointer warnings); after sync there are none, so 26 is not a baseline. The selection added nothing on the copy.
   - US-to-test map (tests/service unless noted): US1 children_settled_with_parent -> test_squad_global_members_by_shape: test_parent_status_by_children, test_the_open_children_are_named_in_the_message_and_counted, test_a_parent_is_reported_once_however_many_children_are_open. US2 dependency_acyclic -> same file: test_graph_shape_by_cycles, test_a_two_thousand_node_chain_closing_on_itself_is_one_cycle, test_a_cycle_among_settled_items_is_reported_like_any_other, test_a_group_larger_than_its_path_names_the_other_items. US3 wip_limit -> test_active_item_counting_by_measure, test_wip_limit_boundary_is_more_than_the_limit, test_two_assignees_over_the_cap_give_two_findings_in_slug_order. US4 unassigned_active -> test_active_item_counting_by_measure, test_unassigned_active_boundary_is_more_than_the_limit. US5 stale_active -> test_stale_active_boundary_is_more_than_the_days, test_stale_active_reads_the_instant_it_is_handed_and_calls_no_clock, and in test_squad_selection_in_sq_check: test_the_clock_is_read_once_per_run_and_every_item_is_measured_against_it. US6 -> test_squad_table_in_the_workflow_document (shape and entry tables, repeats, reciprocal, check fallback), tests/unit/test_squad_global_tiers_and_levels (tiers, defaults, no level literal), test_squad_selection_in_sq_check (selection by run, exit codes, writes never change, gate never runs squad-global, recorded baseline, two runs agree).
+- [2026-10-16T21:01:49Z] Catherine Manager:
+  - Done: REV-1076 approved; merged at 8cc6d3b5; full suite 11742 passed, 0 failed.
 <!-- sq:discussion:end -->

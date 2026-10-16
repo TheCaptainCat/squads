@@ -3,7 +3,7 @@ id: FEAT-976
 sequence_id: 976
 type: feature
 title: Store role and skill origin, lock system skills
-status: Ready
+status: InProgress
 author: product-owner
 refs:
 - MILE-934:targets
@@ -18,7 +18,7 @@ subentities:
   title: As an operator, I want system skills refused by every write verb
   status: Todo
 created_at: '2026-09-29T14:19:13Z'
-updated_at: '2026-10-16T19:32:08Z'
+updated_at: '2026-10-16T21:02:08Z'
 ---
 <!-- sq:body -->
 Whether a role or skill is system (bundled or spec-generated) or project-authored is recorded on the entity, not recomputed per surface. Today the surfaces disagree, read from source and not driven:

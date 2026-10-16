@@ -3,7 +3,7 @@ id: REV-1068
 sequence_id: 1068
 type: review
 title: TASK-990 checkpoint review, ST1 to ST4
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - TASK-990
@@ -73,20 +73,20 @@ subentities:
 - local_id: F14
   title: dev add --slug accepts an unactivated catalog slug; the developer inherits
     that role's guides
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F15
   title: dev add --slug collision says 'a developer with slug X' for a non-developer
     role
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F16
   title: Proposed -dev slug spelling is two literals, not the named constant ST10
     asked for
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-16T19:03:52Z'
-updated_at: '2026-10-16T20:56:38Z'
+updated_at: '2026-10-16T21:01:08Z'
 ---
 <!-- sq:body -->
 Review of the uncommitted ST1 to ST4 checkpoint on TASK-990: required documents on the derivation path, `capabilities` declared and resolved onto `RoleDef` and `RoleView`, the developer template read from the resolved catalog, and `capabilities` on the role `--json` and text surfaces.
@@ -488,6 +488,8 @@ The cause: guides address roles by slug, so a templated developer stored under a
   - Fixed: dev add --slug refuses a slug the resolved catalog declares (bundled or project), naming it as a catalog role; rows added for a bundled role absent from the roster, a live one, operator, squads and a project-catalog role. Falsification count 4: check disabled, the bundled-absent, manager and project-catalog rows went red.
 - [2026-10-16T20:56:38Z] Elias Python:
   - Correction: the falsification count is 3 (bundled-absent, manager, project-catalog rows).
+- [2026-10-16T21:00:39Z] Paul Reviewer:
+  - Verified at fce1019d, driven: an absent bundled role (reviewer), a live one (manager) and a project-catalog role (sec) are refused as roles the catalog declares; operator and squads are refused as reserved; a free slug still works. 22 tests pass.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -507,6 +509,8 @@ Before `--slug`, a collision could only be with the proposed `<tech>-dev` spelli
 <!-- sq:finding:F15:discussion -->
 - [2026-10-16T20:56:30Z] Elias Python:
   - Fixed: an explicit slug that collides with an existing entry says "a role with slug X already exists". Falsification count 1.
+- [2026-10-16T21:00:41Z] Paul Reviewer:
+  - Verified: an explicit slug collision says "a role with slug X already exists".
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -530,6 +534,8 @@ Read, not driven.
 <!-- sq:finding:F16:discussion -->
 - [2026-10-16T20:56:32Z] Elias Python:
   - Fixed: PROPOSED_DEVELOPER_SLUG_SUFFIX in _roles/_catalog.py, used at both sites; no other "-dev" literal in src outside the migration. Read-only change, not falsified.
+- [2026-10-16T21:00:43Z] Paul Reviewer:
+  - Verified: PROPOSED_DEVELOPER_SLUG_SUFFIX is used at both sites, and no other -dev literal remains in src outside the migrations.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 <!-- sq:findings:end -->
@@ -552,4 +558,8 @@ Read, not driven.
   - Clean, driven: a 0.15 squad from the released tool (developer title changed by hand, retired developer, -dev role without tech, a developer that lost tech, CRLF file) migrates with name, tech and model kept; zig-dev and legacy-dev are reported; check is clean after sync; a second run changes nothing. A planning refusal (flat conflict) and an invalid catalog both leave the tree untouched. A copy of the real squad passes migrate, sync and check, and the real squad is unchanged.
   - Also clean: content_store drops one unreferenced blob, and the 0.15.0 manifest entry matches the tag. The POSTCONDITIONS row checking after CLI migrate up is acceptable: the task body expects the key to leave in the rebuild after the runners. The optional playbook argument on item_skill_role_sections is the simplest choice: an old override keeps rendering with the authored text, and sq check reports it as may be stale.
   - Low findings acceptable as follow-ups: F15, F16. @python-dev @manager
+- [2026-10-16T21:00:47Z] Paul Reviewer:
+  - All findings resolved: F1-F12 and F14-F16 are Verified, and F13 is WontFix (tracked as BUG-1075). Recommended verdict: Approved. @manager
+- [2026-10-16T21:01:08Z] Catherine Manager:
+  - Approved on the reviewer's verification of F1-F12 and F14-F16 at fce1019d; F13 is BUG-1075.
 <!-- sq:discussion:end -->
