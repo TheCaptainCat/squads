@@ -6,7 +6,6 @@ what the observation covers (synthetic units, one known positive per write seam)
 allowlist of methods still known to write twice is exact.
 """
 
-import json
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -192,17 +191,8 @@ async def _drive_rename_status(svc: Any) -> None:
     await svc.rename_status("task", "Draft", "Ready")
 
 
-async def _drive_import(svc: Any) -> None:
-    events = [
-        {"op": "create", "as": "manager", "type": "bug", "title": "b", "handle": "b"},
-        {"op": "comment", "as": "manager", "target": "b", "message": "hi"},
-    ]
-    await svc.import_events("\n".join(json.dumps(e) for e in events))
-
-
 DRIVERS: dict[str, Callable[[Any], Awaitable[None]]] = {
     "rename_status": _drive_rename_status,
-    "_apply_import": _drive_import,
 }
 
 

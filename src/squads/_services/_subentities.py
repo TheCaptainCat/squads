@@ -14,7 +14,6 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -267,7 +266,7 @@ class SubentitiesMixin(ServiceCore):
             log_delta,
         )
         btag = discussion.body_tag(kind, local_id)
-        span = sections.region_lines(await _aio.read_text(path), btag)
+        span = sections.region_lines(await self._read_item_file(item, path), btag)
         return BlockResult(
             local_id=local_id,
             path=path,
@@ -784,7 +783,7 @@ class SubentitiesMixin(ServiceCore):
         ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
         text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
         text = discussion.set_heading(text, kind, sub.local_id, sub.title)
-        await write_text(path, text)
+        await self._write_item_file(path, text)
 
     def _validate_subtask_story(self, db: SquadsDB, task: Item, story: str) -> None:
         required = self.spec.item_parent_required(task.type)

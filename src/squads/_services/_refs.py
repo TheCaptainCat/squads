@@ -434,7 +434,7 @@ class RefsMixin(ServiceCore):
         default_kind = self.spec.default_ref_kind()
         await self._refuse_duplicated_ids(require_item(db, from_id))
         src, base = self._add_ref_model(db, from_id, to_id, kind=kind)
-        await update_frontmatter(item_file(self.paths, src), src, base, default_kind=default_kind)
+        await self._update_item_frontmatter(src, base)
         self.store.log(
             "ref",
             src.id,

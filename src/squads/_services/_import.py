@@ -480,9 +480,10 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
 
     # ------------------------------------------------------------------ apply
     async def _apply_import(self, events: list[ResolvedEvent]) -> ImportApplyResult:
-        """Apply every event inside ONE open transaction: real ids from the real counter, a
-        real file write per event, and a per-event reflog entry under that event's own
-        actor/clock (rebound via the ``RequestContext`` seam, restored right after).
+        """Apply every event inside ONE open transaction: real ids from the real counter, each
+        touched file written once when the last event is applied, and a per-event reflog entry
+        under that event's own actor/clock (rebound via the ``RequestContext`` seam, restored
+        right after).
 
         Only called once :meth:`_plan_import` reports a fully clean pre-pass — an apply-time
         failure here can therefore only be I/O: the store's own ``transaction()``
@@ -493,7 +494,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         counts = ImportOpCount()
         warnings: list[str] = []
         touched_ids: set[str] = set()
-        async with self.store.transaction() as db:
+        async with self.store.transaction() as db, self._deferred_item_writes():
             for ev in events:
                 counts.bump(ev.event.op)
                 prior = get_context()

@@ -26,9 +26,8 @@ from squads._index._store import IndexStore
 from squads._services._maintenance import MaintenanceMixin
 
 #: Service methods whose unit still writes one item file more than once, each with the reason.
-#: A method leaves this table when its fix lands; ``test_*_still_double_writes`` pins the rest.
+#: A method leaves this table when its fix lands; a test pins that each entry still double-writes.
 ALLOWED_DOUBLE_WRITERS: dict[str, str] = {
-    "_apply_import": "every event writes its own file",
     "rename_status": "frontmatter and comment are separate writes",
 }
 

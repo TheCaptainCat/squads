@@ -6,13 +6,15 @@ concerns (create/get/list, the backend, the role/skill lookups + roster projecti
 only ever call core methods + their own.
 """
 
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from squads import _actor as actor
+from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -65,6 +67,7 @@ from squads._roles._resolver import (
     resolve_role_for_item,
     resolve_role_tolerantly,
 )
+from squads._sections import join_frontmatter
 from squads._services._duplicate_ids import (
     DUPLICATE_ID_REMEDY,
     groups_among,
@@ -512,6 +515,8 @@ class ServiceCore:
         # same "fine because there's no override file yet" reasoning as the spec fallback above.
         self.playbook: PlaybookSpec = playbook if playbook is not None else get_playbook_spec()
         self.store = IndexStore(paths.index_path, paths.lock_path, spec=self.spec)
+        # Item-file texts held back by `_deferred_item_writes`; `None` outside it.
+        self._pending_texts: dict[Path, str] | None = None
         # Activate the squad-aware template search path so render() picks up any project
         # overrides under <squad_dir>/.overrides/templates/ for this service's squad.
         set_active_squad_dir(paths.squad_dir)
@@ -945,7 +950,7 @@ class ServiceCore:
         )
         rendered = sections.replace_section(rendered, markers.BODY, new_inner)
         squad_rel = item.path
-        await write_new(self.paths.abspath(squad_rel), item, rendered)
+        await self._write_new_item_file(self.paths.abspath(squad_rel), item, rendered)
         log_delta: dict[str, object] = {
             "title": item.title,
             "type": item_type,
@@ -1054,7 +1059,68 @@ class ServiceCore:
         round's stale-path fallback, the bulk importer's pre-pass), which keep calling
         ``_aio.read_text`` directly and must never be routed through here.
         """
+        if self._pending_texts is not None and path in self._pending_texts:
+            return self._pending_texts[path]
         return await read_item_text(path, item.id)
+
+    async def _write_item_file(self, path: Path, text: str) -> None:
+        """Write *text* to the existing item file at *path*, or hold it for the flush of
+        :meth:`_deferred_item_writes` when one is open."""
+        if self._pending_texts is None:
+            await write_text(path, text)
+        else:
+            self._pending_texts[path] = text
+
+    async def _write_new_item_file(self, path: Path, item: Item, rendered_body: str) -> None:
+        """Create the item file at *path*, or hold its text for the flush of
+        :meth:`_deferred_item_writes` when one is open."""
+        if self._pending_texts is None:
+            await write_new(path, item, rendered_body)
+        else:
+            self._pending_texts[path] = join_frontmatter(item.to_frontmatter_dict(), rendered_body)
+
+    async def _update_item_frontmatter(self, item: Item, base: Item) -> None:
+        """Rewrite *item*'s frontmatter in its file, refusing a file that has skewed from
+        *base*: the read-check-write of :func:`~squads._itemfile.update_frontmatter`, over the
+        text :meth:`_read_item_file` sees."""
+        path = item_file(self.paths, item)
+        text = await self._read_item_file(item, path)
+        ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
+        await self._write_item_file(
+            path, sections.replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
+        )
+
+    async def _item_file_exists(self, path: Path) -> bool:
+        """Whether an item file exists at *path*, on disk or held by a deferred write."""
+        if self._pending_texts is not None and path in self._pending_texts:
+            return True
+        return await _aio.path_exists(path)
+
+    async def _move_item_file(self, old: Path, new: Path) -> None:
+        """Move an item file from *old* to *new*; a text held for *old* moves with it."""
+        held = self._pending_texts.pop(old, None) if self._pending_texts is not None else None
+        if await _aio.path_exists(old):
+            await _aio.path_rename(old, new)
+        if held is not None and self._pending_texts is not None:
+            self._pending_texts[new] = held
+
+    @asynccontextmanager
+    async def _deferred_item_writes(self) -> AsyncGenerator[None]:
+        """Hold every item-file write made inside the block in memory, then write each touched
+        file once, in first-touch order, when the block ends normally; a raise discards them.
+
+        Open it inside a transaction so the flush precedes the index commit.
+        """
+        self._pending_texts = {}
+        try:
+            yield
+            held = self._pending_texts
+            self._pending_texts = None
+            for path, text in held.items():
+                await _aio.mkdir(path.parent, parents=True, exist_ok=True)
+                await write_text(path, text)
+        finally:
+            self._pending_texts = None
 
     async def list_items(
         self,
@@ -1304,7 +1370,9 @@ class ServiceCore:
             return it, False
         it.updated_at = clock.now()
         it.modified_session, _ = actor.current_session()
-        await write_text(path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict()))
+        await self._write_item_file(
+            path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
+        )
         return it, True
 
     # ------------------------------------------------------------------ role / skill lookups
