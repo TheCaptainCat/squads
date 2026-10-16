@@ -277,7 +277,7 @@ async def test_rename_status_mid_flight_failure_restores_disk_and_index(svc, mon
     rename-type's — mirror the same failure-injection technique against the sibling
     private helper it actually calls."""
     from squads._services._rename import (
-        _append_rename_status_comment,
+        _with_rename_status_comment,
     )
 
     t1 = (await create_item(svc, "task", "t1")).item
@@ -295,15 +295,15 @@ async def test_rename_status_mid_flight_failure_restores_disk_and_index(svc, mon
     before = _snapshot(svc.paths.squad_dir)
 
     calls = {"n": 0}
-    real = _append_rename_status_comment
+    real = _with_rename_status_comment
 
-    async def _flaky(*args, **kwargs):
+    def _flaky(*args, **kwargs):
         calls["n"] += 1
-        if calls["n"] == 2:  # let the first item's frontmatter rewrite happen, then blow up
+        if calls["n"] == 2:  # let the first item's file be written, then blow up
             raise RuntimeError("boom")
-        return await real(*args, **kwargs)
+        return real(*args, **kwargs)
 
-    monkeypatch.setattr("squads._services._rename._append_rename_status_comment", _flaky)
+    monkeypatch.setattr("squads._services._rename._with_rename_status_comment", _flaky)
 
     with pytest.raises(RuntimeError, match="boom"):
         await svc.rename_status("task", "Ready", "Blocked")

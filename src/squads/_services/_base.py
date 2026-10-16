@@ -6,13 +6,15 @@ concerns (create/get/list, the backend, the role/skill lookups + roster projecti
 only ever call core methods + their own.
 """
 
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from squads import _actor as actor
+from squads import _aio
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
@@ -41,6 +43,7 @@ from squads._interactions._role_guidance import (
 )
 from squads._itemfile import (
     ensure_no_skew,
+    new_item_text,
     read_item_text,
     write_new,
     write_text,
@@ -987,7 +990,7 @@ class ServiceCore:
         )
         rendered = sections.replace_section(rendered, markers.BODY, new_inner)
         squad_rel = item.path
-        await write_new(self.paths.abspath(squad_rel), item, rendered)
+        await self._write_new_item_file(self.paths.abspath(squad_rel), item, rendered)
         log_delta: dict[str, object] = {
             "title": item.title,
             "type": item_type,
@@ -1094,9 +1097,92 @@ class ServiceCore:
         for callers that already want the content and have no fallback of their own to try —
         as opposed to the two callers that read it as a signal instead (the ``check`` confirm
         round's stale-path fallback, the bulk importer's pre-pass), which keep calling
-        ``_aio.read_text`` directly and must never be routed through here.
+        ``_aio.read_text`` directly and must never be routed through here. Inside a hold, a
+        file the hold already has is read from it.
         """
-        return await read_item_text(path, item.id)
+        held = self.store.held_item_files()
+        if held is None:
+            return await read_item_text(path, item.id)
+        if path in held.texts:
+            return held.texts[path]
+        return await read_item_text(held.disk_path(path), item.id)
+
+    async def _write_item_file(self, path: Path, text: str) -> None:
+        """Write *text* to the existing item file at *path*, or hold it for the flush of
+        :meth:`_deferred_item_writes` when a hold is open."""
+        held = self.store.held_item_files()
+        if held is None:
+            await write_text(path, text)
+        else:
+            held.texts[path] = text
+
+    async def _write_new_item_file(self, path: Path, item: Item, rendered_body: str) -> None:
+        """Create the item file at *path*, or hold its text for the flush of
+        :meth:`_deferred_item_writes` when a hold is open."""
+        held = self.store.held_item_files()
+        if held is None:
+            await write_new(path, item, rendered_body)
+        else:
+            held.texts[path] = new_item_text(item, rendered_body)
+
+    async def _update_item_frontmatter(self, item: Item, base: Item) -> None:
+        """Rewrite *item*'s frontmatter in its file, refusing a file that has skewed from
+        *base*: the read-check-write of :func:`~squads._itemfile.update_frontmatter`, over the
+        text :meth:`_read_item_file` sees."""
+        path = item_file(self.paths, item)
+        text = await self._read_item_file(item, path)
+        ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
+        await self._write_item_file(
+            path, sections.replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
+        )
+
+    async def _item_file_exists(self, path: Path) -> bool:
+        """Whether an item file exists at *path*, on disk or held."""
+        held = self.store.held_item_files()
+        if held is None:
+            return await _aio.path_exists(path)
+        if path in held.texts or path in held.moves.values():
+            return True
+        return path not in held.moves and await _aio.path_exists(path)
+
+    async def _move_item_file(self, old: Path, new: Path) -> None:
+        """Move an item file from *old* to *new*, or hold the move for the flush of
+        :meth:`_deferred_item_writes` when a hold is open; a text held for *old* moves with it."""
+        held = self.store.held_item_files()
+        if held is None:
+            if await _aio.path_exists(old):
+                await _aio.path_rename(old, new)
+            return
+        origin = held.disk_path(old)
+        if origin != old or await _aio.path_exists(old):
+            held.moves[origin] = new
+        text = held.texts.pop(old, None)
+        if text is not None:
+            held.texts[new] = text
+
+    @asynccontextmanager
+    async def _deferred_item_writes(self) -> AsyncGenerator[None]:
+        """Hold every item-file write made inside the block in memory, then write each touched
+        file once, in first-touch order, when the block ends normally; a raise discards them.
+
+        A file moved inside the block is renamed at the flush, just before its write. Must be
+        opened inside a transaction, so the flush precedes the index commit; opening one
+        inside another is refused.
+        """
+        held = self.store.open_held_item_files()
+        try:
+            yield
+            moves = {final: origin for origin, final in held.moves.items()}
+            for path, text in held.texts.items():
+                await _aio.mkdir(path.parent, parents=True, exist_ok=True)
+                if path in moves:
+                    await _aio.path_rename(moves.pop(path), path)
+                await write_text(path, text)
+            for final, origin in moves.items():
+                await _aio.mkdir(final.parent, parents=True, exist_ok=True)
+                await _aio.path_rename(origin, final)
+        finally:
+            self.store.close_held_item_files()
 
     async def list_items(
         self,
@@ -1346,7 +1432,9 @@ class ServiceCore:
             return it, False
         it.updated_at = clock.now()
         it.modified_session, _ = actor.current_session()
-        await write_text(path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict()))
+        await self._write_item_file(
+            path, sections.replace_frontmatter(new_text, it.to_frontmatter_dict())
+        )
         return it, True
 
     # ------------------------------------------------------------------ role / skill lookups

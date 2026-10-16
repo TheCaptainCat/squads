@@ -301,3 +301,24 @@ def _run_outside_this_repositorys_squad(  # pyright: ignore[reportUnusedFunction
     fixture's own ``chdir`` runs after this one.
     """
     monkeypatch.chdir(tmp_path_factory.mktemp("cwd"))
+
+
+@pytest.fixture(autouse=True)
+def write_ledger(monkeypatch):
+    """Observe every item-file write per unit of work and fail the test, at teardown, when a
+    committed unit wrote one item file twice or wrote an item file after the index commit.
+
+    A unit is one ``IndexStore.transaction()`` or one repair rebuild. Item-file writes made
+    outside any unit (migration runners, ``sync``, ``renumber``, memory and board writes) and
+    units that raise are not measured. Teardown (not the write site) reports, so the failure
+    never fires inside the store's lock release and never masks an exception the test body
+    raised. The rule lives in ``_write_guard``.
+    """
+
+    import _write_guard
+
+    ledger = _write_guard.install(monkeypatch)
+    yield ledger
+    violations = ledger.take_violations()
+    if violations:
+        pytest.fail("item-file write rule broken: " + "; ".join(violations), pytrace=False)

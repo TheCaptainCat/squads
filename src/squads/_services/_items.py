@@ -13,7 +13,7 @@ from squads import _sections as sections
 from squads import _views as views
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import ensure_no_skew, update_frontmatter
+from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
@@ -175,9 +175,7 @@ class ItemsMixin(ServiceCore):
         item, old_status, base, severed, warnings = self._set_status_model(
             db, item_id, status, force=force, unlink=unlink
         )
-        await update_frontmatter(
-            item_file(self.paths, item), item, base, default_kind=self.spec.default_ref_kind()
-        )
+        await self._update_item_frontmatter(item, base)
         for sev in severed:
             self.store.log("ref", item.id, {"remove": sev.target, "kind": sev.kind})
         self.store.log(
@@ -394,17 +392,17 @@ class ItemsMixin(ServiceCore):
         default_kind = self.spec.default_ref_kind()
         if rename_paths is not None:
             old_path, new_path = rename_paths
-            if old_path != new_path and await _aio.path_exists(old_path):
+            if old_path != new_path and await self._item_file_exists(old_path):
                 # Check for a skew BEFORE the physical move, at the item's still-current
                 # path: once moved, a refusal here would otherwise leave the file sitting at
                 # the new filename with its old (skewed) frontmatter still inside — a strictly
                 # worse intermediate state than not moving it at all. `update_frontmatter`'s
                 # own read below (at the possibly-new path) re-checks against the same `base`,
                 # which is safe/redundant rather than a second real read of divergent content.
-                old_text = await _aio.read_text(old_path)
+                old_text = await self._read_item_file(item, old_path)
                 ensure_no_skew(old_text, base, default_kind=default_kind)
-                await _aio.path_rename(old_path, new_path)
-        await update_frontmatter(item_file(self.paths, item), item, base, default_kind=default_kind)
+                await self._move_item_file(old_path, new_path)
+        await self._update_item_frontmatter(item, base)
         self.store.log("update", item.id, delta)
         return item
 
@@ -491,9 +489,7 @@ class ItemsMixin(ServiceCore):
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
-            await update_frontmatter(
-                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
-            )
+            await self._update_item_frontmatter(child, base)
             self.store.log(
                 "link",
                 child.id,
@@ -510,9 +506,7 @@ class ItemsMixin(ServiceCore):
             child.parent = None
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
-            await update_frontmatter(
-                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
-            )
+            await self._update_item_frontmatter(child, base)
             self.store.log(
                 "link",
                 child.id,
@@ -885,8 +879,6 @@ class ItemsMixin(ServiceCore):
                 )
                 target_prefix = effective_prefix(item.prefix)
                 target_seq = item.sequence_id
-                # Resolved once for the whole severance loop, not per referrer.
-                default_kind = self.spec.default_ref_kind()
                 for ref_id in referrer_ids:
                     referrer = db.get(ref_id)
                     if referrer is None:
@@ -898,9 +890,7 @@ class ItemsMixin(ServiceCore):
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
-                    await update_frontmatter(
-                        item_file(self.paths, referrer), referrer, base, default_kind=default_kind
-                    )
+                    await self._update_item_frontmatter(referrer, base)
                     severed.append(ref_id)
 
             # ------------------------------------------------------------------

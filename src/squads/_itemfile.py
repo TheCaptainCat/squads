@@ -249,14 +249,18 @@ async def read_item_text(path: Path, item_id: str) -> str:
         raise missing_file_error(item_id) from exc
 
 
+def new_item_text(item: Item, rendered_body: str) -> str:
+    """The text of a brand-new item file: frontmatter + the rendered (templated) body."""
+    return join_frontmatter(item.to_frontmatter_dict(), rendered_body)
+
+
 async def write_new(path: Path, item: Item, rendered_body: str) -> None:
     """Create a brand-new item file: frontmatter + the rendered (templated) body.
 
     No prior file to diverge from — a create never goes through the skew guard.
     """
-    text = join_frontmatter(item.to_frontmatter_dict(), rendered_body)
     await _aio.mkdir(path.parent, parents=True, exist_ok=True)
-    await _aio.atomic_write_text(path, text)
+    await _aio.atomic_write_text(path, new_item_text(item, rendered_body))
 
 
 async def update_frontmatter(path: Path, item: Item, base: Item, *, default_kind: str) -> None:
@@ -288,18 +292,26 @@ async def write_text(path: Path, text: str) -> None:
     await _aio.atomic_write_text(path, text)
 
 
-async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
-    """Whole-word substitution of every old ID → new ID across the given files.
+def remap_ids_text(text: str, remap: dict[str, str]) -> str:
+    """Whole-word substitution of every old ID → new ID in *text*.
 
     Replaces all occurrences of ``\\bOLD\\b → NEW`` (exact whole-word match so e.g. a longer ID
-    sharing a prefix is not touched).  Returns the list of paths that were actually modified.
+    sharing a prefix is not touched).
+    """
+    for old, new in remap.items():
+        text = re.sub(rf"\b{re.escape(old)}\b", new, text)
+    return text
+
+
+async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
+    """Apply :func:`remap_ids_text` to each file in *paths*, writing the ones it changes.
+
+    Returns the list of paths that were actually modified.
     """
     touched: list[Path] = []
     for path in paths:
         text = await _aio.read_text(path)
-        new_text = text
-        for old, new in remap.items():
-            new_text = re.sub(rf"\b{re.escape(old)}\b", new, new_text)
+        new_text = remap_ids_text(text, remap)
         if new_text != text:
             await _aio.atomic_write_text(path, new_text)
             touched.append(path)
