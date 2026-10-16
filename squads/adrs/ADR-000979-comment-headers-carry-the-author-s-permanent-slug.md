@@ -13,7 +13,7 @@ refs:
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-10-16T12:11:59Z'
+updated_at: '2026-10-16T12:36:23Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -394,6 +394,19 @@ operator whose display name is `op-ann` and attribute the headers to it.
   for importer actors that are not in the roster stands.
 - The name's bytes are kept, as for every rewritten header:
   ``- [2026-10-16T07:36:53Z] `op-ann` op-ann:``.
+
+> **Note 2026-10-16 (A6 as built):** the 0.16 migration narrows A6. It keys each operator by
+> its `extra.full_name`, or by its slug only when it has no full name, and never by its title;
+> a role stays keyed by its title (read, `_read_roster` in `_migrations/_v0_15_to_v0_16.py`,
+> and that step's `manual`). A name that matches no key fails as before, and a name that matches
+> two keys fails as a collision, so a role title equal to the slug of an operator without a full
+> name is refused, not resolved by the title. Read "title, then any operator's slug" above, and
+> the matching proof under "What the amendments oblige", in that sense. Two reasons. The key is exactly what the
+> released 0.15.0 writer put in a header: `extra.full_name`, falling back to the slug only when
+> it is absent (read, `_author_of` in 0.15.0), so every header that writer produced still
+> resolves, `op-ann:` included. And a stray name that happens to equal the slug of an operator
+> who has a full name is not silently attributed to that operator; it is refused with the
+> manual's remedy.
 
 ### A7 — A role or skill slug is not a verb of its `sq` group
 
