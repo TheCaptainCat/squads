@@ -328,7 +328,7 @@ discussion — all written through commands.
 - `sq graph <ID> [--depth N] [--kind K] [--direction out|in|both] [--all] [--format dot|mermaid|mermaid-md] [--json]` — the ref neighbourhood around one item
 
 **Agents** — like items, roster entries are addressed first, then verbed: `sq role <slug> show`
-- `sq role catalog [--json]` — the bundled roles available to activate · `sq role list [--json]` — the roles this squad has actually activated
+- `sq role catalog [--json]` — the roles available to activate, plus every activated role the catalog does not declare, each with its origin (`system` or `project`) · `sq role list [--json]` — the roles this squad has actually activated
 - `sq role activate <slug>` · `sq role <slug|id|n> show|regen|rm --purge|status <S> [--force] [--unlink]` — `rm` requires `--purge` and deletes the entry's file; without it, it exits `1` and names `rm --purge` and `status Archived`. A role slug is never `operator`, `squads`, `op-…` or a verb of `sq role` (`activate`, `catalog`, `list`)
 - `sq role <slug|id|n> set-default` — move the default-role designation here, clearing the previous holder; refuses a role that isn't live
 - `sq dev add --tech <t> [--name] [--model] [--slug]` · `sq dev list` — stack-specific developers

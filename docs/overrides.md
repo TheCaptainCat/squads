@@ -458,11 +458,13 @@ review_due = { kind = "date", required = true }
   adding it to a type with existing items only produces reports.
 - `settable` (default `true`): whether `sq <type> <n> update --set` and an `update` event of
   `sq import` write it. A key a dedicated command owns is declared `settable = false`. Roles,
-  skills and operators have no `update` verb, so their attributes are set through `sq import`.
-  A role's definition still comes from the role catalog and its overrides, not from its stored
-  attributes: a bundled or project role's `model` is set in `.overrides/roles/<slug>.toml` or
-  `roles.toml`, and a `model` stored on the role is not read. A developer's `model` is the
-  exception: the stored value is the one it runs on.
+  skills and operators have no `update` verb, so an operator's or a project skill's attributes
+  are set through `sq import`. On a role and on a generated skill that event is refused while
+  the entry's view is declared (see
+  [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
+  A role's definition comes from the role catalog and its overrides: its `model`, a developer's
+  included, is set in `.overrides/roles/<slug>.toml` or `roles.toml`, and `sq sync` writes a
+  developer's onto its role item, the value it runs on.
 
 `sq workflow types --json` lists each type's attributes with their `kind`, `required` and
 `settable`. The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
@@ -1664,7 +1666,9 @@ level, and `sq <type> <n> view disable <name>` quiets it. A tag is never removed
 
 A role's body, a permanently-system skill's body (`squads`, `greeting`, `sq-memory`) and a
 per-item-type `sq-<type>` skill's body render through their view and refuse prose — replace and
-append alike, `--force` or not. Their content normally comes from `.overrides/roles.toml`
+append alike, `--force` or not. The same entries refuse a description, an attribute, a skill's
+title and view edits (see
+[roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)). Their content normally comes from `.overrides/roles.toml`
 (`.overrides/roles/<slug>.toml` for a project-defined role), the playbook overrides, or the
 view's own template override. To write one of these bodies yourself instead, drop its view from
 `[selected]`. `[selected].views` lists the survivors, so name every other view you keep:
@@ -2831,6 +2835,9 @@ in v<version>: ['agreements', 'can_spawn', 'color', 'description', 'full_name', 
 role is on the roster. Nothing passes an unknown field through to a template. For a field squads
 *does* recognise (like `model`), set it in the override and run `sq sync`. To store a key of your
 own on each role item instead, declare it as an attribute of the `role` type in
-`.overrides/workflow.toml` (see [Attributes](#attributes-the-keys-a-type-stores)). `sq role` has
-no `update` verb, so set it with an `update` event of `sq import`:
+`.overrides/workflow.toml` (see [Attributes](#attributes-the-keys-a-type-stores)). A role's
+attributes can be written only while `role_definition` is dropped from `[selected]`: with the view
+declared, an `update` event that sets one is refused (see
+[roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
+With the view dropped, set it with
 `echo '{"op": "update", "target": "ROLE-<n>", "fields": {"<key>": "<value>"}}' | sq import - --as <slug>`.

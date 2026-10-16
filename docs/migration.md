@@ -508,6 +508,32 @@ ordinary role.
   `role` type's declared attributes. A script that tested it reads `capabilities` from
   `sq role list --json` or `sq role <slug> show --json` instead.
 
+### Every role and skill records its origin
+
+The `origin` part of the step stores `origin: system` or `origin: project` on each role and skill
+file that stores none, by the rule in
+[roles.md § "Where a role or skill comes from"](roles.md#where-a-role-or-skill-comes-from-origin),
+and changes no other key. A bundled role you override and a developer added with `sq dev add` are
+`system`; a developer declared by its own role file is `project`. A file that already stores an
+`origin`, whatever its value, is left as it is, so a second run changes nothing. The run reports
+how many of each it stamped:
+
+```
+    9 role(s) stamped origin system
+    12 skill(s) stamped origin system
+    1 skill(s) stamped origin project
+```
+
+**After the upgrade:**
+
+- **A script that read the skill `system` flag reads `origin`.** `sq skill <slug> show --json`
+  carries `origin` (`system` or `project`) and no `system` key; the text card shows an `origin:`
+  row. In `sq role catalog --json`, `origin` is `system` where it was `bundled`.
+- **Some writes on a role or a generated skill are refused.** Setting a description or an
+  attribute, a skill's title, a body, `view disable`, and `view add` of another view's tag are
+  refused while the entry's view is declared; edit the role override or the playbook instead. See
+  [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses).
+
 ---
 
 ## Upgrading to 0.16: `-C` replaces `--dir`
@@ -732,8 +758,8 @@ error ROLE-000001-dev-agent.md: missing seeded view tag <!-- sq:view:role_defini
    skill.
 
 The document then renders only its live definition, and `sq check` is clean for it.
-`view disable` is not a substitute: the document would then render the old text alone, and
-only these four steps remove it.
+`view disable` is refused on a role or a generated skill, so only these four steps remove the old
+text.
 
 **An `sq-<type>` skill you wrote yourself.** A custom skill whose slug a type declared later
 now names, such as `sq-widget` once you declare `widget`, keeps its text, and `sq check` names

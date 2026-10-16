@@ -1033,6 +1033,8 @@ MILE-21: view nope had no existing tag — placed disabled in sq:body
 ```
 
 Either verb also collapses duplicate copies of its view into one tag in the state it names.
+On a role or a generated skill, only `view add` of the document's own view runs, so `sq check`'s
+remedies there name that command alone.
 
 **What `sq check` holds.** Each seeded view is present exactly once, enabled or disabled, and no
 view name appears twice in a body, counting both states together. Each is an error, reported once:
@@ -1057,10 +1059,10 @@ A role or skill file whose `sq:body` markers were deleted by hand is reported to
 command that restores the region:
 
 ```
-error ROLE-000005-qa.md: missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — restore it with `sq role qa view add role_definition`, or disable the view with `sq role qa view disable role_definition`
+error ROLE-000005-qa.md: missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — restore it with `sq role qa view add role_definition`
 ```
 
-Either command puts the region back, and `sq repair` does the same for every such file — but only
+That command puts the region back, and `sq repair` does the same for every such file — but only
 when the file holds nothing but the seeded tag where the region was. If other text sits there,
 putting the region back would mean guessing which lines are yours, so every command leaves the
 file unchanged and `sq check` asks you to fix it by hand:
@@ -1088,12 +1090,13 @@ and `--force` does not lift it. Their content is authored elsewhere:
 The refusal names the surface for the document at hand:
 
 ```
-error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this body directly instead.
+error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead.
 ```
 
 To write such a body by hand, drop its view from `[selected]` — see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
-`view disable` stays available on these documents; the document then renders an empty definition.
+On these documents `view disable` is refused too, and so is `view add` of any view but the
+document's own (see [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
 
 **Dropping a view.** `[selected].views` names the views that survive, like every other section. A
 view is reached only through its `sq:view:<name>` tag in a document body, never by a type

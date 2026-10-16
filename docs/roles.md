@@ -140,7 +140,7 @@ in `sq role list` and `sq role <slug> show` but not in the catalog.
 
 ```bash
 sq role list                 # active roles
-sq role catalog              # the bundled catalog
+sq role catalog              # the catalog, plus every role it does not declare
 sq role architect show       # a bundled role's definition
 sq role activate qa          # add a role later (creates its item + Claude pointer)
 sq role ROLE-000002 regen    # re-render its pointer from the item
@@ -159,12 +159,13 @@ role that isn't live, and designating the role that already holds it is a report
 is also the way back if a squad has lost its default-role line to a retirement — reactivating
 the previous holder is the only other recovery.
 
-Both listings report the designation, but only `sq role list` can *mark* every holder: a developer
-role has a roster entry and no catalog row, so `sq role catalog` leaves every row unmarked when one
-holds it. The plain catalog names that holder in a footer, and `sq role catalog --json` carries it
-as `default_role` — the holder's slug whether or not it is one of the rows, `null` when no live role
-holds it — alongside `default_role_source`, which is `roster` for the active squad's designation and
-`catalog` for the bundled document's own declaration, the answer you get outside a squad.
+`sq role catalog` lists each role the catalog declares, activated or not, and one more row for
+every role item the catalog does not declare: a developer, or a role defined by its own role file.
+Such a row stays while the item exists, retired or not. Both listings mark the default-role holder.
+`sq role catalog --json` also carries it on every row as `default_role` (the holder's slug, `null`
+when no live role holds it), alongside `default_role_source`, which is `roster` for the active
+squad's designation and `catalog` for the bundled document's own declaration, the answer you get
+outside a squad.
 
 ### Custom roles
 
@@ -212,6 +213,67 @@ hyphens, unique among skills, and never `add`, the one verb of `sq skill`. A ski
 anything, so a skill slug is not accepted by `--as`, `--author` or `--assignee`. To write a
 generated skill's body yourself, see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
+
+## Where a role or skill comes from: `origin`
+
+Every role and skill stores `origin`, one of two words, written when the entry is created:
+
+- **`system`** — squads supplies it. A role is `system` when the bundled role catalog declares its
+  slug, or when `sq dev add` built it from the `[dev]` table (the role stores `tech`). A bundled
+  role you override, in `roles.toml` or `.overrides/roles/<slug>.toml`, stays `system`. A skill is
+  `system` when it is `squads`, `greeting` or `sq-memory`, or the `sq-<type>` skill of a type the
+  workflow spec declares.
+- **`project`** — your squad defined it: a role declared in `roles.toml` or in its own
+  `.overrides/roles/<slug>.toml`, a developer declared by its own role file included, and every
+  skill added with `sq skill add`.
+
+The stored value is the answer every surface gives: the Origin column of `sq role list` and
+`sq role catalog`, the `origin:` row of the `sq role <slug> show` and `sq skill <slug> show`
+cards, and the `origin` key of their `--json`, of `sq role catalog --json` and of
+`sq list -t role|skill --json`. It is never recomputed: `sq sync` leaves it alone, and the
+`sq-<type>` skill of a type you later drop keeps `system`. Nothing sets it afterwards; an `update`
+event of `sq import` that tries is refused:
+
+```
+'origin' is not a settable field on a skill (a dedicated command owns it); valid: allowed_tools, model, when_to_use
+```
+
+`sq check` reports a role or skill file whose `origin` is missing or is not one of the two words:
+
+```
+error SKILL-20: missing required attribute 'origin'
+error SKILL-22: attribute 'origin': expected one of system, project, got 'System'
+```
+
+### What a generated role or skill refuses
+
+A role's body is generated from its definition, and so is a `system` skill's, through the view
+tag in the body. While that view is declared, the content of such an entry is written where its
+definition lives, not on the entry, and these writes are refused with exit `1`, nothing written,
+`--force` or not:
+
+- a body replace or append: `sq skill <slug> body`, or a `body` event of `sq import`;
+- an `update` event of `sq import` that sets the description, sets or unsets an attribute
+  (`fields`, `unset_fields`), or changes a skill's title;
+- `view disable`, and `view add` of any view other than the entry's own.
+
+The error names the place to edit instead:
+
+```
+line 1: ROLE-3's body renders through its declared sq:view:role_definition tag, and its content already has one validated authoring surface: `.overrides/roles.toml` (or `.overrides/roles/<slug>.toml` for a project-defined role). An update is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead.
+```
+
+For a role, that is the role catalog override or its own role file, followed by `sq sync`; a
+developer's `model` is set the same way. For a skill, it is the playbook override, or for
+`greeting` and `sq-memory` the view's template override.
+
+Every role is covered, a `project` one too, because every role's body is generated; a skill you
+added with `sq skill add` takes every write. The rest stays open on every role and skill: a role's
+title (its name), labels and assignee through an `update` event, `status`, `rm --purge`, a
+`comment` event, `regen`, and `view add` of the entry's own view, which is how `sq check`'s
+remedies put a missing tag back. To write such an entry yourself, drop its view from `[selected]`
+(see [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand)):
+the entry then takes every write, and keeps its `origin`.
 
 ## Operators (humans)
 

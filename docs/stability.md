@@ -411,8 +411,8 @@ sq skill add <name>
 sq operator add "<name>"
 ```
 
-**Bundled catalog:** `sq role catalog` is the dedicated subcommand for the bundled-but-not-activated
-role catalog (shows slug, name, title, default).
+**Role catalog:** `sq role catalog` lists the roles the catalog declares, activated or not, plus
+every role item it does not declare (shows slug, name, title, default, origin).
 
 **Slug resolution:** for `role show`/`regen`/`rm`/`status`/`set-default`, slug is a valid address
 form in addition to full ID and bare number. A slug that equals a verb of its group cannot be used
@@ -707,7 +707,8 @@ The frozen surface includes:
   the rows. A key stored under the name of an added key stays in the file and out of the row.
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
   `operator list`, `operator <addr> show`. Skills have no dedicated `skill list` — use the generic
-  `list -t skill`
+  `list -t skill`. A role or skill row carries `origin`, `system` or `project` (see
+  [roles.md § "Where a role or skill comes from"](roles.md#where-a-role-or-skill-comes-from-origin))
 - **The workflow catalogs** — the machine-readable form of your squad's *active* vocabulary,
   bundled plus any override, and the surface to read instead of hardcoding a name:
 
