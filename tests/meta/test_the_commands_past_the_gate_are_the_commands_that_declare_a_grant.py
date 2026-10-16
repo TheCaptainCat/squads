@@ -11,12 +11,11 @@ import sys
 from pathlib import Path
 
 import pytest
+import typer
 from typer.testing import CliRunner
 
 from squads._cli import app
 from squads._cli._common import GATED_GROUPS, grants_by_command
-from squads._cli._migrate import migrate_app
-from squads._cli._override import override_app
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
 _GATE_MESSAGES = ("Run sq migrate up to upgrade it", "Upgrade the squads package")
@@ -32,7 +31,11 @@ _PAST_WHEN_BEHIND = {
 _PAST_WHEN_AHEAD = {"migrate help", "migrate chlog"}
 
 
-_GATED_APPS = {"migrate": migrate_app, "override": override_app}
+_GATED_APPS: dict[str, typer.Typer] = {
+    str(g.name): g.typer_instance
+    for g in app.registered_groups
+    if g.name in GATED_GROUPS and g.typer_instance is not None
+}
 
 
 def _name(info_name: str | None, callback_name: str | None) -> str:
@@ -82,6 +85,7 @@ def _observed(direction: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_the_walk_sees_the_whole_command_tree() -> None:
+    assert set(_GATED_APPS) == GATED_GROUPS
     names = {" ".join(p) for p in _every_command()}
     assert {"list", "repair", "check", "migrate up", "migrate repad", "role"} <= names
     assert len(names) > 20
