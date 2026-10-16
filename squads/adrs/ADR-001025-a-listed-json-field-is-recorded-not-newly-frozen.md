@@ -3,7 +3,7 @@ id: ADR-1025
 sequence_id: 1025
 type: decision
 title: A listed --json field is recorded, not newly frozen
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - FEAT-1024
@@ -16,7 +16,7 @@ refs:
 description: Listing a field in docs/stability.md records the existing Tier 3 freeze;
   no new tier, but each key's value is marked vocabulary, open set or display.
 created_at: '2026-10-15T21:48:00Z'
-updated_at: '2026-10-15T21:51:08Z'
+updated_at: '2026-10-16T11:16:29Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -84,4 +84,6 @@ A key moves to a stricter class (display to open set, open set to fixed) freely.
 <!-- sq:discussion -->
 - [2026-10-15T21:51:08Z] Robert Architect:
   - Authored for FEAT-1024 US3. An ADR rather than a dated note: search, tree and graph have no governing ADR of their own, and the value-class rule spans catalogs (ADR-738), graph semantics (ADR-775) and the omissions report (ADR-947), so a note on any one would bind the others from the wrong place. Once accepted, dated notes owed on ADR-738 §8 (ref-kinds row discharged) and ADR-427 §2 (tolerate unknown open-set values).
+- [2026-10-16T11:16:26Z] Pierre Chat:
+  - 2026-10-16: accepted.
 <!-- sq:discussion:end -->

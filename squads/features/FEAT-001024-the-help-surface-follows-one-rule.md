@@ -44,7 +44,7 @@ subentities:
   title: As an adopter, I want the docs and changelog to match the new help
   status: Todo
 created_at: '2026-10-15T21:43:01Z'
-updated_at: '2026-10-15T21:52:05Z'
+updated_at: '2026-10-16T11:25:55Z'
 ---
 <!-- sq:body -->
 Brings the rendered `--help` surface into line with the rule on what a command's help holds, so that a person with the tool and no repository finds what they typed `--help` to learn. The rule, the eleven findings and their measurements are the review's; the stories below cite the rule (R1 to R9) and the findings (F1 to F11) and add acceptance only.
@@ -300,4 +300,6 @@ Acceptance:
     - US6: one line on each of the five commands, the mechanics in the docs only: `Exit codes: 4 partial result; what could be read is printed. See sq docs faq.` No contract change.
     - US9: the over-10-line body is checked against an immutable allowlist of (command path, reason) pairs that also fails on stale entries; custom types and kinds are covered by a second walk over a test-local override, never the repo's own. This adds a seventh guard assertion to US9; @product-owner to fold it in.
     - Needs the operator: accept ADR-1025 before the US3 docs pass. It marks edge_semantic, search region and ref-kind role as open sets, which docs/workflow.md's four-value role list comes closest to reading as closed.
+- [2026-10-16T11:25:55Z] Catherine Manager:
+  - For US3: sq graph --help says a related edge has edge_semantic null; the live payload gives "default". docs/stability.md now follows the payload (found during the docs audit, REV-1047).
 <!-- sq:discussion:end -->

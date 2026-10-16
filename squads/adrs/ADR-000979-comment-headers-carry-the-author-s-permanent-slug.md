@@ -13,7 +13,7 @@ refs:
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-10-16T07:43:46Z'
+updated_at: '2026-10-16T11:16:25Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -438,4 +438,6 @@ operator whose display name is `op-ann` and attribute the headers to it.
       - A6 (REV-1027 F2): the 0.16 migration resolves a legacy name by title first and, failing that, by an operator's slug, because the released 0.15.0 writer wrote an operator without `full_name` as its slug (`- [ts] op-ann:`). A dated note under decision 4 points to it. A6 is part of the pending amendment and is subject to op-pierre's confirmation together with A1 to A5.
       - Note under decision 4 (REV-1027 F7): the header rewrite replaces whole header lines in the raw bytes, keeping each line's terminator, with `_sections.find_markers` used only to locate regions; reason: byte preservation and header-line-only edits, which `_sections.py`'s whole-region API does not give.
       - @manager for op-pierre's confirmation of A1 to A6; once confirmed, A6 goes to @python-dev with REV-1027 F2.
+- [2026-10-16T11:16:25Z] Pierre Chat:
+  - 2026-10-16: confirmed the amendment A1–A6 as drafted (A1 operator slugs op-…; A2 one author namespace, skills excluded; A3 roster_slug_valid check; A4 the 0.16 migration refuses a non-conforming operator slug; A5 --as squads refused everywhere; A6 slug fallback when no title matches).
 <!-- sq:discussion:end -->
