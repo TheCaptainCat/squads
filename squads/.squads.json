@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1031,
+  "counter": 1036,
   "padding": 6,
   "items": {
     "12": {
@@ -45979,6 +45979,810 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1031"
+    },
+    "1032": {
+      "sequence_id": 1032,
+      "type": "review",
+      "title": "Docs audit: README, tutorial, FAQ",
+      "slug": "docs-audit-readme-tutorial-faq",
+      "status": "InReview",
+      "description": "Claim-by-claim audit of README.md, docs/README.md, docs/tutorial.md and docs/faq.md against the 0.16 dev build",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Tutorial: every sq create lacks the required --author, so step 1 fails with exit 2",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Tutorial step 4: --as developer is refused as an unknown slug, not downgraded as the note claims",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Tutorial promises a clean sq check but leaves two unwritten-body warnings",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "README omits the contract and milestone types: count, prefixes, lifecycles, layout, aliases, create",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "README: sq renumber shown without the required --from option; contradicts the FAQ",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "README: claude_code pointers do not @-include the definition; contradicts Concepts",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "README: agents_md backend no longer writes a .agents_md/ staging folder",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "README: per-role preloaded skill lists are stale (manager, product owner, developer)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "README layout: .squads.toml does not hold the default role",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "README: sq workflow subcommand list omits views and view",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "README: sq graph --format omits mermaid-md",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "README: generic sq create flag list does not apply to guides",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "docs/README: migration.md index entry describes transformers and LLM runbooks that are not in the doc",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Tutorial: sample output path and 'IDs spent on roles' understate what init allocates",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Tutorial: bare sq tree lists the 20 roster items before the hierarchy",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "FAQ gap: no entry for Missing option --author or unknown slug errors",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001032-docs-audit-readme-tutorial-faq.md",
+      "created_at": "2026-10-16T08:44:34Z",
+      "updated_at": "2026-10-16T08:48:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1032"
+    },
+    "1033": {
+      "sequence_id": 1033,
+      "type": "review",
+      "title": "Docs audit: stability, migration, internals",
+      "slug": "docs-audit-stability-migration-internals",
+      "status": "InReview",
+      "description": "Claim-by-claim audit of docs/stability.md, docs/migration.md and docs/internals.md against the release/0.16 dev build: driven in scratch squads and fixture corpora, read against the code and the accepted ADRs.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "stability Tier 3: override diff --json is an array of one object, not an object",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "stability reflog: skills seeded at init log a padded target (SKILL-000009), not the formatted ID",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "stability L37 says the prefix stays fixed; the retype section says it changes",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "stability/internals override layout omits .overrides/playbook.toml (ADR-777)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "internals §7 lists five ABC methods with pre-ADR-133 names; seven exist, agents_md backend missing",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "internals layout names default_backend in .squads.toml; the file carries active_backends",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "internals §9 template inventory names files that do not exist and misses four dirs",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "internals §5 shows a :head region and sq:summary table that files no longer carry",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "internals §4: repair does not set counter = max ID; it floors it (ADR-104)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "migration L137: sq repair does not bump squads_version in .squads.toml",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "internals: stale module, helper and entry-point names (_service, _check_*, _cli:app)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "internals layout: missing contracts/, milestones/, operators/, AGENTS.md, padding, disallowedTools",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "stability exit-code table: sq import also exits 3 after a committed write",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "stability Tier 3 catalog table omits sq workflow ref-kinds --json",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "stability ref-kind section follows ADR-775 while ADR-49 (closed vocabulary) is still Accepted",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "stability vs README disagree on which shells have completion",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F17",
+          "title": "stability/migration: repo-internal names and paths in adopter docs",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F18",
+          "title": "migration L154: managed skill files are SKILL-NNNNNN-<slug>.md, and are items, not disposable",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001033-docs-audit-stability-migration-internals.md",
+      "created_at": "2026-10-16T08:48:45Z",
+      "updated_at": "2026-10-16T08:52:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1033"
+    },
+    "1034": {
+      "sequence_id": 1034,
+      "type": "review",
+      "title": "Docs audit: adoption, agents, roles, recipes",
+      "slug": "docs-audit-adoption-agents-roles-recipes",
+      "status": "InReview",
+      "description": "Adopter-docs audit of docs/adoption.md, agents.md, backends.md, roles.md, recipes.md and clients/vscode/README.md against the release/0.16 dev build: every concrete claim driven in scratch squads or read in the code.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "create examples omit the required --author option (adoption.md, agents.md)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "roles.md: developers also manage sq-contract",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "backends.md: registering a backend describes a mechanism that no longer exists",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "adoption.md: example item filename is not zero-padded like the real one",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "vscode README: layer map and the user listing omit the board and memory panels",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Pointers also preload sq-memory; manager/devops carry more than squads",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "backends.md: three non-abstract methods, not two; managed_entry_paths never introduced",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "roles.md: rm without --purge leaves the file and sq check then errors",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "roles.md: 'metadata stored on extra (keys in ExtraKey)' is internal and mostly stale",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "recipes.md: 'Prefix with uv run from a source checkout' is repo-process content",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "vscode README: canary fixture/surface list is stale",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "vscode README: TypeScript is not pinned to 6.0.x in package.json",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "adoption.md: sq repair does not empty a role's stored body",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "adoption.md: generated skill bodies are rewritten by sq repair",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "agents.md tells agents to read ROLE-*.md files instead of running sq role show",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001034-docs-audit-adoption-agents-roles-recipes.md",
+      "created_at": "2026-10-16T08:49:38Z",
+      "updated_at": "2026-10-16T08:52:15Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1034"
+    },
+    "1035": {
+      "sequence_id": 1035,
+      "type": "review",
+      "title": "Docs audit: overrides guide",
+      "slug": "docs-audit-overrides-guide",
+      "status": "InReview",
+      "description": "Claim-by-claim audit of docs/overrides.md against the release/0.16 dev build",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Troubleshooting claims unknown role TOML fields are kept in extra; they are refused at load",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Grammar rule 5 says a [selected] name that does not exist is not an error; it is a hard stop",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "The [selected].items example also drops contract and milestone, not only guide",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Layout tree and scaffold example name templates that do not exist and omit ones that do",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "The role catalog override (.overrides/roles.toml, scaffold/diff/update roles) is undocumented",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Validators section says four checks ship unselected; eleven do, seven documented nowhere",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Records types do appear in sq inbox; the doc says they never do",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Role name is stored as the ROLE item title, not extra.full_name",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Broken internal anchor to the workflow-overrides section at line 1682",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Statuses reference lists role as required, then says it defaults to pending",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "An unstamped template override is an error and drifted; the doc only covers old stamps",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Records example uses PM-1 and sq postmortem 1; the global counter makes that a role",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "Playbook guide fields handoff, watch and authors (the create-lane flag) are undocumented",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "Task-template example drops the required sq:discussion marker, so the override is broken",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "Quoted sq check and lifecycle messages are stale",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001035-docs-audit-overrides-guide.md",
+      "created_at": "2026-10-16T08:50:43Z",
+      "updated_at": "2026-10-16T08:53:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1035"
+    },
+    "1036": {
+      "sequence_id": 1036,
+      "type": "review",
+      "title": "Docs audit: workflow guide",
+      "slug": "docs-audit-workflow-guide",
+      "status": "InReview",
+      "description": "Claim-by-claim audit of docs/workflow.md against the release/0.16 dev build: lifecycles, category rules, quoted output, override refusals, gaps.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Review lifecycle omits the ChangesRequested -> Approved edge (lines 203, 223)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Work-item diagram shows Blocked -> InReview, which the machine refuses (line 195)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "parents is not ignored on a records type: declaring it refuses the spec at load (lines 969-970)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Records do appear in sq inbox, and retired records are hidden from sq list (lines 942-950, 971)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Quoted sq workflow lint error table is stale: message and fix hint changed (lines 1332-1341)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Statuses section says role is mandatory and that it defaults to pending (lines 838-839, 877-878)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Example IDs INC-1 / PM-1 ignore the squad-wide counter; a fresh squad starts at 21 (lines 969, 1390)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Dropping implements or targets is a hard stop even with no edges: bundled rule/view name them (1298-1304)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "'The result' block shows the custom template's output, not what sq milestone show renders (443-452)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "A self view's --json carries a spec {schema_version, override, digest} block beyond show --json (318-321)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Team-workflow section never introduces sq blocked, sq mine or sq workload (lines 10-73)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "The --author option also accepts a registered operator slug, not only a role (line 55)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001036-docs-audit-workflow-guide.md",
+      "created_at": "2026-10-16T08:50:45Z",
+      "updated_at": "2026-10-16T08:53:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1036"
     }
   }
 }
