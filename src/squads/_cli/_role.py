@@ -67,7 +67,7 @@ role_app = typer.Typer(
     help="Manage agent roles.",
     epilog=(
         "Address a role:  sq role <slug|id|n> show|regen|rm|status|set-default|view\n"
-        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm\n"
+        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 rm --purge\n"
         "           sq role manager status Archived   sq role qa set-default\n"
         "           sq role qa view disable role_definition   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
@@ -486,7 +486,9 @@ async def regen_role(ctx: typer.Context) -> None:
 @common.command
 async def rm_role(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Required: delete the file too."),
+    purge: bool = typer.Option(
+        False, "--purge", help="Delete the file too; rm refuses without it."
+    ),
 ) -> None:
     """Delete a role for good; needs --purge (or set its status to Archived)."""
     item_id = _require_id(ctx)

@@ -42,7 +42,7 @@ operator_app = typer.Typer(
     help="Manage human operators.",
     epilog=(
         "Address an operator:  sq operator <slug|id|n> show|rm|status\n"
-        "Examples:  sq operator op-alice show   sq operator 2 rm\n"
+        "Examples:  sq operator op-alice show   sq operator 2 rm --purge\n"
         "           sq operator op-alice status Archived\n"
         "Note: a slug matching a group verb (add, list) is unaddressable by slug; "
         "use the full ID or bare number instead."
@@ -164,7 +164,9 @@ async def operator_show(
 @common.command
 async def operator_rm(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Required: delete the file too."),
+    purge: bool = typer.Option(
+        False, "--purge", help="Delete the file too; rm refuses without it."
+    ),
 ) -> None:
     """Delete an operator for good; needs --purge (or set its status to Archived)."""
     item_id: str = ctx.obj["id"]

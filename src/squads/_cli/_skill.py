@@ -63,7 +63,7 @@ skill_app = typer.Typer(
     help="Manage agent skills.",
     epilog=(
         "Address a skill:  sq skill <slug|id|n> show|regen|rm|status|view\n"
-        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm\n"
+        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 rm --purge\n"
         "           sq skill squads status Archived\n"
         "           sq skill squads view disable squads_skill   — disable a dropped view's tag\n"
         "Note: a slug matching a group verb (add) is unaddressable by slug; "
@@ -357,7 +357,9 @@ async def skill_regen(ctx: typer.Context) -> None:
 @common.command
 async def skill_rm(
     ctx: typer.Context,
-    purge: bool = typer.Option(False, "--purge", help="Required: delete the file too."),
+    purge: bool = typer.Option(
+        False, "--purge", help="Delete the file too; rm refuses without it."
+    ),
 ) -> None:
     """Delete a skill for good; needs --purge (or set its status to Archived)."""
     item_id: str = ctx.obj["id"]
