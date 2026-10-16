@@ -3190,10 +3190,18 @@ class MaintenanceMixin(ServiceCore):
             CheckIssue("error", key, self._duplicate_id_message(files))
             for key, files in dup_groups.items()
         ]
+        shared = shared_number_groups(carriers)
         issues += [
             CheckIssue("error", f"#{number}", self._shared_number_message(number, files))
-            for number, files in shared_number_groups(carriers).items()
+            for number, files in shared.items()
         ]
+        # The scan keys files by number, so under a shared number it holds only one of the
+        # files, and a per-item check would read it for the wrong item. The shared-number error
+        # names every file; the number is still present on disk.
+        for number in shared:
+            on_disk.pop(number, None)
+            bodies.pop(number, None)
+            unparseable_seqs = unparseable_seqs | {number}
 
         # ``index_reconciled`` is excluded here — it is cross-source, so its two directions
         # are confirmed below instead of reported straight from the scan pair.
