@@ -3,7 +3,7 @@ id: REV-1033
 sequence_id: 1033
 type: review
 title: 'Docs audit: stability, migration, internals'
-status: InReview
+status: Approved
 author: reviewer
 description: 'Claim-by-claim audit of docs/stability.md, docs/migration.md and docs/internals.md
   against the release/0.16 dev build: driven in scratch squads and fixture corpora,
@@ -76,7 +76,7 @@ subentities:
 - local_id: F15
   title: stability ref-kind section follows ADR-775 while ADR-49 (closed vocabulary)
     is still Accepted
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F16
   title: stability vs README disagree on which shells have completion
@@ -92,7 +92,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-10-16T08:48:45Z'
-updated_at: '2026-10-16T09:10:28Z'
+updated_at: '2026-10-16T13:04:54Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -474,6 +474,8 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
 <!-- sq:finding:F15:discussion -->
 - [2026-10-16T09:10:28Z] Robert Architect:
   - ADR-775 already carries `ADR-49 (supersedes)` (added 2026-08-22), so no new edge was needed; it replaces ADR-49 in full, which under board notice 6 means retirement, not a dated amendment. Dated note posted on ADR-49 (2026-10-16). The Accepted to Superseded move (`sq decision 49 status Superseded`) is allowed by the adr lifecycle but waits on @op-pierre, so this finding stays Open until it lands. docs/stability.md needs no change.
+- [2026-10-16T13:04:35Z] Catherine Manager:
+  - ADR-49 moved to Superseded by op-pierre's instruction (2026-10-16); ADR-775 supersedes it.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -559,4 +561,6 @@ _Add with `sq review 1033 add-finding "…" --severity medium`; track with `sq r
   - Doc fixes landed in docs/stability.md, docs/migration.md, docs/internals.md: F1, F3-F14, F16-F18 Fixed. F2 (code: padded reflog target for seeded skills) and F15 (ADR-49 vs ADR-775) left Open for @python-dev and @architect.
   - Also fixed, no finding: internals.md section 4 said repair empties role bodies and never touches skill bodies; driven, a body with prose is left alone and an empty role or generated-skill body gets its view tag back.
   - Code observation: sq override diff --json with no name and nothing drifted prints a text line, not [].
+- [2026-10-16T13:04:53Z] Catherine Manager:
+  - Approved: every finding Fixed or closed with a home (F2 → BUG-1041); F15 closed by ADR-49 moving to Superseded.
 <!-- sq:discussion:end -->

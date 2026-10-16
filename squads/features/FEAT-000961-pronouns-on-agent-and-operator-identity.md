@@ -25,7 +25,7 @@ subentities:
   title: Typed display table in .squads.toml
   status: Todo
 created_at: '2026-09-24T09:30:03Z'
-updated_at: '2026-10-09T18:16:15Z'
+updated_at: '2026-10-16T13:10:22Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -49,7 +49,7 @@ Neither roles nor operators carry a pronoun field today, `init_names` in `.squad
 
 Design is ruled in ADR-981; this feature delivers it.
 
-- **Data**: a pronouns value stored in `extra.pronouns` on role items and operator items. Settable
+- **Data**: a pronouns value stored as the top-level `pronouns` attribute, declared in the spec, on role items and operator items. Settable
   on creation (`sq role activate`, `sq dev add`, `sq operator add`) and editable afterwards through
   the `update` verbs FEAT-977 introduces. The setter works on a bundled role: pronouns are identity
   the operator sets, like the name. Unset means the key is absent; a blank is never stored. The
@@ -109,7 +109,7 @@ from their first name.
 
 Acceptance:
 - `sq role activate`, `sq dev add` and `sq operator add` each accept a pronouns option; the value
-  is stored as `extra.pronouns` in the item's frontmatter.
+  is stored as `pronouns` in the item's frontmatter.
 - After FEAT-977 ships, the `update` verb of a role and of an operator sets, changes and clears
   pronouns; setting pronouns on a bundled (system) role succeeds, while a content-changing edit on
   that same role is still refused.
@@ -120,11 +120,11 @@ Acceptance:
   trimmed before the length check.
 - A blank value (empty or whitespace only) on `update` clears the value: the key is absent from the
   frontmatter afterwards. A blank on creation stores nothing.
-- A role or operator created without pronouns has no `extra.pronouns` key; a squad upgraded with no
+- A role or operator created without pronouns has no `pronouns` key; a squad upgraded with no
   declaration shows no new output on any surface.
 - A `pronouns` key in a `[[roles]]` entry or a per-slug role file is refused, and the refusal
   names the verb that sets pronouns.
-- A sync never rewrites or removes a stored `extra.pronouns`.
+- A sync never rewrites or removes a stored `pronouns`.
 - `sq check` reports a stored value that fails the shape check (hand-edited file); renderers treat
   such a value as unset.
 <!-- sq:story:US1:body:end -->
@@ -148,14 +148,14 @@ Acceptance:
   reported by `sq check` and refused on load as any invalid override is.
 - With `[defaults] pronouns = "they/them"` declared, every agent role without its own value shows
   `they/them` as its pronouns on every surface (`sq role` JSON, human output, generated files)
-  after `sq sync`; no role item's frontmatter gains an `extra.pronouns` key.
+  after `sq sync`; no role item's frontmatter gains a `pronouns` key.
 - A role that has its own value shows that value, not the default.
 - No operator ever takes the default: an operator with no own value has `pronouns` null.
 - Removing the declaration and running `sq sync` returns every role without its own value to
   unset, with no leftover in any item file.
 - No verb applies pronouns in bulk; there is no bulk-apply command.
 - If `sq init` takes a pronouns-default flag, running it produces only the `[defaults]`
-  declaration in the override document and no per-item `extra.pronouns`; without the flag the
+  declaration in the override document and no per-item `pronouns`; without the flag the
   document carries no `[defaults]`.
 - The bundled `roles.toml` is byte-identical to before, and an existing catalog override reports no
   drift because of this feature.
@@ -182,7 +182,7 @@ Acceptance:
 - The value is the resolved one (own, else the role default, else unset): a string, or `null` when
   unset. The key is always present, never omitted.
 - For a role that takes the declared default, `pronouns` shows the default although the item's
-  `extra.pronouns` is absent.
+  `pronouns` is absent.
 - Item rows, `discussion[]` entries and comment headers gain no pronouns key.
 - The output is the same whether `[display] pronouns` is true or false.
 <!-- sq:story:US3:body:end -->
