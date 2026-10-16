@@ -24,10 +24,10 @@ from pathlib import Path
 import pytest
 
 from squads._backends._agents_md._backend import _also_creatable_types
-from squads._backends._base import RoleView
 from squads._interactions import cheatsheet_anchor_context, get_playbook_spec
 from squads._models._item import Item
 from squads._rendering._engine import render
+from squads._roles._projection import RoleView
 from squads._views import PlaybookSource
 from squads._workflow import bundled_spec
 from squads._workflow._models import Lifecycle, WorkflowSpec

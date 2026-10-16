@@ -17,10 +17,11 @@ runs.
 
 from squads import _aio
 from squads._backends._agents_md import _managed as managed
-from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
+from squads._backends._base import AgentBackend, Artifact, BackendContext
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
+from squads._roles._projection import OperatorView, RoleView
 from squads._workflow import ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
 

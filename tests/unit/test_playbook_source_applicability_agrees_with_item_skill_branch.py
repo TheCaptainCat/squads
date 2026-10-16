@@ -27,8 +27,9 @@ from pathlib import Path
 
 import pytest
 
-from squads._interactions import item_skill_name, laned_types
+from squads._interactions import item_skill_name
 from squads._interactions._models import PlaybookSpec
+from squads._interactions._role_guidance import laned_types
 from squads._services._service import Service, resolve_playbook
 from squads._views import PlaybookSource, render_source_view, resolve_source
 from squads._workflow._loader import load_workflow_spec

@@ -29,10 +29,9 @@ from squads._interactions import (
     cheatsheet_anchor_context,
     cheatsheet_anchor_type,
     custom_item_skill_commands,
-    example_assignee_slug,
-    item_skill_role_sections,
     parent_chain,
 )
+from squads._interactions._role_guidance import example_assignee_slug, item_skill_role_sections
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._models._vocab import label_for

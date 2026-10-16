@@ -42,7 +42,8 @@ from squads._cli._common import (
 )
 from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._interactions import ROLE_DEFINITION_VIEW_NAME, allowed_create_types
+from squads._interactions import ROLE_DEFINITION_VIEW_NAME
+from squads._interactions._role_guidance import allowed_create_types
 from squads._models._item import Item
 from squads._models._schema import version_drifted
 from squads._paths import resolve as resolve_squad_paths
