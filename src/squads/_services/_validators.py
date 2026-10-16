@@ -54,10 +54,12 @@ import dataclasses
 import re
 import unicodedata
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Protocol
 
+from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads import _views as views
@@ -89,10 +91,12 @@ from squads._roles._resolver import (
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
 from squads._workflow._models import (
+    DEFAULT_SQUAD_GLOBAL_LEVEL,
     DEFAULT_VALIDATOR_LEVEL,
     ROSTER_OPERATOR,
     ROSTER_ROLE,
     ROSTER_SKILL,
+    SELECTABLE_SQUAD_GLOBAL_NAMES,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
     VALIDATOR_NAMES,
     WorkflowSpec,
@@ -214,6 +218,9 @@ class SquadGlobalContext:
     ``playbook_guide_role_live`` reads its per-type guides directly. ``report()``'s own
     construction always supplies ``Service.playbook``, so the ``None`` default only ever
     describes a caller that has no playbook to offer at all.
+
+    ``now`` is the run's single clock instant, read once by ``report()``; the members that
+    measure time read it from here and call no clock themselves.
     """
 
     index: SquadsDB
@@ -221,6 +228,7 @@ class SquadGlobalContext:
     spec: WorkflowSpec
     paths: SquadPaths
     playbook: PlaybookSpec | None = None
+    now: datetime | None = None
 
 
 class Validator(Protocol):
@@ -271,6 +279,22 @@ def _resolved_level(ctx: ValidatorContext, name: str) -> str:
             if bare == name and level is not None:
                 return level
     return DEFAULT_VALIDATOR_LEVEL[name]
+
+
+def squad_global_selection(spec: WorkflowSpec, name: str) -> tuple[str | None, str | None]:
+    """The ``(param, level)`` of the ``[squad] validators`` entry selecting *name*, or
+    ``(None, None)`` when the squad does not select it."""
+    for entry in spec.squad.validators:
+        bare, param, level = parse_validator_entry(entry)
+        if bare == name:
+            return param, level
+    return None, None
+
+
+def squad_global_level(spec: WorkflowSpec, name: str) -> str:
+    """The level a squad-global member reports at: its selection's ``@<level>``, else its
+    declared default. Every squad-global member takes its level from here."""
+    return squad_global_selection(spec, name)[1] or DEFAULT_SQUAD_GLOBAL_LEVEL[name]
 
 
 # --------------------------------------------------------------------------- per-item catalog
@@ -1062,21 +1086,21 @@ assert {r.value for r in ContextRequirement} <= {
 # --------------------------------------------------------------------------- squad-global catalog
 
 
-def on_disk_not_indexed(seq: int, fid: str, *, indexed: bool) -> CheckIssue | None:
+def on_disk_not_indexed(seq: int, fid: str, *, indexed: bool, level: str) -> CheckIssue | None:
     """One direction of ``_index_reconciled``, factored to a single-item predicate so
     ``check``'s confirm round in ``_maintenance.py`` can re-run this exact comparison against
     a freshly loaded index's membership for just this candidate — never a second copy."""
     if indexed:
         return None
-    return CheckIssue("error", fid, "on disk but not in index (run `sq repair`)")
+    return CheckIssue(level, fid, "on disk but not in index (run `sq repair`)")
 
 
-def not_on_disk(item: Item, *, on_disk: bool) -> CheckIssue | None:
+def not_on_disk(item: Item, *, on_disk: bool, level: str) -> CheckIssue | None:
     """The other direction of ``_index_reconciled`` — same reuse rationale as
     ``on_disk_not_indexed``."""
     if on_disk:
         return None
-    return CheckIssue("error", item.id, "in index but no markdown file found")
+    return CheckIssue(level, item.id, "in index but no markdown file found")
 
 
 def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
@@ -1085,17 +1109,20 @@ def _index_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     confirm pass re-runs ``on_disk_not_indexed``/``not_on_disk`` directly, one candidate at
     a time, rather than calling this function again — a full rescan would reintroduce the
     cost the lock-free design exists to avoid."""
+    level = squad_global_level(ctx.spec, "index_reconciled")
     index_seqs = {it.sequence_id for it in ctx.index.items.values()}
     on_disk_seqs = set(ctx.on_disk)
     issues = [
         issue
         for seq, (fid, _md, _data) in ctx.on_disk.items()
-        if (issue := on_disk_not_indexed(seq, fid, indexed=seq in index_seqs)) is not None
+        if (issue := on_disk_not_indexed(seq, fid, indexed=seq in index_seqs, level=level))
+        is not None
     ]
     issues += [
         issue
         for it in ctx.index.items.values()
-        if (issue := not_on_disk(it, on_disk=it.sequence_id in on_disk_seqs)) is not None
+        if (issue := not_on_disk(it, on_disk=it.sequence_id in on_disk_seqs, level=level))
+        is not None
     ]
     return issues
 
@@ -1141,12 +1168,13 @@ def _backend_reconciled(ctx: SquadGlobalContext) -> list[CheckIssue]:
     not, and that is the whole difference between the two.
     """
     bctx = BackendContext(paths=ctx.paths, spec=ctx.spec)
+    level = squad_global_level(ctx.spec, "backend_reconciled")
     issues: list[CheckIssue] = []
     for name in ctx.paths.config.active_backends:
         backend = get_backend(name)
         issues.extend(
             CheckIssue(
-                "error",
+                level,
                 rel_path,
                 f"managed file missing — run `sq sync` (backend: {backend.name})",
             )
@@ -1343,8 +1371,9 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
         ctx.playbook if ctx.playbook is not None else get_playbook_spec(),
         ctx.paths.squad_dir,
     )
+    level = squad_global_level(ctx.spec, "roster_config_integrity")
     return [
-        CheckIssue("error", f.entry, f"config integrity: {config_integrity.render_finding(f)}")
+        CheckIssue(level, f.entry, f"config integrity: {config_integrity.render_finding(f)}")
         for f in findings
     ]
 
@@ -1381,7 +1410,7 @@ def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]
         return []
     return [
         CheckIssue(
-            "error",
+            squad_global_level(ctx.spec, "default_designation_duplicated"),
             "",
             "more than one live role carries the default-role designation: "
             f"{', '.join(holders)} — remedy: `sq role <addr> set-default`",
@@ -1437,9 +1466,10 @@ def _roster_slug_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     )
     breaching = frozenset(b.item.id for b in breaches if b.problem is not None)
     live = ctx.spec.live_statuses(ROSTER_OPERATOR)
+    level = squad_global_level(ctx.spec, "roster_slug_valid")
     return [
         CheckIssue(
-            "error",
+            level,
             b.item.id,
             f"{b.text('it is also held by')} — remedy: {_slug_breach_remedy(b, breaching, live)}",
         )
@@ -1476,9 +1506,10 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE]
     known = frozenset(slug for it in roles if (slug := it.slug))
     live_initial = ctx.spec.live_initial(ROSTER_ROLE)
+    level = squad_global_level(ctx.spec, "playbook_guide_role_live")
     return [
         CheckIssue(
-            "warn",
+            level,
             "",
             orphaned_playbook_guide_message(
                 item_type, slug, retired=slug in known, live_status=live_initial
@@ -1497,6 +1528,217 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ]
 
 
+def active_items(index: SquadsDB, spec: WorkflowSpec) -> list[Item]:
+    """The active items in sequence order: work-category items resting at a status whose role
+    declares ``live = true``."""
+    return sorted(
+        (
+            it
+            for it in index.items.values()
+            if (ts := spec.items.get(it.type)) is not None
+            and ts.category == "work"
+            and it.status in spec.live_statuses(it.type)
+        ),
+        key=lambda it: it.sequence_id,
+    )
+
+
+def _ids(items: list[Item], limit: int = 5) -> str:
+    """The ids of *items* for a message: the first *limit*, then a count of the rest."""
+    shown = ", ".join(it.id for it in items[:limit])
+    return shown if len(items) <= limit else f"{shown} and {len(items) - limit} more"
+
+
+def _squad_global_param(ctx: SquadGlobalContext, name: str) -> int | None:
+    """The integer parameter of the selection of *name*, or ``None`` when it is not selected."""
+    param = squad_global_selection(ctx.spec, name)[0]
+    return int(param) if param is not None else None
+
+
+def _children_settled_with_parent(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """One finding per parent at a settled status that still has a child at a status that is not
+    settled. Sub-entities are not children."""
+    open_children: dict[int, list[Item]] = {}
+    for it in ctx.index.items.values():
+        parent = ctx.index.get(it.parent) if it.parent else None
+        if parent is not None and not ctx.spec.role_for(it.status).settled:
+            open_children.setdefault(parent.sequence_id, []).append(it)
+    level = squad_global_level(ctx.spec, "children_settled_with_parent")
+    issues: list[CheckIssue] = []
+    for seq in sorted(open_children):
+        parent = ctx.index.items[seq]
+        if not ctx.spec.role_for(parent.status).settled:
+            continue
+        kids = sorted(open_children[seq], key=lambda it: it.sequence_id)
+        issues.append(
+            CheckIssue(
+                level,
+                parent.id,
+                f"{parent.id} is {parent.status} with {len(kids)} open "
+                f"{'child' if len(kids) == 1 else 'children'}: {_ids(kids)}",
+            )
+        )
+    return issues
+
+
+def _dependency_edges(index: SquadsDB, spec: WorkflowSpec) -> dict[int, list[int]]:
+    """Each item's sequence number -> the sequence numbers it depends on, from every ref whose
+    kind declares the dependency role, oriented by the kind's declared direction."""
+    blocker_kind = spec.dependency_ref_kind("blocker")
+    dependent_kind = spec.dependency_ref_kind("dependent")
+    edges: dict[int, list[int]] = {}
+    for it in index.items.values():
+        for r in it.refs:
+            rid, kind = split_ref(r)
+            target = index.get(rid)
+            if target is None:
+                continue
+            if kind == blocker_kind:
+                edges.setdefault(target.sequence_id, []).append(it.sequence_id)
+            elif kind == dependent_kind:
+                edges.setdefault(it.sequence_id, []).append(target.sequence_id)
+    return edges
+
+
+class _Tarjan:
+    """Iterative strongly-connected-components pass over *edges*, so a long chain cannot overflow
+    the stack."""
+
+    def __init__(self, edges: dict[int, list[int]]) -> None:
+        self.edges = edges
+        self.number: dict[int, int] = {}
+        self.low: dict[int, int] = {}
+        self.stack: list[int] = []
+        self.on_stack: set[int] = set()
+        self.cycles: list[list[int]] = []
+
+    def run(self) -> list[list[int]]:
+        for root in sorted(self.edges):
+            if root not in self.number:
+                self._walk(root)
+        return sorted(self.cycles)
+
+    def _walk(self, root: int) -> None:
+        work: list[tuple[int, int]] = [(root, 0)]
+        while work:
+            node, pos = work.pop()
+            if pos == 0:
+                self.number[node] = self.low[node] = len(self.number)
+                self.stack.append(node)
+                self.on_stack.add(node)
+            child = self._next_unvisited(node, pos)
+            if child is not None:
+                work.append((node, child[1]))
+                work.append((child[0], 0))
+                continue
+            if self.low[node] == self.number[node]:
+                self._close(node)
+            if work:
+                parent = work[-1][0]
+                self.low[parent] = min(self.low[parent], self.low[node])
+
+    def _next_unvisited(self, node: int, pos: int) -> tuple[int, int] | None:
+        """The next target of *node* from *pos* not yet numbered, with the position after it;
+        lowers ``low`` over the targets on the stack passed on the way."""
+        targets = self.edges.get(node, [])
+        for i in range(pos, len(targets)):
+            target = targets[i]
+            if target not in self.number:
+                return target, i + 1
+            if target in self.on_stack:
+                self.low[node] = min(self.low[node], self.number[target])
+        return None
+
+    def _close(self, node: int) -> None:
+        component: list[int] = []
+        while (member := self.stack.pop()) != node:
+            self.on_stack.discard(member)
+            component.append(member)
+        self.on_stack.discard(node)
+        component.append(node)
+        if len(component) > 1 or node in self.edges.get(node, []):
+            self.cycles.append(sorted(component))
+
+
+def _cycles(edges: dict[int, list[int]]) -> list[list[int]]:
+    """Every strongly connected component with a cycle (two or more nodes, or a self-edge), each
+    sorted, in order of its least member."""
+    return _Tarjan(edges).run()
+
+
+def _dependency_acyclic(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """One finding per cycle among dependency edges, naming the items on it."""
+    level = squad_global_level(ctx.spec, "dependency_acyclic")
+    return [
+        CheckIssue(
+            level,
+            "",
+            "dependency cycle among "
+            + ", ".join(ctx.index.items[seq].id for seq in component)
+            + " — each waits on another, so none can start",
+        )
+        for component in _cycles(_dependency_edges(ctx.index, ctx.spec))
+    ]
+
+
+def _wip_limit(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """One finding per assignee holding more active items than the selected limit."""
+    limit = _squad_global_param(ctx, "wip_limit")
+    if limit is None:
+        return []
+    held: dict[str, list[Item]] = {}
+    for it in active_items(ctx.index, ctx.spec):
+        if it.assignee:
+            held.setdefault(it.assignee, []).append(it)
+    level = squad_global_level(ctx.spec, "wip_limit")
+    return [
+        CheckIssue(
+            level,
+            "",
+            f"{slug} holds {len(items)} active items (limit {limit}): {_ids(items)}",
+        )
+        for slug, items in sorted(held.items())
+        if len(items) > limit
+    ]
+
+
+def _unassigned_active(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """One finding when more active items than the selected number have no assignee."""
+    limit = _squad_global_param(ctx, "unassigned_active")
+    if limit is None:
+        return []
+    unassigned = [it for it in active_items(ctx.index, ctx.spec) if not it.assignee]
+    if len(unassigned) <= limit:
+        return []
+    return [
+        CheckIssue(
+            squad_global_level(ctx.spec, "unassigned_active"),
+            "",
+            f"{len(unassigned)} active items have no assignee (limit {limit}): {_ids(unassigned)}",
+        )
+    ]
+
+
+def _stale_active(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """One finding per active item last updated more than the selected number of days before the
+    run's clock instant."""
+    days = _squad_global_param(ctx, "stale_active")
+    if days is None or ctx.now is None:
+        return []
+    cutoff = ctx.now - timedelta(days=days)
+    level = squad_global_level(ctx.spec, "stale_active")
+    return [
+        CheckIssue(
+            level,
+            it.id,
+            f"{it.id} is {it.status} and untouched since {clock.iso(it.updated_at)} "
+            f"(more than {days} days)",
+        )
+        for it in active_items(ctx.index, ctx.spec)
+        if it.updated_at < cutoff
+    ]
+
+
 #: The closed squad-global validator registry — same CODE-constant status as ``CATALOG``.
 SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "index_reconciled": _index_reconciled,
@@ -1505,6 +1747,11 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "default_designation_duplicated": _default_designation_duplicated,
     "roster_slug_valid": _roster_slug_valid,
     "playbook_guide_role_live": _playbook_guide_role_live,
+    "children_settled_with_parent": _children_settled_with_parent,
+    "dependency_acyclic": _dependency_acyclic,
+    "wip_limit": _wip_limit,
+    "unassigned_active": _unassigned_active,
+    "stale_active": _stale_active,
 }
 assert set(SQUAD_GLOBAL_CATALOG) == SQUAD_GLOBAL_VALIDATOR_NAMES, (
     "SQUAD_GLOBAL_CATALOG must implement exactly SQUAD_GLOBAL_VALIDATOR_NAMES"
@@ -1709,9 +1956,15 @@ class ValidatorEngine:
                 spec=self.spec,
                 paths=self.paths,
                 playbook=self.playbook,
+                now=clock.now(),
             )
-            for validator in self.squad_global.values():
-                issues += validator(g_ctx)
+            for name, validator in self.squad_global.items():
+                if name not in SELECTABLE_SQUAD_GLOBAL_NAMES:
+                    issues += validator(g_ctx)
+            for entry in self.spec.squad.validators:
+                selected = self.squad_global.get(parse_validator_entry(entry)[0])
+                if selected is not None:
+                    issues += selected(g_ctx)
         return issues
 
     def gate(self, item: Item, index: SquadsDB) -> None:

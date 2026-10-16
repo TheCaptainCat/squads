@@ -188,7 +188,81 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "default_designation_duplicated",
         "roster_slug_valid",
         "playbook_guide_role_live",
+        "children_settled_with_parent",
+        "dependency_acyclic",
+        "wip_limit",
+        "unassigned_active",
+        "stale_active",
     }
+)
+
+#: The squad-global members that run in every squad and cannot be named in ``[squad]
+#: validators``: a defect in any squad, not a policy a squad chooses.
+ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
+    {
+        "index_reconciled",
+        "backend_reconciled",
+        "roster_config_integrity",
+        "default_designation_duplicated",
+        "roster_slug_valid",
+        "playbook_guide_role_live",
+    }
+)
+
+#: The squad-global members a squad selects in ``[squad] validators``.
+SELECTABLE_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
+    {
+        "children_settled_with_parent",
+        "dependency_acyclic",
+        "wip_limit",
+        "unassigned_active",
+        "stale_active",
+    }
+)
+
+assert ALWAYS_ON_SQUAD_GLOBAL_NAMES.isdisjoint(SELECTABLE_SQUAD_GLOBAL_NAMES), (
+    "a squad-global member is either always-on or selectable, never both"
+)
+assert (
+    ALWAYS_ON_SQUAD_GLOBAL_NAMES | SELECTABLE_SQUAD_GLOBAL_NAMES == SQUAD_GLOBAL_VALIDATOR_NAMES
+), "every squad-global member must be placed in exactly one tier"
+assert SQUAD_GLOBAL_VALIDATOR_NAMES.isdisjoint(VALIDATOR_NAMES), (
+    "a name cannot be both a per-item and a squad-global validator"
+)
+
+#: Each squad-global member's default level, read by ``_services/_validators.py`` through one
+#: resolver; a selection's ``@<level>`` overrides it. At this scope a level changes only
+#: ``sq check``'s exit code, since squad-global members never run at the create/update gate.
+DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
+    "index_reconciled": "error",
+    "backend_reconciled": "error",
+    "roster_config_integrity": "error",
+    "default_designation_duplicated": "error",
+    "roster_slug_valid": "error",
+    "playbook_guide_role_live": "warn",
+    "children_settled_with_parent": "warn",
+    "dependency_acyclic": "warn",
+    "wip_limit": "warn",
+    "unassigned_active": "warn",
+    "stale_active": "warn",
+}
+assert set(DEFAULT_SQUAD_GLOBAL_LEVEL) == SQUAD_GLOBAL_VALIDATOR_NAMES, (
+    "DEFAULT_SQUAD_GLOBAL_LEVEL must declare exactly one default per squad-global member"
+)
+
+#: The selectable members that take a required ``:<n>`` parameter, and the least value each
+#: accepts: ``wip_limit`` and ``stale_active`` need a positive number, while
+#: ``unassigned_active:0`` ("any unassigned active item") is meaningful.
+SQUAD_GLOBAL_PARAM_MINIMUM: dict[str, int] = {
+    "wip_limit": 1,
+    "unassigned_active": 0,
+    "stale_active": 1,
+}
+
+#: The selectable members that only make sense where an item can be active: a work-category
+#: type whose lifecycle holds a status of a live role.
+ACTIVE_ITEM_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
+    {"wip_limit", "unassigned_active", "stale_active"}
 )
 
 #: The fallback role name a status with no declared ``role`` resolves to — neutral/non-settled/
@@ -1644,6 +1718,12 @@ def _check_validators_assignment(items: dict[str, ItemSpec], errors: list[str]) 
         seen: dict[tuple[str, str | None], str] = {}
         for entry in ts.validators:
             bare, param, level = parse_validator_entry(entry)
+            if bare in SQUAD_GLOBAL_VALIDATOR_NAMES:
+                errors.append(
+                    f"item {t!r}: validators entry {entry!r}: {bare} is a squad-global "
+                    "validator — select it in the `[squad]` table's `validators` list"
+                )
+                continue
             if bare not in VALIDATOR_NAMES:
                 errors.append(f"item {t!r}: validators entry {entry!r} names an unknown validator")
                 continue
@@ -1807,6 +1887,90 @@ def _blocked_has_blocker_refusals(
             "satisfy it; drop the entry or declare a dependency ref kind"
         )
     return refusals
+
+
+def parse_non_negative_int(text: str) -> int | None:
+    """*text* as an integer of at least zero, or ``None``; ASCII decimal digits only."""
+    return int(text) if text.isascii() and text.isdigit() else None
+
+
+def _check_squad_validator_entry(entry: str, errors: list[str]) -> None:
+    """Refusals for one ``[squad] validators`` entry's name, parameter and level."""
+    bare, param, level = parse_validator_entry(entry)
+    where = f"squad validators entry {entry!r}"
+    if bare in VALIDATOR_NAMES:
+        errors.append(
+            f"{where}: {bare} is a per-item validator — name it on a type's `validators` list"
+        )
+        return
+    if bare in ALWAYS_ON_SQUAD_GLOBAL_NAMES:
+        errors.append(f"{where}: {bare} always runs and cannot be selected — drop the entry")
+        return
+    if bare not in SELECTABLE_SQUAD_GLOBAL_NAMES:
+        errors.append(f"{where} names an unknown validator")
+        return
+    minimum = SQUAD_GLOBAL_PARAM_MINIMUM.get(bare)
+    if minimum is None:
+        if param is not None:
+            errors.append(f"{where}: {bare} takes no parameter")
+    elif not (param and param.strip()):
+        errors.append(f"{where}: {bare} needs its parameter — write '{bare}:<n>'")
+    else:
+        value = parse_non_negative_int(param)
+        if value is None or value < minimum:
+            kind = "positive" if minimum > 0 else "non-negative"
+            errors.append(f"{where}: {bare} needs a {kind} integer parameter (got {param!r})")
+    if level is not None and level not in VALIDATOR_LEVELS:
+        errors.append(
+            f"{where} names an unknown level {level!r} (must be one of {sorted(VALIDATOR_LEVELS)})"
+        )
+
+
+def _check_squad_validators(
+    squad: SquadSpec,
+    items: dict[str, ItemSpec],
+    lifecycles: dict[str, Lifecycle],
+    statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
+    ref_kinds: dict[str, RefKindSpec],
+    errors: list[str],
+) -> None:
+    """Plane-1 checks for ``[squad] validators``: each entry names a selectable squad-global
+    member with a well-formed parameter and level, no member is named twice, and a selection the
+    spec's own declarations make unable to fire is refused (the corpus is never consulted)."""
+    seen: dict[str, str] = {}
+    for entry in squad.validators:
+        _check_squad_validator_entry(entry, errors)
+        bare = parse_validator_entry(entry)[0]
+        if bare not in SELECTABLE_SQUAD_GLOBAL_NAMES:
+            continue
+        if bare in seen:
+            errors.append(
+                f"squad validators entry {entry!r} repeats {bare}, already selected as "
+                f"{seen[bare]!r} — name each member once"
+            )
+            continue
+        seen[bare] = entry
+        if bare in ACTIVE_ITEM_SQUAD_GLOBAL_NAMES and not any(
+            ts.category == "work"
+            and (lc := lifecycles.get(ts.lifecycle)) is not None
+            and any(_status_live(st, statuses, roles) for st in lc.states)
+            for ts in items.values()
+        ):
+            errors.append(
+                f"squad validators entry {entry!r} needs a work type whose lifecycle holds a "
+                "status of a role declaring live = true, and none does — without one no item is "
+                "active and it never fires; drop the entry or give a work type's lifecycle a "
+                "status of a live role"
+            )
+        if bare == "dependency_acyclic" and not any(
+            rk.role == "dependency" for rk in ref_kinds.values()
+        ):
+            errors.append(
+                f"squad validators entry {entry!r} needs a declared ref kind with "
+                'role = "dependency", and the spec declares none — without one no cycle can '
+                "exist; drop the entry or declare a dependency ref kind"
+            )
 
 
 def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
@@ -2571,6 +2735,19 @@ def lifecycle_edges_in_order(machine: Lifecycle) -> list[tuple[str, str]]:
     ]
 
 
+class SquadSpec(BaseModel):
+    """The ``[squad]`` table: the squad-wide checks this squad selects.
+
+    ``validators`` takes the entries a type's ``validators`` list takes (``name``,
+    ``name:param``, ``name@level``, ``name:param@level``), naming selectable squad-global
+    members only.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    validators: list[str] = []
+
+
 class WorkflowSpec(BaseModel):
     """The full loaded workflow specification.
 
@@ -2608,6 +2785,8 @@ class WorkflowSpec(BaseModel):
     #: field either: the key IS the presentation template's identity, resolved by
     #: ``squads._views`` at ``templates/views/<name>.md.j2``). See :class:`ViewSpec`.
     views: dict[str, ViewSpec] = {}
+    #: The squad-wide validator selection. See :class:`SquadSpec`.
+    squad: SquadSpec = SquadSpec()
 
     # ------------------------------------------------------------------ convenience accessors
 
@@ -3175,6 +3354,16 @@ class WorkflowSpec(BaseModel):
         # A selected check the spec's own declarations make unable to fire is refused.
         _check_selections_that_cannot_fire(
             self.items, self.lifecycles, self.statuses, self.roles, self.ref_kinds, errors
+        )
+
+        _check_squad_validators(
+            self.squad,
+            self.items,
+            self.lifecycles,
+            self.statuses,
+            self.roles,
+            self.ref_kinds,
+            errors,
         )
 
         # Every capability a type declares must be reachable under the validators its own
