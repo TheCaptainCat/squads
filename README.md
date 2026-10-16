@@ -331,7 +331,7 @@ discussion — all written through commands.
 - `sq role catalog [--json]` — the bundled roles available to activate · `sq role list [--json]` — the roles this squad has actually activated
 - `sq role activate <slug>` · `sq role <slug|id|n> show|regen|rm --purge|status <S> [--force] [--unlink]` — `rm` requires `--purge` and deletes the entry's file; without it, it exits `1` and names `rm --purge` and `status Archived`. A role slug is never `operator`, `squads`, `op-…` or a verb of `sq role` (`activate`, `catalog`, `list`)
 - `sq role <slug|id|n> set-default` — move the default-role designation here, clearing the previous holder; refuses a role that isn't live
-- `sq dev add --tech <t> [--name] [--model]` · `sq dev list` — stack-specific developers
+- `sq dev add --tech <t> [--name] [--model] [--slug]` · `sq dev list` — stack-specific developers
 - `sq operator add "NAME" [--slug]` · `sq operator list` · `sq operator <slug|id|n> show|rm --purge|status <S> [--force] [--unlink]` — register **humans**; an operator slug is `op-` followed by lowercase letters, digits and hyphens (`op-<first>` by default, and `--slug` outside that form is refused); assignable and can author items/comments
 - `sq skill add NAME [--desc|--when-to-use|--allowed-tools]` · `sq skill <slug|id|n> show|body|regen|rm --purge|link-role <role>|unlink-role <role>|status <S> [--force] [--unlink]` — a skill slug is never `add`, and a skill cannot author or be assigned work
 - Archiving a roster entry **retires** it: its generated files are withdrawn, the transition is refused where the generated config couldn't survive it, and `--unlink` severs a severable dependency so the ordinary check can pass — see [docs/roles.md](docs/roles.md#retiring-a-roster-entry)

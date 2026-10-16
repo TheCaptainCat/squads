@@ -179,7 +179,7 @@ parallel, or would you rather they were sequenced?
 - **Product owner (Nina Product)** — write features + user stories; define acceptance criteria.
 - **Tech lead (Olivia Lead)** — break features into tasks (`--parent` the feature), map subtasks to
   user stories, link bugs/reviews with `--kind fixes|addresses`, sequence and unblock.
-- **Developer (`<tech>-dev`)** — implement the assigned task; write tests; comment progress; address
+- **Developer (any role holding the `dev` capability, such as `python-dev`)** — implement the assigned task; write tests; comment progress; address
   review feedback.
 - **Reviewer (Paul Reviewer)** — drive review items to a verdict; request changes or approve.
 - **QA (Mara Tester)** — derive tests from user stories; verify fixes; file bugs.

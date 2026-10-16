@@ -32,7 +32,7 @@ with `--author op-<slug>`.
 
 ### "unknown slug '…'; valid slugs: …"
 `--author`, `--as` and `--assignee` take a registered slug: a role slug (`architect`, `qa`, …), a
-developer's `<tech>-dev` once you have added it with `sq dev add --tech <tech>`, or `op-<slug>` for a
+developer's slug once you have added it with `sq dev add` (`python-dev` for `--tech python`), or `op-<slug>` for a
 human registered with `sq operator add`. Anything else is refused (exit 1) and nothing is written;
 the error lists the slugs that would have worked.
 
@@ -90,9 +90,9 @@ and rewrites item files while it is there ([what it writes](#does-sq-repair-chan
 Yes. Alongside the index rebuild, `sq repair` removes from your item files what squads now computes
 on every read rather than stores: the sub-entity roll-up table and each block's badge line, and the
 keys a role item mirrored from its definition (`full_name`, `mission`, `responsibilities`,
-`agreements`, `color`, `can_spawn`, `skills`). It also canonicalises any legacy ref encoding. A
-role keeps its name, its `slug`, its default-role designation, a developer role's `model`,
-`is_dev` and `tech`, and any other key.
+`agreements`, `color`, `can_spawn`, `skills`, `is_dev`). It also canonicalises any legacy ref
+encoding. A role keeps its name, its `slug`, its default-role designation, a developer role's
+`model` and `tech`, and any other key.
 
 A **role** or **generated skill** whose body is empty gets its view tag written back — the one
 line that makes `sq role <slug> show` / `sq skill <name> show` render the definition fresh from the
