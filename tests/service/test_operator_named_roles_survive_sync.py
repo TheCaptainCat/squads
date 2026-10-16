@@ -24,12 +24,13 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import dev_role
 from squads import __version__
 from squads import _itemfile as itemfile
 from squads._context import bind_context, get_context
 from squads._index._reflog import read_lines, reflog_path
 from squads._roles._catalog import PREDEFINED
-from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base
+from squads._roles._resolver import resolve_role_with_base
 from squads._services import _service as service
 from squads._workflow import ROSTER_ROLE
 
@@ -207,7 +208,7 @@ async def test_tier_3_bundled_default_and_dev_pool_name_with_no_item_and_no_over
     resolved = resolve_role_with_base("architect", project.squad_dir, base=None)
     assert resolved.full_name == _BUNDLED_ARCHITECT.full_name
 
-    pool_base = dev_base_for_slug("rust-dev")
+    pool_base = dev_role("rust")
     resolved_dev = resolve_role_with_base("rust-dev", project.squad_dir, base=pool_base)
     assert resolved_dev.full_name == pool_base.full_name  # the generated pool pick, not a stub
 

@@ -359,7 +359,9 @@ class TestReactivationRestoresAScopedSkill:
         skill = await svc.add_skill("Custom Helper")
         await svc.link_role(skill.id, role.id)
 
-        wrong_ctx = BackendContext(paths=svc.paths, spec=svc.spec)  # WRONG: no role_skills
+        wrong_ctx = BackendContext(
+            paths=svc.paths, spec=svc.spec, playbook=svc.playbook
+        )  # WRONG: no role_skills
         role_item = await svc.get(role.id)
         for backend in svc._backends():
             await backend.generate_role_entry(

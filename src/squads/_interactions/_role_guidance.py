@@ -7,6 +7,7 @@ Every function takes the workflow spec and playbook it answers from; none falls 
 bundled documents.
 """
 
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import replace
 from typing import Any, Protocol
@@ -174,8 +175,36 @@ def skills_for_role(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSpec) 
     ]
 
 
+#: A role named as the subject of a command flag or a mention in playbook text.
+_ROLE_REFERENCE = re.compile(r"(?<![\w-])(--author |--assignee |--as |@)([a-z0-9][a-z0-9-]*)")
+
+#: What a reference to a role the squad does not have is written as.
+ABSENT_ROLE_PLACEHOLDER = "<slug>"
+
+
+def live_roster_text(
+    lines: Iterable[str], roster: Iterable[RoleView], playbook: PlaybookSpec
+) -> list[str]:
+    """*lines* of playbook text with every reference to a role the live *roster* lacks written as
+    :data:`ABSENT_ROLE_PLACEHOLDER`, so a generated command or hand-off never names a slug the
+    squad cannot use. Only roles the *playbook* itself names as a guide subject are rewritten.
+    """
+    live = {r.slug for r in roster}
+    named = {g.slug for e in playbook.types.values() for g in e.roles}
+
+    def replace_reference(m: re.Match[str]) -> str:
+        slug = m.group(2)
+        if slug in live or slug not in named:
+            return m.group(0)
+        return f"{m.group(1)}{ABSENT_ROLE_PLACEHOLDER}"
+
+    return [_ROLE_REFERENCE.sub(replace_reference, line) for line in lines]
+
+
 def item_skill_role_sections(
-    pb: ItemPlaybookSpec | None, roster: Iterable[RoleView]
+    pb: ItemPlaybookSpec | None,
+    roster: Iterable[RoleView],
+    playbook: PlaybookSpec | None = None,
 ) -> list[dict[str, Any]]:
     """The ordered per-role section blocks a per-item-type skill's presentation template
     renders for one item type — empty for a type the active playbook does not cover (the thin
@@ -189,12 +218,19 @@ def item_skill_role_sections(
     - a guide addressed to a capability (``*<name>``) renders only while at least one live role
       holds it, under a heading that names the capability and lists those holders;
     - a guide addressed to a role renders only while that role is in the live roster.
+
+    With *playbook*, every reference to a role the roster lacks in a guide's text is written as
+    a placeholder (:func:`live_roster_text`); a template that omits it keeps the text as authored.
     """
     if pb is None:
         return []
     roles = list(roster)
     by_slug = {r.slug: r for r in roles}
     out: list[dict[str, Any]] = []
+
+    def live(lines: list[str]) -> list[str]:
+        return lines if playbook is None else live_roster_text(lines, roles, playbook)
+
     for guide in pb.roles:
         if guide.slug.startswith(CAPABILITY_SUBJECT_PREFIX):
             holders = [r for r in roles if addresses(guide.slug, r)]
@@ -209,10 +245,10 @@ def item_skill_role_sections(
         out.append(
             {
                 "title": title,
-                "enter": guide.enter,
-                "do": guide.do,
-                "handoff": guide.handoff,
-                "watch": guide.watch,
+                "enter": live(guide.enter),
+                "do": live(guide.do),
+                "handoff": live(guide.handoff),
+                "watch": live(guide.watch),
             }
         )
     return out

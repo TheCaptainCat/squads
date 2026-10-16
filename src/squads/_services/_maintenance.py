@@ -302,12 +302,12 @@ def _retired_role_keys(item: Item, spec: WorkflowSpec) -> frozenset[str]:
     developer's ``model`` is an operator setting with no catalog answer, so a stripped one is
     re-rolled from the dev pool as a different value.
 
-    A role is identified by its item type and its shape by the stored ``is_dev`` marker, never
+    A role is identified by its item type and its shape by the stored ``tech`` attribute, never
     by the slug's spelling. An operator item is kept off this sweep by the type check.
     """
     if item.type != ROSTER_ROLE:
         return frozenset()
-    stored = RoleDef.stored_attribute_keys(is_dev=attrs.is_dev(item))
+    stored = RoleDef.stored_attribute_keys(templated=attrs.is_templated(item))
     retired = (RETIRED_ROLE_KEYS | RoleDef.attribute_keys()) - stored
     # A name the squad's spec declares on role is the adopter's attribute, not a mirror key; the
     # one declared name the mirror also used (the stored model) is still swept.
@@ -1597,7 +1597,7 @@ class MaintenanceMixin(ServiceCore):
             return None  # orphaned custom role item: no catalog entry, no override file
         # The developer marker lives on the item, and it is what decides whether the
         # dev-only column (``model``) is part of this merge — see ``RoleDef.to_attributes``.
-        catalog_attributes = catalog_role.to_attributes(is_dev=attrs.is_dev(item))
+        catalog_attributes = catalog_role.to_attributes(templated=attrs.is_templated(item))
         item_fields = catalog_role.to_item_fields()
         base = item.model_copy(deep=True)
         previous_attributes: dict[str, Any] = {}

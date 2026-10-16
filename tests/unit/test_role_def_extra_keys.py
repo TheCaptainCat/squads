@@ -39,7 +39,7 @@ def test_extra_keys_covers_every_bundled_role_s_to_extra_keys() -> None:
 
 
 def test_extra_keys_covers_a_dev_role_s_to_extra_keys() -> None:
-    assert set(dev_role("python").to_attributes(is_dev=True)) <= RoleDef.attribute_keys()
+    assert set(dev_role("python").to_attributes(templated=True)) <= RoleDef.attribute_keys()
 
 
 def test_to_extra_stores_none_of_the_definition_fields() -> None:
@@ -49,7 +49,7 @@ def test_to_extra_stores_none_of_the_definition_fields() -> None:
         stored = role.to_attributes()
         for key in _REMOVED_FROM_THE_MIRROR:
             assert key not in stored, f"{role.slug} still stores {key!r}"
-    dev_stored = dev_role("python").to_attributes(is_dev=True)
+    dev_stored = dev_role("python").to_attributes(templated=True)
     for key in _REMOVED_FROM_THE_MIRROR:
         assert key not in dev_stored, f"a dev role still stores {key!r}"
 
@@ -58,7 +58,7 @@ def test_model_is_written_for_a_dev_role_and_withheld_from_a_bundled_one() -> No
     """The one conditional key. A developer's model has no catalog answer to resolve from, so
     it is stored; a bundled role's comes from the catalog, so storing it would be a mirror
     again. The flag is the caller's, not a function of the slug's spelling."""
-    assert dev_role("python", model="opus").to_attributes(is_dev=True)[X.MODEL] == "opus"
+    assert dev_role("python", model="opus").to_attributes(templated=True)[X.MODEL] == "opus"
     assert X.MODEL not in dev_role("python", model="opus").to_attributes()
     for role in PREDEFINED:
         assert X.MODEL not in role.to_attributes(), role.slug
@@ -66,7 +66,7 @@ def test_model_is_written_for_a_dev_role_and_withheld_from_a_bundled_one() -> No
 
 def test_slug_is_a_core_key_not_a_stored_attribute() -> None:
     for role in (*PREDEFINED, dev_role("python")):
-        assert "slug" not in role.to_attributes(is_dev=True)
+        assert "slug" not in role.to_attributes(templated=True)
 
 
 def test_permitted_extra_skew_membership_is_pinned_exactly() -> None:

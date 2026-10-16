@@ -59,6 +59,7 @@ async def test_active_role_sections_reflect_only_actually_active_roles(svc, proj
 
 async def test_actor_guidance_is_structured_not_free_prose(svc, project):
     await svc.add_dev("python")
+    await svc.activate_role("reviewer")
     await svc.refresh_managed()
     task = await _item_skill_body(svc, "task")
     assert "## For `*dev`:" in task

@@ -40,6 +40,11 @@ _ROLE_DECLARED_IN_OVERRIDES: frozenset[str] = frozenset(
 #: --name`` / ``sq dev add --name``, and the item's own top-level ``title`` is where it lives.
 _ROLE_NAME_KEY: str = "full_name"
 
+#: The developer marker an earlier release stored on a role; a templated role is the one that
+#: carries ``tech``, and a developer is the role that holds the capability the ``[dev]`` table
+#: declares.
+_RETIRED_ROLE_DEV_KEY: str = "is_dev"
+
 #: A role's skill list is a computed projection over the playbook and the index; a stored copy
 #: of it is a retired mirror key.
 _RETIRED_ROLE_SKILLS_KEY: str = "skills"
@@ -48,7 +53,10 @@ _RETIRED_ROLE_SKILLS_KEY: str = "skills"
 #: and its skill list. A closed, named set — never "every key this build does not recognise" — so
 #: a sweep never deletes a key some other tool put on a role item.
 RETIRED_ROLE_KEYS: frozenset[str] = (
-    _ROLE_DECLARED_IN_OVERRIDES | {_ROLE_NAME_KEY} | {_RETIRED_ROLE_SKILLS_KEY}
+    _ROLE_DECLARED_IN_OVERRIDES
+    | {_ROLE_NAME_KEY}
+    | {_RETIRED_ROLE_SKILLS_KEY}
+    | {_RETIRED_ROLE_DEV_KEY}
 )
 
 

@@ -116,7 +116,7 @@ async def test_absent_from_role_skills_falls_back_to_the_pure_mapping(
 ) -> None:
     """No ``role_skills`` entry (pre-resolver call sites, e.g. brand-new role creation) — the
     backend must still fall back to the pure system-only list, not omit skills."""
-    ctx = BackendContext(paths=paths)  # role_skills defaults to {}
+    ctx = BackendContext(paths=paths, spec=_SPEC, playbook=_PB)  # role_skills defaults to {}
     await backend.ensure_scaffold(ctx)
     item = _make_role_item(paths.squad_dir, role_def.slug)
     artifact = await backend.generate_role_entry(ctx, item, role_def)
@@ -124,3 +124,12 @@ async def test_absent_from_role_skills_falls_back_to_the_pure_mapping(
     assert "release-runbook" not in content
     for system_skill in role_guidance.skills_for_role(role_of("architect"), _SPEC, _PB):
         assert system_skill in content
+
+
+async def test_a_context_without_role_skills_or_documents_refuses_instead_of_reading_bundled(
+    paths: SquadPaths, role_def: RoleDef
+) -> None:
+    from squads._errors import SquadsError
+
+    with pytest.raises(SquadsError):
+        BackendContext(paths=paths).resolved_skills_for(role_def)

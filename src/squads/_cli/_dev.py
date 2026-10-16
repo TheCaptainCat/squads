@@ -22,10 +22,13 @@ async def dev_add(
         None, "--name", help="Full name (auto from a pool if omitted)."
     ),
     model: str | None = typer.Option(None, "--model", help="sonnet | opus | haiku."),
+    slug: str | None = typer.Option(
+        None, "--slug", help="Slug to store the developer under (default: <tech>-dev)."
+    ),
 ):
     """Bootstrap a developer for a technology (e.g. `sq dev add --tech dotnet`)."""
     svc = get_service()
-    item = await svc.add_dev(tech, name=name, model=model)
+    item = await svc.add_dev(tech, name=name, model=model, slug=slug)
     console.print(f"added [bold]{e(item.title)}[/bold] (`{item.slug}`) {item.id}")
 
 

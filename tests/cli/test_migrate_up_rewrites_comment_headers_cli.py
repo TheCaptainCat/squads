@@ -266,6 +266,12 @@ POSTCONDITIONS = {
         not re.search(r"^- \[[^\]]+\] [^`]", _discussion_text(root), re.M)
     ),
     "flat-frontmatter": lambda root: _frontmatter_is_flat(root),
+    "developer-capability": lambda root: (
+        not any(
+            "is_dev" in split_frontmatter(p.read_text(encoding="utf-8"))[0]
+            for p in root.rglob("ROLE-*.md")
+        )
+    ),
 }
 
 

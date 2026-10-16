@@ -555,7 +555,6 @@ ref_rules = []
 
 [items.role.attributes]
 is_default = { kind = "bool", settable = false }
-is_dev = { kind = "bool", settable = false }
 model = { kind = "str" }
 tech = { kind = "str", settable = false }
 

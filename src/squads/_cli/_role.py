@@ -131,7 +131,7 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     that designates the same slug for real. ``sq role list`` — the roster listing, which
     carries every live role — is still the surface that names a holder in its own rows.
 
-    Like the other per-role fields here (name, title, model), ``capabilities`` is the catalog
+    Like the other per-role fields here (name, title), ``capabilities`` is the catalog
     document's value, before any per-slug role file; ``sq role list`` and ``sq role <addr>
     show`` carry the resolved value.
     """
@@ -405,17 +405,11 @@ async def show_role(
         # `Service.resolved_skills_for_role`).
         skills = await svc.resolved_skills_for_role(slug)
         skills_display = ", ".join(skills) if skills else "—"
-        preview_name = common.dev_preview_full_name(r, base_role, it)
-        display_name = (
-            preview_name
-            if preview_name is not None
-            else f"(unassigned — run `sq dev add --tech {r.slug.removesuffix('-dev')}`)"
-        )
         # Mission/responsibilities are deliberately absent: the resolved definition printed
         # below carries them once, in the form an agent is meant to read, rather than the
         # card repeating what it does not need to.
         rows = [
-            f"[bold]{e(display_name)}[/bold] (`{e(r.slug)}`)",
+            f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",
             f"[bold]model:[/bold] {e(r.model or 'inherit')}",
             f"[bold]color:[/bold] {e(r.color or '—')}",

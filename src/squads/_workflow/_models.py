@@ -2179,7 +2179,6 @@ def _check_field_codes(
 PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
     ROSTER_ROLE: {
         AttributeKey.IS_DEFAULT: "bool",
-        AttributeKey.IS_DEV: "bool",
         AttributeKey.MODEL: "str",
         AttributeKey.TECH: "str",
     },

@@ -32,7 +32,7 @@ SHAPES = [
     ("declared-then-removed-from-the-override", "weight", True, True),
     ("never-declared", "hand_key", "keep-me", False),
     ("declared-with-a-kind-that-no-longer-matches", "tags", "a,b", False),
-    ("declared-and-carried-to-a-type-that-does-not-declare-it", "tech", "go", False),
+    ("declared-and-carried-to-a-type-that-does-not-declare-it", "target_ref", "go", False),
     ("named-like-a-json-only-key", "discussion", "not a discussion", False),
     ("a-nested-mapping", "nested", {"a": {"b": 1}}, False),
     ("a-list", "listy", ["a", "b"], False),

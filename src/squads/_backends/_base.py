@@ -5,14 +5,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._interactions import get_playbook_spec
+from squads._errors import SquadsError
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import skills_for_role
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
 from squads._roles._projection import OperatorView, RoleView
-from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 
@@ -103,11 +102,9 @@ class BackendContext:
         """
         if role.slug in self.role_skills:
             return self.role_skills[role.slug]
-        return skills_for_role(
-            role,
-            self.spec if self.spec is not None else bundled_spec(),
-            self.playbook if self.playbook is not None else get_playbook_spec(),
-        )
+        if self.spec is None or self.playbook is None:
+            raise SquadsError("a backend context without role_skills needs a spec and a playbook")
+        return skills_for_role(role, self.spec, self.playbook)
 
 
 class AgentBackend(ABC):

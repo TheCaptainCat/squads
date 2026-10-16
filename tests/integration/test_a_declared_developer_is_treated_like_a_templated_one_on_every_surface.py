@@ -125,3 +125,23 @@ async def test_every_surface_treats_a_developer_alike_however_it_was_made(
     assert len(named) == min(4, len(shapes))
     if developer_slugs:
         assert set(named) & set(developer_slugs)
+
+
+async def test_a_role_named_dev_gains_and_loses_the_developer_guidance_with_its_capability(
+    project, svc, invoke
+) -> None:
+    """Declaring the capability and syncing turns an ordinary role named ``-dev`` into a
+    developer; dropping it turns it back, with nothing else changed."""
+    await _add(svc, project, "suffixed")
+    role_file = project.squad_dir / ".overrides" / "roles" / "legacy-dev.toml"
+    plain = role_file.read_text(encoding="utf-8")
+
+    async def preloads_task() -> bool:
+        assert (await invoke(["sync"])).exit_code == 0
+        return "sq-task" in _pointer_skills(Path(project.root), "legacy-dev")
+
+    assert await preloads_task() is False
+    role_file.write_text(plain + 'capabilities = ["dev"]\n', encoding="utf-8")
+    assert await preloads_task() is True
+    role_file.write_text(plain, encoding="utf-8")
+    assert await preloads_task() is False

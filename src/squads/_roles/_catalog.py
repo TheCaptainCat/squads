@@ -21,6 +21,9 @@ from squads._roles._loader import load_role_catalog
 from squads._roles._models import DevPoolSpec, RoleCatalogSpec, RoleSpec
 from squads._util import slugify
 
+#: The spelling ``sq dev add`` proposes for a developer's slug; a stored slug is never read for it.
+PROPOSED_DEVELOPER_SLUG_SUFFIX = "-dev"
+
 
 @dataclass(frozen=True)
 class RoleDef:
@@ -70,10 +73,10 @@ class RoleDef:
     #: every read (:func:`~squads._roles._resolver.resolve_role_for_item`), and the resolved full
     #: name lands on the item's own ``title`` field via :data:`_ITEM_FIELD_PROJECTION`; storing
     #: any of them again would be a second copy that can only go stale. ``slug`` is a core key
-    #: and ``is_dev``/``tech``/``is_default`` are each written by their own verb.
+    #: and ``tech``/``is_default`` are each written by their own verb.
     _ATTRIBUTE_FIELDS: ClassVar[tuple[tuple[str, Callable[[RoleDef], Any]], ...]] = ()
 
-    #: A second table in exactly :data:`_ATTRIBUTE_FIELDS`' shape, written for a **developer**
+    #: A second table in exactly :data:`_ATTRIBUTE_FIELDS`' shape, written for a **templated**
     #: role only: ``sq dev add --model`` is an operator setting with no catalog answer, and
     #: :func:`~squads._roles._resolver.dev_base_from_item` reads it straight back off the item.
     _DEV_ATTRIBUTE_FIELDS: ClassVar[tuple[tuple[str, Callable[[RoleDef], Any]], ...]] = (
@@ -90,17 +93,17 @@ class RoleDef:
         ("description", lambda r: r.mission),
     )
 
-    def to_attributes(self, *, is_dev: bool = False) -> dict[str, Any]:
+    def to_attributes(self, *, templated: bool = False) -> dict[str, Any]:
         """The attributes stored on the ROLE item — see :data:`_ATTRIBUTE_FIELDS` for why this
         is a short list and what answers the rest.
 
-        *is_dev* selects whether :data:`_DEV_ATTRIBUTE_FIELDS` (today: ``model``) is written
-        too. It is a parameter rather than derived from ``self.slug`` deliberately: the
-        developer marker lives on the *item* (``is_dev``), and every caller already knows
-        which shape it is writing.
+        *templated* selects whether :data:`_DEV_ATTRIBUTE_FIELDS` (today: ``model``) is written
+        too. It is a parameter rather than derived from ``self.slug`` deliberately: the shape
+        lives on the *item* (it carries ``tech``), and every caller already knows which shape it
+        is writing.
         """
         table = self._ATTRIBUTE_FIELDS
-        if is_dev:
+        if templated:
             table = (*table, *self._DEV_ATTRIBUTE_FIELDS)
         return {key: getter(self) for key, getter in table}
 
@@ -113,22 +116,22 @@ class RoleDef:
         return {field: getter(self) for field, getter in self._ITEM_FIELD_PROJECTION}
 
     @classmethod
-    def stored_attribute_keys(cls, *, is_dev: bool) -> frozenset[str]:
+    def stored_attribute_keys(cls, *, templated: bool) -> frozenset[str]:
         """The attribute keys :meth:`to_attributes` writes for a role of **this** shape: the key
-        column of :data:`_ATTRIBUTE_FIELDS`, plus :data:`_DEV_ATTRIBUTE_FIELDS`' when *is_dev*.
+        column of :data:`_ATTRIBUTE_FIELDS`, plus :data:`_DEV_ATTRIBUTE_FIELDS`' when *templated*.
 
         Reads the tables' key columns rather than an instance's output, so a value-side change
         to :meth:`to_attributes` cannot silently shrink the set.
         """
         table = cls._ATTRIBUTE_FIELDS
-        if is_dev:
+        if templated:
             table = (*table, *cls._DEV_ATTRIBUTE_FIELDS)
         return frozenset(key for key, _ in table)
 
     @classmethod
     def attribute_keys(cls) -> frozenset[str]:
         """Every key :meth:`to_attributes` can populate, for a role of any shape."""
-        return cls.stored_attribute_keys(is_dev=True)
+        return cls.stored_attribute_keys(templated=True)
 
     @classmethod
     def from_item(cls, item: Item) -> RoleDef:
@@ -243,7 +246,7 @@ def dev_role_from_pool(
         pool = dev.name_pool
         first = pool[seq % len(pool)]
         full_name = f"{first} {surname}"
-    slug = f"{slugify(tech_label)}-dev"
+    slug = f"{slugify(tech_label)}{PROPOSED_DEVELOPER_SLUG_SUFFIX}"
     return RoleDef(
         slug=slug,
         full_name=full_name,

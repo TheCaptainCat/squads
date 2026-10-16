@@ -106,9 +106,9 @@ def test_slug_is_read_from_the_file_when_present_and_written_for_roster_items_or
 
 #: (id, key, stored value, accessor, expected): a value of the wrong kind reads as unset.
 ACCESSORS = [
-    ("flag-true", AttributeKey.IS_DEV, True, attrs.is_dev, True),
-    ("flag-as-a-string", AttributeKey.IS_DEV, "true", attrs.is_dev, False),
-    ("flag-as-a-number", AttributeKey.IS_DEV, 1, attrs.is_dev, False),
+    ("flag-true", AttributeKey.IS_DEFAULT, True, attrs.is_default, True),
+    ("flag-as-a-string", AttributeKey.IS_DEFAULT, "true", attrs.is_default, None),
+    ("flag-as-a-number", AttributeKey.IS_DEFAULT, 1, attrs.is_default, None),
     ("default-unset", AttributeKey.IS_DEFAULT, None, attrs.is_default, None),
     ("default-false", AttributeKey.IS_DEFAULT, False, attrs.is_default, False),
     ("default-as-a-string", AttributeKey.IS_DEFAULT, "yes", attrs.is_default, None),

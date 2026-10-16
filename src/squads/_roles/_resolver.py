@@ -6,9 +6,9 @@ for the ``sq dev add`` call site specifically — that one call site is an *assi
 name being chosen), not a resolve. Every *other* consumer that needs a role's merge base for a
 role that may already have a live item — sync's catalog refresh, ``sq role <slug> show``,
 ``sq check`` — goes through :func:`resolve_role_with_base` with a base built by
-:func:`role_base_from_item` (an item exists) or :func:`dev_base_for_slug` (a ``<tech>-dev``
-slug with no item). :func:`role_base_from_item` is the one seam both a bundled role and a
-developer role build their base through — see its docstring for the field split.
+:func:`role_base_from_item`, the one seam both a bundled role and a developer role build their
+base through — see its docstring for the field split. A slug no source declares resolves to
+nothing.
 
 Merge semantics:
 - **Bundled slug** — only the fields present in the TOML override the merge base (the item's
@@ -310,8 +310,8 @@ def resolve_role_with_base(
 
     ``base=None`` reproduces :func:`resolve_role` exactly. A supplied base always wins over
     ``PREDEFINED``, whether or not ``slug`` is in it; the caller builds it with
-    :func:`role_base_from_item` (an item exists), :func:`dev_base_from_item` or
-    :func:`dev_base_for_slug`. The per-slug file merges over the base.
+    :func:`role_base_from_item` (an item exists) or :func:`dev_base_from_item`. The per-slug
+    file merges over the base.
 
     *pinned_name* is the role's stored name (:func:`pinned_name_of`): it is the result's
     ``full_name`` whatever any layer, the per-slug file included, declares.
@@ -396,7 +396,7 @@ def role_base_from_item(item: Item, squad_dir: Path | None) -> RoleDef | None:
 
     A *squad_dir* of ``None`` means no squad: the bundled catalog alone.
     """
-    if attrs.is_dev(item):
+    if attrs.is_templated(item):
         return dev_base_from_item(item, squad_dir)
     predefined = _predefined_for_slug(item.slug, squad_dir)
     if predefined is None:
@@ -464,26 +464,13 @@ def holds_default_designation(item: Item, squad_dir: Path | None) -> bool:
         return attrs.is_default(item) is True
 
 
-def dev_base_for_slug(slug: str, squad_dir: Path | None = None) -> RoleDef:
-    """The dev-role merge base for a ``<tech>-dev.toml`` with no matching roster entry.
-
-    Falls back to the generated pool name — safe here for the reason it is unsafe in
-    :func:`dev_base_from_item`: there is no live identity to overwrite, and the caller only
-    asks whether the document loads.
-
-    Builds from the ``[dev]`` table of the catalog *squad_dir* resolves, the same way
-    :func:`resolve_dev_role` does, so a not-yet-added slug's preview agrees with what ``sq dev
-    add`` would then produce. A *squad_dir* of ``None`` means the bundled catalog.
-    """
-    return dev_role_from_pool(slug.removesuffix("-dev"), load_role_catalog(squad_dir).dev)
-
-
 def resolve_dev_role(
     tech: str,
     *,
     name: str | None = None,
     seq: int = 0,
     model: str | None = None,
+    slug: str | None = None,
     squad_dir: Path | None,
 ) -> RoleDef:
     """Build a stack-specific developer role, applying any project override.
@@ -501,6 +488,8 @@ def resolve_dev_role(
     base = dev_role_from_pool(
         tech, load_role_catalog(squad_dir).dev, name=name, seq=seq, model=model
     )
+    if slug is not None:
+        base = replace(base, slug=slug)
     slug = base.slug
 
     if squad_dir is not None:

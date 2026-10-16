@@ -66,7 +66,7 @@ from squads._roles._loader import (
     bundled_roles_toml_text,
     load_role_catalog,
 )
-from squads._roles._resolver import dev_base_for_slug, role_base_from_item
+from squads._roles._resolver import role_base_from_item
 from squads._sections import find_markers
 from squads._util import version_tuple
 from squads._workflow._loader import (
@@ -909,18 +909,10 @@ def _shadowed_bundled_role_toml(slug: str, squad_dir: Path | None = None) -> str
     """The bundled role *slug* shadows, rendered as TOML — or ``None`` for a brand-new
     (non-bundled) role slug, which genuinely starts from scratch.
 
-    The dev branch honours a project's catalog-document ``[dev]`` override via *squad_dir*
-    (:func:`~squads._roles._resolver.dev_base_for_slug`), so a per-slug dev override's shadow
-    baseline agrees with what the preview and ``sq dev add`` both build. The bundled-role
-    branch (``role_by_slug``) deliberately stays unthreaded: it is the ``[roles]`` catalog-
-    document layer reaching a *different* consumer than the one either finding named, and
-    doing so would also change what the Δ-mine baseline means (bundled-as-shipped versus
-    bundled-after-catalog-merge) rather than just where it reads from — a design question of
-    its own, out of scope here."""
+    A bundled role is read as the bundled catalog ships it, not after the project catalog
+    merge: that is what the Δ-mine baseline means."""
     if slug in _BUNDLED_ROLE_SLUGS:
         return _role_def_as_toml(role_by_slug(slug))
-    if slug.endswith("-dev"):
-        return _role_def_as_toml(dev_base_for_slug(slug, squad_dir))
     return None
 
 
@@ -1194,14 +1186,14 @@ def _role_override_shadows_bundled(
 ) -> bool:
     """Whether *slug* shadows a bundled or dev-pool role identity — resolved the exact way
     :func:`_check_role_override_resolves` resolves a base to validate against: the roster's
-    own stored fact (the item's ``is_dev`` marker / a live item's bundled slug, via
+    own stored fact (a live item's ``tech`` / its bundled slug, via
     :func:`~squads._roles._resolver.role_base_from_item`) wins over the slug's naming
     convention whenever a roster item exists, and only a slug with **no** roster item falls
     back to the naming convention (:func:`_shadowed_bundled_role_toml`, the same baseline
     :func:`_diff_role`'s Δ-mine uses).
 
     Without this, a wholly custom, never-``sq dev add``-created role whose slug merely happens
-    to end in ``-dev`` (activated, so a roster item exists and carries no ``is_dev`` marker)
+    to end in ``-dev`` (activated, so a roster item exists and carries no ``tech``)
     would be misread as shadowing the generated dev-pool base by slug shape alone — exactly
     the "skipped for the whole ``-dev`` suffix space" false positive the stored-fact-first fix
     (see ``tests/unit/test_dev_base_gating_reads_the_stored_fact_first.py``) closed for every
@@ -1348,10 +1340,10 @@ def check_override_issues(
     *role_items_by_slug* — the live roster's ``ROLE`` items, keyed by slug — lets a
     role override resolve against its own live identity, bundled or developer alike (see
     :func:`~squads._roles._resolver.role_base_from_item`), instead of the developer case alone
-    regenerating a pool name. Omitted (or a slug with no entry) falls back to
-    :func:`~squads._roles._resolver.dev_base_for_slug`, which is exactly right for a
-    ``<tech>-dev.toml`` with no matching roster entry — this function has no roster of its own
-    to load, so the caller (``Service.check``, which already has the index in hand) supplies it.
+    regenerating a pool name. Omitted (or a slug with no entry) resolves the file on its own, so
+    a file for a developer not yet added is reported as the new role it would be — this
+    function has no roster of its own to load, so the caller (``Service.check``, which already
+    has the index in hand) supplies it.
     """
     role_items_by_slug = role_items_by_slug or {}
     # Per-slug role overrides resolve against the merged catalog, so with it invalid their
@@ -1503,9 +1495,9 @@ def _check_role_override_resolves(
     so a bundled role's base already carries a project's catalog-document override —
     ``.overrides/roles.toml`` — the same way ``sq role <slug> show``/``sq sync`` do — a stored
     fact, whether the item is a developer or a bundled role, for exactly the fields an operator
-    can set on it), the generated pool name (:func:`~squads._roles._resolver.dev_base_for_slug`)
-    only for a ``<tech>-dev`` slug with no roster item. ``RoleNotFoundError`` is unreachable here
-    (the file exists, so resolution always takes the override branch) and needs no separate arm.
+    can set on it), and no base for a slug with no roster item. ``RoleNotFoundError`` is
+    unreachable here (the file exists, so resolution always takes the override branch) and needs
+    no separate arm.
 
     Every override file is resolved, not only the slugs the roster carries: ``sq role <slug>
     show`` reads one for a bundled role that was never activated, so scoping to live roles
@@ -1513,17 +1505,13 @@ def _check_role_override_resolves(
     the message names when each consumer refuses rather than asserting both do.
     """
     from squads._roles._resolver import (
-        dev_base_for_slug,
         pinned_name_of,
         resolve_role_with_base,
         role_base_from_item,
     )
 
     item = role_items_by_slug.get(slug)
-    if item is not None:
-        base_role = role_base_from_item(item, squad_dir)
-    else:
-        base_role = dev_base_for_slug(slug, squad_dir) if slug.endswith("-dev") else None
+    base_role = role_base_from_item(item, squad_dir) if item is not None else None
 
     try:
         resolve_role_with_base(slug, squad_dir, base=base_role, pinned_name=pinned_name_of(item))

@@ -47,7 +47,6 @@ from squads._paths import SquadPaths, resolve
 from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import (
-    dev_base_for_slug,
     pinned_name_of,
     resolve_role_with_base,
     role_base_from_item,
@@ -1210,32 +1209,14 @@ def role_base_for_show(slug: str, it: Item | None, squad_dir: Path | None = None
     """The merge base for a role card: an item in hand's own operator-settable fields
     (:func:`~squads._roles._resolver.role_base_from_item` — a bundled role's ``full_name``, a
     developer role's tech/name/model, plus this squad's own catalog-document override merged
-    into a bundled role's base) first, the ``-dev`` naming convention's generated preview only
-    when there is no item to ask.
+    into a bundled role's base); a slug with no item has no base.
 
     Shared by ``sq role <slug> show`` (:func:`squads._cli._role.show_role`) and a ``role``
     source's ``--json`` dispatch (:func:`squads._cli._workflow_cmd._view_json_payload`) — the
     same base a role card is built from either way, never two independent resolutions."""
     if it is not None:
         return role_base_from_item(it, squad_dir)
-    return dev_base_for_slug(slug, squad_dir) if slug.endswith("-dev") else None
-
-
-def dev_preview_full_name(r: RoleDef, base_role: RoleDef | None, it: Item | None) -> str | None:
-    """The full name to report for a role card — ``None`` when it is a fabricated preview
-    rather than a real fact.
-
-    A ``-dev``-shaped slug with no roster entry previews against the generated developer
-    template (``dev_base_for_slug``), and that template's ``full_name`` is a pool pick ``sq dev
-    add`` is not bound to honour (the pool position it will actually land on depends on how many
-    developers exist *at that later point*, not now) — reporting it as the developer's name
-    would state a fact activation can immediately contradict. Only the un-declared case is
-    blanked: a file that itself sets ``full_name`` is the adopter's own declaration and is
-    reported as-is, matching every other role.
-    """
-    if it is None and base_role is not None and r.full_name == base_role.full_name:
-        return None
-    return r.full_name
+    return None
 
 
 async def build_role_json_payload(
@@ -1268,7 +1249,7 @@ async def build_role_json_payload(
         )
         data.update(
             {
-                "full_name": dev_preview_full_name(r, base_role, it),
+                "full_name": r.full_name,
                 "title": r.title,
                 "mission": r.mission,
                 "model": r.model,

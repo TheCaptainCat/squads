@@ -16,6 +16,7 @@ import pytest
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._base import AgentBackend, Artifact, BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
+from squads._interactions import get_playbook_spec
 from squads._models._attributes import AttributeKey as X
 from squads._models._config import SquadsConfig
 from squads._models._item import Item
@@ -23,6 +24,7 @@ from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
 from squads._roles._projection import OperatorView, RoleView
 from squads._services import _service as service
+from squads._workflow import bundled_spec
 
 pytestmark = pytest.mark.anyio
 
@@ -58,7 +60,7 @@ def paths(squad_root: Path) -> SquadPaths:
 
 @pytest.fixture
 def ctx(paths: SquadPaths) -> BackendContext:
-    return BackendContext(paths=paths)
+    return BackendContext(paths=paths, spec=bundled_spec(), playbook=get_playbook_spec())
 
 
 @pytest.fixture
@@ -538,6 +540,8 @@ class TestManagedEntryPaths:
         skill_item = _make_skill_item(2, "sq-example", paths.squad_dir)
         entry_ctx = BackendContext(
             paths=paths,
+            spec=bundled_spec(),
+            playbook=get_playbook_spec(),
             live_role_slugs=frozenset({"manager"}),
             live_skill_slugs=frozenset({"sq-example"}),
         )
@@ -555,8 +559,15 @@ class TestManagedEntryPaths:
         pointer having been generated once is irrelevant — only membership in the *current*
         live sets decides whether this method still names it."""
         role_item = _make_role_item(1, "manager", paths.squad_dir)
-        write_ctx = BackendContext(paths=paths, live_role_slugs=frozenset({"manager"}))
+        write_ctx = BackendContext(
+            paths=paths,
+            spec=bundled_spec(),
+            playbook=get_playbook_spec(),
+            live_role_slugs=frozenset({"manager"}),
+        )
         await backend.generate_role_entry(write_ctx, role_item, role_def)
 
-        empty_ctx = BackendContext(paths=paths)  # nothing currently live
+        empty_ctx = BackendContext(
+            paths=paths, spec=bundled_spec(), playbook=get_playbook_spec()
+        )  # nothing currently live
         assert backend.managed_entry_paths(empty_ctx) == []

@@ -81,7 +81,7 @@ def resolve_playbook(spec: WorkflowSpec, squad_dir: Path) -> PlaybookSpec:
     try:
         return load_playbook(get_catalog(), spec=spec, squad_dir=squad_dir)
     except SquadsError as exc:
-        raise PlaybookConfigError(f"{exc} — see {override_path}") from exc
+        raise PlaybookConfigError(str(exc)) from exc
 
 
 def _init_time_spec(squad_dir: Path) -> WorkflowSpec:

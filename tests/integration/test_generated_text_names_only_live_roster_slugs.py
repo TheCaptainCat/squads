@@ -13,10 +13,13 @@ import pytest
 
 from squads import __version__
 from squads._interactions import item_skill_name
+from squads._roles._catalog import PREDEFINED
 from squads._services import _service as service
 from squads._workflow import ROSTER_SKILL
 
 pytestmark = pytest.mark.anyio
+
+PREDEFINED_SLUGS = frozenset(r.slug for r in PREDEFINED)
 
 #: A sentence stating a slug pattern, matched on whitespace-collapsed text so a wrapped
 #: sentence cannot hide.
@@ -63,6 +66,17 @@ async def _architect_with_declared(svc, root: Path) -> None:
     await _declared(svc, root)
 
 
+async def _renamed_squad(svc, root: Path) -> None:
+    """Live roles that share no slug with the bundled catalog; the bundled default retired."""
+    await _declared(svc, root)
+    path = root / "squads" / ".overrides" / "roles" / "lead.toml"
+    path.write_text(_ROLE_FILE.replace("Bea Builder", "Lee Lead"), encoding="utf-8")
+    await svc.activate_role("lead")
+    manager = await svc.roster_item("role", "manager")
+    assert manager is not None
+    await svc.set_status(manager.id, "Archived")
+
+
 async def _nothing(svc, root: Path) -> None:
     return None
 
@@ -72,6 +86,7 @@ _ROSTERS = {
     "minimal": ("minimal", _nothing),
     "architect-with-declared-developer": ("minimal", _architect_with_declared),
     "default-with-suffixed-role": ("minimal", _suffixed),
+    "no-slug-shared-with-the-catalog": ("minimal", _renamed_squad),
 }
 
 
@@ -109,8 +124,6 @@ async def test_generated_text_names_only_live_roster_slugs(
         collapsed = " ".join(text.split())
         assert "<tech>" not in collapsed, surface
         assert not _SLUG_PATTERN_SENTENCE.search(collapsed), surface
-        if surface.startswith("skill sq-") and surface != "skill sq-memory":
-            continue  # a per-type skill's lane commands are playbook text, checked for slugs apart
         delegate = _DELEGATE_SENTENCE.search(collapsed)
         named = re.findall(r"`([a-z0-9-]+)`", delegate.group(1)) if delegate else []
         commanded = [
@@ -119,6 +132,13 @@ async def test_generated_text_names_only_live_roster_slugs(
             if "sq " in line and not line.lstrip().startswith("#")
             for slug in _COMMAND_SLUG.findall(line)
         ]
+        for slug in PREDEFINED_SLUGS - live:
+            assert not re.search(
+                rf"(?<![\w-])(--author |--assignee |--as |@){slug}(?![\w-])", text
+            ), (
+                surface,
+                slug,
+            )
         for slug in [*commanded, *named]:
             assert slug in live | operators or slug.startswith("op-"), (surface, slug)
 

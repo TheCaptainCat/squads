@@ -11,7 +11,6 @@ description: Implement assigned tasks in Python, following the project's guides,
 created_at: '2025-05-20T11:04:00Z'
 updated_at: '2025-05-20T11:04:00Z'
 model: sonnet
-is_dev: true
 tech: python
 ---
 <!-- sq:body -->

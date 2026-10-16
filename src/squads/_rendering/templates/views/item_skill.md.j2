@@ -10,11 +10,11 @@
 ## Commands
 
 ```bash
-{% for c in (source.lane.commands if source.lane else (item_type | custom_item_skill_commands)) %}
+{% for c in (source.lane.commands | live_roster_text(source.roster, source.playbook) if source.lane else (item_type | custom_item_skill_commands)) %}
 {{ c }}
 {% endfor %}
 ```
-{% for sec in source.lane | item_skill_role_sections(source.roster) %}
+{% for sec in source.lane | item_skill_role_sections(source.roster, source.playbook) %}
 
 ## For {{ sec.title }}
 {% if sec.enter %}

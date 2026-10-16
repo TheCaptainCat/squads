@@ -145,14 +145,14 @@ def test_a_bundled_roles_stored_name_wins_over_every_layer(
 
 
 def _dev(attributes: dict[str, object], title: str) -> Item:
-    return _item("typescript-dev", {X.IS_DEV: True, X.TECH: "typescript", **attributes}, title)
+    return _item("typescript-dev", {X.TECH: "typescript", **attributes}, title)
 
 
 def test_a_developer_role_delegates_to_dev_base_from_item() -> None:
     role = dev_role("python", name="Elias Python", model="opus")
     item = _item(
         "python-dev",
-        {**role.to_attributes(is_dev=True), X.IS_DEV: True, X.TECH: "python"},
+        {**role.to_attributes(templated=True), X.TECH: "python"},
         title=role.full_name,
     )
     assert role_base_from_item(item, None) == dev_base_from_item(item, None)

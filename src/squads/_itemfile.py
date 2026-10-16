@@ -62,7 +62,7 @@ def _exempt_attribute_keys(item: Item) -> frozenset[str]:
       refusal while over-exempting could mask a real skew.
     - Anything else gets none of it.
     """
-    if attrs.is_dev(item):
+    if attrs.is_templated(item):
         return frozenset()
     if item.type == ROSTER_ROLE:
         return PERMITTED_ATTRIBUTE_SKEW

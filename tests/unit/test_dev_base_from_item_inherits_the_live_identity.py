@@ -36,8 +36,7 @@ def _dev_item(tech: str, full_name: str, *, model: str | None = "sonnet") -> Ite
         created_at=_NOW,
         updated_at=_NOW,
         attributes={
-            **role.to_attributes(is_dev=True),
-            X.IS_DEV: True,
+            **role.to_attributes(templated=True),
             X.TECH: tech,
         },
     )
@@ -64,13 +63,12 @@ def test_the_slug_matches_the_stored_tech() -> None:
     assert dev_base_from_item(item, None).slug == "dotnet-dev"
 
 
-def test_the_is_dev_and_tech_markers_are_not_part_of_the_returned_roledef() -> None:
-    """``X.IS_DEV``/``X.TECH`` sit outside ``RoleDef.to_attributes()`` by design, so a merge onto
+def test_the_tech_marker_is_not_part_of_the_returned_roledef() -> None:
+    """``X.TECH`` sits outside ``RoleDef.to_attributes()`` by design, so a merge onto
     the item using this base's ``to_attributes()`` output can never erase the markers this very
     function reads."""
     item = _dev_item("go", "Whoever Go")
     extra = dev_base_from_item(item, None).to_attributes()
-    assert X.IS_DEV not in extra
     assert X.TECH not in extra
 
 

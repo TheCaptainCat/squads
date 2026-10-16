@@ -102,7 +102,7 @@ async def test_what_a_role_does_still_store(svc):
     dev = await svc.roster_item("role", "rust-dev")
     assert dev is not None
     assert dev.slug == "rust-dev"
-    assert dev.attribute(X.IS_DEV) is True
+    assert "is_dev" not in dev.attributes
     assert dev.attribute(X.TECH) == "rust"
     assert dev.attribute(X.MODEL)  # a dev's model is stored; a bundled role's is not
 

@@ -150,3 +150,11 @@ async def test_the_bundled_dev_guides_are_silent_in_a_squad_with_no_developer(
     checked = await invoke(["check"])
     assert checked.exit_code == 0, checked.output
     assert "names no live role" not in " ".join(checked.output.split())
+
+
+@pytest.mark.parametrize("subject", ["*Dev", "nobody"])
+async def test_a_refused_playbook_names_its_file_once(subject: str, project, invoke) -> None:
+    _write(project.squad_dir, "playbook.toml", _guide(subject, False))
+    checked = await invoke(["check"])
+    assert checked.exit_code != 0
+    assert " ".join(checked.output.split()).count("playbook.toml") == 1, checked.output
