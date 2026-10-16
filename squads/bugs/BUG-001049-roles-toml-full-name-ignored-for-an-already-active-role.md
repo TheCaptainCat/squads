@@ -3,7 +3,7 @@ id: BUG-1049
 sequence_id: 1049
 type: bug
 title: roles.toml full_name ignored for an already-active role
-status: Open
+status: WontFix
 author: qa
 priority: medium
 refs:
@@ -12,7 +12,7 @@ refs:
 description: Catalog-document full_name renames only the catalog and new activations,
   not a live role; per-slug file does.
 created_at: '2026-10-16T11:19:07Z'
-updated_at: '2026-10-16T16:16:21Z'
+updated_at: '2026-10-16T16:18:14Z'
 ---
 <!-- sq:body -->
 ## Repro (dev build, scratch squad)
@@ -64,4 +64,6 @@ Either roles.toml `full_name` renames an active role whose stored name was never
   - 2026-10-16: an explicitly chosen role name (--name at activation) stays; a name never chosen follows the configuration layers (catalog, then roles.toml, then the per-slug file). Whether the name was chosen is a declared role attribute, added with the flat frontmatter (TASK-1059 ST2).
 - [2026-10-16T16:16:20Z] Pierre Chat:
   - 2026-10-16: by design, not a bug. A role's name is taken from the configuration when the role is created and stored; later configuration changes do not rename an active role (rename with the update verb). See TASK-1059.
+- [2026-10-16T16:18:14Z] Robert Architect:
+  - WontFix per op-pierre's 2026-10-16 ruling (ADR-777 discussion): a role's stored name is its name. The configuration layers supply it only at creation when `--name` is not given; no later configuration change renames an active role, and renaming goes through the update verb (FEAT-977). Recorded as a dated note under ADR-777 section 3. The docs re-check named above still applies, against this rule.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: REV-1062
 sequence_id: 1062
 type: review
 title: Blocked flag and blocked_has_blocker, part two
-status: InReview
+status: Approved
 author: reviewer
 assignee: reviewer
 refs:
@@ -42,7 +42,7 @@ subentities:
   status: WontFix
   severity: info
 created_at: '2026-10-16T13:40:55Z'
-updated_at: '2026-10-16T13:57:50Z'
+updated_at: '2026-10-16T16:20:51Z'
 ---
 <!-- sq:body -->
 Review of TASK-1001 part two: ST10 (a status role can declare `blocked = true`, the sixth key of the role catalog) and ST6 (the opt-in `blocked_has_blocker` check and the shared incoming-edge walk).
@@ -233,4 +233,6 @@ Strict on the new key is the right call: a lenient bool reads `"false"` as false
   - Part two reviewed: ChangesRequested on F1 (the shared incoming-edge walk parses every dependency ref id, so one malformed dependency ref aborts sq check and refuses every gated write in any squad; the base build reported it as a dangling ref) and F2 (the sixth role key turns the VS Code roles canary red, driven against the worktree build with a 0.15.0 control green). F3 to F6 low, F7 info. The two override-drift test failures have the bundled workflow.toml edit as their only cause (controlled export). @manager
 - [2026-10-16T13:57:50Z] Paul Reviewer:
   - Pass 2 on 3be94ffc and bd37320f: F1 to F6 Verified, F7 WontFix accepted. No medium or worse finding is open; left InReview, approval recommended. Targeted -n0 run: 846 passed, 2 failed, both in the override-drift test the manager is handling. Two text nits are recorded on F2 (types.ts wording) and F4 (a short comment line), neither reopened. @manager
+- [2026-10-16T16:20:50Z] Catherine Manager:
+  - Approved on the reviewer's recommendation: F1–F6 Fixed and verified, F7 WontFix. Merged into release/0.16 as 4859f3e0; full suite 11,196 passed, 0 failed.
 <!-- sq:discussion:end -->

@@ -16,7 +16,7 @@ refs:
 - ADR-776
 - ADR-781
 created_at: '2026-08-22T09:28:30Z'
-updated_at: '2026-10-16T16:16:22Z'
+updated_at: '2026-10-16T16:17:55Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -166,6 +166,14 @@ The per-slug `.overrides/roles/<slug>.toml` files stay exactly as they are, for 
 §4c gives: the filename is the key, and per-slug files are what let a project be current on one role
 and stale on another. Precedence is bundled base, then the catalog document, then the per-slug file —
 most specific last, which is the same direction template resolution already runs.
+
+> **Note 2026-10-16.** This precedence governs a role's definition: its mission,
+> responsibilities, skills, model and the other catalog fields. It supplies the role's name only
+> when the role is created, and only when `--name` is not given; for a developer the pool is the
+> last source. After creation the stored name is the role's name. No later change to the bundled
+> catalog, the catalog document or a per-slug file renames an active role, and a rename goes
+> through the role's update verb (FEAT-977). The 0.16 migration keeps every stored name. Ruled
+> by op-pierre on 2026-10-16, recorded in the discussion.
 
 `[selected]` on the catalog document deselects `roles` and `bundles` entries, which retires the
 cosmetic gap ADR-696 §4c named and declined ("a project cannot hide an unwanted role from
