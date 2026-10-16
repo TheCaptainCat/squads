@@ -288,18 +288,26 @@ async def write_text(path: Path, text: str) -> None:
     await _aio.atomic_write_text(path, text)
 
 
-async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
-    """Whole-word substitution of every old ID → new ID across the given files.
+def remap_ids_text(text: str, remap: dict[str, str]) -> str:
+    """Whole-word substitution of every old ID → new ID in *text*.
 
     Replaces all occurrences of ``\\bOLD\\b → NEW`` (exact whole-word match so e.g. a longer ID
-    sharing a prefix is not touched).  Returns the list of paths that were actually modified.
+    sharing a prefix is not touched).
+    """
+    for old, new in remap.items():
+        text = re.sub(rf"\b{re.escape(old)}\b", new, text)
+    return text
+
+
+async def rewrite_ids(paths: Iterable[Path], remap: dict[str, str]) -> list[Path]:
+    """Apply :func:`remap_ids_text` to each file in *paths*, writing the ones it changes.
+
+    Returns the list of paths that were actually modified.
     """
     touched: list[Path] = []
     for path in paths:
         text = await _aio.read_text(path)
-        new_text = text
-        for old, new in remap.items():
-            new_text = re.sub(rf"\b{re.escape(old)}\b", new, new_text)
+        new_text = remap_ids_text(text, remap)
         if new_text != text:
             await _aio.atomic_write_text(path, new_text)
             touched.append(path)

@@ -198,17 +198,16 @@ class RenameMixin(ServiceCore):
                 remap: dict[str, str] = {}
                 for item in old_items:
                     old_id = item.id
-                    base = item.model_copy(deep=True)
-                    await apply_type_change(
+                    new_path, composed = await apply_type_change(
                         self.paths,
                         self.spec,
                         db,
                         item,
                         new_type,
                         carry_status=True,
-                        base=base,
-                        default_kind=default_kind,
+                        text=snapshot[item.sequence_id][1],
                     )
+                    await write_text(new_path, composed)
                     remap[old_id] = item.id
                     pairs.append((old_id, item))
 

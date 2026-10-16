@@ -28,7 +28,6 @@ from squads._services._maintenance import MaintenanceMixin
 #: Service methods whose unit still writes one item file more than once, each with the reason.
 #: A method leaves this table when its fix lands; ``test_*_still_double_writes`` pins the rest.
 ALLOWED_DOUBLE_WRITERS: dict[str, str] = {
-    "retype": "frontmatter, container, id remap and comment are four separate writes",
     "rename_type": "per-item rewrite, id remap and comment are separate writes",
     "_apply_import": "every event writes its own file",
     "rename_status": "frontmatter and comment are separate writes",
@@ -71,6 +70,8 @@ class WriteLedger:
         #: ``(method, path, count)`` for every committed-unit double write, allowlisted or not.
         self.double_writes: list[tuple[str, Path, int]] = []
         self.seen: Counter[Path] = Counter()
+        #: Every committed unit, in the order they finished.
+        self.finished: list[Unit] = []
 
     def _current(self, path: Path) -> Unit | None:
         squad_dir = squad_dir_of(path)
@@ -105,6 +106,7 @@ class WriteLedger:
     def finish(self, unit: Unit) -> None:
         if not unit.committed:
             return
+        self.finished.append(unit)
         for path, n in unit.counts.items():
             if n > 1:
                 self.double_writes.append((unit.method, path, n))
