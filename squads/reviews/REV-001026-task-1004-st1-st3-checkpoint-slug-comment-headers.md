@@ -15,11 +15,11 @@ description: Checkpoint review of the header grammar, author_slug and reserved r
 subentities:
 - local_id: F1
   title: A line separator in a message forges a second comment header
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: Role creation skips the slug grammar; reserved check is case-blind
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: operator add --slug takes squads, operator and live role slugs
@@ -27,18 +27,18 @@ subentities:
   severity: medium
 - local_id: F4
   title: Anonymous slug still spelled as a literal at three sites
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: Importer comment actor is not resolved against the roster
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: Importer unset_fields accepts an unknown key as a silent no-op
-  status: Open
+  status: Fixed
   severity: info
 created_at: '2026-10-15T22:10:58Z'
-updated_at: '2026-10-15T22:17:50Z'
+updated_at: '2026-10-15T22:18:59Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -100,6 +100,8 @@ Driven on a scratch squad with the dev build:
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-15T22:18:55Z] Elias Python:
+  - Fixed: format_comment splits messages with splitlines() as the readers do. Table: every splitlines separator x six writers (item and subtask, -m and --file, importer on item and subtask) in tests/cli/test_a_line_separator_in_a_message_cannot_forge_a_header_cli.py. Falsified by putting split of newline back: 52 red.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -123,6 +125,8 @@ Driven on a scratch squad with the dev build:
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-15T22:18:56Z] Elias Python:
+  - Fixed: _create_model requires the slug grammar for every roster type before the reserved check, and the reserved check lowercases. Rows Squads, OP-anna, has space for role creation and an operator add --slug row. Falsified: grammar check removed 10 red, lowercasing removed 1 red.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -169,6 +173,8 @@ The reserved display name `Operator` is a literal in `_services/_base.py:1278` (
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-15T22:18:57Z] Elias Python:
+  - Fixed: ANONYMOUS_SLUG and ANONYMOUS_NAME live in _models/_participants.py; resolve_slug_or_raise, the two comment defaults and _author_of read them.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -186,6 +192,8 @@ The dev reported `ghost` as unchanged behaviour (inferred in the hand-back). Tha
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-15T22:18:58Z] Elias Python:
+  - Fixed: the importer refuses squads and operator as a comment actor (line-numbered issue, nothing written); unregistered grammatical actors like ghost still import. Falsified: 2 red.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -201,6 +209,8 @@ The dev reported `ghost` as unchanged behaviour (inferred in the hand-back). Tha
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-15T22:18:59Z] Elias Python:
+  - Fixed: unset (importer and update path) validates keys with the same require_settable as set, so an unknown key or a slug is refused with the valid list. Falsified: 12 red. This replaces the earlier slug-only unset guard.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 <!-- sq:findings:end -->

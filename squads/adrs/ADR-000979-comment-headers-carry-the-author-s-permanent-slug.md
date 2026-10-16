@@ -13,7 +13,7 @@ refs:
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-10-15T22:17:49Z'
+updated_at: '2026-10-16T07:43:46Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -157,6 +157,20 @@ never by an author. The migration changes nothing an agent wrote.
 > header is resolved, and an entry that breaks A1 or A2 is a failure of the same kind as the
 > ones listed above: nothing is written. See A4.
 
+> **Amended 2026-10-16 (A6):** a legacy name that matches no title is then matched against
+> operator slugs, because the released 0.15.0 writer named an operator without a full name by
+> its slug. See A6.
+
+> **Note 2026-10-16 (REV-1027 F7):** the header rewrite does not go through `_sections.py`. It
+> reads each item file as raw bytes, uses `_sections.find_markers` only to locate the discussion
+> regions, and replaces each legacy header line whole, keeping that line's own terminator (LF
+> or CRLF). Two reasons. Byte preservation: every byte outside the replaced header lines,
+> the comment's bullets and line endings included, comes out identical. Header-line-only
+> edits: `_sections.py` offers whole-region edits on decoded text (`replace_section`,
+> `append_to_section`) and no single-line replace (read), so going through it would re-emit
+> every discussion region to change one line in it. Invariant 3 holds in substance: the lines
+> replaced are sq's own attribution lines, never an author's prose.
+
 **5. `--json` gains `author_slug`.**
 
 - Every `discussion` entry (`show --json` for an item and a sub-entity) and every
@@ -222,7 +236,8 @@ never by an author. The migration changes nothing an agent wrote.
 
 ## Amendments — 2026-10-16
 
-Decisions 1 to 6 stand as ruled. What follows rules the case REV-1026 finding F3 raised: decision
+Decisions 1 to 6 stand as ruled. A1 to A5 rule the case REV-1026 finding F3 raised, and A6 the case of
+REV-1027 finding F2. Decision
 2 reserves `operator`, `squads` and `op-` against roles, and says nothing about operators. The
 text above is unedited apart from the dated notes that point here. Evidence is marked **driven**
 (run on this repository's squad with the released `sq`, or recorded as driven on REV-1026),
@@ -349,6 +364,28 @@ What the run does:
   `resolve_slug_or_raise` and `_author_of` already do (read). A roster entry holding it is A3's
   report, never an identity.
 
+### A6 — A legacy name resolves by title, then by an operator's slug
+
+This rules REV-1027 finding F2. The released 0.15.0 writer named an operator by
+`extra.full_name`, falling back to its slug (read, `_author_of` in 0.15.0). An operator the
+released importer created without a full name therefore has headers such as
+`- [2026-10-16T07:36:53Z] op-ann:` (driven, REV-1027 F2). Decision 4 resolves an operator by
+its full name, falling back to its title, so the run refuses on a registered, live operator,
+and the remedy in its `manual` (add the entry back under that name) would create a second
+operator whose display name is `op-ann` and attribute the headers to it.
+
+- Each legacy name is matched first against the titles decision 4 lists: every role's
+  `item.title`, every operator's full name or title, and the two reserved names `Operator` and
+  `squads`.
+- Only when no title matches is the name matched against the slugs of every operator item,
+  live and retired. A match resolves to that operator's slug.
+- A title match always wins. A name that matches a title and another entry's operator slug
+  resolves by the title and is not a collision.
+- A name equal to a role slug, or to no slug in the roster, still matches no entry. The rule
+  for importer actors that are not in the roster stands.
+- The name's bytes are kept, as for every rewritten header:
+  ``- [2026-10-16T07:36:53Z] `op-ann` op-ann:``.
+
 ### What the amendments oblige
 
 - Operator creation refuses a slug outside `op-[a-z0-9][a-z0-9-]*`, on every path, with nothing
@@ -366,6 +403,10 @@ What the run does:
   with `op-`, and a squad holding such an operator does not migrate until it is replaced.
   `docs/migration.md`, the 0.16 CHANGELOG and `docs/stability.md` Tier 1 (beside the header
   grammar) say so.
+- The 0.16 planning pass resolves a legacy name by title, then by operator slug (A6). Proof: the
+  header the released 0.15.0 writer actually writes for an operator without a full name
+  migrates to that operator's slug, a title match beats an operator-slug match, and a name
+  equal only to a role slug still fails.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -392,4 +433,9 @@ What the run does:
     - A4: the 0.16 planning pass refuses, not report-only: before the run a breaching operator can be purged and re-added under the same name and its legacy headers resolve to the new slug; after it the slug is fixed in history. An out-of-grammar slug would also produce header lines the new pattern does not match. This changes ST5 as briefed. This squad is unaffected (op-pierre only, driven).
     - A5: ADR-1013's match stays slug equality; `--as squads` is refused by every writer including the importer actor, `operator` is always the anonymous author.
     - @manager for op-pierre's confirmation: this changes what an adopter may type (operator add --slug) and makes a non-compliant operator block `sq migrate up`. Route A4 to @python-dev for ST5 once confirmed.
+- [2026-10-16T07:43:46Z] Robert Architect:
+  - - 2026-10-16: two additions for REV-1027, additions only; status untouched.
+      - A6 (REV-1027 F2): the 0.16 migration resolves a legacy name by title first and, failing that, by an operator's slug, because the released 0.15.0 writer wrote an operator without `full_name` as its slug (`- [ts] op-ann:`). A dated note under decision 4 points to it. A6 is part of the pending amendment and is subject to op-pierre's confirmation together with A1 to A5.
+      - Note under decision 4 (REV-1027 F7): the header rewrite replaces whole header lines in the raw bytes, keeping each line's terminator, with `_sections.find_markers` used only to locate regions; reason: byte preservation and header-line-only edits, which `_sections.py`'s whole-region API does not give.
+      - @manager for op-pierre's confirmation of A1 to A6; once confirmed, A6 goes to @python-dev with REV-1027 F2.
 <!-- sq:discussion:end -->

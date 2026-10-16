@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1026,
+  "counter": 1028,
   "padding": 6,
   "items": {
     "12": {
@@ -31534,7 +31534,7 @@
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-10-15T22:17:49Z",
+      "updated_at": "2026-10-16T07:43:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44258,7 +44258,7 @@
       "type": "task",
       "title": "Put the author's slug in comment headers and migrate the corpus",
       "slug": "put-the-author-s-slug-in-comment-headers-and-migrate-the-cor",
-      "status": "InProgress",
+      "status": "Done",
       "description": "One header grammar and parser, author_slug in JSON, reserved role slugs, and the 0.16 migration step with the comment-header rewrite as its first contribution",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44301,7 +44301,7 @@
         {
           "local_id": "ST4",
           "title": "Create the 0.16 migration step as a list of contributions",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44310,7 +44310,7 @@
         {
           "local_id": "ST5",
           "title": "Migrate legacy headers: resolve all, refuse loudly, rewrite",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44319,7 +44319,7 @@
         {
           "local_id": "ST6",
           "title": "Freeze a 0.15 squad with discussions; prove the run end to end",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44328,7 +44328,7 @@
         {
           "local_id": "ST7",
           "title": "Dry-run the header planning pass on a copy of this squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44337,7 +44337,7 @@
       ],
       "path": "tasks/TASK-001004-put-the-author-s-slug-in-comment-headers-and-migrate-the-cor.md",
       "created_at": "2026-10-12T06:46:55Z",
-      "updated_at": "2026-10-15T22:04:38Z",
+      "updated_at": "2026-10-16T08:04:50Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45563,7 +45563,7 @@
         {
           "local_id": "F1",
           "title": "A line separator in a message forges a second comment header",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -45572,7 +45572,7 @@
         {
           "local_id": "F2",
           "title": "Role creation skips the slug grammar; reserved check is case-blind",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -45590,7 +45590,7 @@
         {
           "local_id": "F4",
           "title": "Anonymous slug still spelled as a literal at three sites",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -45599,7 +45599,7 @@
         {
           "local_id": "F5",
           "title": "Importer comment actor is not resolved against the roster",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -45608,7 +45608,7 @@
         {
           "local_id": "F6",
           "title": "Importer unset_fields accepts an unknown key as a silent no-op",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -45617,11 +45617,172 @@
       ],
       "path": "reviews/REV-001026-task-1004-st1-st3-checkpoint-slug-comment-headers.md",
       "created_at": "2026-10-15T22:10:58Z",
-      "updated_at": "2026-10-15T22:17:50Z",
+      "updated_at": "2026-10-15T22:18:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-1026"
+    },
+    "1027": {
+      "sequence_id": 1027,
+      "type": "review",
+      "title": "TASK-1004 end-of-task: 0.16 header migration and checkpoint fixes",
+      "slug": "task-1004-end-of-task-0-16-header-migration-and-checkpoint-f",
+      "status": "Approved",
+      "description": "End-of-task review of the 0.16 migration step, the header rewrite and the REV-1026 fixes",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1004:addresses",
+        "FEAT-980:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A refusal below schema 0.15 names the stamped release and says nothing was written after earlier runners wrote",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "An operator without full_name had headers written as its slug; the migration matches by title and refuses",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "The importer now refuses as operator on comment events, unlike 0.15.0 and --as operator",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Line-based scan diverges from _sections when a marker shares a line with content",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Template-owned-skill guard now skips on post-migration state, so dropping those skills passes",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Deferred import cycle and a third copy of the release-that-reads-schema sentence",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "ADR-979 says the rewrite goes through _sections.py; the runner replaces lines in bytes",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Report and docstring wording that goes stale",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "CRLF preservation holds on POSIX only: the atomic writer translates newlines on Windows",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "With 0.16 as the first runner, the refusal no longer names the release that can change the roster",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "A lone marker with non-canonical spacing is refused as sharing its line with text",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Fixture README and legacy-squad docstring say this build",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001027-task-1004-end-of-task-0-16-header-migration-and-checkpoint-f.md",
+      "created_at": "2026-10-16T07:38:49Z",
+      "updated_at": "2026-10-16T08:04:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1027"
+    },
+    "1028": {
+      "sequence_id": 1028,
+      "type": "bug",
+      "title": "Atomic writer translates newlines on Windows",
+      "slug": "atomic-writer-translates-newlines-on-windows",
+      "status": "Open",
+      "description": "Text-mode open without newline='' alters line endings on Windows",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1027"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001028-atomic-writer-translates-newlines-on-windows.md",
+      "created_at": "2026-10-16T07:42:11Z",
+      "updated_at": "2026-10-16T07:42:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1028"
     }
   }
 }
