@@ -13,7 +13,7 @@ from squads import _sections as sections
 from squads import _views as views
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import ensure_no_skew, update_frontmatter
+from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
@@ -472,9 +472,7 @@ class ItemsMixin(ServiceCore):
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
-            await update_frontmatter(
-                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
-            )
+            await self._update_item_frontmatter(child, base)
             self.store.log(
                 "link",
                 child.id,
@@ -491,9 +489,7 @@ class ItemsMixin(ServiceCore):
             child.parent = None
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
-            await update_frontmatter(
-                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
-            )
+            await self._update_item_frontmatter(child, base)
             self.store.log(
                 "link",
                 child.id,
@@ -886,8 +882,6 @@ class ItemsMixin(ServiceCore):
                 )
                 target_prefix = effective_prefix(item.prefix)
                 target_seq = item.sequence_id
-                # Resolved once for the whole severance loop, not per referrer.
-                default_kind = self.spec.default_ref_kind()
                 for ref_id in referrer_ids:
                     referrer = db.get(ref_id)
                     if referrer is None:
@@ -899,9 +893,7 @@ class ItemsMixin(ServiceCore):
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
-                    await update_frontmatter(
-                        item_file(self.paths, referrer), referrer, base, default_kind=default_kind
-                    )
+                    await self._update_item_frontmatter(referrer, base)
                     severed.append(ref_id)
 
             # ------------------------------------------------------------------

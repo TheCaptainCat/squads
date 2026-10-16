@@ -19,7 +19,7 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import InvalidTransitionError, SquadsError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import ensure_no_skew, write_text
+from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
@@ -721,7 +721,7 @@ class SubentitiesMixin(ServiceCore):
             ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
             text = sections.remove_section(text, f"{kind}:{local_id}")
             text = sections.replace_frontmatter(text, item.to_frontmatter_dict())
-            await write_text(path, text)
+            await self._write_item_file(path, text)
             self.store.log(
                 "subentity",
                 item.id,

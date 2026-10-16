@@ -16,6 +16,7 @@ from squads import _actor as actor
 from squads import _aio
 from squads import _clock as clock
 from squads._context import bind_context, get_context
+from squads._errors import SquadsError
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -317,3 +318,17 @@ async def test_a_fault_leaves_each_file_as_it_was_or_final_and_the_squad_repaira
 
     await svc.repair()
     assert [i for i in await svc.check() if i.level == "error"] == []
+
+
+async def test_a_hold_cannot_be_opened_inside_a_hold_or_outside_a_transaction(svc):
+    with pytest.raises(SquadsError, match="only inside an open transaction"):
+        async with svc._deferred_item_writes():
+            pass
+
+    async with svc.store.transaction(), svc._deferred_item_writes():
+        with pytest.raises(SquadsError, match="already open"):
+            async with svc._deferred_item_writes():
+                pass
+        assert svc.store.held_item_files() is not None
+
+    assert svc.store.held_item_files() is None

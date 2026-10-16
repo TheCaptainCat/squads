@@ -249,14 +249,18 @@ async def read_item_text(path: Path, item_id: str) -> str:
         raise missing_file_error(item_id) from exc
 
 
+def new_item_text(item: Item, rendered_body: str) -> str:
+    """The text of a brand-new item file: frontmatter + the rendered (templated) body."""
+    return join_frontmatter(item.to_frontmatter_dict(), rendered_body)
+
+
 async def write_new(path: Path, item: Item, rendered_body: str) -> None:
     """Create a brand-new item file: frontmatter + the rendered (templated) body.
 
     No prior file to diverge from — a create never goes through the skew guard.
     """
-    text = join_frontmatter(item.to_frontmatter_dict(), rendered_body)
     await _aio.mkdir(path.parent, parents=True, exist_ok=True)
-    await _aio.atomic_write_text(path, text)
+    await _aio.atomic_write_text(path, new_item_text(item, rendered_body))
 
 
 async def update_frontmatter(path: Path, item: Item, base: Item, *, default_kind: str) -> None:

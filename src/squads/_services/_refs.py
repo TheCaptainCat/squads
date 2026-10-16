@@ -8,8 +8,7 @@ from squads import _actor as actor
 from squads import _badges as badges
 from squads import _clock as clock
 from squads._errors import SquadsError
-from squads._index._resolver import item_file, require_item
-from squads._itemfile import update_frontmatter
+from squads._index._resolver import require_item
 from squads._models._index import SquadsDB
 from squads._models._item import (
     Item,
@@ -477,9 +476,7 @@ class RefsMixin(ServiceCore):
             src.refs = [r for r in src.refs if not _matches(r)]
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
-            await update_frontmatter(
-                item_file(self.paths, src), src, base, default_kind=self.spec.default_ref_kind()
-            )
+            await self._update_item_frontmatter(src, base)
             payload: dict[str, object] = {"remove": to_id}
             if kind is not None:
                 payload["kind"] = kind
