@@ -264,19 +264,28 @@ async def test_an_import_cli_smoke(svc, invoke, tmp_path):
 
 
 # ----------------------------------------------------------------- faults
-async def _fault_scenario(svc: Any) -> tuple[str, dict[str, str]]:
+async def _fault_scenario(svc: Any, name: str) -> tuple[str, dict[str, str]]:
     ids = await _setup(svc)
-    steps = SCENARIOS["interleaved across three items"]
+    steps = SCENARIOS[name]
     created = {s[1] for s in steps if s[0] == "create"}
     text = "\n".join(json.dumps(_as_event(s, i, ids, created)) for i, s in enumerate(steps))
     return text, ids
 
 
-@pytest.mark.parametrize("where", ["before-flush", "between-files", "at-commit"])
+FAULTS = [
+    ("interleaved across three items", "before-flush"),
+    ("interleaved across three items", "between-files"),
+    ("interleaved across three items", "at-commit"),
+    ("a rename then more events", "before-flush"),
+    ("a rename then more events", "at-commit"),
+]
+
+
+@pytest.mark.parametrize(("scenario", "where"), FAULTS)
 async def test_a_fault_leaves_each_file_as_it_was_or_final_and_the_squad_repairable(
-    svc, tmp_path, monkeypatch, write_ledger, where
+    svc, tmp_path, monkeypatch, write_ledger, scenario, where
 ):
-    text, _ids = await _fault_scenario(svc)
+    text, _ids = await _fault_scenario(svc, scenario)
     before = _tree(svc)
 
     reference = await _reference_squad(tmp_path)

@@ -236,13 +236,19 @@ class _ReflogOp:
 
 @dataclass
 class HeldItemFiles:
-    """Item-file texts a transaction holds in memory, keyed by path, in first-touch order.
+    """Item-file texts and file moves a transaction holds in memory, in first-touch order.
 
-    The service layer fills it while a hold is open and writes each file once from it before
-    the index commit.
+    The service layer fills it while a hold is open and applies it once, before the index
+    commit: each moved file is renamed, then written. ``moves`` maps the path a file has on
+    disk to the path it is to have; ``texts`` is keyed by final path.
     """
 
     texts: dict[Path, str] = field(default_factory=dict[Path, str])
+    moves: dict[Path, Path] = field(default_factory=dict[Path, Path])
+
+    def disk_path(self, path: Path) -> Path:
+        """Where the file that is to be at *path* sits on disk now."""
+        return next((origin for origin, final in self.moves.items() if final == path), path)
 
 
 @dataclass

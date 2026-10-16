@@ -1059,9 +1059,11 @@ class ServiceCore:
         file the hold already has is read from it.
         """
         held = self.store.held_item_files()
-        if held is not None and path in held.texts:
+        if held is None:
+            return await read_item_text(path, item.id)
+        if path in held.texts:
             return held.texts[path]
-        return await read_item_text(path, item.id)
+        return await read_item_text(held.disk_path(path), item.id)
 
     async def _write_item_file(self, path: Path, text: str) -> None:
         """Write *text* to the existing item file at *path*, or hold it for the flush of
@@ -1095,17 +1097,25 @@ class ServiceCore:
     async def _item_file_exists(self, path: Path) -> bool:
         """Whether an item file exists at *path*, on disk or held."""
         held = self.store.held_item_files()
-        if held is not None and path in held.texts:
+        if held is None:
+            return await _aio.path_exists(path)
+        if path in held.texts or path in held.moves.values():
             return True
-        return await _aio.path_exists(path)
+        return path not in held.moves and await _aio.path_exists(path)
 
     async def _move_item_file(self, old: Path, new: Path) -> None:
-        """Move an item file from *old* to *new*; a text held for *old* moves with it."""
+        """Move an item file from *old* to *new*, or hold the move for the flush of
+        :meth:`_deferred_item_writes` when a hold is open; a text held for *old* moves with it."""
         held = self.store.held_item_files()
-        text = held.texts.pop(old, None) if held is not None else None
-        if await _aio.path_exists(old):
-            await _aio.path_rename(old, new)
-        if held is not None and text is not None:
+        if held is None:
+            if await _aio.path_exists(old):
+                await _aio.path_rename(old, new)
+            return
+        origin = held.disk_path(old)
+        if origin != old or await _aio.path_exists(old):
+            held.moves[origin] = new
+        text = held.texts.pop(old, None)
+        if text is not None:
             held.texts[new] = text
 
     @asynccontextmanager
@@ -1113,15 +1123,22 @@ class ServiceCore:
         """Hold every item-file write made inside the block in memory, then write each touched
         file once, in first-touch order, when the block ends normally; a raise discards them.
 
-        Must be opened inside a transaction, so the flush precedes the index commit; opening
-        one inside another is refused.
+        A file moved inside the block is renamed at the flush, just before its write. Must be
+        opened inside a transaction, so the flush precedes the index commit; opening one
+        inside another is refused.
         """
         held = self.store.open_held_item_files()
         try:
             yield
+            moves = {final: origin for origin, final in held.moves.items()}
             for path, text in held.texts.items():
                 await _aio.mkdir(path.parent, parents=True, exist_ok=True)
+                if path in moves:
+                    await _aio.path_rename(moves.pop(path), path)
                 await write_text(path, text)
+            for final, origin in moves.items():
+                await _aio.mkdir(final.parent, parents=True, exist_ok=True)
+                await _aio.path_rename(origin, final)
         finally:
             self.store.close_held_item_files()
 
