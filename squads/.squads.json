@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1060,
+  "counter": 1061,
   "padding": 6,
   "items": {
     "12": {
@@ -31873,8 +31873,8 @@
     "868": {
       "sequence_id": 868,
       "type": "milestone",
-      "title": "squads 0.18 - the web frontend",
-      "slug": "squads-0-18-the-web-frontend",
+      "title": "squads 0.19 - the web frontend",
+      "slug": "squads-0-19-the-web-frontend",
       "status": "Draft",
       "description": "",
       "parent": null,
@@ -31888,9 +31888,9 @@
         "MILE-1051:depends-on"
       ],
       "subentities": [],
-      "path": "milestones/MILE-000868-squads-0-18-the-web-frontend.md",
+      "path": "milestones/MILE-000868-squads-0-19-the-web-frontend.md",
       "created_at": "2026-09-02T08:03:39Z",
-      "updated_at": "2026-10-16T11:51:55Z",
+      "updated_at": "2026-10-16T13:39:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47815,6 +47815,29 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-1060"
+    },
+    "1061": {
+      "sequence_id": 1061,
+      "type": "milestone",
+      "title": "squads 0.18 - more backends",
+      "slug": "squads-0-18-more-backends",
+      "status": "Draft",
+      "description": "Codex, Cursor and other agent backends, with a role's model held per backend",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "milestones/MILE-001061-squads-0-18-more-backends.md",
+      "created_at": "2026-10-16T13:39:05Z",
+      "updated_at": "2026-10-16T13:40:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "MILE-1061"
     }
   }
 }
