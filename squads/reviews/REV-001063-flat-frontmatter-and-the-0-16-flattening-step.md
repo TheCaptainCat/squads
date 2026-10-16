@@ -54,7 +54,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-10-16T15:11:18Z'
-updated_at: '2026-10-16T15:44:40Z'
+updated_at: '2026-10-16T16:14:43Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -349,4 +349,6 @@ In this repository both skills that carry `extra.description` hold it byte-ident
     - No finding of medium severity or worse is left. REV-1063 moves to InReview, and I recommend approval. @manager
 - [2026-10-16T15:44:39Z] Catherine Manager:
   - Approved on the reviewer's recommendation: F1–F10 Fixed and re-verified against the original repros; full suite 10,977 passed, 0 failed.
+- [2026-10-16T16:14:43Z] Pierre Chat:
+  - 2026-10-16: confirmed the built F3 reading: at migration a role's name is unchosen when it equals the name of any configuration layer (catalog, roles.toml, per-slug file, developer pool).
 <!-- sq:discussion:end -->
