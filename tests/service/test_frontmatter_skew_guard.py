@@ -375,3 +375,29 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
 # fields for a dev role -- a REAL skew on them must refuse like any other field, not slide
 # through.
 # ---------------------------------------------------------------------------------------------
+
+
+async def test_a_hand_edited_dev_model_then_editing_elsewhere_refuses_not_reverts(svc):
+    """The counterpart to the two false-refusal cases above: this key-name collides with a
+    catalog role's exempt `model`, but a dev role's own catalog fields are not exempt, so a
+    `model` edited on disk ahead of the index is real skew. The next mutation through any other
+    seam refuses rather than silently overwriting the committed value with the stale one."""
+    from squads._sections import join_frontmatter, split_frontmatter
+
+    dev = await svc.add_dev("python")
+    path = svc.paths.abspath(dev.path)
+    front, rest = split_frontmatter(path.read_text(encoding="utf-8"))
+    front["model"] = "haiku"
+    path.write_text(join_frontmatter(front, rest), encoding="utf-8")
+    assert (await svc.get(dev.id)).attributes.get("model") != "haiku"
+
+    with pytest.raises(SquadsError, match=rf"{dev.id}.*repair"):
+        await svc.update(dev.id, title="Renamed after a hand edit")
+
+    assert itemfile.read_frontmatter(path=path)["model"] == "haiku"  # not reverted
+
+    await svc.repair()
+    await svc.update(dev.id, title="Renamed after repair")
+    final = await svc.get(dev.id)
+    assert final.attributes.get("model") == "haiku"
+    assert final.title == "Renamed after repair"

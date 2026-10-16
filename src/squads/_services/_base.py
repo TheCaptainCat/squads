@@ -688,20 +688,23 @@ class ServiceCore:
         ):
             raise SquadsError(f"an operator with slug {slug!r} already exists")
 
-    def _refuse_classified_roster_write(self, item_id: str, item: Item, verb: str) -> None:
+    def _refuse_classified_roster_write(
+        self, item_id: str, item: Item, verb: str, *, allow_view: str | None = None
+    ) -> None:
         """Raise when *item* is a role or skill whose body renders through a declared view: its
         content already has one validated authoring surface, and *verb* would be a second.
 
         The one place a write verb asks the question, so the body write, the metadata update, the
         view edit and the bulk importer's simulation never disagree. ``--force`` does not lift it;
         dropping the view from ``[selected]`` takes the document out of the classification.
+        *allow_view* names the one view the verb may place: the host's own.
         """
         roster_view = (
             views.roster_body_view_name(item.type, item.slug, self.spec)
             if item.type in (ROSTER_ROLE, ROSTER_SKILL)
             else None
         )
-        if roster_view is None:
+        if roster_view is None or roster_view == allow_view:
             return
         authoring_surface = (
             f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml` for a "

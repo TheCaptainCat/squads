@@ -94,3 +94,26 @@ async def test_a_skill_is_not_sent_to_a_role_override_document(svc):
     with pytest.raises(SquadsError) as exc:
         await svc.update(skill.id, set_attributes={"description": "x"})
     assert ".overrides/roles" not in str(exc.value)
+
+
+async def test_a_roles_name_is_refused_with_the_verb_that_sets_it_once_its_view_is_dropped(
+    project,
+):
+    """With the definition view dropped from ``[selected]`` a role takes a generic update again,
+    and ``full_name`` is refused with the verb that actually sets the name."""
+    from squads import __version__
+    from squads._services._service import Service
+    from squads._workflow import load_workflow_spec
+
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir(exist_ok=True)
+    (overrides / "workflow.toml").write_text(
+        f"# squads:override-base:{__version__}\n"
+        '[selected]\nviews = ["milestone_rollup", "squads_skill", "greeting_skill", '
+        '"memory_skill", "item_skill"]\n',
+        encoding="utf-8",
+    )
+    reopened = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+
+    with pytest.raises(SquadsError, match="the item's own `title` field"):
+        await reopened.update("ROLE-000001", set_attributes={"full_name": "Someone Else"})

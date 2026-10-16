@@ -39,8 +39,20 @@ def _reopen(project) -> Service:
     return Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
 
 
+#: A role-sourced view, with the definition view dropped so a role takes a foreign view tag.
+_ROLE_CARD_WITHOUT_THE_DEFINITION = """\
+[views.role_card]
+source = { kind = "role" }
+
+[selected]
+views = [
+  "milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill", "role_card",
+]
+"""
+
+
 async def test_a_role_sourced_view_places_expands_at_read_time_and_renders(project, svc) -> None:
-    _write_workflow_override(project.squad_dir, '[views.role_card]\nsource = { kind = "role" }\n')
+    _write_workflow_override(project.squad_dir, _ROLE_CARD_WITHOUT_THE_DEFINITION)
     _place_view_template(project.squad_dir, "role_card", "Role: {{ source.slug }}\n")
     reopened = _reopen(project)
     role_item = await reopened.activate_role("tech-writer")
@@ -67,7 +79,7 @@ async def test_an_orphaned_project_role_under_a_placed_tag_still_reads(project, 
         'mission = "Keep production reliable."\n',
         encoding="utf-8",
     )
-    _write_workflow_override(project.squad_dir, '[views.role_card]\nsource = { kind = "role" }\n')
+    _write_workflow_override(project.squad_dir, _ROLE_CARD_WITHOUT_THE_DEFINITION)
     _place_view_template(project.squad_dir, "role_card", "Role: {{ source.slug }}\n")
     reopened = _reopen(project)
     role_item = await reopened.activate_role("sre")

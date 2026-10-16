@@ -47,6 +47,7 @@ class ViewsMixin(ServiceCore):
         other host with no region."""
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
+            self._refuse_classified_roster_write(item_id, item, "A view edit", allow_view=name)
             reason = views.resolve_view_target(name, item.type, self.spec, self.playbook)
             if reason is not None:
                 raise SquadsError(reason)

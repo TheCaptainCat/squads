@@ -267,23 +267,10 @@ class ItemsMixin(ServiceCore):
         (see :func:`~squads._itemfile.ensure_no_skew`).
         """
         item = require_item(db, item_id)
-        content = (
-            description,
-            assignee,
-            priority,
-            author,
-            parent,
-            add_labels,
-            rm_labels,
-            set_attributes,
-            unset_attributes,
-        )
-        if (
-            any(v is not None for v in content)
-            or clear_priority
-            or clear_parent
-            or (title is not None and item.type != ROSTER_ROLE)
-        ):
+        # Only what the role document or playbook supplies is gated; tracking metadata
+        # (labels, assignee, parent, priority, author) stays writable.
+        supplied = (description, set_attributes, unset_attributes)
+        if any(v is not None for v in supplied) or (title is not None and item.type != ROSTER_ROLE):
             self._refuse_classified_roster_write(item_id, item, "An update")
         base = item.model_copy(deep=True)
         delta: dict[str, object] = {}

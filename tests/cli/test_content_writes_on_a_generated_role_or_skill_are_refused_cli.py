@@ -55,6 +55,10 @@ VERBS = [
     "body-append",
     "view-disable",
     "view-add",
+    "view-add-foreign",
+    "update-labels",
+    "update-assignee",
+    "update-priority",
     "comment",
     "status",
 ]
@@ -124,6 +128,10 @@ async def _args(squad, verb: str, kind: str, slug: str, view: str) -> list[str]:
         "body-append": lambda: event(op="body", body="More.", append=True),
         "view-disable": lambda: [kind, slug, "view", "disable", view],
         "view-add": lambda: [kind, slug, "view", "add", view],
+        "view-add-foreign": lambda: [kind, slug, "view", "add", "milestone_rollup"],
+        "update-labels": lambda: event(op="update", add_labels=["oncall"]),
+        "update-assignee": lambda: event(op="update", assignee="manager"),
+        "update-priority": lambda: event(op="update", priority="high"),
         "comment": lambda: event(op="comment", messages=["A note."]),
         "status": lambda: [kind, slug, "status", "Archived"],
     }
@@ -143,6 +151,7 @@ def _refused(verb: str, kind: str, generated: bool) -> bool:
         "body-force",
         "body-append",
         "view-disable",
+        "view-add-foreign",
     }
 
 
@@ -164,7 +173,13 @@ async def test_a_generated_host_refuses_content_verbs_and_keeps_the_open_ones(
         assert path.read_bytes() == before
     else:
         assert "authoring surface" not in result.output, result.output
-        if verb in ("update-title", "update-description", "body"):
+        if verb in (
+            "update-title",
+            "update-description",
+            "body",
+            "update-labels",
+            "update-assignee",
+        ):
             assert result.exit_code == 0, result.output
 
 

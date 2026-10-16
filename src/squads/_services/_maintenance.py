@@ -512,6 +512,15 @@ def _check_slug(md: Path, item_type: str, text: str, spec: WorkflowSpec) -> str:
     return raw_slug if isinstance(raw_slug, str) and raw_slug else _stem_slug(md, item_type, spec)
 
 
+def _disable_clause(item_type: str, addr: int | str, name: str, *, is_roster: bool) -> str:
+    """The ``, or disable it with …`` tail of a missing-tag remedy; a roster host's generated
+    view cannot be disabled, so it has none."""
+    if is_roster:
+        return ""
+    disable = views.view_placement_invocation(item_type, addr, "disable", name)
+    return f", or disable it with `{disable}`"
+
+
 def _seeded_view_issues(
     text: str, item_type: str, slug: str, n: int | None, spec: WorkflowSpec
 ) -> list[str]:
@@ -585,10 +594,10 @@ def _seeded_view_issues(
                 )
         else:
             add_cmd = views.view_placement_invocation(item_type, addr, "add", name)
-            disable_cmd = views.view_placement_invocation(item_type, addr, "disable", name)
+            # A roster host's generated view cannot be disabled; its remedy is to restore it.
+            disable_clause = _disable_clause(item_type, addr, name, is_roster=is_roster)
             problems.append(
-                f"missing seeded view tag {tag} — restore it with `{add_cmd}`, "
-                f"or disable it with `{disable_cmd}`"
+                f"missing seeded view tag {tag} — restore it with `{add_cmd}`{disable_clause}"
             )
     stray = {
         parts.name
@@ -607,11 +616,12 @@ def _seeded_view_issues(
                 f"`{views.view_placement_invocation(item_type, addr, 'add', name)}`"
             )
         else:
-            problems.append(
-                head + "collapse to one with "
-                f"`{views.view_placement_invocation(item_type, addr, 'add', name)}` or "
-                f"`{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
-            )
+            collapse = f"`{views.view_placement_invocation(item_type, addr, 'add', name)}`"
+            if not is_roster:
+                collapse += (
+                    f" or `{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
+                )
+            problems.append(head + "collapse to one with " + collapse)
     return problems
 
 
@@ -644,10 +654,9 @@ def _absent_body_region_issues(
             "recover the file by hand or from a backup"
         ]
     add_cmd = views.view_placement_invocation(item_type, slug, "add", view_name)
-    disable_cmd = views.view_placement_invocation(item_type, slug, "disable", view_name)
     return [
         "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — "
-        f"restore it with `{add_cmd}`, or disable the view with `{disable_cmd}`"
+        f"restore it with `{add_cmd}`"
     ]
 
 

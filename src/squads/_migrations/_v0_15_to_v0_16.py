@@ -629,9 +629,22 @@ def _flat_report(tally: _FlatTally) -> tuple[str, ...]:
     return tuple(lines)
 
 
+def _origin_of(ctx: MigrationContext, flat: dict[str, Any], file_slug: str) -> str | None:
+    """The origin a role or skill file with flat frontmatter *flat* is to be stamped with, or
+    ``None`` for another type or a file that already stores one (whatever its value)."""
+    item_type = flat.get("type")
+    if item_type not in (ROSTER_ROLE, ROSTER_SKILL) or AttributeKey.ORIGIN in flat:
+        return None
+    slug = str(flat.get("slug") or file_slug)
+    if item_type == ROSTER_SKILL:
+        return skill_origin(slug, ctx.spec)
+    return role_origin(slug, templated=bool(flat.get(AttributeKey.TECH)))
+
+
 async def _write_flat(ctx: MigrationContext, tally: _FlatTally, default_kind: str) -> int:
     """Rewrite each planned file's frontmatter, re-read at write time so it composes with the
-    comment-header writer on the same file."""
+    comment-header writer on the same file. A role or skill file is stamped with its origin in
+    this same write, so no file is written twice."""
     for rel, _flat in tally.files:
         path = ctx.paths.abspath(rel)
         text = (await _aio.read_bytes(path)).decode("utf-8")
@@ -639,7 +652,10 @@ async def _write_flat(ctx: MigrationContext, tally: _FlatTally, default_kind: st
         flat = flatten_frontmatter(
             data, file_slug=tally.slugs[rel], default_kind=default_kind, source=rel
         )
-        await write_text(path, replace_frontmatter(text, flat.data, source=rel))
+        data = dict(flat.data)
+        if (origin := _origin_of(ctx, data, tally.slugs[rel])) is not None:
+            data[AttributeKey.ORIGIN] = origin
+        await write_text(path, replace_frontmatter(text, data, source=rel))
     return len(tally.files)
 
 
@@ -862,7 +878,9 @@ catalog also declares (the bundled catalog declares `dev`). The stored `is_dev` 
 
 async def _plan_origin(ctx: MigrationContext, db: SquadsDB) -> Planned:
     """Stamp ``origin`` on every role and skill file that stores none. A file is read as the
-    flatten step will leave it; one that already carries the key, whatever its value, is skipped."""
+    flatten step will leave it; one that already carries the key, whatever its value, is skipped.
+    A file the flatten step rewrites is stamped by that write, so only the rest are written here.
+    """
     default_kind = ctx.spec.default_ref_kind()
     stamps: dict[str, str] = {}
     counts: Counter[tuple[str, str]] = Counter()
@@ -871,19 +889,16 @@ async def _plan_origin(ctx: MigrationContext, db: SquadsDB) -> Planned:
             continue
         text = (await _aio.read_bytes(ctx.paths.abspath(it.path))).decode("utf-8")
         data = read_frontmatter(text=text, source=it.path)
+        file_slug = _file_slug(ctx, it)
         flat = flatten_frontmatter(
-            data, file_slug=_file_slug(ctx, it), default_kind=default_kind, source=it.path
-        ).data
-        if AttributeKey.ORIGIN in flat:
-            continue
-        slug = str(flat.get("slug") or _file_slug(ctx, it))
-        origin = (
-            skill_origin(slug, ctx.spec)
-            if it.type == ROSTER_SKILL
-            else role_origin(slug, templated=bool(flat.get(AttributeKey.TECH)))
+            data, file_slug=file_slug, default_kind=default_kind, source=it.path
         )
-        stamps[it.path] = origin
+        origin = _origin_of(ctx, flat.data, file_slug)
+        if origin is None:
+            continue
         counts[(it.type, origin)] += 1
+        if not flat.changed:
+            stamps[it.path] = origin
 
     async def write(wctx: MigrationContext) -> int:
         for rel, origin in stamps.items():

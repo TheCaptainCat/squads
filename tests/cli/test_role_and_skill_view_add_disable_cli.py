@@ -114,6 +114,15 @@ async def test_role_view_add_an_undeclared_name_is_refused(svc, invoke) -> None:
     r = await invoke(["role", "manager", "view", "add", "no-such-view"])
 
     assert r.exit_code == 1
+    assert "authoring surface" in r.output
+
+
+async def test_a_project_skill_names_an_undeclared_view(svc, invoke) -> None:
+    await svc.add_skill("Release Runbook", description="Ship it.")
+
+    r = await invoke(["skill", "release-runbook", "view", "add", "no-such-view"])
+
+    assert r.exit_code == 1
     assert "no declared view" in r.output
 
 
@@ -220,7 +229,7 @@ async def test_skill_view_add_an_undeclared_name_is_refused(svc, invoke) -> None
     r = await invoke(["skill", "squads", "view", "add", "no-such-view"])
 
     assert r.exit_code == 1
-    assert "no declared view" in r.output
+    assert "authoring surface" in r.output
 
 
 async def test_skill_view_rm_is_not_a_command(svc, invoke) -> None:
