@@ -123,6 +123,9 @@ details.sq-graph .sq-graph-empty {
   font-weight: 600;
   color: var(--vscode-editor-foreground);
 }
+.sq-comment-slug {
+  font-family: var(--vscode-editor-font-family, monospace);
+}
 .sq-subentity {
   margin: 0.9rem 0;
   padding-top: 0.6rem;
@@ -586,8 +589,8 @@ export interface DiscussionOutcome {
   readonly message?: string;
 }
 
-/** One comment: an author + ISO-timestamp header, then its body rendered through the same
- * markdown renderer the dossier body uses (so item-id references — and, when `roles` resolves
+/** One comment: an author (plus its slug when that differs from the name) + ISO-timestamp header,
+ * then its body rendered through the same markdown renderer the dossier body uses (so item-id references — and, when `roles` resolves
  * them, `@<slug>` role mentions — inside a comment linkify the same way, and `currentId` still
  * suppresses a self-link). */
 function buildCommentHtml(
@@ -597,9 +600,15 @@ function buildCommentHtml(
   ids: ItemIdMatcher | undefined,
   items: ItemDirectory | undefined,
 ): string {
+  const slug =
+    entry.author_slug !== undefined &&
+    entry.author_slug !== '' &&
+    entry.author_slug !== entry.author
+      ? `<span class="sq-comment-slug">${escapeHtml(entry.author_slug)}</span> `
+      : '';
   return (
     `<div class="sq-comment"><div class="sq-comment-header">` +
-    `<span class="sq-comment-author">${escapeHtml(entry.author)}</span> ` +
+    `<span class="sq-comment-author">${escapeHtml(entry.author)}</span> ${slug}` +
     `<span class="sq-comment-ts">${escapeHtml(entry.ts)}</span></div>` +
     `<div class="sq-comment-body">${renderMarkdownToHtml(entry.body, currentId, false, roles, ids, items)}</div></div>`
   );

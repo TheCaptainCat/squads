@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1028,
+  "counter": 1029,
   "padding": 6,
   "items": {
     "12": {
@@ -44348,7 +44348,7 @@
       "type": "task",
       "title": "Accept and show author_slug on comments in the VS Code client",
       "slug": "accept-and-show-author-slug-on-comments-in-the-vs-code-clien",
-      "status": "Draft",
+      "status": "InReview",
       "description": "Optional author_slug on SqDiscussionEntry, tolerant shape guard, slug beside the name in the preview",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44364,7 +44364,7 @@
         {
           "local_id": "ST1",
           "title": "Read an optional author_slug and show it in the preview",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -44373,7 +44373,7 @@
       ],
       "path": "tasks/TASK-001005-accept-and-show-author-slug-on-comments-in-the-vs-code-clien.md",
       "created_at": "2026-10-12T06:48:44Z",
-      "updated_at": "2026-10-15T21:43:33Z",
+      "updated_at": "2026-10-16T08:16:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44384,7 +44384,7 @@
       "type": "task",
       "title": "Document the comment header grammar and its migration",
       "slug": "document-the-comment-header-grammar-and-its-migration",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Stability tiers 1 and 3, internals, the 0.16 migration section and CHANGELOG entries for slug-bearing comment headers",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44400,7 +44400,7 @@
         {
           "local_id": "ST1",
           "title": "State the header grammar and slug permanence in the contract",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -44418,7 +44418,7 @@
       ],
       "path": "tasks/TASK-001006-document-the-comment-header-grammar-and-its-migration.md",
       "created_at": "2026-10-12T06:48:46Z",
-      "updated_at": "2026-10-12T06:50:47Z",
+      "updated_at": "2026-10-16T08:06:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45783,6 +45783,78 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-1028"
+    },
+    "1029": {
+      "sequence_id": 1029,
+      "type": "review",
+      "title": "TASK-1005: author_slug in the VS Code client",
+      "slug": "task-1005-author-slug-in-the-vs-code-client",
+      "status": "Approved",
+      "description": "Review of the client's optional author_slug guard, preview render and canary coverage",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1005:addresses",
+        "FEAT-980:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Canary's sub-entity half checks nothing",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Optional author_slug in canary breaks file's own policy",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "squadDir comment: stale branch, inexact -C",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Older-payload test runs on a mixed fixture",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "New doc-comment lines exceed 100 columns",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001029-task-1005-author-slug-in-the-vs-code-client.md",
+      "created_at": "2026-10-16T08:12:14Z",
+      "updated_at": "2026-10-16T08:17:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1029"
     }
   }
 }

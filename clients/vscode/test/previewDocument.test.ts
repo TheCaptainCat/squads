@@ -654,12 +654,54 @@ describe('buildDiscussionHtml', () => {
     expect(html.indexOf('Elias Python')).toBeLessThan(html.indexOf('Ada Typescript'));
   });
 
-  it('escapes the author and timestamp', () => {
-    const html = buildDiscussionHtml({
-      entries: [{ author: '<script>', ts: '2026-01-01T00:00:00Z', body: 'hi' }],
+  describe('the author header', () => {
+    const header = (author: string, authorSlug?: string): string => {
+      const entry = { author, ts: '2026-01-01T00:00:00Z', body: 'hi' };
+      const html = buildDiscussionHtml({
+        entries: [authorSlug === undefined ? entry : { ...entry, author_slug: authorSlug }],
+      });
+      return /<div class="sq-comment-header">.*?<\/div>/.exec(html)?.[0] ?? '';
+    };
+    const ts = '<span class="sq-comment-ts">2026-01-01T00:00:00Z</span>';
+    const rows: readonly { name: string; author: string; slug?: string; html: string }[] = [
+      {
+        name: 'name with a different slug',
+        author: 'Ada Typescript',
+        slug: 'typescript-dev',
+        html:
+          `<div class="sq-comment-header"><span class="sq-comment-author">Ada Typescript</span> ` +
+          `<span class="sq-comment-slug">typescript-dev</span> ${ts}</div>`,
+      },
+      {
+        name: 'name with no slug',
+        author: 'Ada Typescript',
+        html: `<div class="sq-comment-header"><span class="sq-comment-author">Ada Typescript</span> ${ts}</div>`,
+      },
+      {
+        name: 'name with an empty slug',
+        author: 'Ada Typescript',
+        slug: '',
+        html: `<div class="sq-comment-header"><span class="sq-comment-author">Ada Typescript</span> ${ts}</div>`,
+      },
+      {
+        name: 'slug equal to the name',
+        author: 'squads',
+        slug: 'squads',
+        html: `<div class="sq-comment-header"><span class="sq-comment-author">squads</span> ${ts}</div>`,
+      },
+      {
+        name: 'a name and a slug that need escaping',
+        author: '<b>A&B</b>',
+        slug: '"x"<i>',
+        html:
+          `<div class="sq-comment-header"><span class="sq-comment-author">&lt;b&gt;A&amp;B&lt;/b&gt;</span> ` +
+          `<span class="sq-comment-slug">&quot;x&quot;&lt;i&gt;</span> ${ts}</div>`,
+      },
+    ];
+
+    it.each(rows)('$name', ({ author, slug, html }) => {
+      expect(header(author, slug)).toBe(html);
     });
-    expect(html).toContain('&lt;script&gt;');
-    expect(html).not.toContain('<script>');
   });
 
   it('suppresses a self-link when a comment mentions the current item id', () => {

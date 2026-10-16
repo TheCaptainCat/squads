@@ -3,7 +3,7 @@ id: TASK-1005
 sequence_id: 1005
 type: task
 title: Accept and show author_slug on comments in the VS Code client
-status: Draft
+status: InReview
 parent: FEAT-980
 author: tech-lead
 assignee: typescript-dev
@@ -16,10 +16,10 @@ description: Optional author_slug on SqDiscussionEntry, tolerant shape guard, sl
 subentities:
 - local_id: ST1
   title: Read an optional author_slug and show it in the preview
-  status: Todo
+  status: Done
   story: US4
 created_at: '2026-10-12T06:48:44Z'
-updated_at: '2026-10-15T21:43:33Z'
+updated_at: '2026-10-16T08:16:12Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -139,4 +139,14 @@ result reported with the `sq` it ran against.
   - 2026-10-12: keep the slug in the VS Code comment preview, beyond the optional field story 4 asks for.
 - [2026-10-15T21:43:33Z] Catherine Manager:
   - Also in scope: the doc comment at clients/vscode/src/domain/squadDir.ts:129-131 still names --dir. Suggested text from the writer: Resolve the active squad directory for workspaceRoot, or undefined when no .squads.toml is found (mirrors _paths.py::resolve, the .squads.toml walk-up).
+- [2026-10-16T08:08:58Z] Ada Typescript:
+  - - Client reads an optional author_slug and shows it in the preview as a monospace span after the author name, only when non-empty and different from the name. Guard accepts absent or string, rejects null/number/object. Also fixed the stale --dir comment in squadDir.ts (now names -C).
+    - Files (clients/vscode): src/types.ts, src/sqAdapter.ts (guard now exported for the canary), src/domain/previewDocument.ts (+ .sq-comment-slug rule), src/domain/squadDir.ts, test/sqAdapter.test.ts, test/previewDocument.test.ts, test/canary/skewCanary.test.ts, test/fixtures/show-json.json (slug on the first entry, second left without).
+    - Gates: npm run check clean; npm test 35 files / 705 tests pass. Canary (npm run test:canary) 76 passed against the dev build .venv/bin/sq (emits author_slug, schema 0.16) and against released ~/.local/bin/sq 0.15.0 (omits it, verified by a probe).
+    - Falsified: required author_slug in guard -> 5 sqAdapter tests red (key absent rows, older-payload, fixture); unescaped slug -> the escaping row red. Both restored.
+    - Before: <span author>Ada Typescript</span> <span ts>...</span>. After: <span author>Ada Typescript</span> <span slug>typescript-dev</span> <span ts>...</span>.
+    - Operator check in the dev host (launch-dev-host skill): preview an item whose comments were written by the 0.16 build; each header shows name, then slug, then timestamp. Older entries without a slug look as before.
+    - For the tech writer: the preview now shows the author slug beside the name on comments (when sq emits it).
+- [2026-10-16T08:16:12Z] Ada Typescript:
+  - REV-1029 F1-F5 fixed. check clean, npm test 705 pass, canary 76 pass on .venv/bin/sq; canary now red on released 0.15.0 by design.
 <!-- sq:discussion:end -->
