@@ -14,30 +14,30 @@ description: One origin rule, stored as a pinned attribute, stamped at creation 
 subentities:
 - local_id: ST1
   title: Define one origin rule for roles and skills
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Declare and pin the origin attribute, report bad values in check
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Stamp origin on every creation path
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Show origin on every role and skill surface
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST5
   title: Stamp existing squads through a 0.16 contribution
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST6
   title: Refuse content writes on system roles and skills
   status: Todo
   story: US3
 created_at: '2026-10-16T19:20:35Z'
-updated_at: '2026-10-16T21:03:00Z'
+updated_at: '2026-10-16T21:43:57Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -199,6 +199,8 @@ Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-16T21:29:56Z] Elias Python:
+  - Done. origin rule in _interactions (role_origin, skill_origin, item_origin); constants ORIGIN_SYSTEM/PROJECT in _models/_attributes. Falsification, 11 new tests red in total across three breaks: dropping the tech branch 2 red, treating every slug as bundled 6 red, treating every skill as system 3 red (tests/unit/test_origin_rule_by_shape.py, 24 tests).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -244,6 +246,8 @@ raw value: the `System` and unknown-word rows go red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-16T21:29:59Z] Elias Python:
+  - Done. origin declared required + settable=false on role and skill, pinned, accessor attrs.origin, closed-vocabulary check inside attribute_valid (no new validator name). Falsification: pin removed 2 red, accessor returning the raw value 4 red, vocabulary check disabled 6 red (tests/service/test_a_stored_origin_is_judged_by_check_and_survives_repair.py, 64 tests; pinned rows added to the attribute-declaration CLI table).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -288,6 +292,8 @@ red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-16T21:30:03Z] Elias Python:
+  - Done. One stamp in ServiceCore._create_model (covers init, activate, dev add, skill add, import, role/skill creates) plus the three Item constructions in the skill seeding/restore code in _maintenance. Falsification: constant system stamp 4 red, skill-seed stamp dropped 8 red, sync backfilling origin 5 red (tests/integration/test_every_creation_path_stamps_the_origin_the_rule_gives.py, 20 tests).
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -336,6 +342,8 @@ developer row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-16T21:30:06Z] Elias Python:
+  - Done. origin on role list/show (text+json), skill show (text+json), role catalog (system replaces bundled; templated and declared developers listed), the kind line and bundled-blind system flag removed. Falsification: skill show re-derived from the body classification 2 red, skill json back to the bundled-blind rule 2 red, catalog from slug-in-bundle 2 red (tests/cli/test_origin_is_printed_identically_on_every_role_and_skill_surface.py, 6 tests x shapes x surfaces, fresh and after delete+repair).
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -468,4 +476,25 @@ one verb: the meta test goes red. Restore each.
   - ST6: role title (the name) must pass the system-role gate, or the documented bundled-role rename via sq import update breaks. Question and recommendation on FEAT-977 for @manager; TASK-1070 ST4 makes the gate field-level with a declared exemption set.
 - [2026-10-16T19:54:19Z] Catherine Manager:
   - @tech-lead ST6: the role name (title) is exempt from the system-role refusal, per the 2026-10-16 stored-name ruling; see FEAT-977.
+- [2026-10-16T21:30:34Z] Elias Python:
+  - ST1-ST4 done, checkpoint. Adopter-visible changes for the tech writer:
+    - Frontmatter of every role and skill carries origin: system or project (required, not settable by update --set; sq check reports a missing value or one outside the two words).
+    - sq skill show: the kind line becomes an origin line; show --json carries origin and no longer carries system.
+    - sq role list and sq role show (text and --json) gain origin; sq role list gains an Origin column.
+    - sq role catalog: the value bundled becomes system; the column is stored origin for activated roles. Activated developers (templated and declared) now get catalog rows even when the catalog document does not declare them.
+    - sq list -t role|skill --json already carries the stored origin flat.
+    Deviations from the task text, for review:
+    - sq skill list does not exist (new roster verbs are FEAT-977), so no Origin column was added there.
+    - RoleView.origin was not added: nothing would read it (the CLI reads the item).
+    - The closed-vocabulary rule lives inside attribute_valid (error level) rather than as a new validator name, so no new entry in the validator catalogs.
+    - Stamping happens once in ServiceCore._create_model plus the three skill Item constructions in _maintenance, not per call site.
+    Expected red until ST5: tests that migrate a corpus and then run sq check (migration corpus, resume-after-runner, developer-marker and comment-header CLI tests), because migrated files do not yet carry origin.
+- [2026-10-16T21:31:13Z] Elias Python:
+  - ST6 ruling from the coordinator (citing the 2026-10-09 op-pierre ruling on FEAT-976: origin is provenance, the refusal follows whether the body is generated): the refusal follows the existing body classification. A role's body is a generated view, so a role is refused whatever its origin. The label-equals-refusal invariant applies to skills only; for roles the invariant is refused iff the body is generated, and the title stays exempt.
+- [2026-10-16T21:43:57Z] Elias Python:
+  - ST5 done. Contribution "origin" appended last to the 0.15 to 0.16 step (the diff under _migrations is that one contribution, its MANUAL section and its CONTRIBUTIONS entry); POSTCONDITIONS row added.
+    Falsification, new or changed tests red when reverted: stamping every role system 4 red; overwriting a stored origin 1 red; removing the POSTCONDITIONS row 1 red (the contribution test names it).
+    Tests: tests/cli/test_migrate_up_stamps_the_origin_of_every_role_and_skill_cli.py (developer fixture shapes by migrate / second migrate / delete index + repair; a stripped fresh-init squad migrates to byte-identical files, then sync is a fixed point and check is clean; chlog prints the section once, after the developer section).
+    Fixtures: tests/fixtures/corpus/v0_16 regenerated by the real migrate up on a copy of v0_15 (clock pinned); the diff is 5 origin lines plus the matching index attributes. The migrated_corpus goldens were regenerated with UPDATE_GOLDENS=1; the diff is only added origin lines and their JSON commas. Existing partial-chain tests (4.5 and 8.10 runners only) now ignore the missing-origin error since the 0.16 step has not run; the hand-built current-stamp corpus helper stores origin.
+    Dry run on a copy of this repository's squad (scratch copy, dev build, -C): migrate up wrote 4363 comment headers in 927 files, flattened 27 files, stamped 10 roles system, 12 skills system, 2 skills project; sync ok; sq check clean; second migrate up changes nothing (hashes stable).
 <!-- sq:discussion:end -->

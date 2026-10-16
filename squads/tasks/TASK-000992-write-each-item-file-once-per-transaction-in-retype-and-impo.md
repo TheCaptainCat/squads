@@ -16,18 +16,18 @@ description: retype writes one file three times and import_events once per event
 subentities:
 - local_id: ST1
   title: Guard one write per item file per transaction
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Compose the retyped file in memory and write it once
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Write each file once per import
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Establish the rename_type and repair multi-write cases
-  status: Todo
+  status: Done
 created_at: '2026-10-09T20:28:05Z'
-updated_at: '2026-10-16T21:05:05Z'
+updated_at: '2026-10-16T21:50:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -195,6 +195,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-16T21:42:51Z] Elias Python:
+  - Guard lands in tests/_write_guard.py (autouse write_ledger fixture in conftest). Unit = one IndexStore.transaction() (named by the calling service method) or one repair rebuild; counts follow renames; units that raise are not checked; a late item-file write after the index write is reported too. Allowlist: retype, rename_type, _apply_import, plus rename_status (caught by the wider run, not named by the task, left allowlisted and unfixed). The repair rebuild needed no entry. Falsification: removing the retype entry turns 11 tests red (9 teardown errors in tests/service/test_retype.py, 2 failures in the guard module); ignoring the plain funnel turns 2 synthetic rows red. Cost of tests/service: 65s without the ledger, 70s with it (one run each). With the allowlist emptied only rename_status fails (26 tests over 7 files).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -248,6 +250,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-16T21:42:53Z] Elias Python:
+  - retype composes frontmatter, container, id remap and retype comment in memory and writes the file once, then rewrites the other files. apply_type_change now returns (path, composed text). Falsification: restoring a second write of the retyped file turns 40 tests red (plus 47 teardown errors) in the new retype module. Files, index and reflog are byte-identical to the previous commit over the probe scenarios (own id in body, refs, parent link, container with/without).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -307,6 +311,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-16T21:42:55Z] Elias Python:
+  - import_events holds item-file texts in a dict on the Service for the length of the apply transaction (ServiceCore._deferred_item_writes) and flushes each file once in first-touch order before the index commit. The writing halves reach files through five ServiceCore methods that pass straight through when no block is open, so the interactive verbs keep one read and one write. A raise discards the held texts, so a failing import now leaves no file behind. Falsification: one writing half writing straight to disk turns 11 tests red, a half reading the disk instead of the held text turns 19 red. Byte-identical to one-at-a-time application is a table row for every scenario.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -367,6 +373,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-16T21:42:57Z] Elias Python:
+  - rename_type: driven with two tasks (one refs and mentions the other) and a review referring to both; before: 3 writes to the first file, 2 to the second, 1 to the review; after: 1 each. Fixed by composing each renamed file in memory. Falsification: restoring a separate comment write turns 16 tests red. Repair did not reproduce: a role needing the body tag, the retired keys, or both is written once by sq repair; a version-drifted sq sync writes the tag backfill once outside any unit and nothing else touches the file. The read was wrong, so no allowlist entry was ever added; forcing a second write in the rebuild loop turns 5 tests red (plus 5 errors). Test tables: role, system skill, work item by tag/frontmatter need by command.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 <!-- sq:subtasks:end -->
@@ -385,4 +393,8 @@ Gates and working rules: the task body.
   - Correction of attribution: this task's slot (after the FEAT-986 review, before FEAT-976) is the manager's call following the tech lead's proposal, not a ruling by the operator. I relayed it as his answer in error.
 - [2026-10-12T06:34:37Z] Olivia Lead:
   - 2026-10-12: wording of the "Sequence" section corrected for the new build order (FEAT-980 now lands before this task). The slot is unchanged: after TASK-990 and the review of FEAT-986, before FEAT-976. Still Draft.
+- [2026-10-16T21:43:04Z] Elias Python:
+  - Built on release/0.16 (worktree branch worktree-agent-a0f8c17233ea0ade9, commits 4a8bdc9d, 22fa82b6, 15b80785, 4417bdee). Gates: pyright 0 errors, ruff check and format clean; tests/service, integration, cli, meta, unit, tui each run once and green (full suite left to the merge). Beyond the four named: rename_status also writes frontmatter then comment (allowlisted, not fixed). Repair rebuild did not reproduce, so no entry. Adopter-visible: an import that fails mid-apply now leaves no item file written (previously a prefix of the events had landed); output, files, index and reflog are otherwise byte-identical. Tech writer: no doc change needed beyond that.
+- [2026-10-16T21:50:27Z] Elias Python:
+  - rename_status now composes in memory and writes once (commit before c520f5a3); falsification: a restored separate write turns 4 tests red plus 5 errors. Allowlist mechanism removed entirely.
 <!-- sq:discussion:end -->

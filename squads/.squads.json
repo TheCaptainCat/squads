@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1081,
+  "counter": 1082,
   "padding": 6,
   "items": {
     "12": {
@@ -26607,7 +26607,7 @@
         {
           "local_id": "ST1",
           "title": "Guard one write per item file per transaction",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -26616,7 +26616,7 @@
         {
           "local_id": "ST2",
           "title": "Compose the retyped file in memory and write it once",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -26625,7 +26625,7 @@
         {
           "local_id": "ST3",
           "title": "Write each file once per import",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -26634,7 +26634,7 @@
         {
           "local_id": "ST4",
           "title": "Establish the rename_type and repair multi-write cases",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -26643,7 +26643,7 @@
       ],
       "path": "tasks/TASK-000992-write-each-item-file-once-per-transaction-in-retype-and-impo.md",
       "created_at": "2026-10-09T20:28:05Z",
-      "updated_at": "2026-10-16T21:05:05Z",
+      "updated_at": "2026-10-16T21:50:27Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48528,7 +48528,7 @@
         {
           "local_id": "ST1",
           "title": "Define one origin rule for roles and skills",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48537,7 +48537,7 @@
         {
           "local_id": "ST2",
           "title": "Declare and pin the origin attribute, report bad values in check",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48546,7 +48546,7 @@
         {
           "local_id": "ST3",
           "title": "Stamp origin on every creation path",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48555,7 +48555,7 @@
         {
           "local_id": "ST4",
           "title": "Show origin on every role and skill surface",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48564,7 +48564,7 @@
         {
           "local_id": "ST5",
           "title": "Stamp existing squads through a 0.16 contribution",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48582,7 +48582,7 @@
       ],
       "path": "tasks/TASK-001069-store-and-show-role-and-skill-origin-refuse-writes-on-system.md",
       "created_at": "2026-10-16T19:20:35Z",
-      "updated_at": "2026-10-16T21:03:00Z",
+      "updated_at": "2026-10-16T21:43:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49551,7 +49551,7 @@
       "type": "bug",
       "title": "Unknown [selected] key error lists squad as accepted",
       "slug": "unknown-selected-key-error-lists-squad-as-accepted",
-      "status": "Open",
+      "status": "Fixed",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -49565,11 +49565,64 @@
       "subentities": [],
       "path": "bugs/BUG-001081-unknown-selected-key-error-lists-squad-as-accepted.md",
       "created_at": "2026-10-16T21:17:28Z",
-      "updated_at": "2026-10-16T21:17:41Z",
+      "updated_at": "2026-10-16T21:50:26Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "BUG-1081"
+    },
+    "1082": {
+      "sequence_id": 1082,
+      "type": "review",
+      "title": "Review TASK-1069 ST1-ST5: role and skill origin",
+      "slug": "review-task-1069-st1-st5-role-and-skill-origin",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1069"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Role catalog lists per-slug declared roles only when they are developers",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Role catalog keeps a row for an archived developer that sq dev list drops",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "New test comments name release versions",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001082-review-task-1069-st1-st5-role-and-skill-origin.md",
+      "created_at": "2026-10-16T21:54:03Z",
+      "updated_at": "2026-10-16T21:54:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1082"
     }
   }
 }

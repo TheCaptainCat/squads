@@ -3,13 +3,13 @@ id: BUG-1081
 sequence_id: 1081
 type: bug
 title: Unknown [selected] key error lists squad as accepted
-status: Open
+status: Fixed
 author: qa
 priority: low
 refs:
 - MILE-934:targets
 created_at: '2026-10-16T21:17:28Z'
-updated_at: '2026-10-16T21:17:41Z'
+updated_at: '2026-10-16T21:50:26Z'
 ---
 <!-- sq:body -->
 ## Steps
@@ -34,4 +34,6 @@ Reproduced on release/0.16 HEAD (clean git archive export, scratch squad). The a
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-16T21:50:24Z] Elias Python:
+  - Fixed in c520f5a3: the [selected] menu now excludes squad (WORKFLOW_SELECTABLE_SECTIONS); the squad refusal is unchanged. Test row added; reverting the constant turns it red.
 <!-- sq:discussion:end -->

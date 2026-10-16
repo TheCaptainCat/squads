@@ -42,7 +42,7 @@ subentities:
   assignee: tech-writer
   story: US3
 created_at: '2026-10-16T19:52:27Z'
-updated_at: '2026-10-16T19:53:36Z'
+updated_at: '2026-10-16T21:17:00Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -414,4 +414,6 @@ skills and operators have no `update` verb or send renames through `sq import`.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-16T21:17:00Z] Catherine Manager:
+  - ST5 addition (FEAT-1054 decision, 2026-10-16): update re-renders a body that is still unwritten, so a rename never makes the seeded template count as written. No stored flag.
 <!-- sq:discussion:end -->
