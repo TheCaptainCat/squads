@@ -56,7 +56,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-10-16T17:05:08Z'
-updated_at: '2026-10-16T17:12:11Z'
+updated_at: '2026-10-16T17:50:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -187,6 +187,8 @@ The same import on a developer (`python-dev`) did take effect. For a bundled rol
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-16T17:50:56Z] Mara Tester:
+  - Filed as BUG-1065 (low): the import should refuse model on a non-developer role.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 

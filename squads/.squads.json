@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1064,
+  "counter": 1065,
   "padding": 6,
   "items": {
     "12": {
@@ -26351,7 +26351,7 @@
       "type": "task",
       "title": "Guard the import graph and move role views and derivations",
       "slug": "guard-the-import-graph-and-move-role-views-and-derivations",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Behaviour-neutral: an import-graph guard in tests/meta, the roster views into _roles, and the role derivations out of the _interactions init",
       "parent": "FEAT-986",
       "author": "tech-lead",
@@ -26394,7 +26394,7 @@
       ],
       "path": "tasks/TASK-000989-guard-the-import-graph-and-move-role-views-and-derivations.md",
       "created_at": "2026-10-09T20:27:55Z",
-      "updated_at": "2026-10-16T17:49:55Z",
+      "updated_at": "2026-10-16T17:50:11Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48167,11 +48167,37 @@
       ],
       "path": "reviews/REV-001064-flat-frontmatter-adopter-docs-and-changelog.md",
       "created_at": "2026-10-16T17:05:08Z",
-      "updated_at": "2026-10-16T17:12:11Z",
+      "updated_at": "2026-10-16T17:50:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-1064"
+    },
+    "1065": {
+      "sequence_id": 1065,
+      "type": "bug",
+      "title": "Import stores a model on non-developer roles that is ignored",
+      "slug": "import-stores-a-model-on-non-developer-roles-that-is-ignored",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1064",
+        "MILE-1051:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001065-import-stores-a-model-on-non-developer-roles-that-is-ignored.md",
+      "created_at": "2026-10-16T17:50:50Z",
+      "updated_at": "2026-10-16T17:50:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1065"
     }
   }
 }
