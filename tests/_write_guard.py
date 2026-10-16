@@ -25,12 +25,6 @@ from squads import _aio
 from squads._index._store import IndexStore
 from squads._services._maintenance import MaintenanceMixin
 
-#: Service methods whose unit still writes one item file more than once, each with the reason.
-#: A method leaves this table when its fix lands; a test pins that each entry still double-writes.
-ALLOWED_DOUBLE_WRITERS: dict[str, str] = {
-    "rename_status": "frontmatter and comment are separate writes",
-}
-
 INDEX_NAME = ".squads.json"
 
 
@@ -65,8 +59,6 @@ class WriteLedger:
     def __init__(self) -> None:
         self.stacks: dict[Path, list[Unit]] = {}
         self.violations: list[str] = []
-        #: ``(method, path, count)`` for every committed-unit double write, allowlisted or not.
-        self.double_writes: list[tuple[str, Path, int]] = []
         self.seen: Counter[Path] = Counter()
         #: Every committed unit, in the order they finished.
         self.finished: list[Unit] = []
@@ -107,11 +99,9 @@ class WriteLedger:
         self.finished.append(unit)
         for path, n in unit.counts.items():
             if n > 1:
-                self.double_writes.append((unit.method, path, n))
-                if unit.method not in ALLOWED_DOUBLE_WRITERS:
-                    self.violations.append(
-                        f"{unit.method}: {path.name} written {n} times in one transaction"
-                    )
+                self.violations.append(
+                    f"{unit.method}: {path.name} written {n} times in one transaction"
+                )
         for path in unit.late_item_writes:
             self.violations.append(f"{unit.method}: {path.name} written after the index commit")
 

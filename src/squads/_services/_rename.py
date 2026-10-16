@@ -23,7 +23,6 @@ from squads._itemfile import (
     remap_ids_text,
     rewrite_ids,
     skew_message,
-    update_frontmatter,
     write_text,
 )
 from squads._models import _markers as markers
@@ -308,13 +307,18 @@ class RenameMixin(ServiceCore):
                 ids: list[tuple[str, str]] = []
                 rewritten: list[Path] = []
                 for item in matching:
-                    base = item.model_copy(deep=True)
                     item.status = new_status
                     item.updated_at = clock.now()
                     path = item_file(self.paths, item)
-                    await update_frontmatter(path, item, base, default_kind=default_kind)
+                    text = sections.replace_frontmatter(
+                        snapshot[item.sequence_id][1],
+                        item.to_frontmatter_dict(),
+                        source=str(path),
+                    )
+                    await write_text(
+                        path, _with_rename_status_comment(text, old_status, new_status)
+                    )
                     db.add(item)
-                    await _append_rename_status_comment(path, old_status, new_status)
                     self.store.log(
                         "rename-status",
                         item.id,
@@ -341,12 +345,11 @@ def _with_rename_comment(text: str, old_id: str, new_id: str, item: Item) -> str
     return text
 
 
-async def _append_rename_status_comment(path: Path, old_status: str, new_status: str) -> None:
-    """Append a system comment recording the status rename to the item's discussion."""
+def _with_rename_status_comment(text: str, old_status: str, new_status: str) -> str:
+    """*text* with a system comment recording the status rename appended to its discussion."""
     now_iso = clock.iso(clock.now())
     msg = f"status renamed {old_status} → {new_status}"
     entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
-    text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
-        text = sections.append_to_section(text, markers.DISCUSSION, entry)
-        await write_text(path, text)
+        return sections.append_to_section(text, markers.DISCUSSION, entry)
+    return text

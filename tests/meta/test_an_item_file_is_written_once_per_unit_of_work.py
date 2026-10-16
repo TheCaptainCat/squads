@@ -2,8 +2,7 @@
 
 Within a committed unit of work an item file is written at most once, and before the index
 commit. ``tests/_write_guard.py`` observes the write funnel for every test; this module pins
-what the observation covers (synthetic units, one known positive per write seam) and that the
-allowlist of methods still known to write twice is exact.
+what the observation covers (synthetic units, one known positive per write seam).
 """
 
 from collections.abc import Awaitable, Callable
@@ -183,26 +182,3 @@ async def test_every_item_file_write_seam_is_observed(svc, write_ledger, seam):
 
     path = item_file(svc.paths, item).resolve()
     assert write_ledger.seen[path] >= 1
-
-
-# ----------------------------------------------------------------- the allowlist is exact
-async def _drive_rename_status(svc: Any) -> None:
-    await create_item(svc, "task", "t")
-    await svc.rename_status("task", "Draft", "Ready")
-
-
-DRIVERS: dict[str, Callable[[Any], Awaitable[None]]] = {
-    "rename_status": _drive_rename_status,
-}
-
-
-def test_every_allowlisted_method_has_a_driver_and_every_driver_an_entry():
-    assert set(DRIVERS) == set(_write_guard.ALLOWED_DOUBLE_WRITERS)
-
-
-@pytest.mark.parametrize("method", list(DRIVERS))
-async def test_an_allowlisted_method_still_writes_a_file_twice(svc, write_ledger, method):
-    await DRIVERS[method](svc)
-
-    assert method in {m for m, _path, _n in write_ledger.double_writes}
-    assert write_ledger.take_violations() == []
