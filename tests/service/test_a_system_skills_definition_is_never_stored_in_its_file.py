@@ -24,7 +24,6 @@ from squads._backends._base import BackendContext
 from squads._backends._registry import get_backend
 from squads._interactions import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES, is_system_skill
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio
@@ -52,7 +51,7 @@ async def test_every_system_skill_file_carries_its_own_placement_tag_and_nothing
     assert skills, "the fixture must have seeded skill items to say anything"
 
     for item in skills:
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         assert is_system_skill(slug, seeded.spec), f"{slug} unexpectedly custom in this fixture"
         text = (seeded.paths.abspath(item.path)).read_text(encoding="utf-8")
         assert sections.has_section(text, markers.BODY), f"{slug}: body region missing entirely"
@@ -104,7 +103,7 @@ async def test_write_managed_reports_a_pointer_for_each_skill_and_no_body_artifa
     ctx = BackendContext(
         paths=seeded.paths,
         skill_paths={
-            it.extra[X.SLUG]: seeded.paths.abspath(it.path)
+            it.slug: seeded.paths.abspath(it.path)
             for it in await seeded.list_items(item_type="skill")
         },
         spec=seeded.spec,

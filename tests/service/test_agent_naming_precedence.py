@@ -12,7 +12,6 @@ tests/unit/test_init_names_config.py.
 
 import pytest
 
-from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._services import _service as service
 
@@ -21,7 +20,7 @@ pytestmark = pytest.mark.anyio
 
 async def _role_item(svc, slug: str):
     for item in await svc.list_items(item_type="role"):
-        if item.extra.get(X.SLUG) == slug:
+        if item.slug == slug:
             return item
     raise AssertionError(f"no ROLE item found for slug {slug!r}")
 

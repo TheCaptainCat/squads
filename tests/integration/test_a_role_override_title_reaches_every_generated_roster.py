@@ -42,12 +42,11 @@ def _write_role_override(squad_dir, slug: str, body: str) -> None:
     assert path.is_file()
 
 
-def _index_role_extra(paths, slug: str) -> dict[str, Any]:
+def _index_role_attributes(paths, slug: str) -> dict[str, Any]:
     raw = json.loads(paths.index_path.read_text(encoding="utf-8"))
     for entry in raw["items"].values():
-        extra = entry.get("extra", {})
-        if extra.get("slug") == slug:
-            return extra
+        if entry["type"] == "role" and entry["slug"] == slug:
+            return entry["attributes"]
     raise AssertionError(f"no role item for {slug!r} in the index")
 
 
@@ -76,7 +75,7 @@ async def test_an_overridden_title_reaches_the_index_the_frontmatter_and_both_ba
     ]
 
     # No stored copy for the index to lag on -- the half that used to lag no longer exists.
-    assert "title" not in _index_role_extra(paths, "reviewer")
+    assert "title" not in _index_role_attributes(paths, "reviewer")
     # ... which is why the compiled rosters carry it, on this sync rather than a later one.
     assert _OVERRIDDEN_TITLE in (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
     assert _OVERRIDDEN_TITLE in (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
@@ -98,10 +97,10 @@ async def test_a_repair_after_the_sync_changes_nothing_about_the_roster(tmp_path
     await svc.sync()
     before_claude = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
     before_agents = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
-    extra_before = _index_role_extra(paths, "reviewer")
+    attributes_before = _index_role_attributes(paths, "reviewer")
 
     await service.Service(paths).repair()
-    assert _index_role_extra(paths, "reviewer") == extra_before
+    assert _index_role_attributes(paths, "reviewer") == attributes_before
 
     await service.Service(paths).sync()
     assert (tmp_path / "CLAUDE.md").read_text(encoding="utf-8") == before_claude

@@ -9,6 +9,7 @@ same way.
 
 import pytest
 
+from _helpers import pinned_attributes
 from squads._errors import SquadsError
 from squads._workflow import load_workflow_spec
 from squads._workflow._loader import lint_workflow_spec
@@ -59,10 +60,18 @@ def _build_spec(
     items_map = {
         "task": ItemSpec(prefix="TASK", folder="tasks", lifecycle="work", category="work"),
         "role": ItemSpec(
-            prefix="ROLE", folder="agents/roles", lifecycle="agent", category="roster"
+            prefix="ROLE",
+            folder="agents/roles",
+            lifecycle="agent",
+            category="roster",
+            attributes=pinned_attributes("role"),
         ),
         "skill": ItemSpec(
-            prefix="SKILL", folder="agents/skills", lifecycle="agent", category="roster"
+            prefix="SKILL",
+            folder="agents/skills",
+            lifecycle="agent",
+            category="roster",
+            attributes=pinned_attributes("skill"),
         ),
         "operator": ItemSpec(prefix="OP", folder="operators", lifecycle="agent", category="roster"),
     }

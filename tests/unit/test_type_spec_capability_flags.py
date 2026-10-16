@@ -9,6 +9,7 @@ and empty where undeclared; and the ``Superseded`` status carries a machine ``ro
 other bundled status carries.
 """
 
+from _helpers import pinned_attributes
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import (
     ItemSpec,
@@ -80,10 +81,18 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
         {
             "items": {
                 "role": ItemSpec(
-                    prefix="ROLE", folder="roles", lifecycle="agent", category="roster"
+                    prefix="ROLE",
+                    folder="roles",
+                    lifecycle="agent",
+                    category="roster",
+                    attributes=pinned_attributes("role"),
                 ),
                 "skill": ItemSpec(
-                    prefix="SKILL", folder="skills", lifecycle="agent", category="roster"
+                    prefix="SKILL",
+                    folder="skills",
+                    lifecycle="agent",
+                    category="roster",
+                    attributes=pinned_attributes("skill"),
                 ),
                 "operator": ItemSpec(
                     prefix="OP", folder="operators", lifecycle="agent", category="roster"
@@ -126,11 +135,14 @@ def test_parent_hint_uses_the_declared_hint_text_not_a_re_derived_literal() -> N
     assert hint == "a chore's parent must be of type capability; see `sq ref add <chore> <id>`"
 
 
-def test_extra_fields_declared_on_guide_and_review_empty_where_undeclared() -> None:
+def test_attributes_declared_on_guide_and_review_empty_where_undeclared() -> None:
     spec = _spec()
-    assert spec.item_extra_fields("guide") == ["tags", "tech"]
-    assert spec.item_extra_fields("review") == ["target_ref"]
-    assert spec.item_extra_fields("task") == []
+    assert {k: a.kind for k, a in spec.item_attributes("guide").items()} == {
+        "tags": "list",
+        "tech": "str",
+    }
+    assert {k: a.kind for k, a in spec.item_attributes("review").items()} == {"target_ref": "str"}
+    assert spec.item_attributes("task") == {}
 
 
 def test_every_bundled_status_carries_a_declared_role() -> None:

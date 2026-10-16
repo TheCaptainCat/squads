@@ -99,18 +99,14 @@ async def test_seed_custom_skills_allocates_an_idempotent_skill_id_after_every_b
     svc = service.Service(paths, spec=spec)
 
     await svc.sync()
-    after_first = {
-        it.extra.get("slug"): it.sequence_id for it in await svc.list_items(item_type="skill")
-    }
+    after_first = {it.slug: it.sequence_id for it in await svc.list_items(item_type="skill")}
     assert after_first.get("sq-incident") is not None
     for bslug in bundled_skill_slugs():
         if bslug in after_first:
             assert after_first[bslug] < after_first["sq-incident"]
 
     await svc.sync()  # idempotent: no duplicate, no churn of bundled ids
-    after_second = {
-        it.extra.get("slug"): it.sequence_id for it in await svc.list_items(item_type="skill")
-    }
+    after_second = {it.slug: it.sequence_id for it in await svc.list_items(item_type="skill")}
     assert after_second == after_first
 
 
@@ -182,10 +178,7 @@ async def test_init_itself_seeds_a_custom_type_skill_with_no_sync_needed(
     init_result = await service.init(root=tmp_path, roles_spec="minimal")
     paths = init_result.paths
 
-    skills = {
-        it.extra.get("slug"): it
-        for it in await service.Service(paths).list_items(item_type="skill")
-    }
+    skills = {it.slug: it for it in await service.Service(paths).list_items(item_type="skill")}
     assert "sq-incident" in skills, "custom-type skill was not indexed by init itself"
 
     # convention-named on disk (not the untracked legacy `<slug>.md` seeding leaves behind).
@@ -205,9 +198,6 @@ async def test_adopt_seeds_both_bundled_and_custom_type_skills(
     adopt_result = await service.adopt(root=tmp_path, roles_spec="minimal")
     paths = adopt_result.paths
 
-    skills = {
-        it.extra.get("slug"): it
-        for it in await service.Service(paths).list_items(item_type="skill")
-    }
+    skills = {it.slug: it for it in await service.Service(paths).list_items(item_type="skill")}
     assert "squads" in skills, "bundled skills were not seeded by adopt"
     assert "sq-incident" in skills, "custom-type skill was not seeded by adopt"

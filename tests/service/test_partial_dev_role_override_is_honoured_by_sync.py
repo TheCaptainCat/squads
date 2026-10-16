@@ -18,7 +18,7 @@ import pytest
 from squads import _itemfile as itemfile
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey as X
 from squads._roles._resolver import resolve_role_for_item
 
 pytestmark = pytest.mark.anyio
@@ -116,7 +116,7 @@ async def test_a_complete_dev_override_applies_every_declared_field(project, svc
     assert resolved.mission == "Own the Rust surface end to end."
     assert resolved.model == "opus"
     # A dev's model has no catalog answer to fall back to, so it is also stored on the item.
-    assert reloaded.extra[X.MODEL] == "opus"
+    assert reloaded.attribute(X.MODEL) == "opus"
 
 
 async def test_sync_still_refuses_a_dev_override_with_an_off_whitelist_model(project, svc):
@@ -128,7 +128,7 @@ async def test_sync_still_refuses_a_dev_override_with_an_off_whitelist_model(pro
 
     # Nothing was mutated by the refused attempt.
     reloaded = await svc.get(dev.id)
-    assert reloaded.extra[X.MODEL] != "opuss"
+    assert reloaded.attribute(X.MODEL) != "opuss"
 
 
 async def test_sync_still_refuses_a_dev_override_whose_slug_disagrees_with_its_filename(

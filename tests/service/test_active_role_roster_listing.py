@@ -15,13 +15,13 @@ pytestmark = pytest.mark.anyio
 
 async def test_lists_every_activated_role(svc):
     roles = await svc.list_roles()
-    assert [r.extra.get("slug", r.slug) for r in roles] == ["manager"]
+    assert [r.slug for r in roles] == ["manager"]
 
 
 async def test_a_newly_activated_role_appears_in_the_listing(svc):
     await svc.activate_role("architect")
     roles = await svc.list_roles()
-    assert {r.extra.get("slug", r.slug) for r in roles} == {"manager", "architect"}
+    assert {r.slug for r in roles} == {"manager", "architect"}
 
 
 async def test_an_operator_never_appears_in_the_role_listing(svc):
@@ -60,4 +60,4 @@ async def test_operators_excludes_a_retired_operator_but_operators_all_still_lis
     live = [o.slug for o in await svc.operators()]
     everyone = [o.slug for o in await svc.operators_all()]
     assert live == []
-    assert everyone == [op.extra.get("slug", op.slug)]
+    assert everyone == [op.slug]

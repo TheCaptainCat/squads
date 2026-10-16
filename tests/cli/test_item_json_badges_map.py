@@ -65,9 +65,7 @@ async def test_tree_json_node_carries_badges_alongside_the_legacy_priority_key(
     assert nodes[0]["badges"] == {"priority": "urgent"}
 
 
-async def test_show_json_top_level_badges_alongside_priority_severity_and_extra(
-    project, invoke
-) -> None:
+async def test_show_json_top_level_badges_alongside_priority_and_severity(project, invoke) -> None:
     c = await invoke(["create", "bug", "B1", "--author", "manager", "--priority", "high"])
     assert c.exit_code == 0, c.output
     u = await invoke(["bug", "2", "update", "--set", "severity=high"])
@@ -76,7 +74,8 @@ async def test_show_json_top_level_badges_alongside_priority_severity_and_extra(
     payload = json.loads(shown.output)
     assert payload["priority"] == "high"
     assert payload["severity"] == "high"
-    assert payload["extra"] == {}
+    assert "extra" not in payload
+    assert "attributes" not in payload
     assert payload["badges"] == {"priority": "high", "severity": "high"}
 
 

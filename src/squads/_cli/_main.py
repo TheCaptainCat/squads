@@ -47,7 +47,6 @@ from squads._context import get_context
 from squads._errors import PlaybookConfigError, SquadsError
 from squads._index._reflog import REFLOG_OPS
 from squads._models._config import CONFIG_FILENAME
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._paths import load_config, process_dir
@@ -386,7 +385,7 @@ async def init(
         _skip_skill_seed=no_seed_skills,
     )
     sp = result.paths
-    roles_line = ", ".join(r.extra.get(X.SLUG, r.slug) for r in result.roles) or "—"
+    roles_line = ", ".join(r.slug for r in result.roles) or "—"
     lines = [
         f"[bold]squad:[/bold] {sp.squad_dir}",
         f"[bold]index:[/bold] {sp.index_path}",
@@ -435,7 +434,7 @@ async def adopt(
         no_claude=no_claude,
     )
     sp = result.paths
-    new_roles = ", ".join(r.extra.get(X.SLUG, r.slug) for r in result.roles) or "—"
+    new_roles = ", ".join(r.slug for r in result.roles) or "—"
     lines = [
         f"[bold]squad:[/bold] {sp.squad_dir}",
         f"[bold]imported:[/bold] {result.imported} existing item(s)",
@@ -549,7 +548,7 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
             json.dumps(
                 [
                     {
-                        **i.model_dump(mode="json"),
+                        **i.to_row(),
                         "badges": resolve_item_badges(spec, i.type, i.badge_value),
                     }
                     for i in items
@@ -1188,7 +1187,7 @@ async def mine(
 def _mine_row_json(row: MineRow, spec: WorkflowSpec) -> dict[str, Any]:
     """`mine --json`'s per-item payload: the item, plus the additive ``matched_subentities``
     key naming every sub-entity of it assigned to the queried slug (see :class:`MineRow`)."""
-    data = row.item.model_dump(mode="json")
+    data = row.item.to_row()
     kind = spec.item_subentity_kind(row.item.type)
     data["matched_subentities"] = [
         {"local_id": s.local_id, "kind": kind, "title": s.title, "status": s.status}

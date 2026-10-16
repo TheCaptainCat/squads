@@ -14,6 +14,7 @@
         "collection": "priority"
       }
     ],
+    "attributes": {},
     "labels": {
       "singular": "Epic",
       "plural": "Epics",
@@ -36,6 +37,7 @@
         "collection": "priority"
       }
     ],
+    "attributes": {},
     "labels": {
       "singular": "Feature",
       "plural": "Features",
@@ -58,6 +60,7 @@
         "collection": "priority"
       }
     ],
+    "attributes": {},
     "labels": {
       "singular": "Task",
       "plural": "Tasks",
@@ -85,6 +88,7 @@
         "collection": "severity"
       }
     ],
+    "attributes": {},
     "labels": {
       "singular": "Bug",
       "plural": "Bugs",
@@ -107,6 +111,7 @@
         "collection": "priority"
       }
     ],
+    "attributes": {},
     "labels": {
       "singular": "Decision",
       "plural": "Decisions",
@@ -129,6 +134,7 @@
         "collection": "priority"
       }
     ],
+    "attributes": {},
     "labels": {
       "singular": "Contract",
       "plural": "Contracts",
@@ -151,6 +157,13 @@
         "collection": "priority"
       }
     ],
+    "attributes": {
+      "target_date": {
+        "kind": "date",
+        "required": false,
+        "settable": true
+      }
+    },
     "labels": {
       "singular": "Milestone",
       "plural": "Milestones",
@@ -173,6 +186,13 @@
         "collection": "priority"
       }
     ],
+    "attributes": {
+      "target_ref": {
+        "kind": "str",
+        "required": false,
+        "settable": true
+      }
+    },
     "labels": {
       "singular": "Review",
       "plural": "Reviews",
@@ -195,6 +215,18 @@
         "collection": "priority"
       }
     ],
+    "attributes": {
+      "tags": {
+        "kind": "list",
+        "required": false,
+        "settable": true
+      },
+      "tech": {
+        "kind": "str",
+        "required": false,
+        "settable": true
+      }
+    },
     "labels": {
       "singular": "Guide",
       "plural": "Guides",
@@ -211,6 +243,38 @@
     "subentity_kind": null,
     "lifecycle": "agent",
     "fields": [],
+    "attributes": {
+      "is_default": {
+        "kind": "bool",
+        "required": false,
+        "settable": false
+      },
+      "is_dev": {
+        "kind": "bool",
+        "required": false,
+        "settable": false
+      },
+      "model": {
+        "kind": "str",
+        "required": false,
+        "settable": true
+      },
+      "name_chosen": {
+        "kind": "bool",
+        "required": false,
+        "settable": false
+      },
+      "pool_name": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      },
+      "tech": {
+        "kind": "str",
+        "required": false,
+        "settable": false
+      }
+    },
     "labels": {
       "singular": "Role",
       "plural": "Roles",
@@ -227,6 +291,23 @@
     "subentity_kind": null,
     "lifecycle": "agent",
     "fields": [],
+    "attributes": {
+      "allowed_tools": {
+        "kind": "str",
+        "required": false,
+        "settable": true
+      },
+      "model": {
+        "kind": "str",
+        "required": false,
+        "settable": true
+      },
+      "when_to_use": {
+        "kind": "str",
+        "required": false,
+        "settable": true
+      }
+    },
     "labels": {
       "singular": "Skill",
       "plural": "Skills",
@@ -243,6 +324,7 @@
     "subentity_kind": null,
     "lifecycle": "agent",
     "fields": [],
+    "attributes": {},
     "labels": {
       "singular": "Operator",
       "plural": "Operators",

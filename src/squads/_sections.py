@@ -13,7 +13,7 @@ import yaml
 from squads._errors import SquadsError
 from squads._models import _markers as markers
 
-_FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)
+_FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---(?:\r?\n)?", re.DOTALL)
 
 #: A well-formed sq marker comment, capturing its tag.
 #:
@@ -67,17 +67,22 @@ def strip_frontmatter(text: str) -> str:
     return text[m.end() :] if m else text
 
 
-def join_frontmatter(data: dict[str, Any], body: str) -> str:
+def join_frontmatter(data: dict[str, Any], body: str, *, eol: str = "\n") -> str:
+    """The frontmatter block of *data* followed by *body*, with *eol* as the line terminator of
+    the block (and of the separator added when *body* does not open with one)."""
     front = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
-    if not body.startswith("\n"):
-        body = "\n" + body
-    return f"---\n{front}---{body}"
+    if eol != "\n":
+        front = front.replace("\n", eol)
+    if not body.startswith(("\n", "\r\n")):
+        body = eol + body
+    return f"---{eol}{front}---{body}"
 
 
 def replace_frontmatter(text: str, data: dict[str, Any], *, source: str | None = None) -> str:
-    """Rewrite only the frontmatter block, preserving the entire body verbatim."""
+    """Rewrite only the frontmatter block, preserving the entire body verbatim and the line
+    terminator the block was written with."""
     _, body = split_frontmatter(text, source=source)
-    return join_frontmatter(data, body)
+    return join_frontmatter(data, body, eol="\r\n" if text.startswith("---\r\n") else "\n")
 
 
 # --------------------------------------------------------------------------- sections

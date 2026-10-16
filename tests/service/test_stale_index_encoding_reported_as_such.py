@@ -1,22 +1,17 @@
 """A stale index *encoding* is not a divergence, and the refusal must say so rather than
 naming a cause the reader can open the file and disprove.
 
-Three states, driven end to end against both message surfaces (the write-seam refusal and the
+Two states, driven end to end against both message surfaces (the write-seam refusal and the
 matching ``sq check`` finding), which share :func:`~squads._itemfile.frontmatter_skew` by
 design:
 
 1. **Stale index encoding.** The index holds the spelled default ref kind, and the file holds
    the identical bytes — nothing diverged, only the load-time fold. Refused (the index really
    does hold a non-canonical encoding), but the message must not claim the file diverged.
-2. **The legacy-map row a raw-equality test alone gets wrong.** The file carries a pre-0.2
-   ``extra.ref_kinds`` map naming a non-default kind; the index holds the bare form the map's
-   kind was never folded into. ``refs``' raw on-disk value equals the index's, but the fold
-   drew on a second raw key (``extra.ref_kinds``) — information-adding, not normalising — so
-   this must come out as needing repair, today's wording, unchanged.
-3. **An ordinary hand-edited divergence** (a title changed on disk only) keeps today's wording
-   on both surfaces, unchanged.
+2. **An ordinary hand-edited divergence** (a title changed on disk only) keeps the divergence
+   wording on both surfaces.
 
-A fourth case mixes one stale-encoded key with one genuinely diverged key on the same item and
+A third case mixes one stale-encoded key with one genuinely diverged key on the same item and
 asserts both are reported, neither described as the other.
 """
 
@@ -101,48 +96,6 @@ async def test_a_spelled_default_kind_consistent_on_both_sides_is_reported_as_st
     assert final.refs == [b.id]
     issues = await svc.check()
     assert not any(i.item == a.id for i in issues)
-
-
-# --------------------------------------------------------------------------- state 2: legacy map
-
-
-async def test_a_legacy_ref_kinds_map_naming_a_non_default_kind_needs_repair(svc):
-    """The load-bearing row: raw ``refs`` equals the index's, but the fold drew on a second
-    raw key (``extra.ref_kinds``) to produce a kind the index never held. The raw-equality
-    test alone would call this a normalisation difference; it is real, repair-worthy
-    information."""
-    a = (await create_item(svc, "task", "Ref source")).item
-    b = (await create_item(svc, "task", "Ref target")).item
-    default_kind = svc.spec.default_ref_kind()
-    await svc.add_ref(a.id, b.id, kind="")  # bare on both sides, consistently
-
-    path = svc.paths.abspath(a.path)
-    text = path.read_text(encoding="utf-8")
-    fm, rest = sections.split_frontmatter(text)
-    fm["refs"] = [b.id]  # raw refs unchanged — still bare, still equal to the index
-    fm.setdefault("extra", {})["ref_kinds"] = {b.id: "blocks"}  # the index never held this
-    path.write_text(sections.join_frontmatter(fm, rest), encoding="utf-8")
-
-    reloaded = await svc.get(a.id)
-    diverging = itemfile.frontmatter_skew(
-        path.read_text(encoding="utf-8"), reloaded, default_kind=default_kind
-    )
-    assert [(k.name, k.stale_encoding) for k in diverging] == [("refs", False)]
-
-    with pytest.raises(SquadsError) as excinfo:
-        await svc.set_status(a.id, "InProgress", force=True)
-    message = str(excinfo.value)
-    assert "on-disk frontmatter has diverged from the index (refs)" in message
-    assert "non-canonical encoding" not in message
-
-    check_message = await _check_message(svc, a.id)
-    assert "refs drift between frontmatter and index" in check_message
-    assert "non-canonical encoding" not in check_message
-
-    await svc.repair()
-    await svc.set_status(a.id, "InProgress", force=True)
-    final = await svc.get(a.id)
-    assert final.refs == [f"{b.id}:blocks"]
 
 
 # --------------------------------------------------------------------- state 3: ordinary divergence

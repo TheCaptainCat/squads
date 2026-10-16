@@ -8,7 +8,7 @@ author: product-owner
 refs:
 - MILE-867
 created_at: '2026-09-09T14:39:43Z'
-updated_at: '2026-10-16T13:01:10Z'
+updated_at: '2026-10-16T13:31:17Z'
 ---
 <!-- sq:body -->
 The next squads release after 0.15.
@@ -159,4 +159,6 @@ The next squads release after 0.15.
   - 2026-10-16: authorised the manager to do the 0.16.0 version bump. Migrating this repo's squad, pushing and publishing stay mine.
 - [2026-10-16T13:01:10Z] Pierre Chat:
   - 2026-10-16: 0.16 keeps its full scope as planned; no features move to 0.17.
+- [2026-10-16T13:31:17Z] Pierre Chat:
+  - 2026-10-16: authorised a one-line hand edit restamping squads/.overrides/workflow.toml from override-base 0.15.0 to 0.16.0 (no verb can restamp it while this squad is behind the schema; content unchanged).
 <!-- sq:discussion:end -->

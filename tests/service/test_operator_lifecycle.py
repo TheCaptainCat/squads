@@ -27,9 +27,11 @@ async def test_add_operator_writes_a_real_operator_item_under_operators_not_agen
     assert op.type == "operator"
     assert op.status == "Active"
     assert op.id.startswith("OP-")
-    assert op.extra.get("slug") == "op-alice"
+    assert op.slug == "op-alice"
     fm = read_frontmatter(svc.paths.abspath(op.path))
-    assert fm["extra"]["slug"] == "op-alice"  # durable in frontmatter
+    assert fm["slug"] == "op-alice"  # durable in frontmatter
+    assert fm["title"] == "Alice Tester"
+    assert "full_name" not in fm and "extra" not in fm
     assert "operators/" in op.path and "agents/" not in op.path
     assert [o.id for o in await svc.list_operators()] == [op.id]
 
@@ -44,7 +46,7 @@ async def test_operator_survives_repair(svc):
     op = await svc.add_operator("Alice Tester")
     await svc.repair()
     again = await svc.get(op.id)
-    assert again.type == "operator" and again.extra.get("slug") == "op-alice"
+    assert again.type == "operator" and again.slug == "op-alice"
 
 
 async def test_operator_is_a_valid_author_and_assignee(svc):

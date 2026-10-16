@@ -44,9 +44,12 @@ into the rendered body — the very idiom the override scaffold teaches.
 The resolver is *stateless*: it reads from disk on every call.  The service layer is already the
 cached / transactional boundary; there is no need to cache here.
 
-``full_name`` in a role TOML seeds the name when the role is activated.  The key is
-passed through to ``RoleDef.full_name``; downstream code (``extra.full_name``,
-roster, pointers, CLAUDE.md section) reads from there.
+A role's name resolves through four layers, lowest to highest: the bundled catalog, the
+project's ``.overrides/roles.toml``, the per-slug ``.overrides/roles/<slug>.toml``, and a name
+chosen explicitly (``sq role activate --name``, ``sq dev add --name``), which the role item
+records as ``name_chosen``. Configuration supplies the name of a role that was never named, and
+no configuration layer changes a chosen one. A developer role that was never named keeps the
+pool name it was given unless a per-slug file sets one.
 """
 
 import tomllib
@@ -55,7 +58,8 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._models._extras import ExtraKey as X
+from squads._models import _attributes as attrs
+from squads._models._attributes import AttributeKey
 from squads._models._item import Item
 from squads._roles._catalog import (
     PREDEFINED,
@@ -289,29 +293,24 @@ def resolve_role(slug: str, squad_dir: Path | None) -> RoleDef:
     return resolve_role_with_base(slug, squad_dir, base=None)
 
 
-def resolve_role_with_base(slug: str, squad_dir: Path | None, *, base: RoleDef | None) -> RoleDef:
+def resolve_role_with_base(
+    slug: str,
+    squad_dir: Path | None,
+    *,
+    base: RoleDef | None,
+    pinned_name: str | None = None,
+) -> RoleDef:
     """Like :func:`resolve_role`, but the caller may supply the merge base — for a slug outside
     ``PREDEFINED``, instead of leaving new-slug validation to demand every required field; for a
-    slug inside it, to make an already-live item's own stored identity win over the catalog
-    default.
+    slug inside it, to start from an already-live item's own stored identity.
 
-    ``base=None`` reproduces :func:`resolve_role` exactly: a bundled slug resolves against its
-    ``PREDEFINED`` entry (with any project catalog-document override — ``.overrides/roles.toml``,
-    already merged in via :func:`_predefined_for_slug`), an unknown one has none.
+    ``base=None`` reproduces :func:`resolve_role` exactly. A supplied base always wins over
+    ``PREDEFINED``, whether or not ``slug`` is in it; the caller builds it with
+    :func:`role_base_from_item` (an item exists), :func:`dev_base_from_item` or
+    :func:`dev_base_for_slug`. The per-slug file merges over the base.
 
-    **A supplied base always wins, whether or not ``slug`` is in ``PREDEFINED``.** The caller
-    decides, by what it passes as *base*, so a live item's stored identity can be the merge
-    base for a bundled role as well as for a slug ``PREDEFINED`` does not cover (a developer
-    role).
-
-    This does not reopen catalog refresh to the item, because the base a caller passes is never
-    the item verbatim — it is built by :func:`role_base_from_item`, which takes only the fields
-    an operator can actually set (a bundled role's ``full_name``; a developer role's
-    ``full_name``/``model``/``tech``) from the item and everything else fresh from the current
-    catalog, so a new ``RoleDef`` field still reaches an old item on its next sync. Nothing in
-    this function infers a base from the slug itself — the resolver does not hold the
-    information (the live item, if any) a correct one needs. See :func:`role_base_from_item`,
-    :func:`dev_base_from_item`, and :func:`dev_base_for_slug`.
+    *pinned_name* is a name chosen explicitly (:func:`pinned_name_of`): it is the result's
+    ``full_name`` whatever any layer, the per-slug file included, declares.
     """
     predefined = _predefined_for_slug(slug, squad_dir)  # None for a slug neither source declares
     effective_base = base if base is not None else predefined
@@ -320,10 +319,11 @@ def resolve_role_with_base(slug: str, squad_dir: Path | None, *, base: RoleDef |
         toml_path = _overrides_dir(squad_dir) / f"{slug}.toml"
         if toml_path.is_file():
             data = _read_toml(toml_path)
-            return _apply_override(effective_base, data, slug, str(toml_path))
+            applied = _apply_override(effective_base, data, slug, str(toml_path))
+            return _pin_name(applied, pinned_name)
 
     if effective_base is not None:
-        return effective_base
+        return _pin_name(effective_base, pinned_name)
 
     raise RoleNotFoundError(
         f"no predefined role {slug!r} and no project override found "
@@ -331,175 +331,104 @@ def resolve_role_with_base(slug: str, squad_dir: Path | None, *, base: RoleDef |
     )
 
 
+def _pin_name(role: RoleDef, pinned_name: str | None) -> RoleDef:
+    """*role* named *pinned_name* when one is given, else unchanged."""
+    if pinned_name is None or role.full_name == pinned_name:
+        return role
+    return replace(role, full_name=pinned_name)
+
+
+def pinned_name_of(item: Item | None) -> str | None:
+    """The name a role item records as chosen explicitly, or ``None`` when it was never named
+    (or the stored name is blank, which reads as unset)."""
+    if item is None or not attrs.name_chosen(item) or not item.title.strip():
+        return None
+    return item.title
+
+
 def dev_base_from_item(item: Item) -> RoleDef:
     """The dev-role merge base for a developer role that already exists on the roster.
 
-    Reads the item's own stored facts — tech, full name, model, default designation — so
-    ``dev_role()`` *inherits* the live name instead of re-rolling it from the pool; ``seq`` is
-    never consulted, because this branch already knows the name there is nothing left to
-    derive. ``X.IS_DEV``/``X.TECH`` sit outside :meth:`RoleDef.to_extra`, so merging this
-    base's ``to_extra()`` onto the item can never erase the marker this function itself reads.
+    Reads the item's own stored facts — tech, name, model, default designation — so
+    ``dev_role()`` inherits the live name instead of re-rolling it from the pool; the pool
+    position is never consulted. A stored name that is blank is treated as absent, so the role
+    self-heals on its next sync instead of being refused. Every other field (title, mission,
+    responsibilities, ``can_spawn``, agreements) is regenerated from the tech template on every
+    call: a stored value for any of them is staleness for the sync to converge, never a
+    designation to preserve.
 
-    The name comes from ``item.title``, not ``extra.full_name`` — ``title`` is the uniform
-    record's copy of the resolved full name (every write seam that sets one sets the other in
-    the same call), so this reads correctly whether or not the ``extra`` mirror is present. A
-    stored title that is blank or whitespace-only is treated as absent, the same way
-    :func:`dev_role` itself treats an omitted ``name`` — never as a value to hand to
-    :class:`RoleDef`, which would refuse it. That value cannot originate from this codebase's
-    own input boundary (``sq dev add --name`` refuses it before it is ever stored), so seeing
-    one here means it is a stored fact an earlier release wrote and called healthy — a read
-    boundary is exactly where such a fact must be tolerated, not re-refused. Falling back to
-    the pool re-rolls the name (pool position 0, since the item does not carry the original
-    ``seq``) rather than raising, so the role self-heals on its next sync instead of bricking
-    it — this is the read-boundary half of the refusal :class:`RoleDef.__post_init__` still
-    enforces at the input boundary.
-
-    ``is_default`` is also operator-settable (``sq role set-default``) and has no uniform-
-    record home, so it is carried from ``extra.is_default`` — tolerating its absence (a role
-    item predating this designation) by falling back to ``dev_role()``'s own default. Every
-    other field (``title``, ``mission``, ``responsibilities``, ``can_spawn``, ``agreements``)
-    is regenerated fresh from the tech template on every call, deliberately: those fields are
-    writable through the generic ``set_extra`` seam too (see :func:`role_base_from_item` for
-    what does and does not reach that seam), but
-    :meth:`~squads._services._maintenance.MaintenanceMixin._refresh_catalog_extra`'s own
-    reconciler treats a stored value for any of them as staleness to converge, never as a
-    designation to preserve — carrying them here would fight that reconciler instead of
-    agreeing with it, and would make an ad-hoc write to a field with no dedicated verb outlive
-    the next sync for no principled reason.
+    A developer that was never named has its pool draw stored as ``pool_name``, which is the
+    base, so a per-slug name that is later removed leaves the pool name again; otherwise the
+    stored name is the base. A per-slug file that sets ``full_name`` renames a developer that
+    was never named; a chosen name is pinned over every layer by the caller
+    (:func:`pinned_name_of`).
     """
-    stored_name = item.title
+    pool_name = attrs.string_attribute(item, AttributeKey.POOL_NAME)
+    drawn = None if attrs.name_chosen(item) else pool_name
+    stored_name = drawn or item.title
     name = stored_name if stored_name and stored_name.strip() else None
     base = dev_role(
-        item.extra[X.TECH],
+        attrs.tech(item) or "",
         name=name,
-        model=item.extra[X.MODEL],
+        model=attrs.model(item),
     )
     # The stored slug is the role's identity; ``dev_role`` only proposes one at creation.
-    base = replace(base, slug=item.extra.get(X.SLUG, item.slug))
-    is_default = item.extra.get(X.IS_DEFAULT, base.is_default)
-    if is_default == base.is_default:
+    base = replace(base, slug=item.slug)
+    stored_default = attrs.is_default(item)
+    if stored_default is None or stored_default == base.is_default:
         return base
-    return replace(base, is_default=is_default)
+    return replace(base, is_default=stored_default)
 
 
 def role_base_from_item(item: Item, squad_dir: Path | None = None) -> RoleDef | None:
     """The resolver base for a role that already has a live roster item — the one seam every
     consumer that resolves against an item (sync's catalog refresh, ``sq role <slug> show``,
-    ``sq check``) builds its ``resolve_role_with_base`` base through, for a bundled role and a
-    developer role alike.
+    ``sq check``) builds its base through, for a bundled role and a developer role alike.
 
-    The item is authoritative for exactly the fields an operator can set on it through a
-    **dedicated** CLI verb, and for no others — everything else comes from the current
-    catalog, fresh, every call:
+    The item supplies only the facts an operator sets through a dedicated verb; everything else
+    comes from the current catalog on every call:
 
-    - **Developer role** (``extra.is_dev``) — delegates to :func:`dev_base_from_item`, whose
-      operator-settable set is ``{full_name, model, tech, is_default}`` (``sq dev add
-      --name``/``--model``, the tech the slug was created for, and ``sq role set-default``).
-      ``dev_role()`` regenerates every other field — title, mission, responsibilities — fresh
-      from the tech template on every call, so a template change still reaches an old
-      developer item.
-    - **Bundled role** — the slug's current predefined entry (the bundled catalog, with any
-      project catalog-document override — ``.overrides/roles.toml`` — already merged in when
-      *squad_dir* is given; see :func:`_predefined_for_slug`), with ``full_name`` and
-      ``is_default`` swapped for the item's stored values (``sq role activate --name`` and
-      ``sq role set-default``'s combined operator-settable set is ``{full_name,
-      is_default}``). Every other field — ``mission``, ``responsibilities``, ``can_spawn``,
-      etc. — is the catalog's current value, not the item's, so a new or changed field, or a
-      project's own catalog-document override, still reaches an item created before it
-      existed.
-    - **Anything else** — a slug with neither a catalog entry nor the dev shape (a wholly
-      project-defined role with a live item but no ``.overrides/roles/<slug>.toml`` yet) —
-      ``None``: there is no catalog to draw the non-operator-settable fields from, so the
-      item's own extra is not a merge base here. This is the "orphaned custom role item" case
-      :func:`~squads._services._maintenance.MaintenanceService._refresh_catalog_extra` already
-      skips via its ``RoleNotFoundError`` catch, unaffected by this function returning ``None``
-      for it.
+    - **Developer role** — :func:`dev_base_from_item`.
+    - **Bundled role** — the slug's current catalog entry (the bundled catalog with the
+      project's ``.overrides/roles.toml`` merged in when *squad_dir* is given), with
+      ``is_default`` swapped for the stored designation (``sq role set-default``). The name
+      comes from the catalog layers, so a catalog or ``roles.toml`` change renames a role that
+      was never named; a chosen name is pinned by the caller (:func:`pinned_name_of`).
+    - **Anything else** — a role no catalog declares (a project-defined role with no per-slug
+      file yet) has no base: ``None``.
 
-    **Why "dedicated verb" and not "the generic ``set_extra`` allowlist," even though the
-    latter is wider.** ``EXTRA_FIELDS["role"]`` (``_models/_metadata.py``) also declares
-    ``title``/``mission``/``responsibilities``/``model``/``color`` settable, and
-    :meth:`Service.update`'s ``set_extra`` argument really does write them onto a role item.
-    That seam is reachable programmatically only: the role addressing group's verbs are
-    ``show``/``regen``/``rm``/``status``/``set-default``, and the generic ``<type> <n> update
-    --set`` command is built for non-roster types alone, so no role verb exposes it.
-
-    It is deliberately **not** part of this base: ``_refresh_catalog_extra``'s own reconciler
-    already treats every one of those fields as a value to *converge* on the next sync, not one
-    to *preserve* — carrying them here would silently stop that reconciliation working for
-    whichever field happened to have been written most recently, reintroducing the same "can't
-    tell a refresh from a preservation" defect for a wider field set. A generic ``set_extra``
-    write is exactly that: a value visible until the next sync converges it, never a permanent
-    designation — only ``full_name`` and ``is_default`` have dedicated verbs that make the
-    stored value the operator's *lasting* answer, and only those two are carried.
-
-    A consequence worth knowing at this call site, because it is silent: such a write lands in
-    ``extra`` and reports success, yet changes nothing a reader sees. A role is rendered from
-    the catalog, merged over the base this function builds — which carries ``full_name`` and
-    ``is_default`` and nothing else — so a ``title`` or ``model`` stored this way reaches
-    neither the role's generated pointer nor the managed regions ``sq sync`` compiles, and the
-    next sync converges the stored value back to the catalog's.
-
-    ``full_name`` comes from ``item.title`` rather than ``extra.full_name`` — ``title`` is the
-    uniform record's copy of the resolved name, kept in step with it by every write seam, so
-    reading it here does not depend on the ``extra`` mirror being present or current.
-    ``is_default`` has no such uniform-record home and is read from ``extra.is_default``,
-    tolerating its absence (a role item predating the designation) by falling back to the
-    catalog's own default.
-
-    *squad_dir* defaults to ``None``, which resolves against the bundled catalog alone — the
-    honest answer for a caller that has no squad directory to offer, rather than a silent drop
-    of the document layer. Every caller that does have one should pass it, so an activated role
-    picks up a project's catalog-document override the same way an unactivated one does via
-    :func:`resolve_role`/:func:`resolve_role_with_base`.
+    *squad_dir* defaults to ``None``, which resolves against the bundled catalog alone; every
+    caller that has a squad directory should pass it.
     """
-    if item.extra.get(X.IS_DEV):
+    if attrs.is_dev(item):
         return dev_base_from_item(item)
-    slug = item.extra.get(X.SLUG, item.slug)
-    predefined = _predefined_for_slug(slug, squad_dir)
+    predefined = _predefined_for_slug(item.slug, squad_dir)
     if predefined is None:
         return None
-    full_name = item.title
-    # A stored blank or whitespace-only title is treated exactly like an absent one — fall
-    # back to the catalog default rather than reach ``replace()``, which would hand it to
-    # ``RoleDef.__post_init__`` and refuse it. That refusal belongs at the input boundary (`sq
-    # role activate --name`), which already never lets this value be stored in the first
-    # place; a value already on disk is a fact a previous release wrote and called healthy, and
-    # this read boundary must tolerate it so the role self-heals on its next sync instead of
-    # bricking it.
-    if not full_name or not full_name.strip():
-        full_name = predefined.full_name
-    is_default = item.extra.get(X.IS_DEFAULT, predefined.is_default)
-    if full_name == predefined.full_name and is_default == predefined.is_default:
+    stored_default = attrs.is_default(item)
+    if stored_default is None or stored_default == predefined.is_default:
         return predefined
-    return replace(predefined, full_name=full_name, is_default=is_default)
+    return replace(predefined, is_default=stored_default)
 
 
 def resolve_role_for_item(item: Item, squad_dir: Path | None) -> RoleDef:
     """The one seam every consumer that needs a live role item's full ``RoleDef`` goes
     through — the roster projection, a backend's per-entry render, ``sq check``'s pointer-
     currency comparison. Resolves through the catalog (:func:`role_base_from_item` +
-    :func:`resolve_role_with_base`) rather than reading ``item.extra`` directly, so a project
-    override or a catalog change reaches every one of them without a prior ``sq sync`` having
-    to heal the item's stored mirror first.
+    :func:`resolve_role_with_base`, with the item's chosen name pinned) so a project override
+    or a catalog change reaches every one of them without a prior ``sq sync``.
 
-    Falls back to :meth:`RoleDef.from_extra_or_item` only for the one case resolution cannot
-    cover — an orphaned custom role item whose backing definition has vanished (neither a
-    catalog entry nor a project override; :func:`role_base_from_item`'s "anything else" case,
-    the same one :meth:`~squads._services._maintenance.MaintenanceMixin._refresh_catalog_extra`
-    already skips via its own ``RoleNotFoundError`` catch). There is nothing to resolve
-    against for that shape, so the item itself is the only source, and the item is read the
-    way a read boundary must be: whatever ``extra`` still carries (an older corpus stored the
-    whole definition there) over the item's own ``title``/``description``, never a subscript
-    that would raise on the shape the current write path produces.
+    Falls back to :meth:`RoleDef.from_item` for the one case resolution cannot cover: an
+    orphaned custom role item whose backing definition has vanished (no catalog entry, no dev
+    shape, no override file). There the item is the only source.
     """
-    slug = item.extra.get(X.SLUG, item.slug)
     base = role_base_from_item(item, squad_dir)
     try:
-        return resolve_role_with_base(slug, squad_dir, base=base)
-    except RoleNotFoundError:
-        return RoleDef.from_extra_or_item(
-            item.extra, title=item.title, slug=slug, description=item.description
+        return resolve_role_with_base(
+            item.slug, squad_dir, base=base, pinned_name=pinned_name_of(item)
         )
+    except RoleNotFoundError:
+        return RoleDef.from_item(item)
 
 
 def holds_default_designation(item: Item, squad_dir: Path | None) -> bool:
@@ -507,24 +436,22 @@ def holds_default_designation(item: Item, squad_dir: Path | None) -> bool:
     designation sees it — the one seam the lane exemption, the retirement warning, ``sq check``'s
     duplicate-holder report and ``set_default_role``'s own move all ask.
 
-    The designation is **resolved**, not read off ``extra.is_default``. That key is an override
-    on an answer the role catalog also gives (see :func:`role_base_from_item`), and a role item
-    does not store it unless something wrote it — so the role the catalog designates holds the
-    designation with nothing in its ``extra`` at all. A raw read finds no holder there, which
-    turns "clear every other holder" into "clear none of them" and leaves a squad generating
-    config with two live defaults.
+    The designation is **resolved**, not read raw off the item: the stored ``is_default`` is an
+    override on an answer the role catalog also gives, and a role item stores it only when
+    something wrote it, so the role the catalog designates holds the designation with nothing
+    stored. A raw read finds no holder there and leaves a squad generating config with two live
+    defaults.
 
     Falls back to the stored key alone when resolution refuses — a role override document the
-    resolver rejects. That refusal is already a ``sq check`` finding in its own right
-    (:func:`~squads._overrides._service._check_role_override_resolves`), and every caller here
-    is either a reporter, which must survive one broken role to finish the scan, or a mutation
-    that must not be blocked by a file it is not touching. The fallback is the narrower of the
-    two readings, never the wider one, so a broken override can only under-report a holder.
+    resolver rejects. That refusal is already a ``sq check`` finding in its own right, and every
+    caller here is either a reporter, which must survive one broken role to finish the scan, or
+    a mutation that must not be blocked by a file it is not touching. The fallback can only
+    under-report a holder.
     """
     try:
         return resolve_role_for_item(item, squad_dir).is_default
     except SquadsError:
-        return bool(item.extra.get(X.IS_DEFAULT, False))
+        return attrs.is_default(item) is True
 
 
 def dev_base_for_slug(slug: str, squad_dir: Path | None = None) -> RoleDef:

@@ -3,23 +3,14 @@ load failure. Nothing pinned this family at the fail-closed boundary before: the
 files that exercise ``validate_against_index`` never reach the ref-kind axis, so the family
 could lock every command in the squad (``sq check``, ``sq graph``, ``refs``, even ``Service``
 construction) with nothing here turning red. This file pins the bound from both directions,
-over both shapes the collector can see an undeclared kind through:
+through a kind spelled by an ordinary ``ref add`` that the override later drops.
 
-- **native** — a kind spelled by an ordinary ``ref add`` that the override later drops. No
-  legacy map anywhere; the general case.
-- **legacy** — a pre-0.2 ``extra.ref_kinds``-mapped edge whose recorded kind stops equalling
-  the live default once the override renames it. The fold only spells this edge once ``sq
-  repair`` re-derives the index from the still-legacy-shaped file *under the renamed spec* —
-  which, since repair now also rewrites the file (see the "repair canonicalises the file"
-  tests below), is the very call that manufactures the undeclared-kind state it will go on to
-  survive cleanly.
-
-Per shape: what refuses (``sq workflow lint``; writing a *new* ref of the undeclared kind) and
+What refuses (``sq workflow lint``; writing a *new* ref of the undeclared kind) and
 what keeps running (a read command, ``sq check`` — a per-item warn, never the "workflow config
 invalid" line, ``sq repair``, ``sq <type> <n> ref rm``, an ordinary mutation of the affected
 item, ``sq graph`` with a null semantic). ``test_end_to_end_recovery_needs_no_hand_editing``
-drives the whole documented recovery — revert, repair, mutate, re-apply the rename — over both
-a legacy-folded and a natively bare edge, confirming every message read along the way is true.
+drives the whole documented recovery — revert, repair, mutate, re-apply the rename — over a
+natively bare edge, confirming every message read along the way is true.
 """
 
 from pathlib import Path
@@ -64,16 +55,13 @@ def _remove_override(squad_dir: Path) -> None:
     invalidate_squad_dir(squad_dir)
 
 
-def _plant_legacy_shape(svc: Service, item, target_id: str, *, kind: str) -> None:
-    """Rewrite *item*'s file to the pre-0.2 shape (bare ``refs`` plus an ``extra.ref_kinds``
-    map naming *kind*) directly — bypassing every normalising writer, so the index still
-    holds whatever canonical form ``add_ref`` last wrote (as if the index entry were written
-    before the file was ever canonicalised, and never touched since) while disk carries the
-    legacy map."""
+def _plant_spelled_default(svc: Service, item, target_id: str, *, kind: str) -> None:
+    """Rewrite *item*'s file to spell the default kind out (``ID:kind``) directly — bypassing
+    every normalising writer, so the index still holds the bare form ``add_ref`` last wrote
+    while disk carries the non-canonical spelling."""
     path = svc.paths.abspath(item.path)
     fm, body = split_frontmatter(path.read_text(encoding="utf-8"))
-    fm["refs"] = [target_id]
-    fm["extra"] = {"ref_kinds": {target_id: kind}}
+    fm["refs"] = [f"{target_id}:{kind}"]
     path.write_text(join_frontmatter(fm, body), encoding="utf-8")
 
 
@@ -92,40 +80,14 @@ async def _seed_native_shape(svc: Service) -> tuple[str, str]:
     return a.id, b.id
 
 
-async def _seed_legacy_shape(svc: Service, squad_dir: Path) -> tuple[str, str]:
-    """A legacy-mapped edge whose recorded kind ("related") stops equalling the live default
-    once the override renames it — manifested by the very ``sq repair`` that re-derives both
-    the index and the file from the still-legacy-shaped disk under the renamed spec."""
-    a = (await create_item(svc, "task", "referrer")).item
-    b = (await create_item(svc, "task", "target")).item
-    await svc.add_ref(a.id, b.id, kind="related")
-    _plant_legacy_shape(svc, a, b.id, kind="related")
-    _write_override(squad_dir, _RENAME_DEFAULT)
-    svc2 = Service(svc.paths, spec=load_workflow_spec(squad_dir=squad_dir))
-    result = await svc2.repair()
-    assert result.canonicalized == [a.id]  # the repair that manufactures the locked state
-    return a.id, b.id
+# ─── the bound ─────────────────────────────────────────────────────────────────────
 
 
-# ─── the bound, table-driven over both shapes ──────────────────────────────────────
-
-
-@pytest.mark.parametrize(
-    ("shape", "override_body", "dropped_kind"),
-    [
-        pytest.param("native", _DROP_DUPLICATES, "duplicates", id="native-spelled-dropped-kind"),
-        pytest.param("legacy", _RENAME_DEFAULT, "related", id="legacy-mapped-default-renamed"),
-    ],
-)
-async def test_undeclared_kind_refuses_at_write_and_lint_only(
-    project, invoke, shape, override_body, dropped_kind
-) -> None:
+async def test_undeclared_kind_refuses_at_write_and_lint_only(project, invoke) -> None:
+    dropped_kind = "duplicates"
     svc = Service(project)
-    if shape == "native":
-        referrer_id, target_id = await _seed_native_shape(svc)
-        _write_override(project.squad_dir, override_body)
-    else:
-        referrer_id, target_id = await _seed_legacy_shape(svc, project.squad_dir)
+    referrer_id, target_id = await _seed_native_shape(svc)
+    _write_override(project.squad_dir, _DROP_DUPLICATES)
 
     merged = load_workflow_spec(squad_dir=project.squad_dir)
     assert dropped_kind not in merged.ref_kinds
@@ -164,8 +126,7 @@ async def test_undeclared_kind_refuses_at_write_and_lint_only(
 
     # sq workflow lint refuses, naming the offending kind and IDs — and states a sequence
     # rather than a remedy no command performs: the removal verb it names is not itself
-    # locked, and (for the legacy shape) it may name `sq repair` as what canonicalises the
-    # edge, since a command now performs that too.
+    # locked.
     findings = lint_workflow_spec(project.squad_dir)
     ref_kind_findings = [f for f in findings if f[0] == "error" and dropped_kind in f[2]]
     assert ref_kind_findings
@@ -189,25 +150,14 @@ async def test_undeclared_kind_refuses_at_write_and_lint_only(
     assert _no_errors(await svc2.check())
 
 
-@pytest.mark.parametrize(
-    ("shape", "override_body"),
-    [
-        pytest.param("native", _DROP_DUPLICATES, id="native-spelled-dropped-kind"),
-        pytest.param("legacy", _RENAME_DEFAULT, id="legacy-mapped-default-renamed"),
-    ],
-)
-async def test_retype_remap_ignores_declared_vocabulary(project, shape, override_body) -> None:
+async def test_retype_remap_ignores_declared_vocabulary(project) -> None:
     """The retype ref remap rewrites an EXISTING edge wholesale across the whole corpus and
     must not validate its kind — the write gate's write/persist line, exercised through the
     one other production path (besides an ordinary mutation) that rewrites a live ref."""
     svc = Service(project)
-    if shape == "native":
-        referrer_id, target_id = await _seed_native_shape(svc)
-        dropped_kind = "duplicates"
-        _write_override(project.squad_dir, override_body)
-    else:
-        referrer_id, target_id = await _seed_legacy_shape(svc, project.squad_dir)
-        dropped_kind = "related"
+    referrer_id, target_id = await _seed_native_shape(svc)
+    dropped_kind = "duplicates"
+    _write_override(project.squad_dir, _DROP_DUPLICATES)
 
     svc2 = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     result = await svc2.retype(target_id, "bug")
@@ -236,8 +186,14 @@ async def test_repair_writes_no_file_over_an_already_canonical_corpus(project) -
 
 async def test_repair_converges_byte_identically_on_a_second_run(project) -> None:
     svc = Service(project)
-    referrer_id, target_id = await _seed_legacy_shape(svc, project.squad_dir)
-    svc2 = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
+    a = (await create_item(svc, "task", "referrer")).item
+    b = (await create_item(svc, "task", "target")).item
+    await svc.add_ref(a.id, b.id, kind="related")
+    referrer_id, target_id = a.id, b.id
+    _plant_spelled_default(svc, a, b.id, kind="related")
+    first = await svc.repair()
+    assert first.canonicalized == [a.id]
+    svc2 = svc
 
     after_first = svc2.paths.abspath((await svc2.get(referrer_id)).path).read_text(encoding="utf-8")
     second = await svc2.repair()
@@ -255,22 +211,18 @@ async def test_repair_converges_byte_identically_on_a_second_run(project) -> Non
 
 async def test_end_to_end_recovery_needs_no_hand_editing(project) -> None:
     """The recovery A5 promises: revert the override edit, ``sq repair``, mutate the affected
-    item once, re-apply the rename — lint clean, check clean, both a legacy-folded and a
-    natively bare edge reading as the new default, with no item ``.md`` touched by hand at any
-    point in the *recovery* itself (the legacy-plant below represents pre-existing arriving
-    data, not a recovery step)."""
+    item once, re-apply the rename — lint clean, check clean, both bare edges reading as the new
+    default, with no item ``.md`` touched by hand at any point in the recovery."""
     svc = Service(project)
-    a = (await create_item(svc, "task", "legacy-referrer")).item
+    a = (await create_item(svc, "task", "referrer")).item
     b = (await create_item(svc, "task", "target")).item
-    c = (await create_item(svc, "task", "native-referrer")).item
+    c = (await create_item(svc, "task", "other-referrer")).item
     await svc.add_ref(a.id, b.id, kind="related")
     await svc.add_ref(c.id, b.id, kind="related")
-    _plant_legacy_shape(svc, a, b.id, kind="related")
 
     _write_override(project.squad_dir, _RENAME_DEFAULT)
     svc_renamed = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
-    locking = await svc_renamed.repair()
-    assert locking.canonicalized == [a.id]  # the repair that manufactures the locked state
+    await svc_renamed.repair()
 
     # Bounded: nothing about this state stops an ordinary command running.
     assert _no_errors(await svc_renamed.check())  # warn-only, never an error
@@ -289,7 +241,6 @@ async def test_end_to_end_recovery_needs_no_hand_editing(project) -> None:
     svc_final = Service(project, spec=load_workflow_spec(squad_dir=project.squad_dir))
     assert _no_errors(await svc_final.check())  # check clean
 
-    # Both edges — the once-legacy-mapped one and the always-native one — read as the new
-    # default.
+    # Both edges read as the new default.
     assert (b.id, "seealso") in await svc_final.refs_out(a.id)
     assert (b.id, "seealso") in await svc_final.refs_out(c.id)

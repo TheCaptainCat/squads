@@ -20,7 +20,7 @@ refs:
 description: No extra block; slug is core; roster keys are pinned spec attributes;
   unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner
 created_at: '2026-10-15T18:49:27Z'
-updated_at: '2026-10-15T20:17:27Z'
+updated_at: '2026-10-16T16:14:44Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -445,4 +445,6 @@ silently, which is the default.
     None was skipped: on reading, each one names an extra key, the extra container or the additive-only JSON rule at the passage noted. ADR-492, ADR-697 and ADR-753 got nothing, as this record says.
     Every diff against HEAD is additions only, apart from the updated_at the body verb stamps. No status changed, no stray content tags, and sq check is clean.
     One reading to confirm: the ADR-979 note says a lookup of an operator by title after the flattening gives the name extra.full_name held. That is inferred from decision 9 and holds only if the comment-header rewrite runs after the flattening step in the 0.16 runner.
+- [2026-10-16T16:14:44Z] Pierre Chat:
+  - 2026-10-16: accepted that frontmatter values are kept as JSON-representable values: YAML-only types are normalized on write (an unquoted date becomes a string of the same value; a non-string mapping key becomes a string key). Record it as a dated note on decision 5.
 <!-- sq:discussion:end -->

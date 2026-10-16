@@ -45,7 +45,7 @@ from squads._backends._claude_code._frontmatter import oneline
 from squads._index._store import IndexStore
 from squads._interactions import bundled_skill_slugs, skill_description
 from squads._migrations._context import MigrationContext
-from squads._models._extras import ExtraKey as X
+from squads._migrations._legacy_extra import with_legacy_extra
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._rendering._engine import render
@@ -267,7 +267,7 @@ async def migrate(ctx: MigrationContext) -> int:
                     path=squad_rel,
                     created_at=now,
                     updated_at=now,
-                    extra={X.SLUG: slug},
+                    attributes=with_legacy_extra({"slug": slug}),
                 )
                 stamped_text = sections.join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 new_path = skills_folder / new_name

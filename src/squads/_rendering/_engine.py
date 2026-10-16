@@ -18,6 +18,7 @@ revert to the bundled-only loader (used by tests that want isolation).
 
 from contextvars import ContextVar
 from pathlib import Path
+from typing import cast
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
 
@@ -235,7 +236,6 @@ def scaffold_body(item: Item, spec: WorkflowSpec) -> str | None:
             creation_template_name(item.type, spec),
             item=item,
             description=item.description,
-            extra=item.extra,
             spec=spec,
         )
     except SquadsError:
@@ -264,6 +264,22 @@ def template_source(template_name: str) -> str:
     return source
 
 
+class _FlatItem:
+    """An item as a template sees it: its fields, and each stored attribute as a field of the
+    same name (``item.target_ref``), so a template never reaches into a nested container."""
+
+    def __init__(self, item: Item) -> None:
+        self._item = item
+
+    def __getattr__(self, name: str) -> object:
+        try:
+            return getattr(self._item, name)
+        except AttributeError:
+            if name in self._item.attributes:
+                return self._item.attributes[name]
+            raise
+
+
 def render(template_name: str, /, **context: object) -> str:
     """Render *template_name* against *context* through the one Jinja2 environment every
     rendering path in the codebase uses (item-file scaffolds, backend artifacts,
@@ -285,6 +301,8 @@ def render(template_name: str, /, **context: object) -> str:
     """
     from jinja2 import TemplateError
 
+    if isinstance(context.get("item"), Item):
+        context = {**context, "item": _FlatItem(cast("Item", context["item"]))}
     try:
         return _env().get_template(template_name).render(**context)
     except TemplateError as exc:

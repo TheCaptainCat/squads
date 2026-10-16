@@ -164,7 +164,7 @@ def _resolve_fields(
     """Validate a ``create``/``add-sub`` event's badge-code map against *type_or_kind*'s
     declared fields — the vocabulary check ``_create_model``/``_add_block_model`` don't run
     themselves (they take an already-resolved code), so the importer resolves it up front,
-    the same way :meth:`~squads._services._items.ItemsMixin._apply_extra` does for
+    the same way :meth:`~squads._services._items.ItemsMixin._apply_attributes` does for
     ``update``'s ``--set``."""
     out: dict[str, str] = {}
     for code, raw in fields.items():
@@ -473,8 +473,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             force=event.force,
             parent=parent,
             clear_parent=event.clear_parent,
-            set_extra=dict(event.fields) or None,
-            unset_extra=list(event.unset_fields) or None,
+            set_attributes=dict(event.fields) or None,
+            unset_attributes=list(event.unset_fields) or None,
             now=ev.at,
         )
 
@@ -683,7 +683,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             force=event.force,
             parent=parent,
             clear_parent=event.clear_parent,
-            set_extra=dict(event.fields) or None,
-            unset_extra=list(event.unset_fields) or None,
+            set_attributes=dict(event.fields) or None,
+            unset_attributes=list(event.unset_fields) or None,
         )
         return item.id

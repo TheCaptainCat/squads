@@ -59,7 +59,7 @@ async def test_sync_reports_a_dev_roles_unrenderable_model_and_the_pointer_omits
     result = await service.init(root=tmp_path, backend=["claude_code"], roles_spec="minimal")
     svc = service.Service(result.paths)
     dev = await svc.add_dev("python", model=_UNRENDERABLE)
-    assert dev.extra["model"] == _UNRENDERABLE  # durable, exactly as declared
+    assert dev.attributes["model"] == _UNRENDERABLE  # durable, exactly as declared
 
     reported = await service.Service(result.paths).sync()
 

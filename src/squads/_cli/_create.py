@@ -31,7 +31,7 @@ from squads._cli._common import (
     resolve_slug_or_raise,
 )
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import AttributeKey
 from squads._models._item import make_ref, split_ref
 from squads._services._service import Service
 from squads._workflow import bundled_spec
@@ -174,7 +174,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
             body=resolve_body_optional(message or None, file),
         )
         if json_out:
-            data = json.loads(res.item.model_dump_json())
+            data = res.item.to_row()
             if res.lane_warning is not None:
                 data["lane_warning"] = res.lane_warning
             print_json_clean(json.dumps(data))
@@ -428,7 +428,7 @@ def _make(item_type_str: str):
             body=resolve_body_optional(message or None, file),
         )
         if json_out:
-            data = json.loads(res.item.model_dump_json())
+            data = res.item.to_row()
             if res.lane_warning is not None:
                 data["lane_warning"] = res.lane_warning
             print_json_clean(json.dumps(data))
@@ -479,11 +479,11 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
     ),
     json_out: bool = typer.Option(False, "--json"),
 ):
-    extra: dict[str, object] = {}
+    attributes: dict[str, object] = {}
     if tech:
-        extra[X.TECH] = tech
+        attributes[AttributeKey.TECH] = tech
     if tag:
-        extra[X.TAGS] = list(tag)
+        attributes[AttributeKey.TAGS] = list(tag)
     svc = get_service()
     # --author/--assignee accept only a live slug: a retired role stops being an
     # active participant, though its past authorship stays readable.
@@ -498,11 +498,11 @@ async def create_guide(  # noqa: PLR0913 — Typer options are the command's sur
         parent=resolved_parent,
         author=validated_author,
         assignee=validated_assignee,
-        extra=extra or None,
+        attributes=attributes or None,
         body=resolve_body_optional(message or None, file),
     )
     if json_out:
-        data = json.loads(res.item.model_dump_json())
+        data = res.item.to_row()
         if res.lane_warning is not None:
             data["lane_warning"] = res.lane_warning
         print_json_clean(json.dumps(data))

@@ -43,7 +43,7 @@ async def _build_pre_tag_corpus(tmp_path: Path):
     skills = [
         it
         for it in await svc.list_items(item_type="skill")
-        if it.extra.get("slug") in ("squads", "greeting", "sq-memory")
+        if it.slug in ("squads", "greeting", "sq-memory")
     ]
     assert len(roles) >= 9  # the full bundled roster plus the added developer
     assert len(skills) == 3

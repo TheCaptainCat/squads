@@ -3,7 +3,7 @@ id: TASK-1005
 sequence_id: 1005
 type: task
 title: Accept and show author_slug on comments in the VS Code client
-status: InReview
+status: Done
 parent: FEAT-980
 author: tech-lead
 assignee: typescript-dev
@@ -19,7 +19,7 @@ subentities:
   status: Done
   story: US4
 created_at: '2026-10-12T06:48:44Z'
-updated_at: '2026-10-16T08:16:12Z'
+updated_at: '2026-10-16T14:38:35Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -149,4 +149,6 @@ result reported with the `sq` it ran against.
     - For the tech writer: the preview now shows the author slug beside the name on comments (when sq emits it).
 - [2026-10-16T08:16:12Z] Ada Typescript:
   - REV-1029 F1-F5 fixed. check clean, npm test 705 pass, canary 76 pass on .venv/bin/sq; canary now red on released 0.15.0 by design.
+- [2026-10-16T14:38:35Z] Pierre Chat:
+  - 2026-10-16: checked the preview in the dev host; the slug shows after the author's name. Approved. Anonymous --as operator comments stay as they are.
 <!-- sq:discussion:end -->

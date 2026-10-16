@@ -50,9 +50,9 @@ from squads._itemfile import (
 )
 from squads._migrations._context import MigrationContext
 from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
+from squads._models import _attributes as attrs
 from squads._models import _markers as markers
 from squads._models._config import CONFIG_FILENAME
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_ID_PADDING,
@@ -63,12 +63,12 @@ from squads._models._item import (
     prefix_from_id,
     slug_from_stem,
 )
-from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
+from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple, version_drifted
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
 from squads._roles._catalog import RoleDef
-from squads._roles._resolver import resolve_role_with_base, role_base_from_item
+from squads._roles._resolver import pinned_name_of, resolve_role_with_base, role_base_from_item
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._corpus_fit import corpus_fit_refusal
@@ -195,24 +195,17 @@ def _ref_encoding_is_stale(data: dict[str, Any], item: Item) -> bool:
     parsed for *item* — holds a ref encoding other than the canonical one *item* (already
     folded through :meth:`Item.from_frontmatter`) carries.
 
-    Two shapes, both :func:`~squads._models._item.fold_legacy_kinds`'s doing: a leftover
-    ``extra.ref_kinds`` legacy map (folded into ``refs`` and then dropped from ``extra``), and
-    a spelled ref that folds to a different literal than what is written on disk — an edge
-    spelled with the live default kind (never emitted, always folded back to bare), or a
-    legacy-mapped edge whose recorded kind no longer equals that default after a rename. These
-    are the only two shapes the fold ever changes; every other frontmatter field round-trips
-    unchanged when *item* was built from *data* directly, so comparing ``refs``/``ref_kinds``
-    alone is exact, not an approximation of a fuller diff.
+    A spelled ref folds to a different literal than what is written on disk when an edge is
+    spelled with the live default kind (never emitted, always folded back to bare). That is
+    the only shape the fold changes; every other frontmatter field round-trips unchanged when
+    *item* was built from *data* directly, so comparing ``refs`` alone is exact.
 
     ``data["refs"]`` is safe to compare as a plain list here without re-validating its shape:
     *item* already exists, which means ``Item.from_frontmatter`` already accepted this same
     *data* — so ``refs`` was already either absent/empty or a list of ``str``.
     """
     raw_refs = cast("list[str]", data.get("refs") or [])
-    if list(item.refs) != raw_refs:
-        return True
-    extra = data.get("extra")
-    return isinstance(extra, dict) and "ref_kinds" in extra
+    return list(item.refs) != raw_refs
 
 
 #: Suffix of a retired sub-entity badge region's tag. The tag itself
@@ -294,40 +287,30 @@ def _strip_retired_regions(
     return text
 
 
-def _retired_role_extra_keys(item: Item) -> frozenset[str]:
-    """The retired mirror keys *item*'s ``extra`` still carries — empty for anything that is
+def _retired_role_keys(item: Item, spec: WorkflowSpec) -> frozenset[str]:
+    """The retired mirror keys *item* still carries as attributes — empty for anything that is
     not a role item, and empty for a role that carries none of them.
 
-    The set is a difference between two declarations, never a list written out here:
+    The set is a difference between two declarations, never a list written out here: the
+    candidates are :data:`~squads._models._metadata.RETIRED_ROLE_KEYS` widened by
+    :meth:`RoleDef.attribute_keys`, and what is taken back out is
+    :meth:`RoleDef.stored_attribute_keys` for *this* role's shape. That subtraction is why a
+    developer's ``model`` survives while a non-dev role's is removed, and why the answer cannot
+    drift from the writer. Getting it wrong in the other direction is unrecoverable: a
+    developer's ``model`` is an operator setting with no catalog answer, so a stripped one is
+    re-rolled from the dev pool as a different value.
 
-    - the candidates are :data:`~squads._models._metadata.RETIRED_ROLE_EXTRA_KEYS` (the
-      retired definition keys, declared beside the refusals that name where each value lives
-      now — deliberately not restated as a count here, since a number in this docstring is a
-      second declaration of the set's size that nothing keeps in step with it) widened by
-      :meth:`RoleDef.extra_keys`, so every name the mirror ever wrote is a candidate whether
-      or not some role shape still stores it;
-    - what is taken back out is :meth:`RoleDef.stored_extra_keys` for *this* role's shape,
-      read off the tables that decide what ``to_extra`` writes.
-
-    That subtraction is the whole reason a developer's ``model`` survives while a non-dev
-    role's is removed, and it is why the answer cannot drift from the writer: restore a key to
-    either table and this stops proposing it, with no second list to remember. Getting it
-    wrong in the other direction is unrecoverable rather than untidy — a developer's ``model``
-    is an operator setting with no catalog answer, so a stripped one is re-rolled from the dev
-    pool as a different value, not resolved back.
-
-    A role is identified by its item type and its shape by ``extra.is_dev``, the same stored
-    marker :meth:`~squads._roles._catalog.RoleDef.to_extra`'s callers pass — never by the
-    slug's spelling, which decides nothing about what a role item stores.
-
-    An operator item carries a ``full_name`` of its own (``add_operator`` writes it and
-    ``sq operator list`` reads it back): the type check above is what keeps this sweep off it.
+    A role is identified by its item type and its shape by the stored ``is_dev`` marker, never
+    by the slug's spelling. An operator item is kept off this sweep by the type check.
     """
     if item.type != ROSTER_ROLE:
         return frozenset()
-    stored = RoleDef.stored_extra_keys(is_dev=bool(item.extra.get(X.IS_DEV)))
-    retired = (RETIRED_ROLE_EXTRA_KEYS | RoleDef.extra_keys()) - stored
-    return retired & frozenset(item.extra)
+    stored = RoleDef.stored_attribute_keys(is_dev=attrs.is_dev(item))
+    retired = (RETIRED_ROLE_KEYS | RoleDef.attribute_keys()) - stored
+    # A name the squad's spec declares on role is the adopter's attribute, not a mirror key; the
+    # one declared name the mirror also used (the stored model) is still swept.
+    declared = frozenset(spec.item_attributes(ROSTER_ROLE)) - RoleDef.attribute_keys()
+    return (retired - declared) & frozenset(item.attributes)
 
 
 @dataclasses.dataclass
@@ -354,34 +337,14 @@ class _PendingRewrites:
 
 
 def _frontmatter_without(data: dict[str, Any], keys: frozenset[str]) -> dict[str, Any]:
-    """*data* — the file's own parsed frontmatter — with *keys* removed from its ``extra``
-    mapping and **everything else left exactly as the file had it**, top-level keys and their
-    order included.
+    """*data* — the file's own parsed frontmatter — with the top-level *keys* removed and
+    **everything else left exactly as the file had it**, other keys and their order included.
 
     Deliberately not ``item.to_frontmatter_dict()``, which is what the ref canonicalisation
-    writes. That mapping is the model's canonical projection, so writing it back also drops
-    any frontmatter key the model accepts on the way in but derives rather than stores — a
-    legacy top-level ``slug:``, which every corpus fixture predating the filename-derived slug
-    still carries, is one. Dropping it loses nothing (the filename answers it) but it is not a
-    name on this sweep's frozen list, and a sweep that removes anything beyond that list is
-    the defect the list exists to prevent. When a file needs the canonicalisation too, that
-    rewrite runs instead and its own wider projection is what lands — the same bytes it has
-    always written, on the same files it has always written them to.
-
-    ``extra`` is dropped entirely if the removal empties it, matching what
-    ``to_frontmatter_dict`` writes for an item with no ``extra`` at all, so the two rewrites
-    cannot disagree about how an empty mapping is spelled. A role always keeps ``slug``, so
-    this is the shape of a defensive branch rather than a case a corpus reaches.
+    writes: that mapping is the model's canonical projection, and a sweep that rewrites
+    anything beyond its frozen list of removed keys is the defect the list exists to prevent.
     """
-    out = dict(data)
-    extra = {
-        k: v for k, v in cast("dict[str, Any]", out.get("extra") or {}).items() if k not in keys
-    }
-    if extra:
-        out["extra"] = extra
-    else:
-        out.pop("extra", None)
-    return out
+    return {k: v for k, v in data.items() if k not in keys}
 
 
 def _record_pending_rewrite(
@@ -404,8 +367,7 @@ def _record_pending_rewrite(
     - it carries a retired region, or a body this sweep converges onto a placement tag
       (:func:`_strip_retired_regions`, licensed per-item by *body_tag* — see
       :meth:`MaintenanceMixin._repair_body_tag`);
-    - it is a role item whose ``extra`` still carries retired mirror keys
-      (:func:`_retired_role_extra_keys`).
+    - it is a role item that still carries retired mirror keys (:func:`_retired_role_keys`).
 
     The regions go first and the frontmatter rewrite last, over the stripped text:
     :func:`~squads._sections.replace_frontmatter` preserves the body verbatim, so the order
@@ -433,15 +395,15 @@ def _record_pending_rewrite(
     Split out of the per-file loop purely to keep that already-long method under the
     complexity ceiling; the writes themselves are the caller's, after the refusal check.
     """
-    slug = views.roster_slug(item.type, item.slug, item.extra)
+    slug = item.slug
     addr: int | str = slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
     new_text = _strip_retired_regions(
         text, body_tag=body_tag, spec=spec, item_type=item.type, addr=addr
     )
     stripped = new_text != text
-    retired_keys = _retired_role_extra_keys(item)
+    retired_keys = _retired_role_keys(item, spec)
     for key in retired_keys:
-        del item.extra[key]
+        del item.attributes[key]
     canonicalized = _ref_encoding_is_stale(data, item)
     if canonicalized:
         new_text = sections.replace_frontmatter(
@@ -534,19 +496,15 @@ def _stem_slug(md: Path, item_type: str, spec: WorkflowSpec) -> str:
 
 
 def _check_slug(md: Path, item_type: str, text: str, spec: WorkflowSpec) -> str:
-    """The slug this check pass classifies *md* by (:func:`~squads._views.roster_slug`'s
-    identity), read from frontmatter whenever *text* parses, falling back to the filename
-    segment (:func:`_stem_slug`) only when frontmatter can't be reached — matching the write
-    path's own classification even for a hand-renamed skill file."""
+    """The slug this check pass classifies *md* by, read from frontmatter whenever *text* parses
+    and falling back to the filename segment (:func:`_stem_slug`) only when frontmatter can't be
+    reached — matching the write path's own classification even for a hand-renamed skill file."""
     try:
         data = read_frontmatter(text=text, source=str(md))
     except SquadsError:
         return _stem_slug(md, item_type, spec)
-    raw_extra = data.get("extra")
-    extra: dict[str, Any] = cast("dict[str, Any]", raw_extra) if isinstance(raw_extra, dict) else {}
     raw_slug = data.get("slug")
-    slug = raw_slug if isinstance(raw_slug, str) and raw_slug else _stem_slug(md, item_type, spec)
-    return views.roster_slug(item_type, slug, extra)
+    return raw_slug if isinstance(raw_slug, str) and raw_slug else _stem_slug(md, item_type, spec)
 
 
 def _seeded_view_issues(
@@ -1023,7 +981,7 @@ class MaintenanceMixin(ServiceCore):
 
         Returns one skip-report message per drifted roster role whose
         frontmatter was left untouched (see :meth:`_detect_roster_item_skew`, and
-        :meth:`_refresh_catalog_extra`
+        :meth:`_refresh_catalog_attributes`
         for the narrower catalog-merge case that can raise the same way), one notice per live
         ``SKILL`` item this run just withdrew because its type is no
         longer declared (:func:`~squads._interactions.orphaned_skill_item_type`), and one per
@@ -1086,7 +1044,7 @@ class MaintenanceMixin(ServiceCore):
         # every roster item's status is re-applied against the predicate on every run,
         # materialising a live entry and withdrawing every other one — including an entry
         # already retired before this landed, with no migration owed. The item's own
-        # sq-managed state (the catalog-extra merge) refreshes unconditionally regardless of
+        # sq-managed state (the catalog-attribute merge) refreshes unconditionally regardless of
         # liveness: only the *backend* projection — via ``_project_roster_item``, the same
         # helper the single-item transition path uses — is gated. The role's own definition
         # renders at read time off the ``sq:view:role_definition`` tag its ``sq:body`` carries
@@ -1094,8 +1052,8 @@ class MaintenanceMixin(ServiceCore):
         # below don't write that tag either — the version-drift backfill just below does, once,
         # ahead of them (see ``_backfill_roster_body_tags``).
         # Copied out of the snapshot before any mutation: ``list_items`` returns the read
-        # scope's own aliases with no copy, and ``_refresh_catalog_extra`` below mutates
-        # ``item.extra`` in place and then grafts that same object into a fresh
+        # scope's own aliases with no copy, and ``_refresh_catalog_attributes`` below mutates
+        # ``item.attributes`` in place and then grafts that same object into a fresh
         # ``transaction()`` db via ``db.add`` — a pre-transaction object landing in a db it
         # did not come from. The commit path is safe regardless (``ensure_no_skew`` gates the
         # graft, and the excluded-key set is exactly what the graft reasserts), but a private
@@ -1159,14 +1117,12 @@ class MaintenanceMixin(ServiceCore):
         # them say "regenerated" rather than treating an ordinary, already-there file the same
         # way — a second, independent probe would risk drifting from this one.
         live_role_slugs = frozenset(
-            slug
-            for it in roster_roles
-            if is_live_roster_entry(it, self.spec) and (slug := it.extra.get(X.SLUG))
+            slug for it in roster_roles if is_live_roster_entry(it, self.spec) and (slug := it.slug)
         )
         live_skill_slugs = frozenset(
             slug
             for it in roster_skills
-            if is_live_roster_entry(it, self.spec) and (slug := it.extra.get(X.SLUG))
+            if is_live_roster_entry(it, self.spec) and (slug := it.slug)
         )
         entry_ctx = BackendContext(
             paths=self.paths,
@@ -1195,15 +1151,15 @@ class MaintenanceMixin(ServiceCore):
             skew_msg = await self._detect_roster_item_skew(it, default_kind=default_kind)
             if skew_msg is not None:
                 skipped.append(skew_msg)
-            msg = await self._refresh_catalog_extra(it, default_kind=default_kind)
+            msg = await self._refresh_catalog_attributes(it, default_kind=default_kind)
             if msg is not None:
                 skipped.append(msg)
             skipped += await self._project_roster_item(it, proj_ctx)
         for it in roster_skills:
-            stale_type = orphaned_skill_item_type(it.extra.get(X.SLUG, ""), self.spec)
+            stale_type = orphaned_skill_item_type(it.slug, self.spec)
             if stale_type is not None and it.status in self.spec.live_statuses(ROSTER_SKILL):
                 skipped.append(
-                    f"{it.id} ({it.extra.get(X.SLUG)}): type {stale_type!r} no longer "
+                    f"{it.id} ({it.slug}): type {stale_type!r} no longer "
                     "declared — generated files withdrawn; restore the type to "
                     "re-materialise, or retire this skill to close it out"
                 )
@@ -1315,7 +1271,7 @@ class MaintenanceMixin(ServiceCore):
             updated_at=known.updated_at if known else now,
             created_session=known.created_session if known else sid,
             modified_session=known.modified_session if known else sid,
-            extra={X.SLUG: slug},
+            slug_in_file=True,
         )
 
     async def _skill_folder_state(self, scan: SkillScan) -> SkillFolder:
@@ -1535,12 +1491,12 @@ class MaintenanceMixin(ServiceCore):
         pre-pass collects, and "the skip-and-report line ``sq sync`` emits for a drifted
         roster item" -- the third one, and this is that check's home. Unconditionally is the
         load-bearing word: a role whose catalog fields already agree with the index
-        (:meth:`_refresh_catalog_extra` finds nothing to merge) would otherwise never have its
+        (:meth:`_refresh_catalog_attributes` finds nothing to merge) would otherwise never have its
         frontmatter read again during a sync, so a drift on an ordinary field -- unrelated to
         any catalog-merged value, e.g. an interrupted ``description`` edit -- would go
         unnoticed until some unrelated seam happened to touch the same item.
 
-        Deliberately independent of :meth:`_refresh_catalog_extra`: both run unconditionally
+        Deliberately independent of :meth:`_refresh_catalog_attributes`: both run unconditionally
         over the same roster loop, so a real skew is reported the same way regardless of
         whether the catalog merge also has something to say about the same item -- ``sync``'s
         own dedup collapses the identical message if both happen to raise it.
@@ -1558,40 +1514,30 @@ class MaintenanceMixin(ServiceCore):
             return None
         return skew_message(item, diverging)
 
-    async def _refresh_catalog_extra(self, item: Item, *, default_kind: str) -> str | None:
+    async def _refresh_catalog_attributes(self, item: Item, *, default_kind: str) -> str | None:
         """Reconcile a role item against its resolved definition: merge
-        :meth:`RoleDef.to_extra`'s keys into the item's ``extra``, and project the resolved
-        name/mission onto the item's own top-level ``title``/``description``.
+        :meth:`RoleDef.to_attributes`'s keys into the item's attributes, and project the
+        resolved name/mission onto the item's own ``title``/``description``.
 
-        **What this merges is deliberately small.** ``to_extra()`` does not carry a copy of
-        the definition — a role's title, mission, responsibilities, agreements, colour and
-        spawn authority resolve from the catalog on every read, so there is nothing about them
-        left to reconcile here. What the merge still converges is the stored residue
-        (:data:`~squads._roles._catalog.RoleDef._EXTRA_FIELD_KEYS`) and, through
+        **What this merges is deliberately small.** A role's title, mission, responsibilities,
+        agreements, colour and spawn authority resolve from the catalog on every read, so there
+        is nothing about them left to reconcile here. What the merge converges is the stored
+        residue (:data:`~squads._roles._catalog.RoleDef._ATTRIBUTE_FIELDS`) and, through
         :meth:`RoleDef.to_item_fields`, the resolved ``full_name``/``mission`` onto
-        ``item.title``/``item.description`` — the uniform-record fields read by every surface
-        that does not know the item is a role and so cannot resolve a role catalog. That
-        pairing is declared once, beside ``to_extra``'s own key table, so a declared override
-        reaches the item's own record and not only its ``extra``.
+        ``item.title``/``item.description`` — the fields read by every surface that does not
+        know the item is a role and so cannot resolve a role catalog.
 
         Every role, dev or bundled, resolves through
         :func:`~squads._roles._resolver.resolve_role_with_base` with a base built by
         :func:`~squads._roles._resolver.role_base_from_item` (passed this squad's own
         ``squad_dir``, so a bundled role's base already carries a project's catalog-document
         override — ``.overrides/roles.toml`` — the same way an unactivated slug's does), which
-        reads *this item's own* stored operator-settable fields (a developer's tech/name/model,
-        a bundled role's ``full_name``) rather than either re-rolling a dev name from the pool
-        or letting a bundled role's catalog default override an operator's own name — an
-        unrelated second developer's ``full_name`` is never disturbed, and neither is another
-        role's. Every other field still comes from the current catalog fresh, so a ``RoleDef``
-        field added after an item was created, or a project's own catalog-document override,
-        still reaches it here. With no override file present the
-        merged definition equals the base equals the item's own values, so both diff loops
-        below find nothing and this returns ``None``: "no file" and "a file that changes
-        nothing" take the same no-op path. Only a genuinely orphaned custom item — no catalog
-        entry, no dev shape, no override file — is skipped outright, via the
-        ``RoleNotFoundError`` catch just below; its extra is fully owned by the ``create``
-        call-site.
+        reads *this item's own* stored operator-settable fields rather than re-rolling a dev
+        name from the pool. Every other field comes from the current catalog fresh. With no
+        override file present the merged definition equals the base equals the item's own
+        values, so both diff loops below find nothing and this returns ``None``. Only a
+        genuinely orphaned custom item — no catalog entry, no dev shape, no override file — is
+        skipped outright, via the ``RoleNotFoundError`` catch just below.
 
         **A change through this writer is not silent.** When the merge actually changes
         something, ``item.updated_at`` moves, ``item.modified_session`` is set to the acting
@@ -1602,7 +1548,7 @@ class MaintenanceMixin(ServiceCore):
 
         This is a roster-regen path, not a single mutation: an unrepaired skew is skipped and
         reported (the returned message) rather than refused, and the in-memory merge — both the
-        ``extra`` keys and the projected top-level fields — is rolled back on skip so *item*
+        attributes and the projected fields — is rolled back on skip so *item*
         stays truthful to what is actually on disk. Returns ``None`` when nothing changed or
         the write went through.
 
@@ -1611,7 +1557,7 @@ class MaintenanceMixin(ServiceCore):
         ``.overrides/roles/<slug>.toml`` over the bundled catalog — so this is the write that
         carries an adopter's renamed role title (or model, or mission) onto the item. Every
         consumer of that title reads the *index*, not the frontmatter: :meth:`roster` builds
-        its ``RoleView`` list from ``extra``-on-index, and that list is what both backends
+        its ``RoleView`` list from the index, and that list is what both backends
         compile ``CLAUDE.md``/``AGENTS.md`` from. Writing the frontmatter alone left the
         override's title durable but invisible — the generated roster kept rendering the
         bundled value until an unrelated ``sq repair`` happened to rebuild the index, with
@@ -1625,40 +1571,36 @@ class MaintenanceMixin(ServiceCore):
         and ``item.path`` are untouched — a roster item's path slug is its role slug, not a
         slug of its title, and this call must never move the file.
 
-        The ``extra`` keys this call writes stay exempt from the skew guard everywhere — see
-        ``_itemfile.PERMITTED_EXTRA_SKEW``, narrowed to the same short residue this merges.
-        That exemption does not describe *this* writer's steady state (the index mirror
-        above prevents a permanent lag) but is what lets a squad synced by an
-        older release, whose index already lags on those keys, converge on its next sync
-        instead of being refused by the guard first. The projected
-        top-level ``title``/``description`` fields are ordinary frontmatter keys the skew guard
-        already compares like any other — see ``_itemfile._without_permitted_extra_skew``,
-        which structurally cannot reach a top-level field, so nothing here needs a matching
-        exemption; a pre-fix corpus carrying a stale ``title``/``description`` simply converges
-        the next time this call finds a live catalog entry for it.
+        The attributes this call writes stay exempt from the skew guard everywhere — see
+        ``_itemfile.PERMITTED_ATTRIBUTE_SKEW``, which lets a squad whose index already lags on
+        those keys converge on its next sync instead of being refused by the guard first. The
+        projected ``title``/``description`` fields are ordinary core keys the skew guard
+        compares like any other.
         """
-        slug = item.extra.get(X.SLUG, "")
+        slug = item.slug
         base_role = role_base_from_item(item, self.paths.squad_dir)
         try:
-            catalog_role = resolve_role_with_base(slug, self.paths.squad_dir, base=base_role)
+            catalog_role = resolve_role_with_base(
+                slug, self.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(item)
+            )
         except RoleNotFoundError:
             return None  # orphaned custom role item: no catalog entry, no override file
         # The developer marker lives on the item, and it is what decides whether the
-        # dev-only column (``model``) is part of this merge — see ``RoleDef.to_extra``.
-        catalog_extra = catalog_role.to_extra(is_dev=bool(item.extra.get(X.IS_DEV)))
+        # dev-only column (``model``) is part of this merge — see ``RoleDef.to_attributes``.
+        catalog_attributes = catalog_role.to_attributes(is_dev=attrs.is_dev(item))
         item_fields = catalog_role.to_item_fields()
         base = item.model_copy(deep=True)
-        previous_extra: dict[str, Any] = {}
+        previous_attributes: dict[str, Any] = {}
         previous_fields: dict[str, Any] = {}
-        for key, value in catalog_extra.items():
-            if item.extra.get(key) != value:
-                previous_extra[key] = item.extra.get(key)
-                item.extra[key] = value
+        for key, value in catalog_attributes.items():
+            if item.attributes.get(key) != value:
+                previous_attributes[key] = item.attributes.get(key)
+                item.attributes[key] = value
         for field, value in item_fields.items():
             if getattr(item, field) != value:
                 previous_fields[field] = getattr(item, field)
                 setattr(item, field, value)
-        if not previous_extra and not previous_fields:
+        if not previous_attributes and not previous_fields:
             return None
         previous_updated_at = item.updated_at
         previous_modified_session = item.modified_session
@@ -1666,7 +1608,7 @@ class MaintenanceMixin(ServiceCore):
         sid, _psid = actor.current_session()
         item.modified_session = sid
         delta: dict[str, Any] = {
-            **{f"extra.{key}": [old, item.extra.get(key)] for key, old in previous_extra.items()},
+            **{key: [old, item.attributes.get(key)] for key, old in previous_attributes.items()},
             **{field: [old, getattr(item, field)] for field, old in previous_fields.items()},
         }
         try:
@@ -1677,11 +1619,11 @@ class MaintenanceMixin(ServiceCore):
                 db.add(item)
                 self.store.log("update", item.id, delta)
         except SquadsError as exc:
-            for key, old_value in previous_extra.items():
+            for key, old_value in previous_attributes.items():
                 if old_value is None:
-                    item.extra.pop(key, None)
+                    item.attributes.pop(key, None)
                 else:
-                    item.extra[key] = old_value
+                    item.attributes[key] = old_value
             for field, old_value in previous_fields.items():
                 setattr(item, field, old_value)
             item.updated_at = previous_updated_at
@@ -1726,6 +1668,7 @@ class MaintenanceMixin(ServiceCore):
         reports: dict[str, tuple[str, ...]] = {}
         ctx = MigrationContext(paths=self.paths, spec=self.spec, playbook=self.playbook)
         reconciled: ReconcileResult | None = None
+        original_index: str | None = None
         if applied:
             built, reconciled = await plan_reconcile(
                 self.paths.squad_dir,
@@ -1736,6 +1679,7 @@ class MaintenanceMixin(ServiceCore):
             # With a readable index the rebuilt one is kept even when the run stops; with none,
             # a run refused before its first runner leaves the squad as it found it.
             if reconciled.had_index:
+                original_index = await _aio.read_text(self.paths.index_path)
                 await self._keep_reconciled(built, reconciled, disk)
             refusal = self._pre_runner_refusal(built, reconciled)
             if refusal is not None:
@@ -1759,10 +1703,8 @@ class MaintenanceMixin(ServiceCore):
         except IndexFullError as exc:
             raise SquadsError(_index_full_refusal(exc, disk)) from exc
         except SquadsError as exc:
-            raise SquadsError(
-                f"{exc}\n{_earlier_steps_note(running, applied)}"
-                f"The squad is still at schema v{disk}: fix the cause, then re-run "
-                "`sq migrate up`, which rebuilds the index from the files first."
+            raise await self._refusal_after_runner(
+                exc, running, applied, disk, original_index
             ) from exc
         if applied:
             await self._stamp_schema(SCHEMA_VERSION)
@@ -1789,6 +1731,31 @@ class MaintenanceMixin(ServiceCore):
             reports=reports,
             repair=repaired,
             reconcile=reconciled,
+        )
+
+    async def _refusal_after_runner(
+        self,
+        exc: SquadsError,
+        running: Migration | None,
+        applied: list[Migration],
+        disk: str,
+        original_index: str | None,
+    ) -> SquadsError:
+        """The refusal a failing runner becomes. A first step that fails has changed no file, so
+        the index the earlier release wrote is put back; after earlier steps the run says to
+        repair with that release first."""
+        text = str(exc)
+        if original_index is not None and running is not None:
+            if running is applied[0]:
+                await _aio.atomic_write_text(self.paths.index_path, original_index)
+            else:
+                text += (
+                    f"\nRebuild the index with the repair command of {_reader_phrase(disk)} first."
+                )
+        return SquadsError(
+            f"{text}\n{_earlier_steps_note(running, applied)}"
+            f"The squad is still at schema v{disk}: fix the cause, then re-run "
+            "`sq migrate up`, which rebuilds the index from the files first."
         )
 
     async def _keep_reconciled(self, built: SquadsDB, result: ReconcileResult, schema: str) -> None:
@@ -1909,7 +1876,7 @@ class MaintenanceMixin(ServiceCore):
                     updated_at=now,
                     created_session=sid,
                     modified_session=sid,
-                    extra={X.SLUG: slug},
+                    slug_in_file=True,
                 )
                 # Stamp frontmatter and write to the convention-named file.
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
@@ -2002,7 +1969,7 @@ class MaintenanceMixin(ServiceCore):
                     updated_at=now,
                     created_session=sid,
                     modified_session=sid,
-                    extra={X.SLUG: slug},
+                    slug_in_file=True,
                 )
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 convention_path = skills_folder / new_name
@@ -2349,7 +2316,7 @@ class MaintenanceMixin(ServiceCore):
                 # Indexed but the file is gone — not this call's problem to report; the next
                 # `sq check`/`sq repair` surfaces a missing file its own, dedicated way.
                 continue
-            slug = views.roster_slug(item.type, item.slug, item.extra)
+            slug = item.slug
             new_text = _converge_body_tag(text, view_name, self.spec, item.type, slug)
             if new_text != text:
                 await write_text(md, new_text)
@@ -2378,7 +2345,7 @@ class MaintenanceMixin(ServiceCore):
         it changes nothing any read surface observes beyond what the tag itself resolves
         to. It is the marker pair every item file carries, and keeping it is the cheaper of two
         harmless choices."""
-        slug = views.roster_slug(item.type, item.slug, item.extra)
+        slug = item.slug
         if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
             return None
         return views.roster_body_view_name(item.type, slug, self.spec)
@@ -2452,10 +2419,9 @@ class MaintenanceMixin(ServiceCore):
         computes from ``known_corpus`` is the honest place for a real deletion to surface.
 
         **The file, not only the index, is made canonical.** For every item whose raw on-disk
-        ``refs``/``extra.ref_kinds`` encoding differs from what the fold just produced
-        (:func:`_ref_encoding_is_stale`) — a leftover legacy map, or a spelled ref that folds to
-        a different literal (a spelled-default edge, or a legacy-mapped edge whose recorded kind
-        no longer equals the live default after a rename) — the file's frontmatter is rewritten
+        ``refs`` encoding differs from what the fold just produced
+        (:func:`_ref_encoding_is_stale`) — a spelled ref that folds to a different literal (a
+        spelled-default edge) — the file's frontmatter is rewritten
         to the canonical encoding, markdown before the index commit below as always. Nothing new
         is stored: the fold already produced *item*'s canonical ``refs``; this only writes what
         the rebuild already holds the data to write. ``canonicalized`` names every item so
@@ -2468,7 +2434,7 @@ class MaintenanceMixin(ServiceCore):
         marker region whose writer has retired and whose replacement is computed on every read
         can only disagree with the frontmatter that is its sole source, so it is removed
         wherever it is still stored (:func:`_strip_retired_regions`), and so are the retired
-        ``extra`` keys a role item still mirrors (:func:`_retired_role_extra_keys`) — from the
+        keys a role item still mirrors (:func:`_retired_role_keys`) — from the
         parsed ``Item`` as well as from the file, since the index entry committed below is
         built from it. ``stripped`` names every item so rewritten. What may be removed is a
         **frozen list** of named regions and keys, each satisfying three conditions in this
@@ -3202,11 +3168,7 @@ class MaintenanceMixin(ServiceCore):
         # Two override checks — version-drift warn + missing-marker error. Role items keyed by
         # slug so a role override resolves against its own live identity, exactly like
         # `sq sync` and `sq role <slug> show` do — see `role_base_from_item`.
-        role_items_by_slug = {
-            it.extra[X.SLUG]: it
-            for it in index.items.values()
-            if it.type == ROSTER_ROLE and X.SLUG in it.extra
-        }
+        role_items_by_slug = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
         issues += [
             CheckIssue(level, item, msg)
             for level, item, msg in check_override_issues(self.paths.squad_dir, role_items_by_slug)
@@ -3263,14 +3225,14 @@ class MaintenanceMixin(ServiceCore):
                 ROSTER_SKILL
             ):
                 continue
-            stale_type = orphaned_skill_item_type(item.extra.get(X.SLUG, ""), self.spec)
+            stale_type = orphaned_skill_item_type(item.slug, self.spec)
             if stale_type is None:
                 continue
             issues.append(
                 CheckIssue(
                     "warn",
                     item.id,
-                    f"skill {item.extra.get(X.SLUG, item.id)!r} is {item.status} but type "
+                    f"skill {item.slug!r} is {item.status} but type "
                     f"{stale_type!r} is no longer declared — its generated files have "
                     "been withdrawn; restore the type to bring it back, or retire this "
                     "skill (update its status) to close it out",
@@ -3453,16 +3415,8 @@ class MaintenanceMixin(ServiceCore):
             index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
         )
         live_role_slugs, live_skill_slugs = live_roster_slugs(g_ctx)
-        role_items = {
-            it.extra[X.SLUG]: it
-            for it in index.items.values()
-            if it.type == ROSTER_ROLE and X.SLUG in it.extra
-        }
-        skill_items = {
-            it.extra[X.SLUG]: it
-            for it in index.items.values()
-            if it.type == ROSTER_SKILL and X.SLUG in it.extra
-        }
+        role_items = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
+        skill_items = {it.slug: it for it in index.items.values() if it.type == ROSTER_SKILL}
         role_skills = {
             slug: self._resolve_role_skills(slug, role_items.get(slug), index)
             for slug in live_role_slugs

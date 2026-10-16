@@ -9,7 +9,6 @@ import pytest
 from squads import __version__
 from squads import _itemfile as itemfile
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._services import _maintenance as maintenance
 from squads._workflow import ROSTER_ROLE
@@ -271,8 +270,8 @@ async def test_a_pre_split_corpus_converges_on_the_next_sync(project, svc):
     current = await svc.get(role.id)
     base = current.model_copy(deep=True)
     stale = current.model_copy(deep=True)
-    stale.extra[X.FULL_NAME] = "Ada Lovelace"
-    stale.extra[X.MISSION] = "Secure the whole system."
+    stale.attributes["full_name"] = "Ada Lovelace"
+    stale.attributes["mission"] = "Secure the whole system."
     async with svc.store.transaction() as db:
         await update_frontmatter(
             item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
@@ -281,7 +280,7 @@ async def test_a_pre_split_corpus_converges_on_the_next_sync(project, svc):
 
     split = await svc.get(role.id)
     assert split.title == _BUNDLED_ARCHITECT.full_name
-    assert split.extra[X.FULL_NAME] == "Ada Lovelace"
+    assert split.attribute("full_name") == "Ada Lovelace"
 
     skipped = await svc.sync()
     assert skipped == [
@@ -433,13 +432,13 @@ async def test_a_second_genuinely_different_message_about_the_same_item_still_ge
     db = await svc.store.load()
     indexed = db.get(dev.id)
     assert indexed is not None
-    indexed.extra.pop("responsibilities", None)
+    indexed.attributes.pop("responsibilities", None)
     await svc.store.overwrite(db)
 
     path = item_file(svc.paths, dev)
     text = path.read_text(encoding="utf-8")
     mutated = dev.model_copy(deep=True)
-    mutated.extra.pop("responsibilities", None)
+    mutated.attributes.pop("responsibilities", None)
     mutated.title = "A Disk-Only Title Nobody Told The Index About"
     path.write_text(
         replace_frontmatter(text, mutated.to_frontmatter_dict(), source=str(path)),

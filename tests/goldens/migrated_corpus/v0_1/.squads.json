@@ -34,7 +34,8 @@
       "updated_at": "2025-01-10T09:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "FEAT-2"
     },
     "3": {
@@ -70,7 +71,8 @@
       "updated_at": "2025-01-10T09:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "TASK-3"
     },
     "4": {
@@ -93,7 +95,8 @@
       "updated_at": "2025-01-10T09:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "BUG-4"
     },
     "5": {
@@ -116,7 +119,8 @@
       "updated_at": "2025-01-10T09:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "ADR-5"
     },
     "1": {
@@ -139,9 +143,10 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "dev-agent"
+      "attributes": {
+        "name_chosen": false
       },
+      "slug_in_file": true,
       "id": "ROLE-1"
     },
     "6": {
@@ -164,9 +169,8 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "sq-contract"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "SKILL-6"
     },
     "7": {
@@ -189,9 +193,8 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "sq-milestone"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "SKILL-7"
     }
   }

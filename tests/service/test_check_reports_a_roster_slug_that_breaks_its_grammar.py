@@ -9,7 +9,6 @@ import pytest
 
 from squads._errors import SquadsError
 from squads._index._resolver import item_file
-from squads._models._extras import ExtraKey as X
 from squads._services import _base
 
 pytestmark = pytest.mark.anyio
@@ -23,21 +22,17 @@ def unchecked_creation(monkeypatch):
 
 
 async def _entry(svc, kind: str, slug: str, name: str = "Some Name"):
-    return (
-        await svc.create(
-            kind, name, slug=slug, author="manager", extra={X.SLUG: slug, X.FULL_NAME: name}
-        )
-    ).item
+    return (await svc.create(kind, name, slug=slug, author="manager")).item
 
 
 async def _hand_edited(svc, item, slug: str, *, keep_stored_slug: bool = True):
     """Edit an entry's file the way a merge or an older release leaves it, then rebuild the index
-    from the files; with ``keep_stored_slug`` false the entry has no ``extra.slug``."""
+    from the files; with ``keep_stored_slug`` false the entry stores no ``slug``."""
     path = item_file(svc.paths, item)
     text = path.read_text(encoding="utf-8")
     text = re.sub(rf"^(\s*)slug: {re.escape(item.slug)}$", rf"\1slug: {slug}", text, flags=re.M)
     if not keep_stored_slug:
-        text = re.sub(r"^  slug: .*\n", "", text, count=1, flags=re.M)
+        text = re.sub(r"^slug: .*\n", "", text, count=1, flags=re.M)
     path.write_text(text, encoding="utf-8")
     path.rename(path.with_name(path.name.replace(f"-{item.slug}.md", f"-{slug}.md")))
     await svc.repair()
@@ -152,7 +147,7 @@ async def test_an_entry_an_older_release_wrote_without_a_stored_slug_is_checked_
     first = await svc.add_operator("Ann Lee")
     legacy = await svc.add_operator("Ann Two", slug="op-ann2")
     legacy = await _hand_edited(svc, legacy, "op-ann", keep_stored_slug=False)
-    assert "slug" not in legacy.extra
+    assert not legacy.slug_in_file
 
     reports = await _reports(svc)
 
@@ -257,8 +252,6 @@ async def test_an_operator_an_older_release_wrote_without_a_stored_slug_is_a_par
 ) -> None:
     legacy = await svc.add_operator("Ann Two", slug="op-ann2")
     legacy = await _hand_edited(svc, legacy, "op-ann", keep_stored_slug=False)
-    async with svc.store.transaction() as db:
-        db.get(legacy.id).extra.pop(X.FULL_NAME, None)
 
     task = (await svc.create("task", "T", author="manager", assignee="op-ann")).item
 

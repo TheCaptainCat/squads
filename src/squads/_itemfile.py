@@ -27,90 +27,45 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from squads import _aio
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
+from squads._models import _attributes as attrs
 from squads._models._item import INVENTED_WHEN_ABSENT, Item
 from squads._roles._catalog import RoleDef
 from squads._sections import join_frontmatter, replace_frontmatter, split_frontmatter
 from squads._workflow._models import ROSTER_ROLE
 
 #: The durability model's permitted skew, as a property of the *field* rather than of whichever
-#: writer happens to persist it: the ``extra`` keys a role item's own catalog merge writes
-#: (``RoleDef.to_extra()``'s key set, via :meth:`RoleDef.extra_keys`).
-#: Derived from ``RoleDef.extra_keys()`` (not a hand-duplicated list of key names) so a field
-#: later added to the catalog is exempt automatically, the same day it starts being written
-#: this way -- never a second list to remember to update.
+#: writer happens to persist it: the attribute keys a role item's own catalog merge writes
+#: (:meth:`RoleDef.attribute_keys`). Derived from the role tables so a field later added to
+#: them is exempt automatically.
 #:
-#: **This set is small.** A role's definition is not mirrored
-#: into its ``extra`` at all -- title, mission, responsibilities, agreements, colour and spawn
-#: authority resolve from the catalog on every read -- so what is left to forgive is the
-#: residue that merge still writes. Narrowing is the safe direction for an exemption: a key
-#: that leaves it is compared like any other field again, which can only produce a (spurious,
-#: repair-clearable) refusal, never a masked skew.
-#:
-#: The case it covers is a *legacy* one. ``_refresh_catalog_extra`` mirrors its merge into
-#: the index inside the transaction that writes the frontmatter, because those values carry a
-#: project role override's title onto the item and every consumer of a role title reads the
-#: index. The exemption is kept deliberately, for a squad last synced by a release that shipped
-#: without that mirror: its index already lags on these keys, and comparing them would refuse
-#: the very sync that would otherwise converge them.
-#:
-#: This is the *whole* permitted set -- which of it actually applies to a given item is a
-#: further, per-item question (see :func:`_exempt_extra_keys`): these are ``extra`` key
-#: *names*, and the same name can legitimately belong to a different item type/role shape
-#: that ``_refresh_catalog_extra`` never touches (e.g. a skill item's own ``model``). A dev
-#: role's own ``model`` is *not* such a case -- ``_refresh_catalog_extra`` resolves a dev role
-#: too, against a base built from the item's own stored identity and never a regenerated one,
-#: so it is an ordinary, transaction-guarded field for a dev role exactly like for any other.
-#: See :func:`_exempt_extra_keys` for what that means for the per-item exemption below.
-PERMITTED_EXTRA_SKEW: frozenset[str] = frozenset(RoleDef.extra_keys())
+#: The set is small: a role's definition resolves from the catalog on every read, so what is
+#: left to forgive is the residue the merge still writes. The exemption is kept for a squad
+#: whose index already lags on these keys, where comparing them would refuse the very sync that
+#: converges them. Narrowing it is the safe direction: a key that leaves it is compared like
+#: any other field, which can only produce a repair-clearable refusal, never a masked skew.
+PERMITTED_ATTRIBUTE_SKEW: frozenset[str] = frozenset(RoleDef.attribute_keys())
 
 
-def _exempt_extra_keys(item: Item) -> frozenset[str]:
-    """The subset of :data:`PERMITTED_EXTRA_SKEW` that actually applies to *item* --
-    answering "what does a regen writer persist outside a transaction for *this* item",
-    not "what key names does the exemption know about in general".
+def _exempt_attribute_keys(item: Item) -> frozenset[str]:
+    """The subset of :data:`PERMITTED_ATTRIBUTE_SKEW` that applies to *item*.
 
-    - A dev role (``extra.is_dev`` truthy) gets none of it: no writer persists a dev role's
-      ``extra`` outside a transaction, so there is no permanent lag for an exemption to
-      tolerate. ``_refresh_catalog_extra`` *does* resolve a dev role too, against a base built
-      from the item's own stored identity rather than a regenerated one, but it writes markdown
-      first and mirrors into the index inside the same transaction, so it introduces no
-      permanent index lag and needs no exemption on that account either. A dev role's
-      ``model`` is therefore an ordinary, transaction-guarded field, and
-      must be compared like any other -- widening this would reopen the exact loss class the
-      exemption otherwise guards against: interrupt a ``set_extra`` write of a dev role's
-      ``model``, then edit it through any other seam, and the stale index-loaded value silently
-      overwrites the committed one.
-    - Any other role gets the whole permitted set. A role is identified here by
-      ``item.type == ROSTER_ROLE`` -- the item's own declared type, not a key inside its
-      ``extra`` -- rather than by asking whether its slug resolves in the *bundled* catalog.
-      ``_refresh_catalog_extra`` itself resolves through ``resolve_role``, which also merges a
-      project-override role defined under a brand-new slug; this module has no ``squad_dir``
-      to replicate that resolution, so it widens to "any non-dev role" instead of narrowing to
-      "any bundled-slug role". That is deliberately the safe direction: under-exempting
-      degrades to a real (if spurious) refusal -- annoying, but `sq repair` clears it and
-      nothing is lost; over-exempting a key nothing actually writes this way risks masking a
-      genuine skew on it instead. The corresponding gap: a role item whose slug resolves in
-      *neither* the bundled catalog nor an override (its backing definition vanished after the
-      role was activated) is, by this same widening, still exempted even though
-      ``_refresh_catalog_extra`` does not touch it -- a real skew on such an orphaned
-      role's catalog fields would go undetected. That's narrower than the false refusal this
-      widening fixes (which hit *every* override-defined role), and the same under/over
-      tradeoff resolves it the same way. Keying off the type rather than an ``extra`` key
-      such as ``extra.mission`` is what lets this discriminator outlive the mirror: the
-      type is never a mirrored field and is never at risk of going stale or absent.
-    - Anything else (not a role item) gets none of it -- a coincidental key-name collision
-      with another item's own ``extra`` (e.g. a skill item's own ``model``) is never this
-      exemption's business.
+    - A developer role gets none of it: no writer persists a developer's attributes outside a
+      transaction, so there is no permanent lag to tolerate, and its ``model`` is an operator
+      setting compared like any other field.
+    - Any other role gets the whole set. A role is identified by ``item.type == ROSTER_ROLE``,
+      not by whether its slug resolves in the bundled catalog: this module has no ``squad_dir``
+      to replicate that resolution, and under-exempting only yields a spurious, repair-clearable
+      refusal while over-exempting could mask a real skew.
+    - Anything else gets none of it.
     """
-    if item.extra.get(X.IS_DEV):
+    if attrs.is_dev(item):
         return frozenset()
     if item.type == ROSTER_ROLE:
-        return PERMITTED_EXTRA_SKEW
+        return PERMITTED_ATTRIBUTE_SKEW
     return frozenset()
 
 
@@ -134,26 +89,14 @@ def _label(path: Path | None) -> str | None:
     return str(path) if path is not None else None
 
 
-def _without_permitted_extra_skew(data: dict[str, Any], item: Item) -> dict[str, Any]:
-    """*data* (a ``to_frontmatter_dict()`` output) with *item*'s own :func:`_exempt_extra_keys`
-    removed from its nested ``extra`` mapping, if present — the mechanics behind
-    ``frontmatter_skew``'s unconditional exclusion. A no-op copy when ``extra`` doesn't carry
-    any exempt keys, so the overwhelmingly common case (a non-role item, or a role nothing
-    has ever resynced) never allocates anything extra."""
-    extra = data.get("extra")
-    if not isinstance(extra, dict):
+def _without_permitted_attribute_skew(data: dict[str, Any], item: Item) -> dict[str, Any]:
+    """*data* (a ``to_frontmatter_dict()`` output) without *item*'s own
+    :func:`_exempt_attribute_keys` — the mechanics behind ``frontmatter_skew``'s unconditional
+    exclusion. Returns *data* itself when none of the exempt keys is present."""
+    exempt = _exempt_attribute_keys(item)
+    if not (data.keys() & exempt):
         return data
-    extra_typed = cast("dict[str, Any]", extra)
-    exempt = _exempt_extra_keys(item)
-    if not (extra_typed.keys() & exempt):
-        return data
-    trimmed = {k: v for k, v in extra_typed.items() if k not in exempt}
-    out = dict(data)
-    if trimmed:
-        out["extra"] = trimmed
-    else:
-        out.pop("extra", None)
-    return out
+    return {k: v for k, v in data.items() if k not in exempt}
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,47 +105,20 @@ class SkewKey:
     disagree, classified so a refusal never asserts a cause the reader can
     disprove.
 
-    ``stale_encoding`` is true only when **both** hold: the *raw* on-disk value for this key
-    (before the load round trip) already equals what the index holds, **and** the round trip
-    produced the diverging value from that raw key alone. A fold that drew on a *second* raw
-    key — the pre-0.2 ``extra.ref_kinds`` map folded into ``refs`` is the one case today — is
-    information-adding even when the key's own raw value matches, because the map named a
-    kind the index never held; that stays ``stale_encoding=False`` and keeps today's
-    divergence wording, same as an ordinary hand-edit.
+    ``stale_encoding`` is true when the *raw* on-disk value for this key (before the load round
+    trip) already equals what the index holds, so the round trip alone produced the diverging
+    value.
     """
 
     name: str
     stale_encoding: bool
 
 
-def _drew_on_second_raw_key(key: str, disk_data: dict[str, Any]) -> bool:
-    """Whether *key*'s fold, on this on-disk frontmatter, consulted a raw key other than
-    itself to produce its round-tripped value.
-
-    Only ``refs`` has such a dependency today: :func:`~squads._models._item.fold_legacy_kinds`
-    merges a pre-0.2 ``extra.ref_kinds`` map into it (see :func:`~squads._models._item._read_refs`,
-    whose own ``legacy_map`` this mirrors exactly — a non-mapping or empty ``ref_kinds``
-    contributes nothing, same as there). A key with no such second-key dependency can never
-    return true here, which is the safe default: it only ever *widens* what counts as a real
-    divergence, never narrows it into a false stale-encoding claim.
-    """
-    if key != "refs":
-        return False
-    extra = disk_data.get("extra")
-    if not isinstance(extra, dict):
-        return False
-    legacy = cast("dict[str, Any]", extra).get("ref_kinds")
-    legacy_map = cast("dict[str, Any]", legacy) if isinstance(legacy, dict) else {}
-    return bool(legacy_map)
-
-
 def _classify_skew(key: str, disk_data: dict[str, Any], base_dict: dict[str, Any]) -> SkewKey:
     """*key*'s :class:`SkewKey` verdict — the stale-encoding-versus-divergence test applied
     at the one site that already holds both the raw on-disk frontmatter and the
     index-serialized *base_dict*."""
-    raw_equal = disk_data.get(key) == base_dict.get(key)
-    stale_encoding = raw_equal and not _drew_on_second_raw_key(key, disk_data)
-    return SkewKey(key, stale_encoding=stale_encoding)
+    return SkewKey(key, stale_encoding=disk_data.get(key) == base_dict.get(key))
 
 
 def stale_encoding_clause(fields: Iterable[str]) -> str:
@@ -217,59 +133,33 @@ def stale_encoding_clause(fields: Iterable[str]) -> str:
 def frontmatter_skew(text: str, base: Item, *, default_kind: str) -> list[SkewKey]:
     """The frontmatter keys on which *text*'s on-disk frontmatter diverges from what *base*
     — the item as loaded before the pending mutation's own delta — would itself serialize,
-    each classified as :class:`SkewKey` (a real divergence, or a stale index encoding — see
-    there for the test).
+    each classified as :class:`SkewKey` (a real divergence, or a stale index encoding).
 
     The disk side is put through the load round trip
-    (``Item.from_frontmatter(...).to_frontmatter_dict()``), which structurally collapses every
-    known load/parse-time correction (the legacy ``extra.severity`` location, the pre-0.2
-    ``extra.ref_kinds`` map — folded to canonical bare-or-spelled form against
-    *default_kind*, see :func:`~squads._models._item.fold_legacy_kinds` — a padded id
-    recomputed from prefix + sequence number, key order, and absent-versus-``None``) — so a
-    non-empty result means a real skew, not a by-design divergence. **The two sides are not
-    symmetric**: *base* is already a loaded, validated ``Item`` and is serialized directly
-    (``base.to_frontmatter_dict()``), never re-run through ``from_frontmatter`` — the index
-    side of this comparison never folds. That asymmetry is why *default_kind* must be
-    resolved and folded in **on the disk side**, at read time, rather than reconciled after
-    the fact: running the index side through the same fold does not converge it, since a
-    legacy ``extra.ref_kinds`` map is real information the index side never held. *base*'s own
-    ``path`` is passed to ``from_frontmatter`` deliberately: that field is a keyword argument
-    of the reconstruction, and the wrong one only risks a constructor error (an invalid
-    derived slug), never a spurious divergence, since ``path`` itself is not part of
+    (``Item.from_frontmatter(...).to_frontmatter_dict()``), which collapses every load-time
+    correction (a spelled-default ref folded to bare against *default_kind*, a padded id
+    recomputed from prefix and sequence number, key order, absent-versus-``None``), so a
+    non-empty result means a real skew. Unknown keys take part on both sides. *base* is
+    serialized directly and never re-run through ``from_frontmatter``, which is why
+    *default_kind* is folded in on the disk side. *base*'s ``path`` is passed to
+    ``from_frontmatter`` only because the reconstruction needs one; it is not part of
     ``to_frontmatter_dict()``'s output.
 
     In the normal case the two sides are identical — the last successful mutation wrote both
-    from one item — so an empty return is the expected result, not evidence the check is inert.
+    from one item — so an empty return is the expected result.
 
-    Whichever of :data:`PERMITTED_EXTRA_SKEW` actually applies to *base* (see
-    :func:`_exempt_extra_keys`) is excluded from every comparison unconditionally, for every
-    caller — a property of those particular ``extra`` keys *on this item*, not something a
-    writer opts into. They are the durability decision's named permitted skew: "re-derivable
-    regions of an item ``.md`` the committing transaction did not mirror into the index" (a
-    non-dev role's catalog-merged fields, on a squad a pre-mirror release last synced). Those
-    fields were written to the file WITHOUT ever going through ``store.transaction()``, so an
-    index loaded before that mirror landed never carries the current generation of that value
-    even in the fully healthy case — disk is *permanently* ahead of the index on those keys,
-    by design, not because of an interrupted write. Comparing them like an ordinary field
-    would false-refuse the very next mutation, through *any* seam, on such a squad — which is
-    exactly what a per-call opt-in a writer passed would leave: every other seam would compare
-    the field anyway. This is not
-    a load/parse-time correction the round trip can be taught — the two sides are reading
-    genuinely different sources of truth for these keys — so they are named here explicitly
-    rather than folded into the general round trip.
-
-    The exclusion is conditioned on *base* actually being the shape a regen writer touches
-    this way (any non-dev role, for the whole set) — never on the key names alone, which the
-    same ``extra`` bag can carry for an unrelated reason (a dev role's own,
-    transaction-guarded ``model``; a skill item's own ``model``).
+    Whichever of :data:`PERMITTED_ATTRIBUTE_SKEW` applies to *base* (see
+    :func:`_exempt_attribute_keys`) is excluded from every comparison for every caller: those
+    keys are written to the file by a role's catalog merge, so an index loaded before that
+    merge landed lags them even in the healthy case.
     """
     disk_data, _ = split_frontmatter(text, source=base.path)
     disk_dict = Item.from_frontmatter(
         disk_data, path=base.path, default_kind=default_kind
     ).to_frontmatter_dict()
     base_dict = base.to_frontmatter_dict()
-    disk_dict = _without_permitted_extra_skew(disk_dict, base)
-    base_dict = _without_permitted_extra_skew(base_dict, base)
+    disk_dict = _without_permitted_attribute_skew(disk_dict, base)
+    base_dict = _without_permitted_attribute_skew(base_dict, base)
     keys = (disk_dict.keys() | base_dict.keys()) - _invented_timestamps(disk_data)
     diverging = sorted(k for k in keys if disk_dict.get(k) != base_dict.get(k))
     return [_classify_skew(k, disk_data, base_dict) for k in diverging]
@@ -314,7 +204,7 @@ def ensure_no_skew(text: str, base: Item, *, default_kind: str) -> None:
     Every single-mutation write seam calls this before every rewrite; the two roster-regen
     writers that persist an ADR-named never-mirrored-into-the-index value get the same
     exemption everyone else does, since :func:`frontmatter_skew` excludes
-    :data:`PERMITTED_EXTRA_SKEW` unconditionally rather than by caller opt-in — that permitted,
+    `PERMITTED_ATTRIBUTE_SKEW` unconditionally rather than by caller opt-in — that permitted,
     permanent skew is never mistaken for a real one at *any* seam. Batch paths call
     :func:`frontmatter_skew` directly instead, since their response is not a plain refusal.
 

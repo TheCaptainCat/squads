@@ -230,7 +230,6 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
     :func:`throwaway_skill_item` for why a stand-in is still test-legitimate.
     """
     from squads import _interactions as interactions
-    from squads._models._extras import ExtraKey as X
     from squads._views import render_source_view, resolve_source
     from squads._workflow._models import ROSTER_SKILL
 
@@ -241,11 +240,7 @@ async def resolved_skill_definition(svc: Any, slug: str) -> str:
     view_name = interactions.SYSTEM_SKILL_VIEW_NAMES.get(slug, interactions.ITEM_SKILL_VIEW_NAME)
     db = await svc.store.load()
     item = next(
-        (
-            it
-            for it in db.items.values()
-            if it.type == ROSTER_SKILL and it.extra.get(X.SLUG, it.slug) == slug
-        ),
+        (it for it in db.items.values() if it.type == ROSTER_SKILL and it.slug == slug),
         None,
     ) or throwaway_skill_item(slug, svc.spec)
     view = svc.spec.views[view_name]
@@ -299,3 +294,35 @@ def bundled_migration_context(paths: SquadPaths) -> MigrationContext:
     from squads._workflow import bundled_spec
 
     return MigrationContext(paths=paths, spec=bundled_spec(), playbook=get_playbook_spec())
+
+
+def pinned_attributes(roster_type: str) -> dict[str, Any]:
+    """The attribute declarations a hand-built spec's *roster_type* must carry for the loader to
+    accept it: the pinned roster attributes, each with its pinned kind."""
+    from squads._models._attributes import AttributeSpec
+    from squads._workflow._models import PINNED_ROSTER_ATTRIBUTES
+
+    return {
+        name: AttributeSpec(kind=kind)  # pyright: ignore[reportArgumentType]
+        for name, kind in PINNED_ROSTER_ATTRIBUTES.get(roster_type, {}).items()
+    }
+
+
+async def plant_attribute(svc: Any, item_id: str, key: str, value: Any) -> None:
+    """Write attribute *key* straight onto *item_id*'s file and index entry (``None`` removes
+    it), bypassing the verbs: for the stored states no command produces, such as two roles
+    carrying the default designation."""
+    from squads._index._resolver import item_file
+    from squads._itemfile import update_frontmatter
+
+    async with svc.store.transaction() as db:
+        item = db.get(item_id)
+        base = item.model_copy(deep=True)
+        if value is None:
+            item.attributes.pop(key, None)
+        else:
+            item.attributes[key] = value
+        await update_frontmatter(
+            item_file(svc.paths, item), item, base, default_kind=svc.spec.default_ref_kind()
+        )
+        db.add(item)
