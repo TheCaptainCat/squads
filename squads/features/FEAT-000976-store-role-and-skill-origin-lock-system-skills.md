@@ -18,7 +18,7 @@ subentities:
   title: As an operator, I want system skills refused by every write verb
   status: Todo
 created_at: '2026-09-29T14:19:13Z'
-updated_at: '2026-10-12T06:32:12Z'
+updated_at: '2026-10-16T13:10:24Z'
 ---
 <!-- sq:body -->
 Whether a role or skill is system (bundled or spec-generated) or project-authored is recorded on the entity, not recomputed per surface. Today the surfaces disagree, read from source and not driven:
@@ -32,7 +32,7 @@ Whether a role or skill is system (bundled or spec-generated) or project-authore
 - One stored `origin` field in the entity's frontmatter (frontmatter is the source of truth), with a small closed vocabulary: `system` and `project`. Every surface reads that field and shows it under the single name `origin`: list, show, `--json` and `role catalog`. In `role catalog` the value `bundled` becomes `system`.
 - `sq repair` rebuilds the index from frontmatter and must round-trip the field.
 - Creation stamps it: `sq init`, `sync` and role activation of a bundled or spec-generated role or skill stamp `system`; `sq skill add` and project-declared roles stamp `project`.
-- Migration for existing squads: a schema migration stamps every existing role and skill missing the field. A role or skill that the bundled catalog or the spec's generated skills name is stamped `system`; every other one is stamped `project`. A role item carrying `extra.tech` (the generated developer template) is stamped `system`; a declared developer, a role file with the `dev` capability, is stamped `project`. The migration is idempotent and reports a count.
+- Migration for existing squads: a schema migration stamps every existing role and skill missing the field. A role or skill that the bundled catalog or the spec's generated skills name is stamped `system`; every other one is stamped `project`. A role item carrying `tech` (the generated developer template) is stamped `system`; a declared developer, a role file with the `dev` capability, is stamped `project`. The migration is idempotent and reports a count.
 - An overridden bundled role keeps origin `system`: origin records where the entity came from. The `role catalog` docstring claim that it tells apart a project-overridden bundled role is dropped.
 - Every content-changing write verb on a `system` skill or role is refused with an error naming the real authoring surface (the playbook for skills, the role override for roles). `comment` and `comments` are not content-changing and stay allowed on system skills and roles. The refusal reuses the classification behind the existing body refusal (`_reject_unwritable_body`), which already refuses replace and append on spec-generated roles and skills, and `--force` does not lift it. No second membership test is introduced.
 - Refusal and label are two readings of the same thing and agree on every bundled or spec-generated skill and role. They diverge in one documented case only: a system skill whose view the project has dropped from `[selected]` leaves the refusal classification and is writable again, exactly as its body is today, while its origin stays `system`. The refusal follows the classification, never the stored origin, so that escape keeps working. The existing body refusal on project-declared roles (their definition lives in the role override file) is unchanged.
@@ -75,7 +75,7 @@ Acceptance:
 ### US2 — As an operator, I want existing squads stamped by a migration
 
 <!-- sq:story:US2:body -->
-Acceptance: a migration stamps every existing role and skill lacking origin: named by the bundled catalog or spec-generated skills means system, everything else project; a role item carrying extra.tech is system, and a declared developer (a role file with the dev capability) is project; idempotent; reports counts; sq check clean afterwards; tests cover a squad with a project-authored skill, an overridden bundled role, a generated developer role and a declared developer; it is a contribution to the release's existing 0.15 to 0.16 step and adds no schema bump, so a squad migrates in one sq migrate up together with the other contributions.
+Acceptance: a migration stamps every existing role and skill lacking origin: named by the bundled catalog or spec-generated skills means system, everything else project; a role item carrying the `tech` attribute is system, and a declared developer (a role file with the dev capability) is project; idempotent; reports counts; sq check clean afterwards; tests cover a squad with a project-authored skill, an overridden bundled role, a generated developer role and a declared developer; it is a contribution to the release's existing 0.15 to 0.16 step and adds no schema bump, so a squad migrates in one sq migrate up together with the other contributions.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion

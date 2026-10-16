@@ -37,7 +37,7 @@ subentities:
   story: US5
 - local_id: ST6
   title: 'blocked_has_blocker: flag a blocked item with no dependency edge'
-  status: Todo
+  status: InProgress
   story: US6
 - local_id: ST7
   title: 'settled_requires_discussion: flag a settled item with no comment'
@@ -53,14 +53,14 @@ subentities:
   story: US9
 - local_id: ST10
   title: Let a status role declare that it means blocked
-  status: Todo
+  status: Done
   story: US11
 - local_id: ST11
   title: Run only the checks that can refuse at the create/update gate
   status: Done
   story: US8
 created_at: '2026-10-12T05:46:24Z'
-updated_at: '2026-10-15T19:49:26Z'
+updated_at: '2026-10-16T13:11:31Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1457,6 +1457,11 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-16T13:11:23Z] Elias Python:
+  - Landed in 4958500d on the worktree branch. Flag is a strict boolean (RoleSpec.blocked, StrictBool), bundled blocked role declares it, WorkflowSpec.blocked_statuses accessor, sixth catalog key and Blocked column, manifest and store regenerated, workflow_roles golden updated.
+  - Falsification: plain bool turned 7 tests red (string and integer rows, model, lint); emitting the key only where true turned 9 red (six-key row, text column, override rows, roles golden); a stale manifest turned scripts/gen_template_manifest.py --check red plus 6 freshness tests; reading the flag in sq blocked turned 1 red. All restored and green.
+  - Driven, not changed: live = "yes" and live = 1 are accepted today by the lenient bool; live = [1] is refused.
+  - Reported: tests/cli/test_this_repositorys_workflow_override_loads_clean_cli.py now fails 2 tests (override stamped 0.15.0 reads drifted); squads/.overrides/workflow.toml is not edited here, manager to decide. clients/vscode canary not run (no node_modules installed); it asserts the active row with arrayContaining of the five keys then an exact object, so the client fixture needs the sixth key.
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 
