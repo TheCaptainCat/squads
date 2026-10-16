@@ -9,7 +9,7 @@
 # enums); "does type/kind X carry field Y" is a fields_for(X) lookup.
 #
 # [roles.*] is the role catalog — the sole explicit status axis. Every status below names one
-# role via `role`; the role object carries `settled`/`hidden`/`color`/`live` (terminal/
+# role via `role`; the role object carries `settled`/`hidden`/`color`/`live`/`blocked` (terminal/
 # is_open/default-visibility/materialisation are all derived from the referenced role, never
 # stored per-status). `badge` stays its own independent per-status field.
 
@@ -143,7 +143,9 @@ WontFix = ["Open"]
 # `settled` is the old `terminal`; `hidden` is default-visibility; `color` is a semantic
 # colour intent from the closed palette (positive/danger/warning/muted/neutral/info),
 # mapped to a concrete colour per client (not here). `live` (defaults false) is the
-# materialisation axis — the one bundled live role is `active`. `warning` is unused by
+# materialisation axis — the one bundled live role is `active`. `blocked` (defaults false)
+# marks statuses that wait on something else — the one bundled flagged role is `blocked`.
+# `warning` is unused by
 # the bundled defaults — reserved for adopters.
 # ---------------------------------------------------------------------------
 
@@ -167,6 +169,7 @@ color = "danger"
 settled = false
 hidden = false
 color = "danger"
+blocked = true
 
 [roles.in_force]
 settled = true

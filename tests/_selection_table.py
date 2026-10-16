@@ -473,6 +473,84 @@ ASSIGNEE_PRESENT = Member(
 )
 
 
+NO_BLOCKED_STATUS = "needs a status of a role declaring blocked = true"
+#: Rows whose lifecycle holds no status of a blocked role, in the bundled spec.
+_NO_BLOCKED_ROWS = frozenset(
+    {
+        "review",
+        "decision",
+        "contract",
+        "milestone",
+        "guide",
+        "declared-records",
+        "records-hosting-a-kind",
+    }
+)
+
+
+def _with_work_lifecycle(row: TypeRow) -> TypeRow:
+    """*row* whose type runs the ``work`` lifecycle, which holds a status of a blocked role."""
+    kept = "".join(
+        line for line in row.declaration.splitlines(keepends=True) if "lifecycle" not in line
+    )
+    return replace(row, id=f"{row.id}+blocked", declaration=kept + 'lifecycle = "work"\n')
+
+
+_BLOCKED_EXTRA_ROWS: tuple[TypeRow, ...] = tuple(
+    _with_work_lifecycle(r) for r in ALL_ROWS if r.id in _NO_BLOCKED_ROWS
+)
+
+
+def dependency_kinds_text(spec: WorkflowSpec) -> str:
+    """The dependency kinds a ``blocked_has_blocker`` message lists, as it writes them."""
+    return ", ".join(sorted(spec.dependency_ref_kinds()))
+
+
+async def _plant_blocked_without_and_with_an_edge(svc: service.Service, row: TypeRow) -> Planted:
+    (status,) = (s for s in svc.spec.machine_for(row.type).states if svc.spec.role_for(s).blocked)
+    target = (await create_item(svc, row.type, "blocker")).item
+    offender = (await create_item(svc, row.type, "stranded")).item
+    await svc.update(offender.id, status=status, force=True)
+    clean = (await create_item(svc, row.type, "waiting", refs=[f"{target.id}:depends-on"])).item
+    await svc.update(clean.id, status=status, force=True)
+    return Planted(
+        offender.id,
+        clean.id,
+        f"status is {status} but no dependency edge is recorded "
+        f"(kinds: {dependency_kinds_text(svc.spec)}) "
+        "— record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)",
+    )
+
+
+BLOCKED_HAS_BLOCKER = Member(
+    name="blocked_has_blocker",
+    fragment="no dependency edge is recorded",
+    can_refuse=True,
+    plain=("blocked_has_blocker",),
+    shapes={
+        "unselected": Shape((), None),
+        "plain": Shape(("blocked_has_blocker",), "warn"),
+        "warn-suffix": Shape(("blocked_has_blocker@warn",), "warn"),
+        "error-suffix": Shape(("blocked_has_blocker@error",), "error"),
+    },
+    cells={
+        **{
+            r.id: (
+                ROSTER_REFUSAL
+                if r.type in ROSTER_TYPES
+                else NO_BLOCKED_STATUS
+                if r.id in _NO_BLOCKED_ROWS
+                else None
+            )
+            for r in ALL_ROWS
+        },
+        **{r.id: None for r in _BLOCKED_EXTRA_ROWS},
+    },
+    plant=_plant_blocked_without_and_with_an_edge,
+    extra_rows=_BLOCKED_EXTRA_ROWS,
+)
+
+
 async def _plant_settled_without_and_with_a_comment(svc: service.Service, row: TypeRow) -> Planted:
     status = svc.spec.first_settled_status(row.type)
     assert status is not None
@@ -537,6 +615,7 @@ MEMBERS: dict[str, Member] = {
         BODY_WRITTEN_MEMBER,
         DESCRIPTION_PRESENT,
         ASSIGNEE_PRESENT,
+        BLOCKED_HAS_BLOCKER,
         SETTLED_REQUIRES_DISCUSSION,
         EXTERNAL_ID_NOT_IN_TITLE,
     )

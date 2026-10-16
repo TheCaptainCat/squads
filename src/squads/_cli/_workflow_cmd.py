@@ -598,19 +598,21 @@ def workflow_statuses(
 # ─── roles ───────────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow roles --json`` catalog.
-ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
+ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str, str] = (
     "role",
     "settled",
     "hidden",
     "color",
     "live",
+    "blocked",
 )
 
 
 def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen role-catalog rows, ascending role name — a client joins a status's ``role``
     (from ``sq workflow statuses --json``) to this catalog to resolve ``settled``/``hidden``/
-    ``color``/``live`` instead of hardcoding any role name or deriving it from category."""
+    ``color``/``live``/``blocked`` instead of hardcoding any role name or deriving it from
+    category."""
     return [
         {
             "role": name,
@@ -618,6 +620,7 @@ def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "hidden": r.hidden,
             "color": r.color,
             "live": r.live,
+            "blocked": r.blocked,
         }
         for name, r in sorted(spec.roles.items())
     ]
@@ -631,13 +634,14 @@ def workflow_roles(
     """List every declared role in the active workflow spec.
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared role, ascending role name: ``{role, settled, hidden, color, live}``.
+    declared role, ascending role name: ``{role, settled, hidden, color, live, blocked}``.
     ``settled`` is the old ``terminal`` (a resting/end state); ``hidden`` is default-visibility;
     ``color`` is a semantic colour intent from the closed palette (``positive``/``danger``/
     ``warning``/``muted``/``neutral``/``info``) — each client maps it to a concrete colour,
     with a neutral fallback for an intent it doesn't recognise. ``live`` (defaults false) is
     the materialisation axis: an item whose status resolves to a live role is on offer to
-    be spawned/loaded/cited/assigned. A status references one role by name (``sq workflow
+    be spawned/loaded/cited/assigned. ``blocked`` (defaults false) marks a role whose statuses
+    mean the item is waiting on something else. A status references one role by name (``sq workflow
     statuses --json``'s ``role`` field); join the two to resolve behaviour.
     """
     from squads._cli._common import get_active_spec, print_json_clean
@@ -650,7 +654,7 @@ def workflow_roles(
         return
 
     table = Table(box=None, pad_edge=False)
-    for col in ("Role", "Settled", "Hidden", "Color", "Live"):
+    for col in ("Role", "Settled", "Hidden", "Color", "Live", "Blocked"):
         table.add_column(col)
     for row in rows:
         table.add_row(
@@ -659,6 +663,7 @@ def workflow_roles(
             "yes" if row["hidden"] else "",
             e(str(row["color"])),
             "yes" if row["live"] else "",
+            "yes" if row["blocked"] else "",
         )
     console.print(table)
 
