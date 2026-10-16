@@ -227,8 +227,8 @@ class SquadGlobalContext:
     on_disk: OnDiskMap
     spec: WorkflowSpec
     paths: SquadPaths
+    now: datetime
     playbook: PlaybookSpec | None = None
-    now: datetime | None = None
 
 
 class Validator(Protocol):
@@ -1543,6 +1543,11 @@ def active_items(index: SquadsDB, spec: WorkflowSpec) -> list[Item]:
     )
 
 
+def _plural(count: int, noun: str) -> str:
+    """*noun*, pluralised with ``s`` unless *count* is one."""
+    return noun if count == 1 else f"{noun}s"
+
+
 def _ids(items: list[Item], limit: int = 5) -> str:
     """The ids of *items* for a message: the first *limit*, then a count of the rest."""
     shown = ", ".join(it.id for it in items[:limit])
@@ -1666,19 +1671,40 @@ def _cycles(edges: dict[int, list[int]]) -> list[list[int]]:
     return _Tarjan(edges).run()
 
 
+def _cycle_path(edges: dict[int, list[int]], component: list[int]) -> list[int]:
+    """The shortest way back to the component's least member along its dependency edges,
+    starting and ending on that member."""
+    start = component[0]
+    members = set(component)
+    came_from: dict[int, int] = {}
+    queue = [start]
+    for node in queue:
+        for nxt in edges.get(node, []):
+            if nxt == start:
+                path = [node]
+                while path[-1] != start:
+                    path.append(came_from[path[-1]])
+                return [*reversed(path), start]
+            if nxt in members and nxt not in came_from and nxt != start:
+                came_from[nxt] = node
+                queue.append(nxt)
+    return [start, start]
+
+
 def _dependency_acyclic(ctx: SquadGlobalContext) -> list[CheckIssue]:
-    """One finding per cycle among dependency edges, naming the items on it."""
+    """One finding per strongly connected group of dependency edges, settled or not, giving a
+    path around it (each item depends on the next) and any further items in the group."""
     level = squad_global_level(ctx.spec, "dependency_acyclic")
-    return [
-        CheckIssue(
-            level,
-            "",
-            "dependency cycle among "
-            + ", ".join(ctx.index.items[seq].id for seq in component)
-            + " — each waits on another, so none can start",
-        )
-        for component in _cycles(_dependency_edges(ctx.index, ctx.spec))
-    ]
+    edges = _dependency_edges(ctx.index, ctx.spec)
+    issues: list[CheckIssue] = []
+    for component in _cycles(edges):
+        path = _cycle_path(edges, component)
+        text = "dependency cycle: " + " -> ".join(ctx.index.items[seq].id for seq in path)
+        rest = [seq for seq in component if seq not in path]
+        if rest:
+            text += " (also involving " + ", ".join(ctx.index.items[s].id for s in rest) + ")"
+        issues.append(CheckIssue(level, "", text))
+    return issues
 
 
 def _wip_limit(ctx: SquadGlobalContext) -> list[CheckIssue]:
@@ -1695,7 +1721,8 @@ def _wip_limit(ctx: SquadGlobalContext) -> list[CheckIssue]:
         CheckIssue(
             level,
             "",
-            f"{slug} holds {len(items)} active items (limit {limit}): {_ids(items)}",
+            f"{slug} holds {len(items)} active {_plural(len(items), 'item')} "
+            f"(limit {limit}): {_ids(items)}",
         )
         for slug, items in sorted(held.items())
         if len(items) > limit
@@ -1714,7 +1741,9 @@ def _unassigned_active(ctx: SquadGlobalContext) -> list[CheckIssue]:
         CheckIssue(
             squad_global_level(ctx.spec, "unassigned_active"),
             "",
-            f"{len(unassigned)} active items have no assignee (limit {limit}): {_ids(unassigned)}",
+            f"{len(unassigned)} active {_plural(len(unassigned), 'item')} "
+            f"{'has' if len(unassigned) == 1 else 'have'} no assignee (limit {limit}): "
+            f"{_ids(unassigned)}",
         )
     ]
 
@@ -1723,7 +1752,7 @@ def _stale_active(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """One finding per active item last updated more than the selected number of days before the
     run's clock instant."""
     days = _squad_global_param(ctx, "stale_active")
-    if days is None or ctx.now is None:
+    if days is None:
         return []
     cutoff = ctx.now - timedelta(days=days)
     level = squad_global_level(ctx.spec, "stale_active")
@@ -1732,7 +1761,7 @@ def _stale_active(ctx: SquadGlobalContext) -> list[CheckIssue]:
             level,
             it.id,
             f"{it.id} is {it.status} and untouched since {clock.iso(it.updated_at)} "
-            f"(more than {days} days)",
+            f"(more than {days} {_plural(days, 'day')})",
         )
         for it in active_items(ctx.index, ctx.spec)
         if it.updated_at < cutoff

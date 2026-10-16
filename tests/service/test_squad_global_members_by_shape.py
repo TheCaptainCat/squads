@@ -208,25 +208,25 @@ class Graph:
     id: str
     count: int
     edges: tuple[tuple[int, int, str], ...]
-    cycles: tuple[tuple[int, ...], ...]
+    paths: tuple[tuple[int, ...], ...]  # the expected path around each cycle
 
 
 GRAPHS = [
-    Graph("two-cycle", 2, ((1, 2, "depends-on"), (2, 1, "depends-on")), ((1, 2),)),
+    Graph("two-cycle", 2, ((1, 2, "depends-on"), (2, 1, "depends-on")), ((1, 2, 1),)),
     Graph(
         "three-cycle",
         3,
         ((1, 2, "depends-on"), (2, 3, "depends-on"), (3, 1, "depends-on")),
-        ((1, 2, 3),),
+        ((1, 2, 3, 1),),
     ),
     Graph(
         "three-cycle-in-blocks",
         3,
         ((1, 2, "blocks"), (2, 3, "blocks"), (3, 1, "blocks")),
-        ((1, 2, 3),),
+        ((1, 3, 2, 1),),
     ),
-    Graph("self-block", 1, ((1, 1, "blocks"),), ((1,),)),
-    Graph("self-depends-on", 1, ((1, 1, "depends-on"),), ((1,),)),
+    Graph("self-block", 1, ((1, 1, "blocks"),), ((1, 1),)),
+    Graph("self-depends-on", 1, ((1, 1, "depends-on"),), ((1, 1),)),
     Graph(
         "diamond",
         4,
@@ -234,7 +234,7 @@ GRAPHS = [
         (),
     ),
     # 1 depends-on 2 and 1 blocks 2 (so 2 depends on 1): a cycle only if orientation is honoured.
-    Graph("mixed-blocks-and-depends-on", 2, ((1, 2, "depends-on"), (1, 2, "blocks")), ((1, 2),)),
+    Graph("mixed-blocks-and-depends-on", 2, ((1, 2, "depends-on"), (1, 2, "blocks")), ((1, 2, 1),)),
     # 1 blocks 2 and 2 blocks 3: 2 depends on 1, 3 depends on 2 -- a chain, never a cycle.
     Graph("blocks-chain", 3, ((1, 2, "blocks"), (2, 3, "blocks")), ()),
     Graph("related-cycle", 2, ((1, 2, "related"), (2, 1, "related")), ()),
@@ -244,13 +244,13 @@ GRAPHS = [
         "two-disjoint-cycles",
         4,
         ((1, 2, "depends-on"), (2, 1, "depends-on"), (3, 4, "blocks"), (4, 3, "blocks")),
-        ((1, 2), (3, 4)),
+        ((1, 2, 1), (3, 4, 3)),
     ),
     Graph(
         "cycle-with-a-tail",
         4,
         ((1, 2, "depends-on"), (2, 3, "depends-on"), (3, 2, "depends-on"), (3, 4, "depends-on")),
-        ((2, 3),),
+        ((2, 3, 2),),
     ),
 ]
 
@@ -262,10 +262,7 @@ async def test_graph_shape_by_cycles(project, row: Graph) -> None:
     )
 
     assert [i.message for i in issues] == [
-        "dependency cycle among "
-        + ", ".join(_shown(n) for n in cycle)
-        + " — each waits on another, so none can start"
-        for cycle in row.cycles
+        "dependency cycle: " + " -> ".join(_shown(n) for n in path) for path in row.paths
     ]
     assert all(i.item == "" and i.level == "warn" for i in issues)
 
@@ -277,7 +274,49 @@ async def test_a_two_thousand_node_chain_closing_on_itself_is_one_cycle(project)
     issues = _run(project, "dependency_acyclic", "dependency_acyclic", _chain(edges, size))
 
     assert len(issues) == 1
-    assert issues[0].message.count("TASK-") == size
+    assert issues[0].message.count("TASK-") == size + 1
+
+
+async def test_a_group_larger_than_its_path_names_the_other_items(project) -> None:
+    edges = [(1, 2, "depends-on"), (2, 1, "depends-on"), (2, 3, "depends-on"), (3, 2, "depends-on")]
+
+    (issue,) = _run(project, "dependency_acyclic", "dependency_acyclic", _chain(edges, 3))
+
+    assert issue.message == (
+        f"dependency cycle: {_shown(1)} -> {_shown(2)} -> {_shown(1)} (also involving {_shown(3)})"
+    )
+
+
+async def test_a_cycle_among_settled_items_is_reported_like_any_other(project) -> None:
+    items = [
+        _item(1, status="Done", refs=(f"{_id(2)}:depends-on",)),
+        _item(2, status="Cancelled", refs=(f"{_id(1)}:depends-on",)),
+    ]
+
+    (issue,) = _run(project, "dependency_acyclic", "dependency_acyclic", items)
+
+    assert issue.message == f"dependency cycle: {_shown(1)} -> {_shown(2)} -> {_shown(1)}"
+
+
+async def test_a_message_counts_in_the_singular_when_there_is_one(project) -> None:
+    (wip,) = _run(
+        project, "wip_limit", "wip_limit:1", [_item(1, assignee="a"), _item(2, assignee="a")]
+    )
+    (one,) = _run(project, "unassigned_active", "unassigned_active:0", [_item(1)])
+    (stale,) = _run(
+        project, "stale_active", "stale_active:1", [_item(1, updated=_NOW - timedelta(days=9))]
+    )
+    (kid,) = _run(
+        project,
+        "children_settled_with_parent",
+        "children_settled_with_parent",
+        [_item(1, "feature", "Done"), _item(2, parent=_id(1, "feature"), status="Draft")],
+    )
+
+    assert "holds 2 active items" in wip.message
+    assert "1 active item has no assignee" in one.message
+    assert "more than 1 day)" in stale.message
+    assert "1 open child:" in kid.message
 
 
 async def test_an_edge_to_an_item_that_does_not_exist_is_not_a_cycle(project) -> None:
@@ -394,7 +433,8 @@ async def test_unassigned_active_boundary_is_more_than_the_limit(
     assert (len(issues) == 1) is flagged
     if flagged:
         assert issues[0].item == ""
-        assert f"{unassigned} active items have no assignee (limit {limit})" in issues[0].message
+        noun = "item has" if unassigned == 1 else "items have"
+        assert f"{unassigned} active {noun} no assignee (limit {limit})" in issues[0].message
         assert "alice" not in issues[0].message
 
 
@@ -428,16 +468,6 @@ async def test_stale_active_reads_the_instant_it_is_handed_and_calls_no_clock(
     assert (
         _run(project, "stale_active", "stale_active:5", [item], now=_NOW - timedelta(days=9)) == []
     )
-
-
-async def test_a_member_run_without_an_instant_reports_nothing(project) -> None:
-    item = _item(1, updated=_NOW - timedelta(days=400))
-    spec = bundled_spec().model_copy(update={"squad": SquadSpec(validators=["stale_active:5"])})
-    db = SquadsDB(counter=1)
-    db.items[1] = item
-    ctx = SquadGlobalContext(index=db, on_disk={}, spec=spec, paths=project)
-
-    assert SQUAD_GLOBAL_CATALOG["stale_active"](ctx) == []
 
 
 # --------------------------------------------------------------------- level and selection reading

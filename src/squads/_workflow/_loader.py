@@ -119,10 +119,6 @@ WORKFLOW_TOP_LEVEL_SECTIONS: frozenset[str] = frozenset(
     }
 )
 
-#: The sections ``[selected]`` may shrink: every top-level section except ``squad``, whose one
-#: key is a list rather than a table of entries.
-SELECTABLE_SECTIONS: frozenset[str] = WORKFLOW_TOP_LEVEL_SECTIONS - {"squad"}
-
 #: Generic fix hint attached to every roster-lock finding in collect mode — the lock has exactly
 #: one remedy shape (revert the key/category change), unlike a structural violation where the
 #: fix varies per clause.
@@ -308,7 +304,7 @@ def load_workflow_spec(squad_dir: Path | None = None) -> WorkflowSpec:
     result = merge_override(
         _bundled_raw(),
         raw_override,
-        SELECTABLE_SECTIONS,
+        WORKFLOW_TOP_LEVEL_SECTIONS,
         origin,
         top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
         collect_all=False,
@@ -578,6 +574,19 @@ def _parse_subentity_kind(kind: str, data: dict[str, Any]) -> SubentityKindSpec:
         ) from exc
 
 
+def _parse_squad(value: Any) -> SquadSpec:
+    """The ``[squad]`` table, with a hint that names its one key."""
+    if not isinstance(value, dict):
+        raise SquadsError(
+            f"squad must be a table (got {type(value).__name__}) — declare it as [squad] "
+            "with one key, validators = [...]"
+        )
+    try:
+        return SquadSpec.model_validate(value)
+    except Exception as exc:
+        raise SquadsError(f"Invalid squad table: {describe_spec_error(exc, SquadSpec)}") from exc
+
+
 def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     """Build and validate a ``WorkflowSpec`` from a raw parsed-TOML mapping — the bundled one,
     or a bundled-plus-override mapping the merge engine has already produced. One parser
@@ -672,12 +681,7 @@ def _build_spec(raw: dict[str, Any]) -> WorkflowSpec:
     }
 
     # --- squad (the squad-wide validator selection) ---
-    try:
-        squad = SquadSpec.model_validate(as_table(raw.get("squad", {}), "squad"))
-    except SquadsError:
-        raise
-    except Exception as exc:
-        raise SquadsError(f"Invalid squad table: {describe_spec_error(exc, SquadSpec)}") from exc
+    squad = _parse_squad(raw.get("squad", {}))
 
     # WorkflowSpec construction triggers the model_validator (pydantic v2).
     # Route through model_validate so extra="forbid" fires at construction.
@@ -1439,7 +1443,7 @@ def lint_workflow_spec(squad_dir: Path) -> list[LintFinding]:  # noqa: PLR0911 �
     result = merge_override(
         _bundled_raw(),
         raw_override,
-        SELECTABLE_SECTIONS,
+        WORKFLOW_TOP_LEVEL_SECTIONS,
         origin,
         top_level_keys=WORKFLOW_TOP_LEVEL_SECTIONS,
         collect_all=True,

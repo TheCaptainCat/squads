@@ -73,7 +73,7 @@ SHAPES = [
         ["dependency_acyclic"],
     ),
     Shape("unknown-key", "[squad]\nextra = 1\n", None, "extra"),
-    Shape("not-a-table", "squad = 3\n", None, "squad"),
+    Shape("not-a-table", "squad = 3\n", None, "with one key, validators"),
     Shape("not-a-list", '[squad]\nvalidators = "wip_limit:3"\n', None, "validators"),
     Shape("selected-squad", '[selected]\nsquad = ["validators"]\n', None, "no entries to drop"),
 ]

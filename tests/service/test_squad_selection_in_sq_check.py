@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from _helpers import create_item
+from _helpers import create_item, plant_attribute
 from squads import __version__
 from squads import _clock as clock
 from squads._rendering._engine import invalidate_squad_dir
@@ -16,7 +16,6 @@ from squads._services._results import CheckIssue
 from squads._services._service import Service
 from squads._services._validators import SquadGlobalContext, ValidatorEngine
 from squads._workflow import load_workflow_spec
-from squads._workflow._models import SELECTABLE_SQUAD_GLOBAL_NAMES
 
 pytestmark = pytest.mark.anyio
 
@@ -155,23 +154,34 @@ async def test_the_gate_never_evaluates_a_squad_global_member(project) -> None:
     assert calls == []
 
 
-async def test_a_squad_that_selects_nothing_gets_the_issues_it_got_before(project) -> None:
-    svc = _select(project, [])
-    await _corpus(svc)
+#: What ``sq check`` reported for the corpus below before squad-wide selection existed: recorded
+#: from the build that preceded it, not computed from this one.
+_BASELINE = [
+    (
+        "error",
+        "",
+        "more than one live role carries the default-role designation: ROLE-1, ROLE-2 "
+        "\u2014 remedy: `sq role <addr> set-default`",
+    ),
+    ("error", "CLAUDE.md", "managed file missing \u2014 run `sq sync` (backend: claude_code)"),
+    ("error", "TASK-3", "in index but no markdown file found"),
+]
+
+
+@pytest.mark.parametrize("entries", [None, []], ids=["no-squad-table", "empty-list"])
+async def test_a_squad_that_selects_nothing_gets_exactly_the_recorded_issues(
+    project, entries: list[str] | None
+) -> None:
+    svc = _select(project, entries) if entries is not None else Service(project)
+    qa = await svc.activate_role("qa")
+    await plant_attribute(svc, qa.id, "is_default", True)
+    gone = (await create_item(svc, "task", "Vanished")).item
+    svc.paths.abspath(gone.path).unlink()
+    (project.root / "CLAUDE.md").unlink()
+
     issues = await svc.check()
 
-    always_on_only = {
-        name: member
-        for name, member in _validators.SQUAD_GLOBAL_CATALOG.items()
-        if name not in SELECTABLE_SQUAD_GLOBAL_NAMES
-    }
-    db = await svc.store.load()
-    before = ValidatorEngine(
-        spec=svc.spec, paths=project, playbook=svc.playbook, squad_global=always_on_only
-    ).report(db, {})
-
-    assert _markers(issues) == set()
-    assert all(i in issues for i in before if "index" not in i.message)
+    assert sorted((i.level, i.item, i.message) for i in issues) == sorted(_BASELINE)
 
 
 async def test_two_runs_over_an_unchanged_corpus_agree_when_nothing_is_selected(project) -> None:

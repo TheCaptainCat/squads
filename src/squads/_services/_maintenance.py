@@ -3212,7 +3212,12 @@ class MaintenanceMixin(ServiceCore):
         )
         issues += engine.report(index, on_disk, bodies=bodies)
         g_ctx = SquadGlobalContext(
-            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+            now=clock.now(),
+            index=index,
+            on_disk=on_disk,
+            spec=self.spec,
+            paths=self.paths,
+            playbook=self.playbook,
         )
         issues += await self._confirm_cross_source(
             index,
@@ -3439,7 +3444,12 @@ class MaintenanceMixin(ServiceCore):
         two build this state the identical way, off whichever index each is handed.
         """
         g_ctx = SquadGlobalContext(
-            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+            now=clock.now(),
+            index=index,
+            on_disk=on_disk,
+            spec=self.spec,
+            paths=self.paths,
+            playbook=self.playbook,
         )
         live_role_slugs, live_skill_slugs = live_roster_slugs(g_ctx)
         role_items = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
@@ -3565,7 +3575,7 @@ class MaintenanceMixin(ServiceCore):
         if not candidates:
             return []
         fresh_g_ctx = SquadGlobalContext(
-            index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
+            now=clock.now(), index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
         )
         fresh_role_slugs, fresh_skill_slugs = live_roster_slugs(fresh_g_ctx)
         fresh_bctx = BackendContext(
