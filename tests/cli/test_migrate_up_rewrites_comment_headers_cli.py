@@ -172,7 +172,12 @@ async def test_the_diff_of_every_item_file_is_header_lines_and_the_flattened_fro
         for key, value in old_front.items():
             if key != "extra":
                 assert new_front.get(key, value) == value or key == "title", (path, key)
-        assert set(new_front) - set(old_front) <= lifted | {"slug"}, path
+        added = (
+            lifted
+            | {"slug"}
+            | ({"origin"} if new_front.get("type") in ("role", "skill") else set())
+        )
+        assert set(new_front) - set(old_front) <= added, path
     assert changed == _legacy_headers_by_counting(squad)
 
 
@@ -272,7 +277,20 @@ POSTCONDITIONS = {
             for p in root.rglob("ROLE-*.md")
         )
     ),
+    "origin": lambda root: _roster_files_carry_an_origin(root),
 }
+
+
+def _roster_files_carry_an_origin(root: Path) -> bool:
+    """Every role and skill file stores `origin` as `system` or `project`."""
+    seen = 0
+    for path in root.rglob("*.md"):
+        front, _ = split_frontmatter(path.read_text(encoding="utf-8"))
+        if front.get("type") in ("role", "skill"):
+            seen += 1
+            if front.get("origin") not in ("system", "project"):
+                return False
+    return seen > 0
 
 
 def _frontmatter_is_flat(root: Path) -> bool:

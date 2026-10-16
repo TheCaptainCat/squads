@@ -22,7 +22,12 @@ from squads._backends._registry import get_backend
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
-from squads._interactions import active_skill_slugs, get_playbook_spec, is_live_roster_entry
+from squads._interactions import (
+    active_skill_slugs,
+    get_playbook_spec,
+    is_live_roster_entry,
+    item_origin,
+)
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import (
     RoleLike,
@@ -41,6 +46,7 @@ from squads._itemfile import (
     write_text,
 )
 from squads._models import _markers as markers
+from squads._models._attributes import AttributeKey
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
 from squads._models._participants import (
@@ -493,6 +499,12 @@ def _check_roster_slug(item_type: str, is_roster: bool, slug: str) -> None:
             raise SquadsError(f"{item_type} slug {candidate!r} {verb}; pick another slug")
 
 
+def _stamp_origin(item: Item, spec: WorkflowSpec) -> None:
+    """Give a new role or skill its origin unless the caller supplied one."""
+    if item.type in (ROSTER_ROLE, ROSTER_SKILL):
+        item.attributes.setdefault(AttributeKey.ORIGIN, item_origin(item, spec))
+
+
 class ServiceCore:
     def __init__(
         self,
@@ -811,6 +823,7 @@ class ServiceCore:
             slug_in_file=is_roster,
             attributes=attributes or {},
         )
+        _stamp_origin(item, self.spec)
         for code, value in (fields or {}).items():
             field = self._badge_field(item_type, code)
             if field is None:

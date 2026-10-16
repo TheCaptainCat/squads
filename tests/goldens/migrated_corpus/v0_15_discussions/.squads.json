@@ -294,7 +294,9 @@
       "updated_at": "2026-10-15T22:34:24Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "ROLE-1"
     },
@@ -318,7 +320,9 @@
       "updated_at": "2025-05-20T11:01:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "ROLE-2"
     },
@@ -342,7 +346,9 @@
       "updated_at": "2025-05-20T11:02:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "ROLE-3"
     },
@@ -366,7 +372,9 @@
       "updated_at": "2025-05-20T11:38:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "ROLE-4"
     },
@@ -392,7 +400,8 @@
       "modified_session": null,
       "attributes": {
         "model": "sonnet",
-        "tech": "python"
+        "tech": "python",
+        "origin": "system"
       },
       "slug_in_file": true,
       "id": "ROLE-5"

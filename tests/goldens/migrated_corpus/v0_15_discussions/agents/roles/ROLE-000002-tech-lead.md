@@ -10,6 +10,7 @@ description: Turn features into well-scoped tasks, sequence the work, and unbloc
   the team.
 created_at: '2025-05-20T11:01:00Z'
 updated_at: '2025-05-20T11:01:00Z'
+origin: system
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->

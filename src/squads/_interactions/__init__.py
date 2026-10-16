@@ -37,8 +37,10 @@ from squads._interactions._role_guidance import (
     in_lane_owner,
     role_like,
 )
+from squads._models import _attributes as attrs
+from squads._models._attributes import ORIGIN_PROJECT, ORIGIN_SYSTEM
 from squads._models._item import Item
-from squads._roles._catalog import get_catalog, role_by_slug
+from squads._roles._catalog import PREDEFINED, get_catalog, role_by_slug
 from squads._roles._projection import RoleView
 from squads._workflow._models import (
     DEFAULT_SUBENTITY_TITLE_MAX,
@@ -487,6 +489,25 @@ def is_system_skill(slug: str, spec: WorkflowSpec) -> bool:
     prevent.
     """
     return slug in bundled_skill_slugs() or slug in custom_skill_slugs(spec)
+
+
+def role_origin(slug: str, *, templated: bool = False) -> str:
+    """``system`` for a bundled role (even one the project overrides) or a templated developer,
+    else ``project``. Reads the catalog as packaged, never the squad's resolved one."""
+    in_bundle = any(r.slug == slug for r in PREDEFINED)
+    return ORIGIN_SYSTEM if in_bundle or templated else ORIGIN_PROJECT
+
+
+def skill_origin(slug: str, spec: WorkflowSpec) -> str:
+    """``system`` for a bundled or spec-generated skill, else ``project``."""
+    return ORIGIN_SYSTEM if is_system_skill(slug, spec) else ORIGIN_PROJECT
+
+
+def item_origin(item: Item, spec: WorkflowSpec) -> str:
+    """The origin a role or skill *item* is classified as, by the one rule every writer uses."""
+    if item.type == ROSTER_SKILL:
+        return skill_origin(item.slug, spec)
+    return role_origin(item.slug, templated=attrs.is_templated(item))
 
 
 def orphaned_skill_item_type(slug: str, spec: WorkflowSpec) -> str | None:

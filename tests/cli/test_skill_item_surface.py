@@ -95,7 +95,7 @@ async def test_a_feature_ref_to_a_skill_round_trips_forward_and_backward(
     assert feat.id in r.output
 
 
-async def test_skill_show_labels_a_bundled_skill_as_system_in_text_and_json(
+async def test_skill_show_reports_a_bundled_skills_origin_in_text_and_json(
     seeded_paths, invoke
 ) -> None:
     svc = service.Service(seeded_paths)
@@ -103,13 +103,13 @@ async def test_skill_show_labels_a_bundled_skill_as_system_in_text_and_json(
 
     r = await invoke(["skill", str(sk.sequence_id), "show"])
     assert r.exit_code == 0, r.output
-    assert "system (template-owned)" in r.output
+    assert "origin: system" in r.output
 
     r = await invoke(["skill", str(sk.sequence_id), "show", "--json"])
-    assert json.loads(r.output)["system"] is True
+    assert json.loads(r.output)["origin"] == "system"
 
 
-async def test_skill_show_labels_a_custom_skill_as_custom_in_text_and_json(
+async def test_skill_show_reports_a_custom_skills_origin_in_text_and_json(
     seeded_paths, invoke
 ) -> None:
     svc = service.Service(seeded_paths)
@@ -117,10 +117,10 @@ async def test_skill_show_labels_a_custom_skill_as_custom_in_text_and_json(
 
     r = await invoke(["skill", str(skill.sequence_id), "show"])
     assert r.exit_code == 0, r.output
-    assert "custom (authored)" in r.output
+    assert "origin: project" in r.output
 
     r = await invoke(["skill", str(skill.sequence_id), "show", "--json"])
-    assert json.loads(r.output)["system"] is False
+    assert json.loads(r.output)["origin"] == "project"
 
 
 async def test_skill_body_sets_and_re_edits_a_custom_skills_authored_body(

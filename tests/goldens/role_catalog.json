@@ -4,7 +4,7 @@
     "full_name": "Catherine Manager",
     "title": "manager",
     "is_default": true,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"
@@ -14,7 +14,7 @@
     "full_name": "Robert Architect",
     "title": "architect",
     "is_default": false,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"
@@ -24,7 +24,7 @@
     "full_name": "Olivia Lead",
     "title": "tech lead",
     "is_default": false,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"
@@ -34,7 +34,7 @@
     "full_name": "Paul Reviewer",
     "title": "code reviewer",
     "is_default": false,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"
@@ -44,7 +44,7 @@
     "full_name": "Mara Tester",
     "title": "QA engineer",
     "is_default": false,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"
@@ -54,7 +54,7 @@
     "full_name": "Hugo Ops",
     "title": "DevOps engineer",
     "is_default": false,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"
@@ -64,7 +64,7 @@
     "full_name": "Nina Product",
     "title": "product owner",
     "is_default": false,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"
@@ -74,7 +74,7 @@
     "full_name": "Theo Writer",
     "title": "technical writer",
     "is_default": false,
-    "origin": "bundled",
+    "origin": "system",
     "capabilities": [],
     "default_role": "manager",
     "default_role_source": "roster"

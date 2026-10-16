@@ -19,7 +19,29 @@ import json
 
 import pytest
 
+from squads import __version__
+from squads._rendering._engine import invalidate_squad_dir
+
 pytestmark = pytest.mark.anyio
+
+_GHOST_ROLE = (
+    f"# squads:override-base:{__version__}\n"
+    'full_name = "Ghost"\ntitle = "ghost"\n'
+    'description = "A declared role."\nmission = "A declared role."\n'
+)
+
+
+async def _make_ghost_the_default(project, svc, invoke) -> None:
+    """Activate a declared role, designate it, then delete its definition: a live holder that
+    matches no catalog row."""
+    role_file = project.squad_dir / ".overrides" / "roles" / "ghost.toml"
+    role_file.parent.mkdir(parents=True, exist_ok=True)
+    role_file.write_text(_GHOST_ROLE, encoding="utf-8")
+    invalidate_squad_dir(project.squad_dir)
+    await svc.activate_role("ghost")
+    assert (await invoke(["role", "ghost", "set-default"])).exit_code == 0
+    role_file.unlink()
+    invalidate_squad_dir(project.squad_dir)
 
 
 def _catalog_row(output: str, slug: str) -> str:
@@ -75,24 +97,34 @@ async def test_the_catalog_default_column_survives_sync_and_repair(project, invo
         assert await _designations(invoke, ["role", "catalog"]) == {"qa"}
 
 
-async def test_a_developer_role_holding_the_designation_leaves_no_catalog_row_marked(
-    project, invoke
+async def test_a_holder_without_a_catalog_row_leaves_no_catalog_row_marked(
+    project, svc, invoke
 ) -> None:
-    """A developer role has no catalog row, so the honest catalog answer is "none of these" —
-    never the shipped designation on a role that no longer holds it. The plain listing names
-    the holder it cannot show."""
-    assert (await invoke(["dev", "add", "--tech", "python"])).exit_code == 0
-    r = await invoke(["role", "python-dev", "set-default"])
-    assert r.exit_code == 0, r.output
+    """A role whose definition is gone has no catalog row, so the honest catalog answer is
+    "none of these" — never the shipped designation on a role that no longer holds it. The
+    plain listing names the holder it cannot show."""
+    await _make_ghost_the_default(project, svc, invoke)
 
     assert await _designations(invoke, ["role", "catalog"]) == set()
     plain = await invoke(["role", "catalog"])
     assert "✓" not in _catalog_row(plain.output, "manager")
-    assert "python-dev" in plain.output
+    assert "ghost" in plain.output
 
     for maintenance in (["sync"], ["repair"]):
         assert (await invoke(maintenance)).exit_code == 0
         assert await _designations(invoke, ["role", "catalog"]) == set()
+
+
+async def test_a_developer_holding_the_designation_has_its_own_marked_catalog_row(
+    project, invoke
+) -> None:
+    assert (await invoke(["dev", "add", "--tech", "python"])).exit_code == 0
+    assert (await invoke(["role", "python-dev", "set-default"])).exit_code == 0
+
+    assert await _designations(invoke, ["role", "catalog"]) == {"python-dev"}
+    plain = await invoke(["role", "catalog"])
+    assert "✓" in _catalog_row(plain.output, "python-dev")
+    assert "✓" not in _catalog_row(plain.output, "manager")
 
 
 async def test_the_roster_listing_names_the_holder_for_a_bundled_and_a_developer_role(
@@ -127,18 +159,17 @@ async def test_outside_a_squad_the_catalog_reports_its_own_declared_designation(
     assert await _designations(invoke, ["role", "catalog"]) == {"manager"}
 
 
-async def test_the_catalog_payload_names_a_holder_that_matches_no_row(project, invoke) -> None:
-    """The footer's disclosure, on the wire: a developer role holds it, no row can be marked,
-    and the payload names the holder anyway — a program branching on the boolean alone would
-    read "nobody is the default here", which is false."""
+async def test_the_catalog_payload_names_a_holder_that_matches_no_row(project, svc, invoke) -> None:
+    """The footer's disclosure, on the wire: a role with no definition holds it, no row can be
+    marked, and the payload names the holder anyway — a program branching on the boolean alone
+    would read "nobody is the default here", which is false."""
     assert await _disclosure(invoke) == ("manager", "roster")
 
-    assert (await invoke(["dev", "add", "--tech", "python"])).exit_code == 0
-    assert (await invoke(["role", "python-dev", "set-default"])).exit_code == 0
+    await _make_ghost_the_default(project, svc, invoke)
 
     assert await _designations(invoke, ["role", "catalog"]) == set()
     holder, source = await _disclosure(invoke)
-    assert (holder, source) == ("python-dev", "roster")
+    assert (holder, source) == ("ghost", "roster")
 
     r = await invoke(["role", "catalog", "--json"])
     assert all(row["slug"] != holder for row in json.loads(r.output)), (

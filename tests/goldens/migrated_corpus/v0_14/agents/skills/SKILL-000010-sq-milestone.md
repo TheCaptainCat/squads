@@ -10,6 +10,7 @@ description: 'Working with milestone items in this squad: lifecycle, commands, a
   role-specific guidance.'
 created_at: '2025-05-20T11:00:00Z'
 updated_at: '2026-06-07T10:00:00Z'
+origin: system
 ---
 <!-- sq:body -->
 <!-- sq:view:item_skill -->

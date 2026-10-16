@@ -6,6 +6,7 @@
     "title": "manager",
     "is_default": true,
     "capabilities": [],
-    "status": "Active"
+    "status": "Active",
+    "origin": "system"
   }
 ]

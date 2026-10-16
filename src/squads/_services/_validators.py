@@ -77,6 +77,7 @@ from squads._interactions import (
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._interactions._models import PlaybookSpec
 from squads._models import _markers as markers
+from squads._models._attributes import ORIGIN_VALUES, AttributeKey
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._models._metadata import value_problem
@@ -993,6 +994,8 @@ def _attribute_valid(ctx: ValidatorContext) -> list[CheckIssue]:
                 )
             continue
         problem = value_problem(spec, value)
+        if problem is None and name == AttributeKey.ORIGIN and value not in ORIGIN_VALUES:
+            problem = f"expected one of {', '.join(ORIGIN_VALUES)}, got {value!r}"
         if problem is not None:
             issues.append(CheckIssue(level, ctx.item.id, f"attribute {name!r}: {problem}"))
     return issues

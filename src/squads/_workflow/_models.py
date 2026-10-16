@@ -2344,11 +2344,13 @@ PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
     ROSTER_ROLE: {
         AttributeKey.IS_DEFAULT: "bool",
         AttributeKey.MODEL: "str",
+        AttributeKey.ORIGIN: "str",
         AttributeKey.TECH: "str",
     },
     ROSTER_SKILL: {
         AttributeKey.ALLOWED_TOOLS: "str",
         AttributeKey.MODEL: "str",
+        AttributeKey.ORIGIN: "str",
         AttributeKey.WHEN_TO_USE: "str",
     },
 }

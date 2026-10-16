@@ -179,7 +179,9 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "project"
+      },
       "slug_in_file": true,
       "id": "ROLE-1"
     },
@@ -205,7 +207,8 @@
       "modified_session": null,
       "attributes": {
         "id_padding": 6,
-        "schema_version": "0.5"
+        "schema_version": "0.5",
+        "origin": "system"
       },
       "slug_in_file": true,
       "id": "SKILL-7"
@@ -232,7 +235,8 @@
       "modified_session": null,
       "attributes": {
         "id_padding": 6,
-        "schema_version": "0.5"
+        "schema_version": "0.5",
+        "origin": "system"
       },
       "slug_in_file": true,
       "id": "SKILL-8"
@@ -257,7 +261,9 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "SKILL-9"
     },
@@ -281,7 +287,9 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "SKILL-10"
     }

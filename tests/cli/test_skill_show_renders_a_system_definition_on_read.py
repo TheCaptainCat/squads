@@ -51,12 +51,12 @@ async def test_show_prints_a_system_definition_although_the_item_stores_only_its
 
     r = await invoke(["skill", "sq-task", "show", "--raw"])
     assert r.exit_code == 0, r.output
-    assert "system (template-owned)" in r.output
+    assert "origin: system" in r.output
     assert "**Lifecycle:**" in r.output
     assert "sq task <n> subtask <k> body" in r.output
 
 
-async def test_show_json_carries_every_field_including_system_and_the_exact_body(
+async def test_show_json_carries_every_field_including_origin_and_the_exact_body(
     seeded, invoke
 ) -> None:
     """``--json``'s ``body`` is the same tag-expanded read every other reader gets, isolated
@@ -73,11 +73,11 @@ async def test_show_json_carries_every_field_including_system_and_the_exact_body
         "when_to_use",
         "allowed_tools",
         "path",
-        "system",
+        "origin",
         "body",
     }
     assert payload["slug"] == "sq-task"
-    assert payload["system"] is True
+    assert payload["origin"] == "system"
 
     svc = service.Service(seeded)
     assert payload["body"] == await svc.read_body(await _sq_task_id(svc))
@@ -85,7 +85,7 @@ async def test_show_json_carries_every_field_including_system_and_the_exact_body
     custom = await svc.add_skill("Release Runbook", description="Ship a release safely.")
     r = await invoke(["skill", str(custom.sequence_id), "show", "--json"])
     custom_payload = json.loads(r.output)
-    assert custom_payload["system"] is False
+    assert custom_payload["origin"] == "project"
     assert custom_payload["body"] == await svc.read_body(custom.id)
 
 
@@ -98,13 +98,12 @@ async def _sq_task_id(svc: service.Service) -> str:
 async def test_a_system_skill_for_an_undeclared_type_says_so_instead_of_naming_a_sync(
     seeded, invoke
 ) -> None:
-    """A skill whose type is dropped is reclassified custom, and its hint names the drop."""
+    """A skill whose type is dropped keeps origin system, and its hint names the drop."""
     _write_workflow_override(seeded.squad_dir, _DROP_GUIDE)
 
     r = await invoke(["skill", "sq-guide", "show", "--raw"])
     assert r.exit_code == 0, r.output
-    assert "custom (authored)" in r.output
-    assert "system (template-owned)" not in r.output
+    assert "origin: system" in r.output
     assert "no longer" in r.output
     assert "declared" in r.output
     assert "sq sync" not in r.output
@@ -117,5 +116,5 @@ async def test_an_unwritten_custom_skill_body_points_at_the_body_verb(seeded, in
 
     r = await invoke(["skill", "release-runbook", "show", "--raw"])
     assert r.exit_code == 0, r.output
-    assert "custom (authored)" in r.output
+    assert "origin: project" in r.output
     assert "sq skill release-runbook body" in r.output

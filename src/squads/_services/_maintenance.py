@@ -34,6 +34,7 @@ from squads._interactions import (
     orphaned_playbook_guides,
     orphaned_skill_item_type,
     skill_description,
+    skill_origin,
 )
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._interactions._models import PlaybookSpec
@@ -52,6 +53,7 @@ from squads._migrations._context import MigrationContext
 from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
 from squads._models import _attributes as attrs
 from squads._models import _markers as markers
+from squads._models._attributes import AttributeKey
 from squads._models._config import CONFIG_FILENAME
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -1275,6 +1277,10 @@ class MaintenanceMixin(ServiceCore):
             created_session=known.created_session if known else sid,
             modified_session=known.modified_session if known else sid,
             slug_in_file=True,
+            attributes={
+                AttributeKey.ORIGIN: (attrs.origin(known) if known else None)
+                or skill_origin(slug, self.spec)
+            },
         )
 
     async def _skill_folder_state(self, scan: SkillScan) -> SkillFolder:
@@ -1888,6 +1894,7 @@ class MaintenanceMixin(ServiceCore):
                     created_session=sid,
                     modified_session=sid,
                     slug_in_file=True,
+                    attributes={AttributeKey.ORIGIN: skill_origin(slug, self.spec)},
                 )
                 # Stamp frontmatter and write to the convention-named file.
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
@@ -1981,6 +1988,7 @@ class MaintenanceMixin(ServiceCore):
                     created_session=sid,
                     modified_session=sid,
                     slug_in_file=True,
+                    attributes={AttributeKey.ORIGIN: skill_origin(slug, self.spec)},
                 )
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 convention_path = skills_folder / new_name

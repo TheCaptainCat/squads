@@ -2,6 +2,7 @@
   "slug": "manager",
   "id": "ROLE-1",
   "activated": true,
+  "origin": "system",
   "full_name": "Catherine Manager",
   "title": "manager",
   "mission": "Be the operator's first point of contact and run the work loop: understand the intent, delegate to the right specialists, integrate what they return, and drive each feature to done \u2014 keeping everything tracked in squads.",
