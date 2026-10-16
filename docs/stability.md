@@ -68,6 +68,27 @@ frontmatter (its `subentities:` list), not in the body. Only prose (the `:body` 
 stays in the body markers. Frontmatter is the source of truth, and that is what
 makes the index rebuildable from files alone (see [internals.md](internals.md) § 4).
 
+### Frontmatter is flat
+
+An item's frontmatter is one flat mapping, with no nested container:
+
+- **Core keys**, the same on every item: `id`, `sequence_id`, `type`, `title`, `slug`, `status`,
+  `description`, `parent`, `author`, `assignee`, `priority`, `severity`, `labels`, `refs`,
+  `subentities`, `created_at`, `updated_at`, `created_session`, `modified_session`. A core key
+  holding a value of the wrong type makes the item unreadable, and the error names the file.
+  `slug` is written on every role, skill and operator, and on any other item whose file carries it.
+- **Attributes**, every other key. A type declares the ones it carries in the workflow spec
+  (`[items.<type>.attributes]`, see [Project-level overrides](#project-level-overrides)); a custom
+  badge field is stored the same way, under its code. A declared attribute holding a value of the
+  wrong kind, or a missing required one, is reported by `sq check` and never makes an item
+  unreadable.
+- **Unknown keys are kept.** A key no declaration names is carried through every write, `sq
+  repair` and every migration, with its value. A write removes or changes only the keys its
+  command targets, so a key whose declaration is removed from an override stays in the files.
+- **Values are kept in their JSON form.** A YAML-only value is written back as its JSON equivalent
+  the next time its item is written: an unquoted date or timestamp becomes the string of the same
+  value (`2026-11-01` becomes `'2026-11-01'`), and a mapping key that is not a string becomes one.
+
 ### Comment headers
 
 Every comment in a discussion region (an item's own, or a story's, subtask's or finding's) opens
@@ -199,6 +220,20 @@ folder in the squad directory. The frozen surfaces are:
   override whole-file; a role resolves bundled, then `roles.toml`, then its per-slug file, merging
   field-wise; the workflow override composes over the bundled vocabulary and **may shadow a
   built-in**, not only add to it.
+- **A role's name is stored.** A role is named when it is created: by `--name` (or, at `sq init`,
+  a `--name` flag, `[init.names]` or the prompt), otherwise by the `full_name` its per-slug file,
+  then `roles.toml`, then the bundled catalog gives it, and for a developer by the name pool. From
+  then on the stored name is the role's name: no change to an override or to the bundled catalog
+  renames an active role, and neither `sq sync` nor a migration does. See
+  [overrides.md § "Which name wins"](overrides.md#which-name-wins).
+- **Attribute grammar (frozen):** a type declares its attributes in `[items.<type>.attributes]`,
+  one `<name> = { kind = …, required = …, settable = … }` entry each. `kind` is one of `str`,
+  `list`, `bool`, `date`; `required` and `settable` default to `false` and `true`. An attribute may
+  not take the name of a core key, of another attribute or badge field on its type, of a key
+  `--json` adds to an item row (`badges`, `body`, `discussion`, `matched_subentities`), or
+  `extra`, `path` or `prefix`. The `role` and `skill` attributes the bundled spec declares may be
+  added to but not dropped or given another kind. `extra_fields` is not a key of a type and is
+  refused at load.
 - **Spec override grammar (frozen):** the same for all three spec documents. Deep recursive merge
   at leaf granularity — tables recurse per key, and a leaf value replaces its counterpart. A plain
   array is a leaf, replaced wholesale and never element-merged. **Splat-refs** are the opt-in for extending a bundled list without
@@ -653,6 +688,12 @@ The frozen surface includes:
   | `children` | | nested nodes of the same shape |
 
   A graph node carries no `title`.
+- **Item rows:** an item object from `list`, `show`, `create` or `mine` is the item's core keys,
+  each attribute its file stores, at the top level beside them, and the keys the command adds
+  (`badges`, `body`, `discussion`, `matched_subentities`). There is no nested container. An
+  attribute appears only when the file stores it, so a reader learns a type's possible attributes
+  from `sq workflow types --json` (`attributes`: name to `{kind, required, settable}`), not from
+  the rows. A key stored under the name of an added key stays in the file and out of the row.
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
   `operator list`, `operator <addr> show`. Skills have no dedicated `skill list` — use the generic
   `list -t skill`
@@ -661,7 +702,7 @@ The frozen surface includes:
 
   | Command | One row per | Fields |
   |---|---|---|
-  | `sq workflow types --json` | item type | `type`, `order`, `prefix`, `reserved`, `category`, `subentity_kind`, `lifecycle`, `fields`, `labels` |
+  | `sq workflow types --json` | item type | `type`, `order`, `prefix`, `reserved`, `category`, `subentity_kind`, `lifecycle`, `fields`, `attributes`, `labels` |
   | `sq workflow subentity-kinds --json` | sub-entity kind | `subentity_kind`, `lifecycle`, `plural`, `local_prefix`, `container_heading`, `completion`, `maps_parent_story`, `fields` |
   | `sq workflow collections --json` | badge collection | `collection`, `label`, `ordered`, `default`, `badges` |
   | `sq workflow statuses --json` | status | `status`, `role`, `badge` |

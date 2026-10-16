@@ -89,9 +89,10 @@ and rewrites item files while it is there ([what it writes](#does-sq-repair-chan
 ### Does `sq repair` change my files?
 Yes. Alongside the index rebuild, `sq repair` removes from your item files what squads now computes
 on every read rather than stores: the sub-entity roll-up table and each block's badge line, and the
-`extra` keys a role item mirrored from its definition. It also canonicalises any legacy ref
-encoding. A role keeps its `slug`, its default-role designation, and a developer role's `model`,
-`is_dev` and `tech`.
+keys a role item mirrored from its definition (`full_name`, `mission`, `responsibilities`,
+`agreements`, `color`, `can_spawn`, `skills`). It also canonicalises any legacy ref encoding. A
+role keeps its name, its `slug`, its default-role designation, a developer role's `model`,
+`is_dev` and `tech`, and any other key.
 
 A **role** or **generated skill** whose body is empty gets its view tag written back — the one
 line that makes `sq role <slug> show` / `sq skill <name> show` render the definition fresh from the

@@ -149,10 +149,13 @@ the bundled role definition:
 
 ```toml
 # .overrides/roles/architect.toml
-full_name = "Chief Design Officer"
+title = "Chief Design Officer"
 model = "opus"
-# title, mission, responsibilities, etc. inherit from the bundled architect
+# mission, responsibilities, etc. inherit from the bundled architect
 ```
+
+`full_name`, the role's name, is the one field that applies only once: it names the role when the
+role is created. See [Which name wins](#which-name-wins).
 
 **A developer's override merges onto the developer you already have:**
 Developers aren't in the bundled catalog — they're created on demand by `sq dev add` — so a
@@ -170,10 +173,11 @@ Three rules follow from that base:
 
 - **Fields you omit keep the role's current values.** A file that sets only `title` changes only
   the title.
-- **A field you declare wins — including `full_name`, which renames the developer.** That is the
-  same thing declaring `full_name` does for a bundled role.
-- **A name you never wrote is never invented.** Omit `full_name` and the developer keeps the name
-  they already have, whether it came from `--name` or from the pool.
+- **A field you declare wins, except `full_name`.** The developer's name is the one stored when
+  they were added. A `full_name` declared in the file names a developer added after it was
+  written, when `sq dev add` is given no `--name`; it never renames one you already have.
+- **A name you never wrote is never invented.** Omit `full_name` and a new developer takes a name
+  from the pool.
 
 A file for a tech you haven't added yet is accepted rather than refused, so you can write the
 override first and run `sq dev add --tech <tech>` afterwards.
@@ -256,7 +260,9 @@ for `sq role activate security-analyst`.
 
 **Precedence, lowest to highest:** the bundled catalog, then `roles.toml`, then a per-slug
 `.overrides/roles/<slug>.toml`. When both override files set the same field for one role, the
-per-slug file wins.
+per-slug file wins. For `full_name` the order decides only the name a role gets when it is
+created: an active role keeps the name it stores, whatever either file says later (see
+[Which name wins](#which-name-wins)).
 
 **Dropping a role** goes through `[selected].roles`, which lists the roles that survive. A bundle
 that still names a dropped role is refused, naming the bundle:
@@ -361,8 +367,10 @@ Optional:
 - `parents` — list of allowed parent item types; empty or omitted means no hierarchy constraint
 - `aliases` — list of short command aliases (e.g., `["inc"]` allows `sq inc <n>` as shorthand)
 - `validators` — checks this type runs beyond the set its category already turns on, each with an
-  optional parameter and level. Eleven checks run nowhere until a type names them here. See
+  optional parameter and level. Some checks run nowhere until a type names them here. See
   **Validators** (below).
+- `[items.<type>.attributes]` — the keys an item of this type stores beyond the core ones, each
+  with a kind. See **Attributes** (below).
 
 #### Custom records-category item types
 
@@ -416,6 +424,107 @@ item takes part in `sq inbox` the same way every item does: an `@mention` in its
 listed while its status role is not settled, and drops out once it reaches a settled status such
 as `Published`.
 
+#### Attributes: the keys a type stores
+
+An item file's frontmatter is one flat mapping. The **core keys** are the same on every item:
+`id`, `sequence_id`, `type`, `title`, `slug`, `status`, `description`, `parent`, `author`,
+`assignee`, `priority`, `severity`, `labels`, `refs`, `subentities`, `created_at`, `updated_at`,
+`created_session` and `modified_session`. Every other key is an **attribute**, and a type declares
+the attributes it carries in an `attributes` table:
+
+```toml
+[items.incident.attributes]
+customer = { kind = "str" }
+systems = { kind = "list" }
+paged = { kind = "bool" }
+review_due = { kind = "date", required = true }
+```
+
+- `kind` is one of `str`, `list` (a list of strings), `bool` or `date` (`YYYY-MM-DD`).
+- `required` (default `false`): `sq check` reports an item that does not store it, as
+  `error INC-<n>: missing required attribute 'review_due'`. It never makes an item unreadable, so
+  adding it to a type with existing items only produces reports.
+- `settable` (default `true`): whether `sq <type> <n> update --set` and an `update` event of
+  `sq import` write it. A key a dedicated command owns is declared `settable = false`. Roles,
+  skills and operators have no `update` verb, so their attributes are set through `sq import`.
+
+`sq workflow types --json` lists each type's attributes with their `kind`, `required` and
+`settable`. The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
+`tags` and `tech` on `guide`, `is_default`, `is_dev`, `model` and `tech` on `role`, and
+`allowed_tools`, `model` and `when_to_use` on `skill`. Add attributes to a bundled type the same
+way, roster types included:
+
+```toml
+[items.guide.attributes]
+audience = { kind = "str" }
+```
+
+A declared attribute is set from the command line, with its value checked against its kind before
+anything is written:
+
+```bash
+sq guide <n> update --set audience=operators
+sq guide <n> update --set tags=setup,cli        # a list is comma-separated
+sq incident <n> update --unset systems
+```
+
+```
+error: 'paged' expects true or false; got 'heavy'
+error: 'review_due' expects an ISO date (YYYY-MM-DD); got 'tomorrow'
+```
+
+A `bool` takes `true`, `false`, `yes`, `no`, `on`, `off`, `1` or `0`, in any letter case. `sq
+import` checks a value the same way. A value already in a file is never changed or removed by
+validation: `sq check` reports one that does not fit its kind, such as
+`error INC-<n>: attribute 'systems': expected a list of strings, got str 'db'`, and it stays as
+written until a command that targets that key replaces it.
+
+**What the loader refuses.** An attribute cannot take the name of a core key, of another attribute
+or badge field on the same type, of a key `--json` adds to an item row (`badges`, `body`,
+`discussion`, `matched_subentities`), or `extra`, `path` or `prefix`:
+
+```
+- 'guide': attribute 'title' is a reserved key — pick another name
+```
+
+The `role` and `skill` attributes the bundled spec declares are the ones sq writes into each
+agent's files, so an override may add to them but cannot drop one or change its kind:
+
+```
+- roster type 'role' must declare attribute 'model' with kind 'str' — add `model = { kind = "str" }` under [items.role.attributes]
+```
+
+`extra_fields` is not a key of a type: it is refused at load, naming the table to use instead:
+
+```
+items.task.extra_fields: 'extra_fields' is not a declared key — a type's keys are declared in an `attributes` table — replace it with `[items.task.attributes]` and one `<name> = { kind = "str" }` line per key (kind is str, list, bool or date).
+```
+
+**Keys no declaration names are kept.** A key you add to a file by hand, a key a removed
+declaration used to name, and a key from a newer spec are all carried through every write and
+through `sq repair`, with their values. No command removes a key it was not asked to change.
+`--json` item rows carry them too, at the top level beside the core keys, except a key named like
+one `--json` adds (`badges`, `body`, `discussion`, `matched_subentities`), which stays in the file
+and out of the row. A value is kept in the form JSON can carry: a YAML-only value is written back
+as its JSON equivalent the next time the item is written, so an unquoted date such as
+`review_date: 2026-11-01` becomes the string `'2026-11-01'`, and a mapping key that is not a string
+becomes one.
+
+To be told about such keys, for example to catch a misspelt one, select the
+`frontmatter_key_undeclared` check on a type (see **Validators**, below). It reports at `warn`
+and changes nothing:
+
+```
+warn GUIDE-<n>: frontmatter key 'hand_key' is not declared on guide
+```
+
+**In a template**, an item's attributes are read from `item`, like its core keys:
+`{{ item.audience }}`. An item stores only the attributes that are set, so guard an optional one:
+`{% if item.audience is defined and item.audience %}`.
+
+A custom badge field (see **Collections**, below) is stored the same way, at the top level under
+its code (`impact: high`).
+
 #### Validators: the checks a type runs, and how loud they are
 
 Every item type runs a set of checks. `sq check` reports what they find, and the create/update
@@ -431,7 +540,7 @@ on every `sq check` at a fixed `error` level, and cannot be selected, dropped or
 validators = ["parent_present@warn"]
 ```
 
-Eleven checks are not selected for you anywhere in the bundled spec, so naming one in a type's
+These checks are not selected for you anywhere in the bundled spec, so naming one in a type's
 list is the only way it ever runs on that type:
 
 - `parent_present` — every item of this type must have a parent.
@@ -439,6 +548,8 @@ list is the only way it ever runs on that type:
   [workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current").
 - `no_status_banner` — an item's body or summary must not open with a status label.
 - `subentity_title_max` — a sub-entity title must not be longer than a threshold.
+- `frontmatter_key_undeclared` — every top-level key of an item must be a core key or an attribute
+  its type declares. It reports at `warn` and never changes the file; see **Attributes** (above).
 - Seven policy checks about the work an item tracks: `item_title_max`, `external_id_not_in_title`,
   `description_present`, `assignee_present`, `body_written`, `settled_requires_discussion` and
   `ref_rule_target_typed`. See "The work-policy checks" below.
@@ -768,7 +879,7 @@ clean.
 
 **What the list cannot do — there is no deselection surface.** `[selected]` has no `validators`
 section, and neither the cross-cutting core nor a category bundle can be subtracted from. The
-quietest a bundled check can be made is `warn`, which still reports. The eleven checks nothing
+quietest a bundled check can be made is `warn`, which still reports. The checks nothing
 bundled selects are in neither the core nor a bundle, so a type that does not name one does not
 run it.
 
@@ -1454,11 +1565,11 @@ validators = ["supersedes_incoming"]   # keep the check the category no longer t
 ```
 
 The same list is also how you turn on a check nothing bundled selects, and how you set the level
-and the parameter it runs with — see § "Validators" above for the full grammar. Eleven checks ship
-unselected: `ref_rule_target_present` (squads types the `implements` edge from a feature to a
+and the parameter it runs with — see § "Validators" above for the full grammar. The checks that ship
+unselected include `ref_rule_target_present` (squads types the `implements` edge from a feature to a
 contract but never requires it — see [workflow.md](workflow.md#keeping-a-contract-current) §
-"Keeping a contract current"), `parent_present`, `no_status_banner`, `subentity_title_max`, and
-the seven work-policy checks listed there.
+"Keeping a contract current"), `parent_present`, `no_status_banner`, `subentity_title_max`,
+`frontmatter_key_undeclared` and the seven work-policy checks listed there.
 
 `sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
 fix hint, where a plain `sq` command stops at the first:
@@ -1860,7 +1971,7 @@ sq override scaffold items/task.md.j2
 sq override scaffold agents/role.md.j2
 sq override scaffold subentities/block.md.j2
 
-# Copy a role TOML override (a bundled role, to change its name/model/etc.)
+# Copy a role TOML override (a bundled role, to change its title/model/etc.)
 sq override scaffold --role architect
 
 # Same for a developer already on your roster
@@ -2035,7 +2146,8 @@ tech-writer = "Documentation Lead"
 Writing the file before you initialise means `sq init` finds one already there, so pass
 `sq init --force` — your `[init.names]` table survives it. A `--name` flag beats the table for the
 same slug, and the table is read at `init` only: a role you activate later takes its name from
-`--name` or from the bundled catalog, never from this table.
+`--name` or from the configuration (see [Which name wins](#which-name-wins)), never from this
+table.
 
 **Interactive prompting (at a TTY):**
 
@@ -2050,7 +2162,7 @@ Pre-answer these prompts with flags or `[init.names]` so you're never blocked.
 **Skip prompting entirely:**
 
 ```bash
-sq init --default-names    # uses bundled names for all roles
+sq init --default-names    # uses the configured names for all roles
 ```
 
 This is useful in CI or scripts where you can't interact. **Non-TTY environments (pipes, scripts,
@@ -2058,8 +2170,9 @@ CI) always behave as if `--default-names` is set** — you'll never hit a prompt
 
 **Fallback:**
 
-Any role not named via a flag, config, or prompt falls back to its bundled name (bundled roles)
-or a name from the dev pool (custom developer roles).
+Any role not named via a flag, config, or prompt takes the name the configuration gives it: a
+`full_name` in its per-slug override file, else in `roles.toml`, else the bundled name (bundled
+roles) or a name from the dev pool (developer roles).
 
 ### Naming roles after init
 
@@ -2073,65 +2186,55 @@ sq role activate architect --name "Chief Designer"
 sq dev add --tech python --name "Pythonista"
 ```
 
-Omit the name and the role falls back to its bundled or pooled default.
+Omit the name and the role takes the name the configuration gives it, as at `init`.
 
 `--name` only applies while the role is being created. Activating a role that is already live is a
 no-op that returns the existing entry untouched — it reports success, and a `--name` you passed
-with it does nothing. Rename a live role through its override instead (see
-[Which name wins](#which-name-wins) below).
+with it does nothing. To rename a live role, see [Which name wins](#which-name-wins) below.
 
 ### How names flow into your squad
 
-The chosen name is stored as the ROLE item's `title`. Everything downstream reads from there:
+The name is stored as the ROLE item's `title`. Everything downstream reads from there:
 
 - The **Agent roster** in your `CLAUDE.md` (generated by `sq sync`).
 - The **agent pointer files** in `.claude/` (e.g., `.claude/agents/architect.md`).
 - The heading of `sq role <slug> show`.
 
-If you want to rename a role later, use the same role-override mechanism — see
-["Override a role's name and model"](#override-a-roles-name-and-model) below — then run
-`sq sync` to regenerate the pointer and `CLAUDE.md` section from it.
-
 ### Which name wins
 
-Four things can name a role — an `init` flag, the `[init.names]` table, the `init` prompt, and
-`--name` on `sq role activate` or `sq dev add` — and a role override can name it a fifth time.
-They do not compete for long, because the first four all write the same field: whichever of them
-applied is simply *the name stored on the role*. So the order is short, and `sq sync` honours it
-every time it runs:
+A role's name is decided once, when the role is created, and stored. At creation the first of
+these that applies wins:
 
-1. **`full_name` declared in `.overrides/roles/<slug>.toml`.** A declared name renames the role;
-   an omitted one leaves the stored name alone.
-2. **The name already stored on the role**, however it got there — a flag, the config table, the
-   prompt, `sq role activate --name`, or `sq dev add --name`.
-3. **The bundled catalog's name** — or, for a `<tech>-dev` slug with no role yet, a name picked
-   from the developer pool.
+1. **A name you give:** `--name` on `sq role activate` or `sq dev add`, or at `sq init` a `--name`
+   flag, the `[init.names]` table or the prompt.
+2. **`full_name` in `.overrides/roles/<slug>.toml`.**
+3. **`full_name` in `.overrides/roles.toml`.**
+4. **The bundled catalog's name**, or for a developer a name picked from the pool (a first name
+   followed by the tech).
 
-**What `sq sync` keeps, and what it refreshes.** The name is kept: sync never puts the bundled one
-back over yours. So is a developer's `--model`, the other field `sq dev add` lets you choose.
-Everything else in a role's definition — mission, responsibilities, spawn authority, a bundled
-role's model, its preloaded skills — is refreshed from the bundled definition (or from your
-override) on every sync, so an improvement squads ships reaches a role you activated long ago.
+**After that, the stored name is the role's name.** No configuration change renames an active
+role: a `full_name` added to or changed in either override file, or a squads release that changes
+a bundled name, names the roles created after it and leaves the ones you have alone. `sq sync`
+never changes a name, and the upgrade to a new squads version keeps every stored name.
 
-**A rename is a real edit.** Declaring a new `full_name` and syncing moves the role's `updated_at`
-and shows up in `sq reflog` as an update carrying the old and new names. Syncing again with the
-same override changes nothing further. And a rename is not a temporary coat of paint: once the
-override's name has been applied, that *is* the stored name, so deleting the override afterwards
-leaves the new name in place rather than restoring the old one.
+**What `sq sync` keeps, and what it refreshes.** The name is kept. So is a developer's `--model`,
+the other field `sq dev add` lets you choose. Everything else in a role's definition — its title,
+mission, responsibilities, spawn authority, a bundled role's model, its preloaded skills — is
+refreshed from the bundled definition (or from your override) on every sync, so an improvement
+squads ships reaches a role you activated long ago.
 
-**If a role is showing the bundled name where you set your own**, write the name you want into
-that role's override and sync once:
-
-```toml
-# .overrides/roles/architect.toml
-full_name = "Chief Designer"
-```
+**Renaming an active role** sets its stored `title` with an `update` event of `sq import`. Take the
+role's ID from `sq list -t role`:
 
 ```bash
+echo '{"op": "update", "target": "ROLE-<n>", "title": "Chief Designer"}' | sq import - --as manager
 sq sync
 ```
 
-That is the whole repair — it names the role and, being stored, the name then stands on its own.
+The rename moves the role's `updated_at` and shows up in `sq reflog` as an update carrying the old
+and new names. `sq sync` then regenerates the role's pointer and the `CLAUDE.md` roster from it.
+The slug does not change (see below), and comments the role wrote earlier keep the name they were
+written under.
 
 ### Slug immutability
 
@@ -2196,7 +2299,7 @@ template; tasks already on disk keep the body they have.
 ### Override a role's name and model
 
 You want the architect role to use a faster model for everyday work, and you want to call them
-"Design Lead." Override the role:
+"Design Lead." Override the role before you activate it:
 
 ```bash
 sq override scaffold --role architect
@@ -2209,8 +2312,10 @@ full_name = "Design Lead"
 model = "haiku"
 ```
 
-The rest of the architect's definition (title, mission, responsibilities) stays the same. Run `sq
-sync` to regenerate the pointer and CLAUDE.md section.
+The rest of the architect's definition (title, mission, responsibilities) stays the same. Run
+`sq role activate architect`: the new role is named "Design Lead" and runs on `haiku`. If the
+architect is already active, `sq sync` applies the model and leaves the stored name as it is;
+rename it as [Which name wins](#which-name-wins) shows.
 
 ### Retitle a developer without renaming them
 
@@ -2229,8 +2334,8 @@ title = "Senior Python developer"
 
 Run `sq sync`. The new title reaches the role's definition under `squads/agents/roles/`, its
 pointer in `.claude/`, and the agent roster in `CLAUDE.md`; the developer's name, model, mission
-and responsibilities are untouched, because the file didn't mention them. Add `full_name` to the
-same file when you do want to rename them.
+and responsibilities are untouched, because the file didn't mention them. A `full_name` in the
+same file would not rename them either: it names a developer only when one is added.
 
 ### Define a custom role
 
@@ -2360,4 +2465,8 @@ in v<version>: ['agreements', 'can_spawn', 'color', 'description', 'full_name', 
 
 `sq check` reports it as an error, `sq role <slug> show` refuses, and so does `sq sync` once the
 role is on the roster. Nothing passes an unknown field through to a template. For a field squads
-*does* recognise (like `model`), set it in the override and run `sq sync`.
+*does* recognise (like `model`), set it in the override and run `sq sync`. To store a key of your
+own on each role item instead, declare it as an attribute of the `role` type in
+`.overrides/workflow.toml` (see [Attributes](#attributes-the-keys-a-type-stores)). `sq role` has
+no `update` verb, so set it with an `update` event of `sq import`:
+`echo '{"op": "update", "target": "ROLE-<n>", "fields": {"<key>": "<value>"}}' | sq import - --as <slug>`.
