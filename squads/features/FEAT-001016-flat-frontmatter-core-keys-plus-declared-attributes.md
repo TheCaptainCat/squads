@@ -3,7 +3,7 @@ id: FEAT-1016
 sequence_id: 1016
 type: feature
 title: 'Flat frontmatter: core keys plus declared attributes'
-status: Ready
+status: Done
 author: product-owner
 refs:
 - ADR-1007:implements
@@ -37,7 +37,7 @@ subentities:
   title: As an adopter, I want the docs and changelog to say flat
   status: Done
 created_at: '2026-10-15T20:12:57Z'
-updated_at: '2026-10-16T17:12:39Z'
+updated_at: '2026-10-16T17:12:51Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision that frontmatter is one flat mapping: core keys plus attributes declared in the spec, with unknown keys kept. The decision is the spec; the stories cite its numbered sections and add acceptance only. The nested `extra:` block goes, on every wire surface.
