@@ -48637,7 +48637,7 @@
         {
           "local_id": "ST4",
           "title": "Make the system-entry gate refuse update by field, with a declared exemption set",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -48646,7 +48646,7 @@
         {
           "local_id": "ST5",
           "title": "Add update for display fields on skills, roles and operators",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48664,7 +48664,7 @@
       ],
       "path": "tasks/TASK-001070-give-skills-roles-and-operators-the-item-verbs.md",
       "created_at": "2026-10-16T19:52:27Z",
-      "updated_at": "2026-10-16T23:10:46Z",
+      "updated_at": "2026-10-16T23:47:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49801,7 +49801,7 @@
         {
           "local_id": "F1",
           "title": "Roster comments help names show --comments, which roster show lacks",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -49810,7 +49810,7 @@
         {
           "local_id": "F2",
           "title": "Remedy and refusal texts still name the hidden rm alias",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -49819,6 +49819,33 @@
         {
           "local_id": "F3",
           "title": "Addressed-verb lists are hand-copied per group and drift",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Update with only --when-to-use leaves the scaffold stale, so the skill body counts as written",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "A slug key on a generated role import names the role override; elsewhere it is not settable",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Rescaffold address branch is unreachable for work items and misroutes operators",
           "status": "Open",
           "assignee": null,
           "severity": "info",
@@ -49828,7 +49855,7 @@
       ],
       "path": "reviews/REV-001086-roster-remove-comment-and-skill-discussion-region.md",
       "created_at": "2026-10-16T23:20:09Z",
-      "updated_at": "2026-10-16T23:21:00Z",
+      "updated_at": "2026-10-16T23:54:38Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},

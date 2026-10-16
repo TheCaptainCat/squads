@@ -12,18 +12,32 @@ description: 'Review of TASK-1070 ST1-ST3: remove/rm, the skill discussion regio
 subentities:
 - local_id: F1
   title: Roster comments help names show --comments, which roster show lacks
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F2
   title: Remedy and refusal texts still name the hidden rm alias
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: Addressed-verb lists are hand-copied per group and drift
+  status: Fixed
+  severity: info
+- local_id: F4
+  title: Update with only --when-to-use leaves the scaffold stale, so the skill body
+    counts as written
+  status: Open
+  severity: medium
+- local_id: F5
+  title: A slug key on a generated role import names the role override; elsewhere
+    it is not settable
+  status: Open
+  severity: low
+- local_id: F6
+  title: Rescaffold address branch is unreachable for work items and misroutes operators
   status: Open
   severity: info
 created_at: '2026-10-16T23:20:09Z'
-updated_at: '2026-10-16T23:21:00Z'
+updated_at: '2026-10-16T23:54:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -67,6 +81,10 @@ Recommendation: add `--comments` to the three roster `show` commands, which give
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-16T23:25:34Z] Elias Python:
+  - Added --comments to the three roster show commands (text output); pinned in the comment table. Reverting the skill one: 8 tests red.
+- [2026-10-16T23:54:26Z] Paul Reviewer:
+  - Verified: role, skill and operator show take --comments and print the discussion.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -87,6 +105,10 @@ The alias still works, so nothing breaks, but every remedy names a command that 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-16T23:25:36Z] Elias Python:
+  - remove is named in the purge message, the three sq check remedies, the 0.16 MANUAL steps and the dispatch-group docstring/default (the default is gone, see F3); pinned tests updated. Reverting the purge message: 24 tests red.
+- [2026-10-16T23:54:27Z] Paul Reviewer:
+  - Verified: no rm --purge is left under src, including the 0.16 MANUAL; refusal and check remedies name remove --purge.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -102,8 +124,70 @@ Suggestion: derive `_ADDR_VERBS`, and the epilog's verb list, from the `_addr` s
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-16T23:25:38Z] Elias Python:
+  - The missing-verb error and each group help epilog now come from the registered non-hidden commands of the addressed subgroup (the three _ADDR_VERBS lists are deleted; epilogs take a {verbs} slot filled after registration). Hand list restored: 3 red; rm unhidden: 6 red. The module grammar docstrings stay hand-written.
+- [2026-10-16T23:54:28Z] Paul Reviewer:
+  - Verified: the epilog and the missing-verb error derive their verb list from the registered non-hidden commands, and update appears without a hand edit.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
+
+<!-- sq:finding:F4 -->
+### F4 — Update with only --when-to-use leaves the scaffold stale, so the skill body counts as written
+
+<!-- sq:finding:F4:body -->
+Body re-rendering happens only when the title or the description changes: `_update_model` passes `rescaffold=... and ("title" in delta or "description" in delta)`. But `templates/agents/skill.md.j2` also interpolates `item.when_to_use`, as a "## When to use" section.
+
+So on a project skill whose body is still the seeded scaffold, `sq skill <x> update --when-to-use "..."` does not re-render the body. The old scaffold no longer equals the new pristine body, so the seeded template now counts as written, which the FEAT-1054 rule says an update must never cause.
+
+Probe (fresh scratch squad, dev build):
+1. Run `skill add my-skill --desc 'Old desc'`.
+2. Run `skill my-skill update --when-to-use 'When shipping.'`. The body is unchanged.
+3. Run `skill my-skill body -m 'Authored now.'`. It exits 1 with "already has a body (5 lines) ... pass --force".
+
+Without step 2, step 3 succeeds. With `--title` added to step 2, the body re-renders and step 3 succeeds.
+
+Fix: re-render on every roster update. `_rescaffolded_body` already leaves a written body alone, so the delta condition only adds a way to miss a field. Add a `--when-to-use`-only row to the body re-render test.
+<!-- sq:finding:F4:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F4:discussion -->
+<!-- sq:finding:F4:discussion:end -->
+<!-- sq:finding:F4:end -->
+
+<!-- sq:finding:F5 -->
+### F5 — A slug key on a generated role import names the role override; elsewhere it is not settable
+
+<!-- sq:finding:F5:body -->
+On an import update, the gate builds its set of gated fields from the `RoleDef` field names, and that set includes `slug`. So `fields: {slug: x}` on a generated role is refused with "its content already has one validated authoring surface: `.overrides/roles.toml`". That message suggests the slug can be authored in the role document, but it cannot: an override's slug must equal its file name. The same event on a skill or operator says "'slug' is not a settable field".
+
+An unknown key now gets "not a settable field" on a role, as on a skill, an operator or a work item, and that part is consistent.
+
+Suggestion: leave identity keys (`slug`) out of the role-supplied set, so a slug change gets the same "not settable" answer on every roster type.
+
+Separately, `require_update_fields` prints "pass at least one of --title" on a role or an operator. With a single option, "pass --title" reads better.
+<!-- sq:finding:F5:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F5:discussion -->
+<!-- sq:finding:F5:discussion:end -->
+<!-- sq:finding:F5:end -->
+
+<!-- sq:finding:F6 -->
+### F6 — Rescaffold address branch is unreachable for work items and misroutes operators
+
+<!-- sq:finding:F6:body -->
+`_rescaffolded_body` in `_services/_base.py` picks its address with `slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)`. Its only caller sets `rescaffold` for roster types only, so the work-item branch is unreachable. An operator, which is a roster entry addressed by slug, falls into the number branch.
+
+Use `item.slug` for every roster type and drop the branch. The function is roster-only, and its docstring could say so.
+<!-- sq:finding:F6:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F6:discussion -->
+<!-- sq:finding:F6:discussion:end -->
+<!-- sq:finding:F6:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -112,4 +196,7 @@ Suggestion: derive `_ADDR_VERBS`, and the epilog's verb list, from the `_addr` s
 - [2026-10-16T23:20:50Z] Paul Reviewer:
   - Recommended verdict: changes requested, minor. F1 (medium): roster show lacks --comments, which the shared comments help names; add it for parity. F2 (low): refusal and remedy texts still name the hidden rm. F3 (info): derive the addressed-verb lists. Migration, remove/rm identity and comment semantics all verified clean.
   - @python-dev F1 and F2 to fix before the ST3 commit point; @tech-lead to rule on F1 if show --comments is out of scope.
+- [2026-10-16T23:54:38Z] Paul Reviewer:
+  - ST4/ST5 re-review. F1-F3 verified Fixed. Verified clean: the gate (a project attribute stays writable through import; labels, parent and unknown keys are untouched by it; a combined call is refused; a system skill title, description or when-to-use is refused naming the playbook; every live role title passes), update options with no slug change, no-option exit 1 with nothing written, written bodies kept, retired role and skill updates leave pointers absent, live rename refreshes the pointer and CLAUDE.md, and sync is a fixed point. Targeted tests: 1077 passed; ruff and pyright clean.
+  - New: F4 (medium) update --when-to-use alone leaves the scaffold stale; F5 (low) slug-on-role message and the single-option "at least one of" wording; F6 (info) unreachable rescaffold address branch. Review stays ChangesRequested on F4. @python-dev F4 to fix, F5/F6 your call.
 <!-- sq:discussion:end -->
