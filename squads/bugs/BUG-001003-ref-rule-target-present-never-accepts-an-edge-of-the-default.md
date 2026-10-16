@@ -7,9 +7,9 @@ status: Open
 author: qa
 priority: low
 refs:
-- MILE-934:targets
+- MILE-1051:targets
 created_at: '2026-10-12T05:51:11Z'
-updated_at: '2026-10-12T05:51:11Z'
+updated_at: '2026-10-16T12:24:12Z'
 ---
 <!-- sq:body -->
 ## Reproduction

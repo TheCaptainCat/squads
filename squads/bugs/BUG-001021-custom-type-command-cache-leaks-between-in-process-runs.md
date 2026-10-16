@@ -8,10 +8,11 @@ author: qa
 priority: low
 refs:
 - TASK-1018
+- MILE-1051:targets
 description: Class-level cache keeps one squad's custom type and aliases for later
   -C runs
 created_at: '2026-10-15T20:51:06Z'
-updated_at: '2026-10-15T20:51:06Z'
+updated_at: '2026-10-16T12:24:14Z'
 ---
 <!-- sq:body -->
 ## Summary

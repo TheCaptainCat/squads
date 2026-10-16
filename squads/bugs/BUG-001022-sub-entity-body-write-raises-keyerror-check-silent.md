@@ -8,10 +8,11 @@ author: qa
 priority: low
 refs:
 - REV-1020
+- MILE-1051:targets
 description: 'Missing subtask body/block or discussion region: raw traceback on write,
   no check finding'
 created_at: '2026-10-15T20:51:12Z'
-updated_at: '2026-10-15T20:51:12Z'
+updated_at: '2026-10-16T12:24:14Z'
 ---
 <!-- sq:body -->
 ## Summary

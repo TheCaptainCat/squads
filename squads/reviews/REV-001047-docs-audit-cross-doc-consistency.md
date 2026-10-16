@@ -47,7 +47,7 @@ subentities:
   status: Fixed
   severity: medium
 created_at: '2026-10-16T11:15:14Z'
-updated_at: '2026-10-16T11:26:21Z'
+updated_at: '2026-10-16T11:34:06Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -259,4 +259,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
   - @manager ready for your pass.
 - [2026-10-16T11:26:20Z] Catherine Manager:
   - Approved: every finding Fixed (re-run by the writer on the dev build) or closed with a home; cross-doc seams checked in REV-1047.
+- [2026-10-16T11:34:06Z] Pierre Chat:
+  - - 2026-10-16: prose is allowed in a roster entry's body, agent role or operator alike. `sq check` must stop reporting "missing seeded view tag … the body already carries prose" as an error for it; `show` already honours the prose.
+    - Intended use: an operator's body records who the human is (their role on the project, e.g. tech or QA, their expertise, what they come to do). The greeting skill reads it to know who it is talking to. When the name matches no registered operator, it offers to register them and asks a few questions about their role, so the next session can load that profile.
 <!-- sq:discussion:end -->

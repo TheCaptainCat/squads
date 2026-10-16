@@ -8,10 +8,11 @@ author: qa
 priority: medium
 refs:
 - REV-1047
+- MILE-934:targets
 description: Catalog-document full_name renames only the catalog and new activations,
   not a live role; per-slug file does.
 created_at: '2026-10-16T11:19:07Z'
-updated_at: '2026-10-16T11:25:53Z'
+updated_at: '2026-10-16T12:23:57Z'
 ---
 <!-- sq:body -->
 ## Repro (dev build, scratch squad)

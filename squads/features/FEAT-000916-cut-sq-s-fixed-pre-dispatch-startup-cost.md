@@ -9,8 +9,9 @@ author: product-owner
 priority: medium
 refs:
 - EPIC-29
+- MILE-1051:targets
 created_at: '2026-09-03T13:06:26Z'
-updated_at: '2026-09-03T13:32:06Z'
+updated_at: '2026-10-16T11:28:12Z'
 ---
 <!-- sq:body -->
 ## Capability
@@ -80,4 +81,6 @@ _Add with `sq feature 916 add-story "As a <role>, I want … so that …"`; trac
 <!-- sq:discussion -->
 - [2026-09-03T13:32:06Z] Pierre Chat:
   - Held, not in 0.15. Neither is gated on the web API or the daemon -- both are local CLI work that lands independently -- but 0.15 already carries two full lines and nothing forces these early. Picked up in a later release, or alongside the daemon work when the startup cost starts hurting enough to act on. The measurements are on the record; that was the point of writing them down.
+- [2026-10-16T11:28:12Z] Pierre Chat:
+  - 2026-10-16: targets 0.17 (MILE-1051), built first so the daemon is measured against the lean startup baseline.
 <!-- sq:discussion:end -->

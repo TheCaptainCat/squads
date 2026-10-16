@@ -2,14 +2,14 @@
 id: MILE-868
 sequence_id: 868
 type: milestone
-title: The web release
+title: squads 0.18 - the web frontend
 status: Draft
 author: product-owner
 refs:
 - EPIC-29
 - MILE-1051:depends-on
 created_at: '2026-09-02T08:03:39Z'
-updated_at: '2026-10-16T11:24:08Z'
+updated_at: '2026-10-16T11:51:55Z'
 ---
 <!-- sq:body -->
 A squad readable in a browser: the squad's state stops being visible only to whoever is sitting at the terminal. This milestone holds the work that brings the browser surface to a first usable state. The linked epic carries the outcome and the framing. The surface is built on the local API and daemon of the daemon milestone, which it depends on.
@@ -27,8 +27,6 @@ A squad readable in a browser: the squad's state stops being visible only to who
 - The other browse clients. The terminal UI and the editor extension have their own homes; only work whose reason for existing is the web surface aims here.
 - Engine or vocabulary changes the web view merely consumes.
 
-This milestone deliberately carries no version number. It is defined by the surface it delivers, not by a slot in the release sequence.
-
 <!-- sq:view:milestone_rollup -->
 <!-- sq:body:end -->
 
@@ -39,4 +37,6 @@ This milestone deliberately carries no version number. It is defined by the surf
   - Linked to the sq web epic with a plain related ref, not membership: the roll-up inverts incoming targets refs only, so the shell stays empty while the epic's outcome and framing stay one hop away instead of being restated here and drifting.
 - [2026-10-16T11:22:52Z] Pierre Chat:
   - 2026-10-16: split this milestone. A new milestone, squads 0.17, is the daemon release: the API (serves and listens on localhost, no authentication), the CLI's remote and local modes, and the daemon logic. This milestone keeps only the browser frontend and builds on 0.17. Transport (HTTP port vs Unix socket) is undecided and goes to an ADR.
+- [2026-10-16T11:51:38Z] Pierre Chat:
+  - 2026-10-16: this milestone becomes squads 0.18 (the web frontend), after 0.17 (MILE-1051, the daemon).
 <!-- sq:discussion:end -->

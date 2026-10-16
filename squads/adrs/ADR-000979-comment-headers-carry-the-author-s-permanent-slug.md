@@ -13,7 +13,7 @@ refs:
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-10-16T11:16:25Z'
+updated_at: '2026-10-16T12:11:59Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -236,8 +236,8 @@ never by an author. The migration changes nothing an agent wrote.
 
 ## Amendments — 2026-10-16
 
-Decisions 1 to 6 stand as ruled. A1 to A5 rule the case REV-1026 finding F3 raised, and A6 the case of
-REV-1027 finding F2. Decision
+Decisions 1 to 6 stand as ruled. A1 to A5 rule the case REV-1026 finding F3 raised, A6 the case of
+REV-1027 finding F2, and A7 the case of REV-1055 finding F7. Decision
 2 reserves `operator`, `squads` and `op-` against roles, and says nothing about operators. The
 text above is unedited apart from the dated notes that point here. Evidence is marked **driven**
 (run on this repository's squad with the released `sq`, or recorded as driven on REV-1026),
@@ -313,6 +313,15 @@ skill slug    = [a-z0-9] [a-z0-9-]*
   slug's history. Addressing by id matters, because a slug matching a group verb cannot be
   addressed by slug (read, `sq operator --help`).
 
+> **Note 2026-10-16 (REV-1055 F5):** `roster_slug_valid` is a squad-global rule. It runs on
+> every `sq check` at a fixed `error`, outside any type's selection, so it cannot be deselected
+> or given another level; read "on by default" above as "always on". Every squad-global rule
+> works this way (read, `SQUAD_GLOBAL_CATALOG` and `ValidatorEngine.report` in
+> `_services/_validators.py`), `default_designation_duplicated` included. Two reasons. It is an
+> identity check: an adopter has no legitimate reason to let one slug name two authors, which
+> breaks ADR-1013's match. And a switch would need squad-global rules to become selectable, an
+> engine change this amendment does not make.
+
 ### A4 — The 0.16 migration refuses; it does not only report
 
 The planning pass checks the roster before it resolves any header, and an entry that breaks A1
@@ -386,6 +395,50 @@ operator whose display name is `op-ann` and attribute the headers to it.
 - The name's bytes are kept, as for every rewritten header:
   ``- [2026-10-16T07:36:53Z] `op-ann` op-ann:``.
 
+### A7 — A role or skill slug is not a verb of its `sq` group
+
+Added 2026-10-16 for REV-1055 finding F7.
+
+**The gap** (driven, REV-1055 F7). `.overrides/roles/list.toml` activates as ROLE-21 with exit
+0, then `sq role list show` fails with `Got unexpected extra argument(s) (show)`: the group verb
+wins. The generated agent pointer tells the agent to run `sq role <slug> show` (read,
+`pointer_agent.md.j2`), and a skill pointer `sq skill <slug> show` (read,
+`pointer_skill.md.j2`), so for such an entry the one instruction the pointer carries cannot
+work. `sq role --help` and `sq skill --help` already state that a slug matching a group verb is
+unaddressable by slug (read), which documents the hole without closing it. Operators are
+already closed: A1 puts every operator slug under `op-`, and no `sq operator` verb starts with
+it.
+
+- Role activation and skill creation refuse a slug equal to a group verb of `sq role` (today
+  `catalog`, `list`, `activate`) or of `sq skill` (today `add`), with exit 1 and nothing
+  written. The check sits at the roster creation seam beside the role rule of A1
+  (`_check_roster_slug`), so the override path, the importer and any later path all pass
+  through it.
+- The verb set is read from the CLI group's registered commands, not a hand-kept list, so a
+  verb added later is covered without an edit here.
+- Only group verbs are reserved. The verbs that follow an address (`show`, `rm`, `regen`, …)
+  come after the slug and do not collide.
+- `roster_slug_valid` (A3) also reports a role or skill whose slug is a verb of its group,
+  because an entry can already hold one (an override activated before this rule, or a verb a
+  later release adds). The remedy names the entry by id: rename the project role file or skill
+  to another slug, activate or add it again, and purge the old entry. A skill stays outside the
+  author namespace (A2); this rule is about addressing, not identity.
+- The 0.16 migration does not refuse on it. A verb slug breaks no header: the composed header
+  matches the pattern and names one author.
+- Developer roles are unaffected: a `<tech>-dev` slug ends in `-dev`, and no group verb does.
+
+Note, 2026-10-16 (REV-1055 F8). The verb set is not read from the CLI at runtime. It is held as
+two constants, `ROLE_GROUP_VERBS` and `SKILL_GROUP_VERBS` in `_models/_participants.py`,
+because the models layer sits below the CLI and cannot import the Typer app; this is the same
+arrangement as `RESERVED_CLI_VERBS` in `_workflow/_models.py`. A meta test
+(`tests/meta/test_roster_group_verbs_match_the_live_command_table.py`) asserts each constant
+equals the verbs registered on its group, so it fails in both directions: a verb dropped from
+the group, or a verb added to it without the constant. The guard is equivalent to a runtime
+read for every released build, since no build ships with the constants out of step with the
+command table. The difference is where a new verb is caught: it fails CI until the constant is
+edited, rather than being covered silently. Reading the verbs at runtime would need a layering
+change and buys nothing a release could observe.
+
 ### What the amendments oblige
 
 - Operator creation refuses a slug outside `op-[a-z0-9][a-z0-9-]*`, on every path, with nothing
@@ -407,6 +460,11 @@ operator whose display name is `op-ann` and attribute the headers to it.
   header the released 0.15.0 writer actually writes for an operator without a full name
   migrates to that operator's slug, a title match beats an operator-slug match, and a name
   equal only to a role slug still fails.
+- Role activation and skill creation refuse a slug equal to a group verb of `sq role` or
+  `sq skill`, held in step with the registered commands (A7 note), and `roster_slug_valid` reports an entry that
+  already holds one (A7). Proof: `list`, `catalog`, `activate` refused as role slugs through an
+  override, `add` refused as a skill slug, nothing written; a hand-made role slugged `list`
+  reported by `sq check`; `show` accepted.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -440,4 +498,11 @@ operator whose display name is `op-ann` and attribute the headers to it.
       - @manager for op-pierre's confirmation of A1 to A6; once confirmed, A6 goes to @python-dev with REV-1027 F2.
 - [2026-10-16T11:16:25Z] Pierre Chat:
   - 2026-10-16: confirmed the amendment A1–A6 as drafted (A1 operator slugs op-…; A2 one author namespace, skills excluded; A3 roster_slug_valid check; A4 the 0.16 migration refuses a non-conforming operator slug; A5 --as squads refused everywhere; A6 slug fallback when no title matches).
+- [2026-10-16T11:53:31Z] Robert Architect:
+  - - 2026-10-16: two additions for REV-1055, additions only; status untouched.
+      - Note under A3 (F5): `roster_slug_valid` is squad-global, always on at a fixed `error`, not selectable; "on by default" reads as "always on". Reason: an identity check, and selectable squad-global rules would be an engine change.
+      - A7 (F7): role activation and skill creation refuse a slug equal to a group verb of `sq role` (`catalog`, `list`, `activate`) or `sq skill` (`add`), read from the registered commands; `roster_slug_valid` also reports an entry that already holds one; the 0.16 migration does not refuse on it.
+      - @manager A7 needs op-pierre's confirmation, as A6 did: it changes what an adopter may name a project role or skill.
+- [2026-10-16T11:56:42Z] Pierre Chat:
+  - 2026-10-16: confirmed A7 (roles and skills refuse a slug equal to their group's verbs, like operators).
 <!-- sq:discussion:end -->

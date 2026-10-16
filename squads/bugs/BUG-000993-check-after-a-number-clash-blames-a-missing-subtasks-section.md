@@ -7,10 +7,10 @@ status: Open
 author: qa
 priority: medium
 refs:
-- MILE-934:targets
 - BUG-994
+- MILE-1051:targets
 created_at: '2026-10-11T20:18:02Z'
-updated_at: '2026-10-11T20:18:18Z'
+updated_at: '2026-10-16T12:24:08Z'
 ---
 <!-- sq:body -->
 ## Reproduction

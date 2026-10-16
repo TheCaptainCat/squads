@@ -8,8 +8,9 @@ author: qa
 priority: low
 refs:
 - REV-1033
+- MILE-1051:targets
 created_at: '2026-10-16T09:09:22Z'
-updated_at: '2026-10-16T09:09:22Z'
+updated_at: '2026-10-16T12:24:20Z'
 ---
 <!-- sq:body -->
 Reproduced on the dev build in a fresh scratch squad (git-inited, `sq init`, nothing overridden).

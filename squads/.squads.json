@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1051,
+  "counter": 1058,
   "padding": 6,
   "items": {
     "12": {
@@ -76,7 +76,7 @@
       "subentities": [],
       "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
       "created_at": "2026-06-10T15:16:05Z",
-      "updated_at": "2026-09-03T13:07:04Z",
+      "updated_at": "2026-10-16T11:27:13Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7003,12 +7003,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "EPIC-29"
+        "EPIC-29",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "features/FEAT-000916-cut-sq-s-fixed-pre-dispatch-startup-cost.md",
       "created_at": "2026-09-03T13:06:26Z",
-      "updated_at": "2026-09-03T13:32:06Z",
+      "updated_at": "2026-10-16T11:28:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29389,12 +29390,12 @@
       "labels": [],
       "refs": [
         "ADR-984",
-        "MILE-934:targets"
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000985-a-dev-catalog-override-is-reverted-for-existing-devs-by-sq-s.md",
       "created_at": "2026-10-09T18:42:59Z",
-      "updated_at": "2026-10-11T20:18:25Z",
+      "updated_at": "2026-10-16T12:24:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29414,12 +29415,12 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "MILE-934:targets"
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000987-renamed-stripped-managed-skill-file-check-gives-no-remedy.md",
       "created_at": "2026-10-09T20:19:45Z",
-      "updated_at": "2026-10-09T20:19:45Z",
+      "updated_at": "2026-10-16T12:24:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29466,13 +29467,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "MILE-934:targets",
-        "BUG-994"
+        "BUG-994",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000993-check-after-a-number-clash-blames-a-missing-subtasks-section.md",
       "created_at": "2026-10-11T20:18:02Z",
-      "updated_at": "2026-10-11T20:18:18Z",
+      "updated_at": "2026-10-16T12:24:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31534,7 +31535,7 @@
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-10-16T11:16:25Z",
+      "updated_at": "2026-10-16T12:11:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31872,8 +31873,8 @@
     "868": {
       "sequence_id": 868,
       "type": "milestone",
-      "title": "The web release",
-      "slug": "the-web-release",
+      "title": "squads 0.18 - the web frontend",
+      "slug": "squads-0-18-the-web-frontend",
       "status": "Draft",
       "description": "",
       "parent": null,
@@ -31887,9 +31888,9 @@
         "MILE-1051:depends-on"
       ],
       "subentities": [],
-      "path": "milestones/MILE-000868-the-web-release.md",
+      "path": "milestones/MILE-000868-squads-0-18-the-web-frontend.md",
       "created_at": "2026-09-02T08:03:39Z",
-      "updated_at": "2026-10-16T11:24:08Z",
+      "updated_at": "2026-10-16T11:51:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31898,8 +31899,8 @@
     "934": {
       "sequence_id": 934,
       "type": "milestone",
-      "title": "squads 0.16 - roles, not slugs",
-      "slug": "squads-0-16-roles-not-slugs",
+      "title": "squads 0.16 - one roster, flat files",
+      "slug": "squads-0-16-one-roster-flat-files",
       "status": "InProgress",
       "description": "",
       "parent": null,
@@ -31912,9 +31913,9 @@
         "MILE-867"
       ],
       "subentities": [],
-      "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
+      "path": "milestones/MILE-000934-squads-0-16-one-roster-flat-files.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-16T11:16:28Z",
+      "updated_at": "2026-10-16T12:24:23Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44012,13 +44013,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "MILE-934:targets",
-        "FEAT-899"
+        "FEAT-899",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-000999-sq-import-orders-one-item-s-warnings-differently-than-0-15-0.md",
       "created_at": "2026-10-12T05:33:56Z",
-      "updated_at": "2026-10-12T05:33:56Z",
+      "updated_at": "2026-10-16T12:24:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44243,12 +44244,12 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "MILE-934:targets"
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001003-ref-rule-target-present-never-accepts-an-edge-of-the-default.md",
       "created_at": "2026-10-12T05:51:11Z",
-      "updated_at": "2026-10-12T05:51:11Z",
+      "updated_at": "2026-10-16T12:24:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44720,12 +44721,13 @@
       "labels": [],
       "refs": [
         "REV-1010",
-        "TASK-1001"
+        "TASK-1001",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001014-untouched-scaffold-reads-as-written-once-target-ref-is-set.md",
       "created_at": "2026-10-15T19:36:06Z",
-      "updated_at": "2026-10-15T19:36:06Z",
+      "updated_at": "2026-10-16T12:24:13Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45248,12 +45250,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "TASK-1018"
+        "TASK-1018",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001021-custom-type-command-cache-leaks-between-in-process-runs.md",
       "created_at": "2026-10-15T20:51:06Z",
-      "updated_at": "2026-10-15T20:51:06Z",
+      "updated_at": "2026-10-16T12:24:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45273,12 +45276,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1020"
+        "REV-1020",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001022-sub-entity-body-write-raises-keyerror-check-silent.md",
       "created_at": "2026-10-15T20:51:12Z",
-      "updated_at": "2026-10-15T20:51:12Z",
+      "updated_at": "2026-10-16T12:24:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45582,7 +45586,7 @@
         {
           "local_id": "F3",
           "title": "operator add --slug takes squads, operator and live role slugs",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -45618,7 +45622,7 @@
       ],
       "path": "reviews/REV-001026-task-1004-st1-st3-checkpoint-slug-comment-headers.md",
       "created_at": "2026-10-15T22:10:58Z",
-      "updated_at": "2026-10-16T11:19:09Z",
+      "updated_at": "2026-10-16T12:19:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45774,12 +45778,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1027"
+        "REV-1027",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001028-atomic-writer-translates-newlines-on-windows.md",
       "created_at": "2026-10-16T07:42:11Z",
-      "updated_at": "2026-10-16T07:42:11Z",
+      "updated_at": "2026-10-16T12:24:15Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45871,12 +45876,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "FEAT-980"
+        "FEAT-980",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001030-override-scaffold-new-accepts-reserved-role-slugs.md",
       "created_at": "2026-10-16T08:24:07Z",
-      "updated_at": "2026-10-16T08:24:07Z",
+      "updated_at": "2026-10-16T12:24:16Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46790,7 +46796,7 @@
       "type": "bug",
       "title": "add-story/subtask/finding hint prints a nonexistent command",
       "slug": "add-story-subtask-finding-hint-prints-a-nonexistent-command",
-      "status": "Open",
+      "status": "Cancelled",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -46799,12 +46805,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1032"
+        "REV-1032",
+        "BUG-1000"
       ],
       "subentities": [],
       "path": "bugs/BUG-001037-add-story-subtask-finding-hint-prints-a-nonexistent-command.md",
       "created_at": "2026-10-16T09:01:07Z",
-      "updated_at": "2026-10-16T09:01:07Z",
+      "updated_at": "2026-10-16T12:24:02Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46824,12 +46831,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1032"
+        "REV-1032",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001038-task-parent-refusal-hints-a-nonexistent-sq-ref-add-form.md",
       "created_at": "2026-10-16T09:01:09Z",
-      "updated_at": "2026-10-16T09:01:09Z",
+      "updated_at": "2026-10-16T12:24:17Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46849,12 +46857,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1032"
+        "REV-1032",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001039-fresh-agents-md-init-warns-of-pre-existing-agents-md-content.md",
       "created_at": "2026-10-16T09:01:11Z",
-      "updated_at": "2026-10-16T09:01:11Z",
+      "updated_at": "2026-10-16T12:24:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46899,12 +46908,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1033"
+        "REV-1033",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001041-init-logs-padded-reflog-targets-for-seeded-skills-skill-0000.md",
       "created_at": "2026-10-16T09:01:15Z",
-      "updated_at": "2026-10-16T09:01:15Z",
+      "updated_at": "2026-10-16T12:24:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46924,12 +46934,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1033"
+        "REV-1033",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001042-help-on-a-behind-schema-squad-resolves-addresses-on-stale-in.md",
       "created_at": "2026-10-16T09:01:36Z",
-      "updated_at": "2026-10-16T09:01:36Z",
+      "updated_at": "2026-10-16T12:24:19Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46949,12 +46960,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1033"
+        "REV-1033",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001043-override-diff-json-prints-text-when-nothing-drifted.md",
       "created_at": "2026-10-16T09:09:22Z",
-      "updated_at": "2026-10-16T09:09:22Z",
+      "updated_at": "2026-10-16T12:24:20Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46974,12 +46986,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1036"
+        "REV-1036",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001044-create-help-understates-author-assignee-op-slug-accepted.md",
       "created_at": "2026-10-16T09:09:24Z",
-      "updated_at": "2026-10-16T09:09:24Z",
+      "updated_at": "2026-10-16T12:35:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46999,12 +47012,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1035"
+        "REV-1035",
+        "MILE-1051:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001045-sq-init-roles-ignores-bundles-and-roles-in-overrides-roles-t.md",
       "created_at": "2026-10-16T09:14:41Z",
-      "updated_at": "2026-10-16T09:14:41Z",
+      "updated_at": "2026-10-16T12:24:22Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47131,7 +47145,7 @@
       ],
       "path": "reviews/REV-001047-docs-audit-cross-doc-consistency.md",
       "created_at": "2026-10-16T11:15:14Z",
-      "updated_at": "2026-10-16T11:26:21Z",
+      "updated_at": "2026-10-16T11:34:06Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47142,7 +47156,7 @@
       "type": "task",
       "title": "Enforce operator slug grammar and one author namespace",
       "slug": "enforce-operator-slug-grammar-and-one-author-namespace",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Operator slugs op-…, skills out of the author namespace, roster_slug_valid, the 0.16 migration refusal, and --as squads refused (ADR-979 A1–A5)",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -47167,7 +47181,7 @@
         {
           "local_id": "ST2",
           "title": "Default roster_slug_valid check",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US2",
@@ -47176,7 +47190,7 @@
         {
           "local_id": "ST3",
           "title": "0.16 migration refuses a role or operator in breach",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US3",
@@ -47185,7 +47199,7 @@
         {
           "local_id": "ST4",
           "title": "Refuse --as squads in every comment writer",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US2",
@@ -47194,7 +47208,7 @@
         {
           "local_id": "ST5",
           "title": "Docs and CHANGELOG for the operator slug rule",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US5",
@@ -47203,7 +47217,7 @@
       ],
       "path": "tasks/TASK-001048-enforce-operator-slug-grammar-and-one-author-namespace.md",
       "created_at": "2026-10-16T11:18:03Z",
-      "updated_at": "2026-10-16T11:25:14Z",
+      "updated_at": "2026-10-16T12:35:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47223,12 +47237,13 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "REV-1047"
+        "REV-1047",
+        "MILE-934:targets"
       ],
       "subentities": [],
       "path": "bugs/BUG-001049-roles-toml-full-name-ignored-for-an-already-active-role.md",
       "created_at": "2026-10-16T11:19:07Z",
-      "updated_at": "2026-10-16T11:25:53Z",
+      "updated_at": "2026-10-16T12:23:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47239,7 +47254,7 @@
       "type": "review",
       "title": "BUG-1046 fix: check reports an invalid role catalog",
       "slug": "bug-1046-fix-check-reports-an-invalid-role-catalog",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "Review of the sq check role catalog validation fix",
       "parent": null,
       "author": "reviewer",
@@ -47254,7 +47269,7 @@
         {
           "local_id": "F1",
           "title": "Wrong-typed sections and non-UTF-8 crash check",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -47263,7 +47278,7 @@
         {
           "local_id": "F2",
           "title": "Per-slug test variant uses an off-roster slug",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -47272,7 +47287,7 @@
         {
           "local_id": "F3",
           "title": "Skip hides catalog-independent per-slug findings",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -47281,7 +47296,7 @@
         {
           "local_id": "F4",
           "title": "Playbook loader shares the crash class",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -47290,7 +47305,7 @@
         {
           "local_id": "F5",
           "title": "Catalog validated twice; stale docstring",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -47299,7 +47314,7 @@
       ],
       "path": "reviews/REV-001050-bug-1046-fix-check-reports-an-invalid-role-catalog.md",
       "created_at": "2026-10-16T11:22:25Z",
-      "updated_at": "2026-10-16T11:23:29Z",
+      "updated_at": "2026-10-16T12:21:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47327,6 +47342,337 @@
       "modified_session": null,
       "extra": {},
       "id": "MILE-1051"
+    },
+    "1052": {
+      "sequence_id": 1052,
+      "type": "decision",
+      "title": "Daemon transport: one HTTP API on a Unix socket and a loopback port",
+      "slug": "daemon-transport-one-http-api-on-a-unix-socket-and-a-loopbac",
+      "status": "Proposed",
+      "description": "One HTTP API: a per-user Unix socket for the CLI on POSIX, a loopback port for the CLI on native Windows, and a disabled-by-default browser port; Host/Origin/JSON admission rules instead of authentication; writes stay under the existing file lock",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-868",
+        "MILE-1051",
+        "EPIC-29",
+        "FEAT-33",
+        "FEAT-916"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001052-daemon-transport-one-http-api-on-a-unix-socket-and-a-loopbac.md",
+      "created_at": "2026-10-16T11:27:26Z",
+      "updated_at": "2026-10-16T12:01:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-1052"
+    },
+    "1053": {
+      "sequence_id": 1053,
+      "type": "review",
+      "title": "BUG-1040 fix: roster rm requires --purge",
+      "slug": "bug-1040-fix-roster-rm-requires-purge",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1040"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Docs and changelog still describe plain rm",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Help epilogues still show plain rm examples",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Refusal always suggests status Archived",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "New test misses pointer and service coverage",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Purge skips the archive gate and reflog",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001053-bug-1040-fix-roster-rm-requires-purge.md",
+      "created_at": "2026-10-16T11:34:00Z",
+      "updated_at": "2026-10-16T12:35:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1053"
+    },
+    "1054": {
+      "sequence_id": 1054,
+      "type": "feature",
+      "title": "Operator profile in the body; prose allowed in roster bodies",
+      "slug": "operator-profile-in-the-body-prose-allowed-in-roster-bodies",
+      "status": "Draft",
+      "description": "Roster bodies may hold prose; an operator body is their profile, read by the greeting skill.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1047:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Prose allowed in role and operator bodies",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Greeting loads the operator profile",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Unknown human offered registration and interview",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Docs for the profile and prose allowance",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001054-operator-profile-in-the-body-prose-allowed-in-roster-bodies.md",
+      "created_at": "2026-10-16T11:34:59Z",
+      "updated_at": "2026-10-16T11:57:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1054"
+    },
+    "1055": {
+      "sequence_id": 1055,
+      "type": "review",
+      "title": "TASK-1048: operator slug grammar and author namespace",
+      "slug": "task-1048-operator-slug-grammar-and-author-namespace",
+      "status": "Approved",
+      "description": "Review of ADR-979 A1-A5 as built: slug grammar, roster_slug_valid, migration refusal, --as squads",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1048"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Importer operators escape the duplicate guard and roster_slug_valid",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Shared-slug remedy fails as printed",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Skill author exemption hides any unregistered skill author",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Operator refusal message false for op- shapes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "roster_slug_valid is not selectable as A3 and ST2 state",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Migration refusal test hashes only md and toml",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Role slug equal to a sq role verb is unaddressable",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "A7 says verbs are read from the CLI; they are pinned constants",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Shared-slug remedy says 'which break' for a single culprit",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Operator with no stored slug is not a participant",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001055-task-1048-operator-slug-grammar-and-author-namespace.md",
+      "created_at": "2026-10-16T11:49:46Z",
+      "updated_at": "2026-10-16T12:19:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1055"
+    },
+    "1057": {
+      "sequence_id": 1057,
+      "type": "bug",
+      "title": "Playbook loader crashes on wrong-typed overrides shapes",
+      "slug": "playbook-loader-crashes-on-wrong-typed-overrides-shapes",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1050",
+        "MILE-934:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001057-playbook-loader-crashes-on-wrong-typed-overrides-shapes.md",
+      "created_at": "2026-10-16T12:21:17Z",
+      "updated_at": "2026-10-16T12:23:58Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1057"
+    },
+    "1058": {
+      "sequence_id": 1058,
+      "type": "bug",
+      "title": "Roster rm --purge skips the archive gate, warnings, reflog",
+      "slug": "roster-rm-purge-skips-the-archive-gate-warnings-reflog",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1053",
+        "MILE-934:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001058-roster-rm-purge-skips-the-archive-gate-warnings-reflog.md",
+      "created_at": "2026-10-16T12:21:18Z",
+      "updated_at": "2026-10-16T12:23:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1058"
     }
   }
 }
