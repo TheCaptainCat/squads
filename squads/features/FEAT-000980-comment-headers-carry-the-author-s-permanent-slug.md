@@ -25,9 +25,9 @@ subentities:
   status: Done
 - local_id: US5
   title: As an adopter, I want the header grammar documented
-  status: Todo
+  status: Done
 created_at: '2026-09-29T14:58:15Z'
-updated_at: '2026-10-16T14:38:52Z'
+updated_at: '2026-10-16T14:39:05Z'
 ---
 <!-- sq:body -->
 Implements the accepted decision on comment headers: each header names the author's permanent slug, so attribution survives a display-name change. The decision is the spec; the stories below cite its numbered decisions and add acceptance only.
