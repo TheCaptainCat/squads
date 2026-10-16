@@ -35,16 +35,11 @@ async def test_empty_roster_lists_cleanly(project, invoke) -> None:
     assert json.loads((await invoke(["operator", "list", "--json"])).output) == []
 
 
-async def test_a_slug_literally_list_is_unaddressable_by_slug(project, invoke) -> None:
-    added = await invoke(["operator", "add", "List", "--slug", "list"])
+async def test_no_operator_slug_can_collide_with_a_group_verb(project, invoke) -> None:
+    refused = await invoke(["operator", "add", "List", "--slug", "list"])
+    assert refused.exit_code == 1, refused.output
+
+    added = await invoke(["operator", "add", "List"])
     assert added.exit_code == 0, added.output
-
-    # `sq operator list` dispatches to the group verb (the listing), not `show` on the
-    # operator whose slug happens to be "list" — addressing that operator needs its full ID.
-    listing = await invoke(["operator", "list"])
-    assert listing.exit_code == 0
-    assert "List" in listing.output
-
-    shown = await invoke(["operator", "OP-000002", "show"])
-    assert shown.exit_code == 0
-    assert "List" in shown.output
+    shown = await invoke(["operator", "op-list", "show"])
+    assert shown.exit_code == 0 and "List" in shown.output

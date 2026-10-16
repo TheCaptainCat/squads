@@ -181,6 +181,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "backend_reconciled",
         "roster_config_integrity",
         "default_designation_duplicated",
+        "roster_slug_valid",
         "playbook_guide_role_live",
     }
 )

@@ -39,7 +39,7 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import frontmatter_skew, skew_message
 from squads._models._index import SquadsDB
 from squads._models._item import make_ref, split_ref
-from squads._models._participants import SYSTEM_SLUG, require_valid_slug
+from squads._models._participants import refuse_system_actor, require_valid_slug
 from squads._services._base import reject_markers
 from squads._services._collab import CollabMixin
 from squads._services._import_model import (
@@ -386,10 +386,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         self, shadow: SquadsDB, handles: HandleMap, event: CommentEvent, actor_slug: str
     ) -> None:
         require_valid_slug(actor_slug, action="write a comment")
-        if actor_slug == SYSTEM_SLUG:
-            raise SquadsError(
-                f"cannot comment as {actor_slug!r}: that slug is reserved for system entries"
-            )
+        refuse_system_actor(actor_slug)
         target = handles.resolve_item(event.target)
         item = require_item(shadow, target)
         messages = event.all_messages()

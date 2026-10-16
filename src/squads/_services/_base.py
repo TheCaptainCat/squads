@@ -46,8 +46,13 @@ from squads._models._item import Item, effective_prefix, make_ref, ref_id_matche
 from squads._models._participants import (
     ANONYMOUS_NAME,
     ANONYMOUS_SLUG,
+    OPERATOR_SLUG_PREFIX,
+    group_verb_problem,
+    operator_slug_problem,
+    operator_slug_suggestion,
     require_valid_slug,
     reserved_role_slug_reason,
+    stored_slug,
 )
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
@@ -66,7 +71,7 @@ from squads._services._duplicate_ids import (
 )
 from squads._services._results import CreateResult, TreeNode
 from squads._services._validators import ValidatorEngine
-from squads._util import slugify
+from squads._util import operator_slug, slugify
 from squads._workflow import (
     ROSTER_OPERATOR,
     ROSTER_ROLE,
@@ -462,14 +467,31 @@ def reject_body_overwrite(target: str, current: str) -> None:
 def _check_roster_slug(
     item_type: str, is_roster: bool, slug: str, extra: dict[str, Any] | None
 ) -> None:
-    """Raise when a roster entry would be created with a slug outside the grammar, or a role
-    with one reserved for the anonymous author, system entries or operators."""
+    """Raise when a roster entry would be created with a slug outside its grammar: an operator's
+    is ``op-`` plus the slug grammar, a role's is the slug grammar minus the reserved names."""
     if not is_roster:
         return
     for candidate in {slug, (extra or {}).get(X.SLUG, slug)}:
+        if item_type == ROSTER_OPERATOR:
+            if operator_slug_problem(candidate) is not None:
+                example = operator_slug_suggestion(candidate)
+                hint = f" (e.g. {example!r})" if example else ""
+                rule = (
+                    f"must be {OPERATOR_SLUG_PREFIX!r} followed by lowercase letters, digits "
+                    "and hyphens"
+                    if candidate.startswith(OPERATOR_SLUG_PREFIX)
+                    else f"must start with {OPERATOR_SLUG_PREFIX!r} and be lowercase letters, "
+                    "digits and hyphens"
+                )
+                raise SquadsError(f"operator slug {candidate!r} {rule}{hint}")
+            continue
         require_valid_slug(candidate, action=f"create this {item_type}")
         if item_type == ROSTER_ROLE and (reason := reserved_role_slug_reason(candidate)):
             raise SquadsError(f"{reason}; a role needs another slug")
+        if item_type in (ROSTER_ROLE, ROSTER_SKILL) and (
+            verb := group_verb_problem(item_type, candidate)
+        ):
+            raise SquadsError(f"{item_type} slug {candidate!r} {verb}; pick another slug")
 
 
 class ServiceCore:
@@ -619,6 +641,18 @@ class ServiceCore:
                 return it.extra.get(X.SLUG, it.slug)
         return None
 
+    @staticmethod
+    def _operator_extra(
+        db: SquadsDB, item_type: str, title: str, slug: str, extra: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        """For an operator, the stored ``slug`` and ``full_name`` every path gives it; raises
+        when another operator already answers to *slug*. Any other type's *extra* is returned."""
+        if item_type != ROSTER_OPERATOR:
+            return extra
+        if any(it.type == ROSTER_OPERATOR and stored_slug(it) == slug for it in db.items.values()):
+            raise SquadsError(f"an operator with slug {slug!r} already exists")
+        return {X.FULL_NAME: title, **(extra or {}), X.SLUG: slug}
+
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
         self,
         db: SquadsDB,
@@ -688,8 +722,9 @@ class ServiceCore:
                 f"unknown item type {item_type!r}: no spec supplied, or the spec does not "
                 "declare this type. Declare it in .overrides/workflow.toml or check for a typo."
             )
-        slug = slug or slugify(title)
+        slug = slug or (operator_slug(title) if item_type == ROSTER_OPERATOR else slugify(title))
         _check_roster_slug(item_type, self.spec.item_is_roster(item_type), slug, extra)
+        extra = self._operator_extra(db, item_type, title, slug, extra)
         if refs:
             # Validate every declared kind, then rewrite the set to the canonical wire form —
             # the same normalisation `add_ref`/the bulk importer's `_resolve_refs` already
@@ -1252,15 +1287,14 @@ class ServiceCore:
         """Return the roster item of *item_type* (``ROSTER_ROLE``/``ROSTER_SKILL``/
         ``ROSTER_OPERATOR``) whose slug matches, or ``None``.
 
-        A skill's slug falls back to its own :attr:`Item.slug` when ``extra.get(X.SLUG)`` is
-        unset (``extra.get(X.SLUG, it.slug)``); role and operator lookups use no fallback
-        (``extra.get(X.SLUG)``, so an item with no stored slug never matches). That per-type
-        difference is real and preserved here rather than flattened by the shared loop.
+        A skill's or operator's slug falls back to its own :attr:`Item.slug` when
+        ``extra.get(X.SLUG)`` is unset, as an entry an older release wrote has none; a role
+        lookup uses no fallback (so a role with no stored slug never matches).
         """
         for it in (await self.store.load()).items.values():
             if it.type != item_type:
                 continue
-            default = it.slug if item_type == ROSTER_SKILL else None
+            default = it.slug if item_type in (ROSTER_SKILL, ROSTER_OPERATOR) else None
             if it.extra.get(X.SLUG, default) == slug:
                 return it
         return None

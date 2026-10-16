@@ -4,6 +4,7 @@ Kept separate from `conftest.py` (fixtures/autouse hooks) since these are plain 
 values, not pytest fixtures.
 """
 
+import hashlib
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -14,6 +15,16 @@ if TYPE_CHECKING:
     from squads._paths import SquadPaths
 
 _ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def squad_tree(root: Path) -> dict[str, str]:
+    """Every file under *root* (the git directory aside), keyed by relative path and valued by a
+    content hash, so a refusal can assert that nothing was written."""
+    return {
+        str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in sorted(root.rglob("*"))
+        if p.is_file() and ".git" not in p.parts
+    }
 
 
 def strip_ansi(text: str) -> str:

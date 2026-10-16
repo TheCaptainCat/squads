@@ -42,6 +42,7 @@ from squads._cli._common import (
     print_json_clean,
     print_subentity,
     require_as,
+    resolve_actor_or_raise,
     resolve_body,
     resolve_body_optional,
     resolve_comment_messages,
@@ -457,7 +458,7 @@ def _cmd_comment(item: typer.Typer) -> None:
     ):
         """Append a timestamped comment to the item's discussion."""
         svc = get_service()
-        slug = await resolve_slug_or_raise(require_as(as_), svc)
+        slug = await resolve_actor_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
         await svc.comment(_id(ctx), resolve_comment_messages(message or None, file), as_slug=slug)
         console.print(f"commented on {_id(ctx)} as {slug}")
@@ -1040,7 +1041,7 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         """Comment on the sub-entity's discussion."""
         pid, lid = ids(ctx)
         svc = get_service()
-        slug = await resolve_slug_or_raise(require_as(as_), svc)
+        slug = await resolve_actor_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
         await svc.comment(
             pid, resolve_comment_messages(message or None, file), as_slug=slug, sub=(kind, lid)

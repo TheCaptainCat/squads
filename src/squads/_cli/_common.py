@@ -39,7 +39,7 @@ from squads._models._item import (
     split_ref,
 )
 from squads._models._omission import Omission
-from squads._models._participants import ANONYMOUS_SLUG
+from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
@@ -1993,6 +1993,13 @@ def require_as(as_: str | None) -> str:
     if not as_:
         raise SquadsError("--as is required: the actor's slug")
     return as_
+
+
+async def resolve_actor_or_raise(slug: str, svc: Service) -> str:
+    """:func:`resolve_slug_or_raise` for a slug that writes a comment or notice: the system slug
+    is refused before the roster is read, so no roster entry can make it resolve."""
+    refuse_system_actor(slug)
+    return await resolve_slug_or_raise(slug, svc)
 
 
 async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = True) -> str:

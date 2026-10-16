@@ -34,8 +34,10 @@ from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
 from squads._models import _markers as markers
+from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item
+from squads._models._participants import roster_slug_breaches
 from squads._sections import find_markers
 from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE
 
@@ -102,7 +104,6 @@ _END_SUFFIX = ":end"
 
 _ANONYMOUS = ("Operator", "operator")
 _SYSTEM = ("squads", "squads")
-_OPERATOR_PREFIX = "op-"
 
 
 class _Event(NamedTuple):
@@ -188,13 +189,14 @@ def _scan(lines: Sequence[str]) -> list[_Event]:
 @dataclass(frozen=True)
 class _Roster:
     slugs_by_name: dict[str, set[str]]
-    odd_operator_notes: tuple[str, ...]
+    breaches: tuple[str, ...]
 
 
 async def _read_roster(ctx: MigrationContext, db: SquadsDB) -> _Roster:
     """Every role and operator, live or retired, read from its own file's frontmatter."""
     by_name: dict[str, set[str]] = defaultdict(set)
-    notes: list[str] = []
+    roles: list[Item] = []
+    operators: list[Item] = []
     for name, slug in (_ANONYMOUS, _SYSTEM):
         by_name[name].add(slug)
     items = sorted(
@@ -206,17 +208,18 @@ async def _read_roster(ctx: MigrationContext, db: SquadsDB) -> _Roster:
         data = read_frontmatter(text=text, source=it.path)
         extra: dict[str, Any] = data.get("extra") or {}
         slug = str(extra.get("slug") or data.get("slug") or it.slug)
+        stored = it.model_copy(update={"extra": {**it.extra, X.SLUG: slug}})
         if it.type == ROSTER_OPERATOR:
             name = str(extra.get("full_name") or slug)
-            if not slug.startswith(_OPERATOR_PREFIX):
-                notes.append(
-                    f"operator {name!r} has slug {slug!r}, which does not start with "
-                    f"{_OPERATOR_PREFIX!r}"
-                )
+            operators.append(stored)
         else:
             name = str(data.get("title") or it.title)
+            roles.append(stored)
         by_name[name].add(slug)
-    return _Roster(dict(by_name), tuple(notes))
+    breaches = tuple(
+        f"{b.item.path}: {b.text('also held by')}" for b in roster_slug_breaches(roles, operators)
+    )
+    return _Roster(dict(by_name), breaches)
 
 
 # --------------------------------------------------------------------------- planning
@@ -268,10 +271,10 @@ async def _plan_headers(ctx: MigrationContext, db: SquadsDB) -> Planned:
     report = (
         f"{tally.legacy} comment header(s) rewritten in {len(tally.files)} file(s); "
         f"{tally.migrated} already carried a slug",
-        *roster.odd_operator_notes,
     )
-    if tally.failures:
-        return Planned(failures=tuple(tally.failures), notes=_failure_notes(tally), report=report)
+    failures = (*roster.breaches, *tally.failures)
+    if failures:
+        return Planned(failures=failures, notes=_failure_notes(tally), report=report)
 
     async def write(wctx: MigrationContext) -> int:
         return await _write_headers(wctx, tally.files, resolved)
@@ -398,8 +401,37 @@ a name to a slug by hand.
 
 A header already in the new form is left as it is, so the command can be run again safely.
 
-An operator whose slug does not start with `op-` is listed in the run's report; nothing is
-refused for it.
+### A role or operator whose slug breaks the rules refuses the run
+
+Before it resolves any header, the step checks every role and operator, retired ones included.
+An operator's slug is `op-` followed by lowercase letters, digits and hyphens. A role's slug is
+lowercase letters, digits and hyphens, and is neither `operator` nor `squads` nor anything that
+starts with `op-`. No slug is held by two entries. An entry that breaks a rule refuses the run
+like an unresolvable header: nothing is written, the schema stamp is unchanged and the command
+exits 1, with one line for the entry, naming its file, its slug, the rule and the other holders:
+
+    operators/OP-000012-qa.md: operator slug 'qa' does not start with 'op-'; also held by ROLE-5
+
+It is refused, and not only reported, because this is the last point where the slug can change.
+Once the headers carry it no later step rewrites them, so a reserved slug would turn comments
+into system entries, `operator` would make them anonymous, and a slug shared with a role would
+make them editable by whoever holds it.
+
+What to do for each, with the release the squad is stamped for, before running `sq migrate up`
+again:
+
+- **An operator.** Run `sq operator <id> rm --purge`, using the ID in the line, then
+  `sq operator add "<the same full name>"`, which takes `op-` and the first name unless you pass
+  a compliant `--slug`. The purge is required: a plain `rm` drops the entry from the index but
+  keeps its file, and the next run reads that file again. The comments that named the operator
+  then resolve to the new slug. Reassign the open items assigned to the old slug with
+  `sq <type> <n> update --assignee <new slug>`. An item's `author` keeps the old slug, and
+  `sq check` reports it as not registered.
+- **A role.** Give the role's project definition a compliant slug (the file under
+  `<squad folder>/.overrides/roles/`, renamed, and its `slug` line with it), run
+  `sq role activate <new slug>`, then `sq role <id> rm --purge` for the old entry.
+- **A slug held by two entries.** Both entries are listed, each naming the other. Replace the one
+  that breaks a rule above, or the one you can spare, the same way.
 """
 
 CONTRIBUTIONS: tuple[Contribution, ...] = (

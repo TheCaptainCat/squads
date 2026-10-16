@@ -27,8 +27,8 @@ from squads._cli._common import (
     print_json_clean,
     report_omissions,
     require_as,
+    resolve_actor_or_raise,
     resolve_body,
-    resolve_slug_or_raise,
 )
 
 board_app = typer.Typer(
@@ -51,7 +51,7 @@ async def post_notice(
 ) -> None:
     """Post a notice to the board, visible to the whole team until it expires."""
     svc = get_service()
-    slug = await resolve_slug_or_raise(require_as(as_), svc)
+    slug = await resolve_actor_or_raise(require_as(as_), svc)
     actor.set_actor(slug)
     text = resolve_body(message or None, file)
     notice = await svc.board_post(slug, text, until=until)
