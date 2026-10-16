@@ -74,12 +74,14 @@ from squads._services._base import ServiceCore
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
     DUPLICATE_ID_REMEDY,
+    SHARED_NUMBER_REMEDY,
     CarrierLog,
     RenumberScope,
     SameIdRenumber,
     duplicate_groups,
     normalized_id,
     renumber_same_id_groups,
+    shared_number_groups,
 )
 from squads._services._results import (
     CheckIssue,
@@ -1345,6 +1347,14 @@ class MaintenanceMixin(ServiceCore):
         """The report line for an id carried by several files, naming every one."""
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
         return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
+
+    def _shared_number_message(self, number: int, files: list[Path]) -> str:
+        """The report line for a number carried under different ids, naming every file."""
+        named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
+        return (
+            f"{len(files)} files carry number {number} under different ids ({named}); "
+            f"{SHARED_NUMBER_REMEDY}"
+        )
 
     async def _missing_id_message(self, md: Path, item_type: str, scan: SkillScan) -> str:
         """The "no ``id``" report line; a stamped managed-skill file also names the remedy that
@@ -3174,10 +3184,15 @@ class MaintenanceMixin(ServiceCore):
             for level, item, msg in check_override_issues(self.paths.squad_dir, role_items_by_slug)
         ]
         issues += self._orphaned_skill_issues(index)
-        dup_groups = duplicate_groups(await self._id_carriers(ctx.carriers))
+        carriers = await self._id_carriers(ctx.carriers)
+        dup_groups = duplicate_groups(carriers)
         issues += [
             CheckIssue("error", key, self._duplicate_id_message(files))
             for key, files in dup_groups.items()
+        ]
+        issues += [
+            CheckIssue("error", f"#{number}", self._shared_number_message(number, files))
+            for number, files in shared_number_groups(carriers).items()
         ]
 
         # ``index_reconciled`` is excluded here — it is cross-source, so its two directions
