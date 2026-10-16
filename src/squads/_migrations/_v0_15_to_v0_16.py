@@ -356,35 +356,45 @@ headers it rewrote and in how many files. Review the diff before you commit it.
 
 The slug is found from the name. Each name is looked up among the squad's roles and operators,
 retired ones included, and the two names sq writes itself (`Operator` and `squads`). A role is
-known by its title; an operator by its full name, or by its slug when it has none, which is what
-the earlier release wrote in its comments. Every name
-is resolved before any file is written. If one cannot be, nothing is written, the schema is
-unchanged and the command exits 1 with one line per header, then a count, then one line per
+known by its name (the `Name` column of `sq role list`); an operator by its full name, or by its
+slug when it has none, which is what the earlier release wrote in its comments. Every name is
+resolved before any file is written. If one cannot be, this step writes nothing, the schema stamp
+is unchanged and the command exits 1 with one line per header, then a count, then one line per
 distinct name:
 
-    tasks/add-login.md:41: 'Hugo Ops' matches no roster entry
-    tasks/add-login.md:57: 'Sam Lee' matches 2 entries: op-sam, qa
-    bugs/crash.md:33: '2026-06-07 10:00' is not a timestamp sq writes
+    tasks/TASK-NNNNNN-add-login.md:41: 'Hugo Ops' matches no roster entry
+    tasks/TASK-NNNNNN-add-login.md:57: 'Sam Lee' matches 2 entries: op-sam, qa
+    bugs/BUG-NNNNNN-crash.md:33: '2026-06-07 10:00' is not a timestamp sq writes
+    3 problem(s) found.
+      'Hugo Ops': 1 header(s) in 1 file(s)
+      'Sam Lee': 1 header(s) in 1 file(s)
 
 What to do for each, before running `sq migrate up` again:
 
 - **A name that matches no entry.** The role or operator that wrote those comments is no longer
-  in the squad. Add it back under that name. A retired entry counts, so it does not have to be
-  live. If the entry is still there under a newer name, both names cannot resolve at once:
-  replace the older name in those header lines by hand.
-- **A name that matches several entries.** Two entries share a display name. Give one of them a
-  distinct name for the run. It can be changed back afterwards.
+  in the squad. Add it back under that name with the earlier release: `sq role activate <slug>
+  --name "<name>"` for a role (`sq role catalog` lists the slugs), `sq dev add --tech <tech>
+  --name "<name>"` for a developer role, `sq operator add "<name>" --slug <old-slug>` for an
+  operator. A retired entry counts, so it can be retired again afterwards. If the entry is still
+  there under a newer name, both names cannot resolve at once: replace the older name in those
+  header lines by hand.
+- **A name that matches several entries.** Two entries share that name, and every header with it
+  will belong to one of them. Give the other a distinct name for the run by editing its file:
+  `title:` for a role, `full_name:` under `extra:` for an operator. After the migration, edit it
+  back and run `sq repair`.
 - **A timestamp sq does not write.** The line starts at the left margin inside a discussion and
   looks like a header. If it is text that was pasted there, indent it under its comment. If it
   is a header, correct its timestamp to the form `2026-06-07T10:00:00Z`.
 - **A discussion that is never closed.** Its closing marker line is missing. Restore it.
-- **A discussion marker that shares its line with text.** Put each `sq:` marker on a line of its
-  own.
+- **A discussion marker that shares its line with text, or is not spelled as sq writes it.** Put
+  each `sq:` marker on a line of its own, spelled as sq writes it (the tag between `<!--` and
+  `-->`, one space on each side).
 
-Changes to the roster are made with the squads release your squad is stamped for: until the
-migration completes, this release runs nothing on the squad but `sq migrate up`,
-`sq migrate help` and `sq migrate chlog`. A squad stamped below 0.15 is first brought to 0.15
-with the 0.15.0 release. There is no option that maps a name to a slug by hand.
+Changes to the roster are made with a squads release that reads the squad's schema; the refusal
+names one. Until the migration completes, this release runs nothing on the squad but
+`sq migrate up`, `sq migrate help` and `sq migrate chlog`. On a squad stamped below 0.15, run
+`sq migrate up` with 0.15.0 first, then change the roster with it. There is no option that maps
+a name to a slug by hand.
 
 A header already in the new form is left as it is, so the command can be run again safely.
 
@@ -402,8 +412,8 @@ CONTRIBUTIONS: tuple[Contribution, ...] = (
 )
 
 _MANUAL_PREAMBLE = """\
-This step checks every part before it writes any file: if any part finds a problem, nothing is
-written, the schema stays as it is and the command lists every problem at once.
+This step checks every part before it writes any file: if any part finds a problem, this step
+writes nothing, the schema stamp stays as it is and the command lists every problem at once.
 
 """
 

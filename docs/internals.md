@@ -287,10 +287,14 @@ reference: **[workflow.md](workflow.md)**.
 
 ### Discussion, @mentions, inbox
 
-`sq <type> <n> comment` appends a timestamped entry — `- [ISO] <Full Name>:` + one sub-item per
-`-m` — under the right discussion anchor (top-level, or a story/subtask's). `@role` mentions in
-the text feed `sq inbox <role>`, which scans open items for `@role` and surfaces the matching
-lines. The author is resolved from `--as <slug>` → the role's full name.
+`sq <type> <n> comment` appends a timestamped entry — ``- [<timestamp>] `<slug>` <name>:`` + one
+sub-item per `-m` — under the right discussion anchor (top-level, or a story/subtask/finding's).
+`@role` mentions in the text feed `sq inbox <role>`, which scans open items for `@role` and
+surfaces the matching lines. The header stores the `--as <slug>` itself, which is the author's
+identity, and the display name resolved from it at write time (a role's name, an operator's full
+name), which is a snapshot that a later rename does not touch. Every reader parses a header with
+the one pattern, anchored at the left margin; the grammar is in
+[stability.md](stability.md#comment-headers).
 
 ---
 
