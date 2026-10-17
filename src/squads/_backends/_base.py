@@ -5,11 +5,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._interactions import skills_for_role
 from squads._interactions._models import PlaybookSpec
+from squads._interactions._role_guidance import skills_for_role
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
+from squads._roles._projection import OperatorView, RoleView
 from squads._workflow._models import WorkflowSpec
 
 
@@ -26,35 +27,6 @@ class Artifact:
     warning: str | None = None
 
 
-@dataclass(frozen=True)
-class RoleView:
-    """The roster entry passed to backends (decoupled from RoleDef internals).
-
-    Carries every role field a backend renders into a compiled managed region — explicitly,
-    ``mission`` and ``responsibilities`` included — because a view field is the declaration and
-    generated text is output, never an input. A backend that recovers a declaration by parsing
-    markdown it rendered itself makes a template's formatting the carrier of that declaration,
-    over a template that is meant to be editable: relabel the line and the field empties out of
-    the compiled file silently, with nothing reporting it. Anything a backend renders is
-    therefore declared here rather than read back off the page.
-    """
-
-    slug: str
-    full_name: str
-    title: str
-    is_default: bool
-    mission: str = ""
-    responsibilities: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class OperatorView:
-    """A human operator passed to backends for the CLAUDE.md people roster."""
-
-    slug: str
-    full_name: str
-
-
 @dataclass
 class BackendContext:
     paths: SquadPaths
@@ -68,7 +40,7 @@ class BackendContext:
     # `scopes` ref edges).  Populated by the service (refresh_managed()/sync()) from the
     # index, same layering rationale as skill_paths: backends read it here rather than
     # resolving scope edges themselves.  Absent entries fall back to the pure
-    # `interactions.skills_for_role` in :meth:`resolved_skills_for` — see that method.
+    # `role_guidance.skills_for_role` in :meth:`resolved_skills_for` — see that method.
     role_skills: dict[str, list[str]]
     # Active workflow spec — supplied by the Service so backends can enumerate custom types.
     # ``None`` means use only built-in types (backward-compatible default for callers that
@@ -124,7 +96,7 @@ class BackendContext:
         pure system-membership fallback.
 
         The single read path every backend uses instead of calling
-        ``interactions.skills_for_role`` directly, so a data-driven ``scopes`` edge reaches
+        ``role_guidance.skills_for_role`` directly, so a data-driven ``scopes`` edge reaches
         every backend uniformly once the service populates ``role_skills`` — never only one.
         """
         if slug in self.role_skills:

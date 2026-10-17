@@ -6,16 +6,16 @@ item skills it interacts with, in order, after the always-on trio; and the ``*de
 sentinel expands to every declared item-skill interaction for any ``<tech>-dev`` slug.
 """
 
-from squads import _interactions as interactions
+from squads._interactions import _role_guidance as role_guidance
 
 
 def test_a_manager_with_no_managed_item_type_gets_only_the_always_on_trio() -> None:
-    assert interactions.skills_for_role("manager") == ["squads", "greeting", "sq-memory"]
-    assert interactions.skills_for_role("devops") == ["squads", "greeting", "sq-memory"]
+    assert role_guidance.skills_for_role("manager") == ["squads", "greeting", "sq-memory"]
+    assert role_guidance.skills_for_role("devops") == ["squads", "greeting", "sq-memory"]
 
 
 def test_a_specialist_gets_exactly_its_interacted_item_skills_after_the_always_on_trio() -> None:
-    assert interactions.skills_for_role("product-owner") == [
+    assert role_guidance.skills_for_role("product-owner") == [
         "squads",
         "greeting",
         "sq-memory",
@@ -24,7 +24,7 @@ def test_a_specialist_gets_exactly_its_interacted_item_skills_after_the_always_o
         "sq-contract",
         "sq-milestone",
     ]
-    assert interactions.skills_for_role("tech-writer") == [
+    assert role_guidance.skills_for_role("tech-writer") == [
         "squads",
         "greeting",
         "sq-memory",
@@ -33,7 +33,7 @@ def test_a_specialist_gets_exactly_its_interacted_item_skills_after_the_always_o
 
 
 def test_the_dev_sentinel_expands_to_every_declared_dev_interaction() -> None:
-    assert interactions.skills_for_role("python-dev") == [
+    assert role_guidance.skills_for_role("python-dev") == [
         "squads",
         "greeting",
         "sq-memory",
@@ -54,10 +54,10 @@ def test_a_dropped_type_stops_being_implied_by_a_roles_preload_list() -> None:
     dropped = {k: v for k, v in bundled.items.items() if k != "guide"}
     spec = bundled.model_copy(update={"items": dropped})
 
-    assert "guide" not in interactions.item_types_for_role("tech-writer", spec)
-    assert "sq-guide" not in interactions.skills_for_role("tech-writer", spec)
+    assert "guide" not in role_guidance.item_types_for_role("tech-writer", spec)
+    assert "sq-guide" not in role_guidance.skills_for_role("tech-writer", spec)
     # unaffected roles/types are untouched.
-    assert interactions.skills_for_role("product-owner", spec) == [
+    assert role_guidance.skills_for_role("product-owner", spec) == [
         "squads",
         "greeting",
         "sq-memory",
@@ -79,10 +79,10 @@ def test_a_renamed_type_drops_the_old_name_and_gets_no_preload_under_the_new_one
     renamed["story"] = bundled.items["feature"]
     spec = bundled.model_copy(update={"items": renamed})
 
-    assert interactions.item_types_for_role("product-owner", spec) == [
+    assert role_guidance.item_types_for_role("product-owner", spec) == [
         "epic",
         "contract",
         "milestone",
     ]
-    assert "sq-feature" not in interactions.skills_for_role("product-owner", spec)
-    assert "sq-story" not in interactions.skills_for_role("product-owner", spec)
+    assert "sq-feature" not in role_guidance.skills_for_role("product-owner", spec)
+    assert "sq-story" not in role_guidance.skills_for_role("product-owner", spec)

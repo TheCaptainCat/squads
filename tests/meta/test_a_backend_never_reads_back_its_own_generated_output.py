@@ -79,7 +79,7 @@ def test_the_roster_view_carries_every_role_field_the_compiled_section_renders()
     """The other half of the same property: the re-parse existed because the view was missing
     fields. If a field the AGENTS.md section renders is not on ``RoleView``, something has to
     go and fetch it, and this whole class reopens."""
-    from squads._backends._base import RoleView
+    from squads._roles._projection import RoleView
 
     section = (
         _repo_root()

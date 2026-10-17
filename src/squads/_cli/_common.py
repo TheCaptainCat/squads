@@ -29,7 +29,7 @@ from squads._cli._markup import escape_markup
 from squads._context import get_context, rebind
 from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
-from squads._interactions import allowed_create_types, is_dev_slug
+from squads._interactions._role_guidance import allowed_create_types, is_dev_slug
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import (

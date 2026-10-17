@@ -96,7 +96,6 @@ import typer.main
 
 from squads import _docfiles
 from squads._backends import _managed_region
-from squads._backends._base import RoleView
 from squads._cli import app
 from squads._interactions import (
     GREETING_SKILL,
@@ -108,6 +107,7 @@ from squads._interactions import (
 )
 from squads._models._item import Item
 from squads._rendering._engine import render
+from squads._roles._projection import RoleView
 from squads._views import PlaybookSource
 from squads._workflow import bundled_spec
 

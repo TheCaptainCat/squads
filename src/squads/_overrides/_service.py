@@ -33,12 +33,12 @@ from typing import Any, cast
 from squads import __version__
 from squads import _views as views
 from squads._errors import SquadsError
-from squads._interactions import is_dev_slug
 from squads._interactions._loader import (
     PLAYBOOK_OVERRIDE_FILENAME,
     bundled_playbook_toml_text,
     playbook_stamp_finding,
 )
+from squads._interactions._role_guidance import is_dev_slug
 from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._overrides._manifest import (
@@ -1508,7 +1508,7 @@ def _check_role_override_resolves(
     would leave a refusable file unreported on the one surface that can still reach it. Hence
     the message names when each consumer refuses rather than asserting both do.
     """
-    from squads._interactions import is_dev_slug
+    from squads._interactions._role_guidance import is_dev_slug
     from squads._roles._resolver import (
         dev_base_for_slug,
         pinned_name_of,

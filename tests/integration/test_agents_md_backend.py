@@ -9,9 +9,10 @@ import pytest
 
 from squads._backends._agents_md._backend import AgentsMdBackend
 from squads._backends._agents_md._managed import END, START
-from squads._backends._base import BackendContext, OperatorView, RoleView
+from squads._backends._base import BackendContext
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
+from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _service as service
 

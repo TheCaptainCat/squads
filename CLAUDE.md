@@ -16,16 +16,25 @@ uv build                # wheel/sdist (templates ship as package data)
 ## Architecture & layering
 
 ```
-_cli → _services → (index store, backends, rendering)
-_models  shared, no internal deps
+_cli → _services → (index store, backends, rendering, roles, interactions, …)
+_models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
 ```
+
+Every package-to-package import edge, with where it runs (module top, inside a function, or
+under `TYPE_CHECKING`), is recorded in
+`tests/meta/test_package_import_edges_match_the_recorded_table.py`; that table is the layering
+authority, and a new edge is a row in its diff. Seven packages (`_badges`, `_interactions`,
+`_overrides`, `_paths`, `_rendering`, `_views`, `_workflow`) import each other at module top, so
+the graph is not a strict stack; the guard pins that set too.
 
 **Module privacy convention.** Every implementation module and subpackage is **private** —
 leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, …). Package
 `__init__.py` files do **not** re-export (this is a CLI, not yet a library API), so internal code
 imports straight from the underscore modules (`from squads._models._item import Item`). The only
 non-empty inits are `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app`, the entry
-point `squads._cli:app`), and `_backends/_claude_code/__init__` (backend registration side-effect).
+point `squads._cli:app`), `_backends/_claude_code/__init__` and `_backends/_agents_md/__init__`
+(backend registration side-effect), `_workflow/__init__` (shims over the bundled spec) and
+`_interactions/__init__` (playbook data, skill naming and cheatsheet anchoring); the guard module lists them.
 Namespace-style imports use an alias to keep call sites readable: `from squads import _clock as clock`.
 
 - `_models/` — pydantic v2. `_item` (`Item`), `_subentity` (`SubEntity` — a story/subtask/finding's
@@ -79,7 +88,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - `_roles/_catalog.py` — the 8 bundled roles + dev name pool + `dev_role()`.
 - `_interactions/` — the team **playbook**: which roles interact with each item type (`*dev`
   sentinel = any `<tech>-dev` role). Drives the per-item-type managed skills (`sq-<type>`) and
-  `skills_for_role()`. Workflow cheatsheet partial: `_rendering/templates/workflow.md.j2` (shared by
+  `skills_for_role()` (the role derivations live in `_interactions/_role_guidance.py`; the
+  `RoleView`/`OperatorView` roster projection in `_roles/_projection.py`). Workflow cheatsheet partial: `_rendering/templates/workflow.md.j2` (shared by
   the `squads` skill and `sq workflow`).
 - `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
   (create/get/list + backend + role/skill lookups + roster) plus one concern **mixin** per file

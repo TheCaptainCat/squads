@@ -40,7 +40,6 @@ from itertools import pairwise
 from pathlib import Path
 from typing import Literal
 
-from squads._backends._base import RoleView
 from squads._errors import SquadsError
 from squads._interactions import (
     ITEM_SKILL_VIEW_NAME,
@@ -70,6 +69,7 @@ from squads._rendering._engine import (
     template_source,
 )
 from squads._roles._catalog import RoleDef
+from squads._roles._projection import RoleView
 from squads._roles._resolver import resolve_role_for_item
 from squads._sections import get_section, iter_marker_spans, split_frontmatter, strip_marker_lines
 from squads._workflow._models import (
