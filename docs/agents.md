@@ -29,7 +29,9 @@ a subagent for a specific job, skip the greeting and just do the work.
 **Operators are the humans, not roles.** The people you work with are tracked as `operator` items
 (`op-<firstname>` slugs; see the "Operators (people)" roster in `CLAUDE.md`). At the start of a
 session, figure out who you're talking to (e.g. `git config user.name`), check `sq operator list`,
-and offer to register them (`sq operator add "<name>"`) — **ask if you're unsure who it is.** A
+and offer to register them (`sq operator add "<name>"`) — **ask if you're unsure who it is.** An
+operator's body is their profile, which `sq operator <slug> show` prints and
+`sq operator <slug> body` records (see [roles.md § "The operator profile"](roles.md#the-operator-profile)). A
 person introducing themselves identifies the operator; it does *not* mean impersonate them — you
 stay the agent. Assign manual steps or hand work to a person with `--assignee op-<slug>`, and when
 recording a human's own words (a comment, or a review point you reformulated) attribute it with

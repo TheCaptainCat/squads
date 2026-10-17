@@ -3,7 +3,7 @@ id: TASK-1078
 sequence_id: 1078
 type: task
 title: Allow prose in roster bodies and give operators a profile
-status: InProgress
+status: Done
 parent: FEAT-1054
 author: tech-lead
 priority: medium
@@ -31,11 +31,11 @@ subentities:
   story: US3
 - local_id: ST5
   title: Document the prose allowance and the operator profile
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US4
 created_at: '2026-10-16T21:10:07Z'
-updated_at: '2026-10-17T00:28:21Z'
+updated_at: '2026-10-17T00:56:30Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -367,4 +367,11 @@ written for the old check error say what is true now.
     - Operator: the first body write needs no --force (also after update --title); replacing a written profile exits 1 without --force; --append always works. A retired (Archived) operator is still writable.
     - Greeting skill: for a registered operator it runs sq operator <slug> show and adapts to the profile; for an unknown person it asks first, then operator add, three questions (role, expertise, what they come to do) and operator <slug> body --file. No --profile option exists.
     - Template manifest and content store regenerated; adopting squads run sq sync to refresh the greeting skill (not run on this repo).
+- [2026-10-17T00:53:34Z] Theo Writer:
+  - ST5 docs written, not committed. Probed on a copy of the working tree (b2eb38fb plus the uncommitted review fixes). @manager
+    
+    - docs/roles.md: the `body` rule for each entry kind (operator always writable, first write with no --force; a role refused while `role_definition` is selected, writable once it is dropped and the leftover tag is cleared with `view disable`; a generated skill refused); what `sq check` accepts in a role body; a new section, "The operator profile" (with the greeting steps for registered, retired and unknown people).
+    - Corrected: overrides.md (authoring by hand now uses `sq role <slug> body`), workflow.md (the refusal text with the view-disable clause, operator and role prose), migration.md (the old-text remedy quotes a skill, and a role clears its body with `sq role ... body`), adoption.md, faq.md, agents.md. CHANGELOG: one Added entry (body verbs, profile, greeting) and one Changed entry (check accepts role prose).
+    - Driven: every refusal and accepted write, the operator first write and the second replace, append, a retired operator, the inactive-role message, check on role prose with no tag, with a disabled tag and with an enabled tag (all clean), a damaged tag (reported), the dropped-view path to a clean check, the role old-text steps, and the greeting skill text after sync.
+    - Defect for @python-dev: on a role with a damaged `sq:view:` tag, `sq check`'s remedy step (2) reads ``clear the text with `sq skill devops body -m "" --force` `` for ROLE-6 (devops). It names the skill verb for a role, and it should be `sq role devops body`. The renamed `clear_skill_body_cmd` is now reached for roles through the damaged-tag branch. The docs do not quote that message.
 <!-- sq:discussion:end -->

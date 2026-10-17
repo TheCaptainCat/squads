@@ -1680,18 +1680,19 @@ views = ["milestone_rollup", "role_definition", "greeting_skill", "memory_skill"
 
 With `squads_skill` dropped, `sq skill squads body -m "…"` is admitted, and `sq sync` and
 `sq repair` leave the prose alone. The tag already in the body now names an undeclared view, so
-`sq check` reports it until you run `sq skill squads view disable squads_skill`. A role has no
-`body` verb; with `role_definition` dropped, a role's body is written through a `sq import` body
-event:
+`sq check` reports it until you run `sq skill squads view disable squads_skill`. With
+`role_definition` dropped, a role takes `body` the same way, and its tag is cleared the same way:
 
-```json
-{"op": "body", "target": "ROLE-1", "body": "Our own QA charter.", "as": "manager"}
+```bash
+sq role qa body -m "Our own QA charter."
+sq role qa view disable role_definition
 ```
 
 Dropping `role_definition` affects every role at once — each one's tag becomes an undeclared-view
 error in `sq check` until disabled. A role activated while the view is dropped gets no tag at all.
-Putting the view back in `[selected]` makes the bodies refuse prose again, and `sq check` names
-the remedy for each document that lacks the tag. The text you wrote stays, and renders beside the
+Putting the view back in `[selected]` makes the bodies refuse writes again. A role body that
+holds your prose is accepted by `sq check`, with or without its tag; a skill body that holds prose
+and lacks its tag is reported, with the remedy. The text you wrote stays, and renders beside the
 view once its tag is re-enabled with `view add`; changing it means dropping the view again.
 
 A runbook you want to keep does not belong in an `sq-<type>` skill's body: give it a skill of its

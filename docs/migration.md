@@ -747,13 +747,18 @@ that is what is missing:
 error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
 ```
 
-**A role or skill that still holds old generated text.** A role or skill body refuses prose, so
-its old text cannot be edited away in place, and `view add` alone would render the old text and the live
-definition together. `sq check` names the remedy in full, filled in for the document:
+**A role or skill that still holds old generated text.** A role or generated-skill body refuses
+writes while its view is declared, so its old text cannot be edited away in place, and `view add`
+alone would render the old text and the live definition together. For a skill, `sq check` names
+the remedy in full, filled in for the document:
 
 ```
-error ROLE-000001-dev-agent.md: missing seeded view tag <!-- sq:view:role_definition --> — the body already carries prose; the remedy that converges to a single live rendering: (1) drop 'role_definition' from [selected] in .overrides/workflow.toml; (2) clear the text with `echo '{"op": "body", "target": "ROLE-1", "body": "", "force": true, "as": "dev-agent"}' | sq import -`; (3) restore 'role_definition' to [selected]; (4) `sq role dev-agent view add role_definition`
+error SKILL-000009-greeting.md: missing seeded view tag <!-- sq:view:greeting_skill --> — the body already carries prose; the remedy that converges to a single live rendering: (1) drop 'greeting_skill' from [selected] in .overrides/workflow.toml; (2) clear the text with `sq skill greeting body -m "" --force`; (3) restore 'greeting_skill' to [selected]; (4) `sq skill greeting view add greeting_skill`
 ```
+
+A role body may hold prose, so `sq check` accepts a role left holding old text, and `show` prints
+that text in place of the live definition. The same four steps replace it, with
+`role_definition` as the view.
 
 1. Drop the view from `[selected]` in `.overrides/workflow.toml`, listing every view you keep:
 
@@ -762,9 +767,8 @@ error ROLE-000001-dev-agent.md: missing seeded view tag <!-- sq:view:role_defini
    views = ["milestone_rollup", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
    ```
 
-2. Clear the body. A skill takes `sq skill greeting body -m "" --force`. A role has no `body`
-   verb, so pipe a one-event import to `sq import -`, as the error shows. Marker-shaped content
-   is cleared along with the rest.
+2. Clear the body: `sq skill greeting body -m "" --force`, or `sq role dev-agent body -m ""
+   --force` for a role. Marker-shaped content is cleared along with the rest.
 3. Put the view back in `[selected]` (or delete the `[selected]` table if it lists every view).
 4. Run `sq role dev-agent view add role_definition`, or `sq skill <slug> view add <name>` for a
    skill.

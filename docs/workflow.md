@@ -1077,8 +1077,8 @@ or by hand, then run `sq check` again.
 **Which bodies take prose.** A milestone's body is ordinary prose around its roll-up tag:
 `sq milestone <n> body -m` and `body --append` both work, and the tag stays where its `position`
 puts it. A role's body, a permanently-system skill's body and a per-item-type `sq-<type>` skill's
-body take no prose at all while their view is declared — replace and append are both refused,
-and `--force` does not lift it. Their content is authored elsewhere:
+body take no writes while their view is declared — replace and append are both refused, and
+`--force` does not lift it. Their content is authored elsewhere:
 
 - a role: `.overrides/roles.toml`, or `.overrides/roles/<slug>.toml` for a project-defined role;
 - a per-item-type skill: that type's `[types.<type>]` lane in `.overrides/playbook.toml`;
@@ -1090,8 +1090,12 @@ and `--force` does not lift it. Their content is authored elsewhere:
 The refusal names the surface for the document at hand:
 
 ```
-error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead.
+error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead, then clear its leftover tag with `sq skill sq-bug view disable item_skill`.
 ```
+
+An operator's body is ordinary prose, its profile, and `sq operator <slug> body` always writes it
+(see [roles.md § "The operator profile"](roles.md#the-operator-profile)). A role body that holds
+prose is accepted by `sq check`, and `show` prints the prose in place of the generated definition.
 
 To write such a body by hand, drop its view from `[selected]` — see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).

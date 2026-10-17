@@ -238,6 +238,24 @@ with, `update` re-renders it from the new values; a body you have written is kep
 error: nothing to update (pass --title)
 ```
 
+`body` sets an entry's prose (`-m`, `--file`, `--file -`, `--append`, `--force`), and prints
+`<ID>: body set` or `<ID>: body appended`. It follows a different rule on each kind of entry:
+
+- **An operator** is always writable, retired or not. Its body is its profile (see
+  "The operator profile" below). The first write replaces the seeded operator text without
+  `--force`; replacing a profile you have written needs `--force`, and `--append` adds to it.
+- **A role** is refused while its `role_definition` view is in `[selected]`, `--force` or not,
+  with the error naming the role override. Once the project drops the view, `body` writes; then
+  clear each role's leftover tag with `sq role <slug> view disable role_definition`, or `sq check`
+  reports it as an undeclared view. A role not on the roster is refused with
+  `activate it first`.
+- **A skill** you added takes `body` like any item. A generated skill is refused, naming the
+  playbook or the view's template override.
+
+A role or operator body may hold prose, and `sq check` accepts it: a role whose body holds prose
+and no view tag prints that prose in place of its generated definition. `sq check` reports a role
+body only when it holds neither prose nor a tag, or holds a damaged `sq:view:` tag.
+
 `comment` and `comments` work as on any item, on a generated role or skill too. Every skill file
 has a `## Discussion` region for them, as role and operator files do. A comment's `@mention`
 reaches `sq inbox`, except on a retired entry.
@@ -289,7 +307,7 @@ definition lives, not on the entry, and these writes are refused with exit `1`, 
 The error names the place to edit instead:
 
 ```
-line 1: ROLE-3's body renders through its declared sq:view:role_definition tag, and its content already has one validated authoring surface: `.overrides/roles.toml` (or `.overrides/roles/<slug>.toml` for a project-defined role). An update is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead.
+line 1: ROLE-3's body renders through its declared sq:view:role_definition tag, and its content already has one validated authoring surface: `.overrides/roles.toml` (or `.overrides/roles/<slug>.toml` for a project-defined role). An update is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead, then clear its leftover tag with `sq role tech-lead view disable role_definition`.
 ```
 
 For a role, that is the role catalog override or its own role file, followed by `sq sync`; a
@@ -315,6 +333,7 @@ handed to someone else on the repo:
 sq operator add "Alice Tester"  # slug derived as op-alice (override with --slug)
 sq operator list
 sq operator op-alice update --title "Alice T."              # change the display name; the slug stays
+sq operator op-alice body -m "Product lead."               # write the operator's profile
 sq operator OP-000002 status Archived [--force] [--unlink]   # transition its Active/Archived status
 sq operator OP-000002 remove --purge                            # delete the operator and its file
 ```
@@ -346,6 +365,33 @@ their own "Operators (people)" roster in `CLAUDE.md`). Once registered, an `op-`
 that accept roles accept operators. There's no auto-detection or stored "current operator": at the
 start of a session the agent works out who the human is (e.g. from `git config user.name`), checks
 `sq operator list`, and asks whether to register them — and must ask if it's unsure.
+
+### The operator profile
+
+An operator's body is their profile: prose about their role on the project, their expertise and
+what they come to do. It is set with `body`, and `show` prints it under the operator's card:
+
+```bash
+sq operator op-alice body -m "Product lead. Prefers short answers."
+sq operator op-alice body --append -m "Works in CET."
+sq operator op-alice show
+```
+
+There is no profile field or option: `operator add` takes no profile, and the body holds it.
+The `greeting` skill reads it. When a human opens a session, the agent looks them up with
+`sq list -t operator --all`:
+
+- **registered:** it runs `sq operator <slug> show` and lets the profile set the register of its
+  greeting and the project read-out, without reading the profile back. If the body is still the
+  seeded text, it may offer to record a profile;
+- **retired:** it asks whether to bring them back, runs `sq operator <slug> status Active`, then
+  reads the profile;
+- **not registered:** it asks first, and changes nothing on a no. On a yes it runs
+  `sq operator add "<name>"`, asks three short questions (their role on the project, their level
+  of expertise, what they come to do) and records the answers with
+  `sq operator <slug> body --file <path>`.
+
+Run `sq sync` after upgrading so the generated `greeting` skill carries these steps.
 
 ## Retiring a roster entry
 

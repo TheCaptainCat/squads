@@ -212,9 +212,10 @@ defined yourself has its `.overrides/roles/<slug>.toml`. On a corpus that carrie
 `sq repair` can touch every file you just imported.
 
 **No body that carries prose is touched** — a role or skill body with content in it is left as it
-is, and a skill you added yourself is never touched, empty or not. A role or generated-skill body
-left holding prose fails `sq check` with a missing seeded view tag error, whose message gives the
-steps that restore the rendered definition. Neither is any other item's
+is, and a skill you added yourself is never touched, empty or not. A role body left holding prose
+is accepted, and `show` prints the prose in place of the rendered definition; a generated-skill
+body left holding prose fails `sq check` with a missing seeded view tag error, whose message gives
+the steps that restore the rendered definition. Neither is any other item's
 body, any sub-entity's body or discussion, any operator item, or any frontmatter field on anything
 that is not a role.
 
