@@ -21,7 +21,7 @@ def squad_tree(root: Path) -> dict[str, str]:
     """Every file under *root* (the git directory aside), keyed by relative path and valued by a
     content hash, so a refusal can assert that nothing was written."""
     return {
-        str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+        p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in sorted(root.rglob("*"))
         if p.is_file() and ".git" not in p.parts
     }
