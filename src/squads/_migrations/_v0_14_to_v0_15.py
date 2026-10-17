@@ -96,14 +96,10 @@ shape — chosen deliberately, not forced by any cycle, because it inlines the i
 mutate → write sequence itself and avoids N separate lock acquisitions and N separate index
 commits for what is, in practice, a handful of items.
 
-**Nothing this runner meets aborts the run — every condition it cannot act on is a skip,
-reported by item id, never a raise.** A run that always completes always reaches the ``async
-with store.transaction() as db:`` block's own exit, which is the only place the schema stamp
-that follows gets written — so a run that can raise is a run that can leave a squad with
-markdown ahead of an uncommitted index and no working command to reconcile the two with
-(``sq repair`` needs the very stamp a raised transaction never writes). Skip-and-report closes
-that off structurally: there is no path left on which this runner raises, so there is no
-partial-pass state to reach.
+**Every condition this runner declines to act on is a skip, reported by item id.** What it calls
+can still raise (a file that becomes unreadable during the run, say); a run stopped that way is
+resumed by re-running ``sq migrate up``, which rebuilds the index from the files first. An item
+file that cannot be parsed never reaches this runner: the run is refused before any runner.
 
 Conditions this runner meets and does not act on, each a skip rather than a refusal:
 
@@ -114,18 +110,18 @@ Conditions this runner meets and does not act on, each a skip rather than a refu
   consequence differs: this runner skips the whole pair and moves to the next one, rather than
   raising for the entire run. An adopter who dropped a bundled view through
   ``[selected].views`` is not a corpus defect to halt on; they said they do not want that view.
-- **A missing indexed file, or a body with no ``sq:body`` region** (either step) —
-  :func:`~squads._itemfile.read_item_text` raises for the former;
-  :func:`~squads._sections.get_section` answers ``None`` for the latter. Caught and turned into
-  the same per-item skip. A hand-adopted corpus, or a hand-edited item, can carry either shape
-  without it being a defect this migration should decide anything about.
+- **A body with no ``sq:body`` region** (either step) — :func:`~squads._sections.get_section`
+  answers ``None``. Turned into a per-item skip: a hand-adopted corpus, or a hand-edited item,
+  can carry that shape without it being a defect this migration should decide anything about.
+  The index is rebuilt from the files before this runner, so an entry whose file is gone is
+  already dropped; a file that cannot be read after that is skipped the same way.
 - **The tag already present, but outside ``sq:body``** (step one) — the placement routine only
   ever reads and writes inside the region, so a copy an author moved outside it by hand is
   invisible to it; asked here, once, before the routine ever runs, so this runner never seeds a
   second, in-region copy alongside one already live elsewhere in the file (which `sq check`'s
   duplicate-marker finding would then report). Skipping here, rather than inserting blindly,
   keeps a migration's own write from leaving the corpus failing `sq check` the moment it is
-  current enough to run — the same disposition as a missing file, and the same remedy once the
+  current enough to run — the same disposition as an unreadable file, and the same remedy once the
   squad is current: place or disable the tag explicitly.
 - **A role/permanently-system-skill/per-item-type-skill body carrying marker-shaped content**
   (step two only) — this reclaim has no model for what that is (another tag, a nested region,
@@ -146,16 +142,13 @@ from squads import _clock as clock
 from squads._actor import current_session
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
-from squads._interactions import get_playbook_spec
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
-from squads._interactions._models import PlaybookSpec
 from squads._itemfile import read_frontmatter, read_item_text, write_text
+from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
 from squads._models import _markers as markers
 from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._paths import SquadPaths, number_for_id
-from squads._roles._catalog import get_catalog
 from squads._sections import find_markers, get_section, replace_frontmatter, replace_section
 from squads._views import (
     place_view_tags,
@@ -163,8 +156,6 @@ from squads._views import (
     roster_body_view_name,
     template_seeded_view_names,
 )
-from squads._workflow import bundled_spec
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 MANUAL = """\
@@ -185,9 +176,8 @@ carries no `sq:body` region at all, is left exactly as it was.
 A milestone this migration cannot safely place the tag on is **skipped, not aborted**: the run
 still completes and the rest of your corpus is still migrated. `sq migrate up` names every
 skipped item by id, and `sq check` (reachable again once the run completes) reports what it
-still needs — a missing file needs restoring or re-adopting, a body with no `sq:body` region
-needs one added by hand. Once that item's own problem is fixed, place the tag with
-`sq milestone <n> view add milestone_rollup`.
+still needs — a body with no `sq:body` region needs one added by hand. Once that item's own
+problem is fixed, place the tag with `sq milestone <n> view add milestone_rollup`.
 
 A milestone whose tag you had already moved outside `sq:body` by hand is skipped too, for a
 different reason: it already carries the tag, so this migration leaves it exactly as it was
@@ -241,31 +231,6 @@ as a stand-in for the four-step remedy above.
 """
 
 
-def _active_spec(paths: SquadPaths) -> WorkflowSpec:
-    """The spec this runner reads the milestone declaration and view catalog against — the
-    bundled singleton, or a squad's own ``.overrides/workflow.toml`` merge when one is present.
-    Mirrors how every other runner/``init``/``adopt`` resolve the spec they act against, so a
-    squad whose override renamed, re-templated or dropped the milestone type gets exactly what
-    its own declaration says, never the bundled default."""
-    override_path = paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
-        return bundled_spec()
-    return load_workflow_spec(squad_dir=paths.squad_dir)
-
-
-def _active_playbook(paths: SquadPaths, spec: WorkflowSpec) -> PlaybookSpec:
-    """The playbook :func:`~squads._views.resolve_view_target` needs in hand (only a
-    ``playbook``-sourced view ever reads it; the ``ref``-sourced ``milestone_rollup`` does not,
-    but the predicate's signature is uniform across every source kind) — mirrors
-    ``resolve_playbook``'s own fast-path/merge split (``_services/_service.py``): the bundled
-    singleton with no reparse when *spec* is the untouched bundled spec and no playbook
-    override file exists, the merged document otherwise."""
-    override_path = paths.squad_dir / PLAYBOOK_OVERRIDE_FILENAME
-    if spec is bundled_spec() and not override_path.is_file():
-        return get_playbook_spec()
-    return load_playbook(get_catalog(), spec=spec, squad_dir=paths.squad_dir)
-
-
 def _tag_present_outside_region(text: str, region_tag: str, name: str) -> bool:
     """Whether view *name*'s tag (either state) appears somewhere in *text* but not inside
     *region_tag*'s own section — the shape a hand-moved tag produces (see module docstring).
@@ -306,7 +271,7 @@ async def _write_body_change(path: Path, text: str, new_inner: str) -> str:
     return new_text
 
 
-async def migrate(paths: SquadPaths) -> MigrationOutcome:
+async def migrate(ctx: MigrationContext) -> MigrationOutcome:
     """Two independent steps, one run, one transaction, one reported outcome (see the module
     docstring for why each belongs here):
 
@@ -324,8 +289,7 @@ async def migrate(paths: SquadPaths) -> MigrationOutcome:
     on — a missing indexed file, no ``sq:body`` region, the tag already present outside it, or
     (the second step only) marker-shaped content it has no model for — always empty when
     ``count`` alone tells the whole story."""
-    spec = _active_spec(paths)
-    playbook = _active_playbook(paths, spec)
+    paths, spec, playbook = ctx.paths, ctx.spec, ctx.playbook
 
     # (item_type, view names to seed) — resolved once against the shared derivation and
     # restricted to non-roster types — never against a hand-pinned "milestone"/"milestone_rollup"
@@ -356,8 +320,8 @@ async def migrate(paths: SquadPaths) -> MigrationOutcome:
                 try:
                     text = await read_item_text(path, it.id)
                 except SquadsError:
-                    # A missing indexed file — this item's own problem, not this migration's
-                    # to raise the whole run over. Left untouched on disk; the pass moves on.
+                    # A file that became unreadable after the index was rebuilt — this item's own
+                    # problem, not this migration's to raise the whole run over.
                     skipped.append(it.id)
                     continue
                 if any(_tag_present_outside_region(text, markers.BODY, n) for n in names):
@@ -371,7 +335,7 @@ async def migrate(paths: SquadPaths) -> MigrationOutcome:
                 region = get_section(text, markers.BODY)
                 if region is None:
                     # No sq:body region to place the tag in (a hand-adopted or hand-edited
-                    # file). Same disposition as the missing-file case above.
+                    # file). Same disposition as the unreadable-file case above.
                     skipped.append(it.id)
                     continue
                 # `get_section` returns the region padded with its own opening/closing

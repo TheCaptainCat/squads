@@ -1,0 +1,72 @@
+# squads:override-base:0.15.0
+# This project's own validator selections, on top of what each type's category turns on.
+#
+# One table per item type, one entry per line. A `validators` array replaces the bundled
+# one whole, so a type that ships its own list (epic, skill) opens with the splat of it.
+
+[items.epic]
+validators = [
+  "$(*items.epic.validators)",
+  "no_status_banner",
+  "subentity_title_max:120",
+]
+
+[items.feature]
+validators = [
+  "no_status_banner",
+  "subentity_title_max:120",
+]
+
+[items.task]
+validators = [
+  "no_status_banner",
+  "subentity_title_max:120",
+]
+
+[items.bug]
+validators = [
+  "no_status_banner",
+  "subentity_title_max:120",
+]
+
+[items.decision]
+validators = [
+  "no_status_banner",
+]
+
+[items.contract]
+validators = [
+  "no_status_banner",
+]
+
+[items.milestone]
+validators = [
+  "no_status_banner",
+]
+
+[items.review]
+validators = [
+  "no_status_banner",
+  "subentity_title_max:120",
+]
+
+[items.guide]
+validators = [
+  "no_status_banner",
+]
+
+[items.role]
+validators = [
+  "no_status_banner",
+]
+
+[items.skill]
+validators = [
+  "$(*items.skill.validators)",
+  "no_status_banner",
+]
+
+[items.operator]
+validators = [
+  "no_status_banner",
+]

@@ -7,7 +7,11 @@ values, not pytest fixtures.
 import re
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from squads._migrations._context import MigrationContext
+    from squads._paths import SquadPaths
 
 _ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -274,3 +278,13 @@ def make_unreadable_by_the_os(path: Path) -> Callable[[], None]:
         path.write_bytes(original)
 
     return _undo
+
+
+def bundled_migration_context(paths: SquadPaths) -> MigrationContext:
+    """The context a runner is handed when a squad carries no override: the bundled workflow
+    spec and playbook beside *paths*."""
+    from squads._interactions import get_playbook_spec
+    from squads._migrations._context import MigrationContext
+    from squads._workflow import bundled_spec
+
+    return MigrationContext(paths=paths, spec=bundled_spec(), playbook=get_playbook_spec())

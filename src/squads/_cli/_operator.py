@@ -144,6 +144,7 @@ async def operator_show(
             )
         )
         return
+    await common.warn_duplicate_id(svc, it)
     rows = [
         f"[bold]{e(it.extra.get(X.FULL_NAME, it.title))}[/bold]",
         f"[bold]slug:[/bold] {e(it.extra.get(X.SLUG, it.slug))}",

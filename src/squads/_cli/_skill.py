@@ -147,6 +147,7 @@ async def skill_show(
     # This row means "currently refused as template-rendered", not `system`'s bundled-blind
     # allocation question — a stale dropped-type skill reads "custom" once its body is
     # writable again, even though `system` still counts it template-owned for seeding.
+    await common.warn_duplicate_id(svc, it)
     currently_roster = views.roster_body_view_name(it.type, slug, svc.spec) is not None
     kind_label = "system (template-owned)" if currently_roster else "custom (authored)"
     rows = [

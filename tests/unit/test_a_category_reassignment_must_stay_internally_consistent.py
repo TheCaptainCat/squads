@@ -258,11 +258,44 @@ def test_every_sub_entity_validator_name_is_a_real_catalog_member() -> None:
     assert SUBENTITY_VALIDATOR_NAMES <= VALIDATOR_NAMES
 
 
-def test_the_work_bundle_supplies_every_sub_entity_validator_the_clause_looks_for() -> None:
-    """If the two ever drift, a `work` type hosting a kind would refuse its own bundled spec —
-    so this pins the relationship the clause depends on rather than trusting two lists."""
-    assert set(CATEGORY_BUNDLES["work"]) >= SUBENTITY_VALIDATOR_NAMES
+def test_the_work_bundle_supplies_every_guarded_sub_entity_validator() -> None:
+    """The sub-entity names a clause guards are the ones a bundle can lose to a reassignment,
+    so the `work` bundle must carry every one of them, and `records` none."""
+    guarded_sub_entity = _guarded() & SUBENTITY_VALIDATOR_NAMES
+    assert guarded_sub_entity
+    assert set(CATEGORY_BUNDLES["work"]) >= guarded_sub_entity
     assert not (set(CATEGORY_BUNDLES["records"]) & SUBENTITY_VALIDATOR_NAMES)
+
+
+def test_a_bundled_work_type_hosting_a_kind_is_not_refused_by_its_own_spec() -> None:
+    """The `work` bundle supplies at least one name the clause accepts, so every bundled type
+    hosting a kind satisfies it without naming a check."""
+    assert set(CATEGORY_BUNDLES["work"]) & SUBENTITY_VALIDATOR_NAMES
+    spec = _build_spec(_bundled_raw())
+    assert {t for t, ts in spec.items.items() if ts.subentity_kind is not None} == {
+        "feature",
+        "task",
+        "review",
+    }
+
+
+def test_the_title_check_is_a_sub_entity_validator_no_bundle_supplies() -> None:
+    """It satisfies the clause when a type names it, yet no category can take it away: it is in
+    no bundle, so it is argued unguarded rather than guarded."""
+    assert "subentity_title_max" in SUBENTITY_VALIDATOR_NAMES
+    assert "subentity_title_max" in UNGUARDED_VALIDATOR_NAMES
+    assert "subentity_title_max" not in _guarded()
+    assert not any("subentity_title_max" in names for names in CATEGORY_BUNDLES.values())
+
+
+def test_a_record_may_host_sub_entities_by_naming_the_title_check_alone() -> None:
+    spec = _spec_with({"review": {"category": "records", "validators": ["subentity_title_max"]}})
+    assert spec.items["review"].subentity_kind == "finding"
+
+
+def test_a_record_hosting_sub_entities_with_no_check_named_is_still_refused() -> None:
+    with pytest.raises(SquadsError, match="turns on no validator for it"):
+        _spec_with({"review": {"category": "records"}})
 
 
 # --------------------------------------------------------------- the clause set stays closed

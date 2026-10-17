@@ -53,17 +53,15 @@ from squads import _clock as clock
 from squads._backends._base import BackendContext, OperatorView, RoleView
 from squads._backends._registry import get_backend
 from squads._index._store import IndexStore
-from squads._interactions import get_playbook_spec, item_skill_name, skill_description
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
+from squads._interactions import item_skill_name, skill_description
 from squads._interactions._models import PlaybookSpec
+from squads._migrations._context import MigrationContext
 from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
-from squads._roles._catalog import get_catalog
 from squads._sections import join_frontmatter, split_frontmatter
-from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, bundled_spec
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, load_workflow_spec
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
 
 #: The two type names this runner is chartered to bring onto an existing squad's disk. Declared
@@ -144,28 +142,6 @@ and a sub-entity's status through `sq <type> <n> show` or `sq list`.
 """
 
 
-def _active_spec(paths: SquadPaths) -> WorkflowSpec:
-    """The spec this runner scaffolds against — the bundled singleton, or a squad's own
-    ``.overrides/workflow.toml`` merge when one is present. Mirrors how ``init``/``adopt``
-    resolve the spec they scaffold against, so a squad whose override renamed or dropped one of
-    the two new types gets exactly what its own declaration says, not the bundled default."""
-    override_path = paths.squad_dir / WORKFLOW_OVERRIDE_FILENAME
-    if not override_path.is_file():
-        return bundled_spec()
-    return load_workflow_spec(squad_dir=paths.squad_dir)
-
-
-def _active_playbook(paths: SquadPaths, spec: WorkflowSpec) -> PlaybookSpec:
-    """The playbook this runner renders per-type skill guidance from — mirrors
-    ``resolve_playbook``'s own fast-path/merge split (``_services/_service.py``): the bundled
-    singleton with no reparse when *spec* is the untouched bundled spec and no playbook override
-    file exists, the merged document otherwise."""
-    override_path = paths.squad_dir / PLAYBOOK_OVERRIDE_FILENAME
-    if spec is bundled_spec() and not override_path.is_file():
-        return get_playbook_spec()
-    return load_playbook(get_catalog(), spec=spec, squad_dir=paths.squad_dir)
-
-
 async def _ensure_type_folders(paths: SquadPaths, spec: WorkflowSpec) -> int:
     """Create each new type's folder if missing — idempotent, matching what ``init``/``adopt``
     do per declared type at creation time. A type an override has dropped from *spec* is skipped
@@ -208,7 +184,7 @@ async def _live_roster(
     Empty when the index does not exist yet (defensive; every real migrate target has one)."""
     if not paths.index_path.is_file():
         return [], [], {}
-    db = await IndexStore(paths.index_path, paths.lock_path).load()
+    db = await IndexStore(paths.index_path, paths.lock_path, spec=spec).load()
     role_live = spec.live_statuses(ROSTER_ROLE)
     op_live = spec.live_statuses(ROSTER_OPERATOR)
     skill_live = spec.live_statuses(ROSTER_SKILL)
@@ -286,7 +262,7 @@ async def _seed_new_type_skills(paths: SquadPaths, spec: WorkflowSpec) -> int:
         if fm.get("id"):
             continue  # already stamped under the legacy name — leave to a future repair/rename
 
-        store = IndexStore(paths.index_path, paths.lock_path)
+        store = IndexStore(paths.index_path, paths.lock_path, spec=spec)
         now = clock.now()
         async with store.transaction() as db:
             item_id = db.allocate_id(ROSTER_SKILL, prefix=skill_prefix)
@@ -324,15 +300,14 @@ async def _seed_new_type_skills(paths: SquadPaths, spec: WorkflowSpec) -> int:
     return seeded
 
 
-async def migrate(paths: SquadPaths) -> int:
+async def migrate(ctx: MigrationContext) -> int:
     """Create the two new types' folders, regenerate the managed agent-facing surface so their
     skill files/pointers/compiled regions appear, and stamp each new skill as an indexed
     ``SKILL`` item. Returns the count of folders created plus skills seeded (0 on a squad
     already carrying this content — e.g. one synced after the two types were declared in code
     but before this runner shipped)."""
-    spec = _active_spec(paths)
-    playbook = _active_playbook(paths, spec)
+    paths, spec = ctx.paths, ctx.spec
     changed = await _ensure_type_folders(paths, spec)
-    await _regenerate_surface(paths, spec, playbook)
+    await _regenerate_surface(paths, spec, ctx.playbook)
     changed += await _seed_new_type_skills(paths, spec)
     return changed

@@ -978,7 +978,7 @@ def _badge_field_mismatches(
         if value is None:
             continue
         coll = collections.get(f.collection)
-        if coll is None or value not in coll.badge_codes:
+        if coll is None or not coll.declares(value):
             mismatches.append((f.code, f.collection, value))
     return mismatches
 
@@ -998,12 +998,12 @@ def _code_removed_by_override(
     exactly this reason.
     """
     bundled_coll = bundled_collections.get(coll_code)
-    if bundled_coll is None or bad_value not in bundled_coll.badge_codes:
+    if bundled_coll is None or not bundled_coll.declares(bad_value):
         return False  # never valid under bundled — not an override regression
     coll = collections.get(coll_code)
     if coll is None:
         return True  # the merged spec dropped the whole collection
-    return bad_value not in coll.badge_codes
+    return not coll.declares(bad_value)
 
 
 def _collect_badge_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]:
@@ -1183,7 +1183,7 @@ def _collect_unreachable_status_errors(spec: WorkflowSpec, db: Any) -> list[str]
     return errors
 
 
-def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
+def validate_against_index(spec: WorkflowSpec, db: Any, *, alignment: bool = True) -> list[str]:
     """Cross-check live index items against the merged workflow spec.
 
     Returns a list of human-readable error strings (empty = clean).
@@ -1211,6 +1211,10 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
     field value still names, against a non-empty corpus fails closed, listing the offending
     item IDs.
 
+    *alignment* ``False`` leaves out the prefix/folder alignment half, which exists to catch an
+    override that re-prefixes or re-folders a type: a caller with no override to blame asks only
+    the families the store's own load refuses.
+
     ``db`` is a ``SquadsDB`` instance; typed ``Any`` here to avoid an import cycle
     (``_workflow`` must not import ``_models._index`` at module level).
 
@@ -1224,7 +1228,7 @@ def validate_against_index(spec: WorkflowSpec, db: Any) -> list[str]:
     """
     return [
         *_collect_type_status_errors(spec, db),
-        *_collect_corpus_alignment_errors(spec, db),
+        *(_collect_corpus_alignment_errors(spec, db) if alignment else []),
         *_collect_badge_alignment_errors(spec, db),
     ]
 

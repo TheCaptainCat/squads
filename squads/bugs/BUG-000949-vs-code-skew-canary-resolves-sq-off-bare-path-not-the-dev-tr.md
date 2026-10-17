@@ -3,7 +3,7 @@ id: BUG-949
 sequence_id: 949
 type: bug
 title: VS Code skew canary resolves sq off bare PATH, not the dev tree
-status: Open
+status: Verified
 author: qa
 severity: medium
 refs:
@@ -11,7 +11,7 @@ refs:
 - MILE-934:targets
 - BUG-935
 created_at: '2026-09-15T08:00:34Z'
-updated_at: '2026-09-15T08:12:59Z'
+updated_at: '2026-09-29T16:06:17Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -125,4 +125,22 @@ case, and the remedy is a well-understood fix (reuse a `.venv`-first resolution 
   - Targeted at 0.16 alongside BUG-935 -- both are the VS Code skew canary, different mechanisms
     (which binary resolves, versus what the assertion asserts). Take them as one job rather than
     fixing one half and leaving its twin.
+- [2026-09-29T13:38:25Z] Ada Typescript:
+  - Canary now resolves sq through src/discovery.ts (repo .venv first), prints the binary and version; SQ_CANARY_CMD pins one. See test/canary/resolveSq.ts.
+- [2026-09-29T13:48:10Z] Catherine Manager:
+  - Reopened: REV-972 F1-F3 (the SQ_CANARY_CMD pin path) go back to @typescript-dev.
+- [2026-09-29T13:52:33Z] Ada Typescript:
+  - Pin path hardened per the review: version from the tested invocation, dead pin fails loudly, spaced paths work.
+- [2026-09-29T13:58:59Z] Catherine Manager:
+  - Reopened for REV-972 F4-F6 (poetry --directory runs the canary inside the repo squad).
+- [2026-09-29T14:01:38Z] Ada Typescript:
+  - Poetry cwd, relative-pin and duplicated-check gaps closed; pin path is safe to run.
+- [2026-09-29T14:06:37Z] Catherine Manager:
+  - Reopened for REV-972 F7 (cwd-moving flags in a pin pass at runtime).
+- [2026-09-29T14:10:11Z] Ada Typescript:
+  - Pin can no longer run sq in the repo: flag rejection plus a runtime scratch-dir guard.
+- [2026-09-29T14:13:26Z] Catherine Manager:
+  - Verified via REV-972 (Approved, F1-F7 Verified); canary 68/68.
+- [2026-09-29T16:06:17Z] Mara Tester:
+  - Re-verified by QA (REV-972 was a code review) at c5331f42: canary prints the resolved command and version, and resolves to the repo .venv/bin/sq with a fake stale sq first on PATH (never called). Pins driven via scratchpad wrappers: good pin green (absolute and relative path); dead pin, --dir pointed at a decoy squad, and a wrapper that cds into a decoy squad each fail loudly before any write (decoy untouched); a pin with --directory is rejected. This repo's tree and squad were unchanged by the runs.
 <!-- sq:discussion:end -->

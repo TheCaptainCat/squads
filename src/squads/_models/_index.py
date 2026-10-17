@@ -18,7 +18,7 @@ from typing import Any, cast
 
 from pydantic import BaseModel, NonNegativeInt, model_validator
 
-from squads._errors import SquadsError
+from squads._errors import IndexFullError
 from squads._models._item import (
     DEFAULT_ID_PADDING,
     Item,
@@ -95,9 +95,11 @@ class SquadsDB(BaseModel):
         """
         capacity = 10**self.padding - 1
         if self.counter >= capacity:
-            raise SquadsError(
+            raise IndexFullError(
                 f"index is full: all {capacity:,} IDs at padding {self.padding} are used up. "
-                "Raise the padding with `sq migrate repad <new-width>`."
+                "Raise the padding with `sq migrate repad <new-width>`.",
+                capacity=capacity,
+                padding=self.padding,
             )
         self.counter += 1
         return self.format_id(item_type, self.counter, prefix=prefix)

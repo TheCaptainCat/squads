@@ -265,7 +265,8 @@ Optional:
 - `parents` — list of allowed parent item types; empty or omitted means no hierarchy constraint
 - `aliases` — list of short command aliases (e.g., `["inc"]` allows `sq inc <n>` as shorthand)
 - `validators` — checks this type runs beyond the set its category already turns on, each with an
-  optional parameter and level. See **Validators** (below).
+  optional parameter and level. Four checks run nowhere until a type names them here. See
+  **Validators** (below).
 
 #### Custom records-category item types
 
@@ -327,16 +328,74 @@ type gets a cross-cutting core plus a bundle its `category` implies, and a type'
 validators = ["parent_present@warn"]
 ```
 
-Two checks are not selected for you anywhere in the bundled spec, so naming them here is the only
-way they ever run: `parent_present` (every item of this type must have a parent) and
-`ref_rule_target_present` (a delivered item of this type must carry a typed ref — see
-[workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current"). The set of
-names is fixed by the version you are running, and one it does not hold is refused at load, naming
-your entry:
+Four checks are not selected for you anywhere in the bundled spec, so naming one in a type's list
+is the only way it ever runs on that type:
+
+- `parent_present` — every item of this type must have a parent.
+- `ref_rule_target_present` — a delivered item of this type must carry a typed ref (see
+  [workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current").
+- `no_status_banner` — an item's body or summary must not open with a status label.
+- `subentity_title_max` — a sub-entity title must not be longer than a threshold.
+
+The set of names is fixed by the version you are running, and one it does not hold is refused at
+load, naming your entry:
 
 ```
 item 'task': validators entry 'nonesuch' names an unknown validator
 ```
+
+**The status-banner and title checks.** Both hold an item to a writing convention, not to anything
+squads needs in order to work, so a type runs one only when its list names it:
+
+- **`no_status_banner`** warns when the first line of an item's body, or of its summary (`--desc`),
+  is a status label: `Status:` in any letter case, bold or not, or a `## Status` / `### Status`
+  heading. An item's status is its `status` field, and a copy written into the prose keeps saying
+  what it said after the field has moved on. Only the first line is read, so the same heading
+  further down a body is not reported, and an item is reported once: for its body, or else for its
+  summary. The check takes no parameter.
+- **`subentity_title_max`** warns when a sub-entity title — a story, subtask or finding in the
+  bundled spec — is longer than a threshold: 120 characters when you name the check bare, or the
+  number you give it (`subentity_title_max:80`). A type that names it also gets an advisory from
+  `sq <type> <n> add-<kind>` when the title just given is over the same number; the sub-entity is
+  added either way. The check follows the sub-entity kind a type hosts, not its category: a
+  `records` type that hosts a kind runs it once the type names it, and a type that hosts no kind
+  may name it and reports nothing.
+
+One line turns both on for one type:
+
+```toml
+[items.feature]
+validators = ["no_status_banner", "subentity_title_max"]
+```
+
+A feature whose body opens with `## Status`, and which carries a story with a 121-character title,
+is then reported twice by `sq check`, which still exits `0`:
+
+```
+warn FEAT-<n>: advisory: story US<k> title is 121 chars (threshold: 120) — a sub-entity title is
+a one-line handle; put the detail in the body
+warn FEAT-<n>: body opens with a status/lifecycle banner — move state to frontmatter or a dated
+discussion comment
+```
+
+A summary that opens the same way reads `description opens with a status/lifecycle banner`. And
+`sq feature <n> add-story` with that title adds the story, then prints under its usual
+confirmation:
+
+```
+Title is 121 chars — a sub-entity title is a one-line handle, not the description. Put the detail in the body:
+  sq feature <n> story US<k> body -m "…"
+```
+
+A title of exactly 120 characters triggers neither. Take the line out and none of the three is
+printed. Either name takes a level; what `@error` changes for each, and what it leaves alone, is
+under "Levels" below.
+
+**Selection is per type, and there is no squad-wide switch.** The line above changes nothing for a
+task, a decision or any other type: a squad that wants a check everywhere names it on each type.
+Two bundled types, `epic` and `skill`, ship a `validators` list of their own, and there the entry
+has to be added to the bundled list, not written over it — see "a type's own list is an ordinary
+array" below before you write either.
 
 **The four shapes of an entry** — a parameter, a level, both, or neither:
 
@@ -394,11 +453,15 @@ So `@error` always makes `sq check` a hard gate for a rule, which is what you wa
 Only for a check of the first kind does it also refuse writes.
 
 **And when it does refuse writes, it refuses more than you asked for.** A gating check raised to
-`error` turns *ordinary edits* on the items already failing it into refusals, not just the edits
-that caused the state. A task type carrying `subentity_title_max:40@error` with an over-length
-sub-entity title already on disk refuses a plain retitle of the item until that sub-entity title
-is shortened. Raising a level on a corpus you have not cleaned first is how a board seizes up —
-see "Adopting `parent_present` without the cliff" below for the way through.
+`error` turns *ordinary edits* on the items already failing it into refusals, edits that have
+nothing to do with what the check reports. A task type carrying `subentity_title_max:40@error`
+with an over-length subtask title already on disk refuses a retitle, a summary change and a status
+transition of that task until the subtask title is shortened, each with the finding as its error.
+What it does not refuse is the write that makes the title too long: `add-subtask` with a title
+over the number still adds the subtask and prints its advisory, and retitling a subtask past the
+number goes through. The refusal lands on the task's own next edit, not on the subtask. Raising a
+level on a corpus you have not cleaned first is how a board seizes up — see "Adopting
+`parent_present` without the cliff" below for the way through.
 
 **The floor: two checks you may raise but never lower.** Most accept either level. Two refuse to
 go below `error`:
@@ -450,11 +513,12 @@ item 'task': validators entry 'subentity_title_max:0' names a non-positive-integ
 subentity_title_max threshold '0'
 ```
 
-Declare no parameter and the type gets the bundled default. Declare one and it applies to **both**
-places the number surfaces, which is what stops the two from disagreeing: the `sq check` finding
-and the advisory printed at `sq <type> <n> add-<kind>` time. With `validators =
-["subentity_title_max:40"]` on `task`, a 49-character subtask title produces the advisory at
-`add-subtask` and this at check time:
+Name the check with no parameter and the threshold is 120. A type that does not name the check at
+all has no threshold: `sq check` reports no title on it and `add-<kind>` prints no advisory,
+whatever the length. The number a type runs applies to **both** places it surfaces, which is what
+stops the two from disagreeing: the `sq check` finding and the advisory printed at
+`sq <type> <n> add-<kind>` time. With `validators = ["subentity_title_max:40"]` on `task`, a
+49-character subtask title produces the advisory at `add-subtask` and this at check time:
 
 ```
 warn TASK-<n>: advisory: subtask ST<k> title is 49 chars (threshold: 40) — a sub-entity title is
@@ -538,23 +602,33 @@ clean.
 
 **What the list cannot do — there is no deselection surface.** `[selected]` has no `validators`
 section, and neither the cross-cutting core nor a category bundle can be subtracted from. The
-quietest a bundled check can be made is `warn`, which still reports.
+quietest a bundled check can be made is `warn`, which still reports. The four checks nothing
+bundled selects are in neither the core nor a bundle, so a type that does not name one does not
+run it.
 
 **But a type's own list is an ordinary array, and arrays are leaves** (see § "Plain arrays are
-leaves — replaced whole"). Some bundled types ship a `validators` entry of their own, and writing
-the key in your override replaces the whole list rather than adding to it. `epic` ships
-`validators = ["no_parent"]`; this drops it, with no warning, and epics start accepting a parent:
+leaves — replaced whole"). Two bundled types ship a `validators` entry of their own, `epic`
+(`["no_parent"]`) and `skill` (`["item_skill_shadowed"]`), and writing the key in your override
+replaces the whole list rather than adding to it. This turns the status-banner check on for epics
+and drops `no_parent`, with no warning, so epics start accepting a parent:
 
 ```toml
 [items.epic]
-validators = ["subentity_body_written"]      # no_parent is gone
+validators = ["no_status_banner"]      # no_parent is gone
 ```
 
 Splat the bundled list to keep it:
 
 ```toml
 [items.epic]
-validators = ["$(*items.epic.validators)", "subentity_body_written"]
+validators = ["$(*items.epic.validators)", "no_status_banner"]
+```
+
+The splat needs a bundled list to copy. A type that ships none, `task` for one, refuses the same
+token at load, so write its list plain:
+
+```
+dangling splat path 'items.task.validators' has no counterpart in the bundled base
 ```
 
 **Reading it back.** `sq workflow lint` is what validates the entries — every problem at once,
@@ -1209,10 +1283,10 @@ validators = ["supersedes_incoming"]   # keep the check the category no longer t
 ```
 
 The same list is also how you turn on a check nothing bundled selects, and how you set the level
-and the parameter it runs with — see § "Validators" above for the full grammar. Two checks ship
+and the parameter it runs with — see § "Validators" above for the full grammar. Four checks ship
 unselected: `ref_rule_target_present` (squads types the `implements` edge from a feature to a
 contract but never requires it — see [workflow.md](workflow.md#keeping-a-contract-current) §
-"Keeping a contract current") and `parent_present`.
+"Keeping a contract current"), `parent_present`, `no_status_banner` and `subentity_title_max`.
 
 `sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
 fix hint, where a plain `sq` command stops at the first:

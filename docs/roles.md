@@ -48,9 +48,10 @@ sq dev list
 ```
 
 If you omit `--name`, a first name is taken from a pool and the surname is the tech (so `--tech
-dotnet` → *Elias Dotnet*); the slug is always `<tech>-dev`. Every developer manages `sq-task`,
-`sq-bug`, and `sq-review`. The name and `--model` you choose here are kept as they are by every
-later `sq sync`; the rest of the developer's definition is refreshed from the bundled one — see
+dotnet` → *Elias Dotnet*); the slug is always `<tech>-dev`, with the tech slugified (`--tech
+Node.js` → `node-js-dev`). Every developer manages `sq-task`, `sq-bug`, and `sq-review`. The
+name, the slug and the `--model` you choose here are kept as they are by every later `sq sync`;
+the rest of the developer's definition is refreshed from the bundled one — see
 [overrides.md § "Which name wins"](overrides.md#which-name-wins).
 
 A developer's fields are overridable like any other role's, and the override merges onto the
@@ -138,6 +139,13 @@ sq operator list
 sq operator OP-000002 status Archived [--force] [--unlink]   # transition its Active/Archived status
 sq operator OP-000002 rm [--purge]
 ```
+
+A slug is derived once, when the entry is created: lowercased, accented Latin letters spelled out
+(`Élodie Martin` → `op-elodie`, `ß` → `ss`), and each run of any other characters turned into
+one hyphen. The stored slug is the entry's identity from then on, and nothing re-derives or renames it,
+even when squads changes how it derives new ones. `sq operator add`, `sq skill add` and `sq dev
+add` refuse a name whose slug is already taken, including a slug stored under an earlier
+derivation of the same name; pass `--slug` to register a genuinely different operator.
 
 Operators are first-class participants, but **not** agents: they're never spawned as subagents,
 never get a `.claude/agents` pointer or skills, and don't appear in the agent roster (they have

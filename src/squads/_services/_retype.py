@@ -126,6 +126,9 @@ class RetypeMixin(ServiceCore):
         new_type = str(new_type)  # coerce StrEnum members to plain str
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
+            # The rewrite below touches every file that mentions this id, so no duplicated id
+            # anywhere may be in play.
+            await self._refuse_any_duplicated_id()
             old_type = item.type
             old_id = item.id
             old_status = item.status

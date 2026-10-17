@@ -2,8 +2,8 @@
 the ``sq check`` advisory (``CATALOG["subentity_title_max"]``) and the create-time advisory
 (``add-<kind>``'s own check in ``_services/_subentities.py``) through the one accessor,
 ``WorkflowSpec.item_subentity_title_max`` — never the bundled module constant. A type
-overriding it gets the same number at both call sites; a type that does not override it
-reproduces today's 120-character default exactly, byte for byte (message text included).
+overriding it gets the same number at both call sites; a type that names it bare gets the
+120-character default, and a type that does not name it gets neither check nor advisory.
 """
 
 from pathlib import Path
@@ -28,11 +28,25 @@ def _service_with_override(squad_dir: Path, override_body: str) -> service.Servi
 
 
 _BETWEEN_80_AND_120 = "x" * 85  # over an 80-char override, under the 120-char bundled default
+_SELECTS_BARE = '[items.feature]\nvalidators = ["subentity_title_max"]\n'
 
 
-async def test_a_type_declaring_no_override_reproduces_the_bundled_default_exactly(svc):
-    """Falsification baseline: unmodified, an 85-char title is under the 120-char bundled
-    default — no create-time advisory, and no ``sq check`` finding either."""
+async def test_a_type_selecting_nothing_gets_neither_check_nor_advisory_at_any_length(svc):
+    """Falsification baseline: on the bundled spec nothing selects the check, so even a title
+    far over 120 characters earns no create-time advisory and no ``sq check`` finding."""
+    feat = (await create_item(svc, "feature", "f")).item
+    for title in (_BETWEEN_80_AND_120, "x" * (TITLE_ADVISORY_MAX + 1), "x" * 200):
+        res = await svc.add_story(feat.id, title)
+        assert res.title_advisory is None
+
+    issues = await svc.check()
+    assert not [i for i in issues if i.item == feat.id and "title is" in i.message]
+
+
+async def test_a_bare_selection_reproduces_the_bundled_default_exactly(project):
+    """A bare selection resolves to the 120-character default: an 85-char title is under it, so
+    no advisory and no finding."""
+    svc = _service_with_override(project.squad_dir, _SELECTS_BARE)
     feat = (await create_item(svc, "feature", "f")).item
     res = await svc.add_story(feat.id, _BETWEEN_80_AND_120)
     assert res.title_advisory is None
@@ -70,10 +84,11 @@ async def test_a_declared_threshold_moves_where_sq_check_fires_with_the_same_num
     assert "(threshold: 120)" not in matching[0].message
 
 
-async def test_the_bundled_default_message_text_is_unchanged(svc):
-    """Byte-for-byte parity with the bundled default, for a type declaring no override — the
-    threshold is resolved through ``WorkflowSpec.item_subentity_title_max``, and its number and
-    wording must match ``TITLE_ADVISORY_MAX`` exactly."""
+async def test_the_default_message_text_is_unchanged(project):
+    """Byte-for-byte parity of a bare selection's message — the threshold is resolved through
+    ``WorkflowSpec.item_subentity_title_max``, and its number and wording must match
+    ``TITLE_ADVISORY_MAX`` exactly."""
+    svc = _service_with_override(project.squad_dir, _SELECTS_BARE)
     feat = (await create_item(svc, "feature", "f")).item
     await svc.add_story(feat.id, "x" * (TITLE_ADVISORY_MAX + 1))
     issues = await svc.check()

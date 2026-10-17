@@ -117,8 +117,10 @@ The frontmatter is durable; the index is derived. Two commands make that concret
 
 - **`sq repair`** rescans every `PREFIX-*.md` under the type folders, rebuilds the index from their
   frontmatter, and sets `counter = max ID number`. `--renumber` additionally resolves duplicate
-  numbers from a git merge (reassigns the colliding files to fresh numbers and rewrites every
-  reference — parent/refs/inline — across all files).
+  numbers from a git merge. Distinct IDs sharing a number get fresh numbers and every reference
+  (parent/refs/inline) is rewritten across all files. One ID carried by several files is
+  renumbered without touching references, which are listed for a hand check instead, because
+  none can be attributed to one copy (see [the FAQ](faq.md#handling-id-collisions)).
 
   **The rescan also writes.** On the same walk it strips from each file what is now computed on
   every read rather than stored — the sub-entity roll-up table and badge lines, a **role's** body
@@ -133,7 +135,7 @@ The frontmatter is durable; the index is derived. Two commands make that concret
   rewrote, and each names those items in the reflog. The notice has one constructor, shared by
   every result type a sweep-reaching command returns, so no route can drift out of it.
 - **`sq check`** lints the two against each other: unbalanced/duplicated markers, dangling
-  parent/ref IDs, invalid status-for-type, on-disk-vs-index reconciliation, and frontmatter↔index
+  parent/ref IDs, one ID carried by several files, invalid status-for-type, on-disk-vs-index reconciliation, and frontmatter↔index
   drift. (Implemented as small per-rule helpers: `_scan_for_check`, `_check_reconciliation`,
   `_check_items`, `_check_subtask_stories`.)
 

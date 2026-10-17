@@ -7,7 +7,15 @@ import json
 
 import pytest
 
+from _selection_table import write_override
+
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture(autouse=True)
+def _feature_selects_the_check(project):  # pyright: ignore[reportUnusedFunction]
+    """The feature type selects the check, so every case below runs on a type that runs it."""
+    write_override(project.squad_dir, '[items.feature]\nvalidators = ["no_status_banner"]\n')
 
 
 async def test_check_prints_the_status_banner_issue_and_exits_0(project, invoke) -> None:

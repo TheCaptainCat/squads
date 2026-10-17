@@ -65,6 +65,11 @@ async def read_text(path: Path) -> str:
         raise UnreadableFileError(f"{path} could not be read: {exc.strerror or exc}") from exc
 
 
+async def read_bytes(path: Path) -> bytes:
+    """Read *path* as raw bytes on a worker thread."""
+    return await to_thread(path.read_bytes)
+
+
 async def write_text(path: Path, text: str) -> None:
     """Write *text* to *path* as UTF-8 on a worker thread — truncate-in-place, NOT atomic.
 

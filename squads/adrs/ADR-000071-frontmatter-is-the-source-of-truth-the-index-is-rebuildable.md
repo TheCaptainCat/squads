@@ -8,10 +8,11 @@ author: architect
 refs:
 - GUIDE-79
 - ADR-104
+- ADR-955
 description: Item state lives in .md frontmatter; .squads.json is a derived index
   that sq repair reconstructs
 created_at: '2026-06-12T14:22:53Z'
-updated_at: '2026-08-03T08:40:48Z'
+updated_at: '2026-10-11T20:18:45Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -49,6 +50,12 @@ the amendment note.*
 their frontmatter, and resets the counter to the maximum ID number found. `sq check` lints the two
 against each other and reports any drift. A `.squads.json` merge conflict is therefore a non-event —
 take either side and run `sq repair`.
+
+> **Narrowed 2026-10-11 (ADR-955):** "run `sq repair`" holds on a squad at the package's schema.
+> While a squad's schema is behind the package the gate refuses `sq repair`, and the recovery path
+> there is the reconcile that `sq migrate up` runs before its first runner. A conflicted index is
+> one of the states that reconcile rebuilds from the files. See ADR-955 and its amendments of
+> 2026-10-09.
 
 ## Consequences
 
@@ -102,4 +109,6 @@ rescan may raise a floor and never lower it". `sq repair` remains the proof of b
   - Wrote the reciprocal note ADR-104 was owed. ADR-104 did its half correctly — declared the second class of index state, named the narrowing, left its point-in-time prose as history — and this decision still read as an unqualified "nothing". Narrowed in place; nothing retired.
   - The distinction that makes both true, and the part a reader needs: per-item durable state admits no exception at all, while a corpus-derived squad-wide parameter is still reconstructable, just not from one file. So the honest form is "nothing a full rescan cannot recover", plus "a rescan may raise a floor and never lower it" — the floor exists because a rebuild over a partial corpus could otherwise narrow the filename padding and break ids already on disk. Verified at `_services/_maintenance.py:757`, with the counter floor beside it.
   - `related` edge added to ADR-104. Also dropped the "Left Proposed for the manager to accept" sentence — see the sweep comment on the retroactive set.
+- [2026-10-11T20:18:45Z] Robert Architect:
+  - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, after the paragraph of the Decision section that ends by calling a `.squads.json` merge conflict a non-event to be cleared with `sq repair`. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
 <!-- sq:discussion:end -->

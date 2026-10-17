@@ -1,5 +1,7 @@
-"""``sq repair``, ``sq migrate up``, ``sq sync`` and ``sq adopt`` all run the same corpus-rebuild
-sweep, and must report an unreadable file with the same wording and exit code."""
+"""``sq repair``, ``sq sync`` and ``sq adopt`` all run the same corpus-rebuild sweep, and must
+report an unreadable file with the same wording and exit code. ``sq migrate up`` shares the exit
+code and names the file, but refuses before migrating anything rather than carrying the entry
+forward, so its wording is its own."""
 
 from pathlib import Path
 
@@ -47,9 +49,10 @@ async def test_migrate_up_unreadable_row(tmp_path, monkeypatch, invoke) -> None:
     r = await invoke(["migrate", "up"])
 
     assert bad_path.name in r.output, (
-        f"migrate up must report the unreadable file by name, matching sq repair: {r.output!r}"
+        f"migrate up must report the unreadable file by name: {r.output!r}"
     )
-    assert _UNREADABLE_WORDING in r.output
+    assert "no migration has run" in r.output
+    assert _UNREADABLE_WORDING not in r.output
     assert r.exit_code == 1, r.output
 
 

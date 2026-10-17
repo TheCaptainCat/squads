@@ -1,6 +1,7 @@
-"""``sq migrate up`` exits non-zero, bare, when its trailing repair hits an unreadable file —
-matching ``sq repair``'s own exit code for the same case."""
+"""``sq migrate up`` exits non-zero, bare, and migrates nothing when an item file cannot be
+read, and exits 0 on a clean squad."""
 
+import re
 import shutil
 import subprocess
 import sys
@@ -17,12 +18,16 @@ _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
 _SQ_BIN = Path(sys.executable).parent / "sq"
 
 
-def test_migrate_up_exits_non_zero_bare_on_an_unreadable_file(tmp_path: Path) -> None:
-    """Checked bare through a real subprocess, never through a pipeline that masks ``$?``."""
+def test_migrate_up_refuses_bare_when_an_item_file_cannot_be_read(tmp_path: Path) -> None:
+    """Checked bare through a real subprocess, never through a pipeline that masks ``$?``: the
+    run stops before any migration, names the file with its cause, leaves the schema stamp and
+    the item files as they were, and points only at ``sq migrate up``."""
     dst = tmp_path / "v0_11"
     shutil.copytree(_CORPUS_DIR / "v0_11", dst)
     bad_path = dst / "tasks" / "TASK-000003-implement-auth.md"
-    make_unreadable_by_the_os(bad_path)
+    undo = make_unreadable_by_the_os(bad_path)
+    stamp_before = (dst / ".squads.toml").read_bytes()
+    others = {p: p.read_bytes() for p in sorted(dst.rglob("*.md")) if p.is_file()}
 
     proc = subprocess.run(
         [str(_SQ_BIN), "migrate", "up"],
@@ -32,10 +37,15 @@ def test_migrate_up_exits_non_zero_bare_on_an_unreadable_file(tmp_path: Path) ->
     )
 
     assert proc.returncode == 1, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
-    assert bad_path.name in proc.stdout
-    assert "its previous index entry, if any, was carried forward as-is; fix the file" in (
-        proc.stdout
-    )
+    assert bad_path.name in proc.stderr
+    assert "could not be read" in proc.stderr
+    assert "no migration has run" in proc.stderr
+    assert "carried forward" not in proc.stderr
+    refusal = proc.stderr
+    assert re.findall(r"`sq [^`]*`", refusal) == ["`sq migrate up`"]
+    assert (dst / ".squads.toml").read_bytes() == stamp_before
+    undo()
+    assert {p: p.read_bytes() for p in others} == others
 
 
 def test_a_clean_migration_prints_no_skip_lines_and_exits_zero(

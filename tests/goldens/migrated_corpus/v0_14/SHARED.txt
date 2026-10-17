@@ -1,0 +1,7 @@
+.squads.toml
+agents/roles/ROLE-000001-dev-agent.md
+agents/skills/SKILL-000007-greeting.md
+agents/skills/SKILL-000008-squads.md
+features/FEAT-000002-user-login.md
+reviews/REV-000006-auth-module-review.md
+tasks/TASK-000003-implement-auth.md

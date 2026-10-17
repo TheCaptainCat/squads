@@ -14,7 +14,7 @@ from squads._roles._resolver import (
 )
 from squads._services._base import ServiceCore
 from squads._services._results import DefaultRoleMoveResult, MineRow, WorkloadRow
-from squads._util import operator_slug, slugify
+from squads._util import legacy_operator_slug, legacy_slugify, operator_slug, slugify
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
 
 
@@ -73,8 +73,9 @@ class RosterMixin(ServiceCore):
         role = resolve_dev_role(
             tech, name=name, seq=seq, model=model, squad_dir=self.paths.squad_dir
         )
-        if await self.roster_item(ROSTER_ROLE, role.slug) is not None:
-            raise SquadsError(f"a developer with slug {role.slug!r} already exists")
+        await self._refuse_duplicate_slug(
+            ROSTER_ROLE, "a developer", role.slug, f"{legacy_slugify(tech.strip())}-dev"
+        )
         res = await self.create(
             ROSTER_ROLE,
             role.full_name,
@@ -105,8 +106,7 @@ class RosterMixin(ServiceCore):
         parent: str | None = None,
     ) -> Item:
         slug = slugify(name)
-        if await self.roster_item(ROSTER_SKILL, slug) is not None:
-            raise SquadsError(f"a skill with slug {slug!r} already exists")
+        await self._refuse_duplicate_slug(ROSTER_SKILL, "a skill", slug, legacy_slugify(name))
         res = await self.create(
             ROSTER_SKILL,
             name,
@@ -128,11 +128,22 @@ class RosterMixin(ServiceCore):
                 await backend.generate_skill_entry(ctx, res.item)
         return res.item
 
+    async def _refuse_duplicate_slug(
+        self, item_type: str, noun: str, slug: str, legacy_slug: str | None
+    ) -> None:
+        """Refuse when *slug*, or the slug the earlier rule would have produced, is already
+        stored for *item_type*; the message names the stored slug."""
+        for candidate in dict.fromkeys(s for s in (slug, legacy_slug) if s):
+            if await self.roster_item(item_type, candidate) is not None:
+                raise SquadsError(f"{noun} with slug {candidate!r} already exists")
+
     async def add_operator(self, name: str, *, slug: str | None = None) -> Item:
         """Register a human operator (assignable + can author items/comments), e.g. `op-alice`."""
+        explicit = slug is not None
         slug = slug or operator_slug(name)
-        if await self.roster_item(ROSTER_OPERATOR, slug) is not None:
-            raise SquadsError(f"an operator with slug {slug!r} already exists")
+        await self._refuse_duplicate_slug(
+            ROSTER_OPERATOR, "an operator", slug, None if explicit else legacy_operator_slug(name)
+        )
         res = await self.create(
             ROSTER_OPERATOR,
             name,
@@ -210,6 +221,7 @@ class RosterMixin(ServiceCore):
                     f"{item.id} ({slug}) is not live — only a live role can be designated default"
                 )
 
+            await self._refuse_any_duplicated_id()
             # Resolved once for the whole pass (may clear several other roles below) rather
             # than once per role touched.
             default_kind = self.spec.default_ref_kind()

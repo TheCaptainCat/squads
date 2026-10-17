@@ -466,19 +466,26 @@ that document's tag. That includes an `sq-<type>` skill whose text you wrote you
 a runbook into a skill of its own before upgrading. The run reports how many files it changed. An
 empty body, a body that already carries its tag, and a custom skill are left as they are.
 
-A document the migration cannot safely rewrite is skipped rather than aborting the run, and named
-by id in its output:
+Before it rewrites anything, `sq migrate up` rebuilds the index from the item files. An indexed
+milestone whose file is gone is dropped from the index there, and named on the run's
+`index reconciled with the files` line. An item file the run cannot read or parse stops it before
+any document is rewritten, with the schema unchanged (see
+[migration.md § "Before the first runner"](migration.md#before-the-first-runner)).
 
-- a milestone whose file is missing, or whose body has no `sq:body` region;
-- a milestone whose tag you had already moved outside `sq:body` by hand. `sq check` accepts it
-  there, but the next body write or `view add` places a second copy inside the body, and
-  `sq check` then reports a duplicate. Delete the out-of-region line from the file by hand, then
-  run `sq milestone <n> view add milestone_rollup`;
+A document the migration reads but cannot safely rewrite is skipped rather than aborting the
+run, and named by id in its output:
+
+- a milestone whose body has no `sq:body` region;
+- a milestone whose tag you had already moved outside `sq:body` by hand. `sq check` warns that
+  the tag never renders there, and `view add` refuses while it is out of region, but the next
+  body write places a second copy inside the body and `sq check` then reports a duplicate. Move
+  the out-of-region line inside `sq:body` by hand, or delete it and run
+  `sq milestone <n> view add milestone_rollup`;
 - a role or skill body holding marker-shaped content the migration does not recognise.
 
 `sq check` then reports each skipped document that still lacks its tag, at error level. For a
-milestone, the error names two single-command remedies — restore the file or its `sq:body`
-region first if that is what is missing:
+milestone, the error names two single-command remedies — restore its `sq:body` region first if
+that is what is missing:
 
 ```
 error MILE-000021-ship-1-0.md: missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with `sq milestone 21 view add milestone_rollup`, or disable it with `sq milestone 21 view disable milestone_rollup`
@@ -916,8 +923,9 @@ Optional:
 - `parents` — list of allowed parent item types (e.g. `["epic"]`); empty list means unconstrained
 - `aliases` — list of short command aliases (e.g. `["inc"]` allows `sq inc <n>` as shorthand for `sq incident <n>`)
 - `validators` — checks this type runs beyond the set its category already turns on, each entry
-  `name`, `name:param`, `name@level` or `name:param@level`. The grammar, the levels, and which
-  members take a parameter are in [overrides.md](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are)
+  `name`, `name:param`, `name@level` or `name:param@level`. The grammar, the levels, which
+  members take a parameter, and the checks no type runs until its list names them are in
+  [overrides.md](overrides.md#validators-the-checks-a-type-runs-and-how-loud-they-are)
   § "Validators".
 
 ```toml
@@ -1197,6 +1205,12 @@ a disabled one, and either named command collapses them to one tag. A body write
 holds a view in both states, and names the same two commands. A disabled tag naming an undeclared
 view is not an error; an enabled one is.
 
+A view tag outside `sq:body` never renders. `sq check` warns about it, in an item file and in a
+project item or role template override. `view add` and `view disable` manage in-region tags only,
+so they refuse with exit `1` for a view whose tag sits outside, rather than place a second copy.
+No command moves the tag: move it inside `sq:body` by hand. When such a tag also makes a duplicate,
+the duplicate error says to remove or move the out-of-region copy first.
+
 A role or skill file whose `sq:body` markers were deleted by hand is reported too, with the
 command that restores the region:
 
@@ -1429,7 +1443,8 @@ different vocabulary, use the on-demand **data migration commands**:
 These are **audited data rewrites** — atomic per type, designed to preserve referential integrity,
 and audited item by item: each writes **one reflog line per item moved**, not one line for the run,
 so `sq reflog --op rename-type` reconstructs exactly which items a past rename touched. Always
-verify with `sq check` after.
+verify with `sq check` after. Both run only on a squad at the package's schema: on one that is
+behind, run `sq migrate up` first.
 
 **Use case:** You released your squad with the built-in `task` type but later realize you want to call
 them `job` instead. Declare a `job` type in your workflow override, then run `sq migrate rename-type

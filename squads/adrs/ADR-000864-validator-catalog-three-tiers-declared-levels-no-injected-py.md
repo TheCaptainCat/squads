@@ -10,10 +10,11 @@ refs:
 - PRD-858
 - ADR-777
 - ADR-696
+- ADR-955
 description: What a complete validator catalog looks like, which members are floor
   vs opt-in, and why adopter-supplied Python is not built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-09-03T08:54:09Z'
+updated_at: '2026-10-12T06:53:21Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -194,6 +195,44 @@ None of these exist (read: none appear in either name catalog).
   in either direction — the blocker exists only in somebody's head. For teams that use the
   blocked status as a real signal rather than a parking space.
 
+> **Amended 2026-10-12 (ADR-696 §3):** "`active`-role" and "`blocked`-role", here and in the
+> squad-global candidates below, do not name roles the engine knows. Role names are a project's
+> to rename, and no role name is engine-bound except the fallback role. A member binds in one
+> of two ways:
+>
+> - **To a property the role declares.** An *active* status is one whose role declares
+>   `live = true`, the reading `first_active_status` already uses; a *settled* one is one whose
+>   role declares `settled = true`. `assignee_present` reads the first.
+> - **To a role its own selection names**, where no property carries the meaning. The entry is
+>   `blocked_has_blocker:<role>`: the parameter is required and names the role this squad gives
+>   its blocked statuses.
+>
+> A selection that the spec's own declarations make unable to fire, or unable to be cleared, is
+> refused at load, as `ref_rule_target_present` already is: `assignee_present` on a type whose
+> lifecycle holds no live status; `blocked_has_blocker` with no role, with an undeclared role,
+> with a role no status of the type's lifecycle carries, or in a spec that declares no
+> dependency-role ref kind; `ref_rule_target_typed` on a type that declares no ref rule with a
+> target. Whether the corpus currently holds an offender is never part of that test.
+
+> **Corrected 2026-10-12 (op-pierre, this decision's discussion):** the second way of binding was
+> not confirmed, and the `:<role>` parameter goes with it. A role declares what it means with a
+> flag, so the status-role object gains one: `blocked`, a boolean that defaults to false, beside
+> `settled`, `hidden`, `color` and `live`. The bundled `blocked` role declares `blocked = true`.
+> `blocked_has_blocker` takes no parameter and reads the flag off the status's role. The first
+> way of binding, `live` for active, and the refusal rule stand as written.
+>
+> - **Frozen surface.** The `sq workflow roles --json` row gains `blocked` as its sixth key
+>   (ADR-474, ADR-738). The change is additive.
+> - **The refusals, restated.** `assignee_present` on a type whose lifecycle holds no status of a
+>   live role; `blocked_has_blocker` on a type whose lifecycle holds no status of a role
+>   declaring `blocked`, or in a spec that declares no dependency-role ref kind;
+>   `ref_rule_target_typed` on a type that declares no ref rule with a target.
+> - **A squad that declares its own roles** has no blocked role until one of them declares the
+>   flag. Nothing changes for it on upgrade; selecting the check is refused, naming the flag,
+>   until it does.
+> - No other consumer reads the flag. `sq blocked` and the `blocked` key of `sq tree --json` are
+>   computed from dependency edges and are unrelated to it.
+
 - **`settled_requires_discussion`** (warn). An item reaching a settled status with an empty
   discussion. For teams using the corpus as an audit record, where "why did this close" has to
   be answerable later. Not for a squad that closes routine work silently.
@@ -201,6 +240,38 @@ None of these exist (read: none appear in either name catalog).
 - **`external_id_not_in_title:<pattern>`** (warn). A title carrying a foreign tracker's
   identifier. For teams mirroring another system, who want the identifier in a ref and not
   baked into a title that outlives the mirror.
+
+> **Amended 2026-10-12:** the pattern is a template, not a regular expression. Python's `re` has
+> no timeout, and an adopter's expression that backtracks would hang `sq check`, and at `@error`
+> a gated write with the index lock held: the failure "Failure modes" below names for injected
+> code. A template is literal text plus two placeholders, `{d}` (one or more ASCII digits) and
+> `{A}` (one or more ASCII upper-case letters); `{A}-{d}` is a typical tracker key. It is matched
+> anywhere in the title, never starting or ending inside a run of letters and digits, in time
+> proportional to title length times template length. Refused at load: an empty template, any
+> other use of a brace, and a placeholder directly followed by itself or by a literal of its own
+> class, which could never match. Several trackers are several entries, each its own template.
+
+> **Not confirmed 2026-10-12 (op-pierre, this decision's discussion):** the template grammar is
+> not adopted. The parameter is a regular expression, as the bullet above first said, and the
+> cost of a bad pattern is the adopter's own configuration risk. What stands:
+>
+> - The pattern is required and is compiled at load. One that does not compile is refused,
+>   naming the entry. It is searched for in the title with no flags, one pattern per type.
+> - `@` cannot appear in a pattern, because an entry is cut at its first `@` to read the level.
+>   The refusal says so, in place of the generic unknown-level message, and gives `\x40` as the
+>   spelling of a literal one.
+> - Nothing bounds a match. The adopter documentation states that the pattern runs on every
+>   `sq check` and on every gated write of an item of a selecting type, that a write holds the
+>   index lock while it runs, and that a pattern which backtracks can therefore hang both.
+
+> **Corrected 2026-10-12 (the gate runs only a member that can refuse):** the last point is
+> narrowed. The create/update gate evaluates a per-item member only where its resolved level for
+> the item's type is `error`, besides holding the context the member requires. The gate already
+> discarded every `warn` finding, so no gate decision changes. The pattern therefore runs on
+> every `sq check`, and on a gated write only for a type that selects the check at `@error`;
+> that is where a write holds the index lock while it runs. One outcome differs for every
+> member: one selected at `warn` that raises no longer aborts a write, and `sq check` still
+> runs it.
 
 - **`label_declared`** (warn). A label outside a declared vocabulary. Read: labels are free
   strings with no spec vocabulary behind them, so this member presupposes new spec vocabulary
@@ -325,6 +396,11 @@ and reaches `os.replace` never having been called, leaving markdown ahead of the
 skew direction `sq repair` heals losslessly, by design. So an injected validator that raises
 produces an ugly traceback instead of a clean error message, and does not corrupt anything. The
 durability model already covers this case.
+
+> **Narrowed 2026-10-11 (ADR-955):** `sq repair` heals it on a squad at the package's schema. While
+> a squad's schema is behind the package the gate refuses `sq repair`, and the recovery path there
+> is the reconcile that `sq migrate up` runs before its first runner. The conclusion of this
+> paragraph is unaffected: raising corrupts nothing. See ADR-955 and its amendments of 2026-10-09.
 
 **Hanging is not.** Validators are synchronous callables and `sq check` is an async method
 (read), so a validator that loops blocks the event loop for the whole process, and there is no
@@ -650,4 +726,18 @@ validator nobody bundles is not dead code; it is the tier that makes the catalog
   - Correction to my comment above, and to the ruling as first written: parent_acyclic is NOT 0.15 work — it already shipped. Verified against source myself: implemented _services/_validators.py:267, registered :646, in VALIDATOR_NAMES and COMMON_CORE at _workflow/_models.py:148,212; both walks now carry visited sets (_services/_base.py:215-247, :250-300). Landed 2026-09-02, after the comment that reported it here and before the 0.14 tag.
   - Part 2 opens "None of these exist (read: ...)" — that (read) label no longer holds, so it is corrected in place under its own heading rather than tidied away: of Part 2s sixteen named members, parent_acyclic is the one that exists, the other fifteen do not. Same class of error as the gate clause, corrected the same way. Thanks @qa for catching it on BUG-865.
   - The accepted build order therefore opens on the declared level/threshold plus declared required-context dimension, then re-tiering the two floor members, field_value_declared, the Part 2 catalog-only members, and the squad-global members. Also corrected while there: Part 1s requires-a-parent check is parent_present in the catalog, and it is the member that becomes selectable at warn once level is declarable.
+- [2026-10-11T20:19:44Z] Robert Architect:
+  - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under "Failure modes", after the paragraph stating that a raising validator leaves markdown ahead of the index, the direction `sq repair` heals. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
+- [2026-10-12T05:59:29Z] Robert Architect:
+  - 2026-10-12: two dated notes added in Part 2, nothing else in the body changed. For op-pierre to confirm. @manager
+    
+    - At `blocked_has_blocker`: a member never binds to a status role by name (ADR-696 section 3). "Active" is a role declaring `live = true`; `blocked_has_blocker` takes its role as a required parameter; a selection the spec makes unable to fire or to be cleared is refused at load.
+    - At `external_id_not_in_title:<pattern>`: the pattern is a template of literal text, `{d}` and `{A}`, not a regular expression, because nothing in the standard library bounds a `re` match.
+    - The squad-scope half is a note in ADR-982 clause 4. Reasoning and the gate ruling for `blocked_has_blocker` are on TASK-1001.
+- [2026-10-12T06:19:20Z] Pierre Chat:
+  - 2026-10-12, on the amendment notes of this date:
+    
+    - Status roles: a role declares what it means with a flag. Active is a role with `live = true`. Blocked becomes a `blocked` flag on the role, uniform with `live`, and `blocked_has_blocker` takes no parameter. No role name is hard-wired in the engine. This replaces the note's required `:<role>` parameter.
+    - A selected check that the squad's own vocabulary makes unable to fire is refused at load, as the note says.
+    - `external_id_not_in_title` takes a regular expression, as this decision first said. The template grammar of the note is not adopted; the cost of a bad pattern is the adopter's own configuration risk.
 <!-- sq:discussion:end -->

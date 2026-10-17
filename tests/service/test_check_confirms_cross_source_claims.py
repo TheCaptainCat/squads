@@ -44,10 +44,10 @@ async def _race_a_mutation_against_check(svc, mutate) -> list[CheckIssue]:
     release = anyio.Event()
     orig_scan = svc._scan_for_check
 
-    async def paused_scan():
+    async def paused_scan(carriers):
         started.set()
         await release.wait()
-        return await orig_scan()
+        return await orig_scan(carriers)
 
     svc._scan_for_check = paused_scan
 

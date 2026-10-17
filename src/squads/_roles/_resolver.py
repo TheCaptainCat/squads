@@ -377,6 +377,8 @@ def dev_base_from_item(item: Item) -> RoleDef:
         name=name,
         model=item.extra[X.MODEL],
     )
+    # The stored slug is the role's identity; ``dev_role`` only proposes one at creation.
+    base = replace(base, slug=item.extra.get(X.SLUG, item.slug))
     is_default = item.extra.get(X.IS_DEFAULT, base.is_default)
     if is_default == base.is_default:
         return base
@@ -564,16 +566,17 @@ def resolve_dev_role(
     against ``load_role_catalog(squad_dir).dev`` rather than the bundled singleton's; with no
     *squad_dir* this is exactly :func:`~squads._roles._catalog.dev_role`.
 
-    If ``<squad_dir>/.overrides/roles/<tech>-dev.toml`` exists, its fields are merged over that
-    base as the third, most-specific precedence layer. ``name`` is still honoured as before
-    (explicit name wins over both the pool and any TOML ``full_name``).
+    If ``<squad_dir>/.overrides/roles/<slug>.toml`` exists (the slug the role is stored under),
+    its fields are merged over that base as the third, most-specific precedence layer. ``name``
+    is still honoured as before (explicit name wins over both the pool and any TOML
+    ``full_name``).
     """
-    slug = f"{tech.strip().lower()}-dev"
     if squad_dir is not None:
         dev_spec = load_role_catalog(squad_dir).dev
         base = dev_role_from_pool(tech, dev_spec, name=name, seq=seq, model=model)
     else:
         base = dev_role(tech, name=name, seq=seq, model=model)
+    slug = base.slug
 
     if squad_dir is not None:
         toml_path = _overrides_dir(squad_dir) / f"{slug}.toml"

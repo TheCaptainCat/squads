@@ -17,30 +17,62 @@ from squads._cli._common import (
     console,
     e,
     get_service,
+    get_service_bypassing_index_cross_check,
     handle_errors,
-    version_tuple,
 )
 from squads._errors import SquadsError
+from squads._index._reconcile import ReconcileResult
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
+from squads._util import version_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
 
 
+def _reconcile_line(result: ReconcileResult) -> str:
+    """One line for what the index rebuild before the runners changed."""
+    parts: list[str] = []
+    if result.indexed:
+        parts.append(f"indexed {', '.join(e(i) for i in result.indexed)}")
+    if result.missing:
+        parts.append(f"dropped {', '.join(e(i) for i in result.missing)} (no file backs it)")
+    return f"  index reconciled with the files: {'; '.join(parts)}"
+
+
+@migrate_app.callback()
+def migrate_gate(ctx: typer.Context) -> None:
+    """Gate each ``sq migrate`` command by the grant it declares; one without a grant is
+    refused on a squad whose schema differs from the package's."""
+    if ctx.invoked_subcommand is not None:
+        common.apply_gate(migrate_grants().get(ctx.invoked_subcommand))
+
+
+def migrate_grants() -> dict[str, common.GateGrant]:
+    """The grant each ``sq migrate`` command declares, by command name."""
+    found: dict[str, common.GateGrant] = {}
+    for info in migrate_app.registered_commands:
+        grant = common.gate_grant(info.callback) if info.callback is not None else None
+        if info.name is not None and grant is not None:
+            found[info.name] = grant
+    return found
+
+
 @migrate_app.command("up")
+@common.past_the_gate(common.Ground.MIGRATION, behind=True)
 @common.command
 async def migrate_up():
     """Run the automatic migration(s) to bring this squad to the current schema version.
 
     Exit codes: 0 = nothing to migrate, or migrated with the trailing repair fully clean;
-    1 = migrated, but that repair had to carry an unreadable file's previous entry forward
-    rather than refresh it, or had to leave a marker-shaped ``sq:body`` region untouched rather
-    than guess at what it is — the identical partial-completion condition ``sq repair`` itself
-    exits 1 for (``_cli/_main.py``'s own ``repair`` command), since this command runs that same
-    rebuild as its trailing step. A caller gating on ``$?`` must see the same answer from
-    either route to the same corpus state.
+    1 = an item file cannot be given an index entry, so nothing was migrated and the schema is
+    unchanged, or the squad migrated but that repair had to carry an unreadable file's previous
+    entry forward rather than refresh it, or had to leave a marker-shaped ``sq:body`` region
+    untouched rather than guess at what it is — the identical partial-completion condition ``sq
+    repair`` itself exits 1 for (``_cli/_main.py``'s own ``repair`` command), since this command
+    runs that same rebuild as its trailing step. A caller gating on ``$?`` must see the same
+    answer from either route to the same corpus state.
     """
-    svc = get_service()
+    svc = get_service_bypassing_index_cross_check(bundled_fallback=False)
     disk = svc.paths.config.schema_version
     if schema_tuple(disk) > schema_tuple(SCHEMA_VERSION):
         raise SquadsError(
@@ -52,6 +84,8 @@ async def migrate_up():
     if not applied:
         console.print(f"already at schema v{SCHEMA_VERSION}; nothing to migrate")
         return
+    if run.reconcile and (run.reconcile.indexed or run.reconcile.missing):
+        console.print(_reconcile_line(run.reconcile), soft_wrap=True)
     for m in applied:
         count = run.changed.get(m.to_schema)
         changed_suffix = f" — {count} changed" if count else ""
@@ -63,8 +97,8 @@ async def migrate_up():
         if skipped_ids:
             console.print(
                 f"  [yellow]skipped[/yellow] {len(skipped_ids)} item(s) rather than abort the "
-                f"run: {', '.join(e(i) for i in skipped_ids)} — a missing file needs restoring "
-                "or re-adopting; a missing body region needs one added by hand; a body carrying "
+                f"run: {', '.join(e(i) for i in skipped_ids)} — a missing body region needs one "
+                "added by hand; a body carrying "
                 "content this step has no model for is left exactly as it was — `sq check` "
                 "(reachable once this run completes) names which applies to each. Once the "
                 "item's own problem is fixed and it genuinely carries no tag, place one with "
@@ -92,11 +126,7 @@ async def migrate_up():
     # `unreadable`, so printing nothing here would leave an operator with a failing exit
     # code and no stated cause — the one combination this route must not produce.
     for msg in run.repair.unreadable if run.repair else []:
-        console.print(
-            f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
-            "forward as-is; fix the file and repair again",
-            soft_wrap=True,
-        )
+        console.print(common.unreadable_report(msg), soft_wrap=True)
     if any(m.manual for m in applied):
         span = _manual_chlog_span(applied)
         console.print(
@@ -115,6 +145,7 @@ async def migrate_up():
 
 
 @migrate_app.command("help")
+@common.past_the_gate(common.Ground.NO_SQUAD_STATE, behind=True, ahead=True)
 @handle_errors
 def migrate_help():
     """Show the migration changelog index (every shipped migration, newest schema last)."""
@@ -132,6 +163,7 @@ def migrate_help():
 
 
 @migrate_app.command("chlog")
+@common.past_the_gate(common.Ground.NO_SQUAD_STATE, behind=True, ahead=True)
 @handle_errors
 def migrate_chlog(
     span: str = typer.Argument(

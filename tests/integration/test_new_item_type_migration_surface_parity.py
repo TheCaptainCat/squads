@@ -25,6 +25,7 @@ import shutil
 
 import pytest
 
+from _helpers import bundled_migration_context
 from squads._migrations._v0_11_to_v0_14 import migrate as migrate_v0_11_to_v0_14
 from squads._models._extras import ExtraKey as X
 from squads._paths import SquadPaths
@@ -115,7 +116,7 @@ async def test_new_type_folders_and_skill_surface_match_init(
     for slug in _NEW_SKILL_SLUGS:
         assert not list((paths_b.squad_dir / "agents" / "skills").glob(f"*-{slug}.md"))
 
-    changed = await migrate_v0_11_to_v0_14(paths_b)
+    changed = await migrate_v0_11_to_v0_14(bundled_migration_context(paths_b))
     assert changed > 0
 
     for item_type in _NEW_TYPES:
@@ -138,7 +139,7 @@ async def test_migrate_seeds_a_skill_item_for_each_new_type(
     svc_b = service.Service(paths_b)
     await _strip_new_type_surface(svc_b, paths_b)
 
-    await migrate_v0_11_to_v0_14(paths_b)
+    await migrate_v0_11_to_v0_14(bundled_migration_context(paths_b))
 
     skills = await svc_b.list_items(item_type=ROSTER_SKILL)
     slugs = {sk.extra.get(X.SLUG) for sk in skills}
@@ -189,7 +190,7 @@ async def test_role_pointer_drift_is_either_absent_or_named_in_the_manual_runboo
         for slug in affected_roles
     )
 
-    changed = await migrate_v0_11_to_v0_14(paths_b)
+    changed = await migrate_v0_11_to_v0_14(bundled_migration_context(paths_b))
     assert changed > 0
 
     drifted = [
@@ -221,7 +222,7 @@ async def test_migrate_is_idempotent_on_an_already_current_squad(
     result_c = await service.init(root=dir_c, roles_spec="minimal")
     paths_c = result_c.paths
 
-    first = await migrate_v0_11_to_v0_14(paths_c)
-    second = await migrate_v0_11_to_v0_14(paths_c)
+    first = await migrate_v0_11_to_v0_14(bundled_migration_context(paths_c))
+    second = await migrate_v0_11_to_v0_14(bundled_migration_context(paths_c))
     assert first == 0  # a fresh init already carries both types' surface
     assert second == 0

@@ -17,9 +17,10 @@ engine runs. ``no_parent`` shows both routes: a ``records`` type gets it from th
 bundle, and ``epic`` — a ``work`` type — declares it itself. One catalog member,
 ``parent_present``, sits in no bundle at all and is reachable only through a type's own
 ``validators`` list — see its docstring for why that is the decision and not an omission.
-``gate()`` only aborts on an **error**-level issue — a warn-level one (``agent_registered``,
-``no_status_banner``, …) is advisory everywhere, mirroring ``sq check``'s own error-only exit
-code; it is never a create/update blocker.
+``gate()`` runs only the members whose resolved level for the item's type is ``error`` and
+aborts on their first finding; a warn-level member (``agent_registered``, ``no_status_banner``,
+…) is advisory everywhere, mirroring ``sq check``'s own error-only exit code, and is never
+evaluated on a write.
 
 **A second, always-on tier sits below this catalog and is not part of it.**
 ``MaintenanceMixin._scan_for_check`` (``_services/_maintenance.py``) runs a raw-text file-level
@@ -51,6 +52,7 @@ time, never pre-baked onto the spec.
 
 import dataclasses
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -75,6 +77,7 @@ from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._paths import SquadPaths, number_for_id
+from squads._rendering._engine import scaffold_body
 from squads._roles._resolver import holds_default_designation, resolve_role_for_item
 from squads._services import _config_integrity as config_integrity
 from squads._services._results import CheckIssue
@@ -581,12 +584,15 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
 def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     """← ``_check_subentity_title_lengths``. The threshold is resolved from the spec —
     ``WorkflowSpec.item_subentity_title_max`` — never a module constant, so a type's own
-    ``subentity_title_max:<n>`` selection actually changes what fires."""
+    ``subentity_title_max:<n>`` selection actually changes what fires. A type whose effective
+    set does not hold the member has no threshold and reports nothing."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     if kind is None:
         return []
     threshold = ctx.spec.item_subentity_title_max(item.type)
+    if threshold is None:
+        return []
     level = _resolved_level(ctx, "subentity_title_max")
     return [
         CheckIssue(
@@ -599,6 +605,117 @@ def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
         )
         for sub in item.subentities
         if len(sub.title) > threshold
+    ]
+
+
+def _item_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose title is longer than the number its type's ``item_title_max:<n>`` entry
+    names, counted in code points after NFC normalisation (so a decomposed and a composed
+    spelling of one title agree; a grapheme cluster of several code points still counts as
+    several). The number comes from the spec, so a type that does not select the check reports
+    nothing."""
+    item = ctx.item
+    threshold = ctx.spec.item_title_max(item.type)
+    length = len(unicodedata.normalize("NFC", item.title))
+    if threshold is None or length <= threshold:
+        return []
+    level = _resolved_level(ctx, "item_title_max")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"title is {length} chars (threshold: {threshold})"
+            " — an item title is a one-line handle; put the detail in the body",
+        )
+    ]
+
+
+def _body_written(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose ``sq:body`` is still the scaffold its creation template rendered: the item
+    twin of ``subentity_body_written``. It reads the scaffold through the same derivation and
+    the same "unwritten" predicate the body-overwrite guard uses, so it reports an item exactly
+    when a plain body write would be accepted as a first write."""
+    item = ctx.item
+    body = sections.get_section(ctx.raw_text, markers.BODY) if ctx.raw_text is not None else None
+    if body is None or not views.body_is_unwritten(body, scaffold_body(item, ctx.spec)):
+        return []
+    level = _resolved_level(ctx, "body_written")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            "body is unwritten (still the template scaffold)"
+            f' — write it with `sq {item.type} {item.sequence_id} body -m "..."`',
+        )
+    ]
+
+
+def _description_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose summary — the ``description`` line list views show — is empty or only
+    whitespace."""
+    item = ctx.item
+    if item.description.strip():
+        return []
+    level = _resolved_level(ctx, "description_present")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            "description is empty — set a summary: `--desc` on create, `update --desc` after",
+        )
+    ]
+
+
+def _assignee_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item resting in a status whose role declares ``live`` while nobody is assigned. The
+    reading is the role's flag, the engine's own definition of an active status, never a role
+    or status name; a status with no declared role resolves to the fallback role, which is not
+    live."""
+    item = ctx.item
+    if item.assignee or not ctx.spec.role_for(item.status).live:
+        return []
+    level = _resolved_level(ctx, "assignee_present")
+    return [CheckIssue(level, item.id, f"status is {item.status} but nobody is assigned")]
+
+
+def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item resting in a status whose role declares ``settled`` while its own discussion holds
+    no comment. Comments are counted by the discussion parser, never by a pattern of this
+    module's, and only the item's own discussion region counts: a comment on one of its stories,
+    subtasks or findings does not. A file with no discussion region holds no comment."""
+    item = ctx.item
+    if ctx.raw_text is None or not ctx.spec.role_for(item.status).settled:
+        return []
+    region = sections.get_section(ctx.raw_text, markers.DISCUSSION) or ""
+    if discussion.split_discussion(region):
+        return []
+    level = _resolved_level(ctx, "settled_requires_discussion")
+    return [
+        CheckIssue(level, item.id, f"status is {item.status} but its discussion holds no comment")
+    ]
+
+
+def _external_id_not_in_title(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item whose title matches the regular expression its type's
+    ``external_id_not_in_title:<regex>`` entry names, reporting the first match. The pattern is
+    the adopter's own and is searched with no flags and no bound on its cost, a zero-width match
+    (a bare lookahead) counting as no match; a type that does
+    not select the check has no pattern and reports nothing."""
+    item = ctx.item
+    pattern = ctx.spec.item_external_id_pattern(item.type)
+    if pattern is None:
+        return []
+    found = next((m for m in re.finditer(pattern, item.title) if m.group(0)), None)
+    if found is None:
+        return []
+    level = _resolved_level(ctx, "external_id_not_in_title")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"title holds `{found.group(0)}` (matches the external-id pattern `{pattern}`)"
+            " — keep tracker ids out of the title",
+        )
     ]
 
 
@@ -652,6 +769,14 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
     return []
 
 
+def _outgoing_refs(item: Item, spec: WorkflowSpec) -> list[tuple[str, str]]:
+    """*item*'s outgoing refs as ``(target id, kind)``, an unspelled kind resolved to the
+    spec's default ref kind. The one reading both ref-rule checks use, so an edge written bare
+    and the same edge with the default kind spelled out are one edge."""
+    default = spec.default_ref_kind()
+    return [(rid, kind or default) for rid, kind in map(split_ref, item.refs)]
+
+
 def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
     """A settled item (status resolving to the ``done`` role — never ``InReview``, which
     shares the ``active`` role with every in-flight status, and never the broader ``settled``
@@ -688,8 +813,7 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
     }
     if not accepted or ctx.index is None:
         return []
-    for r in item.refs:
-        rid, kind = split_ref(r)
+    for rid, kind in _outgoing_refs(item, ctx.spec):
         target_item = ctx.index.get(rid)
         if target_item is not None and (kind, target_item.type) in accepted:
             return []
@@ -703,6 +827,38 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
             "functional contract slice may be stale",
         )
     ]
+
+
+def _ref_rule_target_typed(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An outgoing edge whose kind has a typed ref rule on the item's type while the edge points
+    at an item of another type. Only a rule that declares a ``target`` counts: an untyped rule
+    neither makes its kind checked nor widens what a typed rule of the same kind accepts. A
+    target the index does not hold is left to ``dangling_ref``."""
+    item = ctx.item
+    if ctx.index is None:
+        return []
+    allowed: dict[str, set[str]] = {}
+    for rule in ctx.spec.item_ref_rules(item.type):
+        if rule.target is not None:
+            allowed.setdefault(rule.kind, set()).add(rule.target)
+    if not allowed:
+        return []
+    level = _resolved_level(ctx, "ref_rule_target_typed")
+    issues: list[CheckIssue] = []
+    for rid, kind in _outgoing_refs(item, ctx.spec):
+        targets = allowed.get(kind)
+        target_item = ctx.index.get(rid)
+        if not targets or target_item is None or target_item.type in targets:
+            continue
+        issues.append(
+            CheckIssue(
+                level,
+                item.id,
+                f"{kind} edge to {rid} points at a {target_item.type}, but a {item.type}'s "
+                f"{kind} refs must point at a {'/'.join(sorted(targets))}",
+            )
+        )
+    return issues
 
 
 def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
@@ -769,6 +925,13 @@ CATALOG: dict[str, Validator] = {
     "supersedes_incoming": _supersedes_incoming,
     "ref_rule_target_present": _ref_rule_target_present,
     "item_skill_shadowed": _item_skill_shadowed,
+    "item_title_max": _item_title_max,
+    "ref_rule_target_typed": _ref_rule_target_typed,
+    "body_written": _body_written,
+    "description_present": _description_present,
+    "assignee_present": _assignee_present,
+    "settled_requires_discussion": _settled_requires_discussion,
+    "external_id_not_in_title": _external_id_not_in_title,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
@@ -792,6 +955,8 @@ assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATO
 VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "subentity_container_marker": frozenset({ContextRequirement.RAW_TEXT}),
     "subentity_body_written": frozenset({ContextRequirement.RAW_TEXT}),
+    "body_written": frozenset({ContextRequirement.RAW_TEXT}),
+    "settled_requires_discussion": frozenset({ContextRequirement.RAW_TEXT}),
     "no_status_banner": frozenset({ContextRequirement.RAW_TEXT}),
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
     "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),
@@ -1247,10 +1412,10 @@ class ValidatorEngine:
     (never a module singleton — rides the same seam as ``Service.spec``).
 
     ``report()`` collects every issue across both validator classes, for ``sq check``.
-    ``gate()`` runs only the one item's own effective per-item set and stops at the first
-    **error-level** violation, for create/update — a warn-level catalog issue (e.g.
-    ``agent_registered``, ``no_status_banner``) is advisory everywhere, exactly like ``sq
-    check``'s exit code (error-only): it never aborts a mutation, only ever gets reported.
+    ``gate()`` runs the one item's own effective per-item members whose resolved level is
+    ``error`` and whose declared context it holds, and aborts on the first finding, for
+    create/update. A member at ``warn`` is advisory everywhere, exactly like ``sq check``'s
+    exit code (error-only): it is reported, never evaluated on a write.
     Squad-global validators never run in gate mode — they are a report-only, once-per-
     invocation check, not a create/update gate.
 
@@ -1276,7 +1441,11 @@ class ValidatorEngine:
         supersedes: frozenset[int],
         type_present: frozenset[str],
         raw_text: str | None,
+        error_level_only: bool = False,
     ) -> list[CheckIssue]:
+        """Run *item*'s effective members. *error_level_only* (set by ``gate()``) also skips a
+        member whose resolved level for the item's type is not ``error``: it cannot refuse a
+        write, so evaluating it would only cost time under the index lock."""
         item_spec = self.spec.items.get(item.type)
         if item_spec is None:
             return []  # a dropped/renamed type — not this engine's concern (index cross-check)
@@ -1316,17 +1485,25 @@ class ValidatorEngine:
             # the rest of the catalog happens to contain.
             if not VALIDATOR_CONTEXT.get(bare, frozenset()) <= held:
                 continue
+            if error_level_only and _resolved_level(ctx, bare) != "error":
+                continue
             issues += self.catalog[bare](ctx)
         return issues
 
     def report(
-        self, index: SquadsDB, on_disk: OnDiskMap, *, bodies: dict[int, str] | None = None
+        self,
+        index: SquadsDB,
+        on_disk: OnDiskMap,
+        *,
+        bodies: dict[int, str] | None = None,
+        only: frozenset[str] | None = None,
     ) -> list[CheckIssue]:
         """Collect every issue: every item's effective per-item set, plus every squad-global
         validator (run once). *bodies* maps sequence number -> the item's on-disk markdown
         text (the caller already read it scanning ``on_disk``); absent/``None`` entries mean
         body-reading validators (``subentity_body_written``, ``no_status_banner``) see no text
-        for that item and stay silent, same as when the file could not be resolved.
+        for that item and stay silent, same as when the file could not be resolved. *only*, when
+        given, limits the per-item members to the items with those ids.
         """
         registered = registered_slugs(index, self.spec)
         supersedes = supersedes_incoming_seqs(index, self.spec)
@@ -1334,6 +1511,8 @@ class ValidatorEngine:
         bodies = bodies or {}
         issues: list[CheckIssue] = []
         for item in index.items.values():
+            if only is not None and item.id not in only:
+                continue
             issues += self._run_per_item(
                 item,
                 index,
@@ -1359,8 +1538,8 @@ class ValidatorEngine:
         return issues
 
     def gate(self, item: Item, index: SquadsDB) -> None:
-        """Abort on *item*'s first **error-level** violation of its own effective per-item
-        set (warn-level issues are report-only, never a gate — see the class docstring).
+        """Abort on the first finding of an effective per-item member whose resolved level for
+        *item*'s type is ``error``. A member at ``warn`` is not evaluated here at all.
 
         This path holds neither :class:`ContextRequirement`, and both absences are structural
         rather than an economy. There is no ``raw_text`` to thread: a create gates an ``Item``
@@ -1387,6 +1566,7 @@ class ValidatorEngine:
                 supersedes=supersedes,
                 type_present=frozenset(),
                 raw_text=None,
+                error_level_only=True,
             )
             if i.level == "error"
         ]

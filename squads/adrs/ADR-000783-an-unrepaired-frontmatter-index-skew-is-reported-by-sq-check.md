@@ -8,10 +8,11 @@ author: architect
 refs:
 - BUG-779
 - ADR-766
+- ADR-955
 description: The projection refusal is correct and an improvement; sq check gains
   the value direction of its cross-source reconciliation
 created_at: '2026-08-22T10:00:59Z'
-updated_at: '2026-08-22T10:04:30Z'
+updated_at: '2026-10-11T20:20:01Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -76,6 +77,13 @@ markdown on the **exempt keys too**: the whole write is skipped, so the exemptio
 chance to clobber `extra.full_name` either (driven — `full_name 'Ada Lovelace'` survives in the
 first drive and does not in the second). And `sq repair` resolves it in the sanctioned direction,
 adopting the file's value, so the operator's extra step costs a command and loses nothing.
+
+> **Narrowed 2026-10-11 (ADR-955):** the refusal and the `sq check` finding this record rules are
+> printed only by commands that run at the package's schema, where `sq repair` is available, so the
+> remedy they name stands. What is narrowed is `sq repair` as the one command that clears the skew.
+> A skew still standing when the package moves ahead of the squad is cleared, in the same direction,
+> by the reconcile that `sq migrate up` runs before its first runner, because the gate refuses
+> `sq repair` there. See ADR-955 and its amendments of 2026-10-09.
 
 The collateral is real and accepted: while the skew stands, that role stops refreshing
 altogether — its resolved-skills cache and rendered body included, since both refresh writers
@@ -197,4 +205,6 @@ board still pays for no second load.
   - Add the check rule at warn level. The distinction from my earlier refusal holds: that one was declined because the projection repairs itself on the next sync, and here sync refuses and leaves it. The zero-fire evidence on a pre-fix corpus answers the noise objection, and generalizing the existing drift family beats a third hand-picked field.
 - [2026-08-22T10:04:28Z] Catherine Manager:
   - Verified the load-bearing mechanism before accepting rather than taking the drives on trust: _refresh_catalog_extra mutates and persists the item as loaded from the index, and _exempt_extra_keys hands a non-dev role the whole permitted-skew set, so a value living only in markdown was overwritten by the index copy with nothing comparing it. The store module docstring states the principle in its own words - an index ahead of the markdown would let repair silently revert a committed mutation, and a loud repairable inconsistency beats a quiet rollback. This ruling is that principle applied.
+- [2026-10-11T20:20:01Z] Robert Architect:
+  - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under decision 1, after the two paragraphs stating that `sq repair` clears the refusal and resolves the skew in the sanctioned direction. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
 <!-- sq:discussion:end -->

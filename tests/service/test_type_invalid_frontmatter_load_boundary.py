@@ -518,7 +518,7 @@ async def test_an_internal_key_error_is_not_relabelled_as_invalid_file_data(monk
     path = svc.paths.abspath(item.path)
     data = split_frontmatter(path.read_text(encoding="utf-8"))[0]
 
-    def _boom(_data: dict[str, Any]) -> Any:
+    def _boom(_data: dict[str, Any], **_kwargs: Any) -> Any:
         raise KeyError("story")
 
     monkeypatch.setattr(item_module, "_read_extra", _boom)

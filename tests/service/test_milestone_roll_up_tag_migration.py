@@ -8,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from _helpers import create_item
+from _helpers import bundled_migration_context, create_item
 from squads import __version__, _aio
 from squads import _sections as sections
 from squads._models import _markers as markers
 from squads._models._config import SquadsConfig
 from squads._paths import SquadPaths
 from squads._rendering._engine import invalidate_squad_dir
-from squads._services._service import Service
+from squads._services._service import Service, resolve_playbook
 from squads._views import place_view_tags
 from squads._workflow import load_workflow_spec
 
@@ -27,8 +27,8 @@ _FROM_SCHEMA = "0.14"
 
 
 async def _downgraded(project) -> Service:
-    """A fresh ``Service`` bound to the same squad, its on-disk ``schema_version`` rewritten
-    to simulate a squad created before this migration."""
+    """A fresh ``Service`` bound to the same squad under the vocabulary its overrides resolve to,
+    its on-disk ``schema_version`` rewritten to simulate a squad created before this migration."""
     cfg_path = project.config_path
     text = await _aio.read_text(cfg_path)
     current = project.config.schema_version
@@ -36,7 +36,9 @@ async def _downgraded(project) -> Service:
     await _aio.write_text(cfg_path, text)
     with cfg_path.open("rb") as fh:
         cfg = SquadsConfig.from_toml_dict(tomllib.load(fh))
-    return Service(SquadPaths(root=project.root, squad_dir=project.squad_dir, config=cfg))
+    paths = SquadPaths(root=project.root, squad_dir=project.squad_dir, config=cfg)
+    spec = load_workflow_spec(squad_dir=paths.squad_dir)
+    return Service(paths, spec=spec, playbook=resolve_playbook(spec, paths.squad_dir))
 
 
 async def _text(paths: SquadPaths, item) -> str:
@@ -249,7 +251,7 @@ async def test_a_second_direct_call_after_seeding_reports_zero_and_writes_nothin
     from squads._paths import resolve as resolve_squad_paths
 
     fresh_paths = resolve_squad_paths(client_cwd=project.root)
-    outcome = await migrate(fresh_paths)
+    outcome = await migrate(bundled_migration_context(fresh_paths))
 
     assert outcome.count == 0
     assert await _text(svc.paths, m) == seeded
@@ -427,7 +429,13 @@ async def test_a_damaged_item_at_the_lower_sequence_id_is_skipped_the_healthy_on
     down = await _downgraded(project)
     run = await down.run_pending_migrations()
 
-    assert damaged.id in run.skipped.get("0.15", [])
+    if damage is _make_missing_file:
+        # the index rebuild before the runners drops an entry no file backs, so no runner sees it
+        assert run.reconcile is not None
+        assert damaged.id in run.reconcile.missing
+        assert damaged.id not in run.skipped.get("0.15", [])
+    else:
+        assert damaged.id in run.skipped.get("0.15", [])
     if damaged_before is not None:
         assert await _text(svc.paths, damaged) == damaged_before
     assert run.changed.get("0.15") == 1
@@ -479,7 +487,26 @@ async def test_a_run_that_skips_nothing_reports_no_skipped_ids(project, svc) -> 
     assert run.skipped.get("0.15", []) == []
 
 
-async def test_every_eligible_item_skipped_still_reaches_current_and_reports_zero_changed(
+async def test_every_item_the_runner_cannot_act_on_is_skipped_and_the_run_still_reaches_current(
+    project, svc
+) -> None:
+    m1 = (await create_item(svc, "milestone", "One")).item
+    await _strip_tag(svc, m1)
+    await _make_no_body_region(svc, m1)
+    m2 = (await create_item(svc, "milestone", "Two")).item
+    await _strip_tag(svc, m2)
+    await _make_moved_tag(svc, m2)
+
+    down = await _downgraded(project)
+    run = await down.run_pending_migrations()
+
+    assert run.changed.get("0.15", 0) == 0
+    assert set(run.skipped.get("0.15", [])) == {m1.id, m2.id}
+    with project.config_path.open("rb") as fh:
+        assert tomllib.load(fh)["schema_version"] == "0.15"
+
+
+async def test_every_eligible_item_missing_its_file_still_reaches_current_and_reports_zero_changed(
     project, svc
 ) -> None:
     m1 = (await create_item(svc, "milestone", "One")).item
@@ -493,6 +520,8 @@ async def test_every_eligible_item_skipped_still_reaches_current_and_reports_zer
     run = await down.run_pending_migrations()
 
     assert run.changed.get("0.15", 0) == 0
-    assert set(run.skipped.get("0.15", [])) == {m1.id, m2.id}
+    assert run.reconcile is not None
+    assert set(run.reconcile.missing) == {m1.id, m2.id}
+    assert run.skipped.get("0.15", []) == []
     with project.config_path.open("rb") as fh:
         assert tomllib.load(fh)["schema_version"] == "0.15"

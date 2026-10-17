@@ -32,8 +32,8 @@ Filenames are untouched (already width-padded and stay so — no renames, no pat
 beyond what the trailing ``sq repair`` already does after every migration batch runs).
 
 Custom (spec-declared) item types are **not** covered — :func:`_iter_files` only walks the
-built-in type folders (frozen local constants, not the live spec), matching every other
-runner in this package (none of them thread the active spec). See ``MANUAL`` below.
+built-in type folders (frozen local constants, not the live spec), matching the other
+file-walking runners. See ``MANUAL`` below.
 
 Idempotent: once every id/ref/parent/mention is unpadded, the discovery map is empty and the
 second pass is a no-op.
