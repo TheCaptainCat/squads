@@ -48,6 +48,7 @@ async def test_a_bundled_role_projects_its_catalog_entry(svc):
             "Review designs before implementation",
         ),
         "capabilities": (),
+        "pronouns": None,
     }
 
 
@@ -82,6 +83,7 @@ async def test_a_templated_developer_projects_the_generated_definition(svc):
             "Follow the relevant guides; ask the architect when unsure",
         ),
         "capabilities": ("dev",),
+        "pronouns": None,
     }
 
 
@@ -96,6 +98,7 @@ async def test_a_project_role_declared_by_a_role_file_projects_that_file(project
         "mission": "Guard the gate.",
         "responsibilities": ("Watch", "Ward"),
         "capabilities": ("guard",),
+        "pronouns": None,
     }
 
 
@@ -111,6 +114,7 @@ async def test_a_role_whose_backing_definition_is_gone_projects_what_the_item_st
         "mission": "Guard the gate.",
         "responsibilities": (),
         "capabilities": (),
+        "pronouns": None,
     }
 
 
@@ -118,8 +122,8 @@ async def test_operators_project_slug_and_name_and_a_retired_one_leaves_the_live
     await svc.add_operator("Alice Tester")
     bob = await svc.add_operator("Bob Gone")
     assert [asdict(o) for o in await svc.operators()] == [
-        {"slug": "op-alice", "full_name": "Alice Tester"},
-        {"slug": "op-bob", "full_name": "Bob Gone"},
+        {"slug": "op-alice", "full_name": "Alice Tester", "pronouns": None},
+        {"slug": "op-bob", "full_name": "Bob Gone", "pronouns": None},
     ]
     await svc.set_status(bob.id, "Archived")
     assert [o.slug for o in await svc.operators()] == ["op-alice"]

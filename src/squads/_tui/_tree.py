@@ -16,6 +16,7 @@ from textual.widgets import Tree
 from textual.widgets.tree import TreeNode as UiTreeNode
 
 from squads import _clock as clock
+from squads import _pronouns
 from squads._memory._model import MemoryEntry
 from squads._models._item import Item
 from squads._models._omission import Omission
@@ -169,13 +170,21 @@ def _status_style(status: str, spec: WorkflowSpec) -> str:
     return _ROLE_STYLES.get(intent, _ROLE_STYLES["neutral"])
 
 
-def _label(item: Item, *, path_only: bool, anchor: bool, spec: WorkflowSpec) -> Text:
+def _label(
+    item: Item,
+    *,
+    path_only: bool,
+    anchor: bool,
+    spec: WorkflowSpec,
+    pronouns: str | None = None,
+    show_pronouns: bool = False,
+) -> Text:
     # Built from styled spans, not a markup string — immune to bracket sequences in the
     # title/status regardless of which parser (Rich's or Textual's) ends up reading it.
     text = Text.assemble(
         (item.id, "bold"),
         " ",
-        item.title,
+        _pronouns.named(item.title, pronouns, enabled=show_pronouns),
         " ",
         (f"({item.status})", _status_style(item.status, spec)),
     )
@@ -203,7 +212,12 @@ def _attach_memory_children(
 
 
 def _attach(
-    parent: UiTreeNode[NodeData], node: TreeNode, spec: WorkflowSpec, memory: MemoryBySlug
+    parent: UiTreeNode[NodeData],
+    node: TreeNode,
+    spec: WorkflowSpec,
+    memory: MemoryBySlug,
+    pronouns: Mapping[str, str | None],
+    show_pronouns: bool,
 ) -> None:
     """Attach *node* (and its subtree) under *parent*, layering a Role/Operator's memory pool
     onto its own label and children — **independent** of whether the node also carries real
@@ -222,7 +236,14 @@ def _attach(
     so the "listing partial" child stays reachable rather than hidden behind a `(0)` that
     misreports why the count reads zero.
     """
-    label = _label(node.item, path_only=node.path_only, anchor=node.anchor, spec=spec)
+    label = _label(
+        node.item,
+        path_only=node.path_only,
+        anchor=node.anchor,
+        spec=spec,
+        pronouns=pronouns.get(node.item.slug) if _memory_eligible(node.item.type) else None,
+        show_pronouns=show_pronouns,
+    )
     role_slug: str | None = None
     entries: list[MemoryEntry] = []
     unreadable: list[Omission] = []
@@ -237,7 +258,7 @@ def _attach(
     if node.children or entries or unreadable:
         branch = parent.add(label, node.item.id, expand=bool(node.children))
         for child in node.children:
-            _attach(branch, child, spec, memory)
+            _attach(branch, child, spec, memory, pronouns, show_pronouns)
         if role_slug is not None:
             _attach_memory_children(branch, role_slug, entries, unreadable)
         return
@@ -245,7 +266,12 @@ def _attach(
 
 
 def populate_tree(
-    tree: Tree[NodeData], nodes: list[TreeNode], spec: WorkflowSpec, memory: MemoryBySlug
+    tree: Tree[NodeData],
+    nodes: list[TreeNode],
+    spec: WorkflowSpec,
+    memory: MemoryBySlug,
+    pronouns: Mapping[str, str | None] | None = None,
+    show_pronouns: bool = False,
 ) -> None:
     """Build the tree, fully expanded, from the roots returned by `svc.tree_view()`, grouped
     under three synthetic top-level nodes — Work, Records (decisions/guides/etc.), and Roster
@@ -253,6 +279,8 @@ def populate_tree(
 
     *memory* is the eager, already-fetched `memory_list()` result for every Role/Operator
     identity in *nodes* (see `roster_identity_slugs`) — this function never calls the service.
+    *pronouns* maps a role's or operator's slug to its resolved pronouns, shown after the name
+    when *show_pronouns* is set.
     """
     groups = {
         category: tree.root.add(Text(_GROUP_LABELS[category], style="bold"), None, expand=True)
@@ -260,5 +288,5 @@ def populate_tree(
     }
     for node in nodes:
         category = spec.items[node.item.type].category
-        _attach(groups[category], node, spec, memory)
+        _attach(groups[category], node, spec, memory, pronouns or {}, show_pronouns)
     tree.root.expand()

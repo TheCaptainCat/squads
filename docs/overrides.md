@@ -270,6 +270,12 @@ With that file, the architect is retitled, the next `sq dev add` picks a name fr
 and runs on `opus`, and `security-analyst` appears in `sq role catalog` as a project role, ready
 for `sq role activate security-analyst`.
 
+**A roster-wide pronouns default.** A `[defaults]` table in `roles.toml` takes one key,
+`pronouns`, applied to every role with no pronouns of its own, never to an operator, and never
+written onto an item; run `sq sync` after changing it. A role's own pronouns are set with
+`sq role <slug> update --pronouns`, not in the catalog: a `pronouns` key in a `[[roles]]` entry or
+a per-slug file is refused. See [roles.md § "Pronouns"](roles.md#pronouns).
+
 **Precedence, lowest to highest:** the bundled catalog, then `roles.toml`, then a per-slug
 `.overrides/roles/<slug>.toml`. When both override files set the same field for one role, the
 per-slug file wins. For `full_name` the order decides only the name a role gets when it is
@@ -1141,7 +1147,7 @@ sq check             # what do they find?
 Some checks look at the squad as a whole rather than at one item. They run once per `sq check`,
 never at the create/update gate, and they belong to no type's list.
 
-**Always on.** Six report a defect in any squad, so they run in every squad and cannot be selected,
+**Always on.** Seven report a defect in any squad, so they run in every squad and cannot be selected,
 dropped or given another level:
 
 | Check | Reports | Level |
@@ -1152,6 +1158,7 @@ dropped or given another level:
 | `default_designation_duplicated` | more than one live role holds the default-role designation | `error` |
 | `roster_slug_valid` | a role or operator slug that breaks the slug rules (see [stability.md § "Comment headers"](stability.md#comment-headers)) | `error` |
 | `playbook_guide_role_live` | a playbook guide that names no live role | `warn` |
+| `display_config_valid` | an unknown key or a non-boolean value in `.squads.toml`'s `[display]` table | `warn` |
 
 **Opt-in.** Five state a policy a team may or may not hold. A squad selects them in the `[squad]`
 table of `.overrides/workflow.toml`, whose one key, `validators`, takes the entry grammar a type's

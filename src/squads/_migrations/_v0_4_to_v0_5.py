@@ -132,6 +132,7 @@ async def _rewrite_pointer(
             "claude/pointer_skill.md.j2",
             slug=slug,
             description=oneline(description),
+            invocable=True,  # this runner writes no host key; the later pointer refresh does
         ),
     )
 

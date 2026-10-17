@@ -33,6 +33,7 @@ async def test_json_output_shape(project, invoke) -> None:
         "id",
         "slug",
         "full_name",
+        "pronouns",
         "title",
         "is_default",
         "capabilities",

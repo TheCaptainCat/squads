@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1088,
+  "counter": 1091,
   "padding": 6,
   "items": {
     "12": {
@@ -7144,7 +7144,7 @@
       "type": "feature",
       "title": "Pronouns on agent and operator identity",
       "slug": "pronouns-on-agent-and-operator-identity",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -7205,7 +7205,7 @@
       ],
       "path": "features/FEAT-000961-pronouns-on-agent-and-operator-identity.md",
       "created_at": "2026-09-24T09:30:03Z",
-      "updated_at": "2026-10-17T02:12:58Z",
+      "updated_at": "2026-10-17T03:14:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7216,7 +7216,7 @@
       "type": "feature",
       "title": "Skill invocability: declared default, squad's own choice",
       "slug": "skill-invocability-declared-default-squad-s-own-choice",
-      "status": "Ready",
+      "status": "Done",
       "description": "A skill's operator_invocable attribute: a bundled default plus a stored squad choice, rendered by the Claude Code backend",
       "parent": null,
       "author": "product-owner",
@@ -7288,7 +7288,7 @@
       ],
       "path": "features/FEAT-000966-skill-invocability-declared-default-squad-s-own-choice.md",
       "created_at": "2026-09-28T17:54:53Z",
-      "updated_at": "2026-10-16T19:58:52Z",
+      "updated_at": "2026-10-17T03:43:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31626,7 +31626,7 @@
       "subentities": [],
       "path": "adrs/ADR-000983-skill-invocability-a-declared-default-and-a-squad-s-stored-c.md",
       "created_at": "2026-10-09T18:27:22Z",
-      "updated_at": "2026-10-15T20:17:02Z",
+      "updated_at": "2026-10-17T03:39:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45403,7 +45403,7 @@
       "type": "feature",
       "title": "The --help surface follows one rule",
       "slug": "the-help-surface-follows-one-rule",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Every command's help answers what it does, what to type and what comes back, in one dialect with every flag described.",
       "parent": null,
       "author": "product-owner",
@@ -45509,7 +45509,7 @@
       ],
       "path": "features/FEAT-001024-the-help-surface-follows-one-rule.md",
       "created_at": "2026-10-15T21:43:01Z",
-      "updated_at": "2026-10-16T19:50:32Z",
+      "updated_at": "2026-10-17T03:43:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48675,7 +48675,7 @@
       "type": "task",
       "title": "Add pronouns to roles and operators",
       "slug": "add-pronouns-to-roles-and-operators",
-      "status": "Ready",
+      "status": "Done",
       "description": "Declared pronouns attribute, a resolved roster default, roster --json, generated files, a typed display table and the VS Code setting",
       "parent": "FEAT-961",
       "author": "tech-lead",
@@ -48694,7 +48694,7 @@
         {
           "local_id": "ST1",
           "title": "Declare and pin the pronouns attribute, with one shape rule and a check",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48703,7 +48703,7 @@
         {
           "local_id": "ST2",
           "title": "Set and clear pronouns through the creation and update verbs",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48712,7 +48712,7 @@
         {
           "local_id": "ST3",
           "title": "Resolve a declared roster default from the role catalog document",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48721,7 +48721,7 @@
         {
           "local_id": "ST4",
           "title": "Carry resolved pronouns in the four roster --json payloads",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -48730,7 +48730,7 @@
         {
           "local_id": "ST5",
           "title": "Render pronouns in the generated roster section and identity pointer",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -48739,7 +48739,7 @@
         {
           "local_id": "ST6",
           "title": "Add the typed display table to .squads.toml",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -48748,7 +48748,7 @@
         {
           "local_id": "ST7",
           "title": "Print Name (pronouns) dimmed in human CLI output and sq ui",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -48757,7 +48757,7 @@
         {
           "local_id": "ST8",
           "title": "Show pronouns in the VS Code client behind its own setting",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "typescript-dev",
           "severity": null,
           "story": "US4",
@@ -48766,7 +48766,7 @@
       ],
       "path": "tasks/TASK-001071-add-pronouns-to-roles-and-operators.md",
       "created_at": "2026-10-16T19:53:59Z",
-      "updated_at": "2026-10-17T02:12:57Z",
+      "updated_at": "2026-10-17T03:14:22Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48777,7 +48777,7 @@
       "type": "task",
       "title": "Resolve and render skill operator invocability",
       "slug": "resolve-and-render-skill-operator-invocability",
-      "status": "Draft",
+      "status": "Done",
       "description": "A declared default per bundled skill, a squad's stored choice set by the CLI, rendered as user-invocable: false by the Claude Code backend",
       "parent": "FEAT-966",
       "author": "tech-lead",
@@ -48794,7 +48794,7 @@
         {
           "local_id": "ST1",
           "title": "Declare each bundled skill's default and resolve operator_invocable in one place",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48803,7 +48803,7 @@
         {
           "local_id": "ST2",
           "title": "Render user-invocable: false from all three Claude Code pointer sites",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48812,7 +48812,7 @@
         {
           "local_id": "ST3",
           "title": "Add --operator-invocable yes/no/default to sq skill add and update",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -48821,7 +48821,7 @@
         {
           "local_id": "ST4",
           "title": "Show the resolved value and whether the squad set it",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -48830,7 +48830,7 @@
         {
           "local_id": "ST5",
           "title": "Keep the AGENTS.md backend silent about operator_invocable",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -48839,7 +48839,7 @@
         {
           "local_id": "ST6",
           "title": "Prove the upgrade path: drift before sq sync, clean after",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -48848,7 +48848,7 @@
         {
           "local_id": "ST7",
           "title": "Observe a hidden skill preloading into a subagent on a real host",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "qa",
           "severity": null,
           "story": "US2",
@@ -48857,7 +48857,7 @@
       ],
       "path": "tasks/TASK-001072-resolve-and-render-skill-operator-invocability.md",
       "created_at": "2026-10-16T19:55:32Z",
-      "updated_at": "2026-10-16T19:59:52Z",
+      "updated_at": "2026-10-17T03:43:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49424,7 +49424,7 @@
       "type": "task",
       "title": "Bring every --help screen under one rule",
       "slug": "bring-every-help-screen-under-one-rule",
-      "status": "Draft",
+      "status": "Ready",
       "description": "help text per REV-958 R1-R9: writer strings and docs, shared flag definitions, markup and layout, and a tests/meta guard",
       "parent": "FEAT-1024",
       "author": "tech-lead",
@@ -49540,7 +49540,7 @@
       ],
       "path": "tasks/TASK-001080-bring-every-help-screen-under-one-rule.md",
       "created_at": "2026-10-16T21:15:20Z",
-      "updated_at": "2026-10-16T21:16:00Z",
+      "updated_at": "2026-10-17T03:43:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -50056,6 +50056,183 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1088"
+    },
+    "1089": {
+      "sequence_id": 1089,
+      "type": "review",
+      "title": "Pronouns on roles and operators: shape rule, verbs, default, display table",
+      "slug": "pronouns-on-roles-and-operators-shape-rule-verbs-default-dis",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1071"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Config stamp drops an explicit [display] default and unusable values without a report",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Pronouns shape rule accepts Unicode format characters such as bidi overrides",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "display_problems can be set from .squads.toml and shows up as a check warning",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Role-document pronouns refusal falls back to a malformed verb text",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Display splice misreads a multi-line string and a quoted header",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001089-pronouns-on-roles-and-operators-shape-rule-verbs-default-dis.md",
+      "created_at": "2026-10-17T02:47:29Z",
+      "updated_at": "2026-10-17T03:10:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1089"
+    },
+    "1090": {
+      "sequence_id": 1090,
+      "type": "bug",
+      "title": "Config stamp rewrites .squads.toml, dropping comments and unknown keys",
+      "slug": "config-stamp-rewrites-squads-toml-dropping-comments-and-unkn",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1089",
+        "MILE-1051:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001090-config-stamp-rewrites-squads-toml-dropping-comments-and-unkn.md",
+      "created_at": "2026-10-17T02:50:08Z",
+      "updated_at": "2026-10-17T03:10:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1090"
+    },
+    "1091": {
+      "sequence_id": 1091,
+      "type": "review",
+      "title": "Skill invocability: declared default and squad choice",
+      "slug": "skill-invocability-declared-default-and-squad-choice",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1072"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Generic show/list --json publish the raw stored key, not the resolved pair",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Frozen-runner comments claim no host key, but the 0.11-0.14 runner writes it",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Stale managed-writer docstring: pointer renders from name and description alone",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Roster write gate does not state the operator_invocable exemption itself",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Upgrade-path test derives its expected system set from the output under test",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Option parser lives among the attribute accessors",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001091-skill-invocability-declared-default-and-squad-choice.md",
+      "created_at": "2026-10-17T03:36:50Z",
+      "updated_at": "2026-10-17T03:43:51Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1091"
     }
   }
 }

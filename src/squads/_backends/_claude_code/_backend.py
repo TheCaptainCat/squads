@@ -117,6 +117,7 @@ class ClaudeCodeBackend(AgentBackend):
                 name=slug,
                 description=interactions.skill_description(slug),
                 body_tag=view_name if view_name in spec.views else None,
+                invocable=ctx.operator_invocable(slug),
             )
         # CLAUDE.md managed section
         default = next((r for r in roster if r.is_default), None)
@@ -128,6 +129,7 @@ class ClaudeCodeBackend(AgentBackend):
                     "full_name": r.full_name,
                     "title": r.title,
                     "slug": r.slug,
+                    "pronouns": r.pronouns,
                     "capabilities": list(r.capabilities),
                 }
                 for r in roster
@@ -137,7 +139,10 @@ class ClaudeCodeBackend(AgentBackend):
                 default.slug if default else None,
                 [r.slug for r in developer_roles(roster, load_role_catalog(ctx.squad_dir))],
             ),
-            operators=[{"full_name": o.full_name, "slug": o.slug} for o in operators],
+            operators=[
+                {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}
+                for o in operators
+            ],
             # No live role carrying `is_default` is a legitimate state, not a gap to paper over
             # with a fabricated slug: the template omits the default-role line and the
             # orchestration paragraph's name entirely rather than inventing one, the same
@@ -162,7 +167,13 @@ class ClaudeCodeBackend(AgentBackend):
         return artifacts
 
     async def _write_managed_skill(
-        self, ctx: BackendContext, *, name: str, description: str, body_tag: str | None = None
+        self,
+        ctx: BackendContext,
+        *,
+        name: str,
+        description: str,
+        invocable: bool,
+        body_tag: str | None = None,
     ) -> list[Artifact]:
         """Write a managed skill's thin pointer in .claude/, and make sure its body file under
         squads/ exists with a well-formed ``sq:body`` region — empty when *body_tag* is
@@ -175,7 +186,8 @@ class ClaudeCodeBackend(AgentBackend):
         alike (``_write_item_skills`` resolves :data:`~squads._interactions.ITEM_SKILL_VIEW_NAME`
         the same way), passing ``None`` when the view is not declared so this writer never mints
         a tag naming an undeclared view. Either way, the pointer never needed either shape:
-        ``claude/pointer_skill.md.j2`` renders from *name* and *description* alone.
+        ``claude/pointer_skill.md.j2`` renders from *name*, *description* and the resolved
+        *invocable* value alone.
 
         What is still owed is the file's *shape*. The seeding step
         (``Service.seed_bundled_skills``/``seed_custom_skills``) stamps a ``SKILL`` id onto the
@@ -261,11 +273,7 @@ class ClaudeCodeBackend(AgentBackend):
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
         await _aio.write_text(
             pointer,
-            render(
-                "claude/pointer_skill.md.j2",
-                slug=name,
-                description=oneline(description),
-            ),
+            self._render_skill_pointer(name, description, invocable=invocable),
         )
         return [Artifact(ctx.rel(pointer), "skill_pointer", self.name)]
 
@@ -313,6 +321,7 @@ class ClaudeCodeBackend(AgentBackend):
                 name=name,
                 description=interactions.skill_description(name),
                 body_tag=item_skill_body_tag,
+                invocable=ctx.operator_invocable(name),
             )
 
         # Types with no active-playbook entry. This is the sole "custom vs built-in" line:
@@ -321,11 +330,13 @@ class ClaudeCodeBackend(AgentBackend):
             for ctype, ctype_spec in ctx.spec.items.items():
                 if ctype in playbook.types or ctype_spec.category == "roster":
                     continue
+                custom_name = interactions.custom_item_skill_name(ctype)
                 out += await self._write_managed_skill(
                     ctx,
-                    name=interactions.custom_item_skill_name(ctype),
+                    name=custom_name,
                     description=interactions.custom_item_skill_description(ctype),
                     body_tag=item_skill_body_tag,
+                    invocable=ctx.operator_invocable(custom_name),
                 )
         return out
 
@@ -349,6 +360,7 @@ class ClaudeCodeBackend(AgentBackend):
             "claude/pointer_agent.md.j2",
             slug=role.slug,
             full_name=role.full_name,
+            pronouns=role.pronouns,
             role_title=role.title,
             description=oneline(role.description),
             model=model,
@@ -387,21 +399,29 @@ class ClaudeCodeBackend(AgentBackend):
             return interactions.skill_description(slug)
         return item.description or item.title
 
-    def _render_skill_pointer(self, slug: str, description: str) -> str:
-        """The one place ``pointer_skill.md.j2`` is rendered for an item-scoped skill entry —
-        shared by :meth:`generate_skill_entry` and :meth:`render_skill_entry`, same rationale
-        as :meth:`_render_role_pointer`. ``_write_managed_skill`` renders the same template
-        directly for the compiled managed skills (squads/greeting/memory/per-type) — that path
-        stays separate since it has no ``Item`` to hand this method, but both calls pass through
-        the identical ``oneline``-normalised template with the same two variables."""
-        return render("claude/pointer_skill.md.j2", slug=slug, description=oneline(description))
+    def _render_skill_pointer(self, slug: str, description: str, *, invocable: bool) -> str:
+        """The one place ``pointer_skill.md.j2`` is rendered — shared by
+        :meth:`_write_managed_skill`, :meth:`generate_skill_entry` and :meth:`render_skill_entry`,
+        so the three can never drift onto different content for the same skill. *invocable* is
+        already resolved by the engine."""
+        return render(
+            "claude/pointer_skill.md.j2",
+            slug=slug,
+            description=oneline(description),
+            invocable=invocable,
+        )
 
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
         slug = item.slug
         pointer = ctx.root / _CLAUDE_DIR / _SKILLS / slug / _SKILL_FILE
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
-        description = item.description or item.title
-        await _aio.write_text(pointer, self._render_skill_pointer(slug, description))
+        description = self._skill_pointer_description(ctx, item, slug)
+        await _aio.write_text(
+            pointer,
+            self._render_skill_pointer(
+                slug, description, invocable=ctx.operator_invocable(slug, item)
+            ),
+        )
         return Artifact(ctx.rel(pointer), "skill_pointer", self.name)
 
     def restriction_fragment(self, role: RoleDef) -> str | None:
@@ -424,7 +444,11 @@ class ClaudeCodeBackend(AgentBackend):
         :meth:`_skill_pointer_description`, the shared render and description resolution this
         reuses verbatim."""
         slug = item.slug
-        return self._render_skill_pointer(slug, self._skill_pointer_description(ctx, item, slug))
+        return self._render_skill_pointer(
+            slug,
+            self._skill_pointer_description(ctx, item, slug),
+            invocable=ctx.operator_invocable(slug, item),
+        )
 
     async def remove_artifacts(self, ctx: BackendContext, item: Item) -> None:
         slug = item.slug

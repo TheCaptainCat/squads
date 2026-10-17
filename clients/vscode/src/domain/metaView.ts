@@ -37,6 +37,7 @@ import {
   NO_MEMORY_CONTEXT,
 } from './memoryView';
 import { DEFAULT_META_VIEW_STATE, matchesMetaFilter, type MetaViewState } from './metaFilter';
+import { NO_PRONOUNS_CONTEXT, pronounsBadge, type PronounsContext } from './pronouns';
 import { META_BUCKETS } from './reservedTypes';
 import {
   NO_ROLES,
@@ -47,6 +48,13 @@ import {
 } from './statusRole';
 import { NO_LABELS, pluralLabel, type TypeLabelMap } from './typeLabels';
 
+function rosterDescription(item: SqListItem, pronouns: PronounsContext): string {
+  const badge = isMemoryEligibleType(item.type)
+    ? pronounsBadge(item.slug, pronouns.pronouns, pronouns.enabled)
+    : '';
+  return badge === '' ? item.status : `${badge}  ${item.status}`;
+}
+
 function itemToLeaf(
   item: SqListItem,
   fieldBindings: FieldBindingsByType,
@@ -54,6 +62,7 @@ function itemToLeaf(
   statusRoles: StatusRoleMap,
   roleCatalog: RoleCatalogMap,
   memory: MemoryRenderContext,
+  pronouns: PronounsContext,
 ): DisplayNode {
   const role = resolveRole(item.status, statusRoles, roleCatalog);
   // Only Role/Operator identities are memory-eligible at all, and only when
@@ -67,9 +76,9 @@ function itemToLeaf(
     itemId: item.id,
     memoryRef: null,
     label: `${item.id}  ${item.title}${pool === undefined ? '' : memoryLabelSuffix(pool, memory.now)}`,
-    // Status alone — assignee is meaningless for meta items (role/skill/operator), unlike the
-    // work tree (`treeMapping`/`listView`), which keeps it.
-    description: item.status,
+    // Status (assignee is meaningless for meta items, unlike the work tree) behind the
+    // identity's pronouns; the description slot is the tree's de-emphasised text.
+    description: rosterDescription(item, pronouns),
     tooltip:
       buildTooltip({
         id: item.id,
@@ -98,12 +107,19 @@ function sortedLeaves(
   statusRoles: StatusRoleMap,
   roleCatalog: RoleCatalogMap,
   memory: MemoryRenderContext,
+  pronouns: PronounsContext,
 ): DisplayNode[] {
   return [...items]
     .sort((a, b) => compareIds(a.id, b.id))
     .map((item) =>
-      itemToLeaf(item, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory),
+      itemToLeaf(item, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory, pronouns),
     );
+}
+
+/** The optional per-leaf rendering inputs, bundled to stay under the max-params bar. */
+export interface RosterRenderOptions {
+  readonly memory?: MemoryRenderContext;
+  readonly pronouns?: PronounsContext;
 }
 
 /** Builds the meta/roster view's roots: one group per `META_BUCKETS` entry, in that fixed
@@ -116,10 +132,12 @@ function sortedLeaves(
  * `labelMap` defaults to `NO_LABELS`, resolving each bucket's header via the shared `pluralLabel`
  * resolver rather than a hardcoded literal — falls back to the raw type string the same way
  * every other tree does. `state` defaults to `DEFAULT_META_VIEW_STATE` (archived hidden, no
- * status filter, grouped) — see `domain/metaFilter.ts` for the predicate. `memory` (the eagerly-
+ * status filter, grouped) — see `domain/metaFilter.ts` for the predicate. `render.memory` (the eagerly-
  * fetched Role/Operator memory pools, plus the "now" the age text is computed against) defaults
  * to `NO_MEMORY_CONTEXT` — an empty pool map degrades every leaf to its pre-feature rendering,
- * same graceful-fallback shape as every other catalog here. */
+ * same graceful-fallback shape as every other catalog here. `render.pronouns` (the slug -> pronouns
+ * lookup and the `squads.showPronouns` setting) adds a de-emphasised `(pronouns)` to a
+ * Role/Operator leaf's description; the default shows none. */
 export function buildMetaView(
   items: readonly SqListItem[],
   fieldBindings: FieldBindingsByType = NO_FIELD_BINDINGS,
@@ -128,15 +146,24 @@ export function buildMetaView(
   roleCatalog: RoleCatalogMap = NO_ROLES,
   labelMap: TypeLabelMap = NO_LABELS,
   state: MetaViewState = DEFAULT_META_VIEW_STATE,
-  memory: MemoryRenderContext = NO_MEMORY_CONTEXT,
+  render: RosterRenderOptions = {},
 ): DisplayNode[] {
+  const { memory = NO_MEMORY_CONTEXT, pronouns = NO_PRONOUNS_CONTEXT } = render;
   const bucketTypes = new Set(META_BUCKETS.map((bucket) => bucket.type));
   const visible = items.filter(
     (item) =>
       bucketTypes.has(item.type) && matchesMetaFilter(item, state, statusRoles, roleCatalog),
   );
   if (!state.groupByType) {
-    return sortedLeaves(visible, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory);
+    return sortedLeaves(
+      visible,
+      fieldBindings,
+      badgeVocabulary,
+      statusRoles,
+      roleCatalog,
+      memory,
+      pronouns,
+    );
   }
   return META_BUCKETS.map(({ type }) => {
     const bucketItems = visible.filter((item) => item.type === type);
@@ -144,7 +171,15 @@ export function buildMetaView(
       `meta:${type}`,
       pluralLabel(type, labelMap),
       bucketItems.length,
-      sortedLeaves(bucketItems, fieldBindings, badgeVocabulary, statusRoles, roleCatalog, memory),
+      sortedLeaves(
+        bucketItems,
+        fieldBindings,
+        badgeVocabulary,
+        statusRoles,
+        roleCatalog,
+        memory,
+        pronouns,
+      ),
     );
   });
 }

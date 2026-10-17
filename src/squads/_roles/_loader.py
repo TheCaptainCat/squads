@@ -13,7 +13,7 @@ the bundled default via the shared, loader-agnostic engine (``squads._specmerge`
 the **raw parsed-TOML mapping** layer, before any model is built: splat-refs resolve against the
 bundled mapping, the override deep-merges over it leaf-by-leaf, ``[selected]`` shrinks ``roles``
 and ``bundles`` to their surviving key set, and the document's top-level key space is closed to
-``{roles, bundles, dev}`` (plus the engine's own reserved ``selected``).
+``{roles, bundles, dev, defaults}`` (plus the engine's own reserved ``selected``).
 
 **One shape adaptation, done here and nowhere else:** the bundled document declares ``roles`` as
 a TOML array of tables (``[[roles]]``) — a plain list, with no key of its own for the merge
@@ -46,8 +46,10 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads._errors import SquadsError
+from squads._pronouns import pronouns_problem
 from squads._roles._models import (
     CAPABILITY_NAME_PATTERN,
+    DefaultsSpec,
     DevPoolSpec,
     RoleCatalogSpec,
     RoleSpec,
@@ -62,7 +64,7 @@ ROLES_OVERRIDE_FILENAME = ".overrides/roles.toml"
 
 #: The role catalog document's closed top-level key space — enforced at the raw-mapping layer
 #: by the merge engine before any model is built.
-ROLES_TOP_LEVEL_KEYS: frozenset[str] = frozenset({"roles", "bundles", "dev"})
+ROLES_TOP_LEVEL_KEYS: frozenset[str] = frozenset({"roles", "bundles", "dev", "defaults"})
 
 #: The catalog document's deselectable ``[selected]`` section names. ``dev`` is deliberately
 #: absent — see the module docstring.
@@ -275,21 +277,55 @@ def _build_catalog(
             f"{_catalog_error_prefix(origin)} [dev]: {describe_spec_error(exc, DevPoolSpec)}"
         ) from exc
 
+    defaults = _parse_defaults(raw.get("defaults", {}), origin)
+
     # --- validation ---
     _validate(roles, bundles, dev, origin=origin, bundled_slugs=bundled_slugs)
 
     try:
-        spec = RoleCatalogSpec(roles=roles, bundles=bundles, dev=dev)
+        spec = RoleCatalogSpec(roles=roles, bundles=bundles, dev=dev, defaults=defaults)
     except Exception as exc:
         raise SquadsError(f"{_catalog_error_prefix(origin)}: {exc}") from exc
 
     return spec
 
 
+def _parse_defaults(raw: Any, origin: str | None) -> DefaultsSpec:
+    """The ``[defaults]`` table, with its pronouns trimmed; a value that fails the pronouns
+    shape rule is refused here, so a bad declaration never reaches a role."""
+    prefix = f"{_catalog_error_prefix(origin)} [defaults]"
+    try:
+        defaults = DefaultsSpec.model_validate(raw)
+    except Exception as exc:
+        raise SquadsError(f"{prefix}: {describe_spec_error(exc, DefaultsSpec)}") from exc
+    if defaults.pronouns is None:
+        return defaults
+    problem = pronouns_problem(defaults.pronouns)
+    if problem is not None:
+        raise SquadsError(f"{prefix}: pronouns {problem}")
+    return DefaultsSpec(pronouns=defaults.pronouns.strip())
+
+
+def refuse_pronouns_key(data: Any, where: str) -> None:
+    """Refuse a ``pronouns`` key in a role definition, naming the verb that sets it.
+
+    Pronouns belong to the role's item, not to the role document that defines the role; a value
+    here would sit above the item in precedence and hide whatever the verb wrote."""
+    if isinstance(data, dict) and "pronouns" in data:
+        slug = cast("RawMapping", data).get("slug")
+        addr = slug if isinstance(slug, str) else "<addr>"
+        verb = f"sq role {addr} update --pronouns"
+        raise SquadsError(
+            f"{where}: 'pronouns' is not a role document field — set it on the role with "
+            f"`{verb} <text>`, or declare a roster-wide default under [defaults]"
+        )
+
+
 def _parse_role(data: dict[str, Any], idx: int, origin: str | None) -> RoleSpec:
     slug = data.get("slug")
     ctx = f"roles[{idx}]" if origin is None else f"[[roles]] slug {slug!r}"
     where = f"{origin}: " if origin is not None else ""
+    refuse_pronouns_key(data, f"{where}Invalid role entry {ctx}")
     try:
         # model_validate so extra="forbid" fires on unknown keys.
         return RoleSpec.model_validate(data)

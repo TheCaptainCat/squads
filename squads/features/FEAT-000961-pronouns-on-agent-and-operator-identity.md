@@ -3,7 +3,7 @@ id: FEAT-961
 sequence_id: 961
 type: feature
 title: Pronouns on agent and operator identity
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - MILE-934:targets
@@ -25,7 +25,7 @@ subentities:
   title: Typed display table in .squads.toml
   status: Todo
 created_at: '2026-09-24T09:30:03Z'
-updated_at: '2026-10-17T02:12:58Z'
+updated_at: '2026-10-17T03:14:21Z'
 ---
 <!-- sq:body -->
 ## Why

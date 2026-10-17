@@ -14,7 +14,7 @@ from datetime import date
 from typing import Any, cast
 
 from squads._errors import SquadsError
-from squads._models._attributes import AttributeSpec
+from squads._models._attributes import AttributeKey, AttributeSpec
 
 #: Global fields with their own `update` flags — named so `--set author=…` can hint to use the flag.
 GLOBAL_FIELDS = frozenset(
@@ -185,6 +185,8 @@ def _refusal_hint(item_type: str, key: str, attributes: Mapping[str, AttributeSp
                 " item; declare it in `.overrides/roles.toml`, or in"
                 " `.overrides/roles/<slug>.toml` for a project-defined role"
             )
+    if key == AttributeKey.PRONOUNS and item_type in ("role", "operator"):
+        return f" — set it with `sq {item_type} <addr> update --pronouns`"
     if key in attributes:
         return " (a dedicated command owns it)"
     if key in GLOBAL_FIELDS:

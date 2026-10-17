@@ -78,11 +78,13 @@ from squads._interactions._loader import playbook_override_guide_pairs
 from squads._interactions._models import PlaybookSpec
 from squads._models import _markers as markers
 from squads._models._attributes import ORIGIN_VALUES, AttributeKey
+from squads._models._config import CONFIG_FILENAME
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._models._metadata import value_problem
 from squads._models._participants import SlugBreach, roster_slug_breaches
 from squads._paths import SquadPaths, number_for_id
+from squads._pronouns import pronouns_problem
 from squads._rendering._engine import scaffold_body
 from squads._roles._resolver import (
     holds_default_designation,
@@ -1001,6 +1003,33 @@ def _attribute_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     return issues
 
 
+def _pronouns_valid(ctx: ValidatorContext) -> list[CheckIssue]:
+    """A stored ``pronouns`` that fails the shape rule, on a type that declares the attribute.
+
+    Judges the text as the file stores it and reports it, leaving it as written: renderers read
+    such a value as unset. A value of another kind is ``attribute_valid``'s finding.
+    """
+    item = ctx.item
+    if ctx.raw_text is None or AttributeKey.PRONOUNS not in ctx.spec.item_attributes(item.type):
+        return []
+    try:
+        stored = sections.split_frontmatter(ctx.raw_text, source=item.path)[0]
+    except SquadsError:
+        return []
+    value = stored.get(AttributeKey.PRONOUNS)
+    problem = pronouns_problem(value) if isinstance(value, str) else None
+    if problem is None:
+        return []
+    return [
+        CheckIssue(
+            _resolved_level(ctx, "pronouns_valid"),
+            item.id,
+            f"pronouns {problem} — replace it with "
+            f"`sq {item.type} {item.slug} update --pronouns <text>`",
+        )
+    ]
+
+
 def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
     """Every attribute no declaration on the item's type names, to catch a typo. Selected per
     project; it reports and never rewrites."""
@@ -1048,6 +1077,7 @@ CATALOG: dict[str, Validator] = {
     "external_id_not_in_title": _external_id_not_in_title,
     "attribute_valid": _attribute_valid,
     "frontmatter_key_undeclared": _frontmatter_key_undeclared,
+    "pronouns_valid": _pronouns_valid,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
@@ -1077,6 +1107,7 @@ VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
     "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),
     "attribute_valid": frozenset({ContextRequirement.RAW_TEXT}),
+    "pronouns_valid": frozenset({ContextRequirement.RAW_TEXT}),
 }
 assert set(VALIDATOR_CONTEXT) <= set(CATALOG), (
     "VALIDATOR_CONTEXT must only declare requirements for members CATALOG implements"
@@ -1480,6 +1511,19 @@ def _roster_slug_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ]
 
 
+def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """Each part of the ``[display]`` table in ``.squads.toml`` that is not usable and fell back
+    to its default: an unknown key, a value that is not ``true`` or ``false``, or a non-table.
+
+    The squad has no item to attach this to, so the finding names the config file.
+    """
+    level = squad_global_level(ctx.spec, "display_config_valid")
+    return [
+        CheckIssue(level, CONFIG_FILENAME, f"{problem}; the default applies")
+        for problem in ctx.paths.config.display_problems
+    ]
+
+
 def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """A playbook guide whose role slug names no live role — a warning per dropped guide.
 
@@ -1779,6 +1823,7 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "default_designation_duplicated": _default_designation_duplicated,
     "roster_slug_valid": _roster_slug_valid,
     "playbook_guide_role_live": _playbook_guide_role_live,
+    "display_config_valid": _display_config_valid,
     "children_settled_with_parent": _children_settled_with_parent,
     "dependency_acyclic": _dependency_acyclic,
     "wip_limit": _wip_limit,

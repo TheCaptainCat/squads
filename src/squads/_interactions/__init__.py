@@ -208,6 +208,44 @@ ITEM_SKILL_VIEW_NAME = "item_skill"
 ROLE_DEFINITION_VIEW_NAME = "role_definition"
 
 
+#: Slug -> whether the person at the keyboard is offered each of the three always-on skills,
+#: declared beside :data:`SKILL_DESCRIPTIONS`. A release may change a value; a squad's own
+#: stored choice is never overwritten by it.
+OPERATOR_INVOCABLE_DEFAULTS: Mapping[str, bool] = MappingProxyType(
+    {SQUADS_SKILL: False, GREETING_SKILL: False, MEMORY_SKILL: False}
+)
+
+#: The one default every per-item-type ``sq-<type>`` skill shares.
+ITEM_SKILL_OPERATOR_INVOCABLE = False
+
+assert OPERATOR_INVOCABLE_DEFAULTS.keys() == SKILL_DESCRIPTIONS.keys(), (
+    "every always-on skill declares exactly one operator_invocable default"
+)
+
+
+def declared_operator_invocable(slug: str, spec: WorkflowSpec) -> bool:
+    """The default a skill's bundled definition declares; a skill with no bundled definition
+    (:func:`is_system_skill` is false) is invocable."""
+    if slug in OPERATOR_INVOCABLE_DEFAULTS:
+        return OPERATOR_INVOCABLE_DEFAULTS[slug]
+    if is_system_skill(slug, spec):
+        return ITEM_SKILL_OPERATOR_INVOCABLE
+    return True
+
+
+def resolve_operator_invocable(
+    slug: str, item: Item | None, spec: WorkflowSpec
+) -> tuple[bool, bool]:
+    """``(value, is_set)``: the squad's stored boolean when *item* carries one, else the
+    declared default. Any other stored value resolves as if absent."""
+    stored = (
+        None if item is None else attrs.flag_attribute(item, attrs.AttributeKey.OPERATOR_INVOCABLE)
+    )
+    if stored is not None:
+        return stored, True
+    return declared_operator_invocable(slug, spec), False
+
+
 def skill_description(slug: str) -> str:
     """Return the canonical description for a bundled or ``sq-<type>`` skill slug.
 

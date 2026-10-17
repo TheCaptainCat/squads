@@ -139,6 +139,13 @@ export interface SqCollectionCatalogEntry {
   readonly badges: readonly SqCollectionBadge[];
 }
 
+/** The identity fields the client reads from a `sq role list --json` / `sq operator list --json`
+ * row. `pronouns` is the resolved string, `null` when unset, and absent on an older `sq`. */
+export interface SqRosterIdentity {
+  readonly slug: string;
+  readonly pronouns?: string | null;
+}
+
 /** One entry of `sq workflow statuses --json`. `role` names the status's declared semantic role
  * (e.g. `"active"`, `"superseded"`) — a reference into the separate `sq workflow roles --json`
  * catalog (`SqRoleCatalogEntry`), not a behaviour in itself. A client joins `status` -> `role` ->

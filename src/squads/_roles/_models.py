@@ -49,6 +49,15 @@ class DevPoolSpec(BaseModel):
     capabilities: list[str] = []  # held by every templated developer
 
 
+class DefaultsSpec(BaseModel):
+    """The ``[defaults]`` table of the role catalog document: roster-wide values a role resolves
+    when it holds none of its own."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    pronouns: str | None = None
+
+
 class RoleCatalogSpec(BaseModel):
     """The full loaded role catalog.
 
@@ -61,3 +70,4 @@ class RoleCatalogSpec(BaseModel):
     roles: list[RoleSpec]  # 8 bundled roles, declaration order preserved
     bundles: dict[str, list[str]]  # all / core / minimal → slug lists
     dev: DevPoolSpec
+    defaults: DefaultsSpec = DefaultsSpec()

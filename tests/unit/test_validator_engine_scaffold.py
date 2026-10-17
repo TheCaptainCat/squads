@@ -68,7 +68,7 @@ def test_common_core_and_category_bundles_are_populated() -> None:
         "attribute_valid",
     }
     assert set(CATEGORY_BUNDLES) == {"roster", "work", "records"}
-    assert CATEGORY_BUNDLES["roster"] == ()
+    assert CATEGORY_BUNDLES["roster"] == ("pronouns_valid",)
     assert "no_parent" in CATEGORY_BUNDLES["records"]
     assert "parent_in" in CATEGORY_BUNDLES["work"]
     assert "no_parent" not in CATEGORY_BUNDLES["work"]

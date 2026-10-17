@@ -3,7 +3,7 @@ id: FEAT-966
 sequence_id: 966
 type: feature
 title: 'Skill invocability: declared default, squad''s own choice'
-status: Ready
+status: Done
 author: product-owner
 refs:
 - MILE-934:targets
@@ -33,7 +33,7 @@ subentities:
   title: As an adopter, I want to see whether a skill's value is my own choice
   status: Todo
 created_at: '2026-09-28T17:54:53Z'
-updated_at: '2026-10-16T19:58:52Z'
+updated_at: '2026-10-17T03:43:33Z'
 ---
 <!-- sq:body -->
 ## Problem

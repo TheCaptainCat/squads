@@ -23,6 +23,7 @@ class RoleView:
     mission: str = ""
     responsibilities: tuple[str, ...] = ()
     capabilities: tuple[str, ...] = ()
+    pronouns: str | None = None
 
 
 @dataclass(frozen=True)
@@ -31,3 +32,4 @@ class OperatorView:
 
     slug: str
     full_name: str
+    pronouns: str | None = None

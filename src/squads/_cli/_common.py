@@ -22,7 +22,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
 
-from squads import __version__
+from squads import __version__, _pronouns
 from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
@@ -50,6 +50,7 @@ from squads._rendering._engine import set_active_squad_dir
 from squads._roles._catalog import RoleDef
 from squads._roles._resolver import (
     pinned_name_of,
+    resolve_pronouns,
     resolve_role_with_base,
     role_base_from_item,
 )
@@ -1241,6 +1242,14 @@ def origin_json(value: str | None) -> dict[str, str]:
     return {} if value is None else {"origin": value}
 
 
+def named_markup(svc: Service, name: str, pronouns: str | None, *, style: str = "") -> str:
+    """:func:`~squads._pronouns.named` under the squad's display setting, as Rich markup for a
+    line that is assembled from strings."""
+    return _pronouns.named(
+        name, pronouns, enabled=svc.paths.config.display.pronouns, style=style
+    ).markup
+
+
 async def build_role_json_payload(
     svc: Service,
     slug: str,
@@ -1266,6 +1275,9 @@ async def build_role_json_payload(
     data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
     data.update(origin_json(role_origin(slug) if it is None else attrs.origin(it)))
     skills = await svc.resolved_skills_for_role(slug)
+    pronouns = resolve_pronouns(
+        _pronouns.pronouns(it) if it is not None else None, svc.paths.squad_dir
+    )
     try:
         r = resolve_role_with_base(
             slug, svc.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(it)
@@ -1273,6 +1285,7 @@ async def build_role_json_payload(
         data.update(
             {
                 "full_name": r.full_name,
+                "pronouns": pronouns,
                 "title": r.title,
                 "mission": r.mission,
                 "model": r.model,
@@ -1298,6 +1311,7 @@ async def build_role_json_payload(
         data.update(
             {
                 "full_name": it.title,
+                "pronouns": pronouns,
                 "title": "",
                 "mission": it.description,
                 "model": attrs.model(it),

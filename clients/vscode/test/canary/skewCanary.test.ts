@@ -43,6 +43,7 @@ import {
   isSqGraphNode,
   isSqListItem,
   isSqRoleCatalogEntry,
+  isSqRosterIdentity,
   isSqStatusCatalogEntry,
   isSqSubEntityKindCatalogEntry,
   isSqTreeNode,
@@ -969,6 +970,45 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         for (const entry of entries) {
           expect(isSqRoleCatalogEntry(entry)).toBe(true);
         }
+      });
+    });
+
+    describe('roster identities (role and operator lists)', () => {
+      const ROLE_LIST_KEYS = [
+        'id',
+        'slug',
+        'full_name',
+        'pronouns',
+        'title',
+        'is_default',
+        'capabilities',
+        'status',
+        'origin',
+      ];
+      const OPERATOR_LIST_KEYS = ['id', 'slug', 'full_name', 'pronouns', 'status'];
+
+      it('role and operator list rows carry pronouns (null when unset) and the adapter guard accepts them', () => {
+        runSq(['role', 'manager', 'update', '--pronouns', 'she/her']);
+        runSq(['operator', 'add', 'Canary Person', '--slug', 'op-canary']);
+
+        const roles = JSON.parse(runSq(['role', 'list', '--json'])) as Record<string, unknown>[];
+        expect(roles.length).toBeGreaterThan(0);
+        for (const row of roles) {
+          expect(Object.keys(row).sort()).toEqual([...ROLE_LIST_KEYS].sort());
+          expect(isSqRosterIdentity(row)).toBe(true);
+        }
+        expect(roles.find((row) => row.slug === 'manager')?.pronouns).toBe('she/her');
+
+        const operators = JSON.parse(runSq(['operator', 'list', '--json'])) as Record<
+          string,
+          unknown
+        >[];
+        expect(operators.length).toBeGreaterThan(0);
+        for (const row of operators) {
+          expect(Object.keys(row).sort()).toEqual([...OPERATOR_LIST_KEYS].sort());
+          expect(isSqRosterIdentity(row)).toBe(true);
+        }
+        expect(operators.find((row) => row.slug === 'op-canary')?.pronouns).toBeNull();
       });
     });
 
