@@ -127,8 +127,8 @@ export function findSquadConfig(startDir: string, env: SquadDirEnvironment): str
 }
 
 /** Resolve the active squad directory for `workspaceRoot`, or `undefined` when no
- * `.squads.toml` is found (mirrors `_paths.py::resolve`'s config-walk-up branch; the
- * `--dir`-override and default-on-init branches don't apply to a read-only client). */
+ * `.squads.toml` is found (mirrors `_paths.py::resolve`, the `.squads.toml`
+ * walk-up). */
 export function resolveSquadDir(
   workspaceRoot: string,
   env: SquadDirEnvironment,

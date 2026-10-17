@@ -8,6 +8,7 @@ import pytest
 
 from squads import _aio
 from squads._models import _markers as markers
+from squads._models._schema import SCHEMA_VERSION
 from squads._sections import get_section, replace_section, strip_marker_lines
 
 pytestmark = pytest.mark.anyio
@@ -55,7 +56,7 @@ async def test_migrate_up_seeds_the_roll_up_tag_and_reports_the_count(project, i
     assert markers.open_marker(_TAG) in body
 
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
 
 
 async def test_migrate_up_on_a_milestone_already_tagged_prints_no_changed_count(
@@ -103,7 +104,7 @@ async def test_migrate_up_names_a_milestone_with_no_file_by_id_and_still_reaches
     assert f"dropped {damaged_id}" in r.output, r.output
 
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
     check = await invoke(["check"])
     assert check.exit_code == 0, check.output
 
@@ -164,7 +165,7 @@ async def test_migrate_up_skips_a_tag_moved_outside_the_body_region_check_stays_
     assert (await _aio.read_text(path)).count(markers.open_marker(_TAG)) == 1
 
     with project.config_path.open("rb") as fh:
-        assert tomllib.load(fh)["schema_version"] == "0.15"
+        assert tomllib.load(fh)["schema_version"] == SCHEMA_VERSION
     check = await invoke(["check"])
     assert check.exit_code == 0, check.output
     assert "duplicate" not in check.output.lower(), check.output

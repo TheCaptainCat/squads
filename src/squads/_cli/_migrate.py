@@ -93,6 +93,8 @@ async def migrate_up():
             f"  {m.version} (schema v{m.from_schema}→v{m.to_schema}): "
             f"{e(m.summary)}{changed_suffix}"
         )
+        for line in run.reports.get(m.to_schema, ()):
+            console.print(f"    {e(line)}", soft_wrap=True)
         skipped_ids = run.skipped.get(m.to_schema, [])
         if skipped_ids:
             console.print(

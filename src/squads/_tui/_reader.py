@@ -140,5 +140,5 @@ async def _subentities_view(svc: Service, item: Item, spec: WorkflowSpec) -> str
 def _discussion_view(comments: list[discussion.Comment]) -> str:
     if not comments:
         return _EMPTY
-    blocks = [f"**{c.timestamp}** _{c.author}_\n\n{c.body}" for c in comments]
+    blocks = [f"**{c.timestamp}** _{discussion.author_label(c)}_\n\n{c.body}" for c in comments]
     return "\n\n---\n\n".join(blocks)

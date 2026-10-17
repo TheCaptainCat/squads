@@ -39,6 +39,7 @@ from squads._models._item import (
     split_ref,
 )
 from squads._models._omission import Omission
+from squads._models._participants import ANONYMOUS_SLUG
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._subentity import SubEntity
 from squads._paths import resolve
@@ -628,7 +629,7 @@ def _render_comments_plain(comments: list[discussion.Comment]) -> None:
     applied here or it will leak backslashes into the plain output.
     """
     for cmt in comments:
-        header = f"--- [{cmt.timestamp}] {cmt.author} ---"
+        header = f"--- [{cmt.timestamp}] {discussion.author_label(cmt)} ---"
         console.print(header, markup=False, highlight=False)
         console.print(cmt.body, markup=False, highlight=False)
         console.print()
@@ -637,7 +638,7 @@ def _render_comments_plain(comments: list[discussion.Comment]) -> None:
 def _render_comments_styled(comments: list[discussion.Comment]) -> None:
     """Render each comment as a Rich Panel (TTY, color enabled, not --raw)."""
     for cmt in comments:
-        title = f"{e(cmt.timestamp)}  {e(cmt.author)}"
+        title = f"{e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
         # Body is parsed markdown; pass through Markdown() so bullets/code are styled.
         # We do NOT escape here — the body is trusted markdown content, not user-input markup.
         console.print(Panel(Markdown(cmt.body), title=title, expand=False))
@@ -778,7 +779,7 @@ async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: b
                 sub_cmts = discussion.split_discussion(detail.discussion)
                 if sub_cmts:
                     for cmt in sub_cmts:
-                        cmt_title = f"{e(cmt.timestamp)}  {e(cmt.author)}"
+                        cmt_title = f"{e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
                         inner_renderables.append(
                             Panel(Markdown(cmt.body), title=cmt_title, expand=False)
                         )
@@ -944,7 +945,7 @@ async def _print_item_raw(svc: Service, it: Item, *, comments: bool, full: bool)
         lines += ["", "## Discussion"]
         if cmts:
             for cmt in cmts:
-                lines += ["", f"### {cmt.author} — {cmt.timestamp}", "", cmt.body]
+                lines += ["", f"### {discussion.author_label(cmt)} — {cmt.timestamp}", "", cmt.body]
         else:
             lines += ["", "_(no discussion)_"]
     console.print("\n".join(lines), markup=False, highlight=False, soft_wrap=True)
@@ -1158,15 +1159,15 @@ def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail)
 
     Frontmatter fields (``local_id``/``title``/``status``/``assignee``/``severity``/
     ``story``/``extra``) plus ``body``, the generic per-field ``badges`` map, and an additive
-    ``discussion`` array (ordered ``{author, ts, body}``, same shape/order as the item-level
-    one) — generic across every sub-entity kind, since sub-entity discussion is not per-kind.
+    ``discussion`` array (ordered ``{author, author_slug, ts, body}``, same shape/order as the
+    item-level one) — generic across every sub-entity kind, since sub-entity discussion is not
+    per-kind.
     """
     data: dict[str, Any] = json.loads(detail.info.model_dump_json())
     data["body"] = detail.body
     data["badges"] = badges.resolve_badges(spec, kind, detail.info.badge_value)
     data["discussion"] = [
-        {"author": cmt.author, "ts": cmt.timestamp, "body": cmt.body}
-        for cmt in discussion.split_discussion(detail.discussion)
+        discussion.comment_json(cmt) for cmt in discussion.split_discussion(detail.discussion)
     ]
     return data
 
@@ -1174,8 +1175,8 @@ def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail)
 async def build_item_json(svc: Service, it: Item) -> str:
     """The ``show --json`` payload: frontmatter fields plus body/discussion — additive only.
 
-    Adds top-level ``body`` (raw body markdown), ``discussion`` (ordered ``{author, ts,
-    body}`` list), and ``badges`` (the generic per-item badge map, keyed by field
+    Adds top-level ``body`` (raw body markdown), ``discussion`` (ordered ``{author, author_slug,
+    ts, body}`` list), and ``badges`` (the generic per-item badge map, keyed by field
     code — see :func:`squads._badges.resolve_badges`); plus, per ``subentities`` entry, the
     shared shape built by :func:`build_subentity_json` (adds ``body``, ``badges``, and
     ``discussion``). Added unconditionally — not gated by ``--comments``/``--full`` — so the
@@ -1186,7 +1187,7 @@ async def build_item_json(svc: Service, it: Item) -> str:
     payload: dict[str, Any] = json.loads(it.model_dump_json())
     payload["body"] = await svc.read_body(it.id)
     payload["discussion"] = [
-        {"author": cmt.author, "ts": cmt.timestamp, "body": cmt.body}
+        discussion.comment_json(cmt)
         for cmt in discussion.split_discussion(await svc.read_discussion(it.id))
     ]
     payload["badges"] = badges.resolve_badges(spec, it.type, it.badge_value)
@@ -2017,7 +2018,7 @@ async def resolve_slug_or_raise(slug: str, svc: Service, *, live_only: bool = Tr
     activation (see :func:`_retired_participant_hint`).
     """
     normalised = slug.lstrip("@").lower()
-    if normalised == "operator":
+    if normalised == ANONYMOUS_SLUG:
         return normalised
     if live_only:
         agent_slugs = [r.slug for r in await svc.roster()]

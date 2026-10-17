@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1024,
+  "counter": 1031,
   "padding": 6,
   "items": {
     "12": {
@@ -31534,7 +31534,7 @@
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-10-15T20:16:59Z",
+      "updated_at": "2026-10-16T07:43:46Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31913,7 +31913,7 @@
       "subentities": [],
       "path": "milestones/MILE-000934-squads-0-16-roles-not-slugs.md",
       "created_at": "2026-09-09T14:39:43Z",
-      "updated_at": "2026-10-15T19:56:33Z",
+      "updated_at": "2026-10-16T08:34:44Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44258,7 +44258,7 @@
       "type": "task",
       "title": "Put the author's slug in comment headers and migrate the corpus",
       "slug": "put-the-author-s-slug-in-comment-headers-and-migrate-the-cor",
-      "status": "InProgress",
+      "status": "Done",
       "description": "One header grammar and parser, author_slug in JSON, reserved role slugs, and the 0.16 migration step with the comment-header rewrite as its first contribution",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44274,7 +44274,7 @@
         {
           "local_id": "ST1",
           "title": "Write and parse one header grammar that names the slug",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -44283,7 +44283,7 @@
         {
           "local_id": "ST2",
           "title": "Add author_slug to discussion JSON; show name then slug",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -44292,7 +44292,7 @@
         {
           "local_id": "ST3",
           "title": "Refuse reserved role slugs and pin slug permanence",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -44301,7 +44301,7 @@
         {
           "local_id": "ST4",
           "title": "Create the 0.16 migration step as a list of contributions",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44310,7 +44310,7 @@
         {
           "local_id": "ST5",
           "title": "Migrate legacy headers: resolve all, refuse loudly, rewrite",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44319,7 +44319,7 @@
         {
           "local_id": "ST6",
           "title": "Freeze a 0.15 squad with discussions; prove the run end to end",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44328,7 +44328,7 @@
         {
           "local_id": "ST7",
           "title": "Dry-run the header planning pass on a copy of this squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -44337,7 +44337,7 @@
       ],
       "path": "tasks/TASK-001004-put-the-author-s-slug-in-comment-headers-and-migrate-the-cor.md",
       "created_at": "2026-10-12T06:46:55Z",
-      "updated_at": "2026-10-15T21:43:32Z",
+      "updated_at": "2026-10-16T08:22:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44348,7 +44348,7 @@
       "type": "task",
       "title": "Accept and show author_slug on comments in the VS Code client",
       "slug": "accept-and-show-author-slug-on-comments-in-the-vs-code-clien",
-      "status": "Draft",
+      "status": "InReview",
       "description": "Optional author_slug on SqDiscussionEntry, tolerant shape guard, slug beside the name in the preview",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44364,7 +44364,7 @@
         {
           "local_id": "ST1",
           "title": "Read an optional author_slug and show it in the preview",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -44373,7 +44373,7 @@
       ],
       "path": "tasks/TASK-001005-accept-and-show-author-slug-on-comments-in-the-vs-code-clien.md",
       "created_at": "2026-10-12T06:48:44Z",
-      "updated_at": "2026-10-15T21:43:33Z",
+      "updated_at": "2026-10-16T08:16:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44384,7 +44384,7 @@
       "type": "task",
       "title": "Document the comment header grammar and its migration",
       "slug": "document-the-comment-header-grammar-and-its-migration",
-      "status": "Draft",
+      "status": "Done",
       "description": "Stability tiers 1 and 3, internals, the 0.16 migration section and CHANGELOG entries for slug-bearing comment headers",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44400,7 +44400,7 @@
         {
           "local_id": "ST1",
           "title": "State the header grammar and slug permanence in the contract",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -44409,7 +44409,7 @@
         {
           "local_id": "ST2",
           "title": "Describe the 0.16 migration and write the changelog entries",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -44418,7 +44418,7 @@
       ],
       "path": "tasks/TASK-001006-document-the-comment-header-grammar-and-its-migration.md",
       "created_at": "2026-10-12T06:48:46Z",
-      "updated_at": "2026-10-12T06:50:47Z",
+      "updated_at": "2026-10-16T08:39:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44907,7 +44907,7 @@
       ],
       "path": "features/FEAT-001016-flat-frontmatter-core-keys-plus-declared-attributes.md",
       "created_at": "2026-10-15T20:12:57Z",
-      "updated_at": "2026-10-15T20:17:51Z",
+      "updated_at": "2026-10-16T08:39:01Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45164,7 +45164,7 @@
       ],
       "path": "tasks/TASK-001019-fix-console-backslash-loss-and-the-missing-body-region-keyer.md",
       "created_at": "2026-10-15T20:23:28Z",
-      "updated_at": "2026-10-15T21:42:40Z",
+      "updated_at": "2026-10-15T21:44:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45504,11 +45504,481 @@
       ],
       "path": "features/FEAT-001024-the-help-surface-follows-one-rule.md",
       "created_at": "2026-10-15T21:43:01Z",
-      "updated_at": "2026-10-15T21:43:30Z",
+      "updated_at": "2026-10-15T21:52:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "FEAT-1024"
+    },
+    "1025": {
+      "sequence_id": 1025,
+      "type": "decision",
+      "title": "A listed --json field is recorded, not newly frozen",
+      "slug": "a-listed-json-field-is-recorded-not-newly-frozen",
+      "status": "Proposed",
+      "description": "Listing a field in docs/stability.md records the existing Tier 3 freeze; no new tier, but each key's value is marked vocabulary, open set or display.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1024",
+        "REV-958",
+        "ADR-738",
+        "ADR-775",
+        "ADR-947",
+        "ADR-427",
+        "ADR-459"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001025-a-listed-json-field-is-recorded-not-newly-frozen.md",
+      "created_at": "2026-10-15T21:48:00Z",
+      "updated_at": "2026-10-15T21:51:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "ADR-1025"
+    },
+    "1026": {
+      "sequence_id": 1026,
+      "type": "review",
+      "title": "TASK-1004 ST1-ST3 checkpoint: slug comment headers",
+      "slug": "task-1004-st1-st3-checkpoint-slug-comment-headers",
+      "status": "Approved",
+      "description": "Checkpoint review of the header grammar, author_slug and reserved role slugs before the 0.16 migration",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1004:addresses",
+        "FEAT-980:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A line separator in a message forges a second comment header",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Role creation skips the slug grammar; reserved check is case-blind",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "operator add --slug takes squads, operator and live role slugs",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Anonymous slug still spelled as a literal at three sites",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Importer comment actor is not resolved against the roster",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Importer unset_fields accepts an unknown key as a silent no-op",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001026-task-1004-st1-st3-checkpoint-slug-comment-headers.md",
+      "created_at": "2026-10-15T22:10:58Z",
+      "updated_at": "2026-10-15T22:18:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1026"
+    },
+    "1027": {
+      "sequence_id": 1027,
+      "type": "review",
+      "title": "TASK-1004 end-of-task: 0.16 header migration and checkpoint fixes",
+      "slug": "task-1004-end-of-task-0-16-header-migration-and-checkpoint-f",
+      "status": "Approved",
+      "description": "End-of-task review of the 0.16 migration step, the header rewrite and the REV-1026 fixes",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1004:addresses",
+        "FEAT-980:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A refusal below schema 0.15 names the stamped release and says nothing was written after earlier runners wrote",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "An operator without full_name had headers written as its slug; the migration matches by title and refuses",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "The importer now refuses as operator on comment events, unlike 0.15.0 and --as operator",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Line-based scan diverges from _sections when a marker shares a line with content",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Template-owned-skill guard now skips on post-migration state, so dropping those skills passes",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Deferred import cycle and a third copy of the release-that-reads-schema sentence",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "ADR-979 says the rewrite goes through _sections.py; the runner replaces lines in bytes",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Report and docstring wording that goes stale",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "CRLF preservation holds on POSIX only: the atomic writer translates newlines on Windows",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "With 0.16 as the first runner, the refusal no longer names the release that can change the roster",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "A lone marker with non-canonical spacing is refused as sharing its line with text",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Fixture README and legacy-squad docstring say this build",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001027-task-1004-end-of-task-0-16-header-migration-and-checkpoint-f.md",
+      "created_at": "2026-10-16T07:38:49Z",
+      "updated_at": "2026-10-16T08:04:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1027"
+    },
+    "1028": {
+      "sequence_id": 1028,
+      "type": "bug",
+      "title": "Atomic writer translates newlines on Windows",
+      "slug": "atomic-writer-translates-newlines-on-windows",
+      "status": "Open",
+      "description": "Text-mode open without newline='' alters line endings on Windows",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1027"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001028-atomic-writer-translates-newlines-on-windows.md",
+      "created_at": "2026-10-16T07:42:11Z",
+      "updated_at": "2026-10-16T07:42:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1028"
+    },
+    "1029": {
+      "sequence_id": 1029,
+      "type": "review",
+      "title": "TASK-1005: author_slug in the VS Code client",
+      "slug": "task-1005-author-slug-in-the-vs-code-client",
+      "status": "Approved",
+      "description": "Review of the client's optional author_slug guard, preview render and canary coverage",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1005:addresses",
+        "FEAT-980:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Canary's sub-entity half checks nothing",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Optional author_slug in canary breaks file's own policy",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "squadDir comment: stale branch, inexact -C",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Older-payload test runs on a mixed fixture",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "New doc-comment lines exceed 100 columns",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001029-task-1005-author-slug-in-the-vs-code-client.md",
+      "created_at": "2026-10-16T08:12:14Z",
+      "updated_at": "2026-10-16T08:17:17Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1029"
+    },
+    "1030": {
+      "sequence_id": 1030,
+      "type": "bug",
+      "title": "override scaffold --new accepts reserved role slugs",
+      "slug": "override-scaffold-new-accepts-reserved-role-slugs",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-980"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001030-override-scaffold-new-accepts-reserved-role-slugs.md",
+      "created_at": "2026-10-16T08:24:07Z",
+      "updated_at": "2026-10-16T08:24:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1030"
+    },
+    "1031": {
+      "sequence_id": 1031,
+      "type": "review",
+      "title": "TASK-1006: comment-header docs and the 0.16 MANUAL",
+      "slug": "task-1006-comment-header-docs-and-the-0-16-manual",
+      "status": "Approved",
+      "description": "Claim-by-claim check of the slug-header docs, CHANGELOG and MANUAL against the dev build",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1006:addresses",
+        "FEAT-980:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Reserved-slug rule worded wider than the build enforces",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "CHANGELOG keeps the corrected stamped-release remedy",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "MANUAL example omits a per-name line",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Slug origin stated as derived from the name",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Tier 3 bullet uses release-delta wording",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "CHANGELOG omits the VS Code preview slug",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Tutorial --as developer claim is false",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Remedy text depends on pending decisions",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001031-task-1006-comment-header-docs-and-the-0-16-manual.md",
+      "created_at": "2026-10-16T08:33:42Z",
+      "updated_at": "2026-10-16T08:39:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1031"
     }
   }
 }

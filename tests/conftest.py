@@ -288,3 +288,16 @@ def invoke(runner: CliRunner):
         return _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
 
     return _invoke
+
+
+@pytest.fixture(autouse=True)
+def _run_outside_this_repositorys_squad(  # pyright: ignore[reportUnusedFunction]  # autouse
+    tmp_path_factory, monkeypatch
+):
+    """Start every test in an empty directory, so a command that resolves a squad from the
+    working directory never finds this repository's own and its schema stamp.
+
+    A test that needs a squad builds one and changes into it (the ``project`` fixture); the
+    fixture's own ``chdir`` runs after this one.
+    """
+    monkeypatch.chdir(tmp_path_factory.mktemp("cwd"))

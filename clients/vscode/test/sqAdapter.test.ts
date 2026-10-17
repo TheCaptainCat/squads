@@ -1039,6 +1039,57 @@ describe('getShowJson', () => {
     expect(outcome.kind).toBe('parse-error');
   });
 
+  describe('author_slug on a discussion entry', () => {
+    const base = { author: 'Ada Typescript', ts: '2026-08-03T00:00:00Z', body: 'Noted.' };
+    const shapes: readonly { name: string; entry: object; kind: string }[] = [
+      { name: 'key absent', entry: base, kind: 'success' },
+      { name: 'a string', entry: { ...base, author_slug: 'typescript-dev' }, kind: 'success' },
+      { name: 'an empty string', entry: { ...base, author_slug: '' }, kind: 'success' },
+      { name: 'null', entry: { ...base, author_slug: null }, kind: 'parse-error' },
+      { name: 'a number', entry: { ...base, author_slug: 7 }, kind: 'parse-error' },
+      { name: 'an object', entry: { ...base, author_slug: {} }, kind: 'parse-error' },
+    ];
+    const subentity = (discussion: object[]): object => ({
+      local_id: 'F1',
+      title: 'A finding',
+      status: 'Open',
+      assignee: null,
+      severity: 'high',
+      story: null,
+      body: 'Body text.',
+      discussion,
+    });
+    const placements: readonly { level: string; payload: (entry: object) => object }[] = [
+      { level: 'item', payload: (entry) => ({ discussion: [entry], subentities: [] }) },
+      {
+        level: 'sub-entity',
+        payload: (entry) => ({ discussion: [], subentities: [subentity([entry])] }),
+      },
+    ];
+
+    for (const { level, payload } of placements) {
+      it.each(shapes)(`$name, on the ${level} discussion`, async ({ entry, kind }) => {
+        const runner = stubRunner({
+          stdout: JSON.stringify(payload(entry)),
+          stderr: '',
+          exitCode: 0,
+        });
+        const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-1');
+        expect(outcome.kind).toBe(kind);
+      });
+    }
+
+    it('accepts the committed older-sq payload, where no entry has an author_slug', async () => {
+      const runner = stubRunner({ stdout: SHOW_JSON_FIXTURE, stderr: '', exitCode: 0 });
+      const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'TASK-434');
+      if (outcome.kind !== 'success') {
+        throw new Error('expected success');
+      }
+      expect(outcome.data.discussion.length).toBeGreaterThan(0);
+      expect(outcome.data.discussion.every((entry) => entry.author_slug === undefined)).toBe(true);
+    });
+  });
+
   it('ignores every other key sq show --json emits, keeping only discussion and subentities', async () => {
     const runner = stubRunner({
       stdout: JSON.stringify({ id: 'TASK-1', title: 'x', discussion: [], subentities: [] }),

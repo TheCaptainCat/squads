@@ -107,8 +107,9 @@ sq task 11 subtask 1 update --status Done --force
 sq task 11 status InReview
 ```
 
-(`--as developer` only resolves to a full name if you've activated a dev role; otherwise use a
-real slug like `architect`, or `operator`.)
+(`developer` stands for your developer's slug: `--as` takes a roster slug, such as `python-dev`
+after `sq dev add --tech python`, `architect`, or `operator`, and the comment header records that
+slug with the author's name. `--as developer` itself is refused as an unknown slug.)
 
 ## 5. A bug, linked to a fix
 

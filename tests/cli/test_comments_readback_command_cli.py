@@ -32,7 +32,7 @@ async def test_json_output_field_names_match_show_jsons_discussion_entries(proje
 
     comments = json.loads((await invoke(["task", "2", "comments", "--json"])).output)
     assert len(comments) == 1
-    assert set(comments[0]) == {"author", "ts", "body"}
+    assert set(comments[0]) == {"author", "author_slug", "ts", "body"}
 
     shown = json.loads((await invoke(["task", "2", "show", "--json"])).output)
     assert comments == shown["discussion"]

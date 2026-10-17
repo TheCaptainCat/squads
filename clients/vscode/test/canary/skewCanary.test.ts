@@ -39,6 +39,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createNodeDiscoveryEnvironment } from '../../src/nodeEnvironment';
 import {
   isSqCollectionCatalogEntry,
+  isSqDiscussionEntry,
   isSqGraphNode,
   isSqListItem,
   isSqRoleCatalogEntry,
@@ -450,6 +451,38 @@ describe('the list-row key assertion', () => {
   });
 });
 
+/** Required here on purpose, `author_slug` included: this layer describes what the current `sq`
+ * emits, not what the client's tolerant guard can survive. */
+const DISCUSSION_ENTRY_KEYS = ['author', 'author_slug', 'ts', 'body'] as const;
+
+function assertDiscussionEntryKeys(entry: object): void {
+  assertExactKeys(entry, DISCUSSION_ENTRY_KEYS);
+  expect(isSqDiscussionEntry(entry)).toBe(true);
+}
+
+describe('the discussion-entry key assertion', () => {
+  const base = { author: 'Ada', ts: '2026-01-01T00:00:00Z', body: 'hi' };
+  const shapes: readonly { name: string; payload: object; passes: boolean }[] = [
+    { name: 'the full set', payload: { ...base, author_slug: 'a' }, passes: true },
+    { name: 'author_slug omitted', payload: base, passes: false },
+    { name: 'a renamed key', payload: { ...base, slug: 'a' }, passes: false },
+    { name: 'a key dropped', payload: { author: 'Ada', ts: base.ts }, passes: false },
+    { name: 'an unmodelled key', payload: { ...base, extra: 1 }, passes: false },
+    { name: 'a non-string author_slug', payload: { ...base, author_slug: 1 }, passes: false },
+  ];
+
+  it.each(shapes)('$name', ({ payload, passes }) => {
+    const run = (): void => {
+      assertDiscussionEntryKeys(payload);
+    };
+    if (passes) {
+      expect(run).not.toThrow();
+    } else {
+      expect(run).toThrow();
+    }
+  });
+});
+
 describe('the type-entry key assertion', () => {
   const full: Record<string, unknown> = Object.fromEntries(
     TYPE_ENTRY_KEYS.map((key) => [key, null]),
@@ -544,6 +577,46 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
       if (scratchDir !== undefined) {
         rmSync(scratchDir, { recursive: true, force: true });
       }
+    });
+
+    describe('sq show --json', () => {
+      it('every discussion entry, on the item and on a sub-entity, has the keys the client reads', () => {
+        runSq([
+          'task',
+          taskId.replace(/^TASK-/, ''),
+          'comment',
+          '--as',
+          'manager',
+          '-m',
+          'Canary note.',
+        ]);
+        const number = taskId.replace(/^TASK-/, '');
+        runSq(['task', number, 'add-subtask', 'Canary subtask', '-m', 'Canary subtask body.']);
+        runSq(['task', number, 'subtask', '1', 'comment', '--as', 'manager', '-m', 'Sub note.']);
+        const parsed = JSON.parse(runSq(['show', taskId, '--json'])) as {
+          discussion: object[];
+          subentities: { discussion: object[] }[];
+        };
+        expect(parsed.discussion.length).toBeGreaterThan(0);
+        for (const entry of parsed.discussion) {
+          assertDiscussionEntryKeys(entry);
+        }
+        expect(parsed.subentities.length).toBeGreaterThan(0);
+        for (const sub of parsed.subentities) {
+          expect(sub.discussion.length).toBeGreaterThan(0);
+          for (const entry of sub.discussion) {
+            assertDiscussionEntryKeys(entry);
+          }
+        }
+      });
+
+      it('the committed fixture still conforms to the shape the adapter accepts', () => {
+        const parsed = JSON.parse(fixture('show-json.json')) as { discussion: unknown[] };
+        expect(parsed.discussion.length).toBeGreaterThan(0);
+        for (const entry of parsed.discussion) {
+          expect(isSqDiscussionEntry(entry)).toBe(true);
+        }
+      });
     });
 
     describe('sq tree --json', () => {

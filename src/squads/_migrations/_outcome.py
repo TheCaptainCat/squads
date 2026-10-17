@@ -18,7 +18,11 @@ class MigrationOutcome:
     speaks the plain ``int`` contract, so none of them had to widen their own return type to
     report it). ``sq migrate up`` prints these by id alongside the count; ``sq check``'s own
     advisories are the standing backstop for whatever this list under-reports.
+
+    ``report`` is printable lines a step that completed adds under its own line in ``sq migrate
+    up`` (counts, notes); empty for a runner with nothing to add.
     """
 
     count: int
     skipped: tuple[str, ...] = ()
+    report: tuple[str, ...] = ()

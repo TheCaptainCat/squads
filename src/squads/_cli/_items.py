@@ -471,11 +471,7 @@ def _cmd_comments(item: typer.Typer) -> None:
         `show --comments` renders the same discussion inline alongside the rest of the item)."""
         cmt_list = await get_service().comments(_id(ctx))
         if json_out:
-            print_json_clean(
-                json.dumps(
-                    [{"author": c.author, "ts": c.timestamp, "body": c.body} for c in cmt_list]
-                )
-            )
+            print_json_clean(json.dumps([discussion.comment_json(c) for c in cmt_list]))
             return
         common.print_comments(cmt_list)
 

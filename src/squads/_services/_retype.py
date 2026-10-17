@@ -17,6 +17,7 @@ from squads._itemfile import ensure_no_skew, rewrite_ids, update_frontmatter, wr
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, format_item_id, make_ref, split_ref
+from squads._models._participants import SYSTEM_SLUG
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore, ensure_subentity_container_text
@@ -331,7 +332,7 @@ async def _append_retype_comment(
     else:
         status_note = f"status carried as {item.status}"
     msg = f"retyped {old_id} → {new_id}; {status_note}"
-    entry = discussion.format_comment(now_iso, "squads", [msg])
+    entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
     text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
         text = sections.append_to_section(text, markers.DISCUSSION, entry)

@@ -193,6 +193,109 @@ migration needs no manual step, and its entry says so rather than leaving you to
 
 ---
 
+## Upgrading to 0.16: the schema step
+
+0.16 changes the durable format, so a squad written by an earlier release is stopped until
+`sq migrate up` has run. The 0.16 step has several parts, and **it checks every part before it
+writes any file.** If any part finds a problem, the step writes nothing, the schema stamp stays as
+it is, the command exits `1`, and it lists every problem found, not only the first. Each part's
+problems are described below with what to do about them. `sq migrate chlog v0.15.0..v0.16.0`
+prints the same steps.
+
+**Fix a refused run with an earlier release.** Until the migration completes, this release runs
+nothing on the squad but `sq migrate up`, `sq migrate help` and `sq migrate chlog`, so a roster
+change (adding a role or an operator back) is made with a release that reads the squad's current
+schema, then `sq migrate up` is run again with this one. The refusal names such a release:
+
+```
+Change the roster with a squads release that reads schema v0.15 (v0.15.0 is one).
+```
+
+A squad stamped below 0.15 has its earlier steps applied in the same run, before the 0.16 step
+looks at it. If the 0.16 step then refuses, those earlier steps stay applied but the stamp does
+not move, and the message says so:
+
+```
+Earlier steps of this run have already been applied, so running again is safe, and the files are now in the shape of schema v0.15: change the roster with a squads release that reads schema v0.15 (v0.15.0 is one).
+```
+
+With 0.15.0, run `sq migrate up` first (it brings the squad to 0.15), make the change, then run
+`sq migrate up` with 0.16.
+
+### Comment headers name the author's slug
+
+Each comment header gains its author's slug, between backticks, in front of the name:
+
+```diff
+-- [2026-10-16T08:08:22Z] Robert Architect:
++- [2026-10-16T08:08:22Z] `architect` Robert Architect:
+```
+
+The step rewrites the header line of every comment, in each item's discussion and in each story's,
+subtask's and finding's. Nothing else changes: a comment's own lines stay byte for byte, no
+frontmatter changes (so no item's `updated_at` moves), and a header-shaped line in an item's body,
+outside any discussion, is left alone. The run reports what it did under the step:
+
+```
+  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. — 1 changed
+    4 comment header(s) rewritten in 1 file(s); 0 already carried a slug
+```
+
+The report also names any operator whose slug does not start with `op-`; nothing is refused for
+it. A header that already carries a slug is left as it is, so the step can be run again safely.
+Review the diff before you commit it. The new grammar is in
+[stability.md](stability.md#comment-headers).
+
+**How a slug is found.** An old header holds only a name, so the step looks each name up among the
+squad's roles and operators, retired ones included, plus the two names sq writes itself: `Operator`
+(a comment written with `--as operator`) and `squads` (an entry sq wrote, such as a retype). A
+role is matched by its name (the `Name` column of `sq role list`). An operator is matched by its
+full name, or by its slug when it has none, which is what the earlier release wrote in its
+comments. Every name is resolved before any file is written. There is no option that maps a name
+to a slug by hand.
+
+**When it refuses**, the report gives one line per header (the file, relative to the squad
+folder, and the line number), then the count, then one line per name that failed with the number
+of headers and files that carry it:
+
+```
+error: tasks/TASK-NNNNNN-add-login.md:37: 'Mara Tester' matches no roster entry
+1 problem(s) found.
+  'Mara Tester': 1 header(s) in 1 file(s)
+Correct the roster, or correct the line by hand, then run `sq migrate up` again; `sq migrate chlog v0.15.0..v0.16.0` has the steps.
+This step wrote nothing and the schema stamp is unchanged.
+Change the roster with a squads release that reads schema v0.15 (v0.15.0 is one).
+The squad is still at schema v0.15: fix the cause, then re-run `sq migrate up`, which rebuilds the index from the files first.
+```
+
+What each line means, and what to do before running `sq migrate up` again:
+
+- **`'<name>' matches no roster entry`.** The role or operator that wrote those comments is no
+  longer in the squad, usually because it was removed with `rm --purge`. Add it back under that
+  name with the earlier release: `sq role activate <slug> --name "<name>"` for a role (`sq role
+  catalog` lists the slugs), `sq dev add --tech <tech> --name "<name>"` for a developer role, and
+  `sq operator add "<name>" --slug <old-slug>` for an operator (`--slug` keeps the slug its items
+  still name as author or assignee). A retired entry counts, so it can be retired again
+  afterwards. If the entry is still there under a newer name, the old and the new name cannot both
+  resolve to it: replace the old name in those header lines by hand.
+- **`'<name>' matches 2 entries: <slug>, <slug>`.** Two entries share that name. Every header with
+  the name then belongs to one of them only, so decide which, and give the other a distinct name
+  for the run by editing its file: `title:` for a role, `full_name:` under `extra:` for an
+  operator. The earlier release's `sq check` reports the edit as drift until `sq repair`, which
+  `sq migrate up` makes unnecessary, since it rebuilds the index from the files first. After the
+  migration, put the name back the same way and run `sq repair`.
+- **`'<text>' is not a timestamp sq writes`.** A line at the left margin inside a discussion looks
+  like a header, but its bracket does not hold a timestamp sq writes. If it is text pasted into a
+  comment, indent it so it sits under that comment. If it is a header, correct its timestamp to
+  the form `2026-06-07T10:00:00Z`.
+- **A discussion region that "is not closed".** The region's closing marker line is missing.
+  Restore it (from version control, for example).
+- **A region marker that "shares its line with text" or "is not a well-formed sq marker".** Put
+  each `sq:` marker on a line of its own, spelled as sq writes it (`<!-- sq:discussion -->`, one
+  space on each side of the tag).
+
+---
+
 ## Upgrading to 0.16: `-C` replaces `--dir`
 
 This change touches no file in the squad, so it needs no migration. It changes how scripts and
