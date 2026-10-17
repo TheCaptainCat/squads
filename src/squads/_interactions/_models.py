@@ -16,7 +16,7 @@ class RoleGuideSpec(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    slug: str  # a role slug, or the "*dev" DEV sentinel
+    slug: str  # a role slug, or ``*<capability>`` for every role holding it
     enter: list[str] = []  # read/confirm before acting
     do: list[str] = []  # core actions (with concrete `sq …` commands)
     handoff: list[str] = []  # trigger + target that moves work on
@@ -31,8 +31,7 @@ class RoleGuideSpec(BaseModel):
     both read this document.
 
     Defaults ``False``, so a guide that only reads/triages/verifies a type declares nothing —
-    including the ``*dev`` sentinel, whose lane is empty by declaration rather than by a
-    special case."""
+    including a capability-addressed guide, whose lane is empty unless it declares ``authors``."""
 
 
 class ItemPlaybookSpec(BaseModel):

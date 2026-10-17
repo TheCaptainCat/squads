@@ -17,10 +17,10 @@ statement of that limitation and its remedy — the two halves are deliberately 
 only the first is enforced.
 """
 
-from collections.abc import Container, Mapping
+from collections.abc import Container, Iterable, Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from squads import _badges as badges
 from squads._errors import RoleNotFoundError
@@ -30,9 +30,16 @@ from squads._interactions._models import (
     PlaybookSpec,
     RoleGuideSpec,
 )
-from squads._interactions._role_guidance import DEV, in_lane_owner
+from squads._interactions._role_guidance import (
+    CAPABILITY_SUBJECT_PREFIX,
+    RoleLike,
+    addresses,
+    in_lane_owner,
+    role_like,
+)
 from squads._models._item import Item
 from squads._roles._catalog import get_catalog, role_by_slug
+from squads._roles._projection import RoleView
 from squads._workflow._models import (
     DEFAULT_SUBENTITY_TITLE_MAX,
     ROSTER_ROLE,
@@ -50,7 +57,7 @@ class RoleGuide:
     what to check first, what to do, what moves the work on, and what to stay out of.
     """
 
-    slug: str  # a role slug, or the DEV sentinel
+    slug: str  # a role slug, or ``*<capability>``
     enter: tuple[str, ...] = ()  # read/confirm before acting
     do: tuple[str, ...] = ()  # the core actions (with concrete `sq …` commands)
     handoff: tuple[str, ...] = ()  # the trigger + target that moves work on
@@ -549,7 +556,7 @@ def orphaned_playbook_guides(
     playbook: PlaybookSpec,
     spec: WorkflowSpec,
     *,
-    live_role_slugs: Container[str],
+    live_roles: Iterable[RoleLike],
     override_guides: Container[tuple[str, str]],
 ) -> list[tuple[str, str]]:
     """Every ``(item_type, role_slug)`` playbook guide the generated ``sq-<type>`` skill will
@@ -573,8 +580,9 @@ def orphaned_playbook_guides(
 
     Two exemptions, both deliberate:
 
-    * the ``*dev`` sentinel — it means "any ``<tech>-dev`` role", and rendering it is already
-      conditioned on the roster having one (``has_dev``);
+    * a guide addressed to a capability (``*<name>``) that is bundled, not one an override
+      declares — it renders only while a live role holds the capability, so a squad without a
+      holder carries no guidance for an actor that cannot act;
     * a guide whose ``(item_type, slug)`` pair *override_guides* does not carry — i.e. one that
       exists only in the **bundled** playbook document. This keys the exemption on **who wrote
       the guide**, which is what decides whether the report is actionable at all: a guide the
@@ -603,11 +611,12 @@ def orphaned_playbook_guides(
     Pure, and returns sorted pairs so every caller's output is deterministic.
     """
     out: list[tuple[str, str]] = []
+    roles = list(live_roles)
     for item_type in managed_item_types(playbook):
         if item_type not in spec.items:
             continue
         for guide in playbook.types[item_type].roles:
-            if guide.slug == DEV or guide.slug in live_role_slugs:
+            if any(addresses(guide.slug, r) for r in roles):
                 continue
             if (item_type, guide.slug) not in override_guides:
                 continue
@@ -641,6 +650,13 @@ def orphaned_playbook_guide_message(
     *live_status* is the roster role type's own live initial status, never a hard-coded
     ``Active``, so a project that renamed its roster lifecycle reads its own vocabulary.
     """
+    if slug.startswith(CAPABILITY_SUBJECT_PREFIX):
+        return (
+            f"playbook guide for capability {slug!r} on type {item_type!r} names no live role, so "
+            f"its guidance is dropped from the generated `sq-{item_type}` skill — declare "
+            f'`capabilities = ["{slug[1:]}"]` on a live role, or remove the guide from '
+            f"`.overrides/playbook.toml` under `[types.{item_type}]`"
+        )
     revive = (
         f"reactivate the role (`sq role {slug} status {live_status}`)"
         if retired
@@ -663,7 +679,7 @@ def orphaned_playbook_guide_message(
 
 def authoring_owner(
     item_type: str,
-    roster_slugs: Container[str] | None = None,
+    roster: Iterable[Mapping[str, Any] | RoleView] | None = None,
     playbook: PlaybookSpec | None = None,
     role_titles: Mapping[str, str] | None = None,
 ) -> tuple[str, str] | None:
@@ -673,15 +689,15 @@ def authoring_owner(
     same string keys ``spec.items`` and the template loop over them use).
 
     Returns ``None`` when the type has no lane owner, more than one (ambiguous), the
-    owner has no resolvable display title (e.g. a ``<tech>-dev`` slug — ``in_lane_owner``
-    never returns the ``DEV`` sentinel itself, only concrete slugs, so this only excludes
-    an as-yet-uncataloged one), or — when *roster_slugs* is given — the owner isn't
-    actually on this squad's live roster. ``roster_slugs`` is opt-in (``None`` skips the
-    roster check): the playbook and the bundled catalog have no notion of who's actually
-    active, so a caller with no roster in hand (e.g. a bundled reference render) gets the
-    unfiltered answer; a caller that *does* have the live roster (CLAUDE.md, the squads
-    skill) should pass it, so the cheatsheet never assigns authorship to a role that doesn't
-    exist in this squad.
+    owner has no resolvable display title (an as-yet-uncataloged slug), or — when *roster* is
+    given — the owner isn't actually on this squad's live roster. A guide addressed to a
+    capability names the roster's holders, so it needs the roster to name anyone. *roster* is
+    opt-in (``None`` skips the roster check): the playbook and the bundled catalog have no
+    notion of who's actually active, so a caller with no roster in hand (e.g. a bundled
+    reference render) gets the unfiltered answer; a caller that *does* have the live roster
+    (CLAUDE.md, the squads skill) should pass it, so the cheatsheet never assigns authorship
+    to a role that doesn't exist in this squad. A roster entry is a ``RoleView`` or a mapping
+    with ``slug`` and optionally ``capabilities``.
 
     *role_titles* is the live slug→title map and is consulted **first**, because it is the only
     one of the two sources that can see a project override. A roster entry's ``title`` is the
@@ -697,19 +713,21 @@ def authoring_owner(
     that is also absent from the map has no title in hand, and loses its authoring bullet rather
     than naming a role by its slug.
     """
-    owners = in_lane_owner(item_type, playbook)
+    roles = None if roster is None else [role_like(r) for r in roster]
+    owners = in_lane_owner(
+        item_type, playbook if playbook is not None else get_playbook_spec(), roles or ()
+    )
     if len(owners) != 1:
         return None
     (slug,) = owners
-    if roster_slugs is not None and slug not in roster_slugs:
+    if roles is not None and slug not in {r.slug for r in roles}:
         return None
     if role_titles is not None and slug in role_titles:
         return slug, role_titles[slug]
     try:
         return slug, role_by_slug(slug).title
     except RoleNotFoundError:
-        # Neither a live roster title nor a catalog entry: the *dev sentinel, or an
-        # as-yet-uncataloged slug.
+        # Neither a live roster title nor a catalog entry: an as-yet-uncataloged slug.
         return None
 
 

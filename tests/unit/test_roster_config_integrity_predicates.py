@@ -5,11 +5,14 @@ caller, is what lets the gate reuse them unchanged.
 """
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 from _helpers import BUILTIN_FOLDER, BUILTIN_PREFIX
+from squads._interactions import get_playbook_spec
 from squads._models._attributes import AttributeKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, make_ref
+from squads._roles._catalog import RoleDef
 from squads._services._config_integrity import (
     ALWAYS_ON_FLOOR,
     NO_LIVE_ROLE,
@@ -26,6 +29,8 @@ from squads._workflow import bundled_spec
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 _SPEC = bundled_spec()
+_PB = get_playbook_spec()
+_NO_SQUAD = Path("no-such-squad-dir")
 
 
 def _role(
@@ -114,7 +119,7 @@ def test_always_on_floor_derivation_is_the_intersection_of_every_live_roles_prel
     manager = _role(1, status="Active", slug="manager")  # bundled: no PLAYBOOK entry of its own
     devops = _role(2, status="Active", slug="devops")  # bundled: also no PLAYBOOK entry
 
-    floor = _always_on_floor([manager, devops], _SPEC)
+    floor = _always_on_floor([RoleDef.from_item(r) for r in [manager, devops]], _SPEC, _PB)
 
     assert floor == {"squads", "greeting", "sq-memory"}
 
@@ -128,16 +133,18 @@ def test_always_on_floor_shrinks_when_the_live_roles_no_longer_share_a_skill(
     restated list of names."""
     import squads._services._config_integrity as config_integrity
 
-    def _fake_skills_for_role(slug: str, spec: object = None, playbook: object = None) -> list[str]:
+    def _fake_skills_for_role(
+        role: RoleDef, spec: object = None, playbook: object = None
+    ) -> list[str]:
         base = ["squads", "greeting", "sq-memory"]
-        if slug == "manager":
+        if role.slug == "manager":
             return [*base, "extra-shared-skill"]
         return base
 
     monkeypatch.setattr(config_integrity, "skills_for_role", _fake_skills_for_role)
     manager = _role(1, status="Active", slug="manager")
 
-    assert _always_on_floor([manager], _SPEC) == {
+    assert _always_on_floor([RoleDef.from_item(r) for r in [manager]], _SPEC, _PB) == {
         "squads",
         "greeting",
         "sq-memory",
@@ -145,13 +152,17 @@ def test_always_on_floor_shrinks_when_the_live_roles_no_longer_share_a_skill(
     }
 
     devops = _role(2, status="Active", slug="devops")  # does not share "extra-shared-skill"
-    assert _always_on_floor([manager, devops], _SPEC) == {"squads", "greeting", "sq-memory"}
+    assert _always_on_floor([RoleDef.from_item(r) for r in [manager, devops]], _SPEC, _PB) == {
+        "squads",
+        "greeting",
+        "sq-memory",
+    }
 
 
 def test_always_on_floor_of_an_empty_role_set_is_empty_not_everything() -> None:
     """The vacuous-intersection guard: mathematically an intersection over zero sets is the
     universe, which would wrongly floor every non-live skill. Guarded to empty instead."""
-    assert _always_on_floor([], _SPEC) == frozenset()
+    assert _always_on_floor([RoleDef.from_item(r) for r in []], _SPEC, _PB) == frozenset()
 
 
 # --------------------------------------------------------------------------- preloaded_skill
@@ -162,7 +173,7 @@ def test_preloaded_skill_fires_for_an_archived_always_on_skill_while_a_role_is_l
     refusing it."""
     role = _role(1, status="Active")
     skill = _skill(2, status="Archived", slug="squads")
-    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])
+    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)
     assert [f.clause for f in findings] == [PRELOADED_SKILL]
     assert findings[0].entry == skill.id
     assert findings[0].kind == ALWAYS_ON_FLOOR
@@ -177,14 +188,14 @@ def test_preloaded_skill_always_on_floor_fires_with_no_active_backend() -> None:
     rule of the roster contract, not a derived property of the projection."""
     role = _role(1, status="Active")
     skill = _skill(2, status="Archived", slug="squads")
-    findings = check_preloaded_skill(_db(role, skill), _SPEC, [])
+    findings = check_preloaded_skill(_db(role, skill), _SPEC, [], _PB, _NO_SQUAD)
     assert [f.kind for f in findings] == [ALWAYS_ON_FLOOR]
 
 
 def test_preloaded_skill_fires_for_an_archived_type_implied_skill_and_names_the_type() -> None:
     role = _role(1, status="Active", slug="tech-lead")  # tech-lead's playbook interacts with task
     skill = _skill(2, status="Archived", slug="sq-task")
-    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])
+    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)
     assert findings[0].entry == skill.id
     assert findings[0].kind == TYPE_IMPLIED
     assert findings[0].severable_targets == frozenset()
@@ -199,7 +210,7 @@ def test_preloaded_skill_fires_for_an_archived_type_implied_skill_and_names_the_
 def test_preloaded_skill_type_implied_stays_silent_with_no_active_backend() -> None:
     role = _role(1, status="Active", slug="tech-lead")
     skill = _skill(2, status="Archived", slug="sq-task")
-    assert check_preloaded_skill(_db(role, skill), _SPEC, []) == []
+    assert check_preloaded_skill(_db(role, skill), _SPEC, [], _PB, _NO_SQUAD) == []
 
 
 def test_preloaded_skill_fires_for_an_archived_custom_skill_still_scoped_to_a_live_role() -> None:
@@ -207,7 +218,7 @@ def test_preloaded_skill_fires_for_an_archived_custom_skill_still_scoped_to_a_li
     skill = _skill(
         2, status="Archived", slug="my-custom-skill", refs=(make_ref(role.id, "scopes"),)
     )
-    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])
+    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)
     assert findings[0].entry == skill.id
     assert findings[0].kind == SCOPED_EDGE
     assert findings[0].severable_targets == frozenset({role.id})
@@ -222,7 +233,7 @@ def test_preloaded_skill_scoped_edge_stays_silent_with_no_active_backend() -> No
     skill = _skill(
         2, status="Archived", slug="my-custom-skill", refs=(make_ref(role.id, "scopes"),)
     )
-    assert check_preloaded_skill(_db(role, skill), _SPEC, []) == []
+    assert check_preloaded_skill(_db(role, skill), _SPEC, [], _PB, _NO_SQUAD) == []
 
 
 def test_preloaded_skill_stays_silent_when_the_scoping_role_is_itself_not_live() -> None:
@@ -231,26 +242,31 @@ def test_preloaded_skill_stays_silent_when_the_scoping_role_is_itself_not_live()
     skill = _skill(
         3, status="Archived", slug="my-custom-skill", refs=(make_ref(archived_scope.id, "scopes"),)
     )
-    assert check_preloaded_skill(_db(live, archived_scope, skill), _SPEC, ["claude_code"]) == []
+    assert (
+        check_preloaded_skill(
+            _db(live, archived_scope, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD
+        )
+        == []
+    )
 
 
 def test_preloaded_skill_stays_silent_when_no_role_is_live_at_all() -> None:
     role = _role(1, status="Archived", slug="tech-lead")
     skill = _skill(2, status="Archived", slug="sq-task")
-    assert check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"]) == []
+    assert check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD) == []
 
 
 def test_preloaded_skill_stays_silent_for_a_live_skill() -> None:
     role = _role(1, status="Active")
     skill = _skill(2, status="Active", slug="squads")
-    assert check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"]) == []
+    assert check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD) == []
 
 
 def test_preloaded_skill_caps_and_summarises_a_widely_scoped_skill() -> None:
     roles = [_role(i, status="Active", slug=f"role-{i}") for i in range(1, 8)]  # 7 roles
     refs = tuple(make_ref(r.id, "scopes") for r in roles)
     skill = _skill(100, status="Archived", slug="my-custom-skill", refs=refs)
-    findings = check_preloaded_skill(_db(*roles, skill), _SPEC, ["claude_code"])
+    findings = check_preloaded_skill(_db(*roles, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)
     assert len(findings) == 1
     assert "and 2 more" in findings[0].message  # 7 scoped roles, cap 5 -> 2 in the tail
 
@@ -261,7 +277,7 @@ def test_preloaded_skill_reports_both_kinds_for_a_doubly_dependent_skill() -> No
     skill happens to be caught by would hide the other, equally real dependency."""
     role = _role(1, status="Active", slug="tech-lead")  # implies sq-task
     skill = _skill(2, status="Archived", slug="sq-task", refs=(make_ref(role.id, "scopes"),))
-    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])
+    findings = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)
     assert [f.kind for f in findings] == [SCOPED_EDGE, TYPE_IMPLIED]  # declared severable-to-none
     assert all(f.entry == skill.id for f in findings)
     scoped_edge_finding = findings[0]
@@ -277,7 +293,7 @@ def test_preloaded_skill_reports_both_kinds_for_a_doubly_dependent_skill() -> No
 def test_check_all_concatenates_every_clause_in_order() -> None:
     live = _role(1, status="Active", slug="tech-lead")
     skill = _skill(2, status="Archived", slug="squads")
-    findings = check_all(_db(live, skill), _SPEC, ["claude_code"])
+    findings = check_all(_db(live, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)
     assert [f.clause for f in findings] == [PRELOADED_SKILL]  # no_live_role silent; one live role
 
 
@@ -286,7 +302,9 @@ def test_check_all_orders_no_live_role_ahead_of_preloaded_skill() -> None:
     (``no_live_role`` needs zero live roles; ``preloaded_skill`` needs at least one), so this
     exercises each clause firing alone, checking ``check_all``'s own fixed order."""
     empty = _db()
-    assert [f.clause for f in check_all(empty, _SPEC, ["claude_code"])] == [NO_LIVE_ROLE]
+    assert [f.clause for f in check_all(empty, _SPEC, ["claude_code"], _PB, _NO_SQUAD)] == [
+        NO_LIVE_ROLE
+    ]
 
 
 # ----------------------------------------------------------------------- render_finding
@@ -324,7 +342,7 @@ def test_render_finding_scoped_edge_defaults_to_the_no_unlink_remedy() -> None:
     skill = _skill(
         2, status="Archived", slug="my-custom-skill", refs=(make_ref(role.id, "scopes"),)
     )
-    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])[0]
+    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)[0]
     rendered = render_finding(finding)
     assert rendered == (
         "not live (status 'Archived') but still scoped to live role(s): python-dev — remedy: "
@@ -342,7 +360,7 @@ def test_render_finding_scoped_edge_offers_unlink_when_available() -> None:
     skill = _skill(
         2, status="Archived", slug="my-custom-skill", refs=(make_ref(role.id, "scopes"),)
     )
-    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])[0]
+    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)[0]
     rendered = render_finding(finding, unlink_available=True)
     assert rendered == (
         "not live (status 'Archived') but still scoped to live role(s): python-dev — remedy: "
@@ -355,7 +373,7 @@ def test_render_finding_scoped_edge_offers_unlink_when_available() -> None:
 def test_render_finding_type_implied_composes_condition_and_remedy_exactly_once() -> None:
     role = _role(1, status="Active", slug="tech-lead")
     skill = _skill(2, status="Archived", slug="sq-task")
-    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])[0]
+    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)[0]
     rendered = render_finding(finding)
     assert rendered == (
         "not live (status 'Archived') but implied by declared type(s): task — remedy: make "
@@ -372,7 +390,7 @@ def test_render_finding_always_on_floor_composes_the_condition_alone_with_no_rem
     is appended on top of it."""
     role = _role(1, status="Active")
     skill = _skill(2, status="Archived", slug="squads")
-    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"])[0]
+    finding = check_preloaded_skill(_db(role, skill), _SPEC, ["claude_code"], _PB, _NO_SQUAD)[0]
     rendered = render_finding(finding)
     assert rendered == (
         "not live (status 'Archived') but every role preloads it unconditionally — a "
@@ -408,7 +426,7 @@ def test_no_finding_message_or_remedy_ever_names_the_clause_or_kind_identifier()
         "C2",
         "C3",
     }
-    for finding in check_all(db, _SPEC, ["claude_code"]):
+    for finding in check_all(db, _SPEC, ["claude_code"], _PB, _NO_SQUAD):
         rendered = render_finding(finding)
         for word in banned:
             assert word not in rendered

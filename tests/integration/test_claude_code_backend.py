@@ -129,13 +129,13 @@ async def test_retiring_the_only_developer_drops_the_developer_gated_skill_text(
     project, svc
 ) -> None:
     """The per-item-type skills branch on whether any developer role is present (``has_dev``)
-    — retiring the only dev role must remove the '## For developers' section from a generated
+    — retiring the only dev role must remove the "## For `*dev`:" section from a generated
     per-item-type skill, not merely change the roster table."""
     dev = await svc.add_dev("python")
-    assert "## For developers" in await _sq_task_skill_body(svc)
+    assert "## For `*dev`:" in await _sq_task_skill_body(svc)
 
     await svc.set_status(dev.id, "Archived")
-    assert "## For developers" not in await _sq_task_skill_body(svc)
+    assert "## For `*dev`:" not in await _sq_task_skill_body(svc)
 
 
 async def test_the_init_then_sync_round_trip_survives_a_retired_default_role(

@@ -82,6 +82,8 @@ _WRONG_TYPES: list[tuple[str, str]] = [
     ("responsibilities", "{ a = 1 }"),
     ("agreements", "42"),
     ("agreements", "[true]"),
+    ("capabilities", '"dev"'),
+    ("capabilities", "[1]"),
 ]
 
 

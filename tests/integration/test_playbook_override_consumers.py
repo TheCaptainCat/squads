@@ -10,8 +10,10 @@ from pathlib import Path
 
 import pytest
 
+from _helpers import role_of
 from squads import _interactions as interactions
 from squads._interactions import _role_guidance as role_guidance
+from squads._interactions import get_playbook_spec
 from squads._services import _config_integrity as config_integrity
 from squads._services import _service as service
 
@@ -73,8 +75,10 @@ async def test_with_no_override_the_generated_skill_body_is_unchanged(project, s
 async def test_a_roles_preloaded_skill_list_reflects_the_playbook_override(project) -> None:
     _write_override(project.squad_dir, _APPEND_ARCHITECT_TO_TASK)
     svc = service.open_service()
-    assert "sq-task" not in role_guidance.skills_for_role("architect", svc.spec)  # bundled-blind
-    assert "sq-task" in role_guidance.skills_for_role("architect", svc.spec, svc.playbook)
+    assert "sq-task" not in role_guidance.skills_for_role(
+        role_of("architect"), svc.spec, get_playbook_spec()
+    )  # bundled-blind
+    assert "sq-task" in role_guidance.skills_for_role(role_of("architect"), svc.spec, svc.playbook)
 
 
 async def test_config_integrity_type_implied_finding_reflects_the_playbook_override(
@@ -100,9 +104,11 @@ async def test_config_integrity_type_implied_finding_reflects_the_playbook_overr
     merged_playbook = load_playbook(get_catalog(), spec=svc.spec, squad_dir=project.squad_dir)
     db = await svc.store.load()
     with_playbook = config_integrity.check_preloaded_skill(
-        db, svc.spec, ["claude_code"], merged_playbook
+        db, svc.spec, ["claude_code"], merged_playbook, project.squad_dir
     )
-    without_playbook = config_integrity.check_preloaded_skill(db, svc.spec, ["claude_code"], None)
+    without_playbook = config_integrity.check_preloaded_skill(
+        db, svc.spec, ["claude_code"], get_playbook_spec(), project.squad_dir
+    )
 
     def _names_task_as_type_implied(
         findings: list[config_integrity.ConfigIntegrityFinding],

@@ -135,7 +135,7 @@ sq create {{ anchor or "<type>" }} "Title" --author <your-slug>{% if anchor_pare
 #   --author is required and must be a registered agent (your own role slug)
 sq {{ anchor or "<type>" }} 3 show --full --comments                                # full dossier: body + sub-entities + discussion
 sq {{ anchor or "<type>" }} 3 status {{ anchor_active or anchor_settled or "<status>" }}                                     # transition (validated per type)
-sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(source.roster) }}{% if _priority_field %} --{{ _priority_field.code }} {{ _priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif %}  # metadata (parent validated)
+sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(source.roster, source.developer_slugs) }}{% if _priority_field %} --{{ _priority_field.code }} {{ _priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif %}  # metadata (parent validated)
 sq {{ anchor or "<type>" }} 3 body -m "## Description" -m "…"                        # set the body (or --file)
 sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"                        # discussion / @mentions (or --file)
 sq list --type {{ anchor or "<type>" }} --status {{ anchor_active or anchor_settled or "<status>" }}                         # closed items hidden; --all to include

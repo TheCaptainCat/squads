@@ -40,6 +40,7 @@ _RETIRED_MIRROR: dict[str, object] = {
     "can_spawn": True,
     X.MODEL: "opus",
     "skills": ["squads", "sq-task"],
+    "is_dev": True,
 }
 
 #: The names the sweep takes off a role item.
@@ -272,7 +273,7 @@ async def test_a_role_keeps_exactly_the_attributes_a_writer_still_produces(svc, 
 
     retained: dict[str, object] = {X.IS_DEFAULT: True}
     if is_dev:
-        retained |= {X.MODEL: "opus", X.IS_DEV: True, X.TECH: "rust"}
+        retained |= {X.MODEL: "opus", X.TECH: "rust"}
     assert _stored_attributes(path) == retained
     assert (X.MODEL in _stored_attributes(path)) is is_dev
 
@@ -458,9 +459,9 @@ async def test_the_live_write_path_produces_none_of_the_stripped_names(svc):
             f"the {slug} role body carries something other than its own placement tag"
         )
         stored = set(_stored_attributes(item_file(svc.paths, item)))
-        assert stored & _RETIRED_MIRROR_KEYS <= ({X.MODEL} if attrs.is_dev(item) else set()), (
-            f"the {slug} role carries mirror keys again"
-        )
+        assert stored & _RETIRED_MIRROR_KEYS <= (
+            {X.MODEL} if attrs.is_templated(item) else set()
+        ), f"the {slug} role carries mirror keys again"
 
 
 # ------------------------------------------------------- a declared name is not a mirror key

@@ -29,7 +29,15 @@ async def test_json_output_shape(project, invoke) -> None:
     data = json.loads(r.output)
     assert len(data) == 1
     row = data[0]
-    assert set(row) == {"id", "slug", "full_name", "title", "is_default", "status"}
+    assert set(row) == {
+        "id",
+        "slug",
+        "full_name",
+        "title",
+        "is_default",
+        "capabilities",
+        "status",
+    }
     assert row["slug"] == "manager"
     assert row["status"] == "Active"
     assert row["is_default"] is True

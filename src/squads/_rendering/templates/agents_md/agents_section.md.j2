@@ -41,7 +41,7 @@ the individual comment lines that `@mention` you. An item can be in one and not 
 sq create {{ anchor or "<type>" }} "Title" --author <your-slug>{% if anchor_parent_prefix %} [--parent {{ anchor_parent_prefix }}-<n>]{% endif %} [-m "body…"]  # also: {{ also_creatable_types }}
 sq {{ anchor or "<type>" }} 3 show --full --comments     # full dossier: body + sub-entities + discussion
 sq {{ anchor or "<type>" }} 3 status {{ anchor_active or anchor_settled or "<status>" }}          # transition (validated per type)
-sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(roles) }}{% if priority_field %} --{{ priority_field.code }} {{ priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif +%}
+sq {{ anchor or "<type>" }} 3 update --assignee {{ example_assignee_slug(roles, developer_slugs) }}{% if priority_field %} --{{ priority_field.code }} {{ priority_values[0] }}{% endif %}{% if anchor_parent_prefix %} --parent {{ anchor_parent_prefix }}-<n>{% endif +%}
 sq {{ anchor or "<type>" }} 3 body -m "## Description" -m "…"
 sq {{ anchor or "<type>" }} 3 comment --as <your-slug> -m "…"   # hand off / @mentions (or --file)
 sq list --type {{ anchor or "<type>" }} --status {{ anchor_active or anchor_settled or "<status>" }}      # closed items hidden; --all to include

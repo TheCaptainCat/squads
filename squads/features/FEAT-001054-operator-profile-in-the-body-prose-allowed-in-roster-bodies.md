@@ -3,7 +3,7 @@ id: FEAT-1054
 sequence_id: 1054
 type: feature
 title: Operator profile in the body; prose allowed in roster bodies
-status: Draft
+status: Ready
 author: product-owner
 refs:
 - REV-1047:addresses
@@ -24,14 +24,24 @@ subentities:
   title: Docs for the profile and prose allowance
   status: Todo
 created_at: '2026-10-16T11:34:59Z'
-updated_at: '2026-10-16T11:57:31Z'
+updated_at: '2026-10-16T19:50:30Z'
 ---
 <!-- sq:body -->
+## Problem
+
+A project that records prose in a role body fails `sq check`, no sq verb sets a role's or an operator's body, and the `greeting` skill never learns who the human is, so every session opens with the same generic greeting.
+
 ## Capability
 
-A roster entry's body may hold prose, for an agent role and for an operator alike. `sq check` accepts it, and `show` prints it the same way for both kinds. Both kinds get a `body` verb that sets it: `sq role <slug> body` and `sq operator <slug> body`. An operator's body becomes their profile: who the human is (their role on the project, for example tech or QA), their level of expertise, and what they come to do. The profile is simply the item's body, as prose; it adds no frontmatter key and `operator add` takes no profile option.
+A roster entry's body may hold prose, for an agent role and for an operator alike. `sq check` accepts it, and `show` prints it the same way for both kinds. Both kinds get a `body` verb that sets it: `sq role <slug> body` and `sq operator <slug> body`. An operator's body is their profile: who the human is (their role on the project, for example tech or QA), their level of expertise, and what they come to do. The profile is simply the item's body, as prose; it adds no frontmatter key and `operator add` takes no profile option.
 
 The `greeting` skill reads the profile at session start to know who it is talking to and to adapt. When no registered operator matches the person, the skill offers to register them (`sq operator add`), asks a few questions about their role, and records the answers with `sq operator <slug> body`, so the next session loads the profile.
+
+## Rulings that bind this feature
+
+- Prose is allowed in role and operator bodies (REV-1047 F8, op-pierre).
+- The body verb is for roles and operators; the profile is the item's body as prose, with no `--profile` on `operator add`; the whole feature targets 0.16 (op-pierre, 2026-10-16, this item's discussion).
+- A role whose body is generated from a declared view refuses `body` for replace and append alike, `--force` does not lift it, and the refusal names the real authoring surface (the existing refusal, kept by FEAT-976 US3 for system roles and skills). The `role body` verb adds no second membership test and no exemption: it is writable exactly where a role's body is writable today, that is where the project dropped the role's view from `[selected]`. An operator has no declared view and is always writable.
 
 ## User value
 
@@ -45,13 +55,21 @@ The `greeting` skill reads the profile at session start to know who it is talkin
 - A role body holding prose in place of the seeded view tag is left alone by `sq repair`, `show` prints the prose, and `sq check` errors with a missing seeded view tag and exits 3.
 - The `greeting` skill maps the human to `op-<firstname>`, checks `sq list -t operator`, and registers them with `sq operator add` when they ask; it never reads an operator's content.
 
-## Non-goals
+## Scope
+
+- `sq check` accepts prose in a role or operator body (US1).
+- The `body` verb on `sq role` and `sq operator` (US1).
+- The greeting skill reads the profile, and interviews an unregistered human (US2, US3).
+- Docs for the profile and the prose allowance (US4).
+
+## Out of scope
 
 - No new frontmatter key for the profile: the profile is body prose, which keeps it clear of the frontmatter flattening work.
 - No `--profile` option on `operator add`: registration is `operator add`, then `body`.
 - No structured or validated profile schema; the greeting skill reads prose.
 - The skill never guesses the operator. Where it cannot tell who the human is, it asks, as the skill already requires.
 - Agent roles get no interview or profile behaviour; only the shared prose allowance and the `body` verb.
+- Making a system role's body editable, and any change to FEAT-976's refusal.
 - No change to how operators are assigned work or attribute comments.
 <!-- sq:body:end -->
 
@@ -75,6 +93,9 @@ Acceptance criteria:
 - `sq role <slug> show` and `sq operator <slug> show` behave the same: the header card, then the body as stored. A role with prose prints that prose in place of the catalog definition; an operator with a profile prints that profile in place of the default operator text. An operator with no prose body prints the default text it prints today.
 - A table-driven test covers role and operator, prose and no prose, and a body mixing prose with the view tag; a CLI test drives each `body` verb, including the `--force` refusal, and reads the body back through `show`.
 - A body that lost its view tag and holds no prose remains reported as it is today.
+
+- On `sq operator <slug> body`, the template body an operator is created with counts as unwritten: the first write needs no `--force`. A later replace of a written profile is refused without `--force`.
+- On a role whose view is declared in `[selected]` (every system and project-declared role by default), `sq role <slug> body` exits 1 naming the role override as the authoring surface, writes nothing, and `--force` does not lift it. After the project drops that role's view from `[selected]`, the verb writes. The test drives both states and asserts no second membership test exists.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -151,4 +172,6 @@ Acceptance criteria:
 <!-- sq:discussion -->
 - [2026-10-16T11:56:43Z] Pierre Chat:
   - 2026-10-16: the body verb is for roles and operators. The profile is simply the item's body, as prose; no --profile option on operator add. The whole feature targets 0.16 (MILE-934).
+- [2026-10-16T19:50:27Z] Nina Product:
+  - 2026-10-16 readiness pass: added problem, scope, out-of-scope and the binding rulings (REV-1047 F8; op-pierre 2026-10-16). Reconciled with FEAT-976: no conflict. Role body uses the existing refusal classification, so it is refused (naming the role override, --force no help) while the role's view is in [selected] and writable once dropped; operators have no view and are always writable; the seeded operator template counts as unwritten so the first write needs no --force. US1 carries both as acceptance. Moved to Ready.
 <!-- sq:discussion:end -->

@@ -28,6 +28,7 @@ minimal = ["manager"]
 [dev]
 model = "sonnet"
 color = "green"
+capabilities = ["dev"]
 name_pool = [
   "Elias",
   "Ada",

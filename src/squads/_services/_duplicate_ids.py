@@ -54,6 +54,29 @@ def duplicate_groups(pairs: Iterable[tuple[object, Path]]) -> dict[str, list[Pat
     return {key: sorted(files) for key, files in groups.items() if len(files) > 1}
 
 
+#: What a report line says to do about one number carried by two different ids.
+SHARED_NUMBER_REMEDY = "run `sq repair --renumber` to give one of them a new number"
+
+
+def shared_number_groups(pairs: Iterable[tuple[object, Path]]) -> dict[int, list[Path]]:
+    """Every sequence number carried under more than one distinct id (a task and a bug both
+    numbered 21), mapped to those files in path order. A repeated identical id is the business
+    of :func:`duplicate_groups`."""
+    ids_by_number: dict[int, set[str]] = {}
+    files_by_number: dict[int, list[Path]] = {}
+    for fid, md in pairs:
+        key = normalized_id(fid)
+        if key is not None:
+            number = number_for_id(key)
+            ids_by_number.setdefault(number, set()).add(key)
+            files_by_number.setdefault(number, []).append(md)
+    return {
+        number: sorted(files)
+        for number, files in files_by_number.items()
+        if len(ids_by_number[number]) > 1
+    }
+
+
 _NAME_NUMBER = re.compile(r"^.+?-(\d+)(?:-|\.md$)")
 
 

@@ -4,7 +4,19 @@ Captures the full :class:`RoleDef` field set so the golden-lock test can
 assert structural equality between the loaded TOML and the hardcoded data.
 """
 
+import re
+from collections.abc import Iterable
+
 from pydantic import BaseModel, ConfigDict
+
+#: The spelling of a capability name: lowercase letters, digits and hyphens, not starting with
+#: a hyphen. A playbook subject ``*<name>`` uses the same pattern.
+CAPABILITY_NAME_PATTERN = r"[a-z0-9][a-z0-9-]*"
+
+
+def malformed_capability_names(names: Iterable[str]) -> list[str]:
+    """The entries of *names* that do not match :data:`CAPABILITY_NAME_PATTERN`, in order."""
+    return [n for n in names if re.fullmatch(CAPABILITY_NAME_PATTERN, n) is None]
 
 
 class RoleSpec(BaseModel):
@@ -23,6 +35,7 @@ class RoleSpec(BaseModel):
     color: str | None = None
     is_default: bool = False
     can_spawn: bool = False  # True only for orchestrating roles (manager, tech-lead)
+    capabilities: list[str] = []  # names a playbook guide addresses as ``*<name>``
 
 
 class DevPoolSpec(BaseModel):
@@ -33,6 +46,7 @@ class DevPoolSpec(BaseModel):
     name_pool: list[str]
     model: str = "sonnet"
     color: str = "green"
+    capabilities: list[str] = []  # held by every templated developer
 
 
 class RoleCatalogSpec(BaseModel):

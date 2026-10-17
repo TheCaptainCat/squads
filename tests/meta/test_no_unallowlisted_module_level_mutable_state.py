@@ -78,6 +78,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the Plane-1 pass
             # resolves the same effective set the validator engine runs, so it is defined here
             "DEFAULT_VALIDATOR_LEVEL",  # fixed catalog-member -> bundled default level table
+            "DEFAULT_SQUAD_GLOBAL_LEVEL",  # fixed squad-global member -> default level table
+            "SQUAD_GLOBAL_PARAM_MINIMUM",  # fixed selectable member -> least parameter value
             "VALIDATOR_LEVEL_FLOOR",  # fixed catalog-member -> floor level table
             "_LEVEL_RANK",  # fixed level -> rank lookup (warn < error) for the floor comparison
             "PINNED_ROSTER_ATTRIBUTES",  # fixed roster type -> attributes the engine

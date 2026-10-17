@@ -25,7 +25,7 @@ subentities:
   title: Typed display table in .squads.toml
   status: Todo
 created_at: '2026-09-24T09:30:03Z'
-updated_at: '2026-10-16T13:10:22Z'
+updated_at: '2026-10-16T19:59:53Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -283,4 +283,8 @@ Acceptance:
     9. **"Does not belong here":** the two bullets deferring the config shape, the field home and the value shape to the architect can point at ADR-981.
 - [2026-10-09T18:16:15Z] Nina Product:
   - 2026-10-09: prose rewritten to match accepted ADR-981; depends-on FEAT-977 for the update verbs. Ready; blocker is independent.
+- [2026-10-16T19:58:51Z] Olivia Lead:
+  - Task TASK-1071 (Draft) carries the breakdown; dependencies in its body.
+- [2026-10-16T19:59:53Z] Catherine Manager:
+  - Confirmed TASK-1071's calls: no sq init pronouns flag; pronouns pinned for operators and roles; pronouns_valid and display_config_valid checks. Dependency moved from FEAT-977 to its task TASK-1070.
 <!-- sq:discussion:end -->

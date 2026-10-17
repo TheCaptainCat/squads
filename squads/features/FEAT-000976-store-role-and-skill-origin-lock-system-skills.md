@@ -3,7 +3,7 @@ id: FEAT-976
 sequence_id: 976
 type: feature
 title: Store role and skill origin, lock system skills
-status: Ready
+status: InProgress
 author: product-owner
 refs:
 - MILE-934:targets
@@ -18,7 +18,7 @@ subentities:
   title: As an operator, I want system skills refused by every write verb
   status: Todo
 created_at: '2026-09-29T14:19:13Z'
-updated_at: '2026-10-16T13:10:24Z'
+updated_at: '2026-10-16T21:02:08Z'
 ---
 <!-- sq:body -->
 Whether a role or skill is system (bundled or spec-generated) or project-authored is recorded on the entity, not recomputed per surface. Today the surfaces disagree, read from source and not driven:
@@ -89,8 +89,8 @@ Acceptance: a migration stamps every existing role and skill lacking origin: nam
 
 <!-- sq:story:US3:body -->
 Acceptance:
-- Every content-changing write verb on a system skill (update, body, remove/rm, status, view edits) is refused with exit 1 and an error naming the playbook as the authoring surface; on a system role, naming the role override. Verbs that FEAT-977 adds to skills and roles are covered by the same refusal as they land.
-- comment and comments stay allowed on system skills and roles.
+- Every content-changing write verb on a system skill (update, body, view edits) is refused with exit 1 and an error naming the playbook as the authoring surface; on a system role, naming the role override. Verbs that FEAT-977 adds to skills and roles are covered by the same refusal as they land when they change content.
+- Lifecycle verbs (status, remove/rm) are not content-changing and stay allowed on system skills and roles, as do comment and comments; status Archived remains the way to retire a bundled role or skill.
 - The refusal comes from the same classification as the existing body refusal, and --force does not lift it; a test asserts no second membership test exists.
 - Project skills stay fully writable; a system skill whose view the project dropped from [selected] is writable, as its body is today, and still shows origin system.
 <!-- sq:story:US3:body:end -->
@@ -115,4 +115,14 @@ Acceptance:
   - 2026-10-09 per ADR-984: migration and origin stamping now read a role carrying extra.tech as system and a declared developer (dev capability) as project; body, US1 and US2 updated. Still Ready.
 - [2026-10-12T06:32:11Z] Nina Product:
   - 2026-10-12: build order: origin stamping is a contribution to the existing 0.15 to 0.16 step; constraint and story 2 say so.
+- [2026-10-16T19:21:17Z] Olivia Lead:
+  - @manager two points from the breakdown into TASK-1069 (Draft, depends-on TASK-990).
+    
+    1. Origin looks derivable, not stored. The rule the migration stamps by is a pure function of data that already exists: a role is `system` when its slug is in the bundled catalog or it carries `tech`; a skill is `system` exactly when `is_system_skill(slug, spec)` holds. Creation stamps would call the same rule, so stored equals derived at creation and after migration. `sq role catalog` must derive it anyway for definitions that have no item. Storing it adds a pinned attribute, a closed-vocabulary check rule, stamps on about six creation paths, a migration contribution and repair round-trip tests. It only buys a different answer when a later spec or bundled catalog changes membership (a project type dropped after its `sq-<type>` skill was made; a future bundled role sharing a project role's slug). Deriving would fix the disagreement the feature describes with one function every surface calls. TASK-1069 is built so ST2, ST3 and ST5 drop out if the ruling is "derive"; ST1, ST4 and ST6 stand either way. The operator confirmed "stored" on 2026-10-09, so this needs a ruling, not a quiet change.
+    2. US3 lists `status` and `rm` among the refused verbs. `sq role <slug> status Archived` and `sq skill <slug> status Archived` are the help-text examples and today the only way to retire a bundled role or skill. Refusing them removes that path. Proposal: treat lifecycle (`status`, `rm`) as not content-changing, like `comment`; refuse `update`, `body` and view edits. ST6 waits on the ruling for those two verbs.
+- [2026-10-16T19:31:29Z] Pierre Chat:
+  - 2026-10-16: origin stays stored, as confirmed on 2026-10-09; it is a fixed record of where the entity came from. TASK-1069 keeps ST2, ST3 and ST5.
+  - 2026-10-16: status and rm stay allowed on system roles and skills, like comment; only update, body and view edits are refused. US3 to be amended accordingly.
+- [2026-10-16T19:32:00Z] Nina Product:
+  - 2026-10-16: US3 amended per op-pierre ruling: status and rm stay allowed on system roles and skills; only update, body and view edits are refused.
 <!-- sq:discussion:end -->

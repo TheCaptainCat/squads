@@ -8,6 +8,7 @@
   "model": "opus",
   "is_default": true,
   "can_spawn": true,
+  "capabilities": [],
   "create_lane": [],
   "responsibilities": [
     "Triage incoming requests and clarify intent",

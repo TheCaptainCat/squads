@@ -7,7 +7,8 @@ rendered pointer denylist and ``sq role show`` surfacing live in
 tests/integration/test_can_spawn_surfaces.py.
 """
 
-from squads._roles._catalog import PREDEFINED, RoleDef, dev_role
+from _helpers import dev_role
+from squads._roles._catalog import PREDEFINED, RoleDef
 
 
 def test_manager_and_tech_lead_can_spawn() -> None:

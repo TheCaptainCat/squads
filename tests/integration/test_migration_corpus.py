@@ -50,6 +50,7 @@ _CORPUS_CASES: list[tuple[str, str]] = [
     ("0.14", "v0_14"),
     ("0.15", "v0_15"),
     ("0.15", "v0_15_discussions"),
+    ("0.15", "v0_15_developers"),
     ("0.16", "v0_16"),
 ]
 
@@ -369,7 +370,7 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
             assert set(was.get("extra", {})) & _RETIRED_MIRROR_KEYS
         assert has_section(text, markers.BODY), f"{item.id}: the body markers were deleted"
         assert "extra" not in front, f"{item.id}: the nested block survived the flattening"
-        kept = {X.MODEL} if stored.get(X.IS_DEV) else set()  # a developer role keeps its model
+        kept = {X.MODEL} if stored.get(X.TECH) else set()  # a developer role keeps its model
         assert set(stored) & (_RETIRED_MIRROR_KEYS - kept) == set(), f"{item.id}: mirror survived"
         assert front.get("slug"), f"{item.id}: the dispatch identity was stripped with it"
         body = (get_section(text, markers.BODY) or "").strip()

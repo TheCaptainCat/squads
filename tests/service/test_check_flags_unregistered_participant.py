@@ -9,6 +9,7 @@ pytestmark = pytest.mark.anyio
 
 async def test_check_flags_an_author_whose_role_was_later_removed(svc):
     task = (await svc.create("task", "t", author="manager")).item
+    await svc.activate_role("architect")  # the last live role cannot be removed
     await svc.remove_item((await svc.get("ROLE-000001")).id, purge=True)  # drop the manager role
 
     issues = await svc.check()

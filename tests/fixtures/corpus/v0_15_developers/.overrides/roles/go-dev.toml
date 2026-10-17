@@ -1,0 +1,3 @@
+# squads:override-base:0.15.0
+# Role override for 'go-dev'. Add fields to override (e.g. full_name, model).
+color = "red"

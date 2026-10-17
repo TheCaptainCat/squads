@@ -245,10 +245,10 @@ class SubentitiesMixin(ServiceCore):
         # `sq check`'s `subentity_title_max` reads, and is `None` for a type that does not select
         # that check, so create time and check time never disagree on whether or at what number.
         # The warning rides back on the result for the CLI edge to render; the service never prints.
+        body_cmd = f'sq {item.type} {item.sequence_id} {kind} {local_id} body -m "…"'
         title_advisory: str | None = None
         threshold = self.spec.item_subentity_title_max(item.type)
         if threshold is not None and len(title) > threshold:
-            body_cmd = f'sq {item.type} {item.sequence_id} {kind} {local_id} body -m "…"'
             title_advisory = (
                 f"Title is {len(title)} chars — a sub-entity title is a one-line handle,"
                 f" not the description. Put the detail in the body:\n  {body_cmd}"
@@ -275,6 +275,7 @@ class SubentitiesMixin(ServiceCore):
             start_line=span[0] if span else None,
             end_line=span[1] if span else None,
             title_advisory=title_advisory,
+            body_command=body_cmd,
         )
 
     async def list_stories(self, feature_id: str) -> list[SubEntity]:

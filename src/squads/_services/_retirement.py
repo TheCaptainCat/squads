@@ -132,7 +132,7 @@ def _sever_declared_edges(
     return severed
 
 
-def enforce(
+def enforce(  # noqa: PLR0913 — one keyword per input of the gate
     spec: WorkflowSpec,
     db: SquadsDB,
     item: Item,
@@ -140,7 +140,9 @@ def enforce(
     active_backends: Sequence[str],
     unlink: bool,
     old_status: str,
-    playbook: PlaybookSpec | None = None,
+    playbook: PlaybookSpec,
+    squad_dir: Path,
+    purge: bool = False,
 ) -> list[Severance]:
     """Evaluate the clauses against *item*'s already-applied prospective status, scoped to this
     transition's own delta, inside the transaction's own snapshot and before any write.
@@ -156,6 +158,9 @@ def enforce(
     below run and pass on its own merits — the flag suppresses nothing, and it never severs an
     edge no finding named. A transition still refused raises before anything is written, so the
     caller's transaction never commits a partial severance.
+
+    *purge* holds a removal to the same clauses by evaluating the retirement it implies: a refusal
+    then reads as a removal and never offers ``--unlink``, which a removal does not take.
 
     Returns the edges severed (possibly empty — a reported no-op is the caller's to print).
     Raises :class:`~squads._errors.ConfigIntegrityError`, naming every finding this transition
@@ -181,31 +186,39 @@ def enforce(
 
     current_status = item.status
     item.status = old_status
-    before_keys = frozenset(_finding_key(f) for f in check_all(db, spec, active_backends, playbook))
+    before_keys = frozenset(
+        _finding_key(f) for f in check_all(db, spec, active_backends, playbook, squad_dir)
+    )
     item.status = current_status
 
     severed: list[Severance] = []
     if unlink:
         prospective = _findings_new_since(
-            check_all(db, spec, active_backends, playbook), before_keys
+            check_all(db, spec, active_backends, playbook, squad_dir), before_keys
         )
         severed = _sever_declared_edges(item, prospective, spec)
 
-    after = _findings_new_since(check_all(db, spec, active_backends, playbook), before_keys)
+    after = _findings_new_since(
+        check_all(db, spec, active_backends, playbook, squad_dir), before_keys
+    )
     if after:
         # --unlink is only ever a real option on THIS command when it is a retirement of the
         # finding's own entry — never on a finding rendered here about some other item (e.g. a
         # bystander skill a reactivation would preload), where "pass --unlink" would name a
         # step the tool refuses.
+        offer_unlink = is_retirement and not purge
         lines = [
             f"{f.entry or item.id}: "
-            f"{render_finding(f, unlink_available=is_retirement and f.entry == item.id)}"
+            + render_finding(f, unlink_available=offer_unlink and f.entry == item.id, removal=purge)
             for f in after
         ]
-        raise ConfigIntegrityError(
-            f"cannot move {item.id} to {item.status!r}: the resulting projection would be "
-            "structurally invalid:\n- " + "\n- ".join(lines)
+        header = (
+            f"cannot remove {item.id}: other entries depend on it:"
+            if purge
+            else f"cannot move {item.id} to {item.status!r}: the resulting projection would be "
+            "structurally invalid:"
         )
+        raise ConfigIntegrityError(header + "\n- " + "\n- ".join(lines))
     return severed
 
 
@@ -219,7 +232,7 @@ def open_assigned_work(db: SquadsDB, spec: WorkflowSpec, slug: str) -> list[str]
 
 
 def lost_default_designation_warning(
-    db: SquadsDB, spec: WorkflowSpec, item: Item, squad_dir: Path | None
+    db: SquadsDB, spec: WorkflowSpec, item: Item, squad_dir: Path | None, *, purged: bool = False
 ) -> str | None:
     """A warning (never a refusal — the withdrawn ``no_default_role`` clause) for a transition
     that takes the last live ``is_default`` designation out of a live status: the generated
@@ -250,8 +263,8 @@ def lost_default_designation_warning(
     ):
         return None
     slug = item.slug
-    return (
+    message = (
         f"{item.id} ({slug}) carried the default-role designation; no live role carries it "
-        "now — designate another live role with `sq role <addr> set-default`, or reactivate "
-        f"{item.id}"
+        "now — designate another live role with `sq role <addr> set-default`"
     )
+    return message if purged else f"{message}, or reactivate {item.id}"

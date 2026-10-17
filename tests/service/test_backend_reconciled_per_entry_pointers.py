@@ -25,6 +25,7 @@ from pathlib import Path
 
 import pytest
 
+from squads import _clock as clock
 from squads._services import _service as service
 from squads._services._results import CheckIssue
 from squads._services._validators import SQUAD_GLOBAL_CATALOG, SquadGlobalContext
@@ -43,7 +44,9 @@ def _rule(ctx: SquadGlobalContext) -> list[CheckIssue]:
 
 async def _ctx(svc) -> SquadGlobalContext:
     index = await svc.store.load()
-    return SquadGlobalContext(index=index, on_disk={}, spec=svc.spec, paths=svc.paths)
+    return SquadGlobalContext(
+        now=clock.now(), index=index, on_disk={}, spec=svc.spec, paths=svc.paths
+    )
 
 
 async def _issues(svc) -> list[CheckIssue]:
@@ -302,6 +305,8 @@ async def test_no_new_index_load(tmp_squad: Path) -> None:
     svc.store.load = counted_load  # type: ignore[method-assign]
     index = await svc.store.load()
     assert load_calls == 1
-    ctx = SquadGlobalContext(index=index, on_disk={}, spec=svc.spec, paths=svc.paths)
+    ctx = SquadGlobalContext(
+        now=clock.now(), index=index, on_disk={}, spec=svc.spec, paths=svc.paths
+    )
     _rule(ctx)
     assert load_calls == 1, "backend_reconciled must not load the index itself"

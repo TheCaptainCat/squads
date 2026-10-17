@@ -157,6 +157,7 @@ class BlockResult:
     start_line: int | None
     end_line: int | None
     title_advisory: str | None = None
+    body_command: str = ""
 
 
 @dataclass
@@ -594,6 +595,15 @@ class ReflogEntry:
     delta: dict[str, Any]
     session_id: str | None = None
     parent_session_id: str | None = None
+
+
+@dataclass(frozen=True)
+class RosterRemoval:
+    """Outcome of ``Service.remove_item()``: the removed entry and the board-hygiene warnings
+    that warn without refusing (open assigned work, a lost default-role designation)."""
+
+    item: Item
+    warnings: list[str]
 
 
 @dataclass(frozen=True)

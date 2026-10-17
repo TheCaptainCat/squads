@@ -8,6 +8,8 @@ from squads._itemfile import update_frontmatter
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
 from squads._models._item import Item
+from squads._roles._catalog import PROPOSED_DEVELOPER_SLUG_SUFFIX
+from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_dev_role,
@@ -67,15 +69,32 @@ class RosterMixin(ServiceCore):
         return res.item
 
     async def add_dev(
-        self, tech: str, *, name: str | None = None, model: str | None = None
+        self,
+        tech: str,
+        *,
+        name: str | None = None,
+        model: str | None = None,
+        slug: str | None = None,
     ) -> Item:
         roles = await self.list_items(item_type=ROSTER_ROLE)
-        seq = sum(1 for it in roles if attrs.is_dev(it))
+        seq = sum(1 for it in roles if attrs.is_templated(it))
         role = resolve_dev_role(
-            tech, name=name, seq=seq, model=model, squad_dir=self.paths.squad_dir
+            tech, name=name, seq=seq, model=model, slug=slug, squad_dir=self.paths.squad_dir
         )
+        if slug is not None and slug in {
+            r.slug for r in load_role_catalog(self.paths.squad_dir).roles
+        }:
+            raise SquadsError(
+                f"slug {slug!r} belongs to a role the catalog declares; a developer needs "
+                "another slug"
+            )
         await self._refuse_duplicate_slug(
-            ROSTER_ROLE, "a developer", role.slug, f"{legacy_slugify(tech.strip())}-dev"
+            ROSTER_ROLE,
+            "a role" if slug is not None else "a developer",
+            role.slug,
+            None
+            if slug is not None
+            else f"{legacy_slugify(tech.strip())}{PROPOSED_DEVELOPER_SLUG_SUFFIX}",
         )
         res = await self.create(
             ROSTER_ROLE,
@@ -84,8 +103,7 @@ class RosterMixin(ServiceCore):
             slug=role.slug,
             author=role.slug,  # a dev role authors itself
             attributes={
-                **role.to_attributes(is_dev=True),
-                AttributeKey.IS_DEV: True,
+                **role.to_attributes(templated=True),
                 AttributeKey.TECH: tech,
             },
         )

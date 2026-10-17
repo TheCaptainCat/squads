@@ -62,22 +62,16 @@ async def test_an_activated_non_dev_dev_suffixed_role_still_enforces_required_fi
     assert "Traceback" not in checked.output and "Traceback" not in shown.output
 
 
-async def test_a_dev_shaped_slug_with_no_roster_entry_still_previews_leniently_by_design(
+async def test_a_dev_shaped_slug_with_no_roster_entry_enforces_required_fields_too(
     project, invoke
 ) -> None:
-    """The narrow, sanctioned residual: no roster entry exists for ``rust-dev`` at all, so
-    there is no stored fact to gate on, and the naming convention's lenient preview (documented
-    in docs/overrides.md) is exactly what both `sq check` and `sq role <slug> show`
-    are supposed to do here -- accept a partial file rather than demand every ``RoleDef``
-    field a wholly-unrelated new role would need. Stamped: this fixture is not about the
-    provenance obligation (a `<tech>-dev` override shadows the generated dev base, so an
-    unstamped one is now an error under the uniform severity contract), only about field
-    leniency."""
+    """No roster entry exists for ``rust-dev``, so its file is a new role like any other and
+    a partial one is refused; the slug's spelling decides nothing."""
     _place_role_toml(project, "rust-dev", 'title = "Senior Rust developer"\n', stamped=True)
 
     checked = await invoke(["check"])
     shown = await invoke(["role", "rust-dev", "show"])
 
-    assert checked.exit_code == 0, checked.output
-    assert shown.exit_code == 0, shown.output
-    assert "Senior Rust developer" in shown.output
+    assert checked.exit_code != 0, checked.output
+    assert shown.exit_code == 1, shown.output
+    assert "missing required fields" in shown.output

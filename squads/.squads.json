@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1066,
+  "counter": 1077,
   "padding": 6,
   "items": {
     "12": {
@@ -6282,7 +6282,7 @@
       "type": "feature",
       "title": "field_value_declared: frontmatter values against declared collections",
       "slug": "field-value-declared-frontmatter-values-against-declared-col",
-      "status": "Ready",
+      "status": "Cancelled",
       "description": "Error-level validator, work+records bundles: a badge/field value not a member of its field's declared collection",
       "parent": "EPIC-540",
       "author": "product-owner",
@@ -6308,7 +6308,7 @@
       ],
       "path": "features/FEAT-000900-field-value-declared-frontmatter-values-against-declared-col.md",
       "created_at": "2026-09-03T09:02:33Z",
-      "updated_at": "2026-10-12T05:26:08Z",
+      "updated_at": "2026-10-16T20:07:10Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -6446,7 +6446,7 @@
       "type": "feature",
       "title": "Squad-global validators: parent outcomes, cycles, WIP, staleness",
       "slug": "squad-global-validators-parent-outcomes-cycles-wip-staleness",
-      "status": "Ready",
+      "status": "Done",
       "description": "Five opt-in squad-wide checks from ADR-864 Part 2, selected in the workflow document's squad validators list",
       "parent": "EPIC-540",
       "author": "product-owner",
@@ -6519,7 +6519,7 @@
       ],
       "path": "features/FEAT-000902-squad-global-validators-parent-outcomes-cycles-wip-staleness.md",
       "created_at": "2026-09-03T09:02:36Z",
-      "updated_at": "2026-10-12T06:31:53Z",
+      "updated_at": "2026-10-16T21:01:59Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7205,7 +7205,7 @@
       ],
       "path": "features/FEAT-000961-pronouns-on-agent-and-operator-identity.md",
       "created_at": "2026-09-24T09:30:03Z",
-      "updated_at": "2026-10-16T13:10:22Z",
+      "updated_at": "2026-10-16T19:59:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7288,7 +7288,7 @@
       ],
       "path": "features/FEAT-000966-skill-invocability-declared-default-squad-s-own-choice.md",
       "created_at": "2026-09-28T17:54:53Z",
-      "updated_at": "2026-10-09T19:18:25Z",
+      "updated_at": "2026-10-16T19:58:52Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7299,7 +7299,7 @@
       "type": "feature",
       "title": "Store role and skill origin, lock system skills",
       "slug": "store-role-and-skill-origin-lock-system-skills",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -7341,7 +7341,7 @@
       ],
       "path": "features/FEAT-000976-store-role-and-skill-origin-lock-system-skills.md",
       "created_at": "2026-09-29T14:19:13Z",
-      "updated_at": "2026-10-16T13:10:24Z",
+      "updated_at": "2026-10-16T21:02:08Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7405,7 +7405,7 @@
       ],
       "path": "features/FEAT-000977-verb-parity-for-skills-roles-and-operators.md",
       "created_at": "2026-09-29T14:19:16Z",
-      "updated_at": "2026-10-16T17:07:18Z",
+      "updated_at": "2026-10-16T19:54:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7490,7 +7490,7 @@
       "type": "feature",
       "title": "Retire the -dev pseudo-role: a developer declares a capability",
       "slug": "retire-the-dev-pseudo-role-a-developer-declares-a-capability",
-      "status": "Ready",
+      "status": "Done",
       "description": "Roles declare capabilities; the playbook addresses *<name>; developers are ordinary roles on every surface",
       "parent": null,
       "author": "product-owner",
@@ -7597,7 +7597,7 @@
       ],
       "path": "features/FEAT-000986-retire-the-dev-pseudo-role-a-developer-declares-a-capability.md",
       "created_at": "2026-10-09T19:16:16Z",
-      "updated_at": "2026-10-16T13:10:45Z",
+      "updated_at": "2026-10-16T21:01:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -26405,8 +26405,8 @@
       "type": "task",
       "title": "Make a developer a role that declares a capability",
       "slug": "make-a-developer-a-role-that-declares-a-capability",
-      "status": "Draft",
-      "description": "Capabilities on roles and *<name> in the playbook, every consumer on the resolved role, extra.is_dev dropped through the 0.16 migration step",
+      "status": "Done",
+      "description": "Capabilities on roles and *<name> in the playbook, every consumer on the resolved role, the is_dev attribute dropped through a contribution to the 0.16 step",
       "parent": "FEAT-986",
       "author": "tech-lead",
       "assignee": "python-dev",
@@ -26425,7 +26425,7 @@
         {
           "local_id": "ST1",
           "title": "Require the catalog and playbook on the role derivation path",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -26434,7 +26434,7 @@
         {
           "local_id": "ST2",
           "title": "Declare capabilities and resolve them onto the role",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -26443,7 +26443,7 @@
         {
           "local_id": "ST3",
           "title": "Read the developer template from the resolved catalog",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -26452,7 +26452,7 @@
         {
           "local_id": "ST4",
           "title": "Expose capabilities in --json and role text output",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US9",
@@ -26461,7 +26461,7 @@
         {
           "local_id": "ST5",
           "title": "Address a capability from the playbook with *<name>",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -26470,7 +26470,7 @@
         {
           "local_id": "ST6",
           "title": "Switch every consumer to the resolved role",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -26479,7 +26479,7 @@
         {
           "local_id": "ST7",
           "title": "Name roles from the roster in generated text",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US7",
@@ -26487,8 +26487,8 @@
         },
         {
           "local_id": "ST8",
-          "title": "Drop extra.is_dev and add it to the 0.16 migration step",
-          "status": "Todo",
+          "title": "Drop the is_dev attribute and add the 0.16 contribution",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -26497,7 +26497,7 @@
         {
           "local_id": "ST9",
           "title": "Report suffix-only -dev roles and pin their transitions",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -26506,7 +26506,7 @@
         {
           "local_id": "ST10",
           "title": "Add sq dev add --slug and stop reading the suffix",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -26515,7 +26515,7 @@
         {
           "local_id": "ST11",
           "title": "Resolve an unknown slug to nothing",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -26524,7 +26524,7 @@
       ],
       "path": "tasks/TASK-000990-make-a-developer-a-role-that-declares-a-capability.md",
       "created_at": "2026-10-09T20:28:02Z",
-      "updated_at": "2026-10-12T06:58:50Z",
+      "updated_at": "2026-10-16T21:01:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -29484,7 +29484,7 @@
       "type": "bug",
       "title": "check is clean when two ids share one number",
       "slug": "check-is-clean-when-two-ids-share-one-number",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -29499,7 +29499,7 @@
       "subentities": [],
       "path": "bugs/BUG-000994-check-is-clean-when-two-ids-share-one-number.md",
       "created_at": "2026-10-11T20:18:04Z",
-      "updated_at": "2026-10-16T18:00:23Z",
+      "updated_at": "2026-10-16T19:08:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31371,7 +31371,7 @@
       "subentities": [],
       "path": "adrs/ADR-000864-validator-catalog-three-tiers-declared-levels-no-injected-py.md",
       "created_at": "2026-09-01T15:26:04Z",
-      "updated_at": "2026-10-12T06:53:21Z",
+      "updated_at": "2026-10-16T20:58:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44030,7 +44030,7 @@
       "type": "bug",
       "title": "add-<kind> body hint names a command that does not exist",
       "slug": "add-kind-body-hint-names-a-command-that-does-not-exist",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -44044,7 +44044,7 @@
       "subentities": [],
       "path": "bugs/BUG-001000-add-kind-body-hint-names-a-command-that-does-not-exist.md",
       "created_at": "2026-10-12T05:38:08Z",
-      "updated_at": "2026-10-16T17:55:00Z",
+      "updated_at": "2026-10-16T19:08:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44921,7 +44921,7 @@
       "type": "feature",
       "title": "Comments are shown, edited and removed by short hash",
       "slug": "comments-are-shown-edited-and-removed-by-short-hash",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Address a comment by derived short hash: comment <hash> show|edit|remove, by its author, on every type",
       "parent": null,
       "author": "product-owner",
@@ -45038,7 +45038,7 @@
       ],
       "path": "features/FEAT-001017-comments-are-shown-edited-and-removed-by-short-hash.md",
       "created_at": "2026-10-15T20:17:43Z",
-      "updated_at": "2026-10-15T20:19:16Z",
+      "updated_at": "2026-10-16T19:50:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -45403,7 +45403,7 @@
       "type": "feature",
       "title": "The --help surface follows one rule",
       "slug": "the-help-surface-follows-one-rule",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Every command's help answers what it does, what to type and what comes back, in one dialect with every flag described.",
       "parent": null,
       "author": "product-owner",
@@ -45509,7 +45509,7 @@
       ],
       "path": "features/FEAT-001024-the-help-surface-follows-one-rule.md",
       "created_at": "2026-10-15T21:43:01Z",
-      "updated_at": "2026-10-16T11:25:55Z",
+      "updated_at": "2026-10-16T19:50:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47448,7 +47448,7 @@
       "type": "feature",
       "title": "Operator profile in the body; prose allowed in roster bodies",
       "slug": "operator-profile-in-the-body-prose-allowed-in-roster-bodies",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Roster bodies may hold prose; an operator body is their profile, read by the greeting skill.",
       "parent": null,
       "author": "product-owner",
@@ -47500,7 +47500,7 @@
       ],
       "path": "features/FEAT-001054-operator-profile-in-the-body-prose-allowed-in-roster-bodies.md",
       "created_at": "2026-10-16T11:34:59Z",
-      "updated_at": "2026-10-16T11:57:31Z",
+      "updated_at": "2026-10-16T19:50:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47627,7 +47627,7 @@
       "type": "bug",
       "title": "Playbook loader crashes on wrong-typed overrides shapes",
       "slug": "playbook-loader-crashes-on-wrong-typed-overrides-shapes",
-      "status": "Fixed",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -47642,7 +47642,7 @@
       "subentities": [],
       "path": "bugs/BUG-001057-playbook-loader-crashes-on-wrong-typed-overrides-shapes.md",
       "created_at": "2026-10-16T12:21:17Z",
-      "updated_at": "2026-10-16T18:08:22Z",
+      "updated_at": "2026-10-16T19:08:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47653,7 +47653,7 @@
       "type": "bug",
       "title": "Roster rm --purge skips the archive gate, warnings, reflog",
       "slug": "roster-rm-purge-skips-the-archive-gate-warnings-reflog",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -47668,7 +47668,7 @@
       "subentities": [],
       "path": "bugs/BUG-001058-roster-rm-purge-skips-the-archive-gate-warnings-reflog.md",
       "created_at": "2026-10-16T12:21:18Z",
-      "updated_at": "2026-10-16T12:23:59Z",
+      "updated_at": "2026-10-16T19:08:37Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47796,7 +47796,7 @@
       "type": "bug",
       "title": "Schema gate refuses sq override update and diff on a behind squad",
       "slug": "schema-gate-refuses-sq-override-update-and-diff-on-a-behind",
-      "status": "Open",
+      "status": "Verified",
       "description": "Override stamp/diff verbs unreachable exactly when an upgrade makes overrides drift",
       "parent": null,
       "author": "qa",
@@ -47810,7 +47810,7 @@
       "subentities": [],
       "path": "bugs/BUG-001060-schema-gate-refuses-sq-override-update-and-diff-on-a-behind.md",
       "created_at": "2026-10-16T13:33:13Z",
-      "updated_at": "2026-10-16T13:35:11Z",
+      "updated_at": "2026-10-16T19:08:39Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48261,6 +48261,935 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1066"
+    },
+    "1067": {
+      "sequence_id": 1067,
+      "type": "review",
+      "title": "Five 0.16 bug fixes on the agent worktree branch",
+      "slug": "five-0-16-bug-fixes-on-the-agent-worktree-branch",
+      "status": "Approved",
+      "description": "BUG-1000, BUG-994, BUG-1057, BUG-1060, BUG-1058 fixes",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "BUG-1000",
+        "BUG-994",
+        "BUG-1057",
+        "BUG-1060",
+        "BUG-1058"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Removal gate skipped for a live entry with no direct retiring edge",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Suite regression: catalog-lift test purges the last live role",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Removal refusal describes an Archived status and a reactivate remedy",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Gate meta guard keeps gated apps parallel to GATED_GROUPS",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Pre-repair check adds a false subtasks-container error",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001067-five-0-16-bug-fixes-on-the-agent-worktree-branch.md",
+      "created_at": "2026-10-16T18:41:28Z",
+      "updated_at": "2026-10-16T18:58:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1067"
+    },
+    "1068": {
+      "sequence_id": 1068,
+      "type": "review",
+      "title": "TASK-990 checkpoint review, ST1 to ST4",
+      "slug": "task-990-checkpoint-review-st1-to-st4",
+      "status": "Approved",
+      "description": "Capabilities declared and resolved, required documents, role --json additions",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-990",
+        "BUG-1075"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Lane exemption falls back to the bundled catalog's default role, not the squad's",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Handback says sq check has no may-be-stale line for role documents; it has one, and no test pins it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Catalog error names the override file but indexes roles[N] into the merged catalog",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Text-output capability assertions are vacuous for three of five shapes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Scaffold and comments describe *<name> playbook addressing the loader still refuses",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "role catalog --json capabilities ignore per-slug files; [dev] capabilities on no catalog surface",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Explicit None in _role_override_shadows_bundled contradicts its docstring",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "No row pins an existing developer's capabilities after [dev] changes",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Per-type skills print --author and @ handoffs naming bundled slugs the roster lacks",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "BackendContext.resolved_skills_for keeps the bundled fallback ST6 said to remove",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Merged-playbook errors print the override path twice",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F12",
+          "title": "Three suffix reads remain, not two; an unactivated -dev role previews capability dev",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F13",
+          "title": "set-default on a project role with no catalog base is lost on resolve (pre-existing)",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F14",
+          "title": "dev add --slug accepts an unactivated catalog slug; the developer inherits that role's guides",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F15",
+          "title": "dev add --slug collision says 'a developer with slug X' for a non-developer role",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F16",
+          "title": "Proposed -dev slug spelling is two literals, not the named constant ST10 asked for",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001068-task-990-checkpoint-review-st1-to-st4.md",
+      "created_at": "2026-10-16T19:03:52Z",
+      "updated_at": "2026-10-16T21:01:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1068"
+    },
+    "1069": {
+      "sequence_id": 1069,
+      "type": "task",
+      "title": "Store and show role and skill origin, refuse writes on system ones",
+      "slug": "store-and-show-role-and-skill-origin-refuse-writes-on-system",
+      "status": "Ready",
+      "description": "One origin rule, stored as a pinned attribute, stamped at creation and by a 0.16 contribution, shown everywhere; system writes refused via the body classification",
+      "parent": "FEAT-976",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-990:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Define one origin rule for roles and skills",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Declare and pin the origin attribute, report bad values in check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Stamp origin on every creation path",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Show origin on every role and skill surface",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Stamp existing squads through a 0.16 contribution",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Refuse content writes on system roles and skills",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001069-store-and-show-role-and-skill-origin-refuse-writes-on-system.md",
+      "created_at": "2026-10-16T19:20:35Z",
+      "updated_at": "2026-10-16T21:02:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1069"
+    },
+    "1070": {
+      "sequence_id": 1070,
+      "type": "task",
+      "title": "Give skills, roles and operators the item verbs",
+      "slug": "give-skills-roles-and-operators-the-item-verbs",
+      "status": "Draft",
+      "description": "update, comment, comments and remove (rm alias) on roster entities, through the TASK-1069 gate; skills gain a discussion region",
+      "parent": "FEAT-977",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-990:depends-on",
+        "TASK-1069:depends-on",
+        "ADR-979"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Register remove on skills, roles and operators, with rm as its alias",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Give every skill a discussion region, in the template and through a 0.16 contribution",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Add comment and comments to skills, roles and operators",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Make the system-entry gate refuse update by field, with a declared exemption set",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Add update for display fields on skills, roles and operators",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Rewrite the docs passages that deny a roster update verb",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001070-give-skills-roles-and-operators-the-item-verbs.md",
+      "created_at": "2026-10-16T19:52:27Z",
+      "updated_at": "2026-10-16T19:53:36Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1070"
+    },
+    "1071": {
+      "sequence_id": 1071,
+      "type": "task",
+      "title": "Add pronouns to roles and operators",
+      "slug": "add-pronouns-to-roles-and-operators",
+      "status": "Draft",
+      "description": "Declared pronouns attribute, a resolved roster default, roster --json, generated files, a typed display table and the VS Code setting",
+      "parent": "FEAT-961",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-990:depends-on",
+        "TASK-1069:depends-on",
+        "ADR-981:implements",
+        "TASK-1070:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare and pin the pronouns attribute, with one shape rule and a check",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Set and clear pronouns through the creation and update verbs",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Resolve a declared roster default from the role catalog document",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Carry resolved pronouns in the four roster --json payloads",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Render pronouns in the generated roster section and identity pointer",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Add the typed display table to .squads.toml",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Print Name (pronouns) dimmed in human CLI output and sq ui",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Show pronouns in the VS Code client behind its own setting",
+          "status": "Todo",
+          "assignee": "typescript-dev",
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001071-add-pronouns-to-roles-and-operators.md",
+      "created_at": "2026-10-16T19:53:59Z",
+      "updated_at": "2026-10-16T19:59:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1071"
+    },
+    "1072": {
+      "sequence_id": 1072,
+      "type": "task",
+      "title": "Resolve and render skill operator invocability",
+      "slug": "resolve-and-render-skill-operator-invocability",
+      "status": "Draft",
+      "description": "A declared default per bundled skill, a squad's stored choice set by the CLI, rendered as user-invocable: false by the Claude Code backend",
+      "parent": "FEAT-966",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1069:depends-on",
+        "ADR-983:implements",
+        "TASK-1070:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare each bundled skill's default and resolve operator_invocable in one place",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Render user-invocable: false from all three Claude Code pointer sites",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Add --operator-invocable yes/no/default to sq skill add and update",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Show the resolved value and whether the squad set it",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Keep the AGENTS.md backend silent about operator_invocable",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Prove the upgrade path: drift before sq sync, clean after",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Observe a hidden skill preloading into a subagent on a real host",
+          "status": "Todo",
+          "assignee": "qa",
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001072-resolve-and-render-skill-operator-invocability.md",
+      "created_at": "2026-10-16T19:55:32Z",
+      "updated_at": "2026-10-16T19:59:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1072"
+    },
+    "1073": {
+      "sequence_id": 1073,
+      "type": "task",
+      "title": "Check field values against their declared collections",
+      "slug": "check-field-values-against-their-declared-collections",
+      "status": "Cancelled",
+      "description": "The field_value_declared member: error level, work and records bundles, item and sub-entity fields",
+      "parent": "FEAT-900",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-864:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add field_value_declared to the catalog and the work and records bundles",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Pin CLI writes as clean and the fix-a-stale-value way out at the gate",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Prove no new finding on a scratch copy of this repository's squad",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001073-check-field-values-against-their-declared-collections.md",
+      "created_at": "2026-10-16T19:56:44Z",
+      "updated_at": "2026-10-16T20:07:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1073"
+    },
+    "1074": {
+      "sequence_id": 1074,
+      "type": "task",
+      "title": "Select squad-global validators in a [squad] list",
+      "slug": "select-squad-global-validators-in-a-squad-list",
+      "status": "Done",
+      "description": "The [squad] validators table, the always-on and selectable tiers with declared levels, and the five selectable members",
+      "parent": "FEAT-902",
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-982:implements",
+        "ADR-864:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Add the typed [squad] table with an empty bundled validators list",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Partition squad-global members into tiers with one default-level table",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Refuse invalid [squad] selections at spec load and in workflow lint",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Run always-on plus selected members in sq check with one clock read",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Add children_settled_with_parent",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US1",
+          "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Add dependency_acyclic",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US2",
+          "extra": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Add wip_limit with the shared active-item helper",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US3",
+          "extra": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Add unassigned_active",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US4",
+          "extra": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Add stale_active against the run's single clock instant",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US5",
+          "extra": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "Prove the selection on a scratch copy of this repository's squad",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": "US6",
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001074-select-squad-global-validators-in-a-squad-list.md",
+      "created_at": "2026-10-16T19:58:12Z",
+      "updated_at": "2026-10-16T21:01:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1074"
+    },
+    "1075": {
+      "sequence_id": 1075,
+      "type": "bug",
+      "title": "set-default on a catalog-less project role is lost on resolve",
+      "slug": "set-default-on-a-catalog-less-project-role-is-lost-on-resolv",
+      "status": "Open",
+      "description": "",
+      "parent": "MILE-1051",
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1068"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001075-set-default-on-a-catalog-less-project-role-is-lost-on-resolv.md",
+      "created_at": "2026-10-16T20:02:07Z",
+      "updated_at": "2026-10-16T20:02:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1075"
+    },
+    "1076": {
+      "sequence_id": 1076,
+      "type": "review",
+      "title": "Review TASK-1074: squad-global validator selection",
+      "slug": "review-task-1074-squad-global-validator-selection",
+      "status": "Approved",
+      "description": "Review of the [squad] table, the tiers and the five selectable squad-global members",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1074"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "No-selection invariant test compares against the same build, not a recorded baseline",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "SquadGlobalContext.now is optional and stale_active silently skips without it",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "[selected] squad is refused by two mechanisms; SELECTABLE_SECTIONS never decides",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "dependency_acyclic reports cycles among settled items as blocking",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Handoff lacks the US1-US6 bullet-to-test map; ST10's 26 issues are copy artifacts",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Plural and table-shape wording in squad-global messages",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001076-review-task-1074-squad-global-validator-selection.md",
+      "created_at": "2026-10-16T20:43:08Z",
+      "updated_at": "2026-10-16T20:53:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1076"
+    },
+    "1077": {
+      "sequence_id": 1077,
+      "type": "task",
+      "title": "Replace the validator tier wording with plain terms",
+      "slug": "replace-the-validator-tier-wording-with-plain-terms",
+      "status": "Draft",
+      "description": "Wording only: always on, on by default for a category, opt-in, file checks",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": "low",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "ADR-864",
+        "MILE-1051:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Rename ADR-864's title and tiering-test heading, and use the plain terms in its body",
+          "status": "Todo",
+          "assignee": "architect",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Use the plain terms in validator docstrings, comments and the assertion message",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Use the plain terms in the adopter docs",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001077-replace-the-validator-tier-wording-with-plain-terms.md",
+      "created_at": "2026-10-16T20:59:53Z",
+      "updated_at": "2026-10-16T21:00:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1077"
     }
   }
 }

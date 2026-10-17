@@ -130,6 +130,10 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     show and no holder at all, and a ``"catalog"`` answer is indistinguishable from a squad
     that designates the same slug for real. ``sq role list`` — the roster listing, which
     carries every live role — is still the surface that names a holder in its own rows.
+
+    Like the other per-role fields here (name, title), ``capabilities`` is the catalog
+    document's value, before any per-slug role file; ``sq role list`` and ``sq role <addr>
+    show`` carry the resolved value.
     """
     squad_dir = _catalog_squad_dir()
     roles = load_role_catalog(squad_dir).roles
@@ -154,6 +158,7 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
                         "title": r.title,
                         "is_default": _is_default(r),
                         "origin": "bundled" if r.slug in _BUNDLED_SLUGS else "project",
+                        "capabilities": list(dict.fromkeys(r.capabilities)),
                         "default_role": default_role,
                         "default_role_source": default_role_source,
                     }
@@ -217,6 +222,7 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
                         "full_name": role.full_name,
                         "title": role.title,
                         "is_default": role.is_default,
+                        "capabilities": list(role.capabilities),
                         "status": r.status,
                     }
                     for r, role in resolved
@@ -226,13 +232,14 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
         return
     live = svc.spec.live_statuses(ROSTER_ROLE)
     table = Table(box=None, pad_edge=False)
-    for col in ("Slug", "Name", "Title", "Default", "Live"):
+    for col in ("Slug", "Name", "Title", "Capabilities", "Default", "Live"):
         table.add_column(col)
     for r, role in resolved:
         table.add_row(
             e(role.slug),
             e(role.full_name),
             e(role.title),
+            e(", ".join(role.capabilities)),
             "✓" if role.is_default else "",
             "✓" if r.status in live else "",
         )
@@ -391,27 +398,23 @@ async def show_role(
         r = resolve_role_with_base(
             slug, svc.paths.squad_dir, base=base_role, pinned_name=pinned_name_of(it)
         )
-        lane_types = sorted(allowed_create_types(slug, svc.spec, svc.playbook))
+        lane_types = sorted(allowed_create_types(r, svc.spec, svc.playbook))
         creates_display = ", ".join(lane_types) if lane_types else "— (out-of-lane creates warn)"
         # A computed projection over the index, not a field of `r` — resolved live for both
         # an activated role and a bundled-only one (falls back to system membership; see
         # `Service.resolved_skills_for_role`).
         skills = await svc.resolved_skills_for_role(slug)
         skills_display = ", ".join(skills) if skills else "—"
-        preview_name = common.dev_preview_full_name(r, base_role, it)
-        display_name = (
-            preview_name
-            if preview_name is not None
-            else f"(unassigned — run `sq dev add --tech {r.slug.removesuffix('-dev')}`)"
-        )
         # Mission/responsibilities are deliberately absent: the resolved definition printed
         # below carries them once, in the form an agent is meant to read, rather than the
         # card repeating what it does not need to.
         rows = [
-            f"[bold]{e(display_name)}[/bold] (`{e(r.slug)}`)",
+            f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",
             f"[bold]model:[/bold] {e(r.model or 'inherit')}",
+            f"[bold]color:[/bold] {e(r.color or '—')}",
             f"[bold]can spawn:[/bold] {'yes' if r.can_spawn else 'no'}",
+            f"[bold]capabilities:[/bold] {e(', '.join(r.capabilities) or '—')}",
             f"[bold]creates:[/bold] {e(creates_display)}",
             f"[bold]skills:[/bold] {e(skills_display)}",
         ]
@@ -501,9 +504,10 @@ async def rm_role(
     """Delete a role for good; needs --purge (or set its status to Archived)."""
     item_id = _require_id(ctx)
     svc = get_service()
-    await svc.remove_item(item_id, purge=purge)
+    removal = await svc.remove_item(item_id, purge=purge)
     await svc.refresh_managed()
     console.print(f"removed {item_id}")
+    common.print_warnings(removal.warnings)
 
 
 @_addr.command("set-default")

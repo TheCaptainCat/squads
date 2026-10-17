@@ -74,12 +74,14 @@ from squads._services._base import ServiceCore
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
     DUPLICATE_ID_REMEDY,
+    SHARED_NUMBER_REMEDY,
     CarrierLog,
     RenumberScope,
     SameIdRenumber,
     duplicate_groups,
     normalized_id,
     renumber_same_id_groups,
+    shared_number_groups,
 )
 from squads._services._results import (
     CheckIssue,
@@ -112,6 +114,7 @@ from squads._services._validators import (
     live_roster_slugs,
     not_on_disk,
     on_disk_not_indexed,
+    squad_global_level,
 )
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, bundled_spec
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
@@ -300,12 +303,12 @@ def _retired_role_keys(item: Item, spec: WorkflowSpec) -> frozenset[str]:
     developer's ``model`` is an operator setting with no catalog answer, so a stripped one is
     re-rolled from the dev pool as a different value.
 
-    A role is identified by its item type and its shape by the stored ``is_dev`` marker, never
+    A role is identified by its item type and its shape by the stored ``tech`` attribute, never
     by the slug's spelling. An operator item is kept off this sweep by the type check.
     """
     if item.type != ROSTER_ROLE:
         return frozenset()
-    stored = RoleDef.stored_attribute_keys(is_dev=attrs.is_dev(item))
+    stored = RoleDef.stored_attribute_keys(templated=attrs.is_templated(item))
     retired = (RETIRED_ROLE_KEYS | RoleDef.attribute_keys()) - stored
     # A name the squad's spec declares on role is the adopter's attribute, not a mirror key; the
     # one declared name the mirror also used (the stored model) is still swept.
@@ -1208,7 +1211,7 @@ class MaintenanceMixin(ServiceCore):
             for item_type, slug in orphaned_playbook_guides(
                 self.playbook,
                 self.spec,
-                live_role_slugs={r.slug for r in roster},
+                live_roles=roster,
                 override_guides=playbook_override_guide_pairs(self.paths.squad_dir),
             )
         ]
@@ -1345,6 +1348,14 @@ class MaintenanceMixin(ServiceCore):
         """The report line for an id carried by several files, naming every one."""
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
         return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
+
+    def _shared_number_message(self, number: int, files: list[Path]) -> str:
+        """The report line for a number carried under different ids, naming every file."""
+        named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
+        return (
+            f"{len(files)} files carry number {number} under different ids ({named}); "
+            f"{SHARED_NUMBER_REMEDY}"
+        )
 
     async def _missing_id_message(self, md: Path, item_type: str, scan: SkillScan) -> str:
         """The "no ``id``" report line; a stamped managed-skill file also names the remedy that
@@ -1587,7 +1598,7 @@ class MaintenanceMixin(ServiceCore):
             return None  # orphaned custom role item: no catalog entry, no override file
         # The developer marker lives on the item, and it is what decides whether the
         # dev-only column (``model``) is part of this merge — see ``RoleDef.to_attributes``.
-        catalog_attributes = catalog_role.to_attributes(is_dev=attrs.is_dev(item))
+        catalog_attributes = catalog_role.to_attributes(templated=attrs.is_templated(item))
         item_fields = catalog_role.to_item_fields()
         base = item.model_copy(deep=True)
         previous_attributes: dict[str, Any] = {}
@@ -3174,11 +3185,24 @@ class MaintenanceMixin(ServiceCore):
             for level, item, msg in check_override_issues(self.paths.squad_dir, role_items_by_slug)
         ]
         issues += self._orphaned_skill_issues(index)
-        dup_groups = duplicate_groups(await self._id_carriers(ctx.carriers))
+        carriers = await self._id_carriers(ctx.carriers)
+        dup_groups = duplicate_groups(carriers)
         issues += [
             CheckIssue("error", key, self._duplicate_id_message(files))
             for key, files in dup_groups.items()
         ]
+        shared = shared_number_groups(carriers)
+        issues += [
+            CheckIssue("error", f"#{number}", self._shared_number_message(number, files))
+            for number, files in shared.items()
+        ]
+        # The scan keys files by number, so under a shared number it holds only one of the
+        # files, and a per-item check would read it for the wrong item. The shared-number error
+        # names every file; the number is still present on disk.
+        for number in shared:
+            on_disk.pop(number, None)
+            bodies.pop(number, None)
+            unparseable_seqs = unparseable_seqs | {number}
 
         # ``index_reconciled`` is excluded here — it is cross-source, so its two directions
         # are confirmed below instead of reported straight from the scan pair.
@@ -3188,7 +3212,12 @@ class MaintenanceMixin(ServiceCore):
         )
         issues += engine.report(index, on_disk, bodies=bodies)
         g_ctx = SquadGlobalContext(
-            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+            now=clock.now(),
+            index=index,
+            on_disk=on_disk,
+            spec=self.spec,
+            paths=self.paths,
+            playbook=self.playbook,
         )
         issues += await self._confirm_cross_source(
             index,
@@ -3369,6 +3398,7 @@ class MaintenanceMixin(ServiceCore):
         # window this confirm round exists to close.
         fresh_index = await self.store.load(fresh=True)
         issues: list[CheckIssue] = []
+        reconciled_level = squad_global_level(self.spec, "index_reconciled")
 
         for seq in sorted(drift_seqs):
             issues += await self._confirm_one_drift_candidate(
@@ -3379,7 +3409,9 @@ class MaintenanceMixin(ServiceCore):
             fid, path, _data = on_disk[seq]
             if not await _aio.path_exists(path):
                 continue  # the file itself is gone since the scan — nothing left to claim
-            issue = on_disk_not_indexed(seq, fid, indexed=seq in fresh_index.items)
+            issue = on_disk_not_indexed(
+                seq, fid, indexed=seq in fresh_index.items, level=reconciled_level
+            )
             if issue is not None:
                 issues.append(issue)
 
@@ -3388,7 +3420,7 @@ class MaintenanceMixin(ServiceCore):
             if fresh_item is None:
                 continue  # removed from the index since the scan — no claim to confirm
             exists = await _aio.path_exists(item_file(self.paths, fresh_item))
-            issue = not_on_disk(fresh_item, on_disk=exists)
+            issue = not_on_disk(fresh_item, on_disk=exists, level=reconciled_level)
             if issue is not None:
                 issues.append(issue)
 
@@ -3412,7 +3444,12 @@ class MaintenanceMixin(ServiceCore):
         two build this state the identical way, off whichever index each is handed.
         """
         g_ctx = SquadGlobalContext(
-            index=index, on_disk=on_disk, spec=self.spec, paths=self.paths, playbook=self.playbook
+            now=clock.now(),
+            index=index,
+            on_disk=on_disk,
+            spec=self.spec,
+            paths=self.paths,
+            playbook=self.playbook,
         )
         live_role_slugs, live_skill_slugs = live_roster_slugs(g_ctx)
         role_items = {it.slug: it for it in index.items.values() if it.type == ROSTER_ROLE}
@@ -3538,7 +3575,7 @@ class MaintenanceMixin(ServiceCore):
         if not candidates:
             return []
         fresh_g_ctx = SquadGlobalContext(
-            index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
+            now=clock.now(), index=fresh_index, on_disk=on_disk, spec=self.spec, paths=self.paths
         )
         fresh_role_slugs, fresh_skill_slugs = live_roster_slugs(fresh_g_ctx)
         fresh_bctx = BackendContext(

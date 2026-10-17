@@ -20,6 +20,7 @@ kind declares its own ``local_prefix``; ``sq init --squad-dir team`` moves the s
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -74,19 +75,29 @@ _TASK_WORD = re.compile(r"\btask\b")
 #: also renders no authoring bullet, so the story-prefix line the same scan must see is simply
 #: absent. ``_FULL`` keeps the bundled authoring slugs (so those bullets render) and adds a
 #: developer whose slug the bundled catalog does not carry.
-_MINIMAL_ROSTER: list[dict[str, str]] = [
+_MINIMAL_ROSTER: list[dict[str, Any]] = [
     {"full_name": "Robin Crew", "title": "crew lead", "slug": "crew-lead"},
-    {"full_name": "Sam Crew", "title": "Rust developer", "slug": "rust-dev"},
+    {
+        "full_name": "Sam Crew",
+        "title": "Rust developer",
+        "slug": "rust-dev",
+        "capabilities": ["dev"],
+    },
 ]
-_FULL_ROSTER: list[dict[str, str]] = [
+_FULL_ROSTER: list[dict[str, Any]] = [
     {"full_name": "Robin Crew", "title": "crew lead", "slug": "tech-lead"},
     {"full_name": "Nadia Crew", "title": "product owner", "slug": "product-owner"},
     {"full_name": "Kit Crew", "title": "architect", "slug": "architect"},
     {"full_name": "Ola Crew", "title": "code reviewer", "slug": "reviewer"},
     {"full_name": "Zaid Crew", "title": "QA engineer", "slug": "qa"},
-    {"full_name": "Sam Crew", "title": "Rust developer", "slug": "rust-dev"},
+    {
+        "full_name": "Sam Crew",
+        "title": "Rust developer",
+        "slug": "rust-dev",
+        "capabilities": ["dev"],
+    },
 ]
-_PROBE_ROSTERS: tuple[tuple[str, list[dict[str, str]]], ...] = (
+_PROBE_ROSTERS: tuple[tuple[str, list[dict[str, Any]]], ...] = (
     ("minimal", _MINIMAL_ROSTER),
     ("full", _FULL_ROSTER),
 )
@@ -148,15 +159,25 @@ def _probe_spec() -> WorkflowSpec:
     )
 
 
-def _probe_renders(roles: list[dict[str, str]]) -> dict[str, str]:
+def _probe_renders(roles: list[dict[str, Any]]) -> dict[str, str]:
     spec = _probe_spec()
     anchor_ctx = cheatsheet_anchor_context(spec)
     roster_views = [
-        RoleView(slug=r["slug"], full_name=r["full_name"], title=r["title"], is_default=False)
+        RoleView(
+            slug=r["slug"],
+            full_name=r["full_name"],
+            title=r["title"],
+            is_default=False,
+            capabilities=tuple(r.get("capabilities", ())),
+        )
         for r in roles
     ]
     playbook_source = PlaybookSource(
-        item_type="skill", lane=None, roster=roster_views, playbook=get_playbook_spec()
+        item_type="skill",
+        lane=None,
+        roster=roster_views,
+        playbook=get_playbook_spec(),
+        developer_slugs=("rust-dev",),
     )
     return {
         "views/squads_skill.md.j2": render(
@@ -177,6 +198,7 @@ def _probe_renders(roles: list[dict[str, str]]) -> dict[str, str]:
             "claude/claude_section.md.j2",
             squad_dir="team",
             roles=roles,
+            delegate_examples=[r["slug"] for r in roles[1:5]],
             operators=[],
             default_role_full_name=roles[0]["full_name"],
             default_role_slug=roles[0]["slug"],
@@ -186,6 +208,7 @@ def _probe_renders(roles: list[dict[str, str]]) -> dict[str, str]:
             "agents_md/agents_section.md.j2",
             squad_dir="team",
             roles=[{**r, "mission": "", "responsibilities": []} for r in roles],
+            developer_slugs=["rust-dev"],
             operators=[],
             spec=spec,
             also_creatable_types=_also_creatable_types(spec, anchor_ctx["anchor"]),
@@ -198,7 +221,7 @@ def _probe_renders(roles: list[dict[str, str]]) -> dict[str, str]:
 @pytest.mark.parametrize(("roster_name", "roles"), _PROBE_ROSTERS)
 @pytest.mark.parametrize(("literal", "why"), _FORBIDDEN_LITERALS)
 def test_no_bundled_vocabulary_literal_survives_a_renamed_squad(
-    literal: str, why: str, roster_name: str, roles: list[dict[str, str]]
+    literal: str, why: str, roster_name: str, roles: list[dict[str, Any]]
 ) -> None:
     for name, rendered in _probe_renders(roles).items():
         assert literal not in rendered, (

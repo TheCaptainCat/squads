@@ -49,6 +49,7 @@ from squads._interactions import (
 )
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
+from squads._interactions._role_guidance import developer_roles
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -69,6 +70,7 @@ from squads._rendering._engine import (
     template_source,
 )
 from squads._roles._catalog import RoleDef
+from squads._roles._loader import load_role_catalog
 from squads._roles._projection import RoleView
 from squads._roles._resolver import resolve_role_for_item
 from squads._sections import get_section, iter_marker_spans, split_frontmatter, strip_marker_lines
@@ -121,6 +123,9 @@ class PlaybookSource:
     lane: ItemPlaybookSpec | None
     roster: list[RoleView]
     playbook: PlaybookSpec
+    developer_slugs: tuple[str, ...] = ()
+    """The slugs of the live roles holding a capability the resolved catalog's ``[dev]`` table
+    declares — what a generated example prefers as an assignee."""
 
 
 #: Every shape :func:`resolve_source` can return — a relation's flat ``Item``/``SubEntity``
@@ -200,7 +205,12 @@ def _playbook_subject(item: Item, spec: WorkflowSpec) -> str:
 
 
 def _resolve_playbook_source(
-    view: ViewSpec, item: Item, playbook: PlaybookSpec, roster: RosterProvider, spec: WorkflowSpec
+    view: ViewSpec,
+    item: Item,
+    playbook: PlaybookSpec,
+    roster: RosterProvider,
+    spec: WorkflowSpec,
+    squad_dir: Path | None,
 ) -> PlaybookSource:
     """The playbook lane of *view*'s named type, or the type *item* speaks for
     (:func:`_playbook_subject`) when *view* names none — resolved against *playbook* (the
@@ -212,11 +222,13 @@ def _resolve_playbook_source(
     *roster* is called here — the one call, anywhere in the dispatch, that ever forces it (see
     :data:`RosterProvider`)."""
     target_type = view.source.name or _playbook_subject(item, spec)
+    live = roster()
     return PlaybookSource(
         item_type=target_type,
         lane=playbook.types.get(target_type),
-        roster=roster(),
+        roster=live,
         playbook=playbook,
+        developer_slugs=tuple(r.slug for r in developer_roles(live, load_role_catalog(squad_dir))),
     )
 
 
@@ -468,7 +480,7 @@ def resolve_source(
     if kind == "role":
         return _resolve_role_source(item, squad_dir)
     if kind == "playbook":
-        return _resolve_playbook_source(view, item, playbook, roster, spec)
+        return _resolve_playbook_source(view, item, playbook, roster, spec, squad_dir)
     return _resolve_self_source(item)  # "self"
 
 

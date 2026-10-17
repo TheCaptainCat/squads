@@ -555,7 +555,6 @@ ref_rules = []
 
 [items.role.attributes]
 is_default = { kind = "bool", settable = false }
-is_dev = { kind = "bool", settable = false }
 model = { kind = "str" }
 tech = { kind = "str", settable = false }
 
@@ -724,3 +723,12 @@ source = { kind = "self" }
 # Seeded: same reasoning as `squads_skill` above, for every skill this view classifies as
 # per-item-type-owned (`squads._views.roster_body_view_name`) rather than custom-authored.
 source = { kind = "playbook" }
+
+# ---------------------------------------------------------------------------
+# Squad — the squad-wide checks this squad selects. A squad selects them with the same
+# `name`, `name:param`, `name@level` entries a type's `validators` list takes; the list ships
+# empty, and an override replaces it whole (or extends it with "$(*squad.validators)").
+# ---------------------------------------------------------------------------
+
+[squad]
+validators = []

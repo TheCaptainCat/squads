@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
+from squads._errors import SquadsError
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import skills_for_role
 from squads._models._item import Item
@@ -91,7 +92,7 @@ class BackendContext:
         """Root-relative forward-slash path (for Artifact paths and backend-owned references)."""
         return os.path.relpath(path, self.root).replace(os.sep, "/")
 
-    def resolved_skills_for(self, slug: str) -> list[str]:
+    def resolved_skills_for(self, role: RoleDef) -> list[str]:
         """A role's resolved preload-skill list: ``role_skills[slug]`` when populated, else the
         pure system-membership fallback.
 
@@ -99,9 +100,11 @@ class BackendContext:
         ``role_guidance.skills_for_role`` directly, so a data-driven ``scopes`` edge reaches
         every backend uniformly once the service populates ``role_skills`` — never only one.
         """
-        if slug in self.role_skills:
-            return self.role_skills[slug]
-        return skills_for_role(slug, self.spec, self.playbook)
+        if role.slug in self.role_skills:
+            return self.role_skills[role.slug]
+        if self.spec is None or self.playbook is None:
+            raise SquadsError("a backend context without role_skills needs a spec and a playbook")
+        return skills_for_role(role, self.spec, self.playbook)
 
 
 class AgentBackend(ABC):

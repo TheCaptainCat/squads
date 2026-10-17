@@ -112,7 +112,7 @@ async def _print_cheatsheet(*, raw: bool) -> None:
     # `sq init`, or from an unrelated directory), where there is no roster to read; that
     # case degrades to the unfiltered-by-catalog-membership-only behaviour rather
     # than failing the whole command.
-    roles: list[dict[str, str]] | None = None
+    roles: list[dict[str, Any]] | None = None
     playbook: PlaybookSpec | None = None
     try:
         svc = common.get_service()
@@ -120,7 +120,15 @@ async def _print_cheatsheet(*, raw: bool) -> None:
     except SquadsError:
         roles = None
     else:
-        roles = [{"full_name": r.full_name, "title": r.title, "slug": r.slug} for r in roster]
+        roles = [
+            {
+                "full_name": r.full_name,
+                "title": r.title,
+                "slug": r.slug,
+                "capabilities": list(r.capabilities),
+            }
+            for r in roster
+        ]
         # Same reason as the roster: resolve the create-lane through the ACTIVE (merged)
         # playbook so an override-declared authoring role is named here too.
         playbook = svc.playbook
@@ -837,6 +845,7 @@ def _playbook_json_payload(source: PlaybookSource) -> dict[str, object]:
                 "is_default": rv.is_default,
                 "mission": rv.mission,
                 "responsibilities": list(rv.responsibilities),
+                "capabilities": list(rv.capabilities),
             }
             for rv in source.roster
         ],

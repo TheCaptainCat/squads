@@ -32,12 +32,12 @@ async def test_remove_item_names_only_purge_for_an_archived_entry(svc):
     assert "status" not in str(exc.value)
 
 
-async def test_remove_item_names_only_purge_when_the_archive_gate_would_refuse(svc):
+async def test_remove_item_names_the_gate_when_the_archive_gate_would_refuse(svc):
     await svc.activate_role("tech-lead")  # its playbook interacts with task
     skill = await svc.add_skill("Sq Task")  # implied by the task type: archiving is refused
 
     with pytest.raises(SquadsError) as exc:
         await svc.remove_item(skill.id, purge=False)
 
-    assert "rm --purge" in str(exc.value)
-    assert "status" not in str(exc.value)
+    assert f"cannot remove {skill.id}" in str(exc.value)
+    assert "rm --purge" not in str(exc.value)

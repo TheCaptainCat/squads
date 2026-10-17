@@ -23,7 +23,7 @@ from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
-from squads._services._results import RemoveResult, RosterStatusResult
+from squads._services._results import RemoveResult, RosterRemoval, RosterStatusResult
 from squads._services._validators import ValidatorEngine
 from squads._util import slugify
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
@@ -128,22 +128,11 @@ class ItemsMixin(ServiceCore):
                 unlink=unlink,
                 old_status=old_status,
                 playbook=self.playbook,
+                squad_dir=self.paths.squad_dir,
             )
             live = self.spec.live_statuses(item.type)
-            is_retirement = old_status in live and item.status not in live
-            if item.type in (ROSTER_ROLE, ROSTER_OPERATOR) and is_retirement:
-                slug = item.slug
-                open_ids = retirement.open_assigned_work(db, self.spec, slug)
-                if open_ids:
-                    warnings.append(
-                        f"{item.id} ({slug}) still holds open assigned work: " + ", ".join(open_ids)
-                    )
-            if item.type == ROSTER_ROLE and is_retirement:
-                warning = retirement.lost_default_designation_warning(
-                    db, self.spec, item, self.paths.squad_dir
-                )
-                if warning:
-                    warnings.append(warning)
+            if old_status in live and item.status not in live:
+                warnings = self._retirement_warnings(db, item)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
         # Fail-closed on the transitioned item's first error-level catalog violation — the
@@ -154,6 +143,25 @@ class ItemsMixin(ServiceCore):
         # out. A warn-level catalog issue never aborts, exactly as on the update path.
         ValidatorEngine(spec=self.spec).gate(item, db)
         return item, old_status, base, severed, warnings
+
+    def _retirement_warnings(self, db: SquadsDB, item: Item, *, purged: bool = False) -> list[str]:
+        """The board-hygiene notices for retiring or removing *item*: open assigned work, and the
+        loss of the default-role designation. They inform and never block."""
+        warnings: list[str] = []
+        if item.type in (ROSTER_ROLE, ROSTER_OPERATOR):
+            open_ids = retirement.open_assigned_work(db, self.spec, item.slug)
+            if open_ids:
+                warnings.append(
+                    f"{item.id} ({item.slug}) still holds open assigned work: "
+                    + ", ".join(open_ids)
+                )
+        if item.type == ROSTER_ROLE:
+            warning = retirement.lost_default_designation_warning(
+                db, self.spec, item, self.paths.squad_dir, purged=purged
+            )
+            if warning:
+                warnings.append(warning)
+        return warnings
 
     async def _set_status_core(
         self, db: SquadsDB, item_id: str, status: str, *, force: bool = False, unlink: bool = False
@@ -712,30 +720,52 @@ class ItemsMixin(ServiceCore):
         :func:`discussion.split_discussion` so CLI callers never re-parse the region themselves."""
         return discussion.split_discussion(await self.read_discussion(item_id))
 
+    def _enforce_retirement(
+        self, db: SquadsDB, item: Item, target: str, *, purge: bool = False
+    ) -> None:
+        """Hold *item*, standing at the non-live *target* on a copy of *db*, to the retirement
+        gate. The target is set directly rather than reached by a lifecycle edge, so a custom
+        lifecycle cannot route around the check. Raises when the result would leave the squad
+        structurally invalid."""
+        trial = db.model_copy(deep=True)
+        probe = trial.items[item.sequence_id]
+        probe.status = target
+        retirement.enforce(
+            self.spec,
+            trial,
+            probe,
+            active_backends=self.paths.config.active_backends,
+            unlink=False,
+            old_status=item.status,
+            playbook=self.playbook,
+            squad_dir=self.paths.squad_dir,
+            purge=purge,
+        )
+
+    def _non_live_status(self, item: Item) -> str | None:
+        """A non-live status of *item*'s lifecycle while it is live, else ``None``."""
+        live = self.spec.live_statuses(item.type)
+        if item.status not in live:
+            return None
+        others = sorted(self.spec.machine_for(item.type).states - live)
+        return others[0] if others else None
+
+    def _retiring_targets(self, item: Item) -> list[str]:
+        """The non-live statuses *item* can move to from its live status; empty when it is not
+        live or has no such edge."""
+        live = self.spec.live_statuses(item.type)
+        if item.status not in live:
+            return []
+        machine = self.spec.machine_for(item.type)
+        return [t for t in machine.transitions.get(item.status, []) if t not in live]
+
     def _retire_status(self, db: SquadsDB, item: Item) -> str | None:
         """The status that retires *item* now, or ``None`` when no such move would be accepted
         (already retired, no retiring edge, or the retirement gate refuses it). Dry-runs the
         real transition against a copy of *db*."""
-        live = self.spec.live_statuses(item.type)
-        if item.status not in live:
-            return None
-        machine = self.spec.machine_for(item.type)
-        for target in machine.transitions.get(item.status, []):
-            if target in live:
-                continue
-            trial = db.model_copy(deep=True)
-            probe = trial.items[item.sequence_id]
+        for target in self._retiring_targets(item):
             try:
-                self._apply_status(probe, target, force=False)
-                retirement.enforce(
-                    self.spec,
-                    trial,
-                    probe,
-                    active_backends=self.paths.config.active_backends,
-                    unlink=False,
-                    old_status=item.status,
-                    playbook=self.playbook,
-                )
+                self._enforce_retirement(db, item, target)
             except SquadsError:
                 continue
             return target
@@ -755,21 +785,31 @@ class ItemsMixin(ServiceCore):
             f"`sq {item.type} {item.id} status {target}`."
         )
 
-    async def remove_item(self, item_id: str, *, purge: bool) -> Item:
+    async def remove_item(self, item_id: str, *, purge: bool) -> RosterRemoval:
         """Remove an agent-type item (role/skill/operator): index entry, file and pointers.
 
         Refuses without *purge*: the markdown is the source of truth, so removing only the index
         entry would leave a file ``sq check`` flags and ``sq repair`` re-indexes. Archiving is
         the non-destructive retirement.
 
+        A live entry is held to the same structural clauses as retiring it, so a removal, with
+        or without *purge*, is refused wherever archiving is, and it carries the same
+        board-hygiene warnings. The removal is recorded in the reflog.
+
         For **work items** (feature/task/bug/decision/review/epic/guide), use
         :meth:`remove_work_item` instead — it enforces ref/child safety, always unlinks the
         ``.md``, and carries the reflog op stub.
         """
+        warnings: list[str] = []
         async with self.store.transaction() as db:
             item = require_item(db, item_id)
+            non_live = self._non_live_status(item)
+            if non_live is not None:
+                self._enforce_retirement(db, item, non_live, purge=True)
             if not purge:
                 raise SquadsError(self._purge_required_message(db, item))
+            if non_live is not None:
+                warnings = self._retirement_warnings(db, item, purged=True)
             del db.items[item.sequence_id]
             # Unlink BEFORE the index commit (same direction as remove_work_item): a crash here
             # leaves the file gone with the index still referencing it, which `sq repair` heals
@@ -777,11 +817,16 @@ class ItemsMixin(ServiceCore):
             # the lossy direction — a crash there leaves the index without the entry and the
             # file still on disk, which `sq repair` re-indexes, resurrecting the removed item.
             await _aio.path_unlink(item_file(self.paths, item), missing_ok=True)
+            self.store.log(
+                "remove",
+                item.id,
+                {"type": item.type, "title": item.title, "status": item.status, "severed_refs": []},
+            )
         if self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
             ctx = self._ctx
             for backend in self._backends():
                 await backend.remove_artifacts(ctx, item)
-        return item
+        return RosterRemoval(item=item, warnings=warnings)
 
     async def remove_work_item(
         self,

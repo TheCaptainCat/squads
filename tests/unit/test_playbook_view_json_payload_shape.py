@@ -85,7 +85,9 @@ async def test_a_declared_but_unlaned_types_json_is_the_no_lane_case_not_a_raise
     doc_item = (await create_item(project_svc, "doc", "D")).item
 
     view = ViewSpec(source=ViewSource(kind="playbook"))
-    resolved = _resolve_playbook_source(view, doc_item, merged_playbook, lambda: [], merged_spec)
+    resolved = _resolve_playbook_source(
+        view, doc_item, merged_playbook, lambda: [], merged_spec, None
+    )
     assert resolved.lane is None  # the resolver's own well-formed empty case
 
     payload = _playbook_json_payload(resolved)
