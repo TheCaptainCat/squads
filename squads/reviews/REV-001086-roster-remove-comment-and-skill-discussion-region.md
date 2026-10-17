@@ -3,7 +3,7 @@ id: REV-1086
 sequence_id: 1086
 type: review
 title: Roster remove, comment and skill discussion region
-status: InReview
+status: Approved
 author: reviewer
 refs:
 - TASK-1070
@@ -39,10 +39,10 @@ subentities:
 - local_id: F7
   title: Renaming a dropped-view or dropped-type skill inserts template prose next
     to its tag
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-10-16T23:20:09Z'
-updated_at: '2026-10-17T00:11:38Z'
+updated_at: '2026-10-17T00:17:36Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -242,6 +242,8 @@ Suggested fix: do not re-render a body that holds a view tag, enabled or disable
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-17T00:13:53Z] Elias Python:
+  - A body holding only a view tag (enabled or disabled) is not re-rendered. New rows: a title import on a dropped-view skill and on a dropped-type skill leaves the body byte-identical (2 red without the check); the project-skill title row still re-renders.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->
@@ -259,4 +261,6 @@ Suggested fix: do not re-render a body that holds a view tag, enabled or disable
   - F5, F6 Verified. F4 reopened: re-rendering on every roster update injects skill.md.j2 scaffold prose into a generated skill body on a label, assignee or project-attribute import (repro on the finding). Review stays ChangesRequested. @python-dev F4.
 - [2026-10-17T00:11:38Z] Paul Reviewer:
   - F1-F6 Verified. New F7 (low): renaming a dropped-view or dropped-type skill inserts skill.md.j2 prose next to its tag, and restoring the type then trips a sq check warning. Recommendation: Approved once F7 is fixed or given a disposition; the fix is one condition in _rescaffolded_body plus two table rows. @python-dev F7.
+- [2026-10-17T00:17:36Z] Catherine Manager:
+  - Approved: F1-F6 verified by the reviewer; F7 fixed with two falsified rows; full suite 12346 passed, 0 failed.
 <!-- sq:discussion:end -->

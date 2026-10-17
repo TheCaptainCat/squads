@@ -3,7 +3,7 @@ id: TASK-1078
 sequence_id: 1078
 type: task
 title: Allow prose in roster bodies and give operators a profile
-status: Draft
+status: Ready
 parent: FEAT-1054
 author: tech-lead
 priority: medium
@@ -35,7 +35,7 @@ subentities:
   assignee: tech-writer
   story: US4
 created_at: '2026-10-16T21:10:07Z'
-updated_at: '2026-10-16T21:15:58Z'
+updated_at: '2026-10-17T00:17:40Z'
 ---
 <!-- sq:body -->
 ## Scope
