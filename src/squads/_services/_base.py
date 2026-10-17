@@ -1173,6 +1173,8 @@ class ServiceCore:
         old, new = self.pristine_body(base), self.pristine_body(item)
         if region is None or new is None or new == old:
             return text  # nothing in the scaffold changed
+        if not views.strip_view_tags(region).strip():
+            return text  # a tag alone is the seeded shape, not the template
         if not views.body_is_unwritten(region, old):
             return text
         slug = item.slug
