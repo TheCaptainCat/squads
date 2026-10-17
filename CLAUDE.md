@@ -34,8 +34,9 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   prefix→folder map, the spec is the sole authority and folder resolution goes through
   `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_extras`
   (`ExtraKey`).
-- `_paths.py` — resolve the active squad folder (`--dir` > `.squads.toml` walk-up > default), map an
-  ID/type to its location, and guard `abspath` against path traversal.
+- `_paths.py` — resolve the active squad folder (the `.squads.toml` walk-up from the effective
+  directory, `RequestContext.client_cwd`, which root `-C` sets), map an ID/type to its location,
+  and guard `abspath` against path traversal.
 - `_index/_store.py` — the integrity core: filelock'd, atomic (`os.replace`) read-modify-write of
   `<squad-dir>/.squads.json`; `SquadsDB.allocate_id` (on the model, `_models/_index.py`) bumps the
   **single global counter**, called only inside `IndexStore.transaction()`; `load` wraps a
@@ -99,7 +100,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   `templates/views/<name>.md.j2`. No presentation decision lives in the source/projection half;
   no vocabulary literal (a ref-kind, item-type, or sub-entity-kind name) is ever hardcoded here —
   it resolves off the declared `ViewSpec` instead.
-- `_cli/` — Typer app (`__init__` wires sub-typers + the `--dir` callback + version notice);
+- `_cli/` — Typer app (`__init__` wires sub-typers + the root `-C` callback + version notice);
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
 
 ## Invariants — keep these true

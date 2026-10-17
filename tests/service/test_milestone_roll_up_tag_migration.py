@@ -446,11 +446,7 @@ async def test_a_damaged_item_at_the_lower_sequence_id_is_skipped_the_healthy_on
         assert tomllib.load(fh)["schema_version"] == "0.15"
     errors = [i for i in await down.check() if i.level == "error"]
     if damage is _make_no_body_region:
-        assert [i.message for i in errors] == [
-            "missing seeded view tag <!-- sq:view:milestone_rollup --> — restore it with "
-            f"`sq milestone {damaged.sequence_id} view add milestone_rollup`, or disable it "
-            f"with `sq milestone {damaged.sequence_id} view disable milestone_rollup`"
-        ]
+        assert [i.message.startswith("missing sq:body region") for i in errors] == [True]
         assert errors[0].item == Path(damaged.path).name
     else:
         assert not errors, [i.message for i in errors]

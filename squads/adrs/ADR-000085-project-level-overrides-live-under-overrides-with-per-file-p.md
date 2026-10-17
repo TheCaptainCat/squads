@@ -8,8 +8,9 @@ status: Accepted
 author: architect
 refs:
 - FEAT-14
+- ADR-1007
 created_at: '2026-06-12T15:29:52Z'
-updated_at: '2026-08-03T08:41:58Z'
+updated_at: '2026-10-15T20:16:48Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -252,6 +253,12 @@ contract doc:
   renamable; unnamed roles fall back to the bundled pool. The init naming surface — declarative
   `--name slug=…` flags and `[init.names]`, plus interactive prompting at a TTY for the gaps
   (suppressed by `--default-names`, implied off when non-TTY) — is the contracted entry path.
+
+> **Note 2026-10-15 (ADR-1007):** frontmatter has no nested `extra` mapping. A role's name is stored
+> in its top-level `title` (ADR-766), and `full_name` is stored on no item, so the naming contract
+> reads: names live in the ROLE item's `title`. Slugs stay canonical and not renamable; `slug` is a
+> core frontmatter key. The same reading applies to section 4's "Flow to all surfaces" bullet and to
+> the consequence "because they already read `extra`". See ADR-1007 decisions 2 and 8.
 
 What is **deliberately not** frozen (room to grow without a major bump): additional override
 *categories* under `.overrides/` (the umbrella is extensible), and the exact wording/layout of the

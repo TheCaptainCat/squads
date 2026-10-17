@@ -78,7 +78,7 @@ async def test_a_mutation_racing_the_scan_no_longer_flips_sq_check_to_exit_3_thr
     thread = threading.Thread(target=mutate)
     thread.start()
     try:
-        result = await invoke(["--dir", str(paths.squad_dir), "check"])
+        result = await invoke(["-C", str(paths.squad_dir), "check"])
     finally:
         thread.join()
 

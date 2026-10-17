@@ -3,7 +3,7 @@ id: TASK-1004
 sequence_id: 1004
 type: task
 title: Put the author's slug in comment headers and migrate the corpus
-status: Draft
+status: InProgress
 parent: FEAT-980
 author: tech-lead
 assignee: python-dev
@@ -43,7 +43,7 @@ subentities:
   status: Todo
   story: US3
 created_at: '2026-10-12T06:46:55Z'
-updated_at: '2026-10-12T06:54:13Z'
+updated_at: '2026-10-15T21:43:32Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -993,4 +993,6 @@ Gates and working rules: the task body.
     - **Open, for the operator:** TASK-1005 shows the slug in the VS Code preview, which story 4 does not ask for. TASK-1005 is not promoted until he answers.
     
     The eight design questions are with @architect; TASK-1004 is not promoted until they are ruled and TASK-954 has landed.
+- [2026-10-15T21:43:32Z] Catherine Manager:
+  - Dispatched to @python-dev: ST1-ST3 first, then the review checkpoint, then ST4-ST7 (manager call of 2026-10-12). -C (FEAT-1015) has landed; scratch probes use -C.
 <!-- sq:discussion:end -->

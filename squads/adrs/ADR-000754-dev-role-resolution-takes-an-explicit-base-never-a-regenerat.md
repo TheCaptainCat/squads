@@ -12,10 +12,11 @@ refs:
 - REV-770
 - ADR-971
 - ADR-984
+- ADR-1007
 description: Dev-role overrides merge onto a base supplied by the caller, built from
   the live role's stored identity
 created_at: '2026-08-21T12:47:51Z'
-updated_at: '2026-10-09T18:47:49Z'
+updated_at: '2026-10-15T20:16:55Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -86,6 +87,12 @@ information a correct one needs.
 The precedence is a stored fact first, a naming convention only where no stored fact exists:
 `extra.is_dev` when an item is in hand, and `_interactions.is_dev_slug` (the existing
 `slug.endswith("-dev")` predicate, `_interactions/__init__.py:181-182`) only when none is.
+
+> **Note 2026-10-15 (ADR-1007):** the item's stored facts are top-level keys, not `extra` entries.
+> `dev_base_from_item` reads `slug` (core), and the declared role attributes `tech` and `model`
+> through the item's attribute accessor; the role's name is its `title` (ADR-766), since `full_name`
+> is stored on no item. The same reading applies to A2's tier 2, A3's report, and the `extra.*`
+> names in the two narrowings below. See ADR-1007 decisions 2, 3 and 8.
 
 **3. What a partial dev override may and may not change.**
 

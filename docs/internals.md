@@ -46,7 +46,7 @@ index, the filesystem, the backend, and rendering together.
 │   ├── settings.json     # merged, never clobbered
 │   ├── agents/<slug>.md  # POINTER → `sq role <slug> show`  (with skills: frontmatter)
 │   └── skills/<name>/SKILL.md   # POINTER → `sq skill <name> show`
-└── squads/               # the squad folder — self-contained & relocatable (override with --dir)
+└── squads/               # the squad folder — self-contained & relocatable (squad_dir in .squads.toml)
     ├── .squads.json      # the index (counter + all items + refs)
     ├── .gitignore        # ignores .squads.json.lock and *.tmp
     ├── epics/ features/ tasks/ bugs/ adrs/ reviews/ guides/   # bundled default folders; custom types use declared folders
@@ -59,9 +59,11 @@ index, the filesystem, the backend, and rendering together.
 ```
 
 - **`.squads.toml`** lives at the project root and points at the squad folder (default `squads/`).
-  `_paths.resolve()` finds the active squad via `--dir` → walk up to `.squads.toml` → default.
-- **The squad folder is self-contained** (`.squads.json` lives inside it), so it can be moved or a
-  project can hold several and switch with `--dir`. Item `path`s are stored squad-folder-relative.
+  `_paths.resolve()` finds the active squad one way: it walks up from the directory `sq` runs in
+  (the process directory, or the one `-C` names) to the first `.squads.toml` and uses its
+  `squad_dir`.
+- **The squad folder is self-contained** (`.squads.json` lives inside it), so it can be moved:
+  point `squad_dir` at its new place. Item `path`s are stored squad-folder-relative.
 - **Type-to-folder mapping is customizable** via `.overrides/workflow.toml` (see [overrides.md](overrides.md)
   and [workflow.md](workflow.md)). The bundled default gives each declared type its own folder.
   Custom item types declare their own folder in the override.
@@ -376,8 +378,9 @@ invocation (parsed by `parse_iso`), which is how a migration preserves historica
 
 ## 11. The CLI (`_cli/`)
 
-Typer app, exposed twice as `squads`/`sq` (entry point `squads._cli:app`). The root callback reads
-the global `--dir` and `--at`, runs the version notice, and dispatches. Conventions:
+Typer app, exposed twice as `squads`/`sq` (entry point `squads._cli:app`). The root callback takes
+the effective directory computed from the global `-C` options as `RequestContext.client_cwd` (it
+never calls `os.chdir`), reads `--at`, runs the version notice, and dispatches. Conventions:
 
 - Errors that are the user's to see subclass `SquadsError`; a `@handle_errors` decorator turns them
   into a clean message + exit 1 (the corrupt-index and validation paths funnel here).
@@ -393,7 +396,7 @@ the global `--dir` and `--at`, runs the version notice, and dispatches. Conventi
 ```
  sq create task … --parent FEAT-<n>
    │
-   ├─ root callback: set --dir / --at, version notice
+   ├─ root callback: set -C / --at, version notice
    ├─ _cli/_create.py  ──▶  get_service()  ──▶  _paths.resolve()  ──▶  SquadPaths
    └─ Service.create(TASK, "Fix login", parent=FEAT-<n>)
         └─ IndexStore.transaction()  [lock .squads.json]

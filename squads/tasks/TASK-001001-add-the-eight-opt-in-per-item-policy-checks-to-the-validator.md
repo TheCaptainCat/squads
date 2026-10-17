@@ -60,7 +60,7 @@ subentities:
   status: Done
   story: US8
 created_at: '2026-10-12T05:46:24Z'
-updated_at: '2026-10-15T19:12:45Z'
+updated_at: '2026-10-15T19:49:26Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1726,4 +1726,27 @@ Gates and working rules: the task body.
     The gate sentence, checked: a check selected at warn is not evaluated on a write (counted calls: 0 at warn and plain, called at @error); the pattern of external_id_not_in_title runs on every `sq check` (called once per item of the selecting type at either level) and on a gated write only when its type selects the check at @error. That the write holds the index lock while it runs is read from the code (create/update run the gate inside the store transaction), not timed. Nothing bounds a match: a backtracking pattern can hang `sq check` and, at @error, the write. A warn-level check that raises no longer aborts a write (ST11).
     
     Part two still owes: the blocked flag, the role catalog's sixth key, `blocked_has_blocker`, the manifest and content store, and the end-of-part-two unselected reading. Waiting for your 0.16.0 confirmation.
+- [2026-10-15T19:25:49Z] Paul Reviewer:
+  - Part one reviewed in REV-1010: changes requested on F1 (an empty-match pattern loads and fires on every item) and F2 (sq import runs warn members over the whole squad, so a bad pattern hangs it). Six low or info findings. @manager
+- [2026-10-15T19:35:10Z] Elias Python:
+  - - 2026-10-15: REV-1010 changes made in the same worktree, commits b60c264c (F1, F7) and 1e519734 (F2 to F5, F8 comment). Gates: pyright 0 errors, ruff clean; targeted tests/meta, unit, service, cli, integration: 8772 passed, 11 skipped, 1 xfailed, 0 failed. F1 to F5 and F7 Fixed on REV-1010, F6 WontFix, F8 comment corrected. @manager
+    
+    - **F1 (driven, then tested).** Load now refuses a pattern that matches the empty string (`x*`, `|`, `^`, `(?:)`, `a|b*`) with "names a regular expression 'x*' that matches the empty string, so it would report every title — make it require a character", and any whitespace-only parameter with the missing-parameter message. A bare lookahead (`(?=ABC)`) cannot be decided at load, so the member counts a zero-width match as no match and reports nothing. Reverting each: 5 and 2 table rows red, plus the zero-width row.
+    - **F2 (read, then driven by a counted member).** `ValidatorEngine.report` takes `only=`; the import's board-debt pass passes the touched ids, so no member runs on an untouched item. New test counts calls: the untouched item is never evaluated, the imported one is. Reverted: red. Correction to the writer sentence: the pattern of `external_id_not_in_title` runs on every `sq check`; on a gated write of an item only when its type selects the check at `@error` (the write holds the index lock while it runs, read from the code); and on `sq import`, at every level, on the items the import wrote only, after the write commits. Nothing bounds a match, so a backtracking pattern can hang `sq check`, such a write, and such an import. The old whole-index import scan is gone, so an import no longer hangs on someone else's title.
+    - **F3.** The item title message no longer starts with "advisory:": `title is 121 chars (threshold: 120) — an item title is a one-line handle; put the detail in the body` (the sub-entity message keeps its own wording). 49 rows red when reverted; a create refusal test pins it.
+    - **F4.** The description message is door-neutral and names no id: ``description is empty — set a summary: `--desc` on create, `update --desc` after``. A create-door test checks it has `--desc`, no `sq task <n>`, and that the next item's number is not in it. The CLI test now clears the finding with `update --desc` on every type. 37 red when reverted.
+    - **F5.** I chose NFC normalisation before counting, not grapheme clusters: it removes the input-method dependence the review showed (decomposed `é` was refused, composed accepted), is one stdlib call, and grapheme clusters would need a dependency the project does not carry. Limit for the docs: the count is in code points after NFC, so a ZWJ emoji sequence still counts as several. Decomposed rows added to the length table and the gate table; 36 red when reverted.
+    - **F6, WontFix.** Not fixable in the guard: the scaffold interpolates `target_ref` (and the type, for the default template) and nothing records their value at creation, so "unchanged from the scaffold" cannot be reconstructed afterwards. The limit is shared with the body overwrite guard and is in the writer handoff. Home needed: a bug for qa to file (guard and `body_written` both), I did not file it from the worktree. @manager please route it.
+    - **F7.** Load compiles under a warnings catcher and refuses an entry that compiles with a warning: `... names a regular expression '[[a]]' that compiles with a warning: Possible nested set at position 1 — rewrite it`. One row, red when reverted.
+    - **F8.** Only the test comment is corrected: it now says a file with no body region ends in an unhandled KeyError on `body -m`, so there is no first-write answer to compare with. The crash is untouched; qa is filing it.
+- [2026-10-15T19:39:29Z] Paul Reviewer:
+  - REV-1010 pass 2: six findings Verified or closed. F7 is reopened: lint accepts a pattern that compiles with a warning on a second compile in the same process, because of the re cache. F9 is info only. ChangesRequested on F7. @manager
+- [2026-10-15T19:43:23Z] Elias Python:
+  - - 2026-10-15: REV-1010 pass 2, commit in the worktree after 1e519734. F7 and F9 Fixed. pyright 0 errors, ruff clean, targeted tests/meta, unit, service, cli, integration: 8778 passed, 11 skipped, 1 xfailed, 0 failed, no FutureWarning in the run. @manager
+    - **F7.** Cache-proof, chosen: the warning check compiles a copy of the pattern behind a unique comment group `(?#<uuid>)`, so its cache key is never seen, the pattern's meaning is unchanged (checked with a leading `(?i)`), and nobody else's cached pattern is purged or evicted beyond one entry. I rejected `re.purge()` (drops every caller's cache) and the private `re._compiler` (private API). The plain compile and the copy both run inside the warnings catcher, so nothing leaks to stderr; the position in the quoted warning is stripped because the prefix shifts it. Rows: the same entry loaded three times in one process, after the test itself primed the cache, all refused (unit, no dependence on order or xdist worker); CLI: `sq workflow lint` exits 1 twice in a row on `[[a]]`, and `sq list` exits 1. Reverting the copy: both rows red.
+    - **F9.** The import `sub-status` branch returns the resolved item's id. Rows over the target spellings `2`, `task-2`, `TASK-2`, `TASK-000002`: each reports the description finding of the touched task. Reverting: the 3 non-canonical spellings red.
+- [2026-10-15T19:44:55Z] Paul Reviewer:
+  - REV-1010 is Approved after pass 3: F7 (warning check that bypasses the re cache) and F9 (sub-status target spellings) are verified. Part one is clear on review. @manager
+- [2026-10-15T19:49:26Z] Catherine Manager:
+  - Part one merged into release/0.16 (a5666b03): REV-1010 approved after three passes; merged tree full suite 9205 passed, 0 failed; pyright, ruff and sq check clean. ST6 and ST10 stay held until the 0.16.0 bump, which follows FEAT-980.
 <!-- sq:discussion:end -->

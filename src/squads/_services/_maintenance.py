@@ -498,6 +498,10 @@ def _marker_issues(text: str) -> list[str]:
     for tag, n in closes.items():
         if opens[tag] < n:
             problems.append(f"close without open <!-- sq:{tag}:end -->")
+    for tag, n in opens.items():
+        paired = n == 1 and closes[tag] == 1 and markers.view_tag_parts(tag) is None
+        if paired and text.find(markers.close_marker(tag)) < text.find(markers.open_marker(tag)):
+            problems.append(f"close before open <!-- sq:{tag}:end -->")
     return problems
 
 
@@ -580,7 +584,12 @@ def _seeded_view_issues(
     # place a tag into, so neither remedy this loop would otherwise name can work on such a
     # file. Deferring to that finding here, rather than also naming a remedy that fails, is what
     # keeps one broken file from ever carrying two findings that disagree on what to run.
-    region_absent = is_roster and region is None
+    region_absent = (
+        region is None
+        if is_roster
+        else markers.open_marker(markers.BODY) not in text
+        and markers.close_marker(markers.BODY) not in text
+    )
     prose_beside_missing_tag = is_roster and bool(views.strip_view_tags(region or "").strip())
     problems: list[str] = []
     for name in sorted(seeded - set(counts)):
@@ -646,18 +655,24 @@ def _seeded_view_issues(
 def _absent_body_region_issues(
     text: str, item_type: str, slug: str, spec: WorkflowSpec
 ) -> list[str]:
-    """One error when a role's or skill's ``sq:body`` marker pair is entirely absent (both
-    markers missing, not just one — that's :func:`_marker_issues`'s job). Names ``view
-    add``/``view disable`` when :func:`~squads._views.reinstate_absent_body_region` says the
-    region can be safely reinstated, or manual recovery when real prose is in the way and
-    neither verb can help without guessing."""
-    if item_type not in (ROSTER_ROLE, ROSTER_SKILL):
-        return []
+    """One error when a file's ``sq:body`` marker pair is entirely absent (both markers
+    missing, not just one — that's :func:`_marker_issues`'s job). Any other type is told to
+    restore the pair; a role or skill names ``view add``/``view disable`` when
+    :func:`~squads._views.reinstate_absent_body_region` says the region can be safely
+    reinstated, or manual recovery when real prose is in the way and neither verb can help
+    without guessing."""
     if markers.open_marker(markers.BODY) in text or markers.close_marker(markers.BODY) in text:
         return []
+    generic = [
+        f"missing {markers.PREFIX}{markers.BODY} region (no "
+        f"`{markers.open_marker(markers.BODY)}`/`{markers.close_marker(markers.BODY)}` "
+        "pair at all) — restore the marker pair in this file, for example from git"
+    ]
+    if item_type not in (ROSTER_ROLE, ROSTER_SKILL):
+        return generic
     view_name = views.roster_body_view_name(item_type, slug, spec)
     if view_name is None:
-        return []
+        return generic
     if views.reinstate_absent_body_region(text) is None:
         return [
             "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at "

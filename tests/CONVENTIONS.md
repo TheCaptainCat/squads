@@ -105,7 +105,7 @@ test_migration_preserves_ref_kinds_across_schema_versions
 
 - **Cross-layer fixtures live in the root `tests/conftest.py`** — `frozen_time`, `project`, `svc`,
   `runner`, `invoke`, `run_in_thread`, and every autouse leak-guard (clock, actor,
-  `_active_spec`/`_active_dir` + custom-command caches, the rendering-engine ContextVar/env-cache,
+  `_active_spec`/`client_cwd` + custom-command caches, the rendering-engine ContextVar/env-cache,
   the `FORCE_COLOR`/`COLUMNS` neutralization). Pytest's normal conftest resolution makes these
   visible in every subdirectory automatically — nothing needs re-importing per layer.
 - **Per-layer `conftest.py` files exist under each of `tests/unit/`, `tests/service/`,

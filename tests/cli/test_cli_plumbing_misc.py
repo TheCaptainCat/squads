@@ -1,4 +1,4 @@
-"""Small CLI plumbing facts with no other home: `--dir` targets a squad from an unrelated cwd,
+"""Small CLI plumbing facts with no other home: `-C` targets a squad from an unrelated cwd,
 `ref add --help` points an agent at `sq workflow`, and the CLI survives a legacy cp1252 console
 encoding (the reason it forces UTF-8 stdio) — a Windows-only fact, always skipped elsewhere.
 """
@@ -12,7 +12,7 @@ import pytest
 from squads._cli import app
 
 
-def test_dir_override_targets_a_squad_from_an_unrelated_cwd(runner, tmp_path, monkeypatch):
+def test_change_dir_targets_a_squad_from_an_unrelated_cwd(runner, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--no-seed-skills", "--squad-dir", "alt", "--roles", "minimal"])
 
@@ -20,17 +20,17 @@ def test_dir_override_targets_a_squad_from_an_unrelated_cwd(runner, tmp_path, mo
     other.mkdir()
     monkeypatch.chdir(other)
 
-    result = runner.invoke(app, ["--dir", str(tmp_path / "alt"), "list"])
+    result = runner.invoke(app, ["-C", str(tmp_path / "alt"), "list"])
     assert result.exit_code == 0, result.output
     assert "ROLE-1" in result.output
 
 
-def test_dir_override_resolves_the_addressed_item_form_from_an_unrelated_cwd(
+def test_change_dir_resolves_the_addressed_item_form_from_an_unrelated_cwd(
     runner, tmp_path, monkeypatch
 ):
     """``sq <type> <n> <verb>`` crosses the sync/async bridge twice — the id-resolving group
     callback, then the leaf verb — and now shares one memoized ``Service`` across both. That
-    memo must not change what either crossing resolves: ``--dir`` consults no cwd at all, and
+    memo must not change what either crossing resolves: ``-C`` replaces the working directory, and
     both crossings must still land on the squad it names, from an unrelated cwd."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--no-seed-skills", "--squad-dir", "alt", "--roles", "minimal"])
@@ -39,13 +39,13 @@ def test_dir_override_resolves_the_addressed_item_form_from_an_unrelated_cwd(
     other.mkdir()
     monkeypatch.chdir(other)
 
-    result = runner.invoke(app, ["--dir", str(tmp_path / "alt"), "role", "1", "show", "--json"])
+    result = runner.invoke(app, ["-C", str(tmp_path / "alt"), "role", "1", "show", "--json"])
     assert result.exit_code == 0, result.output
     assert '"id": "ROLE-1"' in result.output
 
 
 def test_walk_up_resolution_is_unchanged_for_the_addressed_item_form(runner, tmp_path, monkeypatch):
-    """The other resolution mode (no ``--dir``, walk up from the client cwd) for the same
+    """The other resolution mode (no ``-C``, walk up from the client cwd) for the same
     two-crossing form, so the memo is proven not to have widened or narrowed either path."""
     monkeypatch.chdir(tmp_path)
     runner.invoke(app, ["init", "--no-seed-skills", "--roles", "minimal"])

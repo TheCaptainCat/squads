@@ -710,7 +710,7 @@ async def test_the_service_carries_the_playbook_override_the_bypass_builder_used
 
     from squads._context import bind_context, get_context
 
-    bind_context(replace(get_context(), active_dir=str(squad), client_cwd=squad))
+    bind_context(replace(get_context(), client_cwd=squad))
 
     svc = _common._build_bypass_fallback_service(bundled_fallback=False)
 
@@ -727,7 +727,7 @@ async def test_repair_still_falls_back_to_the_bundled_spec_for_an_override_that_
 
     _bad_toml(squad)
     monkeypatch.chdir(squad)
-    bind_context(replace(get_context(), active_dir=str(squad), client_cwd=squad))
+    bind_context(replace(get_context(), client_cwd=squad))
 
     svc = _common._build_bypass_fallback_service()
 

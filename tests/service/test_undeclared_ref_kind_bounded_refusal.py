@@ -133,7 +133,7 @@ async def test_undeclared_kind_refuses_at_write_and_lint_only(
 
     # The load boundary is bounded: neither the low-level constructor above nor the real
     # per-invocation resolution `open_service` uses raises.
-    assert open_service(str(project.squad_dir)).spec is not None
+    assert open_service(client_cwd=project.squad_dir).spec is not None
 
     # A read command still sees the edge, under its stale, undeclared spelling.
     assert (target_id, dropped_kind) in await svc2.refs_out(referrer_id)
@@ -274,7 +274,7 @@ async def test_end_to_end_recovery_needs_no_hand_editing(project) -> None:
 
     # Bounded: nothing about this state stops an ordinary command running.
     assert _no_errors(await svc_renamed.check())  # warn-only, never an error
-    assert open_service(str(project.squad_dir)).spec is not None
+    assert open_service(client_cwd=project.squad_dir).spec is not None
 
     # Recovery, shipped verbs only, no item file ever opened by hand:
     _remove_override(project.squad_dir)  # 1. revert the override edit

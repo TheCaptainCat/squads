@@ -13,11 +13,12 @@ refs:
 - ADR-249
 - ADR-153
 - ADR-955
+- ADR-1007
 description: Markdown is always ahead or equal and the index commits last; every squad-data
   .md write is an atomic replace; sq check stays lock-free and confirms cross-source
   claims; the active transaction is task-local and store-scoped.
 created_at: '2026-07-27T14:02:48Z'
-updated_at: '2026-10-09T20:20:32Z'
+updated_at: '2026-10-15T20:16:54Z'
 ---
 <!-- sq:body -->
 # Context
@@ -184,6 +185,13 @@ Measured against the model, that collapses all three named divergences — legac
 key order and absent-versus-`None`. A future correction that does *not* collapse through the
 round-trip is registered explicitly, on whichever side it lives, in the same change that introduces
 it; otherwise it becomes a false refusal.
+
+> **Note 2026-10-15 (ADR-1007):** from 0.16 the model reads no `extra`, so the legacy
+> `extra.severity` and `extra.ref_kinds` folds leave the round trip: they move under `_migrations/`
+> as a compat reader used by the runners that need it, and the 0.16 runner applies them as it
+> flattens. The normalisation rule stands. Unknown top-level keys take part on both sides of the
+> comparison, and the retired-key exemptions are re-pointed from nested to top-level names. See
+> ADR-1007 decisions 7 and 9.
 
 **A fabricated operand is not a value, and withholding its comparison is not a permitted skew.**
 Registration under the clause above normally means normalizing. One shape cannot be normalized: a

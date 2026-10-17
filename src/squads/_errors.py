@@ -1,12 +1,23 @@
 """Exception hierarchy. CLI catches SquadsError and prints a clean message."""
 
+from pathlib import Path
+
 
 class SquadsError(Exception):
     """Base class for all expected, user-facing errors."""
 
 
 class NotInitializedError(SquadsError):
-    """No .squads.toml found walking up from cwd (and no --dir given)."""
+    """No .squads.toml found walking up from the directory the command ran in."""
+
+    def __init__(self, searched: Path) -> None:
+        self.searched = searched
+        super().__init__(self.describe(named=False))
+
+    def describe(self, *, named: bool) -> str:
+        """The message, naming the searched directory when the caller chose it with ``-C``."""
+        where = str(self.searched) if named else "this"
+        return f"no .squads.toml found in {where} or any parent directory — run `sq init`"
 
 
 class AlreadyInitializedError(SquadsError):

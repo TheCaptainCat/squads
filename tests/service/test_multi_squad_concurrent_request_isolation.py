@@ -58,8 +58,8 @@ async def test_ambient_context_never_bleeds_between_two_concurrent_squad_request
     root_a, root_b = tmp_path / "a", tmp_path / "b"
     root_a.mkdir()
     root_b.mkdir()
-    squad_a = await _init_squad(root_a)
-    squad_b = await _init_squad(root_b)
+    await _init_squad(root_a)
+    await _init_squad(root_b)
 
     a_bound = anyio.Event()
     b_checked = anyio.Event()
@@ -68,7 +68,6 @@ async def test_ambient_context_never_bleeds_between_two_concurrent_squad_request
     async def request_for_a() -> None:
         bind_context(
             RequestContext(
-                active_dir=str(squad_a),
                 client_cwd=root_a,
                 clock_override=_CLOCK_A,
                 actor_override="python-dev",
@@ -80,7 +79,7 @@ async def test_ambient_context_never_bleeds_between_two_concurrent_squad_request
         # cross-task bleed would actually have a window to happen in.
         await b_checked.wait()
         ctx = get_context()
-        svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+        svc = service.open_service(client_cwd=ctx.client_cwd)
         result = await create_item(svc, "task", "Written by request A")
         created["item_id"] = result.item.id
 
@@ -88,7 +87,6 @@ async def test_ambient_context_never_bleeds_between_two_concurrent_squad_request
         await a_bound.wait()
         bind_context(
             RequestContext(
-                active_dir=str(squad_b),
                 client_cwd=root_b,
                 clock_override=_CLOCK_B,
                 actor_override="qa",
@@ -99,14 +97,13 @@ async def test_ambient_context_never_bleeds_between_two_concurrent_squad_request
         # tasks each hold an independent copy of the ambient context, so none of A's fields
         # (dir/clock/actor) are visible here. This is the genuine isolation assertion.
         ctx = get_context()
-        assert ctx.active_dir == str(squad_b)
         assert ctx.client_cwd == root_b
         assert clock.now() == _CLOCK_B
         assert actor.current_actor() == "qa"
 
         # Squad B's own index has nothing from squad A — true by construction (a different
         # index file), not because a race was won; noted for completeness, not as the proof.
-        svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+        svc = service.open_service(client_cwd=ctx.client_cwd)
         items = await svc.list_items(item_type="task")
         assert items == []
         b_checked.set()
@@ -121,20 +118,16 @@ async def test_ambient_context_never_bleeds_between_two_concurrent_squad_request
     # the filelock — never the same `svc` object request_for_a used. Proves the committed
     # write is durable and visible without any cross-request data cache (serial, same squad;
     # the same property is proven under genuine concurrency in the test below).
-    bind_context(
-        RequestContext(active_dir=str(squad_a), client_cwd=root_a, session_id="session-a-2")
-    )
+    bind_context(RequestContext(client_cwd=root_a, session_id="session-a-2"))
     ctx = get_context()
-    next_svc_a = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+    next_svc_a = service.open_service(client_cwd=ctx.client_cwd)
     items_a = await next_svc_a.list_items(item_type="task")
     assert created["item_id"] in {i.id for i in items_a}
 
     # B's index still has nothing from A — again, structural (separate storage), not a race.
-    bind_context(
-        RequestContext(active_dir=str(squad_b), client_cwd=root_b, session_id="session-b-2")
-    )
+    bind_context(RequestContext(client_cwd=root_b, session_id="session-b-2"))
     ctx = get_context()
-    next_svc_b = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+    next_svc_b = service.open_service(client_cwd=ctx.client_cwd)
     items_b = await next_svc_b.list_items(item_type="task")
     assert items_b == []
 
@@ -151,29 +144,25 @@ async def test_a_same_squad_concurrent_reader_sees_the_write_the_moment_it_commi
     """
     root = tmp_path / "squad"
     root.mkdir()
-    squad_dir = await _init_squad(root)
+    await _init_squad(root)
 
     committed = anyio.Event()
     written: dict[str, str] = {}
     seen: dict[str, set[str]] = {}
 
     async def writer() -> None:
-        bind_context(
-            RequestContext(active_dir=str(squad_dir), client_cwd=root, session_id="writer")
-        )
+        bind_context(RequestContext(client_cwd=root, session_id="writer"))
         ctx = get_context()
-        svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+        svc = service.open_service(client_cwd=ctx.client_cwd)
         result = await create_item(svc, "task", "Committed by the writer")
         written["item_id"] = result.item.id
         committed.set()
 
     async def reader() -> None:
         await committed.wait()
-        bind_context(
-            RequestContext(active_dir=str(squad_dir), client_cwd=root, session_id="reader")
-        )
+        bind_context(RequestContext(client_cwd=root, session_id="reader"))
         ctx = get_context()
-        svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+        svc = service.open_service(client_cwd=ctx.client_cwd)
         items = await svc.list_items(item_type="task")
         seen["ids"] = {i.id for i in items}
 
@@ -200,11 +189,9 @@ async def test_four_interleaved_requests_across_two_squads_each_see_only_their_o
     written: dict[str, str] = {}
 
     async def writer(label: str, squad_dir: Path, root: Path) -> None:
-        bind_context(
-            RequestContext(active_dir=str(squad_dir), client_cwd=root, session_id=f"w-{label}")
-        )
+        bind_context(RequestContext(client_cwd=root, session_id=f"w-{label}"))
         ctx = get_context()
-        svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+        svc = service.open_service(client_cwd=ctx.client_cwd)
         result = await create_item(svc, "task", f"Written by {label}")
         written[label] = result.item.id
 
@@ -215,11 +202,9 @@ async def test_four_interleaved_requests_across_two_squads_each_see_only_their_o
     seen: dict[str, set[str]] = {}
 
     async def reader(label: str, squad_dir: Path, root: Path) -> None:
-        bind_context(
-            RequestContext(active_dir=str(squad_dir), client_cwd=root, session_id=f"r-{label}")
-        )
+        bind_context(RequestContext(client_cwd=root, session_id=f"r-{label}"))
         ctx = get_context()
-        svc = service.open_service(ctx.active_dir, client_cwd=ctx.client_cwd)
+        svc = service.open_service(client_cwd=ctx.client_cwd)
         items = await svc.list_items(item_type="task")
         seen[label] = {i.id for i in items}
 

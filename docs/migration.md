@@ -60,9 +60,9 @@ On a squad whose `schema_version` differs from the package's, `sq` refuses every
 these three, and `--help` on any command. `--help` counts only as an option of its own: not after
 `--`, and not as the value of another option (`-m --help` is a message, and is gated like the rest
 of the command; in `-m -m --help` the message is `-m` and `--help` is help). `-h` is not a help
-option of `sq`. The gate applies however the squad is addressed, including through `--dir`,
-wherever its folder sits: at the project root (`squad_dir = "."`), several levels down, or behind a
-symlink.
+option of `sq`. The gate applies however the squad is reached, from a folder inside the project or
+through `-C`, wherever its folder sits: at the project root (`squad_dir = "."`), several levels
+down, or behind a symlink.
 
 | Command | Squad behind the package | Squad ahead of the package |
 |---------|--------------------------|----------------------------|
@@ -190,6 +190,43 @@ converges to the same result and changes nothing.
 
 Read the release's own entry with `sq migrate chlog vFROM..vTO` before running it; a type-adding
 migration needs no manual step, and its entry says so rather than leaving you to guess.
+
+---
+
+## Upgrading to 0.16: `-C` replaces `--dir`
+
+This change touches no file in the squad, so it needs no migration. It changes how scripts and
+agent prompts point `sq` at a squad.
+
+`--dir` is refused wherever it is written as an option, with exit `2` and nothing written (as the
+value of another option, such as `-m --dir`, it is plain text):
+
+```text
+error: --dir is no longer supported; use -C <path> to run sq as if started in <path> (the project directory, or any folder inside it)
+```
+
+`sq -C <path> <command>` behaves as `cd <path> && sq <command>` would: `sq` walks up from `<path>`
+to the first `.squads.toml`, exactly as it does from the folder you run it in. `-C` goes before the
+command and before `--help` or `--version`: after a command it is refused as an unknown option, and
+after `--help` or `--version` it is ignored. It can be repeated, as in git: a relative path is
+taken against the previous `-C`, an absolute one replaces what came before. Relative `--file`
+paths and the `sq import` event file are read from `<path>` too. `-C` never creates a folder: a path with a component that does not exist, is not a directory
+or cannot be entered is refused with exit `2`.
+
+Replacing `--dir` in a script:
+
+| Where the squad folder sits | Before | After |
+|-----------------------------|--------|-------|
+| Inside its project (`squad_dir = "squads"`, `"."`, `"work/squad"`) | `--dir path/to/squads` | `-C path/to/squads` or `-C path/to/project` |
+| Outside its project (`squad_dir = "../shared"` or an absolute path) | `--dir path/to/shared` | `-C path/to/project` |
+
+For a squad outside its project tree, `-C` must name the project: the squad folder itself has no
+`.squads.toml` above it, so `-C path/to/shared` is reported as not initialised. The same holds for
+any folder with no `.squads.toml` above it. Where `--dir` used to run on defaults for such a
+folder, `-C` reports `no .squads.toml found in <path> or any parent directory` and exits `1`.
+
+`sq -C <path> init` and `sq -C <path> adopt` create the project at `<path>` (its `.squads.toml`,
+and the squad folder `--squad-dir` names inside it).
 
 ---
 

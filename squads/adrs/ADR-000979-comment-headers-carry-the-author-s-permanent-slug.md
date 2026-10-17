@@ -9,10 +9,11 @@ refs:
 - ADR-971
 - FEAT-977
 - MILE-934:targets
+- ADR-1007
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-09-29T14:57:05Z'
+updated_at: '2026-10-15T20:16:59Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -179,6 +180,12 @@ never by an author. The migration changes nothing an agent wrote.
   Their system entries are written with the `squads` slug.
 - **`sq repair`** rebuilds identity from frontmatter (`extra.slug`, then the file name) and
   never derives or writes a slug.
+
+> **Note 2026-10-15 (ADR-1007):** `sq repair` rebuilds identity from the core `slug` key, then the
+> file name; there is no `extra.slug`. Operators store no `full_name`: the 0.16 runner folds it into
+> `title`, taking its value when the two differ, so a lookup of an operator by `title` after the
+> flattening returns the name `extra.full_name` held before it (inferred from ADR-1007 decision 9).
+> See ADR-1007 decisions 2 and 8.
 
 ## Consequences
 

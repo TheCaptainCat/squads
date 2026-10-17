@@ -20,7 +20,7 @@ description: 'A standalone-readable map of how squads is built: the cli to servi
   the marker mechanism — pointing at sq docs internals for depth and citing the standing
   ADRs.'
 created_at: '2026-06-12T14:25:59Z'
-updated_at: '2026-06-12T14:28:33Z'
+updated_at: '2026-10-15T20:49:19Z'
 extra:
   tech: python
   tags:
@@ -33,7 +33,7 @@ squads is a Typer CLI that tracks a team of AI agents and their work as identifi
 
 The code is a strict stack: each layer depends only on the ones below it, and `_models` sits at the bottom with no internal dependencies. The import direction is always downward, which keeps the graph acyclic.
 
-**CLI (`src/squads/_cli`).** The top layer is the Typer app: one module per command group (`task`, `feature`, `decision`, `guide`, `migrate`, …), a `--dir` callback that resolves the active squad, and shared console/error/parse helpers in `_common.py`. Its only job is to parse arguments, call the service, and render results. It owns no business logic.
+**CLI (`src/squads/_cli`).** The top layer is the Typer app: one module per command group (`task`, `feature`, `decision`, `guide`, `migrate`, …), a root `-C` option that sets the directory the active squad is resolved from (as if `sq` were started there), and shared console/error/parse helpers in `_common.py`. Its only job is to parse arguments, call the service, and render results. It owns no business logic.
 
 **Services (`src/squads/_services`).** The orchestration layer — the logic behind every command. A shared `ServiceCore` (create/get/list, backend and role/skill lookups, the roster) is composed with one concern mixin per file (items, collaboration, sub-entities, refs, roster, maintenance) into a flat `Service` façade. The CLI talks to this façade; the façade coordinates the layers below.
 

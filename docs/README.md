@@ -65,7 +65,7 @@ project/
 │  ├─ settings.json            │  merged, never clobbered
 │  ├─ agents/architect.md ─────┼────▶ `sq role architect show`     (definition stored under squads/)
 │  └─ skills/sq-task/SKILL.md ─┼────▶ `sq skill sq-task show`      (definition rendered on read)
-└─ squads/                  ◀──┘  self-contained, relocatable (override with --dir)
+└─ squads/                  ◀──┘  self-contained, relocatable (squad_dir in .squads.toml)
    ├─ .squads.json               the index: counter + items + refs  (rebuildable)
    ├─ epics/  features/  tasks/  bugs/  adrs/  reviews/  guides/
    │     └─ TASK-<n>-fix-login.md          ← frontmatter is the truth

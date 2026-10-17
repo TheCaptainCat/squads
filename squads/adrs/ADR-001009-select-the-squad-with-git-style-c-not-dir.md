@@ -3,7 +3,7 @@ id: ADR-1009
 sequence_id: 1009
 type: decision
 title: Select the squad with git-style -C, not --dir
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - MILE-934:targets
@@ -15,7 +15,7 @@ refs:
 description: -C runs sq as if started in PATH and walks up as ordinary use does; --dir
   is refused naming -C; the backwards inference goes away
 created_at: '2026-10-15T19:17:11Z'
-updated_at: '2026-10-15T19:19:36Z'
+updated_at: '2026-10-15T20:17:28Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -249,4 +249,10 @@ FEAT-980 and merge before the bump. It has no feature or task yet.
     2. `-C` comes before the command and can be repeated, git-style.
     3. Relative path arguments resolve against `-C`.
     4. `sq -C X init` creates `X/.squads.toml` with the squad in `X/squads`.
+- [2026-10-15T20:11:53Z] Pierre Chat:
+  - 2026-10-15: accepted.
+- [2026-10-15T20:17:28Z] Robert Architect:
+  - @manager Dated notes are added for all three ADRs in section 7, each as "Note 2026-10-15 (ADR-1009)" at the affected passage, and each has a related ref back to this record: ADR-263 (after the Recommendation; get_command reads the parsed -C values through the shared helper, and the --dir discussion in Options 1 and 2 is historical), ADR-622 (the CLI surface's --dir bullet becomes -C before the command), ADR-534 (after the section 1 inventory; active_dir and set_active_dir are removed, and client_cwd carries the effective directory).
+    None was skipped. ADR-249, ADR-266 and ADR-153 got nothing, as section 7 says.
+    Every diff against HEAD is additions only, apart from the updated_at the body verb stamps. No status changed, no stray content tags, and sq check is clean.
 <!-- sq:discussion:end -->

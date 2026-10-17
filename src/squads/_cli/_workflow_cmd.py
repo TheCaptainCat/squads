@@ -1027,9 +1027,9 @@ def workflow_lint() -> None:
 
     ctx = get_context()
     try:
-        sp = resolve(ctx.active_dir, client_cwd=ctx.client_cwd)
+        sp = resolve(client_cwd=ctx.client_cwd)
     except SquadsError as exc:
-        console.print(f"[red]error[/red]: {e(str(exc))}", soft_wrap=True)
+        console.print(f"[red]error[/red]: {e(common.error_text(exc))}", soft_wrap=True)
         raise typer.Exit(1) from exc
 
     squad_dir = sp.squad_dir
