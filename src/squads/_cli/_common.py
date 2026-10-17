@@ -2063,8 +2063,9 @@ def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Conte
     ) -> None:
         """Set (or --append to) the body.
 
-        Replacing an already-written body is refused unless --force. A role whose body is
-        generated from a view is refused outright; --force does not lift that.
+        Replacing an already-written body is refused unless --force. A body generated from a
+        declared view (a role, a system or per-type skill) is refused outright; --force does
+        not lift that, and an operator body is never refused for it.
         """
         item_id = id_from_ctx(ctx)
         text = resolve_body(message or None, file)

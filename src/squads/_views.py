@@ -32,7 +32,6 @@ and this is where that name turns into the view's rendered output, on every read
 fresh, never stored back.
 """
 
-import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -53,10 +52,8 @@ from squads._interactions._role_guidance import developer_roles
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import (
-    DISPLAY_ID_PADDING,
     Item,
     effective_prefix,
-    format_item_id,
     ref_id_matches,
     split_ref,
 )
@@ -544,16 +541,17 @@ def empty_body_hint_state(
 ) -> EmptyBodyHintState:
     """Which of four states explains an empty-rendering ``sq:body`` region tagged for view
     *name* — the one predicate ``sq role show``/``sq skill show`` both read, so their empty-body
-    hints can't disagree. Checks *disabled* first (its own unconditional remedy), then whether
-    *name* is declared, then whether *drift_outstanding* is what ``sq sync`` would actually fix.
+    hints can't disagree. Checks whether *name* is declared first (a tag of an undeclared view
+    cannot be re-enabled), then *disabled* (its own remedy), then whether
+    *drift_outstanding* is what ``sq sync`` would actually fix.
 
     Returns: ``"disabled"`` (``view add`` re-enables it); ``"view_undeclared"`` (no remedy
     renders this); ``"declared_drift_outstanding"`` (``sq sync`` is the fix);
     ``"declared_no_drift"`` (``sq sync`` is a no-op — ``view add`` is the real remedy)."""
-    if disabled:
-        return "disabled"
     if name not in spec.views:
         return "view_undeclared"
+    if disabled:
+        return "disabled"
     return "declared_drift_outstanding" if drift_outstanding else "declared_no_drift"
 
 
@@ -731,21 +729,11 @@ def view_placement_invocation(
     return f"sq {item_type} {addr} view {verb} {name}"
 
 
-def clear_roster_body_cmd(item_type: str, slug: str, n: int | None, spec: WorkflowSpec) -> str:
-    """The real, filled-in command that clears a roster host's body text, once its view is
-    dropped from ``[selected]`` (what lifts the roster write refusal). A skill uses its own
-    ``body`` verb; a role has none, so it's a single-event ``sq import -`` instead. The one
-    derivation both check remedies that need this compose through, so they never disagree."""
-    if item_type == ROSTER_SKILL:
-        return f'sq skill {slug} body -m "" --force'
-    if n is None:
-        return (
-            f'echo \'{{"op":"body","target":"<see sq role {slug} show for its id>",'
-            '"body":"","force":true}}\' | sq import -'
-        )
-    item_id = format_item_id(spec.items[item_type].prefix, n, DISPLAY_ID_PADDING)
-    event = json.dumps({"op": "body", "target": item_id, "body": "", "force": True, "as": slug})
-    return f"echo '{event}' | sq import -"
+def clear_roster_body_cmd(item_type: str, slug: str) -> str:
+    """The real, filled-in command that clears a role's or skill's body text, once its view is
+    dropped from ``[selected]`` (what lifts the roster write refusal). The one derivation both
+    check remedies that need this compose through, so they never disagree."""
+    return f'sq {item_type} {slug} body -m "" --force'
 
 
 # --------------------------------------------------------------------------- placement

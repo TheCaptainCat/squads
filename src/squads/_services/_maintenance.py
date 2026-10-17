@@ -2,6 +2,7 @@
 
 import contextlib
 import dataclasses
+import re
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
@@ -521,6 +522,10 @@ def _disable_clause(item_type: str, addr: int | str, name: str, *, is_roster: bo
     return f", or disable it with `{disable}`"
 
 
+#: The opening of any sq tag, spaced the way the marker regex accepts.
+_TAG_FRAGMENT_RE = re.compile(rf"<!--\s*{re.escape(markers.PREFIX)}")
+
+
 def _seeded_view_issues(
     text: str, item_type: str, slug: str, n: int | None, spec: WorkflowSpec
 ) -> list[str]:
@@ -553,13 +558,16 @@ def _seeded_view_issues(
         and markers.close_marker(markers.BODY) not in text
     )
     prose_beside_missing_tag = is_roster and bool(views.strip_view_tags(region or "").strip())
+    # A role's prose is a supported state unless it holds a tag fragment: a truncated or
+    # mistyped tag is damage, not prose, and stays reported.
+    role_prose = prose_beside_missing_tag and not _TAG_FRAGMENT_RE.search(region or "")
     problems: list[str] = []
     for name in sorted(seeded - set(counts)):
-        if region_absent or (prose_beside_missing_tag and item_type == ROSTER_ROLE):
+        if region_absent or (role_prose and item_type == ROSTER_ROLE):
             continue
         tag = markers.open_marker(markers.view_tag(name))
         if prose_beside_missing_tag:
-            clear_cmd = views.clear_roster_body_cmd(item_type, slug, n, spec)
+            clear_cmd = views.clear_roster_body_cmd(item_type, slug)
             add_cmd = views.view_placement_invocation(item_type, addr, "add", name)
             doc_type = item_type_for_skill_slug(slug, spec) if item_type == ROSTER_SKILL else None
             if doc_type is not None:

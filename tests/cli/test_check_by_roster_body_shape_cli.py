@@ -26,6 +26,18 @@ SHAPES = {
     "role-prose-and-tag": ("role", "manager", f"{_PROSE}\n{_ROLE_TAG}", False),
     "role-neither": ("role", "manager", "", True),
     "role-only-tag": ("role", "manager", _ROLE_TAG, False),
+    "role-prose-beside-a-truncated-tag": (
+        "role",
+        "manager",
+        f"{_PROSE}\n<!-- sq:view:role_definition",
+        True,
+    ),
+    "role-prose-beside-an-unspaced-truncated-tag": (
+        "role",
+        "manager",
+        f"{_PROSE}\n<!--sq:view:role_definition",
+        True,
+    ),
     "operator-template": ("operator", "op-alice", None, False),
     "operator-prose": ("operator", "op-alice", _PROSE, False),
     "operator-empty-region": ("operator", "op-alice", "", False),
@@ -73,3 +85,25 @@ async def test_check_repair_and_show_by_body_shape(shape, tmp_path, monkeypatch,
     assert shown.exit_code == 0, shown.output
     if region and region != _ROLE_TAG:
         assert _PROSE in shown.output
+
+
+@pytest.mark.parametrize("opener", ["<!-- sq:", "<!--sq:"], ids=["spaced", "unspaced"])
+async def test_a_damaged_role_tag_names_the_role_clear_command(
+    opener, tmp_path, monkeypatch, invoke
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    paths = (await service.init(root=tmp_path, roles_spec="all")).paths
+    path = _file(paths, "role", "manager")
+    path.write_text(
+        replace_section(
+            path.read_text(encoding="utf-8"),
+            markers.BODY,
+            f"{_PROSE}\n{opener}view:role_definition",
+        ),
+        encoding="utf-8",
+    )
+
+    checked = await invoke(["check"])
+
+    assert 'sq role manager body -m "" --force' in " ".join(checked.output.split())
+    assert "sq skill manager" not in checked.output

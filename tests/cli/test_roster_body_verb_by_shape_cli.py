@@ -46,7 +46,7 @@ SHAPES = {
     "role-in-selected": ("role", "manager", "refused"),
     "role-view-dropped": ("role", "manager", "unwritten"),
     "declared-role-view-dropped": ("role", "security-analyst", "unwritten"),
-    "bundled-role-not-activated": ("role", "tester", "inactive"),
+    "bundled-role-not-activated": ("role", "qa", "inactive"),
     "operator-template": ("operator", "op-alice", "unwritten"),
     "operator-written": ("operator", "op-alice", "written"),
     "operator-renamed-before-first-write": ("operator", "op-alice", "unwritten"),
@@ -83,7 +83,8 @@ def _hash(path: Path) -> str:
 
 async def _build(shape, tmp_path, monkeypatch, frozen_time, invoke):
     monkeypatch.chdir(tmp_path)
-    paths = (await service.init(root=tmp_path, roles_spec="all")).paths
+    roles = "minimal" if shape == "bundled-role-not-activated" else "all"
+    paths = (await service.init(root=tmp_path, roles_spec=roles)).paths
     kind = SHAPES[shape][0]
     if shape.startswith("declared"):
         _override(paths.squad_dir, "roles/security-analyst.toml", _ROLE_FILE)
@@ -124,6 +125,7 @@ async def test_the_body_verb_by_shape_source_and_force(
         if state == "refused":
             assert ".overrides/roles.toml" in result.output
             assert "--force" in result.output and "does not lift" in result.output
+            assert f"sq role {slug} view disable role_definition" in " ".join(result.output.split())
         elif state == "inactive":
             assert "activate it first" in result.output
         else:
@@ -135,6 +137,18 @@ async def test_the_body_verb_by_shape_source_and_force(
     assert "body appended" in result.output if append else "body set" in result.output
     shown = await invoke([kind, slug, "show", "--raw"])
     assert "Staff engineer; reviews." in shown.output
+    if shape in DROP_VIEW:
+        assert path is not None
+        # The documented escape converges: disabling the leftover tag leaves a clean squad.
+        assert "sq:view:role_definition" in path.read_text(encoding="utf-8")
+        assert path.name in (await invoke(["check"])).output
+        disabled = await invoke([kind, slug, "view", "disable", "role_definition"])
+        assert disabled.exit_code == 0, disabled.output
+        assert path.name not in (await invoke(["check"])).output
+        reshown = await invoke([kind, slug, "show", "--raw"])
+        assert "<!--" not in reshown.output
+        assert "Staff engineer; reviews." in reshown.output
+        return
     if state == "written":
         assert "Tech lead." in shown.output if append else "Tech lead." not in shown.output
 

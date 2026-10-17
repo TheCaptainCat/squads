@@ -29,6 +29,9 @@ async def _skill_text(invoke) -> str:
 @pytest.mark.parametrize(
     "phrase",
     [
+        "sq list -t operator --all",
+        "`sq operator <slug> status Active`",
+        "Never `operator add` them again",
         "sq operator <slug> show",
         "Its body is their profile",
         "still the default operator text",
@@ -72,3 +75,16 @@ async def test_a_second_sync_changes_no_file_after_a_profile_is_recorded(
     assert (await invoke(["sync"])).exit_code == 0
 
     assert _tree_hash(tmp_path) == first
+
+
+@pytest.mark.parametrize(
+    ("group", "slug"), [("role", "manager"), ("skill", "greeting"), ("operator", "op-alice")]
+)
+async def test_the_body_help_states_the_rule_for_every_kind(group, slug, squad, invoke) -> None:
+    assert (await invoke(["operator", "add", "Alice Tester"])).exit_code == 0
+
+    helped = await invoke([group, slug, "body", "--help"])
+
+    text = " ".join(helped.output.split())
+    assert "a role, a system or per-type skill" in text
+    assert "an operator body is never refused" in text

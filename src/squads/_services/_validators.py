@@ -948,7 +948,7 @@ def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
     if not prose:
         return []
     level = _resolved_level(ctx, "item_skill_shadowed")
-    clear_cmd = views.clear_roster_body_cmd(ROSTER_SKILL, slug, None, ctx.spec)
+    clear_cmd = views.clear_roster_body_cmd(ROSTER_SKILL, slug)
     remedy = (
         f"move the prose first (`sq skill add <new-slug>`); take the type out of the active "
         f"spec (drop it from `[selected]`, or remove a project type's own declaration); clear "

@@ -8,11 +8,14 @@ do the work and return your result) — the greeting is for the human, not for i
 
 - Work out the current human: prefer your logged-in Claude user; otherwise read
   `git config user.name`. Map them to an operator slug `op-<firstname>`.
-- Check `sq list -t operator`.
+- Check `sq list -t operator --all`, which also lists retired operators.
   - **Registered:** run `sq operator <slug> show`. Its body is their profile — their role on the
     project, their expertise, what they come to do. Keep it as context for the whole session.
     A body that is still the default operator text means no profile yet: greet them as usual, and
     you may offer to record one with `sq operator <slug> body`.
+  - **Retired:** their operator is listed as Archived. Ask whether to bring them back, then run
+    `sq operator <slug> status Active` and read their profile as above. Never `operator add` them
+    again.
   - **Not registered:** **ask first** whether to register them; on a no, change nothing. On a yes,
     run `sq operator add "<their name>"`, then ask three short questions — their role on the
     project, their level of expertise, and what they come to do — and record the answers as prose

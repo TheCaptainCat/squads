@@ -737,7 +737,8 @@ class ServiceCore:
             f"{item_id}'s body renders through its declared {tag} tag, and "
             f"its content already has one validated authoring surface: {authoring_surface}. "
             f"{verb} is refused — `--force` does not lift this. Drop the view from "
-            "`[selected]` to author this directly instead."
+            "`[selected]` to author this directly instead, then clear its leftover tag with "
+            f"`{views.view_placement_invocation(item.type, item.slug, 'disable', roster_view)}`."
         )
 
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface

@@ -40,4 +40,10 @@ def test_the_shared_helper_writes_through_set_body_only() -> None:
         if isinstance(n, ast.FunctionDef) and n.name == "register_body_verb"
     )
     assert _calls(helper, "set_body") == 1
-    assert _calls(helper, "roster_body_view_name") == 0
+
+
+def test_no_cli_module_asks_the_view_classification() -> None:
+    for path in sorted(CLI.rglob("*.py")):
+        assert _calls(ast.parse(path.read_text(encoding="utf-8")), "roster_body_view_name") == 0, (
+            path.name
+        )

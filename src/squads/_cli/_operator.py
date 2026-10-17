@@ -158,7 +158,7 @@ async def operator_show(
     render_body_text(
         body,
         raw=raw,
-        empty_hint="(empty — run `sq sync` to regenerate the operator definition)",
+        empty_hint=f'(empty — write their profile with `sq operator {it.slug} body -m "…"`)',
     )
     if comments:
         common.print_comments(await svc.comments(it.id))

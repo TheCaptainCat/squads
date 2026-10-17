@@ -344,8 +344,9 @@ def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> st
     return (
         f"(empty — the view {name!r} is not declared in this project's spec, so `sq sync` "
         "cannot populate it; declare it in `.overrides/workflow.toml` to restore the "
-        "generated definition — or, if a role's body still carries this tag from before it "
-        f"was dropped, disable it with `sq role {slug} view disable {name}`)"
+        f'generated definition — or write the body with `sq role {slug} body -m "…"` and, '
+        f"if it still carries this tag from before the view was dropped, disable the tag with "
+        f"`sq role {slug} view disable {name}`)"
     )
 
 
