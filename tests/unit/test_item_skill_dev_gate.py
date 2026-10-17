@@ -13,10 +13,11 @@ skills" hazard).
 from datetime import UTC, datetime
 from pathlib import Path
 
-from squads._backends._base import RoleView
-from squads._interactions import PLAYBOOK, get_playbook_spec, is_dev_slug
+from squads._interactions import PLAYBOOK, get_playbook_spec
+from squads._interactions._role_guidance import is_dev_slug
 from squads._models._item import Item
 from squads._rendering._engine import render
+from squads._roles._projection import RoleView
 from squads._views import PlaybookSource
 from squads._workflow import bundled_spec
 from squads._workflow._models import ROSTER_SKILL

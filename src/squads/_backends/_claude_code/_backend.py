@@ -11,7 +11,7 @@ from typing import Any
 from squads import _aio
 from squads import _interactions as interactions
 from squads import _sections as sections
-from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
+from squads._backends._base import AgentBackend, Artifact, BackendContext
 from squads._backends._claude_code import _claude_md as claude_md
 from squads._backends._claude_code._frontmatter import (
     model_drop_warning,
@@ -22,6 +22,7 @@ from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
+from squads._roles._projection import OperatorView, RoleView
 from squads._views import place_view_tags
 from squads._workflow import ROSTER_SKILL
 

@@ -23,8 +23,9 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from squads._interactions import item_skill_name, item_types_for_role, skills_for_role
+from squads._interactions import item_skill_name
 from squads._interactions._models import PlaybookSpec
+from squads._interactions._role_guidance import item_types_for_role, skills_for_role
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, ref_id_matches, split_ref
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec

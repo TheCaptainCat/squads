@@ -17,10 +17,10 @@ import os
 from pathlib import Path
 
 from squads._backends._agents_md._backend import _also_creatable_types
-from squads._backends._base import OperatorView, RoleView
 from squads._interactions import cheatsheet_anchor_context
 from squads._rendering._engine import render
 from squads._roles._catalog import dev_role, get_catalog
+from squads._roles._projection import OperatorView, RoleView
 from squads._workflow import bundled_spec
 
 GOLDENS_DIR = Path(__file__).parents[1] / "goldens"

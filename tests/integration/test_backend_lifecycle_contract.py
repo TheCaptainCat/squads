@@ -14,13 +14,14 @@ from pathlib import Path
 import pytest
 
 from squads._backends._agents_md._backend import AgentsMdBackend
-from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
+from squads._backends._base import AgentBackend, Artifact, BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._models._attributes import AttributeKey as X
 from squads._models._config import SquadsConfig
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
+from squads._roles._projection import OperatorView, RoleView
 from squads._services import _service as service
 
 pytestmark = pytest.mark.anyio

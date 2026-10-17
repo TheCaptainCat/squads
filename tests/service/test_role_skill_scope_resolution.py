@@ -1,5 +1,5 @@
 """``Service.resolved_skills_for_role`` — the union of pure system membership
-(``interactions.skills_for_role``) with data-driven ``scopes`` ref edges.
+(``role_guidance.skills_for_role``) with data-driven ``scopes`` ref edges.
 
 A skill scopes to a role via a forward ``SKILL.refs += ROLE-n:scopes`` edge; the resolver
 inverts that (kind-filtered backrefs), maps to slugs, and dedups system-first then scoped.
@@ -7,7 +7,7 @@ inverts that (kind-filtered backrefs), maps to slugs, and dedups system-first th
 
 import pytest
 
-from squads import _interactions as interactions
+from squads._interactions import _role_guidance as role_guidance
 from squads._itemfile import read_frontmatter
 
 pytestmark = pytest.mark.anyio
@@ -15,11 +15,11 @@ pytestmark = pytest.mark.anyio
 
 async def test_with_no_scope_edges_the_resolved_set_matches_pure_system_membership(svc):
     role = await svc.activate_role("tech-writer")
-    assert await svc.resolved_skills_for_role("tech-writer") == interactions.skills_for_role(
+    assert await svc.resolved_skills_for_role("tech-writer") == role_guidance.skills_for_role(
         "tech-writer"
     )
     # And an unregistered/unknown slug degrades to the pure function, not an error.
-    assert await svc.resolved_skills_for_role("nonexistent-role") == interactions.skills_for_role(
+    assert await svc.resolved_skills_for_role("nonexistent-role") == role_guidance.skills_for_role(
         "nonexistent-role"
     )
     assert role.title  # sanity: activation actually happened
@@ -31,7 +31,7 @@ async def test_a_skill_scoped_to_a_role_is_appended_after_the_system_skills(svc)
     await svc.add_ref(skill.id, role.id, kind="scopes")
 
     resolved = await svc.resolved_skills_for_role("tech-writer")
-    system = interactions.skills_for_role("tech-writer")
+    system = role_guidance.skills_for_role("tech-writer")
     assert resolved[: len(system)] == system
     assert resolved[len(system) :] == ["release-runbook"]
 
@@ -46,7 +46,7 @@ async def test_scoping_two_skills_dedups_and_orders_the_scoped_tail_lexically(sv
     await svc.add_ref(zeta.id, role.id, kind="scopes")
 
     resolved = await svc.resolved_skills_for_role("tech-writer")
-    system = interactions.skills_for_role("tech-writer")
+    system = role_guidance.skills_for_role("tech-writer")
     assert resolved == [*system, "alpha-runbook", "zeta-runbook"]
 
 
@@ -57,7 +57,7 @@ async def test_scoping_a_skill_to_one_role_does_not_affect_an_unrelated_roles_re
     await svc.add_ref(skill.id, scoped_role.id, kind="scopes")
 
     assert "release-runbook" in await svc.resolved_skills_for_role("tech-writer")
-    assert await svc.resolved_skills_for_role("architect") == interactions.skills_for_role(
+    assert await svc.resolved_skills_for_role("architect") == role_guidance.skills_for_role(
         "architect"
     )
     assert other_role.slug == "architect"  # sanity
@@ -68,7 +68,7 @@ async def test_a_ref_of_a_different_kind_pointing_at_the_role_is_not_treated_as_
     skill = await svc.add_skill("Release Runbook")
     await svc.add_ref(skill.id, role.id, kind="related")
 
-    assert await svc.resolved_skills_for_role("tech-writer") == interactions.skills_for_role(
+    assert await svc.resolved_skills_for_role("tech-writer") == role_guidance.skills_for_role(
         "tech-writer"
     )
 

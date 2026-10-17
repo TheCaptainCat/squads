@@ -9,7 +9,7 @@ template's test for something narrower (e.g. ``laned_types()``, which asks a dif
 "has an *in-lane author* role", not "carries a playbook entry at all") is caught here rather than
 only where it happens to be first noticed.
 
-``laned_types()`` (``_interactions.laned_types``) is proven to disagree with the raw
+``laned_types()`` (``_interactions._role_guidance.laned_types``) is proven to disagree with the raw
 entry-presence question on a lane whose only role guide sets no ``authors = true`` (the synthetic
 override below gives the renamed type exactly that lane) — substituting it for ``source.lane`` in
 the template is exactly the regression this test exists to catch.
@@ -27,8 +27,9 @@ from pathlib import Path
 
 import pytest
 
-from squads._interactions import item_skill_name, laned_types
+from squads._interactions import item_skill_name
 from squads._interactions._models import PlaybookSpec
+from squads._interactions._role_guidance import laned_types
 from squads._services._service import Service, resolve_playbook
 from squads._views import PlaybookSource, render_source_view, resolve_source
 from squads._workflow._loader import load_workflow_spec

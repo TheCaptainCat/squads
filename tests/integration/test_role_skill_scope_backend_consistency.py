@@ -1,5 +1,5 @@
 """A role's resolved preload-skill list reaches its backend pointer from ``BackendContext``,
-not from an independent call to ``interactions.skills_for_role``.
+not from an independent call to ``role_guidance.skills_for_role``.
 
 The same ``BackendContext.role_skills`` entry — standing in for the service-layer resolver's
 output once a skill is scoped to a role — must reach the Claude Code pointer YAML verbatim.
@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from squads import _interactions as interactions
 from squads._backends._base import BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
+from squads._interactions import _role_guidance as role_guidance
 from squads._models._config import SquadsConfig
 from squads._models._item import Item
 from squads._paths import SquadPaths
@@ -78,15 +78,15 @@ def _make_role_item(squad_dir: Path, slug: str) -> Item:
 
 #: The scoped resolved list a service-layer resolver would compute — system membership plus
 #: one custom skill scoped in via a ``scopes`` ref edge. Deliberately NOT what
-#: ``interactions.skills_for_role`` returns on its own, so any backend that bypassed
+#: ``role_guidance.skills_for_role`` returns on its own, so any backend that bypassed
 #: ``BackendContext`` in favour of a direct call would fail the assertions below.
-_RESOLVED_SKILLS = [*interactions.skills_for_role("architect"), "release-runbook"]
+_RESOLVED_SKILLS = [*role_guidance.skills_for_role("architect"), "release-runbook"]
 
 
 async def test_the_resolved_list_differs_from_the_pure_system_only_mapping() -> None:
     """Sanity: the fixture actually exercises the scoped path, not a no-op equal to the pure
     function's own output."""
-    assert interactions.skills_for_role("architect") != _RESOLVED_SKILLS
+    assert role_guidance.skills_for_role("architect") != _RESOLVED_SKILLS
 
 
 async def test_the_role_entry_carries_the_context_resolved_list_verbatim(
@@ -98,7 +98,7 @@ async def test_the_role_entry_carries_the_context_resolved_list_verbatim(
     artifact = await backend.generate_role_entry(ctx, item, role_def)
     content = (ctx.root / artifact.path).read_text(encoding="utf-8")
     assert "release-runbook" in content
-    for system_skill in interactions.skills_for_role("architect"):
+    for system_skill in role_guidance.skills_for_role("architect"):
         assert system_skill in content
 
 
@@ -113,5 +113,5 @@ async def test_absent_from_role_skills_falls_back_to_the_pure_mapping(
     artifact = await backend.generate_role_entry(ctx, item, role_def)
     content = (ctx.root / artifact.path).read_text(encoding="utf-8")
     assert "release-runbook" not in content
-    for system_skill in interactions.skills_for_role("architect"):
+    for system_skill in role_guidance.skills_for_role("architect"):
         assert system_skill in content

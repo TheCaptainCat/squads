@@ -3,7 +3,7 @@ id: TASK-989
 sequence_id: 989
 type: task
 title: Guard the import graph and move role views and derivations
-status: Draft
+status: Done
 parent: FEAT-986
 author: tech-lead
 assignee: python-dev
@@ -16,15 +16,15 @@ description: 'Behaviour-neutral: an import-graph guard in tests/meta, the roster
 subentities:
 - local_id: ST1
   title: Record the package import edges in a tests/meta guard
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Move RoleView and OperatorView into _roles
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Move the role derivations out of the _interactions init
-  status: Todo
+  status: Done
 created_at: '2026-10-09T20:27:55Z'
-updated_at: '2026-10-12T06:34:20Z'
+updated_at: '2026-10-16T18:14:04Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -215,6 +215,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-16T17:56:50Z] Elias Python:
+  - Import-edge guard added in tests/meta; CLAUDE.md layering, _models and non-empty-inits passages corrected.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -268,6 +270,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-16T17:56:51Z] Elias Python:
+  - RoleView and OperatorView now in _roles/_projection.py; the two protocols are deleted; goldens and fixed-roster hashes unchanged.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -335,6 +339,8 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-16T18:03:26Z] Elias Python:
+  - Role derivations moved to _interactions/_role_guidance.py; no new package edge, goldens and fixed-roster hashes unchanged.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 <!-- sq:subtasks:end -->
@@ -350,4 +356,8 @@ Gates and working rules: the task body.
   - 2026-10-11: brought in line with op-pierre's ruling of the same date. Correcting `CLAUDE.md`'s layering diagram, its `_models` statement and its list of non-empty inits is now part of ST1, checked again at the end of ST3; only the hand-written part above the managed region is edited. ST1's guard also records the non-empty package inits, so the corrected list has a test behind it. The reviewer's measuring script is gone from disk (the session scratchpad was cleared), so ST1 now describes what it did instead of pointing at it. Still Draft.
 - [2026-10-12T06:34:20Z] Olivia Lead:
   - 2026-10-12: ordering brought in line with op-pierre's ruling of this date on MILE-934. The body now says it is built after TASK-954, FEAT-980 and the bump to 0.16.0, and before TASK-990. Nothing in it depended on the working version: it changes no bundled file. ST1 tells the developer to work from `CLAUDE.md` as it stands, since the file has changed since the subtask was written; the three passages to correct are the same. ST2 notes that the released runner whose import line it edits now takes the run's context. Still Draft.
+- [2026-10-16T18:11:54Z] Paul Reviewer:
+  - Reviewed in REV-1066: behaviour-neutral and the guard falsified; four low findings, no medium or worse. @manager
+- [2026-10-16T18:14:03Z] Catherine Manager:
+  - Moved to Done under the manager's delegation: ST1–ST3 Done, REV-1066 Approved, full suite 11,261 passed on 1fd45be5.
 <!-- sq:discussion:end -->

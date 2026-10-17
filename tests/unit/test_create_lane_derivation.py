@@ -11,9 +11,9 @@ an override-declared authoring role is exercised end to end in
 tests/integration/test_an_override_declared_authoring_role_is_in_lane.py.
 """
 
-from squads._interactions import (
+from squads._interactions import PLAYBOOK
+from squads._interactions._role_guidance import (
     DEV,
-    PLAYBOOK,
     allowed_create_types,
     catalog_default_slug,
     create_lanes,

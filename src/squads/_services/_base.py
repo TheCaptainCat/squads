@@ -17,22 +17,20 @@ from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads import _views as views
-from squads._backends._base import AgentBackend, BackendContext, OperatorView, RoleView
+from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
-from squads._interactions import (
-    active_skill_slugs,
+from squads._interactions import active_skill_slugs, get_playbook_spec, is_live_roster_entry
+from squads._interactions._models import PlaybookSpec
+from squads._interactions._role_guidance import (
     allowed_create_types,
-    get_playbook_spec,
     in_lane_owner,
     is_lane_exempt,
-    is_live_roster_entry,
     laned_types,
     skills_for_role,
 )
-from squads._interactions._models import PlaybookSpec
 from squads._itemfile import (
     ensure_no_skew,
     read_item_text,
@@ -55,6 +53,7 @@ from squads._models._participants import (
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, scaffold_body, set_active_squad_dir
+from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import (
     holds_default_designation,
     resolve_role,
@@ -617,7 +616,7 @@ class ServiceCore:
         that designation, and the exemption has to move with it. Returns ``None`` when no live
         role holds it, which is what a squad that retired its coordinator gets — a legitimate
         state, not a gap to paper over; the caller falls back to the role catalog's own
-        designation there (:func:`~squads._interactions.catalog_default_slug`).
+        designation there (:func:`~squads._interactions._role_guidance.catalog_default_slug`).
 
         The designation goes through :func:`~squads._roles._resolver
         .holds_default_designation`, not a raw ``is_default`` attribute read: the stored key is an
@@ -1412,7 +1411,7 @@ class ServiceCore:
     def _resolve_role_skills(self, slug: str, role: Item | None, db: SquadsDB) -> list[str]:
         """Pure (no I/O) core of the resolver: *db* and *role* are already loaded by the caller.
 
-        Starts from ``interactions.skills_for_role(slug)`` (index-blind, always-on skills +
+        Starts from ``role_guidance.skills_for_role(slug)`` (index-blind, always-on skills +
         the role's item-type skills), then unions in every custom skill carrying a forward
         edge to this role in the declared ``preload`` semantic (:meth:`WorkflowSpec
         .preload_ref_kind`) — found by inverting refs (``SquadsDB.backrefs``, kind-agnostic,

@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from squads import _interactions as interactions
+from squads._interactions import _role_guidance as role_guidance
 from squads._services import _config_integrity as config_integrity
 from squads._services import _service as service
 
@@ -72,8 +73,8 @@ async def test_with_no_override_the_generated_skill_body_is_unchanged(project, s
 async def test_a_roles_preloaded_skill_list_reflects_the_playbook_override(project) -> None:
     _write_override(project.squad_dir, _APPEND_ARCHITECT_TO_TASK)
     svc = service.open_service()
-    assert "sq-task" not in interactions.skills_for_role("architect", svc.spec)  # bundled-blind
-    assert "sq-task" in interactions.skills_for_role("architect", svc.spec, svc.playbook)
+    assert "sq-task" not in role_guidance.skills_for_role("architect", svc.spec)  # bundled-blind
+    assert "sq-task" in role_guidance.skills_for_role("architect", svc.spec, svc.playbook)
 
 
 async def test_config_integrity_type_implied_finding_reflects_the_playbook_override(

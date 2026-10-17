@@ -255,13 +255,13 @@ def test_managed_item_types_is_playbook_keyed_and_excludes_a_hypothetical_custom
 
 
 def test_skills_for_role_degrades_gracefully_when_custom_types_exist() -> None:
-    from squads._interactions import skills_for_role
+    from squads._interactions._role_guidance import skills_for_role
 
     result = skills_for_role("manager")
     assert isinstance(result, list) and result
 
 
 def test_in_lane_owner_degrades_to_empty_for_a_type_with_no_lane_owner() -> None:
-    from squads._interactions import in_lane_owner
+    from squads._interactions._role_guidance import in_lane_owner
 
     assert in_lane_owner("incident") == set()
