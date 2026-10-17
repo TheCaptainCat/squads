@@ -476,22 +476,13 @@ async def adopt(
 @app.command(name="list")
 @common.command
 async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
-    type: str | None = typer.Option(
-        None, "--type", "-t", help="Show only items of this type (see `sq workflow types`)."
-    ),
-    status: str | None = typer.Option(
-        None,
-        "--status",
-        "-s",
-        help="Show only items in this status, closed or not (see `sq workflow statuses`).",
-    ),
+    type: str | None = common.type_filter_option(),
+    status: str | None = common.status_filter_option(),
     parent: str | None = typer.Option(
         None, "--parent", help="Show only the direct children of this item ID or number."
     ),
     label: str | None = typer.Option(None, "--label", help="Show only items carrying this label."),
-    assignee: str | None = typer.Option(
-        None, "--assignee", help="Show only items assigned to this role or operator slug."
-    ),
+    assignee: str | None = common.assignee_filter_option(),
     category: str | None = typer.Option(
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
@@ -516,7 +507,7 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     sort: str | None = typer.Option(
         None, "--sort", help="Sort by an ordered badge field's rank (e.g. priority)."
     ),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
+    all_: bool = common.closed_option(),
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
     """List items in a table.
@@ -578,18 +569,9 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     root_id: str | None = typer.Argument(
         None, help="Item ID or number to root the tree at; omit for the whole squad."
     ),
-    type: str | None = typer.Option(
-        None, "--type", "-t", help="Show only items of this type (see `sq workflow types`)."
-    ),
-    status: str | None = typer.Option(
-        None,
-        "--status",
-        "-s",
-        help="Show only items in this status, closed or not (see `sq workflow statuses`).",
-    ),
-    assignee: str | None = typer.Option(
-        None, "--assignee", help="Show only items assigned to this role or operator slug."
-    ),
+    type: str | None = common.type_filter_option(),
+    status: str | None = common.status_filter_option(),
+    assignee: str | None = common.assignee_filter_option(),
     category: str | None = typer.Option(
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
@@ -614,10 +596,8 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     sort: str | None = typer.Option(
         None, "--sort", help="Sort each level by an ordered badge field's rank."
     ),
-    depth: int | None = typer.Option(
-        None, "--depth", help="How many levels below the root to show; 0 shows only the root."
-    ),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
+    depth: int | None = common.depth_option(None),
+    all_: bool = common.closed_option(),
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array of root nodes, each with nested children."
     ),
@@ -797,8 +777,7 @@ async def renumber(
     use `sq repair --renumber`. Give exactly one of `--onto` or `--by`.
 
     Read the other branch's counter (for `--onto`) with:
-
-        git show <mainref>:squads/.squads.json | jq .counter
+      git show <mainref>:squads/.squads.json | jq .counter
     """
     if (onto is None) == (by is None):
         raise typer.BadParameter("provide exactly one of --onto or --by")
@@ -882,15 +861,8 @@ async def inbox(
 @common.command
 async def search(
     text: str = typer.Argument(..., help="Text to find (case-insensitive)."),
-    type: str | None = typer.Option(
-        None, "--type", "-t", help="Show only items of this type (see `sq workflow types`)."
-    ),
-    status: str | None = typer.Option(
-        None,
-        "--status",
-        "-s",
-        help="Show only items in this status, closed or not (see `sq workflow statuses`).",
-    ),
+    type: str | None = common.type_filter_option(),
+    status: str | None = common.status_filter_option(),
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per matching item."
     ),
@@ -1021,12 +993,7 @@ def _attach_graph_node(parent_tree: Tree, node: GraphNode) -> None:
 @common.command
 async def graph(
     root_id: str = typer.Argument(..., metavar="ID", help="Item ID or number to start from."),
-    depth: int = typer.Option(
-        2,
-        "--depth",
-        "-d",
-        help="How many levels below the root to show; 0 shows only the root.",
-    ),
+    depth: int = common.depth_option(2, "-d"),
     kind: list[str] = typer.Option(
         [],
         "--kind",
@@ -1038,7 +1005,7 @@ async def graph(
         "--direction",
         help="`out` follows the item's own refs, `in` the refs to it, `both` either.",
     ),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
+    all_: bool = common.closed_option(),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the root, with nested children."
     ),
@@ -1159,7 +1126,7 @@ async def workload(
 @common.command
 async def mine(
     role: str = typer.Argument(..., help="Role or operator slug, such as `python-dev`."),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
+    all_: bool = common.closed_option(),
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
     """List the items assigned to someone, directly or through a sub-entity."""
@@ -1248,7 +1215,7 @@ async def reflog(
     op: str | None = typer.Option(
         None,
         "--op",
-        help=f"Filter by op name ({'/'.join(REFLOG_OPS)}).",
+        help=f"Show only entries of this operation: {', '.join(REFLOG_OPS)}.",
     ),
     since: str | None = typer.Option(
         None,
@@ -1478,7 +1445,7 @@ async def show_any(
         ..., metavar="ID", help="Item ID, such as `FEAT-<n>`, or its bare number."
     ),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
-    raw: bool = typer.Option(False, "--raw", help="Print plain text instead of rendered markdown."),
+    raw: bool = common.raw_option(),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comment panes."
     ),

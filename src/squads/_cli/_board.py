@@ -19,6 +19,7 @@ import json
 import typer
 
 import squads._actor as actor
+import squads._cli._common as common
 from squads._cli._common import (
     command,
     console,
@@ -40,18 +41,12 @@ board_app = typer.Typer(
 @board_app.command("post")
 @command
 async def post_notice(
-    message: list[str] = typer.Option(
-        None, "-m", "--message", help="A paragraph of text; repeat for several."
-    ),
-    file: str | None = typer.Option(
-        None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
-    ),
+    message: list[str] = common.message_option(),
+    file: str | None = common.file_option(),
     until: str | None = typer.Option(
         None, "--until", help="ISO 8601 date or time after which the notice is hidden."
     ),
-    as_: str | None = typer.Option(
-        None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
-    ),
+    as_: str | None = common.as_option(),
 ) -> None:
     """Post a notice to the board, visible to the whole team until it expires."""
     svc = get_service()

@@ -13,6 +13,8 @@ per-kind closures. Every verb is a thin wrapper over an existing ``svc.*`` metho
 
 import inspect
 import json
+import textwrap
+from collections.abc import Callable
 from typing import Any, cast
 
 import typer
@@ -252,7 +254,7 @@ def build_item_app(
     """
     item = typer.Typer(
         no_args_is_help=True,
-        help=f"Operate on a {item_type} by number/id.",
+        help=common.type_group_help(item_type),
         cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else typer.core.TyperGroup,
     )
 
@@ -267,7 +269,7 @@ def build_item_app(
     @common.command
     async def _resolve(
         ctx: typer.Context,
-        num: str = typer.Argument(..., metavar="N", help=f"{item_type} number or id."),
+        num: str = typer.Argument(..., metavar="N", help=f"Number or ID of the {item_type}."),
     ):
         svc = get_service()
         ctx.obj = {"id": await resolve_item_id_typed(num, item_type, svc)}
@@ -293,7 +295,7 @@ def build_item_app(
     # can never be dropped, so an undeclared type is never roster; no by-name fallback
     # vocabulary is needed here (mirrors the item_subentity_kind() comment above).
     if not spec.item_is_roster(item_type):
-        _cmd_retype(item, spec)
+        _cmd_retype(item)
         _cmd_remove(item)
     return item
 
@@ -304,9 +306,7 @@ def _cmd_show(item: typer.Typer) -> None:
     async def show(
         ctx: typer.Context,
         json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
-        raw: bool = typer.Option(
-            False, "--raw", help="Print plain text instead of rendered markdown."
-        ),
+        raw: bool = common.raw_option(),
         comments: bool = typer.Option(
             False, "--comments", help="Append the discussion as comment panes."
         ),
@@ -345,23 +345,13 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
     async def update(  # noqa: PLR0913 — the one metadata entry point
         ctx: typer.Context,
         title: str | None = typer.Option(None, "--title", help="New title."),
-        desc: str | None = typer.Option(
-            None, "--desc", help="Short summary shown in listings; not the body."
-        ),
-        author: str | None = typer.Option(
-            None, "--author", help="Author: a registered role slug or `op-<slug>`."
-        ),
-        status: str | None = typer.Option(
-            None, "--status", help="Status to move to (see `sq workflow lifecycles`)."
-        ),
-        force: bool = typer.Option(
-            False, "--force", help="Make a transition the lifecycle does not allow."
-        ),
+        desc: str | None = common.desc_option(None),
+        author: str | None = common.author_option(None),
+        status: str | None = common.move_status_option(),
+        force: bool = common.force_transition_option(),
         parent: str | None = typer.Option(None, "--parent", help="New parent item ID or number."),
         no_parent: bool = typer.Option(False, "--no-parent", help="Clear the parent."),
-        assignee: str | None = typer.Option(
-            None, "--assignee", help="Role or operator slug to assign."
-        ),
+        assignee: str | None = common.assignee_option(),
         priority: str | None = typer.Option(None, "--priority", help=priority_help),
         no_priority: bool = typer.Option(False, "--no-priority", help="Clear the priority."),
         add_label: list[str] = typer.Option(None, "--add-label", help="Label to add (repeatable)."),
@@ -424,12 +414,8 @@ def _cmd_status(item: typer.Typer) -> None:
     @common.command
     async def status(
         ctx: typer.Context,
-        new_status: str = typer.Argument(
-            ..., metavar="STATUS", help="Status to move to (see `sq workflow lifecycles`)."
-        ),
-        force: bool = typer.Option(
-            False, "--force", help="Make a transition the lifecycle does not allow."
-        ),
+        new_status: str = typer.Argument(..., metavar="STATUS", help=common.MOVE_STATUS_HELP),
+        force: bool = common.force_transition_option(),
     ):
         """Move the item to another status."""
         it = await get_service().set_status(_id(ctx), parse_status(new_status), force=force)
@@ -441,18 +427,10 @@ def _cmd_body(item: typer.Typer) -> None:
     @common.command
     async def body(
         ctx: typer.Context,
-        message: list[str] = typer.Option(
-            None, "-m", "--message", help="A paragraph of text; repeat for several."
-        ),
-        file: str | None = typer.Option(
-            None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
-        ),
-        append: bool = typer.Option(
-            False, "--append", help="Append to the body instead of replacing it."
-        ),
-        force: bool = typer.Option(
-            False, "--force", help="Replace a body already written; what it held is lost."
-        ),
+        message: list[str] = common.message_option(),
+        file: str | None = common.file_option(),
+        append: bool = common.append_option(),
+        force: bool = common.replace_body_option(),
     ):
         """Set or append to the item's body.
 
@@ -466,24 +444,8 @@ def _cmd_body(item: typer.Typer) -> None:
         console.print(f"{_id(ctx)}: body {'appended' if append else 'set'}")
 
 
-def _retype_targets(spec: WorkflowSpec) -> str:
-    return "|".join(sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)))
-
-
-def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
-    targets = _retype_targets(spec)
-
-    def _refresh_retype_help(params: list[object]) -> None:
-        live_targets = _retype_targets(common.get_active_spec())
-        text = (
-            f"Target type (non-roster: work or records): {live_targets}. "
-            "The item number is preserved; only the ID prefix flips."
-        )
-        for p in params:
-            if getattr(p, "name", None) == "new_type":
-                p.help = text  # type: ignore[attr-defined]
-
-    @item.command("retype", cls=common.spec_aware_command_cls(_refresh_retype_help))
+def _cmd_retype(item: typer.Typer) -> None:
+    @item.command("retype")
     @common.command
     async def retype(
         ctx: typer.Context,
@@ -491,8 +453,8 @@ def _cmd_retype(item: typer.Typer, spec: WorkflowSpec) -> None:
             ...,
             metavar="NEW-TYPE",
             help=(
-                f"Target type (non-roster: work or records): {targets}. "
-                "The item number is preserved; only the ID prefix flips."
+                "Type to reclassify to, not a roster type (see `sq workflow types`). "
+                "The item number is kept; only the ID prefix changes."
             ),
         ),
     ):
@@ -533,11 +495,7 @@ def _cmd_remove(item: typer.Typer) -> None:
             "--force",
             help="Cut the refs other items carry to this one instead of refusing.",
         ),
-        yes: bool = typer.Option(
-            False,
-            "--yes",
-            help="Skip the confirmation prompt.",
-        ),
+        yes: bool = common.yes_option(),
         json_out: bool = typer.Option(
             False, "--json", help="Print one JSON object: the removed ID and the cut refs."
         ),
@@ -727,18 +685,28 @@ def _sub_table(kind: str, blocks: list[SubEntity], spec: WorkflowSpec) -> None:
     console.print(table)
 
 
+def _doc[F: Callable[..., object]](text: str) -> Callable[[F], F]:
+    """Give a generated command the help text its kind's labels spell out."""
+
+    def apply(fn: F) -> F:
+        fn.__doc__ = text
+        return fn
+
+    return apply
+
+
 def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     plural = spec.subentity_plural(kind)
 
     @item.command(plural)
     @common.command
+    @_doc(f"List this item's {plural}.")
     async def list_sub(
         ctx: typer.Context,
         json_out: bool = typer.Option(
-            False, "--json", help="Print a JSON array, one object per sub-entity."
+            False, "--json", help=f"Print a JSON array, one object per {kind}."
         ),
     ):
-        """List this item's sub-entities."""
         blocks = await get_service().list_blocks(_id(ctx), kind)
         if json_out:
             print_json_clean(
@@ -761,13 +729,18 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
 
     _register_add(item, kind, spec)
 
-    sub = typer.Typer(no_args_is_help=True, help=f"Operate on a {kind} by number/local id.")
+    sub = typer.Typer(
+        no_args_is_help=True,
+        help=f"Operate on {common.article(kind)} {kind} by number or local ID.",
+    )
 
     @sub.callback()
     @handle_errors
     def _resolve_sub(
         ctx: typer.Context,
-        n: str = typer.Argument(..., metavar="N", help=f"{kind} number or local id (e.g. 2)."),
+        n: str = typer.Argument(
+            ..., metavar="LOCAL-ID", help=f"Number or local ID of the {kind}, such as 2."
+        ),
     ):
         assert ctx.parent is not None  # the parent item group always runs first
         ctx.obj = {**ctx.parent.obj, "local": resolve_local_id(n, kind)}
@@ -825,7 +798,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         inspect.Parameter(
             "assignee",
             inspect.Parameter.KEYWORD_ONLY,
-            default=typer.Option(None, "--assignee", help="Role or operator slug to assign."),
+            default=common.assignee_option(),
             annotation=str | None,
         ),
         inspect.Parameter(
@@ -839,25 +812,19 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         inspect.Parameter(
             "message",
             inspect.Parameter.KEYWORD_ONLY,
-            default=typer.Option(
-                None, "-m", "--message", help="A paragraph of text; repeat for several."
-            ),
+            default=common.message_option(),
             annotation=list[str],
         ),
         inspect.Parameter(
             "file",
             inspect.Parameter.KEYWORD_ONLY,
-            default=typer.Option(
-                None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
-            ),
+            default=common.file_option(),
             annotation=str | None,
         ),
         inspect.Parameter(
             "json_out",
             inspect.Parameter.KEYWORD_ONLY,
-            default=typer.Option(
-                False, "--json", help="Print one JSON object: the new sub-entity."
-            ),
+            default=typer.Option(False, "--json", help=f"Print one JSON object: the new {kind}."),
             annotation=bool,
         ),
     ]
@@ -888,7 +855,7 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         )
         print_block(_id(ctx), res, _kw_bool(kwargs, "json_out"))
 
-    _add.__doc__ = f"Scaffold a {kind} on this item."
+    _add.__doc__ = f"Scaffold {common.article(kind)} {kind} on this item."
     _add.__signature__ = inspect.Signature(params)  # pyright: ignore[reportFunctionMemberAccess]
     item.command(f"add-{kind}")(common.command(_add))
 
@@ -933,7 +900,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         inspect.Parameter(
             "assignee",
             inspect.Parameter.KEYWORD_ONLY,
-            default=typer.Option(None, "--assignee", help="Role or operator slug to assign."),
+            default=common.assignee_option(),
             annotation=str | None,
         ),
         inspect.Parameter(
@@ -945,17 +912,13 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         inspect.Parameter(
             "status",
             inspect.Parameter.KEYWORD_ONLY,
-            default=typer.Option(
-                None, "--status", help="Status to move to (see `sq workflow lifecycles`)."
-            ),
+            default=common.move_status_option(),
             annotation=str | None,
         ),
         inspect.Parameter(
             "force",
             inspect.Parameter.KEYWORD_ONLY,
-            default=typer.Option(
-                False, "--force", help="Make a transition the lifecycle does not allow."
-            ),
+            default=common.force_transition_option(),
             annotation=bool,
         ),
     ]
@@ -1009,19 +972,38 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     sub.command("update")(common.command(_update))
 
 
+def _remove_help(kind: str, spec: WorkflowSpec) -> str:
+    """The help of ``<kind> remove``, naming the kind that maps onto it when one does."""
+    mapping = sorted(
+        {
+            child
+            for item_type, ts in spec.items.items()
+            if (child := ts.subentity_kind) is not None
+            and spec.subentity_kinds[child].maps_parent_story
+            and spec.item_subentity_kind(spec.item_parent_required(item_type) or "") == kind
+        }
+    )
+    note = "Its local id is never reused."
+    if mapping:
+        note += (
+            f" {common.article(kind).capitalize()} {kind} that {common.article(mapping[0])} "
+            f"{mapping[0]} still maps to is refused; remap or remove the {mapping[0]} first."
+        )
+    summary = f"Delete this {kind} for good, with its body and discussion."
+    return f"{summary}\n\n{textwrap.fill(note, 78)}"
+
+
 def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     def ids(ctx: typer.Context) -> tuple[str, str]:
         return ctx.obj["id"], ctx.obj["local"]
 
     @sub.command("show")
     @common.command
+    @_doc(f"Show the {kind}'s status, assignee, body and discussion.")
     async def s_show(
         ctx: typer.Context,
-        json_out: bool = typer.Option(
-            False, "--json", help="Print one JSON object: the sub-entity."
-        ),
+        json_out: bool = typer.Option(False, "--json", help=f"Print one JSON object: the {kind}."),
     ):
-        """Show the sub-entity's status/assignee, body, and discussion."""
         pid, lid = ids(ctx)
         detail = await get_service().get_block(pid, kind, lid)
         if json_out:
@@ -1033,25 +1015,17 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
 
     @sub.command("body")
     @common.command
+    @_doc(
+        f"Set or append to the {kind}'s body.\n\n"
+        "Replacing a body someone has already written is refused unless `--force`."
+    )
     async def s_body(
         ctx: typer.Context,
-        message: list[str] = typer.Option(
-            None, "-m", "--message", help="A paragraph of text; repeat for several."
-        ),
-        file: str | None = typer.Option(
-            None, "--file", help="Read the text from a file instead of `-m`; `-` reads stdin."
-        ),
-        append: bool = typer.Option(
-            False, "--append", help="Append to the body instead of replacing it."
-        ),
-        force: bool = typer.Option(
-            False, "--force", help="Replace a body already written; what it held is lost."
-        ),
+        message: list[str] = common.message_option(),
+        file: str | None = common.file_option(),
+        append: bool = common.append_option(),
+        force: bool = common.replace_body_option(),
     ):
-        """Set or append to the sub-entity's body.
-
-        Replacing a body someone has already written is refused unless `--force`.
-        """
         pid, lid = ids(ctx)
         await get_service().set_block_body(
             pid, kind, lid, resolve_body(message or None, file), append=append, force=force
@@ -1062,18 +1036,14 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
 
     @sub.command("remove")
     @common.command
+    @_doc(_remove_help(kind, spec))
     async def s_remove(
         ctx: typer.Context,
-        yes: bool = typer.Option(False, "--yes", help="Skip the confirmation prompt."),
+        yes: bool = common.yes_option(),
         json_out: bool = typer.Option(
-            False, "--json", help="Print one JSON object naming the removed sub-entity."
+            False, "--json", help=f"Print one JSON object naming the removed {kind}."
         ),
     ):
-        """Delete this sub-entity for good, with its body and discussion.
-
-        Its local id is never reused. A story that a subtask still maps to is refused;
-        remap or remove the subtask first.
-        """
         pid, lid = ids(ctx)
         if not yes:
             typer.confirm(f"Remove {kind} {lid} from {pid}? This cannot be undone.", abort=True)

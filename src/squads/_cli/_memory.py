@@ -170,9 +170,7 @@ async def add_memory(
         help="One-line summary of the memory, which also names its slug; "
         "put the detail in `--file`.",
     ),
-    file: str | None = typer.Option(
-        None, "--file", help="Read the memory's body from a file; `-` reads stdin."
-    ),
+    file: str | None = common.file_option("Read the memory's body from a file; `-` reads stdin."),
     slug: str | None = typer.Option(
         None, "--slug", help="Slug to file the memory under instead of one made from the summary."
     ),

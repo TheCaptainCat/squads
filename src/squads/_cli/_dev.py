@@ -18,7 +18,7 @@ dev_app = typer.Typer(no_args_is_help=True, help="Manage stack-specific develope
 @dev_app.command("add")
 @common.command
 async def dev_add(
-    tech: str = typer.Option(..., "--tech", help="Technology, such as `python` or `react`."),
+    tech: str = common.tech_option(...),
     name: str | None = typer.Option(
         None, "--name", help="Full name; without it, one is picked from a pool."
     ),
@@ -30,9 +30,7 @@ async def dev_add(
     slug: str | None = typer.Option(
         None, "--slug", help="Slug to file the developer under instead of `<tech>-dev`."
     ),
-    pronouns: str | None = typer.Option(
-        None, "--pronouns", help="Pronouns, such as they/them; one line, up to 40 characters."
-    ),
+    pronouns: str | None = common.pronouns_option(),
 ):
     """Add a developer role for one technology, such as `--tech dotnet`."""
     svc = get_service()

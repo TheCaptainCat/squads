@@ -68,14 +68,11 @@ workflow_app = typer.Typer(
 # ─── show (default — bare `sq workflow`) ───────────────────────────────────────
 
 
-_RAW_HELP = "Print plain text instead of rendered markdown."
-
-
 @workflow_app.callback()
 @common.command
 async def workflow_default(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help=_RAW_HELP),
+    raw: bool = common.raw_option(),
 ) -> None:
     """Print the team workflow cheatsheet when no sub-command is given."""
     if ctx.invoked_subcommand is None:
@@ -84,7 +81,7 @@ async def workflow_default(
 
 @workflow_app.command("show")
 @common.command
-async def workflow_show(raw: bool = typer.Option(False, "--raw", help=_RAW_HELP)) -> None:
+async def workflow_show(raw: bool = common.raw_option()) -> None:
     """Print the team workflow cheatsheet: who writes what, how items link."""
     await _print_cheatsheet(raw=raw)
 

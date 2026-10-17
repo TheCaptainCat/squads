@@ -148,6 +148,10 @@ The rules, one per part of the screen:
 and read the screen, not the diff. Does the first screen answer the three questions? Is any name
 on it something an adopter cannot type or open? Is every cell of the options panel filled?
 
+`tests/meta/test_every_help_screen_follows_the_help_rule.py` walks every help screen and holds the
+mechanical half of these rules; a body past 10 lines is accepted only as an entry, with its reason,
+in that test's `LONG_BODIES` list.
+
 ## How to add things
 
 - **A template** → drop a `.j2` under `squads/_rendering/templates/`; it ships in the wheel as

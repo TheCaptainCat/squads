@@ -42,12 +42,15 @@ class _OperatorDispatchGroup(AddressDispatchGroup):
 operator_app = typer.Typer(
     no_args_is_help=True,
     help="Manage human operators.",
-    epilog=(
-        "Address an operator:  sq operator <slug|id|n> {verbs}\n"
-        "Examples:  sq operator op-alice show   sq operator 2 remove --purge\n"
-        "           sq operator op-alice status Archived\n"
-        "Note: a slug matching a group verb (add, list) is unaddressable by slug; "
-        "use the full ID or bare number instead."
+    epilog=common.address_epilog(
+        "operator",
+        "operator",
+        (
+            "sq operator op-alice show",
+            "sq operator 2 remove --purge",
+            "sq operator op-alice status Archived",
+        ),
+        "add, list",
     ),
     cls=_OperatorDispatchGroup,
 )
@@ -62,9 +65,7 @@ async def operator_add(
     slug: str | None = typer.Option(
         None, "--slug", help="Slug to use instead of `op-<first name>`."
     ),
-    pronouns: str | None = typer.Option(
-        None, "--pronouns", help="Pronouns, such as they/them; one line, up to 40 characters."
-    ),
+    pronouns: str | None = common.pronouns_option(),
 ) -> None:
     """Register a person who can be assigned work and write items and comments."""
     svc = get_service()
@@ -119,14 +120,20 @@ async def operator_list(
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
 
-_addr = typer.Typer(no_args_is_help=True, help="Operate on an operator by slug, ID, or number.")
+_addr = typer.Typer(
+    no_args_is_help=True,
+    cls=common.AddressedGroup,
+    help="Operate on an operator by slug, ID, or number.",
+)
 
 
 @_addr.callback()
 @common.command
 async def _resolve_addr(
     ctx: typer.Context,
-    addr: str = typer.Argument(..., metavar="ADDR", help="Operator slug, ID or number."),
+    addr: str = typer.Argument(
+        ..., metavar=common.ADDRESS_METAVAR, help="Operator slug, ID or number."
+    ),
 ) -> None:
     svc = get_service()
     ctx.ensure_object(dict)
@@ -137,7 +144,7 @@ async def _resolve_addr(
 @common.command
 async def operator_show(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help="Print plain text instead of rendered markdown."),
+    raw: bool = common.raw_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the operator."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."

@@ -69,13 +69,17 @@ class _SkillDispatchGroup(AddressDispatchGroup):
 skill_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent skills.",
-    epilog=(
-        "Address a skill:  sq skill <slug|id|n> {verbs}\n"
-        "Examples:  sq skill squads show   sq skill 2 regen   sq skill SKILL-2 remove --purge\n"
-        "           sq skill squads status Archived\n"
-        "           sq skill squads view disable squads_skill   — disable a dropped view's tag\n"
-        "Note: a slug matching a group verb (add) is unaddressable by slug; "
-        "use the full ID or bare number instead."
+    epilog=common.address_epilog(
+        "skill",
+        "skill",
+        (
+            "sq skill squads show",
+            "sq skill 2 regen",
+            "sq skill SKILL-2 remove --purge",
+            "sq skill squads status Archived",
+            "sq skill squads view disable squads_skill",
+        ),
+        "add",
     ),
     cls=_SkillDispatchGroup,
 )
@@ -87,14 +91,14 @@ skill_app = typer.Typer(
 @common.command
 async def skill_add(
     name: str = typer.Argument(..., help="The skill's title; its slug is made from it."),
-    desc: str = typer.Option("", "--desc", help="Short summary shown in listings; not the body."),
+    desc: str = common.desc_option(),
     when_to_use: str = typer.Option(
         "", "--when-to-use", help="When an agent should reach for the skill."
     ),
     allowed_tools: str = typer.Option(
         "", "--allowed-tools", help="Tools the skill may use, recorded on the skill."
     ),
-    parent: str | None = typer.Option(None, "--parent", help="Parent item ID or number."),
+    parent: str | None = common.parent_option(),
     operator_invocable: str | None = typer.Option(
         None, "--operator-invocable", help=_INVOCABLE_HELP
     ),
@@ -115,14 +119,20 @@ async def skill_add(
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
 
-_addr = typer.Typer(no_args_is_help=True, help="Operate on a skill by slug, ID, or number.")
+_addr = typer.Typer(
+    no_args_is_help=True,
+    cls=common.AddressedGroup,
+    help="Operate on a skill by slug, ID, or number.",
+)
 
 
 @_addr.callback()
 @common.command
 async def _resolve_addr(
     ctx: typer.Context,
-    addr: str = typer.Argument(..., metavar="ADDR", help="Skill slug, ID or number."),
+    addr: str = typer.Argument(
+        ..., metavar=common.ADDRESS_METAVAR, help="Skill slug, ID or number."
+    ),
 ) -> None:
     svc = get_service()
     ctx.ensure_object(dict)
@@ -133,7 +143,7 @@ async def _resolve_addr(
 @common.command
 async def skill_show(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help="Print plain text instead of rendered markdown."),
+    raw: bool = common.raw_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the skill."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
@@ -362,9 +372,7 @@ async def skill_regen(ctx: typer.Context) -> None:
 async def skill_update(
     ctx: typer.Context,
     title: str | None = typer.Option(None, "--title", help="The skill's display title."),
-    desc: str | None = typer.Option(
-        None, "--desc", help="Short summary shown in listings; not the body."
-    ),
+    desc: str | None = common.desc_option(None),
     when_to_use: str | None = typer.Option(
         None, "--when-to-use", help="When an agent should reach for the skill."
     ),

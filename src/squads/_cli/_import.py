@@ -143,11 +143,9 @@ async def import_events(
         "--dry-run",
         help="Check the file and print the plan of IDs it would create; write nothing.",
     ),
-    as_: str | None = typer.Option(
-        None,
-        "--as",
-        help="Slug to attribute events with no `as` of their own and none to inherit; "
-        "without it such an event is refused.",
+    as_: str | None = common.as_option(
+        "Slug to attribute events with no `as` of their own and none to inherit; "
+        "without it such an event is refused."
     ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the plan and, once applied, the outcome."

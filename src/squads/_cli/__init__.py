@@ -392,7 +392,7 @@ for _type_str in _STATIC_TYPES:
     app.add_typer(
         _type_app,
         name=_type_str,
-        help=f"Operate on a {_type_str} by number.",
+        help=common.type_group_help(_type_str),
     )
     # Aliases come from the spec's ItemSpec.aliases — the single source of truth.
     for _alias in _spec.items[_type_str].aliases:

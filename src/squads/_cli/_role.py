@@ -68,13 +68,18 @@ class _RoleDispatchGroup(AddressDispatchGroup):
 role_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent roles.",
-    epilog=(
-        "Address a role:  sq role <slug|id|n> {verbs}\n"
-        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 remove --purge\n"
-        "           sq role manager status Archived   sq role qa set-default\n"
-        "           sq role qa view disable role_definition   — disable a dropped view's tag\n"
-        "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
-        "use the full ID or bare number instead."
+    epilog=common.address_epilog(
+        "role",
+        "role",
+        (
+            "sq role manager show",
+            "sq role 1 regen",
+            "sq role ROLE-1 remove --purge",
+            "sq role manager status Archived",
+            "sq role qa set-default",
+            "sq role qa view disable role_definition",
+        ),
+        "catalog, activate, list",
     ),
     cls=_RoleDispatchGroup,
 )
@@ -257,9 +262,7 @@ async def activate_role(
     name: str | None = typer.Option(
         None, "--name", help="Full name for this agent instead of the bundled one."
     ),
-    pronouns: str | None = typer.Option(
-        None, "--pronouns", help="Pronouns, such as they/them; one line, up to 40 characters."
-    ),
+    pronouns: str | None = common.pronouns_option(),
 ) -> None:
     """Activate a role: create its tracked item and Claude pointer.
 
@@ -278,7 +281,11 @@ async def activate_role(
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
 
-_addr = typer.Typer(no_args_is_help=True, help="Operate on a role by slug, ID, or number.")
+_addr = typer.Typer(
+    no_args_is_help=True,
+    cls=common.AddressedGroup,
+    help="Operate on a role by slug, ID, or number.",
+)
 
 # Context key for the raw address token (stored alongside the resolved id).
 _ADDR_KEY = "addr"
@@ -289,7 +296,9 @@ _ID_KEY = "id"
 @common.command
 async def _resolve_addr(
     ctx: typer.Context,
-    addr: str = typer.Argument(..., metavar="ADDR", help="Role slug, ID or number."),
+    addr: str = typer.Argument(
+        ..., metavar=common.ADDRESS_METAVAR, help="Role slug, ID or number."
+    ),
 ) -> None:
     """Resolve the address token; for ``show`` also allow bundled-only slugs (graceful fallback).
 
@@ -353,7 +362,7 @@ def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> st
 @common.command
 async def show_role(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help="Print plain text instead of rendered markdown."),
+    raw: bool = common.raw_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the role."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
