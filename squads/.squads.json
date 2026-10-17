@@ -48777,7 +48777,7 @@
       "type": "task",
       "title": "Resolve and render skill operator invocability",
       "slug": "resolve-and-render-skill-operator-invocability",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "A declared default per bundled skill, a squad's stored choice set by the CLI, rendered as user-invocable: false by the Claude Code backend",
       "parent": "FEAT-966",
       "author": "tech-lead",
@@ -48794,7 +48794,7 @@
         {
           "local_id": "ST1",
           "title": "Declare each bundled skill's default and resolve operator_invocable in one place",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48803,7 +48803,7 @@
         {
           "local_id": "ST2",
           "title": "Render user-invocable: false from all three Claude Code pointer sites",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48812,7 +48812,7 @@
         {
           "local_id": "ST3",
           "title": "Add --operator-invocable yes/no/default to sq skill add and update",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -48821,7 +48821,7 @@
         {
           "local_id": "ST4",
           "title": "Show the resolved value and whether the squad set it",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -48830,7 +48830,7 @@
         {
           "local_id": "ST5",
           "title": "Keep the AGENTS.md backend silent about operator_invocable",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -48839,7 +48839,7 @@
         {
           "local_id": "ST6",
           "title": "Prove the upgrade path: drift before sq sync, clean after",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -48848,7 +48848,7 @@
         {
           "local_id": "ST7",
           "title": "Observe a hidden skill preloading into a subagent on a real host",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "qa",
           "severity": null,
           "story": "US2",
@@ -48857,7 +48857,7 @@
       ],
       "path": "tasks/TASK-001072-resolve-and-render-skill-operator-invocability.md",
       "created_at": "2026-10-16T19:55:32Z",
-      "updated_at": "2026-10-17T03:11:06Z",
+      "updated_at": "2026-10-17T03:31:48Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
