@@ -133,8 +133,8 @@ async def test_a_per_item_type_skill_matching_a_declared_type_names_the_move_fir
     assert "sq skill sq-task view add item_skill" in message
 
 
-async def test_a_role_with_a_genuinely_empty_body_still_names_both_remedies(svc) -> None:
-    """A role with a genuinely empty body still names both remedies."""
+async def test_a_role_with_a_genuinely_empty_body_names_only_the_restoring_remedy(svc) -> None:
+    """A role's generated view cannot be disabled, so only the restoring remedy is named."""
     role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
     _strip_body(svc, role)
 
@@ -142,11 +142,8 @@ async def test_a_role_with_a_genuinely_empty_body_still_names_both_remedies(svc)
 
     matches = [i for i in issues if "missing seeded view tag" in i.message]
     assert matches, [i.message for i in issues]
-    assert any(
-        "sq role manager view add role_definition" in i.message
-        and "sq role manager view disable role_definition" in i.message
-        for i in matches
-    ), [i.message for i in matches]
+    assert any("sq role manager view add role_definition" in i.message for i in matches)
+    assert not any("view disable" in i.message for i in matches), [i.message for i in matches]
 
 
 def _remove_body_region(svc, item, replacement: str) -> None:
@@ -201,7 +198,7 @@ async def test_an_entirely_absent_but_safely_recoverable_region_names_one_workin
     ]
     assert len(matches) == 1, [i.message for i in matches]
     assert "sq role manager view add role_definition" in matches[0].message
-    assert "sq role manager view disable role_definition" in matches[0].message
+    assert "view disable" not in matches[0].message
 
     changed = await svc.add_view(role.id, "role_definition")
     assert changed

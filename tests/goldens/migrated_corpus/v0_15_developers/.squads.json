@@ -24,7 +24,9 @@
       "updated_at": "2025-05-20T11:01:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "system"
+      },
       "slug_in_file": true,
       "id": "ROLE-1"
     },
@@ -50,7 +52,8 @@
       "modified_session": null,
       "attributes": {
         "model": "opus",
-        "tech": "python"
+        "tech": "python",
+        "origin": "system"
       },
       "slug_in_file": true,
       "id": "ROLE-2"
@@ -77,7 +80,8 @@
       "modified_session": null,
       "attributes": {
         "model": "sonnet",
-        "tech": "go"
+        "tech": "go",
+        "origin": "system"
       },
       "slug_in_file": true,
       "id": "ROLE-3"
@@ -104,7 +108,8 @@
       "modified_session": null,
       "attributes": {
         "model": "sonnet",
-        "tech": "rust"
+        "tech": "rust",
+        "origin": "system"
       },
       "slug_in_file": true,
       "id": "ROLE-4"
@@ -129,7 +134,9 @@
       "updated_at": "2025-05-20T11:22:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "project"
+      },
       "slug_in_file": true,
       "id": "ROLE-5"
     },
@@ -153,7 +160,9 @@
       "updated_at": "2025-05-20T11:26:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "project"
+      },
       "slug_in_file": true,
       "id": "ROLE-6"
     },
@@ -177,7 +186,9 @@
       "updated_at": "2025-05-20T11:24:00Z",
       "created_session": null,
       "modified_session": null,
-      "attributes": {},
+      "attributes": {
+        "origin": "project"
+      },
       "slug_in_file": true,
       "id": "ROLE-7"
     }

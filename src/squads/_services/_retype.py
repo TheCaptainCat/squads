@@ -1,8 +1,8 @@
 """Retype an item in place: flip its type, move its file, carry/reset status, rewrite edges.
 
 The operation runs inside a single index transaction so the rename, frontmatter update, and all
-incoming-edge rewrites are atomic from the store's perspective.  Body bytes are left verbatim;
-only the frontmatter is rewritten via ``update_frontmatter``.
+incoming-edge rewrites are atomic from the store's perspective.  The retyped file's new text is
+composed in memory and written once; body bytes are left verbatim apart from the id remap.
 """
 
 from pathlib import Path
@@ -13,13 +13,14 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import ensure_no_skew, rewrite_ids, update_frontmatter, write_text
+from squads._itemfile import ensure_no_skew, remap_ids_text, rewrite_ids, write_text
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, format_item_id, make_ref, split_ref
 from squads._models._participants import SYSTEM_SLUG
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths
+from squads._sections import replace_frontmatter
 from squads._services._base import ServiceCore, ensure_subentity_container_text
 from squads._services._results import RetypeResult
 from squads._services._validators import ValidatorEngine
@@ -165,38 +166,40 @@ class RetypeMixin(ServiceCore):
             current_text = await self._read_item_file(item, item_file(self.paths, item))
             ensure_no_skew(current_text, base, default_kind=default_kind)
 
-            new_path = await apply_type_change(
+            new_path, text = await apply_type_change(
                 self.paths,
                 self.spec,
                 db,
                 item,
                 new_type,
                 carry_status=not status_reset,
-                base=base,
-                default_kind=default_kind,
+                text=current_text,
             )
             new_id = item.id  # @computed_field formats from item.prefix (now correct); unpadded
 
             # Rewrite all incoming edges (refs, parent links, prose mentions). A single-pair
             # remap here — the bulk rename path builds one combined {old:new} across every
-            # renamed item and drives the same two calls once instead of once per item.
+            # renamed item and drives the same two calls once instead of once per item. The
+            # retyped file's own text is remapped in memory and written once, below.
             remap = {old_id: new_id}
-            all_paths = [
+            remapped = remap_ids_text(text, remap)
+            await write_text(
+                new_path, _with_retype_comment(remapped, old_id, new_id, status_reset, item)
+            )
+            other_paths = [
                 item_file(self.paths, it)
                 for it in db.items.values()
                 if it.sequence_id != item.sequence_id
             ]
-            all_paths.append(new_path)
-            touched = await rewrite_ids(all_paths, remap)
+            touched = await rewrite_ids(other_paths, remap)
+            if remapped != text:
+                touched.append(new_path)
 
             # Re-sync in-memory items
             resync_edges(db, remap, exclude={item.sequence_id})
 
             # Update the index entry
             db.add(item)
-
-            # Append system comment
-            await _append_retype_comment(new_path, old_id, new_id, status_reset, item)
 
             rewritten_names = [str(p.relative_to(self.paths.squad_dir)) for p in touched]
 
@@ -233,32 +236,28 @@ async def apply_type_change(
     new_type: str,
     *,
     carry_status: bool,
-    base: Item,
-    default_kind: str,
-) -> Path:
-    """Mutate *item* in place for a type change: new prefix/id, moved file, frontmatter,
-    status, and sub-entity container. Body bytes stay verbatim.
+    text: str,
+) -> tuple[Path, str]:
+    """Mutate *item* in place for a type change: new prefix/id, moved file, status. Returns
+    the new file path and the item's new text, composed from *text* (its current on-disk text,
+    already skew-checked by the caller): new frontmatter plus the sub-entity container the new
+    type hosts. The caller writes that text once, to the returned path. Body bytes stay verbatim.
 
     This is the per-item self-rewrite core shared by ``retype()`` (which resolves
     *carry_status* itself, via :func:`_carry_or_reset_status`) and the bulk rename path
     (which always passes ``carry_status=True``). It does *not* touch other items' edges —
     that is the separate, batchable pass in :func:`~squads._itemfile.rewrite_ids` /
     :func:`resync_edges`, so a bulk caller can run it once across every renamed item
-    instead of once per item. Returns the new file path.
-
-    ``base`` is *item* as loaded, before this call's own delta — the caller (``retype()`` for
-    one item, ``rename_type()``'s pre-flight for a batch) has already confirmed it matches
-    disk before any file was moved; :func:`~squads._itemfile.update_frontmatter` below checks
-    again at the new path, which is safe/redundant rather than a second real divergence.
+    instead of once per item.
 
     Rename-then-write, not write-then-rename: the file moves to its new path first, and only
-    then is its frontmatter rewritten there. A crash in that window leaves the item at its new
-    path with its old frontmatter while the index — not yet committed either — still names the
-    old path, so a reader resolving the item from the index looks for a file that has already
-    moved: ``show``/``get`` hard-fail with ``FileNotFoundError`` until ``sq repair`` re-indexes
-    from the file's new location. This is rougher than a non-renaming write, which stays
-    readable at its one unchanging path throughout, but it is still the skew-direction rule's
-    permitted markdown-ahead outcome for a retype/rename, not a violation of it.
+    then does the caller write its text there. A crash in that window leaves the item at its
+    new path with its old frontmatter while the index — not yet committed either — still names
+    the old path, so a reader resolving the item from the index looks for a file that has
+    already moved: ``show``/``get`` hard-fail with ``FileNotFoundError`` until ``sq repair``
+    re-indexes from the file's new location. This is rougher than a non-renaming write, which
+    stays readable at its one unchanging path throughout, but it is still the skew-direction
+    rule's permitted markdown-ahead outcome for a retype/rename, not a violation of it.
     """
     old_path = item_file(paths, item)
     if not carry_status:
@@ -276,24 +275,8 @@ async def apply_type_change(
     await _aio.path_rename(old_path, new_path)
     item.path = new_rel
     item.updated_at = clock.now()
-    await update_frontmatter(new_path, item, base, default_kind=default_kind)
-
-    # Append sub-entity container if the new type hosts one and it is absent
-    await _ensure_subentity_container(spec, new_type, new_path)
-    return new_path
-
-
-async def _ensure_subentity_container(spec: WorkflowSpec, new_type: str, path: Path) -> None:
-    """Append an empty sub-entity container block when *new_type* hosts sub-entities.
-
-    Thin file-I/O wrapper around the shared, template-agnostic primitive
-    (:func:`squads._services._base.ensure_subentity_container_text`) — also used directly
-    by item creation, so retype and create can never drift on how a container gets added.
-    """
-    text = await _aio.read_text(path)
-    updated = ensure_subentity_container_text(spec, new_type, text)
-    if updated != text:
-        await write_text(path, updated)
+    composed = replace_frontmatter(text, item.to_frontmatter_dict(), source=str(new_path))
+    return new_path, ensure_subentity_container_text(spec, new_type, composed)
 
 
 def resync_edges(db: SquadsDB, remap: dict[str, str], *, exclude: set[int]) -> None:
@@ -318,14 +301,10 @@ def _remap_ref(ref: str, remap: dict[str, str]) -> str:
     return make_ref(remap[rid], kind) if rid in remap else ref
 
 
-async def _append_retype_comment(
-    path: Path,
-    old_id: str,
-    new_id: str,
-    status_reset: bool,
-    item: Item,
-) -> None:
-    """Append a system comment recording the retype to the item's discussion."""
+def _with_retype_comment(
+    text: str, old_id: str, new_id: str, status_reset: bool, item: Item
+) -> str:
+    """*text* with a system comment recording the retype appended to its discussion."""
     now_iso = clock.iso(clock.now())
     if status_reset:
         status_note = f"status reset to {item.status} (workflows differ)"
@@ -333,7 +312,6 @@ async def _append_retype_comment(
         status_note = f"status carried as {item.status}"
     msg = f"retyped {old_id} → {new_id}; {status_note}"
     entry = discussion.format_comment(now_iso, SYSTEM_SLUG, SYSTEM_SLUG, [msg])
-    text = await _aio.read_text(path)
     if sections.has_section(text, markers.DISCUSSION):
-        text = sections.append_to_section(text, markers.DISCUSSION, entry)
-        await write_text(path, text)
+        return sections.append_to_section(text, markers.DISCUSSION, entry)
+    return text

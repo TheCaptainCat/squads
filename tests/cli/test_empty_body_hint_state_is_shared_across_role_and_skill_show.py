@@ -28,6 +28,17 @@ def _empty_body(svc, item) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _disable_view_tag(svc, item, name: str) -> None:
+    path = item_file(svc.paths, item)
+    text = path.read_text(encoding="utf-8")
+    tag = f"<!-- {markers.PREFIX}{markers.view_tag(name)} -->"
+    assert tag in text
+    path.write_text(
+        text.replace(tag, f"<!-- {markers.PREFIX}{markers.view_tag(name, disabled=True)} -->"),
+        encoding="utf-8",
+    )
+
+
 def _stamp_older_squads_version(squad_dir: Path) -> None:
     """Rewrite ``.squads.toml``'s ``squads_version`` to an older release, leaving
     ``schema_version`` untouched, so version drift is outstanding."""
@@ -81,8 +92,7 @@ async def test_role_view_undeclared_names_the_view_not_sync(svc, invoke) -> None
 async def test_role_view_disabled_names_the_real_role_in_the_re_enable_command(svc, invoke) -> None:
     """The disabled-view hint names the real role slug, never a literal `<slug>` placeholder."""
     role = await svc.activate_role("reviewer")
-    disabled = await svc.disable_view(role.id, "role_definition")
-    assert disabled is True
+    _disable_view_tag(svc, role, "role_definition")
 
     r = await invoke(["role", "reviewer", "show", "--raw"])
 

@@ -235,12 +235,31 @@ class _ReflogOp:
 
 
 @dataclass
+class HeldItemFiles:
+    """Item-file texts and file moves a transaction holds in memory, in first-touch order.
+
+    The service layer fills it while a hold is open and applies it once, before the index
+    commit: each moved file is renamed, then written. ``moves`` maps the path a file has on
+    disk to the path it is to have; ``texts`` is keyed by final path.
+    """
+
+    texts: dict[Path, str] = field(default_factory=dict[Path, str])
+    moves: dict[Path, Path] = field(default_factory=dict[Path, Path])
+
+    def disk_path(self, path: Path) -> Path:
+        """Where the file that is to be at *path* sits on disk now."""
+        return next((origin for origin, final in self.moves.items() if final == path), path)
+
+
+@dataclass
 class _TransactionCtx:
     """Transaction context: the :class:`SquadsDB` plus :attr:`reflog_ops` buffered for
-    post-commit append (flushed after ``os.replace``, while the file lock is held)."""
+    post-commit append (flushed after ``os.replace``, while the file lock is held), and the
+    :class:`HeldItemFiles` of an open hold, if any."""
 
     db: SquadsDB
     reflog_ops: list[_ReflogOp] = field(default_factory=list[_ReflogOp])
+    held: HeldItemFiles | None = None
 
     def log(
         self,
@@ -610,6 +629,28 @@ class IndexStore:
                 session_id=sid,
                 parent_session_id=psid,
             )
+
+    def held_item_files(self) -> HeldItemFiles | None:
+        """The open hold of this store's active transaction, or ``None`` when there is none."""
+        ctx = _transaction_ctx_for(self)
+        return ctx.held if ctx is not None else None
+
+    def open_held_item_files(self) -> HeldItemFiles:
+        """Open a hold on the active transaction. Raises when no transaction is open or a hold
+        already is: a second hold would silently drop the first one's texts."""
+        ctx = _transaction_ctx_for(self)
+        if ctx is None:
+            raise SquadsError("item files can be held only inside an open transaction")
+        if ctx.held is not None:
+            raise SquadsError("a hold on item files is already open in this transaction")
+        ctx.held = HeldItemFiles()
+        return ctx.held
+
+    def close_held_item_files(self) -> None:
+        """Drop the active transaction's hold, if any."""
+        ctx = _transaction_ctx_for(self)
+        if ctx is not None:
+            ctx.held = None
 
     async def overwrite(self, db: SquadsDB) -> None:
         """Replace the whole index under the three-layer lock (used by ``sq repair``), with the

@@ -137,12 +137,12 @@ async def test_show_prints_the_authored_text_for_one_and_the_rendered_text_for_t
 
     authored = await invoke(["skill", "sq-onboarding", "show", "--raw"])
     assert authored.exit_code == 0, authored.output
-    assert "custom (authored)" in authored.output
+    assert "origin: project" in authored.output
     assert "shadow a review" in authored.output
 
     rendered = await invoke(["skill", "sq-incident", "show", "--raw"])
     assert rendered.exit_code == 0, rendered.output
-    assert "system (template-owned)" in rendered.output
+    assert "origin: system" in rendered.output
     assert "Open → Done" in rendered.output
     stored = svc.paths.abspath(incident.path).read_text(encoding="utf-8")
     region = (sections.get_section(stored, markers.BODY) or "").strip("\n")

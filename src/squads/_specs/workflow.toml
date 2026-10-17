@@ -556,6 +556,7 @@ ref_rules = []
 [items.role.attributes]
 is_default = { kind = "bool", settable = false }
 model = { kind = "str" }
+origin = { kind = "str", required = true, settable = false }
 tech = { kind = "str", settable = false }
 
 [items.skill]
@@ -577,6 +578,7 @@ ref_rules = []
 [items.skill.attributes]
 allowed_tools = { kind = "str" }
 model = { kind = "str" }
+origin = { kind = "str", required = true, settable = false }
 when_to_use = { kind = "str" }
 
 [items.operator]

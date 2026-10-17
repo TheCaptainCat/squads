@@ -456,6 +456,8 @@ def _lift_extra(path: Path) -> None:
     for key, value in extra.items():
         if key == "slug" or key not in CORE_KEYS:
             front.setdefault(key, value)
+    if front.get("type") in ("role", "skill"):
+        front.setdefault("origin", "system")  # a current-schema file stores one
     path.write_text(replace_frontmatter(text, front, source=str(path)), encoding="utf-8")
 
 

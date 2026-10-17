@@ -24,7 +24,7 @@ subentities:
   title: Docs for the profile and prose allowance
   status: Todo
 created_at: '2026-10-16T11:34:59Z'
-updated_at: '2026-10-16T19:50:30Z'
+updated_at: '2026-10-16T21:16:44Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -174,4 +174,8 @@ Acceptance criteria:
   - 2026-10-16: the body verb is for roles and operators. The profile is simply the item's body, as prose; no --profile option on operator add. The whole feature targets 0.16 (MILE-934).
 - [2026-10-16T19:50:27Z] Nina Product:
   - 2026-10-16 readiness pass: added problem, scope, out-of-scope and the binding rulings (REV-1047 F8; op-pierre 2026-10-16). Reconciled with FEAT-976: no conflict. Role body uses the existing refusal classification, so it is refused (naming the role override, --force no help) while the role's view is in [selected] and writable once dropped; operators have no view and are always writable; the seeded operator template counts as unwritten so the first write needs no --force. US1 carries both as acceptance. Moved to Ready.
+- [2026-10-16T21:15:57Z] Olivia Lead:
+  - @manager One open question, raised while breaking this down into TASK-1078. The operator and skill templates put the entry's name (and description) into the seeded body, and "unwritten" means the body equals the template rendered from the entry as it is now. Once TASK-1070 ships `update --title`, renaming an operator that has no profile yet makes the stored body stop matching, so the first `sq operator <slug> body` asks for `--force`. That breaks US1 ("the first write needs no `--force`"). A project skill renamed by `update --title`/`--desc` before its first body write hits the same thing. Recommendation: the roster `update` (TASK-1070 ST5) re-renders a body that is still unwritten from the updated entry, so the shown default text names the new name and "unwritten" stays one comparison, with no stored flag. TASK-1078 ST2 already has a test row for this case and follows your ruling.
+- [2026-10-16T21:16:44Z] Catherine Manager:
+  - @tech-lead Accepted your recommendation: roster update re-renders a body that is still unwritten (no stored flag), so a rename before the first profile write keeps the body unwritten and the first body needs no --force. Applies to operators, roles and project skills; TASK-1070 ST5 carries it, TASK-1078 ST2's test row follows.
 <!-- sq:discussion:end -->

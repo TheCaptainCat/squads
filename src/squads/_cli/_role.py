@@ -42,24 +42,20 @@ from squads._cli._common import (
 )
 from squads._context import get_context
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._interactions import ROLE_DEFINITION_VIEW_NAME
+from squads._interactions import ROLE_DEFINITION_VIEW_NAME, role_origin
 from squads._interactions._role_guidance import allowed_create_types
+from squads._models import _attributes as attrs
 from squads._models._item import Item
 from squads._models._schema import version_drifted
 from squads._paths import resolve as resolve_squad_paths
-from squads._roles._catalog import PREDEFINED, RoleDef
+from squads._roles._catalog import RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
-from squads._roles._models import RoleSpec
 from squads._roles._resolver import (
     pinned_name_of,
     resolve_role_for_item,
     resolve_role_with_base,
 )
 from squads._workflow import ROSTER_ROLE
-
-#: The bundled catalog's own slugs — used by ``sq role catalog`` to tell a project-declared or
-#: project-overridden entry apart from an as-shipped bundled one (see :func:`role_catalog`).
-_BUNDLED_SLUGS: frozenset[str] = frozenset(r.slug for r in PREDEFINED)
 
 
 class _RoleDispatchGroup(AddressDispatchGroup):
@@ -108,9 +104,9 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     This is the bundled catalog merged with a project's own ``.overrides/roles.toml``
     declarations (if any): a role the document declares that isn't in the bundled catalog
     appears here, and a bundled role the document overrides shows the project's values. The
-    ``Origin``/``origin`` column tells a project-declared or project-overridden entry apart
-    from an as-shipped bundled one. Outside a squad, or with no such document, this is exactly
-    the bundled catalog.
+    ``Origin``/``origin`` column is ``system`` for a bundled role (overridden or not) and a
+    templated developer, ``project`` for anything the project declared. Outside a squad, or
+    with no such document, this is exactly the bundled catalog.
 
     The ``Default``/``is_default`` column answers *for the active squad*, not for the catalog
     document: inside a squad it marks the role that currently holds the designation
@@ -118,18 +114,13 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     default-role line is compiled from, so the two never disagree. Outside a squad — where
     there is no roster to ask — it falls back to the catalog's own declared designation.
 
-    Not every holder is expressible here: the catalog lists bundled and project-declared
-    entries, so a developer role (``sq dev add``) that holds the designation appears in no row
-    and the column is correctly blank throughout. The plain listing names that holder in its
-    footer, and ``--json`` carries the same disclosure as ``default_role`` — the slug that
-    holds it, whether or not any row is that slug, and ``null`` when no live role holds it at
-    all. ``default_role_source`` says where that answer came from: ``"roster"`` for the active
-    squad's designation, ``"catalog"`` for the document's own declaration outside a squad,
-    where there is no roster to ask. Both repeat on every row, since this payload is a bare
-    array. Without them an all-false column is ambiguous between a holder this listing cannot
-    show and no holder at all, and a ``"catalog"`` answer is indistinguishable from a squad
-    that designates the same slug for real. ``sq role list`` — the roster listing, which
-    carries every live role — is still the surface that names a holder in its own rows.
+    Inside a squad the catalog also lists every activated role the document does not declare (a
+    templated developer, a role declared by a per-slug file), so the designation holder always
+    has a row. ``default_role`` carries the holder as a slug (``null`` when no live role holds
+    it) and ``default_role_source`` says where that answer came from: ``"roster"`` for the
+    active squad's designation, ``"catalog"`` for the document's own declaration outside a
+    squad, where there is no roster to ask. Both repeat on every row, since this payload is a
+    bare array. ``sq role list`` is the roster listing and carries every live role.
 
     Like the other per-role fields here (name, title), ``capabilities`` is the catalog
     document's value, before any per-slug role file; ``sq role list`` and ``sq role <addr>
@@ -139,9 +130,32 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     roles = load_role_catalog(squad_dir).roles
     in_squad = squad_dir is not None
     live_default = await get_service().default_role_slug() if in_squad else None
+    items = {it.slug: it for it in await get_service().list_roles()} if in_squad else {}
 
-    def _is_default(r: RoleSpec) -> bool:
-        return r.slug == live_default if in_squad else r.is_default
+    def _is_default(slug: str, declared: bool) -> bool:
+        return slug == live_default if in_squad else declared
+
+    def _origin(slug: str) -> str:
+        return (attrs.origin(items[slug]) if slug in items else role_origin(slug)) or ""
+
+    # One row per catalog entry, then one per activated role the catalog does not declare.
+    rows = [
+        (r.slug, r.full_name, r.title, _is_default(r.slug, r.is_default), r.capabilities)
+        for r in roles
+    ]
+    declared = {r.slug for r in roles}
+    for it in items.values():
+        if it.slug not in declared:
+            role = resolve_role_for_item(it, squad_dir)
+            rows.append(
+                (
+                    role.slug,
+                    role.full_name,
+                    role.title,
+                    _is_default(role.slug, False),
+                    list(role.capabilities),
+                )
+            )
 
     # The holder as a slug, not as a mark on a row — the boolean column can only answer for
     # the rows that exist, and the holder need not be one of them.
@@ -153,16 +167,16 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
             json.dumps(
                 [
                     {
-                        "slug": r.slug,
-                        "full_name": r.full_name,
-                        "title": r.title,
-                        "is_default": _is_default(r),
-                        "origin": "bundled" if r.slug in _BUNDLED_SLUGS else "project",
-                        "capabilities": list(dict.fromkeys(r.capabilities)),
+                        "slug": slug,
+                        "full_name": full_name,
+                        "title": title,
+                        "is_default": is_default,
+                        "origin": _origin(slug),
+                        "capabilities": list(dict.fromkeys(capabilities)),
                         "default_role": default_role,
                         "default_role_source": default_role_source,
                     }
-                    for r in roles
+                    for slug, full_name, title, is_default, capabilities in rows
                 ]
             )
         )
@@ -170,21 +184,9 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
     table = Table(box=None, pad_edge=False)
     for col in ("Slug", "Name", "Title", "Default", "Origin"):
         table.add_column(col)
-    for r in roles:
-        table.add_row(
-            e(r.slug),
-            e(r.full_name),
-            e(r.title),
-            "✓" if _is_default(r) else "",
-            "bundled" if r.slug in _BUNDLED_SLUGS else "project",
-        )
+    for slug, full_name, title, is_default, _capabilities in rows:
+        table.add_row(e(slug), e(full_name), e(title), "✓" if is_default else "", _origin(slug))
     console.print(table)
-    if live_default is not None and all(r.slug != live_default for r in roles):
-        console.print(
-            f"\n[dim]The default role is [cyan]{e(live_default)}[/cyan], which this catalog "
-            "does not list \u2014 run [cyan]sq role list[/cyan] to see it.[/dim]",
-            soft_wrap=True,
-        )
     console.print(
         "\n[dim]Need a wholly custom non-dev role (not in this catalog)? "
         "Run [cyan]sq override scaffold --new <slug>[/cyan], fill in the essentials, "
@@ -224,6 +226,7 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
                         "is_default": role.is_default,
                         "capabilities": list(role.capabilities),
                         "status": r.status,
+                        **common.origin_json(attrs.origin(r)),
                     }
                     for r, role in resolved
                 ]
@@ -232,7 +235,7 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
         return
     live = svc.spec.live_statuses(ROSTER_ROLE)
     table = Table(box=None, pad_edge=False)
-    for col in ("Slug", "Name", "Title", "Capabilities", "Default", "Live"):
+    for col in ("Slug", "Name", "Title", "Capabilities", "Default", "Origin", "Live"):
         table.add_column(col)
     for r, role in resolved:
         table.add_row(
@@ -241,6 +244,7 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
             e(role.title),
             e(", ".join(role.capabilities)),
             "✓" if role.is_default else "",
+            attrs.origin(r) or "",
             "✓" if r.status in live else "",
         )
     console.print(table)
@@ -382,6 +386,7 @@ async def show_role(
     # name. Every other unactivated slug keeps `resolve_role`'s ordinary bundled/new-slug base
     # (``None`` here).
     base_role = common.role_base_for_show(slug, it, svc.paths.squad_dir)
+    shown_origin = role_origin(slug) if it is None else attrs.origin(it)
 
     if json_out:
         data = await common.build_role_json_payload(svc, slug, item_id, it, base_role, addr)
@@ -411,6 +416,7 @@ async def show_role(
         rows = [
             f"[bold]{e(r.full_name)}[/bold] (`{e(r.slug)}`)",
             f"[bold]title:[/bold] {e(r.title)}",
+            f"[bold]origin:[/bold] {shown_origin or '—'}",
             f"[bold]model:[/bold] {e(r.model or 'inherit')}",
             f"[bold]color:[/bold] {e(r.color or '—')}",
             f"[bold]can spawn:[/bold] {'yes' if r.can_spawn else 'no'}",
@@ -426,6 +432,7 @@ async def show_role(
             rows = [
                 f"[bold]{e(it.title)}[/bold] (`{e(slug)}`)",
                 f"[bold]id:[/bold] {it.id}",
+                f"[bold]origin:[/bold] {shown_origin or '—'}",
                 f"[bold]status:[/bold] {it.status}",
             ]
         else:

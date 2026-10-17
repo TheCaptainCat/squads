@@ -12,6 +12,7 @@ created_at: '2025-05-20T11:03:00Z'
 updated_at: '2025-05-20T11:03:00Z'
 model: sonnet
 tech: go
+origin: system
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->

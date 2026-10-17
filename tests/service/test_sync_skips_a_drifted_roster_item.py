@@ -28,11 +28,11 @@ async def test_a_drifted_role_is_skipped_and_named_while_the_rest_of_the_roster_
 
     monkeypatch.setattr(IndexStore, "_atomic_write", _boom)
     with pytest.raises(OSError):
-        await svc.update(role.id, description="interrupted role description")
+        await svc.update(role.id, title="Interrupted Role Name")
     monkeypatch.setattr(IndexStore, "_atomic_write", real_atomic_write)
 
     on_disk_before = itemfile.read_frontmatter(text=item_file(svc.paths, role).read_text())
-    assert on_disk_before["description"] == "interrupted role description"
+    assert on_disk_before["title"] == "Interrupted Role Name"
 
     skipped = await svc.sync()  # must not raise -- sync always exits clean
 
@@ -40,7 +40,7 @@ async def test_a_drifted_role_is_skipped_and_named_while_the_rest_of_the_roster_
 
     # The drifted role's frontmatter is untouched -- the surviving value is still there.
     on_disk_after = itemfile.read_frontmatter(text=item_file(svc.paths, role).read_text())
-    assert on_disk_after["description"] == "interrupted role description"
+    assert on_disk_after["title"] == "Interrupted Role Name"
 
     # Everything else still regenerated: the other, healthy role's pointer/body sync normally
     # (no exception reached them, and it is not itself named in the skip list).

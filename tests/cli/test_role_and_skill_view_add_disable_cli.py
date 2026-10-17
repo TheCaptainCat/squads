@@ -49,32 +49,27 @@ def _strip_tag_on_disk(svc, item, name: str) -> None:
 # --------------------------------------------------------------------------- sq role … view
 
 
-async def test_role_view_disable_is_ungated_on_a_declared_host(svc, invoke) -> None:
-    """Disabling never writes prose, so it is admitted even on a declared view."""
+async def test_role_view_disable_is_refused_on_a_declared_host(svc, invoke) -> None:
+    """Disabling the view that renders a role's definition is a content edit, so it is refused."""
     role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
-    assert _body(svc, role) == markers.open_marker(markers.view_tag("role_definition"))
+    before = _body(svc, role)
 
     r = await invoke(["role", "manager", "view", "disable", "role_definition"])
 
-    assert r.exit_code == 0, r.output
-    assert "disabled" in r.output
-    assert _body(svc, role) == markers.open_marker(
-        markers.view_tag("role_definition", disabled=True)
-    )
+    assert r.exit_code == 1, r.output
+    assert "authoring surface" in r.output
+    assert _body(svc, role) == before
 
 
-async def test_role_view_disable_places_it_disabled_even_when_absent(svc, invoke) -> None:
-    """Disabling an absent tag places a fresh disabled one and says "placed", not "disabled"."""
+async def test_role_view_disable_is_refused_even_when_the_tag_is_absent(svc, invoke) -> None:
     role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
     _strip_tag_on_disk(svc, role, "role_definition")
+    before = _body(svc, role)
 
     r = await invoke(["role", "manager", "view", "disable", "role_definition"])
 
-    assert r.exit_code == 0, r.output
-    assert "had no existing tag — placed disabled" in r.output
-    assert _body(svc, role) == markers.open_marker(
-        markers.view_tag("role_definition", disabled=True)
-    )
+    assert r.exit_code == 1, r.output
+    assert _body(svc, role) == before
 
 
 async def test_role_view_add_places_the_tag_back(svc, invoke) -> None:
@@ -90,7 +85,10 @@ async def test_role_view_add_places_the_tag_back(svc, invoke) -> None:
 
 async def test_role_view_add_re_enables_a_disabled_tag(svc, invoke) -> None:
     role = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
-    await invoke(["role", "manager", "view", "disable", "role_definition"])
+    path = item_file(svc.paths, role)
+    enabled = f"<!-- {markers.PREFIX}{markers.view_tag('role_definition')} -->"
+    disabled = f"<!-- {markers.PREFIX}{markers.view_tag('role_definition', disabled=True)} -->"
+    path.write_text(path.read_text(encoding="utf-8").replace(enabled, disabled), encoding="utf-8")
 
     r = await invoke(["role", "manager", "view", "add", "role_definition"])
 
@@ -114,6 +112,15 @@ async def test_role_view_add_an_undeclared_name_is_refused(svc, invoke) -> None:
     _ = await svc.roster_item("role", "manager") or await svc.activate_role("manager")
 
     r = await invoke(["role", "manager", "view", "add", "no-such-view"])
+
+    assert r.exit_code == 1
+    assert "authoring surface" in r.output
+
+
+async def test_a_project_skill_names_an_undeclared_view(svc, invoke) -> None:
+    await svc.add_skill("Release Runbook", description="Ship it.")
+
+    r = await invoke(["skill", "release-runbook", "view", "add", "no-such-view"])
 
     assert r.exit_code == 1
     assert "no declared view" in r.output
@@ -153,30 +160,30 @@ async def test_role_view_disable_clears_a_dangling_tag_left_by_a_dropped_view_an
 # --------------------------------------------------------------------------- sq skill … view
 
 
-async def test_skill_view_disable_is_ungated_on_a_declared_host(svc, invoke) -> None:
+async def test_skill_view_disable_is_refused_on_a_declared_host(svc, invoke) -> None:
     await svc.seed_bundled_skills()
     skill = await svc.roster_item("skill", "squads")
     assert skill is not None
-    assert _body(svc, skill) == markers.open_marker(markers.view_tag("squads_skill"))
+    before = _body(svc, skill)
 
     r = await invoke(["skill", "squads", "view", "disable", "squads_skill"])
 
-    assert r.exit_code == 0, r.output
-    assert _body(svc, skill) == markers.open_marker(markers.view_tag("squads_skill", disabled=True))
+    assert r.exit_code == 1, r.output
+    assert "authoring surface" in r.output
+    assert _body(svc, skill) == before
 
 
-async def test_skill_view_disable_places_it_disabled_even_when_absent(svc, invoke) -> None:
-    """Disabling an absent tag on a skill says "placed", not "disabled" (the role-case sibling)."""
+async def test_skill_view_disable_is_refused_even_when_the_tag_is_absent(svc, invoke) -> None:
     await svc.seed_bundled_skills()
     skill = await svc.roster_item("skill", "squads")
     assert skill is not None
     _strip_tag_on_disk(svc, skill, "squads_skill")
+    before = _body(svc, skill)
 
     r = await invoke(["skill", "squads", "view", "disable", "squads_skill"])
 
-    assert r.exit_code == 0, r.output
-    assert "had no existing tag — placed disabled" in r.output
-    assert _body(svc, skill) == markers.open_marker(markers.view_tag("squads_skill", disabled=True))
+    assert r.exit_code == 1, r.output
+    assert _body(svc, skill) == before
 
 
 async def test_skill_view_add_places_the_tag_back(svc, invoke) -> None:
@@ -222,7 +229,7 @@ async def test_skill_view_add_an_undeclared_name_is_refused(svc, invoke) -> None
     r = await invoke(["skill", "squads", "view", "add", "no-such-view"])
 
     assert r.exit_code == 1
-    assert "no declared view" in r.output
+    assert "authoring surface" in r.output
 
 
 async def test_skill_view_rm_is_not_a_command(svc, invoke) -> None:

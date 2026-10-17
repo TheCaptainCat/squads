@@ -29,6 +29,7 @@ from squads._cli._markup import escape_markup
 from squads._context import get_context, rebind
 from squads._errors import NotInitializedError, RoleNotFoundError, SquadsError
 from squads._index._store import enter_read_scope, exit_read_scope
+from squads._interactions import role_origin
 from squads._interactions._role_guidance import allowed_create_types
 from squads._models import _attributes as attrs
 from squads._models._attributes import AttributeKey
@@ -1219,6 +1220,11 @@ def role_base_for_show(slug: str, it: Item | None, squad_dir: Path | None = None
     return None
 
 
+def origin_json(value: str | None) -> dict[str, str]:
+    """The ``origin`` key of a ``--json`` payload, absent when the item stores no valid one."""
+    return {} if value is None else {"origin": value}
+
+
 async def build_role_json_payload(
     svc: Service,
     slug: str,
@@ -1242,6 +1248,7 @@ async def build_role_json_payload(
     bundled-only or retired slug resolves to the system-only fallback.
     """
     data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
+    data.update(origin_json(role_origin(slug) if it is None else attrs.origin(it)))
     skills = await svc.resolved_skills_for_role(slug)
     try:
         r = resolve_role_with_base(

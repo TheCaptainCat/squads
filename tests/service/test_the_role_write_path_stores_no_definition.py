@@ -96,7 +96,7 @@ async def test_what_a_role_does_still_store(svc):
 
     bundled = await svc.roster_item("role", "architect")
     assert bundled is not None
-    assert bundled.attributes == {}
+    assert bundled.attributes == {X.ORIGIN: "system"}
     assert bundled.slug_in_file
 
     dev = await svc.roster_item("role", "rust-dev")

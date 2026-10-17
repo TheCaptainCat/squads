@@ -19,7 +19,7 @@ async def test_sync_command_warns_on_a_drifted_role_and_still_exits_clean(svc, i
 
     monkeypatch.setattr(IndexStore, "_atomic_write", _boom)
     with pytest.raises(OSError):
-        await svc.update(role.id, description="interrupted role description")
+        await svc.update(role.id, title="Interrupted Role Name")
     monkeypatch.setattr(IndexStore, "_atomic_write", real_atomic_write)
 
     r = await invoke(["sync"])
@@ -29,4 +29,4 @@ async def test_sync_command_warns_on_a_drifted_role_and_still_exits_clean(svc, i
 
     # The surviving value is still on disk -- the CLI's sync never overwrote it.
     on_disk = itemfile.read_frontmatter(text=item_file(svc.paths, role).read_text())
-    assert on_disk["description"] == "interrupted role description"
+    assert on_disk["title"] == "Interrupted Role Name"

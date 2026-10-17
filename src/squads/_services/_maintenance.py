@@ -34,6 +34,7 @@ from squads._interactions import (
     orphaned_playbook_guides,
     orphaned_skill_item_type,
     skill_description,
+    skill_origin,
 )
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._interactions._models import PlaybookSpec
@@ -52,6 +53,7 @@ from squads._migrations._context import MigrationContext
 from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
 from squads._models import _attributes as attrs
 from squads._models import _markers as markers
+from squads._models._attributes import AttributeKey
 from squads._models._config import CONFIG_FILENAME
 from squads._models._index import SquadsDB
 from squads._models._item import (
@@ -510,6 +512,15 @@ def _check_slug(md: Path, item_type: str, text: str, spec: WorkflowSpec) -> str:
     return raw_slug if isinstance(raw_slug, str) and raw_slug else _stem_slug(md, item_type, spec)
 
 
+def _disable_clause(item_type: str, addr: int | str, name: str, *, is_roster: bool) -> str:
+    """The ``, or disable it with …`` tail of a missing-tag remedy; a roster host's generated
+    view cannot be disabled, so it has none."""
+    if is_roster:
+        return ""
+    disable = views.view_placement_invocation(item_type, addr, "disable", name)
+    return f", or disable it with `{disable}`"
+
+
 def _seeded_view_issues(
     text: str, item_type: str, slug: str, n: int | None, spec: WorkflowSpec
 ) -> list[str]:
@@ -583,10 +594,10 @@ def _seeded_view_issues(
                 )
         else:
             add_cmd = views.view_placement_invocation(item_type, addr, "add", name)
-            disable_cmd = views.view_placement_invocation(item_type, addr, "disable", name)
+            # A roster host's generated view cannot be disabled; its remedy is to restore it.
+            disable_clause = _disable_clause(item_type, addr, name, is_roster=is_roster)
             problems.append(
-                f"missing seeded view tag {tag} — restore it with `{add_cmd}`, "
-                f"or disable it with `{disable_cmd}`"
+                f"missing seeded view tag {tag} — restore it with `{add_cmd}`{disable_clause}"
             )
     stray = {
         parts.name
@@ -605,11 +616,12 @@ def _seeded_view_issues(
                 f"`{views.view_placement_invocation(item_type, addr, 'add', name)}`"
             )
         else:
-            problems.append(
-                head + "collapse to one with "
-                f"`{views.view_placement_invocation(item_type, addr, 'add', name)}` or "
-                f"`{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
-            )
+            collapse = f"`{views.view_placement_invocation(item_type, addr, 'add', name)}`"
+            if not is_roster:
+                collapse += (
+                    f" or `{views.view_placement_invocation(item_type, addr, 'disable', name)}`"
+                )
+            problems.append(head + "collapse to one with " + collapse)
     return problems
 
 
@@ -642,10 +654,9 @@ def _absent_body_region_issues(
             "recover the file by hand or from a backup"
         ]
     add_cmd = views.view_placement_invocation(item_type, slug, "add", view_name)
-    disable_cmd = views.view_placement_invocation(item_type, slug, "disable", view_name)
     return [
         "missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — "
-        f"restore it with `{add_cmd}`, or disable the view with `{disable_cmd}`"
+        f"restore it with `{add_cmd}`"
     ]
 
 
@@ -1275,6 +1286,10 @@ class MaintenanceMixin(ServiceCore):
             created_session=known.created_session if known else sid,
             modified_session=known.modified_session if known else sid,
             slug_in_file=True,
+            attributes={
+                AttributeKey.ORIGIN: (attrs.origin(known) if known else None)
+                or skill_origin(slug, self.spec)
+            },
         )
 
     async def _skill_folder_state(self, scan: SkillScan) -> SkillFolder:
@@ -1888,6 +1903,7 @@ class MaintenanceMixin(ServiceCore):
                     created_session=sid,
                     modified_session=sid,
                     slug_in_file=True,
+                    attributes={AttributeKey.ORIGIN: skill_origin(slug, self.spec)},
                 )
                 # Stamp frontmatter and write to the convention-named file.
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
@@ -1981,6 +1997,7 @@ class MaintenanceMixin(ServiceCore):
                     created_session=sid,
                     modified_session=sid,
                     slug_in_file=True,
+                    attributes={AttributeKey.ORIGIN: skill_origin(slug, self.spec)},
                 )
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
                 convention_path = skills_folder / new_name

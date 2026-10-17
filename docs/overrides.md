@@ -158,9 +158,9 @@ model = "opus"
 role is created. See [Which name wins](#which-name-wins).
 
 **A developer's override merges onto the developer you already have:**
-Developers aren't in the bundled catalog — they're created on demand by `sq dev add` — so a
-`roles/<tech>-dev.toml` merges over the definition that developer already carries rather than over
-a bundled entry. Everything that reads a role resolves it that way — `sq dev add`, `sq sync`,
+Developers aren't in the bundled catalog — they're created on demand by `sq dev add`, from the
+`[dev]` table of the role catalog — so a `roles/<slug>.toml` for a developer merges over the
+definition that developer already carries rather than over a bundled entry. Everything that reads a role resolves it that way — `sq dev add`, `sq sync`,
 `sq role <slug> show`, `sq check`.
 
 ```toml
@@ -179,16 +179,24 @@ Three rules follow from that base:
 - **A name you never wrote is never invented.** Omit `full_name` and a new developer takes a name
   from the pool.
 
-A file for a tech you haven't added yet is accepted rather than refused, so you can write the
-override first and run `sq dev add --tech <tech>` afterwards.
+You can write the file before the developer exists and run `sq dev add` afterwards: the new
+developer is built from it. Until then the file is a role file for a slug that is not on the
+roster, so `sq check` reads it as a new role and reports the fields a new role requires (exit `3`):
+
+```
+error .overrides/roles/go-dev.toml: role override does not load: role override for new slug 'go-dev' is missing required fields: full_name, description, mission — …
+```
+
+Add the developer, or remove the file, to clear it.
 
 **The workflow override merges by field too, and can also drop:**
 `workflow.toml` composes over the bundled vocabulary the same way — write the fields you want
 changed, inherit the rest, and use a `[selected]` list to remove a built-in entirely. See
 [The override grammar](#the-override-grammar-shadow-append-and-drop).
 
-A brand-new role slug (one not in the bundle) defines a wholly custom, non-dev role — e.g. a
-`security-analyst` or `compliance-officer` — from the TOML. Start it with:
+A brand-new role slug (one not in the bundle) defines a wholly custom role — e.g. a
+`security-analyst` or `compliance-officer` — from the TOML. It is a developer only if it declares
+a capability the `[dev]` table declares (see [roles.md § "Capabilities"](roles.md#capabilities)). Start it with:
 
 ```bash
 sq override scaffold --new compliance-officer
@@ -225,9 +233,13 @@ The document takes three tables, plus `[selected]`. Any other top-level key is r
 
 - **`[[roles]]`** — one entry per role, keyed by its `slug`. An entry naming a bundled slug merges
   field by field onto it, so you write only what changes. An entry naming a new slug defines a new
-  role, and then `full_name`, `title`, `description` and `mission` are required.
-- **`[dev]`** — the defaults a developer gets from `sq dev add`: `model`, `color`, and
-  `name_pool`, the names a new developer is picked from. Each field merges on its own.
+  role, and then `full_name`, `title`, `description` and `mission` are required. An entry may
+  declare `capabilities` (see [roles.md § "Capabilities"](roles.md#capabilities)).
+- **`[dev]`** — the template every developer `sq dev add` creates is built from: `model`, `color`,
+  `capabilities` (the bundled table declares `dev`, which is what makes a role a developer) and
+  `name_pool`, the names a new developer is picked from. Each field merges on its own. `color` and
+  `capabilities` reach existing developers on the next `sq sync`; `model` and the name are stored
+  when a developer is added, so a change reaches only developers added afterwards.
 - **`[bundles]`** — the named role lists (`all`, `core`, `minimal`). The `all` bundle must name
   every role in the catalog, so a role you add here has to join it too.
 
@@ -325,12 +337,12 @@ Edit this file to add your custom types, statuses, lifecycles, and collections.
 
 The override file is standard TOML. Its top level is a **closed set of section names** —
 `[items.*]`, `[statuses.*]`, `[lifecycles.*]`, `[collections.*]`, `[subentity_kinds.*]`,
-`[roles.*]`, `[ref_kinds.*]` and `[views.*]`, plus the single `[selected]` table — and anything else
-at the top level is refused by name at load time:
+`[roles.*]`, `[ref_kinds.*]` and `[views.*]`, plus the single `[squad]` and `[selected]` tables —
+and anything else at the top level is refused by name at load time:
 
 ```
 item: unknown top-level key 'item' — use one of the accepted top-level keys in v<version>:
-['collections', 'items', 'lifecycles', 'ref_kinds', 'roles', 'selected', 'statuses',
+['collections', 'items', 'lifecycles', 'ref_kinds', 'roles', 'selected', 'squad', 'statuses',
 'subentity_kinds', 'views']
 ```
 
@@ -454,7 +466,7 @@ review_due = { kind = "date", required = true }
 
 `sq workflow types --json` lists each type's attributes with their `kind`, `required` and
 `settable`. The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
-`tags` and `tech` on `guide`, `is_default`, `is_dev`, `model` and `tech` on `role`, and
+`tags` and `tech` on `guide`, `is_default`, `model` and `tech` on `role`, and
 `allowed_tools`, `model` and `when_to_use` on `skill`. Add attributes to a bundled type the same
 way, roster types included:
 
@@ -543,9 +555,8 @@ Every item type runs a set of checks. `sq check` reports what they find, and the
 gate refuses a write on the `error`-level ones. You do not compose that set from scratch: each
 type gets a cross-cutting core plus a bundle its `category` implies, and a type's own
 `validators` list is where you **add** to it and say how much you mean each addition. A check that
-looks at the squad as a whole sits outside every type's list: `roster_slug_valid`, which checks
-role and operator slugs (see [stability.md § "Comment headers"](stability.md#comment-headers)), runs
-on every `sq check` at a fixed `error` level, and cannot be selected, dropped or given another level.
+looks at the squad as a whole sits outside every type's list: some always run, and the others are
+selected in the `[squad]` table (see "Squad-wide checks" below).
 
 ```toml
 [items.task]
@@ -686,8 +697,9 @@ Moving it to `InProgress` with no assignee adds `status is InProgress but nobody
 under `ref_rule_target_typed@error` a mistyped edge is still added, and the refusal lands on the
 feature's next update instead.
 
-**Selection is per type, and there is no squad-wide switch.** The line above changes nothing for a
-task, a decision or any other type: a squad that wants a check everywhere names it on each type.
+**Selection is per type.** The line above changes nothing for a task, a decision or any other
+type: a squad that wants one of these checks everywhere names it on each type. (The `[squad]`
+table selects the squad-wide checks only; a per-item check named there is refused.)
 Two bundled types, `epic` and `skill`, ship a `validators` list of their own, and there the entry
 has to be added to the bundled list, not written over it — see "a type's own list is an ordinary
 array" below before you write either.
@@ -941,6 +953,94 @@ sq check             # what do they find?
 
 `sq check` exits `0` when it is clean or found warnings only, and `3` when it found anything at
 `error` — so a raised level is testable in a script without reading the output.
+
+#### Squad-wide checks: the `[squad]` table
+
+Some checks look at the squad as a whole rather than at one item. They run once per `sq check`,
+never at the create/update gate, and they belong to no type's list.
+
+**Always on.** Six report a defect in any squad, so they run in every squad and cannot be selected,
+dropped or given another level:
+
+| Check | Reports | Level |
+|---|---|---|
+| `index_reconciled` | the index and the item files disagree | `error` |
+| `backend_reconciled` | an active agent backend's managed files are missing | `error` |
+| `roster_config_integrity` | a roster with no live role left, or a live role that preloads a retired skill | `error` |
+| `default_designation_duplicated` | more than one live role holds the default-role designation | `error` |
+| `roster_slug_valid` | a role or operator slug that breaks the slug rules (see [stability.md § "Comment headers"](stability.md#comment-headers)) | `error` |
+| `playbook_guide_role_live` | a playbook guide that names no live role | `warn` |
+
+**Opt-in.** Five state a policy a team may or may not hold. A squad selects them in the `[squad]`
+table of `.overrides/workflow.toml`, whose one key, `validators`, takes the entry grammar a type's
+list takes (`name`, `name:param`, `name@level`, `name:param@level`). The bundled list is empty, so
+none of the five runs until you name it, and each reports at `warn` unless you name a level:
+
+| Check | Reports | Parameter |
+|---|---|---|
+| `children_settled_with_parent` | a parent at a settled status with a child at a status that is not settled, once per parent | none |
+| `dependency_acyclic` | each cycle of dependency edges, once, with a path around it | none |
+| `wip_limit:<n>` | each assignee holding more than `n` active items | required, at least `1` |
+| `unassigned_active:<n>` | more than `n` active items with no assignee, in one finding | required, at least `0` |
+| `stale_active:<days>` | each active item last updated more than `days` days ago | required, at least `1` |
+
+```toml
+[squad]
+validators = [
+  "children_settled_with_parent",
+  "dependency_acyclic@error",
+  "wip_limit:3",
+  "unassigned_active:0",
+  "stale_active:14",
+]
+```
+
+What the words in that table mean, read from your vocabulary and never from a name:
+
+- **Active** is an item of a `work`-category type resting at a status whose role declares
+  `live = true` (`sq workflow roles`). A roster entry, a `records` item and an item at a status of
+  a non-live role are never active.
+- **Settled** is the status role's `settled` flag. A child is an item whose `parent` is the item;
+  sub-entities are not children. Any parent type counts.
+- **A dependency edge** is a ref whose kind declares the dependency role, read in its declared
+  direction, so the two dependency kinds describe the same edge. Every other kind is ignored, and a
+  cycle is reported whatever the status of its items.
+- **The boundaries are strict.** `wip_limit:3` is clean at three active items and reports at four;
+  `unassigned_active:0` reports a single unassigned active item; `stale_active:14` reports an item
+  untouched for more than 14 days, measured against one instant read when the run starts.
+
+On a squad with a settled feature, two open tasks under it that block each other, and one of them
+unassigned, that selection reports:
+
+```
+warn: 1 active item has no assignee (limit 0): TASK-<n>
+error: dependency cycle: TASK-<n> -> TASK-<m> -> TASK-<n>
+warn FEAT-<k>: FEAT-<k> is Done with 2 open children: TASK-<n>, TASK-<m>
+```
+
+**`@error` changes only the exit code.** These checks never run at the gate, so at `error` a
+finding makes `sq check` exit `3` and refuses no write: the `ref add` that closed the cycle above
+went through.
+
+**The list merges like any array.** An override's `validators` replaces the bundled list whole;
+`"$(*squad.validators)"` keeps it and adds to it. `[selected]` has no `squad` key: the table's one
+key is a list, so you replace the list instead.
+
+**What is refused at load**, each naming the entry, by every command and by `sq workflow lint`:
+
+- a name that is not one of the five: an unknown name, an always-on one
+  (`index_reconciled always runs and cannot be selected — drop the entry`), or a per-item check
+  (`body_written is a per-item validator — name it on a type's validators list`). The reverse is
+  refused too: a type's `validators` list naming one of the five is told to use `[squad]`;
+- a parameter on a check that takes none, and a missing, non-integer or too-small one on a check
+  that requires it (`wip_limit needs its parameter — write 'wip_limit:<n>'`,
+  `wip_limit needs a positive integer parameter (got '0')`);
+- a level other than `error` or `warn`;
+- the same check twice, whatever the parameters or levels;
+- a selection your vocabulary makes unable to fire: `wip_limit`, `unassigned_active` or
+  `stale_active` when no `work` type's lifecycle holds a status of a live role, and
+  `dependency_acyclic` when no ref kind declares the dependency role. Only the spec is read; the
+  items are not.
 
 #### Statuses: custom state labels
 
@@ -1513,7 +1613,8 @@ items = ["epic", "feature", "task", "bug", "decision", "contract", "milestone", 
 
 That squad has no `guide` type: it is absent from the list, so it is dropped. The accepted section
 keys are `items`, `statuses`, `lifecycles`, `collections`, `subentity_kinds`, `roles`, `ref_kinds`
-and `views` — the sections the top level accepts, less `[selected]` itself. Anything else under
+and `views` — the sections the top level accepts, less `[selected]` itself and `[squad]`, whose one
+key is a list you replace in `[squad]` instead. Anything else under
 `[selected]` is refused by name, and the refusal prints the accepted set for the version you are
 running, which is the list to trust rather than this one:
 
@@ -1753,17 +1854,30 @@ After `sq sync`, `sq create bug --author security-analyst` no longer prints
   Which means: to change *one field* of a bundled guide, you must restate the array by hand (omit
   `"$(*self)"` and list every guide you want to keep). Spreading and then re-adding the same slug is
   not the way to edit one.
-- **Every slug must be one of three things:** a bundled catalog role, the `*dev` sentinel (which
-  matches any `<tech>-dev` role), or a project role you have defined under
-  `.overrides/roles/<slug>.toml` or in `.overrides/roles.toml`. A project role is accepted here — you do not have to pick from the
-  bundled catalog.
+- **Every slug must be one of three things:** a bundled catalog role, a project role you have
+  defined under `.overrides/roles/<slug>.toml` or in `.overrides/roles.toml`, or `*<capability>`,
+  which addresses every live role holding that capability (see
+  [roles.md § "Capabilities"](roles.md#capabilities)). A project role is accepted here — you do not
+  have to pick from the bundled catalog. The bundled guides addressed to `*dev` use the same form:
+  they reach every developer. A capability subject is checked at load: `*Dev`, `*` and `* dev` are
+  refused, naming `.overrides/playbook.toml`.
+- **A capability guide renders under its capability.** Its section in the generated skill is headed
+  with the capability and its holders (``## For `*infra`: Bob Builder (`builder`)``), and
+  `authors = true` puts the type in the create lane of every holder.
 - **A project role must also be activated for its guidance to reach the skill**, and the order
   matters. `sq role activate <slug>` is what makes the role live; a guide naming a role that is not
   live *loads without complaint* but is dropped when the skill is generated. `sq check` and `sq sync`
   both warn while that is true, naming the guide and both ways out — activate the role, or remove the
   guide. The same warning covers a role you activated and later retired, and a stray file in
-  `.overrides/roles/` whose name is read as a slug but never becomes a role. It is a warning, not a
-  refusal: both commands still exit `0`.
+  `.overrides/roles/` whose name is read as a slug but never becomes a role. A guide of yours
+  addressed to a capability no live role holds is warned about the same way, with its two ways out:
+
+  ```
+  warn: playbook guide for capability '*infra' on type 'bug' names no live role, so its guidance is dropped from the generated `sq-bug` skill — declare `capabilities = ["infra"]` on a live role, or remove the guide from `.overrides/playbook.toml` under `[types.bug]`
+  ```
+
+  A bundled capability guide nobody holds stays silent. These are warnings, not refusals: both
+  commands still exit `0`.
 - **Unknown top-level keys are refused by name**, the same fail-closed rule the workflow override
   follows. The accepted keys are listed in the message.
 
@@ -1996,7 +2110,7 @@ sq override scaffold --role architect
 # Same for a developer already on your roster
 sq override scaffold --role python-dev
 
-# Start a wholly custom, non-dev role that isn't in the bundled catalog
+# Start a wholly custom role that isn't in the bundled catalog
 sq override scaffold --new security-analyst
 sq override scaffold --new security-analyst --can-spawn   # opt it into spawning subagents
 
@@ -2019,7 +2133,8 @@ sq override scaffold items/task.md.j2 --force
   (`python-dev`) works the same as a bundled one.
 - `--new <slug>` starts a **brand-new, non-bundled** role: the essential fields (`full_name`,
   `title`, `description`, `mission`) are stubbed as active keys, the advanced fields
-  (`responsibilities`, `agreements`, `model`, `color`, `can_spawn`) are included commented out.
+  (`responsibilities`, `agreements`, `model`, `color`, `capabilities`, `can_spawn`) are included
+  commented out.
   Refuses a slug that's already a bundled role — use `--role` for that. Follow up with `sq role
   activate <slug>` once you've filled it in.
 - Template names copy the named bundled template into `.overrides/templates/`.
@@ -2261,7 +2376,7 @@ written under.
 ### Slug immutability
 
 **Role slugs stay canonical and are never renamed.** The slug (`architect`, `tech-lead`,
-`<tech>-dev`) is the addressing key for skills, @mentions, pointer filenames, and interactions. A
+`python-dev`) is the addressing key for skills, @mentions, pointer filenames, and interactions. A
 team renames *who fills the architect slot*, not *the architect slot itself*.
 
 If you need a new role entirely, scaffold it under a new slug. If you need to split an existing

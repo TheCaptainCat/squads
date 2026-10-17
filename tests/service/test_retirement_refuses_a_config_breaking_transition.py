@@ -670,8 +670,8 @@ async def test_the_generic_update_seam_refuses_a_roster_status_change(svc):
 async def test_the_generic_update_seam_still_updates_a_roster_items_other_fields(svc):
     """The guard is scoped to ``status`` alone — every other metadata field on a roster item
     still updates normally through the generic seam."""
-    role = await svc.roster_item("role", "manager")
+    skill = await svc.add_skill("Release Runbook", description="Ship it.")
 
-    updated = await svc.update(role.id, description="A new description")
+    updated = await svc.update(skill.id, description="A new description")
 
     assert updated.description == "A new description"

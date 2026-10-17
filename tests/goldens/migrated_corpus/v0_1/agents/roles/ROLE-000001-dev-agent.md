@@ -7,6 +7,7 @@ slug: dev-agent
 status: Active
 created_at: '2025-01-10T09:00:00Z'
 updated_at: '2026-06-07T10:00:00Z'
+origin: project
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->

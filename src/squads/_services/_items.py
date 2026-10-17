@@ -13,13 +13,12 @@ from squads import _sections as sections
 from squads import _views as views
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
-from squads._itemfile import ensure_no_skew, update_frontmatter
+from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
 from squads._paths import number_for_id
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import ServiceCore, reject_body_overwrite, reject_markers
@@ -176,9 +175,7 @@ class ItemsMixin(ServiceCore):
         item, old_status, base, severed, warnings = self._set_status_model(
             db, item_id, status, force=force, unlink=unlink
         )
-        await update_frontmatter(
-            item_file(self.paths, item), item, base, default_kind=self.spec.default_ref_kind()
-        )
+        await self._update_item_frontmatter(item, base)
         for sev in severed:
             self.store.log("ref", item.id, {"remove": sev.target, "kind": sev.kind})
         self.store.log(
@@ -270,6 +267,11 @@ class ItemsMixin(ServiceCore):
         (see :func:`~squads._itemfile.ensure_no_skew`).
         """
         item = require_item(db, item_id)
+        # Only what the role document or playbook supplies is gated; tracking metadata
+        # (labels, assignee, parent, priority, author) stays writable.
+        supplied = (description, set_attributes, unset_attributes)
+        if any(v is not None for v in supplied) or (title is not None and item.type != ROSTER_ROLE):
+            self._refuse_classified_roster_write(item_id, item, "An update")
         base = item.model_copy(deep=True)
         delta: dict[str, object] = {}
         rename_paths: tuple[Path, Path] | None = None
@@ -377,17 +379,17 @@ class ItemsMixin(ServiceCore):
         default_kind = self.spec.default_ref_kind()
         if rename_paths is not None:
             old_path, new_path = rename_paths
-            if old_path != new_path and await _aio.path_exists(old_path):
+            if old_path != new_path and await self._item_file_exists(old_path):
                 # Check for a skew BEFORE the physical move, at the item's still-current
                 # path: once moved, a refusal here would otherwise leave the file sitting at
                 # the new filename with its old (skewed) frontmatter still inside — a strictly
                 # worse intermediate state than not moving it at all. `update_frontmatter`'s
                 # own read below (at the possibly-new path) re-checks against the same `base`,
                 # which is safe/redundant rather than a second real read of divergent content.
-                old_text = await _aio.read_text(old_path)
+                old_text = await self._read_item_file(item, old_path)
                 ensure_no_skew(old_text, base, default_kind=default_kind)
-                await _aio.path_rename(old_path, new_path)
-        await update_frontmatter(item_file(self.paths, item), item, base, default_kind=default_kind)
+                await self._move_item_file(old_path, new_path)
+        await self._update_item_frontmatter(item, base)
         self.store.log("update", item.id, delta)
         return item
 
@@ -474,9 +476,7 @@ class ItemsMixin(ServiceCore):
             # (parent type-eligibility, in particular) — the same engine every other
             # create/update site gates through.
             ValidatorEngine(spec=self.spec).gate(child, db)
-            await update_frontmatter(
-                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
-            )
+            await self._update_item_frontmatter(child, base)
             self.store.log(
                 "link",
                 child.id,
@@ -493,9 +493,7 @@ class ItemsMixin(ServiceCore):
             child.parent = None
             child.updated_at = clock.now()
             child.modified_session, _ = actor.current_session()
-            await update_frontmatter(
-                item_file(self.paths, child), child, base, default_kind=self.spec.default_ref_kind()
-            )
+            await self._update_item_frontmatter(child, base)
             self.store.log(
                 "link",
                 child.id,
@@ -539,9 +537,9 @@ class ItemsMixin(ServiceCore):
           (:func:`~squads._views.skill_authoring_surface`, resolved from the view's own
           declared source rather than the skill's slug) — and body prose would be a second,
           unvalidated one. The escape is spec-level, not a per-write flag: drop the view from
-          ``[selected]`` and the document leaves the classification. ``view disable`` stays
-          admitted on such a host even so (it never writes prose); the document then renders an
-          empty definition.
+          ``[selected]`` and the document leaves the classification. A metadata update and a
+          ``view disable`` on such a host go through the same gate
+          (:meth:`~squads._services._base.ServiceCore._refuse_classified_roster_write`).
         - **Either, on a project-declared roster type outside role/skill/operator**: refused
           unconditionally — its body is generated from its fields, not a view question, and
           this branch is untouched by the one above.
@@ -553,27 +551,7 @@ class ItemsMixin(ServiceCore):
         (:func:`~squads._views.place_view_tags`) inserts it — the routine holds exactly-once,
         by construction, inside the region, and its only refusal is the conflicting-state
         one."""
-        slug = item.slug
-        roster_view = (
-            views.roster_body_view_name(item.type, slug, self.spec)
-            if item.type in (ROSTER_ROLE, ROSTER_SKILL)
-            else None
-        )
-        if roster_view is not None:
-            verb = "Append" if append else "A replace"
-            authoring_surface = (
-                f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml` for a "
-                "project-defined role)"
-                if item.type == ROSTER_ROLE
-                else views.skill_authoring_surface(roster_view, slug, self.spec, self.playbook)
-            )
-            tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
-            raise SquadsError(
-                f"{item_id}'s body renders through its declared {tag} tag, and "
-                f"its content already has one validated authoring surface: {authoring_surface}. "
-                f"{verb} is refused — `--force` does not lift this. Drop the view from "
-                "`[selected]` to author this body directly instead."
-            )
+        self._refuse_classified_roster_write(item_id, item, "Append" if append else "A replace")
         if self.spec.item_is_roster(item.type) and item.type not in (
             ROSTER_ROLE,
             ROSTER_SKILL,
@@ -888,8 +866,6 @@ class ItemsMixin(ServiceCore):
                 )
                 target_prefix = effective_prefix(item.prefix)
                 target_seq = item.sequence_id
-                # Resolved once for the whole severance loop, not per referrer.
-                default_kind = self.spec.default_ref_kind()
                 for ref_id in referrer_ids:
                     referrer = db.get(ref_id)
                     if referrer is None:
@@ -901,9 +877,7 @@ class ItemsMixin(ServiceCore):
                         if not ref_id_matches(split_ref(r)[0], target_prefix, target_seq)
                     ]
                     referrer.updated_at = clock.now()
-                    await update_frontmatter(
-                        item_file(self.paths, referrer), referrer, base, default_kind=default_kind
-                    )
+                    await self._update_item_frontmatter(referrer, base)
                     severed.append(ref_id)
 
             # ------------------------------------------------------------------

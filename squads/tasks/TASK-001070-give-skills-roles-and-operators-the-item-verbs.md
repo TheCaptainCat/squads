@@ -3,7 +3,7 @@ id: TASK-1070
 sequence_id: 1070
 type: task
 title: Give skills, roles and operators the item verbs
-status: Draft
+status: Ready
 parent: FEAT-977
 author: tech-lead
 priority: high
@@ -42,7 +42,7 @@ subentities:
   assignee: tech-writer
   story: US3
 created_at: '2026-10-16T19:52:27Z'
-updated_at: '2026-10-16T19:53:36Z'
+updated_at: '2026-10-16T22:48:25Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -414,4 +414,6 @@ skills and operators have no `update` verb or send renames through `sq import`.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-16T21:17:00Z] Catherine Manager:
+  - ST5 addition (FEAT-1054 decision, 2026-10-16): update re-renders a body that is still unwritten, so a rename never makes the seeded template count as written. No stored flag.
 <!-- sq:discussion:end -->

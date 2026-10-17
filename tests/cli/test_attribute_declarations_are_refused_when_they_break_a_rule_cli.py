@@ -69,6 +69,11 @@ REFUSALS = [
         ["'is_default'", "'bool'"],
     ),
     (
+        "a-pinned-role-origin-with-another-kind",
+        '[items.role.attributes]\norigin = { kind = "list" }\n',
+        ["'origin'", "'str'"],
+    ),
+    (
         "a-pinned-skill-attribute-with-another-kind",
         '[items.skill.attributes]\nwhen_to_use = { kind = "list" }\n',
         ["'when_to_use'", "'str'"],
@@ -98,9 +103,11 @@ async def test_a_bad_declaration_refuses_every_command_and_writes_nothing(
 PINNED = [
     ("role-is-default", "role", "is_default", "bool"),
     ("role-model", "role", "model", "str"),
+    ("role-origin", "role", "origin", "str"),
     ("role-tech", "role", "tech", "str"),
     ("skill-allowed-tools", "skill", "allowed_tools", "str"),
     ("skill-model", "skill", "model", "str"),
+    ("skill-origin", "skill", "origin", "str"),
     ("skill-when-to-use", "skill", "when_to_use", "str"),
 ]
 

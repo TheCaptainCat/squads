@@ -48,22 +48,93 @@ Developers are created on demand — the bundled set is deliberately stack-agnos
 ```bash
 sq dev add --tech dotnet                 # → "Elias Dotnet"  slug: dotnet-dev
 sq dev add --tech python --name "Grace Hopper"
+sq dev add --tech go --slug gopher       # → stored under the slug you give
 sq dev list
 ```
 
 If you omit `--name`, a first name is taken from a pool and the surname is the tech (so `--tech
-dotnet` → *Elias Dotnet*); the slug is always `<tech>-dev`, with the tech slugified (`--tech
-Node.js` → `node-js-dev`). Every developer manages `sq-task`, `sq-bug`, `sq-contract` and
-`sq-review`. The name, the slug and the `--model` you choose here are kept as they are by every
-later `sq sync`, and no later override renames the developer; the rest of the developer's
-definition is refreshed from the bundled one — see
+dotnet` → *Elias Dotnet*). The slug is `<tech>-dev` by default, with the tech slugified (`--tech
+Node.js` → `node-js-dev`); `--slug` stores the developer under a slug of your choosing. The name,
+the slug and the `--model` you choose here are kept as they are by every later `sq sync`, and no
+later override renames the developer; the rest of the developer's definition, its colour and
+capabilities included, is regenerated from the `[dev]` table of the squad's role catalog — see
 [overrides.md § "Which name wins"](overrides.md#which-name-wins).
 
+`--slug` follows the rules every role slug follows: lowercase letters, digits and hyphens, not
+`operator` or `squads`, not starting with `op-`, and not a verb of `sq role`. It is also refused
+when it is already taken, or when the role catalog (bundled or your `.overrides/roles.toml`)
+declares a role under it, even one you have not activated, with exit `1` and nothing written:
+
+```
+error: slug 'reviewer' belongs to a role the catalog declares; a developer needs another slug
+error: a role with slug 'gopher' already exists
+```
+
+### What makes a role a developer
+
+**A developer is a live role that holds a capability the `[dev]` table declares.** The bundled
+table declares one, `dev`. A role `sq dev add` creates carries `tech`, and a role that carries
+`tech` is *templated*: its definition is built from the `[dev]` table, so it holds that table's
+capabilities. Any other role becomes a developer by declaring the capability in its own definition
+(see [Capabilities](#capabilities) below):
+
+```toml
+# .overrides/roles/builder.toml
+full_name = "Bob Builder"
+title = "build engineer"
+description = "Owns the build and the release pipeline."
+mission = "Keep the build green."
+capabilities = ["dev"]
+```
+
+The slug says nothing either way: a role named `legacy-dev` that holds no such capability is an
+ordinary role, and `builder` above is a developer. Every developer takes part in the playbook
+guides addressed to `*dev`, which is why each one manages `sq-task`, `sq-bug`, `sq-contract` and
+`sq-review` with the bundled playbook. `sq dev list` lists the live developers, templated and
+declared alike, with the `tech` of the templated ones.
+
 A developer's fields are overridable like any other role's, and the override merges onto the
-developer you already have: a `.overrides/roles/<tech>-dev.toml` that sets only `title` changes only
+developer you already have: a `.overrides/roles/<slug>.toml` that sets only `title` changes only
 the title. Its `full_name` names a developer added after the file was written (when `sq dev add`
 gets no `--name`), and never renames one you already have. Worked example:
 [overrides.md § "Retitle a developer without renaming them"](overrides.md#retitle-a-developer-without-renaming-them).
+
+## Capabilities
+
+A capability is a name a role holds, so that playbook guidance can address every role holding it
+instead of naming roles one by one. A role declares its capabilities as a `capabilities` list in
+any of the places its definition comes from:
+
+- a `[[roles]]` entry in `.overrides/roles.toml`;
+- its per-slug file, `.overrides/roles/<slug>.toml`;
+- the `[dev]` table of `.overrides/roles.toml`, for every templated developer.
+
+A name is lowercase letters, digits and hyphens, and does not start with a hyphen
+(`[a-z0-9][a-z0-9-]*`). A per-slug file's list replaces the list it merges over, and the splat form
+appends to it instead: `capabilities = ["$(*self)", "infra"]`. A name repeated across the merge
+counts once. A malformed name is refused naming the file, by `sq check` (exit `3`) and by `sq sync`
+(exit `1`):
+
+```
+error: invalid role override …/.overrides/roles/reviewer.toml: capabilities entry 'Rev' must match [a-z0-9][a-z0-9-]*
+```
+
+The eight bundled roles declare none; the bundled `[dev]` table declares `dev`.
+
+**Addressing a capability in the playbook.** A guide whose `slug` is `*<capability>` applies to
+every live role holding that capability (see
+[overrides.md § "Playbook overrides"](overrides.md#playbook-overrides-role-guidance-per-item-type)).
+Its section in the generated `sq-<type>` skill is headed with the capability and lists the holders,
+for example ``## For `*dev`: Elias Python (`python-dev`)``, and it renders only while a live role
+holds the capability. `authors = true` on such a guide puts the type in the create lane of every
+holder.
+
+**Where capabilities show.** `sq role list` has a Capabilities column and the `sq role <slug> show`
+card a `capabilities:` row. `--json` carries a `capabilities` array (empty when there are none) in
+`sq role list`, `sq role <slug> show` and each `roster[]` row of a view whose source is `playbook`.
+`sq role catalog --json` carries one too, with the catalog document's value: like the name and title
+beside it, it is read before any per-slug role file, so a capability a per-slug file declares shows
+in `sq role list` and `sq role <slug> show` but not in the catalog.
 
 ## Managing roles
 
@@ -95,9 +166,9 @@ as `default_role` — the holder's slug whether or not it is one of the rows, `n
 holds it — alongside `default_role_source`, which is `roster` for the active squad's designation and
 `catalog` for the bundled document's own declaration, the answer you get outside a squad.
 
-### Custom non-dev roles
+### Custom roles
 
-Beyond the bundled roster and stack-specific developers, you can define a wholly custom, non-dev
+Beyond the bundled roster and stack-specific developers, you can define a wholly custom
 role — e.g. a designer/UX role, a `security-analyst`, or an `incident-commander` — that isn't in the
 bundled catalog. Start one with `sq override scaffold --new <slug>`, fill in the essentials it
 stubs, then activate it exactly like a bundled role. Worked example (a `compliance-officer` role):

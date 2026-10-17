@@ -16,6 +16,7 @@ from squads._index._reflog import read_lines, reflog_path
 from squads._index._resolver import item_file
 from squads._models import _markers as markers
 from squads._sections import get_section
+from squads._services import _import_model
 
 pytestmark = pytest.mark.anyio
 
@@ -234,45 +235,77 @@ async def test_apply_only_runs_after_a_fully_clean_prepass(svc):
     assert len(after) == len(before)
 
 
-async def test_repair_reconciles_after_a_simulated_mid_apply_failure(svc, monkeypatch):
-    """A crash between two events' file writes leaves the first item's file on disk but the
-    index uncommitted (the whole transaction never reaches its one ``os.replace``) — ``sq
-    repair`` reconciles it back into the index, per the files-then-index safe-failure order."""
+async def test_repair_reconciles_after_a_simulated_mid_flush_failure(svc, monkeypatch):
+    """A crash between two files' writes leaves the first item's file on disk but the index
+    uncommitted (the whole transaction never reaches its one ``os.replace``) — ``sq repair``
+    reconciles it back into the index, per the files-then-index safe-failure order."""
     text = _lines(
         {"op": "create", "type": "task", "title": "Survives the crash", "handle": "a"},
+        {"op": "create", "type": "task", "title": "Lost in the crash", "handle": "b"},
         {"op": "status", "target": "a", "status": "InProgress"},
     )
-    parsed = await svc.import_events(text, dry_run=True, default_as="manager")
-    assert parsed.plan.ok
 
+    from squads import _aio
     from squads._services import _import_model
 
     events, _issues = _import_model.parse_events(
         text, default_at=_import_model.utc_now_floor(), default_as="manager"
     )
 
-    real_update_frontmatter = _itemfile.update_frontmatter
-    calls = {"n": 0}
+    real_replace = _aio.atomic_replace_sync
+    item_writes: list[str] = []
+
+    def _boom(path, content):
+        if path.suffix == ".md":
+            item_writes.append(path.name)
+            if len(item_writes) == 2:
+                raise OSError("simulated crash between two files")
+        real_replace(path, content)
+
+    monkeypatch.setattr(_aio, "atomic_replace_sync", _boom)
+
+    with pytest.raises(OSError):
+        await svc._apply_import(events)
+    monkeypatch.setattr(_aio, "atomic_replace_sync", real_replace)
+
+    # The index was never committed with either new item...
+    db = await svc.store.load()
+    assert all(
+        it.title not in {"Survives the crash", "Lost in the crash"} for it in db.items.values()
+    )
+
+    # ...but repair reconciles the one file that DID get written back in, in its final state.
+    await svc.repair()
+    db2 = await svc.store.load()
+    survivor = next(it for it in db2.items.values() if it.title == "Survives the crash")
+    assert survivor.status == "InProgress"
+    assert all(it.title != "Lost in the crash" for it in db2.items.values())
+
+
+async def test_a_failing_event_leaves_every_file_as_it_was(svc, monkeypatch):
+    """An event that raises mid-apply discards the held file texts: no file of the import
+    reaches disk, so there is no partly applied import to repair."""
+    existing = (await create_item(svc, "task", "Already here")).item
+    before = item_file(svc.paths, existing).read_text(encoding="utf-8")
+    text = _lines(
+        {"op": "create", "type": "task", "title": "New one", "handle": "n"},
+        {"op": "comment", "target": existing.id, "message": "hello"},
+        {"op": "status", "target": "n", "status": "InProgress"},
+    )
+    events, _issues = _import_model.parse_events(
+        text, default_at=_import_model.utc_now_floor(), default_as="manager"
+    )
 
     async def _boom(*args, **kwargs):
-        calls["n"] += 1
-        if calls["n"] == 1:
-            raise OSError("simulated crash mid-apply")
-        return await real_update_frontmatter(*args, **kwargs)
+        raise OSError("simulated crash mid-apply")
 
-    monkeypatch.setattr("squads._services._items.update_frontmatter", _boom)
+    monkeypatch.setattr(type(svc), "_set_status_core", _boom)
 
     with pytest.raises(OSError):
         await svc._apply_import(events)
 
-    # The index was never committed with this new item...
-    db = await svc.store.load()
-    assert all(it.title != "Survives the crash" for it in db.items.values())
-
-    # ...but repair reconciles it back in from the file that DID get written.
-    await svc.repair()
-    db2 = await svc.store.load()
-    assert any(it.title == "Survives the crash" for it in db2.items.values())
+    assert item_file(svc.paths, existing).read_text(encoding="utf-8") == before
+    assert [p.name for p in item_file(svc.paths, existing).parent.glob("*new-one*")] == []
 
 
 async def test_a_dry_run_title_change_never_renames_the_file_on_disk(svc):

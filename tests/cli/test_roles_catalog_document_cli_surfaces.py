@@ -63,7 +63,7 @@ async def test_role_catalog_shows_a_document_declared_slug_and_an_overridden_bun
     rows = {row["slug"]: row for row in json.loads(r.output)}
 
     assert rows["reviewer"]["title"] == "Chief Reviewer"
-    assert rows["reviewer"]["origin"] == "bundled"
+    assert rows["reviewer"]["origin"] == "system"
     assert "security-analyst" in rows
     assert rows["security-analyst"]["origin"] == "project"
     assert rows["security-analyst"]["full_name"] == "Sylvie Sentinel"
@@ -77,4 +77,4 @@ async def test_role_catalog_shows_a_document_declared_slug_and_an_overridden_bun
 async def test_role_catalog_with_no_document_is_unaffected(project, invoke) -> None:
     r = await invoke(["role", "catalog", "--json"])
     assert r.exit_code == 0, r.output
-    assert all(row["origin"] == "bundled" for row in json.loads(r.output))
+    assert all(row["origin"] == "system" for row in json.loads(r.output))
