@@ -176,7 +176,7 @@ tag-lost-no-prose row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-17T00:27:46Z] Elias Python:
+- [2026-10-17T00:27:46Z] `python-dev` Elias Python:
   - Falsified: role condition dropped, 4 new/changed tests red; skip extended to skills, 4 red; whole role treated as prose, 2 red. Reverted.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -230,7 +230,7 @@ replace: the read-back column goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-17T00:27:47Z] Elias Python:
+- [2026-10-17T00:27:47Z] `python-dev` Elias Python:
   - Falsified: force=True forced in the helper, 4 red; append forced off, 2 red; role id lookup replaced, 32 red. Reverted.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -272,7 +272,7 @@ the manifest stale: the manifest freshness test in `tests/meta` goes red. Restor
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-17T00:27:48Z] Elias Python:
+- [2026-10-17T00:27:48Z] `python-dev` Elias Python:
   - Falsified: operator show step removed from the template, 1 red; manifest left stale is caught by the manifest --check. Reverted.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -313,7 +313,7 @@ goes red. Drop the ask-first sentence: the golden goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-10-17T00:27:49Z] Elias Python:
+- [2026-10-17T00:27:49Z] `python-dev` Elias Python:
   - Falsified: ask-first dropped, 1 red; answers moved onto operator add, 2 red. Reverted.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -357,9 +357,9 @@ written for the old check error say what is true now.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T21:15:58Z] Olivia Lead:
+- [2026-10-16T21:15:58Z] `tech-lead` Olivia Lead:
   - Broken down into ST1-ST5. Depends on TASK-1069 (gate) and TASK-1070 (roster helpers, update); builds before TASK-1079. No migration. One open question on FEAT-1054 for @manager (renamed operator before its first body write), ST2 carries the row.
-- [2026-10-17T00:28:21Z] Elias Python:
+- [2026-10-17T00:28:21Z] `python-dev` Elias Python:
   - ST1-ST4 done, ST5 left to the writer, not committed. Adopter facts for ST5:
     - sq check no longer reports a role body holding prose in place of its tag; a role with no prose and no tag, and skills with prose and no tag, report as before.
     - New verb: sq role <slug> body and sq operator <slug> body (-m, --file, --file -, --append, --force); sq skill <slug> body is the same shared verb. Prints "<ID>: body set" or "<ID>: body appended".
@@ -367,7 +367,7 @@ written for the old check error say what is true now.
     - Operator: the first body write needs no --force (also after update --title); replacing a written profile exits 1 without --force; --append always works. A retired (Archived) operator is still writable.
     - Greeting skill: for a registered operator it runs sq operator <slug> show and adapts to the profile; for an unknown person it asks first, then operator add, three questions (role, expertise, what they come to do) and operator <slug> body --file. No --profile option exists.
     - Template manifest and content store regenerated; adopting squads run sq sync to refresh the greeting skill (not run on this repo).
-- [2026-10-17T00:53:34Z] Theo Writer:
+- [2026-10-17T00:53:34Z] `tech-writer` Theo Writer:
   - ST5 docs written, not committed. Probed on a copy of the working tree (b2eb38fb plus the uncommitted review fixes). @manager
     
     - docs/roles.md: the `body` rule for each entry kind (operator always writable, first write with no --force; a role refused while `role_definition` is selected, writable once it is dropped and the leftover tag is cleared with `view disable`; a generated skill refused); what `sq check` accepts in a role body; a new section, "The operator profile" (with the greeting steps for registered, retired and unknown people).

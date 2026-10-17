@@ -317,7 +317,7 @@ and 6, and a single composition function (finding 15).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T18:30:59Z] Robert Architect:
+- [2026-10-09T18:30:59Z] `architect` Robert Architect:
   - @manager for op-pierre: left Proposed, nothing broken down. The calls I most want weighed before accepting, in order of how much they shape the build:
     
     1. **Ordinary in treatment, not in production.** Every consumer sees a developer as a role with a capability, and an adopter can declare one in a plain role file. A developer made by `sq dev add` still gets its definition from the `[dev]` template on every read, selected by `extra.tech`. The literal reading of the milestone line is the alternative I rejected: scaffold each developer into its own role file. I turned it down because template updates would stop reaching developers and `sq migrate` would have to write under `.overrides/`. If uniformity matters more than those two, say so and decisions 3, 4 and 6 change.
@@ -333,6 +333,6 @@ and 6, and a single composition function (finding 15).
     Verified myself: every site in REV-956 finding 1's inventory was opened, and its disagreement was reproduced in a scratch squad (a `platform-dev` custom role). Taken from the review without re-measuring: findings 2, 3, 5, 6 and 16, including the import-graph measurements. Not driven: that the retired-key sweep removes `is_dev` with no runner code, and the override drift path.
     
     If accepted, ADR-754 decision 2 and ADR-971 decision 2 each need a dated narrowing in place and a `related` ref back. I touched neither.
-- [2026-10-09T18:40:01Z] Pierre Chat:
+- [2026-10-09T18:40:01Z] `op-pierre` Pierre Chat:
   - 2026-10-09: accepted as written, including the open capability vocabulary, developers staying templated, sq dev add --slug, and the two upgrade changes with no automatic fix.
 <!-- sq:discussion:end -->

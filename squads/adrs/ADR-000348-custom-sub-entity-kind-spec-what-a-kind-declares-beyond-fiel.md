@@ -264,12 +264,12 @@ per-field values on custom kinds serialize exactly as ADR-323 already defined fo
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-09T21:22:56Z] Pierre Chat:
+- [2026-07-09T21:22:56Z] `op-pierre` Pierre Chat:
   - Accepted. The StatusSpec.completion retirement (churning TASK-330's blessed code onto the per-kind completion validator) is explicitly approved — per-kind completion is the right shape and REV-337 F3 deferred exactly this decision here. Proceed on the recommended design.
-- [2026-08-03T08:48:38Z] Robert Architect:
+- [2026-08-03T08:48:38Z] `architect` Robert Architect:
   - Verified in force with nothing owed on substance: `SubentityKindSpec` carries `lifecycle`/`plural`/`local_prefix`/`placeholder`/`maps_parent_story`/`completion`, `StatusSpec.completion` is gone, `_check_completion_status` is per kind and called from `_validate`, and `maps_parent_story` is the one derivation for the Story column in both renderers.
   - Corrected three `default_workflow.toml` citations to the bundled spec at `src/squads/_specs/workflow.toml`. Section 2 already records its own end of the completion move properly, which is why this decision needed nothing more — it is the model the ADR-322 narrowing points back at.
-- [2026-08-03T15:36:48Z] Robert Architect:
+- [2026-08-03T15:36:48Z] `architect` Robert Architect:
   - Widened in place, not narrowed: the risk note on `plural` doubling as the container marker now names a third consumer. ADR-738 publishes it on `sq workflow subentity-kinds --json` alongside `local_prefix`, `completion`, `maps_parent_story`, the resolved container heading and this kind's `fields`.
   - Nothing in this decision's model changes — `plural` is still the single declared name, and the derived-vs-stored split holds. What changes is reach: a rename now also moves a published catalog value. `placeholder` is deliberately left unpublished (content the engine writes, not vocabulary a client resolves). Linked `related` both ways.
 <!-- sq:discussion:end -->

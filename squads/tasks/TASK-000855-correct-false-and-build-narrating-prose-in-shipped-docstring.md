@@ -137,7 +137,7 @@ because nothing here renders a role's skills.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-01T12:57:42Z] Theo Writer:
+- [2026-09-01T12:57:42Z] `tech-writer` Theo Writer:
   - Rewrote all three flagged passages in _backends/_agents_md/_backend.py, plus two neighbours carrying the same framing. All narration, no false claims found here.
   - Module docstring: dropped the "a prior version staged one file per role/skill" history and the "those staging files are gone" announcement; states the four present-tense properties instead (write_managed compiles from the views it is passed; the two generate_* methods write nothing and exist for the ABC contract; those two and remove_artifacts opportunistically delete a leftover .agents_md/ file for the entry they are handed; only a leftover whose owning role or skill was removed outright survives, and candidate_orphans reports it). Verified candidate_orphans is reached from init and adopt only (_services/_service.py) — not from sync — so "the next time sq adopt runs" stands.
   - write_managed: the "they used to be" paragraph is gone from here; the invariant it was arguing for stays — every role field rendered comes from the RoleView, never from text this backend produced a step earlier — and points at RoleView for the rule itself, which is where ST2 puts it.
@@ -187,7 +187,7 @@ carried here explicitly. Present tense, no incident.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-01T13:01:31Z] Theo Writer:
+- [2026-09-01T13:01:31Z] `tech-writer` Theo Writer:
   - Done: _backends/_base.py RoleView + four passages in _services/_validators.py. Two of the four turned out to be FALSE, not just narrating — details below.
   - NARRATION. RoleView docstring: the incident (mission recovered by string-matching **Mission:** out of self-generated markdown, relabelling emptied it, responsibilities never rendered) is replaced by the rule it protects — a view field is the declaration, generated text is output and never an input; a backend recovering a declaration by parsing its own rendered markdown makes a template's formatting the carrier of that declaration, so relabelling a line empties the field silently. "Anything a backend renders is therefore declared here rather than read back off the page."
   - NARRATION. _backend_reconciled: dropped "It used to be computed here, unconfirmed, until making it roster- (and therefore index-) derived turned it cross-source." Kept the distinction as the reason: a per-entry pointer is roster- and therefore index-derived, which makes it cross-source and needs the confirm round; a rule reading only config and disk does not.
@@ -221,7 +221,7 @@ any other passage that describes a former gap rather than the rule that closes i
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-01T13:02:44Z] Theo Writer:
+- [2026-09-01T13:02:44Z] `tech-writer` Theo Writer:
   - Done: two comments in _services/_service.py, both narration, no false claims.
   - adopt's seeding step: dropped "and was previously the worse of the two gaps". The invariant survives whole — adopt is the other path that can create a squad's config, so it has to seed both halves, bundled and custom, exactly as init does; without them a generated skill file sits on disk with no SKILL item indexing it, and stays that way until the first sq sync seeds it.
   - Wording check against the tree as it stands: the old comment said "leaving every generated skill body untracked". Since system skill definitions stopped being stored, a system skill's file carries an EMPTY sq:body region, so "skill body" is the wrong noun for what goes unindexed — it is the skill FILE and its missing SKILL item. Reworded accordingly. Confirmed "until the first sq sync" is still true: _maintenance.py calls seed_bundled_skills/seed_custom_skills on every sync.
@@ -268,7 +268,7 @@ would obscure the prose diff. Where a name itself narrates, note it in the hando
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-01T13:06:19Z] Theo Writer:
+- [2026-09-01T13:06:19Z] `tech-writer` Theo Writer:
   - Done: all five modules. One FALSE claim and one stale count found along the way — the rest was narration. 68 tests in the five modules pass; no test function or module renamed, as instructed.
   - test_frontmatter_skew_guard.py (the heaviest). "Reproduces the finding this task closes end to end" -> names the shape: a faulted index commit during a mutation on a field outside {status, parent}. "The second, broader trigger named in the finding" -> the shape: a role catalog gaining a field, so the merge reaches a key the index has not seen. "Two properties, and the first one used to be the opposite" -> both properties stated flat, present tense, with no claim about which one changed. Also: "restoring what this test was once narrowed to a single non-default leg to sidestep a regression" -> now says what each parametrized leg pins and why the default leg cannot stand in for the other; "disk ahead by construction here rather than by a writer that no longer exists (the resolved-skills cache ... is gone along with link-role's write of it)" -> the divergence is written directly, since no live writer produces it; "rather than the old behaviour, which let the mutation through" -> states the loss class instead ("the stale index-loaded value silently overwrites the committed one").
   - FALSE, same file. The dev-role test asserted "a dev role's own catalog fields are not exempt (only `extra.skills` is)". Checked _itemfile._exempt_extra_keys: a dev role returns frozenset() — NOTHING is exempt, extra.skills included. The parenthetical is the only surviving reference to a narrower dev exemption that the code does not have; cut it, kept the surrounding claim, which is correct.
@@ -280,7 +280,7 @@ would obscure the prose diff. Where a name itself narrates, note it in the hando
   - test_workflow_override_service_integration.py: as expected, only one passage narrated — "is the whole finding" in the crossed-case banner. Now says it is the case neither pole above reaches. The badge-family and index-untouched comments describe behaviour and are untouched.
   - NOT FIXED, reported: tests/service/test_validator_catalog_lift.py's module docstring says "Parity between each lifted CATALOG entry and the hardcoded _check_* method it replaces" and "The engine itself is still inert (empty bundles)". Both are false now — no _check_* method exists in _maintenance.py, and COMMON_CORE plus CATEGORY_BUNDLES are populated (verified in _workflow/_models.py). Outside this subtask's five modules, so flagged rather than rewritten.
   - No test function or module was renamed. One module name does narrate: tests/integration/test_new_slug_validation_narrows_to_the_undecidable_dev_shape.py — "narrows to" describes a change to the validation rather than the behaviour pinned. A behaviour-named alternative would be something like the suffix space being decided by the stored fact except where no roster entry exists. Noting it here as instructed, not renaming.
-- [2026-09-01T13:20:15Z] Theo Writer:
+- [2026-09-01T13:20:15Z] `tech-writer` Theo Writer:
   - Post-gate note, shared here because ST4 is where the doc-claim work landed alongside the test prose: the ADDITIONAL SCOPE doc corrections are done too. See the ST5/ST6 comments for the driven verifications, and the parent handoff for the per-file split.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -318,7 +318,7 @@ subtask is a comment that is true, so it has to be checked, not copied.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-01T13:07:48Z] Theo Writer:
+- [2026-09-01T13:07:48Z] `tech-writer` Theo Writer:
   - Done: _migrations/_v0_11_to_v0_14.py, _live_roster's docstring. Prose only — the projection is untouched.
   - DRIVEN, not read. Scratch squad, sq init with roles_spec=architect, then a .overrides/roles/architect.toml setting title = "chief architect" placed WITHOUT a sync, so the item's extra mirror still holds the bundled title. Then both projections against the same index: Service.roster -> [("architect", "chief architect")]; _live_roster -> [("architect", "architect")]. The divergence the subtask describes is real and reproduces on the first try. Scratch squad removed afterwards.
   - One correction to the subtask's framing, and the new docstring says so: only the ROLE half diverges. Compared field for field — _live_roster's operator projection and Service.operators are identical (both read extra SLUG/FULL_NAME with the same fallbacks), and its skill_paths and Service._skill_paths are identical too. So "the same projection Service.roster/Service.operators/Service._skill_paths apply" was two-thirds true; claiming the whole thing diverged would have been as wrong as the sentence it replaces.
@@ -372,7 +372,7 @@ described.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-09-01T13:10:13Z] Theo Writer:
+- [2026-09-01T13:10:13Z] `tech-writer` Theo Writer:
   - Done: _roles/_resolver.py, both docstrings. The rule is untouched and uncarried fields are still uncarried — only the citation changed.
   - DRIVEN before writing, twice. (1) `uv run sq role manager update --set color=magenta` -> exit 2, "No such command 'update'". The role addressing group offers show/regen/rm/status/set-default (sq role --help). (2) Established what DOES reach it: _cli/_items.py's `update --set` is the only CLI command that builds a set_extra dict, and _cli/__init__.py only builds those item apps for spec.non_roster_types(). So nothing on the CLI reaches a role's extra — the subtask's fallback instruction applies, and the docstring now says so plainly: the seam is Service.update's set_extra argument, reachable programmatically, with no role verb exposing it.
   - DRIVEN, the silent consequence the subtask asked to state. Scratch squad: svc.update(role.id, set_extra={"title": "grand architect"}) succeeds; item.extra["title"] == "grand architect"; the role's .claude/agents/architect.md pointer does NOT contain it; CLAUDE.md does NOT contain it; after svc.sync() extra["title"] is back to "architect". That is now in the docstring as a named consequence of the rule, not a defect.
@@ -417,7 +417,7 @@ prose only and changes no key set.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-09-01T13:13:59Z] Theo Writer:
+- [2026-09-01T13:13:59Z] `tech-writer` Theo Writer:
   - Done, prose only — no key set changed, `_exempt_extra_keys` returns exactly what it returned before.
   - The ordering caveat did NOT trigger: the architect ruling has not landed. The dev pseudo-role question is on the board as a POST-0.14 candidate, explicitly parked until the release is out, so this paragraph is the one in force and I rewrote it rather than skipping.
   - Dropped: "It once got a narrower exemption of its own — extra.skills alone, since the resolved-skills cache resynced every role's extra this way — but that cache and its writer are gone, and nothing replaced them." Replaced by the reason itself: a dev role gets none of the exemption because no writer persists a dev role's extra outside a transaction, so there is no permanent lag for an exemption to tolerate. Everything after that framing is intact — _refresh_catalog_extra resolving a dev role against a base built from the item's own stored identity, writing markdown first and mirroring inside the same transaction, every field therefore ordinary and transaction-guarded, and the loss class widening would reopen.
@@ -431,7 +431,7 @@ prose only and changes no key set.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T13:20:55Z] Theo Writer:
+- [2026-09-01T13:20:55Z] `tech-writer` Theo Writer:
   - ADDITIONAL SCOPE (operator-supplied after this task was written, no subtask to hold it): the adopter-facing doc claims that went false when system skill definitions stopped being stored. Each verified against a fresh scratch squad before rewriting.
   - GROUND TRUTH, driven on a fresh sq init: a system skill file (squads/agents/skills/SKILL-000012-sq-task.md) contains frontmatter and an sq:body region with nothing between its open and close markers. Its .claude pointer contains no @-path at all — it names `sq skill sq-task show`. A CUSTOM skill (sq skill add, then body -m) DOES store its text in that region. A ROLE file still stores its full definition in its body, and the role pointer likewise names `sq role architect show` rather than an @-path.
   - Fixed, all FALSE: docs/internals.md:58 (skills folder described as holding "squads.md / sq-<type>.md (managed skill bodies)" — wrong filenames and wrong content); docs/internals.md:286-290 (the @-arrow diagram, pointing at a file that holds no body, via an @-import that is not used); docs/internals.md:47-48 (the same two POINTER arrows in the earlier tree); docs/backends.md:130 ("managed skill bodies live in squads/agents/skills/<name>.md"); docs/stability.md:516 (write_managed listed as writing "skill definitions" — it writes the pointer and the body file's SHAPE).

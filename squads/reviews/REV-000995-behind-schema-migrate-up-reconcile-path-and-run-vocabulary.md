@@ -484,9 +484,9 @@ the compiled region is one.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-11T21:04:19Z] Elias Python:
+- [2026-10-11T21:04:19Z] `python-dev` Elias Python:
   - Fixed: once-test built under real overrides; playbook row asserts the compiled authoring line; bundled-playbook mutation now 7 red
-- [2026-10-11T21:11:53Z] Paul Reviewer:
+- [2026-10-11T21:11:53Z] `reviewer` Paul Reviewer:
   - Verified on the working tree: with the bundled playbook swapped into the context, 7 tests go red (the once-test on its identity assertion, and the type-and-playbook row at built-0.4, built-0.8 and built-0.11 through the service and the CLI, each on the CLAUDE.md line). The line is absent under the same workflow override without the playbook, so the playbook alone produces it. The bundled-spec swap now turns the once-test red too.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -532,9 +532,9 @@ runner runs under a non-bundled spec and asserting it is the context's. Narrow t
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-11T21:04:23Z] Elias Python:
+- [2026-10-11T21:04:23Z] `python-dev` Elias Python:
   - Fixed: guard flags None spec, aliases, rebinding, more entry points; exemption narrowed to one name; limits documented
-- [2026-10-11T21:11:57Z] Paul Reviewer:
+- [2026-10-11T21:11:57Z] `reviewer` Paul Reviewer:
   - Verified: every evasion from the first pass is now flagged (None spec, import alias, rebinding once and twice, partial, passing the class as an argument, Service, open_service, resolve_playbook, get_active_spec, PLAYBOOK), the scan recurses, and a second resolver planted in _meta_compat.py turns the guard red. Still unseen and declared in the docstring: an optional-default helper, an unlisted helper, getattr. One residual it does not name: a rebinding through a module attribute (mk = store_module.IndexStore, then mk(a, b)).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -580,9 +580,9 @@ docstring that it covers squads without overrides only.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-11T21:04:27Z] Elias Python:
+- [2026-10-11T21:04:27Z] `python-dev` Elias Python:
   - Fixed: golden is now reviewed text copies under tests/goldens/migrated_corpus with UPDATE_GOLDENS regeneration and a diff on mismatch
-- [2026-10-11T21:12:04Z] Paul Reviewer:
+- [2026-10-11T21:12:04Z] `reviewer` Paul Reviewer:
   - Verified: text goldens with a unified diff on mismatch, the repo's UPDATE_GOLDENS switch, coverage stated in the docstring. The goldens match the unchanged code: the test passes against them on the 1a96e516 sources for all eleven corpora. A changed written field turns nine rows red with a readable diff. No golden file is git-ignored. I read the 0.14 corpus's copy; it equals the committed 0.15 fixture apart from the frozen-clock timestamps. The duplication across corpora is recorded separately as F6.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -612,9 +612,9 @@ runners.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-11T21:04:31Z] Elias Python:
+- [2026-10-11T21:04:31Z] `python-dev` Elias Python:
   - Fixed: CLAUDE.md runner sentence and the 0.5 to 0.7 docstring state both runner shapes
-- [2026-10-11T21:12:12Z] Paul Reviewer:
+- [2026-10-11T21:12:12Z] `reviewer` Paul Reviewer:
   - Verified by reading: CLAUDE.md line 169 states both runner shapes, and the 0.5 to 0.7 docstring now compares itself to the other file-walking runners only.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -662,15 +662,15 @@ in the end-to-end table.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-11T20:58:23Z] Catherine Manager:
+- [2026-10-11T20:58:23Z] `manager` Catherine Manager:
   - Home for this one is TASK-954 itself: the reconcile and the up-front vocabulary check (ST2, ST4) are expected to remove it, and ST3's shape table takes a row for a stopped run on a pre-0.7 squad with an override, re-run to completion. It stays Open until that row is green.
-- [2026-10-11T22:02:12Z] Paul Reviewer:
+- [2026-10-11T22:02:12Z] `reviewer` Paul Reviewer:
   - Second route into this dead end, demonstrated on the reconcile pass: the 0.5 corpus with an override that only adds a ref kind and one undecodable bug file. The first `sq migrate up` is refused correctly (one unindexable file), but the index it wrote before refusing holds the carried entry as `UNRESOLVED-4`. After the file is corrected exactly as the message says, the second run is refused in the root callback with `type 'bug' prefix changed to 'BUG' ... ['UNRESOLVED-4']`. The cure is unchanged (the vocabulary check moved after the rebuild), and the end-to-end table needs this row beside the stopped-run one.
-- [2026-10-12T06:02:32Z] Paul Reviewer:
+- [2026-10-12T06:02:32Z] `reviewer` Paul Reviewer:
   - Both routes driven on the code under review (0.5 corpus, an override adding a ref kind): the hand-edited status stops once at the check before the runners, the undecodable bug file stops once at the unindexable refusal, neither leaves an UNRESOLVED id in the index, and each re-run after the fix completes. Left Open for the end-to-end table row.
-- [2026-10-15T18:21:41Z] Elias Python:
+- [2026-10-15T18:21:41Z] `python-dev` Elias Python:
   - Fixed: tests/integration/test_a_behind_schema_squad_can_always_migrate_or_is_told_why.py::test_a_pre_0_7_squad_stopped_after_any_runner_is_resumed_to_the_uninterrupted_corpus runs the 0.5 corpus, with and without an override, stopped after each runner; every re-run completes with no UNRESOLVED id. The dead end does not reproduce on this tree.
-- [2026-10-15T18:34:38Z] Paul Reviewer:
+- [2026-10-15T18:34:38Z] `reviewer` Paul Reviewer:
   - Verified by driving it on the code under review: the 0.5 corpus with a [ref_kinds.mirrors] override, stopped once by a hand-edited status (before any runner), once by an undecodable bug file (before any runner), and once by a hand-edited priority code (inside a runner, after earlier runners wrote). Each first run leaves the schema at 0.5 and no UNRESOLVED id; each re-run after the fix completes at 0.15 and sq check exits 0. The third stop names a refused command, recorded as F19.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -715,9 +715,9 @@ coverage and a single hunk per template edit.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-11T21:18:21Z] Elias Python:
+- [2026-10-11T21:18:21Z] `python-dev` Elias Python:
   - Fixed: shared rendered files stored once under goldens/migrated_corpus/_shared with a per-corpus SHARED.txt; 88 files from 319; UPDATE_GOLDENS regenerates; one written field and one template line each turn nine rows red
-- [2026-10-11T22:02:07Z] Paul Reviewer:
+- [2026-10-11T22:02:07Z] `reviewer` Paul Reviewer:
   - Verified: 88 files, a shared file stored once and named in each corpus's SHARED.txt. Rebuilding every corpus's expectation from its own files plus the shared ones gives the 308 files and eleven REMOVED lists verified in the first pass, byte for byte, and no shared file is unlisted. Changing one corpus's input (the 0.8 role's name) fails that corpus's row alone, on the shared CLAUDE.md, with the diff shown. Small: under UPDATE_GOLDENS=1 with parallel workers the eleven comparison rows can read the folder while the regenerating test rewrites it, so run that one with -n0.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -764,11 +764,11 @@ a squad with no override. Add the pipeline row for it either way.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-12T04:49:19Z] Elias Python:
+- [2026-10-12T04:49:19Z] `python-dev` Elias Python:
   - Fixed (A8): a file is the squad's item only at a location (directory plus prefix, from the previous index and the declared pairs); the tree is no longer walked, so strays are never opened, indexed, counted or written
-- [2026-10-12T05:39:28Z] Elias Python:
+- [2026-10-12T05:39:28Z] `python-dev` Elias Python:
   - Still Fixed under A11: with an index a location is an entry's directory and prefix; with none the tree is walked and the check before the first runner refuses what sits where no type lives (no index left behind)
-- [2026-10-12T06:01:39Z] Paul Reviewer:
+- [2026-10-12T06:01:39Z] `reviewer` Paul Reviewer:
   - Verified against A8 and A11. With the index: the hand-archived milestone is dropped and named and the run completes; the never-indexed archived item and the lone fixture at a project root are ignored and the run completes, file untouched, counter unmoved. With no index: each is refused before any runner, the cause says there was no readable index, and no file in the squad changes.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -812,9 +812,9 @@ first run on the fixed squad would.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-11T22:11:55Z] Elias Python:
+- [2026-10-11T22:11:55Z] `python-dev` Elias Python:
   - Only an item accepted as the squad's own moves the counter or the padding.
-- [2026-10-12T06:01:45Z] Paul Reviewer:
+- [2026-10-12T06:01:45Z] `reviewer` Paul Reviewer:
   - Verified: an undecodable tasks/TASK-99999999-junk.md leaves counter 18 and padding 6 after the refusal and after the remedy; the date-numbered record beside a squad with no index leaves no index after the refusal and counter 11, padding 6 once it is moved out. Both equal a first run on the fixed squad.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -861,11 +861,11 @@ repair; or keep reporting them and narrow what counts as a candidate. Three rows
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-12T04:49:24Z] Elias Python:
+- [2026-10-12T04:49:24Z] `python-dev` Elias Python:
   - Fixed (A9): location decides, not content: a file named for an item at a location that cannot be given an entry stops the run with or without an entry; look-alikes outside locations are never opened
-- [2026-10-12T05:39:30Z] Elias Python:
+- [2026-10-12T05:39:30Z] `python-dev` Elias Python:
   - Still Fixed under A11: with an index location decides; with none the name decides and a parse-clean file with no well-formed id is passed over; unreadable item-named files stop the run
-- [2026-10-12T06:01:54Z] Paul Reviewer:
+- [2026-10-12T06:01:54Z] `reviewer` Paul Reviewer:
   - Verified against A9 and A11. With the index the Latin-1 and non-YAML look-alikes are never opened and the run completes. With no index both stop the run, as A11 rules for that state, with nothing written and the same result on a second run. The two parse-clean look-alikes pass in both states.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -904,9 +904,9 @@ run, and the dropped id is in the reflog.
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-11T22:12:03Z] Elias Python:
+- [2026-10-11T22:12:03Z] `python-dev` Elias Python:
   - The reconcile is logged on its own reflog line right after the index is written, before the refusal check.
-- [2026-10-12T06:02:02Z] Paul Reviewer:
+- [2026-10-12T06:02:02Z] `reviewer` Paul Reviewer:
   - Verified: the refused run now leaves a migrate reflog line carrying the dropped id, written when the index is written, and it is still there after the corrected run completes. A refused run with no index writes neither index nor line, which is consistent.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -941,9 +941,9 @@ over one of the two oldest corpora to the dropped-entry test.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-10-11T22:12:12Z] Elias Python:
+- [2026-10-11T22:12:12Z] `python-dev` Elias Python:
   - A prefixless entry is named by its recorded file name or path, and the previous-entry lookup uses the same fallback.
-- [2026-10-12T06:02:10Z] Paul Reviewer:
+- [2026-10-12T06:02:10Z] `reviewer` Paul Reviewer:
   - Verified on the 0.5 corpus: the dropped entry is named TASK-3 on screen and in the reflog, no UNRESOLVED id appears in the output, the index or the reflog, and a renamed file that no longer decodes is matched to its entry by number and the entry carried.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -983,11 +983,11 @@ available behind the gate is a question for the decision, not for this routine.
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-10-12T04:49:35Z] Elias Python:
+- [2026-10-12T04:49:35Z] `python-dev` Elias Python:
   - Fixed (A10): two ids sharing a number are refused with the number, both ids and paths, and a by-hand renumber remedy (next free number printed); 'also claimed by' kept for one id in two files
-- [2026-10-12T05:39:33Z] Elias Python:
+- [2026-10-12T05:39:33Z] `python-dev` Elias Python:
   - Still Fixed under A11/A10: unchanged, two ids sharing a number are refused naming the number, both ids and paths, with the by-hand renumber
-- [2026-10-12T06:02:21Z] Paul Reviewer:
+- [2026-10-12T06:02:21Z] `reviewer` Paul Reviewer:
   - Verified against A10, with and without an index: the cause names number 15, both ids and both paths and that the index holds one item per number; the renumber by hand is spelled out with number 19; no command is printed. The release it names is the subject of F14.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -1038,15 +1038,15 @@ missing-file case beside it. Correct the docstring.
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-10-11T22:12:19Z] Elias Python:
+- [2026-10-11T22:12:19Z] `python-dev` Elias Python:
   - Fixed in code and tests; the documentation lines it lists remain for the tech writer.
-- [2026-10-12T06:02:28Z] Paul Reviewer:
+- [2026-10-12T06:02:28Z] `reviewer` Paul Reviewer:
   - Back to Open for the documentation half only. The code and test half holds: the runner-skips-everything case is back beside the missing-file one, the module docstring is right, and the skip message and manual text no longer mention a missing file. The docs lines listed are untouched, and they now also owe the two refusals of the check before the runners, the no-index refusal and its remedies. CLAUDE.md's module list does not name _index/_reconcile.py or _services/_corpus_fit.py. Not blocking.
-- [2026-10-15T18:27:43Z] Theo Writer:
+- [2026-10-15T18:27:43Z] `tech-writer` Theo Writer:
   - Documentation half done: docs/workflow.md (seeded views: a missing milestone file is now dropped by the index rebuild and named on the reconcile line; an unreadable file stops the run; rename-type/rename-status need a current squad), docs/migration.md (TL;DR line, `sq migrate up` row, new "What runs on an out-of-date squad" and "Before the first runner" sections covering the reconcile line, the unindexable and vocabulary refusals, the no-index remedy, the override refusal, the index-full and still-at-schema endings), docs/stability.md (schema paragraph, migrate surface, gate scope), and two Changed entries in CHANGELOG 0.16.0. The code and test half was already confirmed by the reviewer. Fixed.
-- [2026-10-15T18:51:03Z] Paul Reviewer:
+- [2026-10-15T18:51:03Z] `reviewer` Paul Reviewer:
   - CLAUDE.md leftover verified by reading: the module list now names _index/_reconcile.py and _services/_corpus_fit.py, and the latter line still holds with the badge check added. The runner docstring leftover is recorded as F25. The docs half was not re-read in this pass because the writer is still editing docs/; it also owes the behaviour this pass changed: the notice gone while behind, and --dir on a project-root squad now meeting the gate. Left Fixed pending that read.
-- [2026-10-15T19:17:09Z] Paul Reviewer:
+- [2026-10-15T19:17:09Z] `reviewer` Paul Reviewer:
   - Docs half verified by reading docs/migration.md, docs/faq.md, docs/workflow.md, docs/stability.md and the 0.16.0 CHANGELOG entries against the behaviour driven in passes 5 to 8. The reconcile line, the refusals before the first runner (unindexable, vocabulary, badge codes including non-string values, an override that does not load), the closing line, the full-index refusal, the gate table by direction, --help as an option of its own (including -m -m --help), the notice suppressed while behind, and --dir for project-root, multi-level, symlinked, not-the-squad-folder and outside-tree squads all match. Two small imprecisions, not blocking: the stability.md migrate-up line omits the override-load refusal, and the CHANGELOG outside-tree sentence does not carve out the F28 shapes (WontFix).
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -1084,9 +1084,9 @@ of it. Add a row with the two stamps apart.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-10-12T06:33:13Z] Elias Python:
+- [2026-10-12T06:33:13Z] `python-dev` Elias Python:
   - Fixed: refusals name a release that reads the squad's schema (from the migration registry), never the last-sync version; row per stamped schema 0.3 to 0.14
-- [2026-10-12T06:44:44Z] Paul Reviewer:
+- [2026-10-12T06:44:44Z] `reviewer` Paul Reviewer:
   - Verified with the real releases: for squads stamped 0.3, 0.5, 0.7, 0.8, 0.10, 0.11 and 0.14 the message names 0.3.0, 0.5.0, 0.7.0, 0.8.0, 0.10.0, 0.11.0 and 0.14.0; each opens its squad and rebuilds the index, and the next run completes, for the no-index refusal and for the unindexed first item. The last-sync release is no longer mentioned. Residual, fixture only: stamp 0.4 is told 0.5.0, which refuses it; no release stamps 0.4.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -1122,9 +1122,9 @@ vocabulary table.
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-10-12T06:33:35Z] Elias Python:
+- [2026-10-12T06:33:35Z] `python-dev` Elias Python:
   - Fixed: both questions compare normalised paths; rows for trailing slash, ./, both and a nested folder, indexed and with no index
-- [2026-10-12T06:44:52Z] Paul Reviewer:
+- [2026-10-12T06:44:52Z] `reviewer` Paul Reviewer:
   - Verified: a folder declared with a trailing slash and one with a leading ./ both complete, with an index and with none, as the unchanged code does where it has an answer.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
@@ -1163,9 +1163,9 @@ prefix, with no mention of a spec change. Add the row.
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-10-12T06:33:55Z] Elias Python:
+- [2026-10-12T06:33:55Z] `python-dev` Elias Python:
   - Fixed: without an override the check asks only the families the store's load refuses (alignment left out); a hand-edited type migrates, with an override it is refused naming it
-- [2026-10-12T06:45:04Z] Paul Reviewer:
+- [2026-10-12T06:45:04Z] `reviewer` Paul Reviewer:
   - Verified: with no override the hand-edited type migrates and no line mentions an override. Beside an override it is refused before any runner naming that override, which is inside the bound: the unchanged code completes that run and leaves a squad every command then refuses at load. The keyword defaults to the old behaviour and the one other caller does not pass it.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
@@ -1206,9 +1206,9 @@ prefix the pattern cannot read, is for the decision. Add rows for both prefixes.
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
-- [2026-10-12T06:34:11Z] Elias Python:
+- [2026-10-12T06:34:11Z] `python-dev` Elias Python:
   - Fixed per the architect's ruling: locations take the entry's own prefix spelling and match literally, ids use the model's parser, the walk shape is widened, both questions compare by declared spelling; rows for MY_INC, 2FA and a dotted prefix
-- [2026-10-12T06:45:13Z] Paul Reviewer:
+- [2026-10-12T06:45:13Z] `reviewer` Paul Reviewer:
   - Verified against the ruling: MY_INC and 2FA are indexed before the runners with an index and with none, and a second unindexed MY_INC item in the same folder gains an entry. A dotted prefix with no index is refused by the second question with no index left, and completes with one. What the wider walk and id shape now take in is listed in the review body.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
@@ -1253,9 +1253,9 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
-- [2026-10-12T06:34:26Z] Elias Python:
+- [2026-10-12T06:34:26Z] `python-dev` Elias Python:
   - Fixed: the misplaced-file remedy says move it back and re-run (the second refusal carries the other release), and the check's refusals carry the rebuilt-first note
-- [2026-10-12T06:45:20Z] Paul Reviewer:
+- [2026-10-12T06:45:20Z] `reviewer` Paul Reviewer:
   - Verified: the misplaced-file remedy says to move the file and re-run, and that is enough when the folder holds another indexed item. When it does not, the next refusal carries the release and ends with what the rebuild dropped, on screen as well as in the reflog.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
@@ -1281,7 +1281,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
-- [2026-10-15T18:50:39Z] Paul Reviewer:
+- [2026-10-15T18:50:39Z] `reviewer` Paul Reviewer:
   - Verified, driven: the badge check now refuses before any runner, with a hand-fix remedy and no refused command, for an item priority, a finding severity, a custom sub-entity field (extra.impact on a finding), a custom item field on a type of the squad own (extra.impact on an incident) and an int value. A good custom value completes. Non-string custom values crash instead; recorded as F24.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
@@ -1302,7 +1302,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F20:discussion -->
-- [2026-10-15T18:50:42Z] Paul Reviewer:
+- [2026-10-15T18:50:42Z] `reviewer` Paul Reviewer:
   - Verified, driven: on a squad that is behind, migrate up (refused and completing), help and chlog print no sq sync notice; once current, the notice is back on sq list, and the completed run still ends with its own run sq sync line.
 <!-- sq:finding:F20:discussion:end -->
 <!-- sq:finding:F20:end -->
@@ -1325,9 +1325,9 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F21:discussion -->
-- [2026-10-15T18:50:44Z] Paul Reviewer:
+- [2026-10-15T18:50:44Z] `reviewer` Paul Reviewer:
   - Verified, driven on a squad that is behind: -m -h, --message --help, -m a -m --help, --as=manager -m --help, --desc --help on create, --title --help on update, and --help after -- are all refused by the gate with nothing written, and repad --help 7 still shows help. Two residuals, neither a write: a bundled short flag (list -as --help) gets past, because -as is not in the value set, and list then refuses --help as a status; and -m -m --help, which Click treats as a real help request, is refused by the gate. Neither earns a finding.
-- [2026-10-15T19:02:50Z] Paul Reviewer:
+- [2026-10-15T19:02:50Z] `reviewer` Paul Reviewer:
   - Residual re-driven: -m -m --help now shows help; -m -m -m --help and -m -h are gated with nothing written. list -as --help still gets past the gate (the bundle is not split) and list then refuses the status; read-only, no finding.
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
@@ -1348,7 +1348,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F22:discussion -->
-- [2026-10-15T18:50:46Z] Paul Reviewer:
+- [2026-10-15T18:50:46Z] `reviewer` Paul Reviewer:
   - Verified, driven: the guard now flags a module constant raised by name, a local variable, a placeholder command and a module-attribute use of skew_message, and the docstring states its limits. Still unseen and undeclared (minor): an annotated assignment (MSG: str = ...), string concatenation and percent-formatting. The behavioural tables use the same placeholder-aware pattern.
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
@@ -1374,7 +1374,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F23:discussion -->
-- [2026-10-15T18:51:01Z] Paul Reviewer:
+- [2026-10-15T18:51:01Z] `reviewer` Paul Reviewer:
   - Reopened. The fix covers `squad_dir = "."` spelled exactly that way, and nothing else. Driven with a fresh squad stamped 0.14 per row, invoked from outside with `--dir`:
     
     | Layout | `--dir` | `list` | `migrate up` |
@@ -1392,7 +1392,7 @@ indexed or dropped something.
     - `"./"` is a spelling the walk-up from inside accepts and gates. With `--dir` it falls through to the parent lookup, because the comparison is on the raw string.
     
     What would fix it: find the config by walking up from the `--dir` folder to the first `.squads.toml`, and accept it only when its root plus `squad_dir` (normalised) resolves to that folder. Refuse when a config is found that does not point at the folder, and never fall back to a synthesised config when any `.squads.toml` sits at or above it. Add the three bold rows to the gate table.
-- [2026-10-15T19:02:43Z] Paul Reviewer:
+- [2026-10-15T19:02:43Z] `reviewer` Paul Reviewer:
   - Verified, driven: the three pass-6 rows are now gated with nothing written (squad_dir "./", "work/squad", and --dir at the project root of a nested squad, which is now refused by name). Also gated: a root-layout squad inside another squad folder, a nested project under another project root, an outer behind squad with a current one below it; a folder between two configs and a missing folder inside a squad tree are refused. Faithful reverts of the gate test in a scratch copy: back to the HEAD resolve, 45 red, including every root-layout row (list, repair and repad behind; list, repair, repad and up ahead) while the nested and symlinked rows stay green; back to the pass-6 "." check, 38 red (the dot-slash and multi-level rows and the not-own-folder table) with the root rows green. Residual: a squad_dir that leaves the project tree, recorded as F26.
 <!-- sq:finding:F23:discussion:end -->
 <!-- sq:finding:F23:end -->
@@ -1417,7 +1417,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F24:discussion -->
-- [2026-10-15T19:02:46Z] Paul Reviewer:
+- [2026-10-15T19:02:46Z] `reviewer` Paul Reviewer:
   - Verified, driven: a list, a mapping, an int and an undeclared string in a custom item field, and a list in a custom sub-entity field, are each refused before any runner, with the file named; a good value completes. At the current schema, list and check now report the list value cleanly instead of crashing.
 <!-- sq:finding:F24:discussion:end -->
 <!-- sq:finding:F24:end -->
@@ -1437,7 +1437,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F25:discussion -->
-- [2026-10-15T19:02:48Z] Paul Reviewer:
+- [2026-10-15T19:02:48Z] `reviewer` Paul Reviewer:
   - Verified by reading: the paragraph now says declined conditions are skips, that a stop from what the runner calls is resumed by sq migrate up, and that an unparseable item file is refused before any runner (driven in pass 6). The false example is gone.
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
@@ -1461,7 +1461,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F26:discussion -->
-- [2026-10-15T19:14:47Z] Paul Reviewer:
+- [2026-10-15T19:14:47Z] `reviewer` Paul Reviewer:
   - Verified, driven: an outside-tree squad (relative and absolute squad_dir) is refused by name with --dir, with its index and with the index removed, and nothing is written. Falsified in a scratch copy: disabling the check turns exactly the 24 outside-relative and outside-absolute rows red. Current outside-tree squads are refused with --dir too and told to run from the project directory, which is acceptable for one release. The heuristic gaps and the one false positive are recorded as F28 (low, not blocking).
 <!-- sq:finding:F26:discussion:end -->
 <!-- sq:finding:F26:end -->
@@ -1480,7 +1480,7 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F27:discussion -->
-- [2026-10-15T19:14:51Z] Paul Reviewer:
+- [2026-10-15T19:14:51Z] `reviewer` Paul Reviewer:
   - Verified: require_init is gone from src, tests and the VS Code client (grep clean), the dead default-config branch is removed and the docstring describes what --dir and the walk-up do. Driven: sq init in a fresh directory succeeds and the squad lists; outside a squad, migrate help exits 0, list gives the run-sq-init error, and --version works. sq init ignoring --dir is tracked by BUG-1008.
 <!-- sq:finding:F27:discussion:end -->
 <!-- sq:finding:F27:end -->
@@ -1506,11 +1506,11 @@ indexed or dropped something.
 #### Discussion
 
 <!-- sq:finding:F28:discussion -->
-- [2026-10-15T19:15:41Z] Catherine Manager:
+- [2026-10-15T19:15:41Z] `manager` Catherine Manager:
   - WontFix: temporary heuristic, needs three rare conditions at once; --dir is being replaced by a git-style -C (operator ruling of 2026-10-15 on MILE-934), whose ADR removes this code path.
-- [2026-10-15T19:17:11Z] Catherine Manager:
+- [2026-10-15T19:17:11Z] `manager` Catherine Manager:
   - WontFix for this release (decision relayed by the manager): --dir is being replaced by a git-style -C, and the ADR in drafting for it is the home for this gap.
-- [2026-10-15T19:17:22Z] Paul Reviewer:
+- [2026-10-15T19:17:22Z] `reviewer` Paul Reviewer:
   - Note: the previous comment was posted by the reviewer under the manager slug to record the manager WontFix decision as relayed in the pass-9 brief; I set the status.
 <!-- sq:finding:F28:discussion:end -->
 <!-- sq:finding:F28:end -->
@@ -1519,7 +1519,7 @@ indexed or dropped something.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-11T20:56:45Z] Paul Reviewer:
+- [2026-10-11T20:56:45Z] `reviewer` Paul Reviewer:
   - @manager first pass done, ST6 only. Verdict: ChangesRequested on one test gap; no defect found in the source change.
     
     - **The source change holds.** Old code against new over 334 rows of squad source by override shape: 254 complete on both with no byte, output or exit-code difference; 16 refused before now complete with the item kept; none goes the other way. The digests reproduce on the unchanged code at 1a96e516. The claim that no byte changes for a squad that migrates today is sound, including for squads with overrides, which the digest test does not represent.
@@ -1529,7 +1529,7 @@ indexed or dropped something.
     - The changed helper in the milestone roll-up test is faithful: it builds the service as the CLI does. A service built without the squad's vocabulary now migrates under the bundled one where the two newest runners used to re-read the override; no CLI path builds one for migrate up today, and the up-front vocabulary subtask has to keep it that way.
     - Not filed, small: tests/_helpers.py gains the module's first top-level squads imports where every other helper imports locally. No changelog entry for the adopter-visible fix yet.
     - Not covered: the agents_md backend, role and template overrides, squads with operators or custom skills. The whole suite, pyright and ruff were not re-run here.
-- [2026-10-11T21:12:39Z] Paul Reviewer:
+- [2026-10-11T21:12:39Z] `reviewer` Paul Reviewer:
   - @manager F1 to F4 verified against the working tree; the first subtask is clear to commit and build on.
     
     - **F1** Verified: the bundled-playbook swap now turns 7 tests red, each on the intended assertion.
@@ -1540,7 +1540,7 @@ indexed or dropped something.
     - **F5** stays Open for the later subtasks.
     - Source is unchanged since the first pass apart from one docstring, so the old-against-new comparison there still stands.
     - Status left at ChangesRequested: F5 and F6 are open and the task is unfinished, and the lifecycle has no state for a pass that is clear with more to come.
-- [2026-10-11T22:02:39Z] Paul Reviewer:
+- [2026-10-11T22:02:39Z] `reviewer` Paul Reviewer:
   - @manager second pass done: the goldens fix is verified, the index reconcile is not clear to commit or to build on. ChangesRequested.
     
     - **F6** Verified.
@@ -1556,9 +1556,9 @@ indexed or dropped something.
     Who decides what: F8, F10 and F11 are code fixes for @python-dev. F7, F9 and F12 need a ruling first, since each is the decision's recognition rule meeting something it did not consider (@architect, @tech-lead): where a stray item file is refused and with what remedy, whether an unreadable bystander is reported, and whether a renumber is reachable behind the gate. F7 also changes what the up-front vocabulary check has to say, so it should be settled before that subtask is built.
     
     What held is in the review body: carry-forward under 29 hostile shapes, when it runs, content-neutrality, convergence over the eleven corpora, this repository's own squad (964 candidates, nothing reported).
-- [2026-10-11T22:12:22Z] Catherine Manager:
+- [2026-10-11T22:12:22Z] `manager` Catherine Manager:
   - The four status changes and comments above dated 2026-10-12 were entered by the manager from the developer's hand-back: the board index was missing when he tried to record them (a probe script had deleted it; restored and rebuilt since).
-- [2026-10-12T06:02:57Z] Paul Reviewer:
+- [2026-10-12T06:02:57Z] `reviewer` Paul Reviewer:
   - @manager third pass done. The design as ruled holds when driven; four defects in the check before the runners and its messages keep this pass from being clear to commit. ChangesRequested.
     
     - **Verified:** F7, F8, F9, F10, F11, F12, each re-driven against the outcome the amendments give. **F5** stays Open for the end-to-end row; both routes are gone. **F13** back to Open for its documentation half only (@tech-writer; the list has grown with A11).
@@ -1575,7 +1575,7 @@ indexed or dropped something.
     **The design's cost**, for op-pierre, is in the review body as a table. In short: every refusal it introduces has a way out that works when driven, for squads stamped 0.3 to 0.14; restoring the index from version control is the easy one; the release route works but the message names the wrong release when sync lagged, cannot name the command, and that command runs the old release's own content sweep. A squad created by 0.1.x or 0.2.0 is refused by the current package on its integer schema stamp before any of this, at HEAD too, so the oldest squad this path serves is stamped 0.3.
     
     The developer's second report is right and narrower than stated: after a with-index refusal, moving the file back is enough unless it was the only indexed item of its type. Nothing is lost and the drop is in the reflog; the screen does not show it (F18).
-- [2026-10-12T06:45:42Z] Paul Reviewer:
+- [2026-10-12T06:45:42Z] `reviewer` Paul Reviewer:
   - @manager fourth pass done: F14 to F18 verified, nothing new filed. The reconcile and the check before the runners are clear to commit, and clear to build the remaining three subtasks on.
     
     - **F14** the release named now opens the squad: driven with the real releases for every schema a release stamps, 0.3 to 0.14, for both refusals that name one.
@@ -1588,30 +1588,30 @@ indexed or dropped something.
     Two things for op-pierre from the ruling on the name pattern, neither a defect. In the no-index state the tree walk now opens names whose prefix has an underscore or starts with a digit, and an id is whatever the model's parser reads, so a document carrying an id such as CVE-2024-1234 with no type now stops the run where it used to be passed over. Both leave the squad untouched and have the same ways out; the list is in the review body.
     
     Still open: **F5** until the end-to-end table has its row, **F13** for its documentation half (@tech-writer). The review stays at ChangesRequested for those.
-- [2026-10-15T18:34:58Z] Paul Reviewer:
+- [2026-10-15T18:34:58Z] `reviewer` Paul Reviewer:
   - @manager Pass 5 (ST1, ST3, F5) is recorded in the body. The review stays ChangesRequested.
   - Held: on a nested squad, the 72-row gate matrix (migrate verbs and ordinary commands, behind/ahead/current, run from inside and with --dir) matches A1 exactly, and the grant lookup fails closed. F5 is Verified: driven three ways, including a real stop inside a runner, and each re-run completes with no UNRESOLVED id.
   - New: F23 (high, pre-existing): with --dir, a project-root squad never has its .squads.toml read, so it passes as current. repad and repair then rewrite a behind corpus, and migrate up says nothing to migrate. The gate test sidesteps this by nesting the fixture.
   - F19 (medium): a hand-edited badge code passes the check before the runners and stops inside a runner with a message naming sq repair. The claim that store refusals are unreachable does not hold for this shape.
   - F20 (medium): the version notice names sq sync on every behind migrate run, and the invariant tests only read the output from error: onward. F21 (medium, pre-existing): an argument equal to -h or --help, e.g. comment -m -h, gets any command past the gate. F22 (low): the remedy checks cannot see placeholder commands or indirect raises.
   - F21 and F23 are gate mechanism defects outside ST1/ST3 as briefed. They may want a bug of their own, but the gate guarantee depends on them. F13 stays Open for the docs half.
-- [2026-10-15T18:51:19Z] Paul Reviewer:
+- [2026-10-15T18:51:19Z] `reviewer` Paul Reviewer:
   - @manager Pass 6 is recorded in the body. The review stays ChangesRequested.
   - Verified: F19 (item, sub-entity and custom badge fields refused before any runner), F20 (no sq sync notice while behind), F21 (every value, repeated and option=value shape gated; only a read-only bundled-flag residual), F22 (guard and matchers; minor residual shapes noted). The CLAUDE.md module lines hold.
   - Reopened F23 (high): the fix matches the literal string ".". With squad_dir "./" or "work/squad", --dir still skips the gate (repair rewrote four item files on a 0.14 squad, and migrate up says nothing to migrate). With --dir at the project root of a nested squad, repair writes a stray index at the project root.
   - New: F24 (low): a list or mapping in a custom badge field crashes migrate up with a traceback; the in-frozenset check is copied three times. F25 (low): the runner docstring still says an unparseable milestone stops the run from inside it, but it is now refused before any runner.
   - F13 stays Fixed pending a read of the docs once the writer is done; the docs also owe the F20 and F23 behaviour changes.
-- [2026-10-15T19:03:05Z] Paul Reviewer:
+- [2026-10-15T19:03:05Z] `reviewer` Paul Reviewer:
   - @manager Pass 7 is recorded in the body. The review stays ChangesRequested on one new medium.
   - Verified: F23 (all three pass-6 layouts gated; nested-in-another-squad, between-two-configs and missing-folder shapes refused). Faithful reverts: back to the HEAD resolve, 45 red, including every root-layout row, with nested and symlinked rows green; back to the pass-6 "." check, 38 red, with the root rows green. F24 (list, mapping and int custom values refused with the file named, no crash at any schema). F25 (docstring true). F21 residual (-m -m --help is help again).
   - New: F26 (medium): a squad_dir that leaves the project tree ("../shared" or absolute) is never on the walk-up from the --dir folder, so --dir there still synthesises a current config; repair rewrote four item files on a 0.14 squad. The index carries the corpus stamp the gate could read.
   - New: F27 (low): no caller passes require_init=False, so the init fallback the dev left is dead code, not a defect of init --dir. Separately, sq init ignores --dir entirely and initialises the working directory (it wrote a squad into my scratch cwd). That predates this work; better as a bug for QA than a fix here.
-- [2026-10-15T19:15:11Z] Paul Reviewer:
+- [2026-10-15T19:15:11Z] `reviewer` Paul Reviewer:
   - @manager Pass 8: REV-995 is Approved, at your direction; no high or medium finding is open.
   - Verified: F26 (outside-tree squads refused with --dir, with the index and with it removed, nothing written; disabling the check turns exactly the 24 outside rows red) and F27 (require_init gone from src, tests and the client; init, migrate help, list and --version behave as before).
   - New, F28 (low, Open): the squad-data check misses a squad with no index whose item files are all two folders deep or slugless, so --dir there still runs repair under a made-up current stamp. It needs three rare conditions together, and --dir is being replaced by -C, so it is acceptable for one release. It needs your disposition: WontFix with the -C ADR as its home, or a widened pattern.
   - Still to do: F13 stays Fixed until the docs half is read once the writer is done; it also owes the F20, F23 and F26 behaviour changes.
-- [2026-10-15T19:17:23Z] Paul Reviewer:
+- [2026-10-15T19:17:23Z] `reviewer` Paul Reviewer:
   - @manager Docs and narration check is done; REV-995 stays Approved. F13 is Verified (docs and CHANGELOG match the built behaviour through F27; two small imprecisions are noted on F13). F28 is WontFix, with the -C ADR as its home.
   - Narration sweep over the added lines of git diff (src, tests, docs, CHANGELOG, CLAUDE.md) and the five untracked test modules: no pass, round or phase language, no reviewer or finding references, and no ticket IDs in code or test names (the only ID-shaped strings are fixture file names). No release versions in comments outside the migration runner; the 0.14 strings in tests are fixture stamps.
   - Three minor hits for routing. src/squads/_cli/_common.py:1482: "No command does today" is a time-bound claim that will go stale. src/squads/_paths.py:134: "(the CLI edge, today; a future server handler)", the same, in pre-existing text rewrapped in this diff. tests/cli/test_the_gate_lets_past_by_command_and_direction.py:5: "--help is never gated" is no longer accurate, since --help only skips the gate as an option of its own.

@@ -230,7 +230,7 @@ row goes red. Change the domain prefix: the pinned vector goes red. Restore each
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-17T01:04:51Z] Elias Python:
+- [2026-10-17T01:04:51Z] `python-dev` Elias Python:
   - Done: Comment.hash/edited_ts/span, canonical_text, short_hashes, resolve_hash (src/squads/_discussion.py); tests/unit/test_comment_hash_and_prefix.py + tests/service/test_comment_hash_survives_a_retype.py.
   - Falsified (new tests red): no trailing-space strip 2; domain tag changed 12; sequence number dropped 13; scope dropped 2; resolve across scopes 2; short form not widened 2. The retype row guards the contract but cannot go red at this layer (the formatted id never reaches the parser).
 <!-- sq:subtask:ST1:discussion:end -->
@@ -280,7 +280,7 @@ alike: the legacy table goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-17T01:04:53Z] Elias Python:
+- [2026-10-17T01:04:53Z] `python-dev` Elias Python:
   - Done: format_comment edit mark, header grammar group, replace_comments by line span, legacy_header_lines (src/squads/_discussion.py); tests/unit/test_comment_splice_by_line_span.py (242 rows).
   - Falsified (new tests red): second edit appends a mark 2; indented lines count as legacy 2; replacement ignores the header line ending 55; removal keeps the comment trailing blank lines 64.
 <!-- sq:subtask:ST2:discussion:end -->
@@ -327,7 +327,7 @@ exit 1 for a bare hash: those rows go red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-17T01:30:08Z] Elias Python:
+- [2026-10-17T01:30:08Z] `python-dev` Elias Python:
   - Done: CommentGroup and register_comment_group (src/squads/_cli/_common.py) at item, sub-entity and roster level; tests/cli/test_comment_group_grammar.py (30 rows, parse table x item/sub-entity).
   - Falsified (new tests red): bare hash exits 1 instead of 2: 4; options before the verb allowed: 4.
 <!-- sq:subtask:ST3:discussion:end -->
@@ -368,7 +368,7 @@ line without the sub-entity part: its row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-10-17T01:30:09Z] Elias Python:
+- [2026-10-17T01:30:09Z] `python-dev` Elias Python:
   - Done: show and show --json; comment_json/comments_json extended with edited_ts, hash, short_hash (one builder for every surface); tests/cli/test_comment_show_by_hash.py. Goldens comments, task_show, feature_show, subtask_st1_show regenerated: only the three keys added.
   - Falsified (new tests red): extra key in the record: 2; context line without the sub-entity part: 2.
 <!-- sq:subtask:ST4:discussion:end -->
@@ -416,7 +416,7 @@ goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-10-17T01:30:11Z] Elias Python:
+- [2026-10-17T01:30:11Z] `python-dev` Elias Python:
   - Done: Service.edit_comment/find_comment, edit verb; tests/service/test_comment_edit_by_hash.py (position x shape x level x preamble, refusals), tests/cli/test_comment_edit_and_remove_by_hash.py. Written through sections.replace_section.
   - Falsified (new tests red): match display name as well as slug 1; skip reject_markers 1; write on a no-op edit 2; skip the legacy-line check 1.
 <!-- sq:subtask:ST5:discussion:end -->
@@ -456,7 +456,7 @@ author match on remove: the wrong-author row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-10-17T01:30:12Z] Elias Python:
+- [2026-10-17T01:30:12Z] `python-dev` Elias Python:
   - Done: Service.remove_comment, remove verb with prompt/--yes/--json; tests/service/test_comment_remove_by_hash.py, CLI rows in the shared CLI module.
   - Falsified (new tests red): skip the author match in the removal core 2; skip the confirmation 1. Dropping the preflight author check alone stays green by design (the core re-checks under the lock).
 <!-- sq:subtask:ST6:discussion:end -->
@@ -498,7 +498,7 @@ second member on edit: the merge row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-10-17T01:44:15Z] Elias Python:
+- [2026-10-17T01:44:15Z] `python-dev` Elias Python:
   - Done: duplicate refusal in _comment_core (so the importer reaches it under its single write), group merge on edit, group removal, copies in show --json; tests/service/test_duplicate_comments.py plus one CLI row.
   - Falsified (new tests red): no duplicate check 3; check skipped for sub-entity discussions 1; second member kept on edit 1.
 <!-- sq:subtask:ST7:discussion:end -->
@@ -535,11 +535,11 @@ each.
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
-- [2026-10-17T01:44:16Z] Elias Python:
+- [2026-10-17T01:44:16Z] `python-dev` Elias Python:
   - Done: comment_edit and comment_remove in REFLOG_OPS, one line per change with a comments delta (author, hash, region, ts, before; after_hash on edit); tests/service/test_comment_reflog.py.
   - Falsified (new tests red): log a no-op edit 1; drop after_hash 1.
   - Note: tests/meta/test_reflog_op_vocabulary_has_one_source.py fails until docs/workflow.md op table gains both rows (ST13, docs are not mine).
-- [2026-10-17T01:44:22Z] Elias Python:
+- [2026-10-17T01:44:22Z] `python-dev` Elias Python:
   - Correction: dropping after_hash turns 3 tests red, not 1.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
@@ -582,7 +582,7 @@ the hash from the TUI reader: its row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
-- [2026-10-17T01:49:13Z] Elias Python:
+- [2026-10-17T01:49:13Z] `python-dev` Elias Python:
   - Done: hash, short_hash and edited_ts on every JSON entry; hash first in the plain, raw, styled, sub-entity and TUI renders; hash on search hits and "hashes" on inbox; hits map to comments through split_discussion on the one line rule. Goldens regenerated (comments, task_show, feature_show, subtask_st1_show, inbox_manager, search_login, item_show_raw): only the new keys and the new first token changed.
   - Falsified (new tests red): TUI reader without the hash 1; short hash length wrong 13; search hit without hash 2; raw render without hash 1; line scan back on str.splitlines 1 (U+2028 row).
 <!-- sq:subtask:ST9:discussion:end -->
@@ -620,7 +620,7 @@ Use the item scope string on a roster entity: the hash-equality row goes red. Re
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
-- [2026-10-17T01:49:14Z] Elias Python:
+- [2026-10-17T01:49:14Z] `python-dev` Elias Python:
   - Done: the roster _addr groups already register the shared comment group; tests/cli/test_roster_comment_verbs_by_hash_cli.py runs show/edit/remove over every roster shape (system skill and role included, no gate) and the grammar refusals; TASK-1070 roster tests unchanged and green.
   - Falsified (new tests red): gate edit/removal on skills 4; item scope string on a roster entity 13.
 <!-- sq:subtask:ST10:discussion:end -->
@@ -662,7 +662,7 @@ only: the managed-section golden goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST11:discussion -->
-- [2026-10-17T01:59:01Z] Elias Python:
+- [2026-10-17T01:59:01Z] `python-dev` Elias Python:
   - Done: address verbs, the read-again rule and "a quoted hash pins the text its author read" added to workflow.md.j2, views/squads_skill.md.j2, claude/claude_section.md.j2 (step 5 no longer says append-only), agents_md/agents_section.md.j2, agents/operator.md.j2, views/role_definition.md.j2 and the task entry of playbook.toml. Manifest regenerated, --check clean, seed_content_store --rebuild dropped 6 orphans, --release-gate passes. Goldens updated: managed sections, workflow cheatsheet (cooked and raw), migrated-corpus CLAUDE.md, skill_body_sq-task, playbook_spec. tests/cli/test_guidance_teaches_comment_hash_verbs.py pins the text.
   - Falsified (new tests red): stale manifest 7 of tests/meta; original claude_section template 10 (guidance, managed-section and migrated-corpus goldens).
 <!-- sq:subtask:ST11:discussion:end -->
@@ -757,7 +757,7 @@ addressing and corrections by the author. ADR-1013 "Docs" and "The append-only s
 #### Discussion
 
 <!-- sq:subtask:ST14:discussion -->
-- [2026-10-17T02:01:55Z] Robert Architect:
+- [2026-10-17T02:01:55Z] `architect` Robert Architect:
   - 2026-10-17: done. Dated notes posted as discussion comments, bodies untouched: ADR-979 (Context first sentence; §2 optional edit mark, replaced not stacked), ADR-981 (§1 No denormalisation: conclusion stands, an edit keeps the name snapshot and writes no pronoun), and ADR-1013 (implementation settlements: one CR/LF/CRLF split_lines rule incl. the 0.16 migration, the reflog {"comments": [...]} delta with after_hash on edit, the retired-author freeze in the service, the edit mark replaced on re-edit). @manager
 <!-- sq:subtask:ST14:discussion:end -->
 <!-- sq:subtask:ST14:end -->
@@ -766,15 +766,15 @@ addressing and corrections by the author. ADR-1013 "Docs" and "The append-only s
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T21:15:59Z] Olivia Lead:
+- [2026-10-16T21:15:59Z] `tech-lead` Olivia Lead:
   - Broken down into ST1-ST14. Depends on TASK-1070, TASK-992 (importer and write guard) and TASK-1078 (same roster CLI files); TASK-1071 now depends on this task (both change the comment header render). No migration, per ADR-1013. @manager ready for review of the plan.
-- [2026-10-17T01:59:02Z] Elias Python:
+- [2026-10-17T01:59:02Z] `python-dev` Elias Python:
   - Facts for ST12 (VS Code): every discussion entry in comments --json and in show --json (item and sub-entity) now has edited_ts (null or ts), hash (64 hex) and short_hash (scope-unique, at least 7). Human headers read "<short> [<ts>] Name (slug)" plus " (edited <ts>)". Search hits have "hash" (null outside a comment); inbox entries have "hashes" parallel to lines/regions.
   - Facts for ST13 (docs): header grammar gains an optional ", edited <ts>" before the slug; hash = SHA-256 over "sq-comment-1", item sequence number, scope ("" or kind:local_id), slug, header timestamp, canonical text (CR/LF/CRLF equal, trailing spaces and tabs stripped, outer blank lines dropped). Verbs: comment <hash> show [--json|--raw] | edit --as (-m|--file) [--json] | remove --as [--yes] [--json]; prefix of 4+ hex, case-insensitive, per discussion; stale hash refused; duplicates refused on write and import, tolerated on load, merged on edit, removed together; show --json adds item, scope, copies. Reflog: comment_edit and comment_remove, delta {"comments": [{author, hash, region, ts, before[, after_hash]}]}. docs/workflow.md op table needs both rows: tests/meta/test_reflog_op_vocabulary_has_one_source.py fails until it has them. Lines are broken at CR, LF, CRLF only (all readers). Author match is a guard against a slip, not a permission; a mention removed by an edit is not re-notified.
   - Facts for ST14 (architect): the edit keeps the display name snapshot; no pronoun is written into a header; no migration step changed except the 0.16 header migration now reads lines through the one CR/LF/CRLF rule (REV-1088 F3).
-- [2026-10-17T02:01:36Z] Ada Typescript:
+- [2026-10-17T02:01:36Z] `typescript-dev` Ada Typescript:
   - ST12 done. Preview comment header now shows the short hash first (full hash as tooltip) and an "(edited <ts>)" mark after the timestamp; entries without the keys render as before. Guard accepts hash, short_hash, edited_ts (null or string) as optional. Gates: tsc, eslint, prettier clean; vitest 715 passed; canary (pinned to the working-tree sq) 84 passed, with the discussion-entry keys now requiring the three new ones. Operator: in the dev host open a task preview with comments and check the hash, its tooltip and the edit mark on an edited comment.
-- [2026-10-17T02:06:04Z] Theo Writer:
+- [2026-10-17T02:06:04Z] `tech-writer` Theo Writer:
   - ST13 docs written, not committed. Probed on a working-tree copy (2a16e94b plus the uncommitted changes). @manager
     
     - docs/workflow.md: `comment_edit` and `comment_remove` rows in the reflog op table (now eighteen). `tests/meta/test_reflog_op_vocabulary_has_one_source.py` passes (4 passed). New section "Addressing a comment by its hash": verbs, scope, author-only (a guard, not a permission), the edit mark, the stale-hash refusal, and inbox reading the current text with no notification.

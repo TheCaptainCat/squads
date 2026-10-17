@@ -22,13 +22,13 @@ Fix must distinguish the two: same-item refresh = preserve scroll; navigate-to-n
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T10:38:34Z] Pierre Chat:
+- [2026-07-20T10:38:34Z] `op-pierre` Pierre Chat:
   - Reported live: the webview also resets on refresh; and it should scroll back to the top on navigation.
-- [2026-07-20T10:57:50Z] Ada Typescript:
+- [2026-07-20T10:57:50Z] `typescript-dev` Ada Typescript:
   - Root cause: refreshOpenPreviews reassigned panel.webview.html on every same-item refresh, reloading the webview page (scroll resets to 0), with no distinction from navigating to a different item.
   - Fix: render() now takes 'reload' | 'patch'. refreshOpenPreviews uses 'patch' — postMessage(UpdateContentMessage) with fresh article/sub-entities/discussion HTML, patched into stable #sq-article/#sq-subentities/#sq-discussion mounts via innerHTML (no page reload, scroll untouched), then re-runs mermaid via a re-callable window.__sqRenderMermaid. Every navigation path (new panel, tree click, link click) keeps 'reload' (fresh webview.html), which now explicitly does window.scrollTo(0, 0) on parse.
   - Files: clients/vscode/src/itemPreviewManager.ts (render mode split), clients/vscode/src/domain/previewDocument.ts (buildArticleHtml, mount ids, patch listener, re-callable mermaid render), clients/vscode/src/domain/previewMessages.ts (UPDATE_CONTENT_COMMAND/UpdateContentMessage).
   - Verified: npm run typecheck clean, npm test 287 passed (incl. new coverage for mount points/patch listener/explicit scrollTo), npm run test:e2e clean exit 0. eslint OOMs locally on a clean tree (known env issue, unrelated to this change) — CI is the authoritative lint gate. @manager
-- [2026-07-20T12:23:41Z] Pierre Chat:
+- [2026-07-20T12:23:41Z] `op-pierre` Pierre Chat:
   - Verified live: scroll position holds across refresh; navigating to another item lands at the top.
 <!-- sq:discussion:end -->

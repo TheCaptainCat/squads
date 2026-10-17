@@ -64,7 +64,7 @@ src/squads/_services/_retype.py: _validate_work_types() now checks spec.non_rost
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T12:52:40Z] Paul Reviewer:
+- [2026-07-22T12:52:40Z] `reviewer` Paul Reviewer:
   - Trap-avoidance VERIFIED (highest risk): _migrations/ zero diff (incl. _meta_compat.py); loader's is_meta back-compat shim intact — literal "is_meta" and _pop_legacy_is_meta preserved, only the META_TYPES ref inside became ROSTER_TYPES; legacy :meta sub-entity markers and _cli/_common.py local 'meta' var untouched (zero diff). Only the roster vocabulary changed.
   - Faithful-reclassification VERIFIED: META_*->ROSTER_* is a pure symbol rename across constants + ~15 by-name dispatch sites, zero logic change. item_is_roster sites left as roster-vs-not (correct). work_types()->non_roster_types() is a faithful rename — every call site (create/__init__ command registration, retype targets, playbook coverage, tui filter/search) genuinely means non-roster=work+records; none needed a narrower is-work/is-records split, so no new predicate was warranted. _tui/_tree.py untouched (FEAT-570 territory).
   - Gates: sq check clean; pyright 0/0/0, ruff check + format clean (--all-extras); relevant test files (reserved-vocab/rename/retype/capability-flags/types-cli) green. No ticket IDs added. The 2 user-facing error-string wording changes (_rename.py, _workflow/_models.py) have matching updated test assertions. Manifest hashes updated only under the 0.12.0 (unreleased) key — no released entry corrupted.

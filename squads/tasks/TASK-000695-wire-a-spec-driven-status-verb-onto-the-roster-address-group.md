@@ -318,11 +318,11 @@ task's acceptance.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-29T14:45:03Z] Olivia Lead:
+- [2026-07-29T14:45:03Z] `tech-lead` Olivia Lead:
   - Broken down from FEAT-691 as a single task: the wiring, the help/epilog text and the docs grammar lines all live in the same three CLI modules (plus `_ADDR_VERBS` in `_cli/_common.py`), so splitting them would put two devs in the same files for a ~3-line docs delta.
   - Verified the seam before writing: the three `_addr` subgroups register show/regen/rm by hand and no status verb; `Service.set_status` → `_apply_status` is already fully type-agnostic (driven off `spec.workflow_for(item.type).states` + `can_transition`) and produces the right error shapes for role/skill/operator as-is. CLI registration only.
   - Subtask→story: ST1/ST2/ST6 → US1, ST3 → US2, ST4/ST5 → US3.
-- [2026-07-29T14:58:43Z] Elias Python:
+- [2026-07-29T14:58:43Z] `python-dev` Elias Python:
   - Implemented: shared `register_status_verb` helper in _cli/_common.py (id_from_ctx seam), registered on role/skill/operator addressed subgroups; `_ADDR_VERBS` and epilogs/docstrings updated in all three modules + _OperatorDispatchGroup.
   - No status literal in the new code — allowed targets come from Service.set_status → _apply_status (spec.workflow_for/can_transition), unchanged.
   - Tests: tests/service/test_status_vocabulary_enforcement.py (+6 roster tests) and tests/cli/test_roster_type_address_verbs.py (+9 tests: resolution by number/id/slug, activate-first fallback, wrong-type, off-lifecycle, disallowed-edge+force, help/missing-verb, check/repair/sync consistency). Falsified: commenting out the three registration calls turned all 9 new CLI tests red (Click 'No such command status'); restored → green.

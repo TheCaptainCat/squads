@@ -254,7 +254,7 @@ non-recognition is no longer reachable for a well-formed tag from either produce
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-03T12:22:06Z] Elias Python:
+- [2026-09-03T12:22:06Z] `python-dev` Elias Python:
   - Recogniser accepts both the bare form and the sq:-prefixed on-disk form find_markers/iter_marker_spans emit. Both hand-strips removed (_views.py expand_view_tags, _maintenance.py's finding). Falsified: reverting the prefix-strip branch reddened 8 tests (the new shape tests + the existing dangling-name check suite, since it now feeds the raw producer form straight through); restored green.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -282,9 +282,9 @@ graph. Assert the content-blindness structurally, not only by inspection.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-03T12:26:22Z] Elias Python:
+- [2026-09-03T12:26:22Z] `python-dev` Elias Python:
   - Widened predicate landed in _views.py: resolve_view_target (3 questions) + _SOURCE_APPLICABILITY registry (ref/subtree explicitly true, subentity checks item_subentity_kind) + _source_incompatibility. Raise removed from the three per-kind resolvers per corollary 1; moved to resolve_records (the dispatcher), which is what keeps the explicit-resolve path (sq workflow view) raising unconditionally per ADR-880 second amendment section 5.
-- [2026-09-03T12:26:26Z] Elias Python:
+- [2026-09-03T12:26:26Z] `python-dev` Elias Python:
   - New unit suite tests/unit/test_view_source_applicability_predicate.py: table-driven hosting/non-hosting per kind, ref/subtree constantly-true, emptiness-not-failure, and two structural properties (no raise in any per-kind resolver via AST, predicate signatures are type-scoped not Item-scoped). Falsified: removing resolve_records's gate reddened 3 tests (2 new structural/behavioural + the pre-existing test_a_view_over_the_wrong_source_item_type_is_refused); restored green.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -304,11 +304,11 @@ reachable without passing through it — so nothing here treats the refusal as s
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-03T12:29:08Z] Elias Python:
+- [2026-09-03T12:29:08Z] `python-dev` Elias Python:
   - insert_view now checks resolve_view_target(name, item.type, self.spec) inside the mutate closure (single item load, no TOCTOU race, matches the existing KeyError-to-SquadsError idiom); remove_view stays ungated per the ADR.
-- [2026-09-03T12:29:10Z] Elias Python:
+- [2026-09-03T12:29:10Z] `python-dev` Elias Python:
   - Tests added: tests/service/test_view_tag_placement.py (hosting-succeeds control, non-hosting-refused = the reviewer's repro, table-driven host-type x kind over every bundled hosting pair, ref-source-unaffected control) and tests/cli/test_view_tag_placement_cli.py (the reviewer's exact CLI repro: sq epic <n> view add story_board now exits 1 with 'hosts' before any write, was exit 0 'placed').
-- [2026-09-03T12:29:14Z] Elias Python:
+- [2026-09-03T12:29:14Z] `python-dev` Elias Python:
   - Falsified: removing insert_view's gate reddened exactly the 6 refusal-path tests (undeclared name, no-template, non-hosting repro, 3/6 table rows) while all hosting/control tests stayed green; restored, all green.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -335,11 +335,11 @@ read.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-03T12:31:18Z] Elias Python:
+- [2026-09-03T12:31:18Z] `python-dev` Elias Python:
   - expand_view_tags now gates through resolve_view_target(name, item.type, spec); an inapplicable tag is left byte-for-byte literal and the read succeeds, same quiet disposition as the two existing failure modes. resolve_records's own defensive raise (ST2) provides defense in depth if a caller ever skips the gate.
-- [2026-09-03T12:31:22Z] Elias Python:
+- [2026-09-03T12:31:22Z] `python-dev` Elias Python:
   - Tests: service-level table-driven host x kind, hosting/non-hosting/empty-not-a-failure/ref-unaffected controls in test_view_tag_expansion_at_read_time.py; CLI-level reviewer repro (sq epic <n> show --raw / --json) driven to green in test_view_tag_expansion_at_read_time_cli.py.
-- [2026-09-03T12:31:24Z] Elias Python:
+- [2026-09-03T12:31:24Z] `python-dev` Elias Python:
   - Falsified: reverting the read-time gate to the old two-question check reddened both new applicability tests (the dispatcher's own defensive raise from ST2 surfaced the failure as an uncaught SquadsError rather than a silently wrong body); restored, all green.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -365,11 +365,11 @@ provenance.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-03T12:34:18Z] Elias Python:
+- [2026-09-03T12:34:18Z] `python-dev` Elias Python:
   - Renamed _dangling_view_issues -> _view_target_issues; now takes item_type (bound by the scan loop from folder+filename before read_frontmatter) and asks resolve_view_target, reporting either reason with one composed message. Call site in _scan_for_check updated. Test file renamed test_check_flags_a_dangling_view_tag_name.py -> test_check_flags_a_view_tag_whose_target_cannot_resolve.py (no ticket ID, behavior-named).
-- [2026-09-03T12:34:19Z] Elias Python:
+- [2026-09-03T12:34:19Z] `python-dev` Elias Python:
   - New tests: source-incompatible reason (REV-912 F1's own repro), hosting positive control, table-driven host x kind, ref-source-unaffected control, catalog-membership structural check -- at both service and CLI level (sq check exits 3, names file + 'hosts'). Existing reason-1 coverage (undeclared/no-template/duplicate/multi-name/catalog-free) all kept and still green.
-- [2026-09-03T12:34:24Z] Elias Python:
+- [2026-09-03T12:34:24Z] `python-dev` Elias Python:
   - Falsified: reverting _view_target_issues to ask only 'declared' (dropping template+applicability) reddened exactly 6 tests -- the no-template reason, the source-incompatible reason (service+CLI), and 3/6 table rows; restored, all green (253 passed across the wider marker/view/check test surface).
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -393,11 +393,11 @@ the body, which is how this class of failure reached review.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-09-03T12:36:33Z] Elias Python:
+- [2026-09-03T12:36:33Z] `python-dev` Elias Python:
   - US8 acceptance corrected on FEAT-905's story and TASK-911's mapped ST4: kept the ruling (tag rides along, retype gets no refusal, name resolution still works) and dropped the collapsed sentence ('a view is no longer type-scoped and the name still resolves'). Name is not type-scoped; a subentity source's applicability is -- the two were collapsed.
-- [2026-09-03T12:36:36Z] Elias Python:
+- [2026-09-03T12:36:36Z] `python-dev` Elias Python:
   - Retype suite gains a body-read assertion: the reviewer's own second repro (Path B), driven to green -- a subentity view valid on feature (hosts story), retyped to epic (hosts nothing): read_body succeeds with the tag left literal, and sq check reports the applicability finding naming 'hosts'. Existing tests also now call read_body (previously only asserted stored bytes + clean check, which is how F1 reached review).
-- [2026-09-03T12:36:40Z] Elias Python:
+- [2026-09-03T12:36:40Z] `python-dev` Elias Python:
   - Falsified: reverting expand_view_tags to the un-widened two-question gate reddened exactly the new retype repro test (via the resolve_records dispatcher's defensive raise -- read_body raised SquadsError instead of returning literal text); restored, green.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
@@ -429,7 +429,7 @@ with a path selector, not the full suite.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T12:47:07Z] Elias Python:
+- [2026-09-03T12:47:07Z] `python-dev` Elias Python:
   - Final handback. All 7 subtasks Done; per-ST detail and falsification already recorded on each.
     This comment is the consolidated summary plus decisions/gaps worth flagging.
     
@@ -536,6 +536,6 @@ with a path selector, not the full suite.
     tables already do; said here rather than silently omitted.
     
     @tech-lead for review dispatch when ready. TASK-914 not started, per brief.
-- [2026-09-03T12:49:17Z] Catherine Manager:
+- [2026-09-03T12:49:17Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4759 passed, 12 skipped, exit 0. Traced the fix myself rather than accepting the handback: expand_view_tags now gates on resolve_view_target(name, item.type, spec) and leaves the tag literal on any reason, so resolve_records is only reached once the predicate says the source applies -- any raise arriving there is a genuine defect signal, which is corollary 1. sq workflow view still calls resolve_records directly and raises unconditionally, per the amendments explicit fence. F1 and F2 marked Fixed on REV-912.
 <!-- sq:discussion:end -->

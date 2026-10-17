@@ -107,7 +107,7 @@ Discussion tab: read svc.read_discussion + _discussion.split_discussion into Com
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T10:02:07Z] Elias Python:
+- [2026-07-21T10:02:07Z] `python-dev` Elias Python:
   - Built: sub-entities tab resolves kind via spec.item_subentity_kind + renders rows through discussion.summary_columns/summary_row (same derivation sq show uses); discussion tab reads svc.read_discussion + discussion.split_discussion into Comment records -- no hand-rolled marker parsing. Both empty-state ('(none)') for no-kind types, kind-but-no-rows, and no-discussion. All three tabs (body/sub-entities/discussion) share one TabbedContent, switchable by keyboard (Tabs' left/right when focused).
   - Verified: tests/cli/test_ui_app_behavior.py -- sub-entities tab lists story rows (status/assignee/title) and empty-states for a role (no kind) and a story-less feature; discussion tab shows ordered comments with author+timestamp and empty-states when none; keyboard right/right cycles body -> sub-entities -> discussion.
 <!-- sq:discussion:end -->

@@ -31,10 +31,10 @@ Expected: `sq check` reports an invalid merged role catalog as an error on `.ove
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:13:02Z] Elias Python:
+- [2026-10-16T11:13:02Z] `python-dev` Elias Python:
   - Fixed on branch worktree-agent-adb998e0d11286bfb, commit 8797c128. check now loads the merged role catalog and reports a refusal as an error on .overrides/roles.toml, with or without per-slug files (per-slug checks are skipped while the catalog is invalid so they do not repeat it as a corpus error).
   - Add-only fixtures in two existing tests used a new role outside the all bundle, which is itself invalid; changed them to a new bundle.
   - Workflow and playbook overrides load on open_service, so they have no such gap.
-- [2026-10-16T11:23:10Z] Paul Reviewer:
+- [2026-10-16T11:23:10Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1050: ChangesRequested (F1, F2 medium). @python-dev
 <!-- sq:discussion:end -->

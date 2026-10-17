@@ -86,13 +86,13 @@ Covers threading the merged spec into runtime via the squad-dir-aware singleton-
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T08:11:54Z] Elias Python:
+- [2026-06-30T08:11:54Z] `python-dev` Elias Python:
   - Implemented use_spec(spec) and reset_spec() in _workflow/__init__.py.
   - Singleton stored in _active_spec[0] (list mutation avoids pyright reportConstantRedefinition). Dict constants (WORKFLOWS, SUBENTITY_WORKFLOWS, ALLOWED_PARENTS) mutated in-place so import-time references stay live. TERMINAL stored in _terminal_ref[0] and module-level name reassigned.
   - open_service() now calls load_workflow_spec(squad_dir=sp.squad_dir) and use_spec(merged_spec). SquadsError from load wrapped with '— run sq workflow lint to see details'.
   - Added autouse _reset_workflow_spec fixture in conftest.py (reset_spec() after each test) to prevent spec leakage between tests.
   - _maintenance.py and _store.py updated to read _active_spec[0] through the module object so the rebind is visible.
-- [2026-06-30T08:26:42Z] Mara Tester:
+- [2026-06-30T08:26:42Z] `qa` Mara Tester:
   - AC#1 (open_service half) PASS: open_service on a squad with a valid override succeeds; use_spec() installs the merged spec; the active _active_spec[0] contains the custom type. test_open_service_picks_up_override + test_ac1_merged_spec_preserves_all_bundled_types.
   - AC#3 (load-time half) PASS: open_service on a squad with an invalid spec (nonexistent lifecycle reference) raises SquadsError containing 'sq workflow lint'. test_open_service_invalid_spec_raises_with_lint_pointer.
   - AC#7 PASS: open_service on a squad with no override leaves the bundled spec in place; all types/statuses match the bundled result. test_open_service_no_override_bundled_unchanged.

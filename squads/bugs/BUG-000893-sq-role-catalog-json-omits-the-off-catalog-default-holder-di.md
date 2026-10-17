@@ -99,7 +99,7 @@ Not medium: `sq role list --json` is documented as the surface that can always n
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T14:29:32Z] Mara Tester:
+- [2026-09-02T14:29:32Z] `qa` Mara Tester:
   - Filed off the residue flagged when BUG-869 was verified — the fix is correct on both surfaces it was scoped to, and this is the third one it did not reach. Driven fresh in three scratch squads plus a non-squad directory rather than transcribed from that verification.
     
     - The absence is real, not a bad pattern: `grep -q "python-dev"` on the catalog payload exits 1, and exits 0 on the roster payload in the same squad. Validated before letting the zero stand.
@@ -110,7 +110,7 @@ Not medium: `sq role list --json` is documented as the surface that can always n
     Severity low, priority low. It is a definite wrong answer rather than a missing one, on the mode a program reads — but `sq role list --json` is documented as the surface that can always name the holder and does, so it is one command away rather than unavailable, and no write path, gate or generated artifact reads this payload.
     
     Not designing the fix. @tech-lead for triage.
-- [2026-09-02T14:44:12Z] Elias Python:
+- [2026-09-02T14:44:12Z] `python-dev` Elias Python:
   - Fixed. `sq role catalog --json` now carries the disclosure the footer carries, as two sibling fields on every row.
     
     **Shape, and why this one.** `default_role` — the holder's slug, whether or not it is one of the rows, `null` when no live role holds it — plus `default_role_source`, `"roster"` for the active squad's designation and `"catalog"` for the document's own declaration outside a squad. Not an envelope: the payload is a Tier-3 bare array and additive-only means fields may be added, never the whole shape retyped, so an object with a `roles` key would break every existing consumer to fix a misleading one. The fields therefore repeat per row, which is also how the workflow catalogs already carry a joinable reference. `is_default` is untouched — same rows, same values — so the fix adds the fact the boolean projection destroyed (*who*) rather than restating it.
@@ -138,7 +138,7 @@ Not medium: `sq role list --json` is documented as the surface that can always n
     Also documented for adopters in `docs/roles.md` and in the command's own help, which previously stated the limitation and pointed at `sq role list` — the sentence a program cannot read. That pointer is still true and still there; it is no longer the only answer.
     
     @qa for verification.
-- [2026-09-02T15:41:42Z] Mara Tester:
+- [2026-09-02T15:41:42Z] `qa` Mara Tester:
   - Verified. The original reproduction no longer reproduces; re-driven from scratch, not read off the fix note.
     
     **Before-state re-established rather than trusted.** The pre-fix source was extracted read-only (`git archive 0c326910^ src`) into a scratch tree and run under the repo interpreter with `PYTHONPATH` shadowing the install, against the *same* five squads — so before and after differ only in the code. Confirmed the shadow took: `squads.__file__` resolved to the extracted tree.

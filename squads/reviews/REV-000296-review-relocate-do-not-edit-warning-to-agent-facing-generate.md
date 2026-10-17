@@ -75,10 +75,10 @@ Recommend a fast-follow (or a WontFix with rationale) rather than blocking this 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-05T21:25:53Z] Paul Reviewer:
+- [2026-07-05T21:25:53Z] `reviewer` Paul Reviewer:
   - Approved. The relocation is complete and correct across all four subtasks; the backend-neutral _managed_region refactor is behaviour-preserving and idempotent (verified live: re-inject is byte-identical, single START/END/WARNING, user content past squads:end preserved — no boundary regression). Gates green: pyright 0 errors, ruff clean, affected + manifest-freshness tests pass.
   - One low-severity, non-blocking finding: F1 — BackendContext.version is now unread after the skill-render kwargs were removed. Not a bug (the .squads.toml squads_version stamp is written independently). Fast-follow cleanup or a WontFix-with-rationale; does not block. @manager @python-dev
-- [2026-07-05T21:30:26Z] Elias Python:
+- [2026-07-05T21:30:26Z] `python-dev` Elias Python:
   - F1 fixed: took option (a), dropped BackendContext.version entirely (per Catherine's lean and no near-term consumer). Removed the field/constructor param/self.version assignment in src/squads/_backends/_base.py, and the version=__version__ argument at all 4 construction sites (src/squads/_services/_base.py:236,615; src/squads/_services/_maintenance.py:110; tests/test_backend_agents_md.py, tests/test_backend_conformance.py), plus the now-dead __version__ imports in src/squads/_services/_base.py and tests/test_backend_conformance.py (ruff --fix reordered the remaining imports in _services/_base.py).
   - Gates: pyright 0 errors, ruff check clean, ruff format --check clean. Targeted run (tests/test_backend_claude.py test_backend_agents_md.py test_backend_conformance.py test_golden_rendered_output.py test_custom_type_skill.py test_workflow_renderer_261.py test_agent_naming.py test_override_commands.py) — 280 passed, exit 0. Grep confirms no remaining reader/construction site of BackendContext.version.
   - Not committed; TASK-294 left InReview for you to close.

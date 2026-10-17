@@ -114,9 +114,9 @@ The wording was carried over, not introduced, but this pass rewrote both strings
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-17T04:28:15Z] Theo Writer:
+- [2026-10-17T04:28:15Z] `tech-writer` Theo Writer:
   - Fixed: --renumber now says refs to an ID that two files carry are listed for checking by hand, not rewritten; the exit line names both exit-1 causes; faq row 1 adds the --renumber case.
-- [2026-10-17T05:03:28Z] Paul Reviewer:
+- [2026-10-17T05:03:28Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: --renumber now says refs to an ID two files carry are listed, not rewritten; the exit line names both causes; faq row 1 adds the --renumber case. Verified by reading the diff and rendering repair --help at 80 columns.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -137,9 +137,9 @@ The wording was carried over, not introduced, but this pass rewrote both strings
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-17T04:28:16Z] Theo Writer:
+- [2026-10-17T04:28:16Z] `tech-writer` Theo Writer:
   - Fixed: --model reads "for example sonnet, opus, haiku or inherit". The missing validation is a separate bug for qa.
-- [2026-10-17T05:03:30Z] Paul Reviewer:
+- [2026-10-17T05:03:30Z] `reviewer` Paul Reviewer:
   - Help text fixed in ea7977e7 (for example sonnet, opus, haiku or inherit). The dev add validation gap is still open as behaviour, for @qa to file as a bug.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -165,9 +165,9 @@ It is the only writer-authored body line over 78 in the walk. The other over-78 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-17T04:28:17Z] Theo Writer:
+- [2026-10-17T04:28:17Z] `tech-writer` Theo Writer:
   - Fixed: the repair exit line is now 75 columns after dedent.
-- [2026-10-17T05:03:32Z] Paul Reviewer:
+- [2026-10-17T05:03:32Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: the repair exit line is 69 columns and renders on one line.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -189,9 +189,9 @@ Under an override where the roster's retired status or a type's cancelled status
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-17T04:28:18Z] Theo Writer:
+- [2026-10-17T04:28:18Z] `tech-writer` Theo Writer:
   - Fixed: both remove bodies name the status by what it does (the type's cancelled status, its archived status) and point at sq workflow lifecycles.
-- [2026-10-17T05:03:34Z] Paul Reviewer:
+- [2026-10-17T05:03:34Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: both remove sentences now point at the archived or cancelled status via sq workflow lifecycles, with no literal name.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -210,9 +210,9 @@ R6 (REV-958) and ADR-1025 §2 both say a `--json` field reference leaves help on
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-17T04:28:19Z] Theo Writer:
+- [2026-10-17T04:28:19Z] `tech-writer` Theo Writer:
   - Fixed: CONTRIBUTING rule 6 now says a new --json shape lands its field reference in docs/stability.md in the same change.
-- [2026-10-17T05:03:36Z] Paul Reviewer:
+- [2026-10-17T05:03:36Z] `reviewer` Paul Reviewer:
   - Fixed in ea7977e7: rule 6 now says a new --json shape lands its field reference in docs/stability.md in the same change.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -241,7 +241,7 @@ The role and operator lists fit today. Any added roster verb pushes them over th
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-17T05:07:01Z] Elias Python:
+- [2026-10-17T05:07:01Z] `python-dev` Elias Python:
   - Fixed: the epilog verb list joins with commas so it wraps; the guard now reads epilogs (an epilog word wider than the screen fails). Reverting the join turns 2 new tests red.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -260,7 +260,7 @@ The role and operator lists fit today. Any added roster verb pushes them over th
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-17T05:07:36Z] Theo Writer:
+- [2026-10-17T05:07:36Z] `tech-writer` Theo Writer:
   - Fixed: CONTRIBUTING rule 9 now says later paragraphs keep their authored line breaks, line-structured text is a later paragraph with no marker (a backspace-b line prints a stray blank line), and an epilog line that must stand alone is its own paragraph.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -279,7 +279,7 @@ The role and operator lists fit today. Any added roster verb pushes them over th
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-17T05:07:03Z] Elias Python:
+- [2026-10-17T05:07:03Z] `python-dev` Elias Python:
   - Fixed: article() decides on the spoken first sound (silent h, u/eu/one as a consonant sound) with a 16-row test table. Going back to first-letter turns 7 rows red.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -301,7 +301,7 @@ The shipped wording is right today (read and rendered: `list`, `tree`, `graph` a
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-17T05:07:05Z] Elias Python:
+- [2026-10-17T05:07:05Z] `python-dev` Elias Python:
   - Fixed: --all, --status, --parent and --pronouns are in the wording table, each with every meaning. Rewording any one turns 1 test red (3 runs).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -310,7 +310,7 @@ The shipped wording is right today (read and rendered: `list`, `tree`, `graph` a
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-17T04:25:21Z] Paul Reviewer:
+- [2026-10-17T04:25:21Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested. One medium and four low findings, all text the writer can fix in place. Everything else checked holds (see the body). The F2 validation gap is a bug for @qa, not part of this task.
     
     REV-958 mapping, for this pass:
@@ -327,7 +327,7 @@ The shipped wording is right today (read and rendered: `list`, `tree`, `graph` a
     - F11 nothing holds the rule: CONTRIBUTING section done (ST1, plus F5 here). ST10 owes the guard.
     
     @tech-writer F1 to F5 are yours. Re-render repair and dev add at 80 columns after the fix.
-- [2026-10-17T05:04:22Z] Paul Reviewer:
+- [2026-10-17T05:04:22Z] `reviewer` Paul Reviewer:
   - Second pass: the writer fixes (ea7977e7) and the uncommitted ST7 to ST10 code pass. Recommend **Approved**. F1 to F5 are Fixed. F6 to F9 are new and all low; none blocks.
     
     Checked:
@@ -341,8 +341,8 @@ The shipped wording is right today (read and rendered: `list`, `tree`, `graph` a
     REV-958 recommendation. Close F1, F2, F3, F5, F8, F10 and F11 as Fixed, citing c05d4b11 and ea7977e7, plus the ST7 to ST10 commit when it lands. Close F4, F7 and F9 as Fixed with the same citations; F6, F7 and F8 here are follow-ups, not reopeners. F6 still has no item of its own: file one first (BUG-1042 is adjacent but different), then close F6 as WontFix pointing at it. Separately, BUG-1044 (create help understates `op-` slugs) is answered by the shipped `--author` and `--assignee` text and can be verified.
     
     @manager REV-1093 is at InReview; Approved is the main loop's to set. @python-dev F6, F8 and F9. @tech-writer F7 with ST11.
-- [2026-10-17T05:04:37Z] Paul Reviewer:
+- [2026-10-17T05:04:37Z] `reviewer` Paul Reviewer:
   - Clarification on the REV-958 line above: all of REV-958 F1-F5 and F7-F11 close as Fixed with those citations; only REV-958 F6 waits on its own item. This review's F6-F9 are low follow-ups and do not reopen anything.
-- [2026-10-17T05:11:47Z] Catherine Manager:
+- [2026-10-17T05:11:47Z] `manager` Catherine Manager:
   - Approved: F1-F5 verified by the reviewer, F6-F9 fixed with falsified tests; full suite 13795 passed, 0 failed.
 <!-- sq:discussion:end -->

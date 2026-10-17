@@ -42,8 +42,8 @@ _Add with `sq task 596 add-subtask "<title>"`; track with `sq task 596 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T13:28:24Z] Elias Python:
+- [2026-07-22T13:28:24Z] `python-dev` Elias Python:
   - Added WorkflowSpec.hidden_by_default(item_type, status) (+ RETIRED_STATUS_ROLES, role=retired on Deprecated/Cancelled in default_workflow.toml); wired into tree_view's candidate filter and sq list's default gate, plus the closed-count empty-view hint on both list and tree. work/roster stay byte-identical (proven by a dedicated unit test); records now stay visible while final-but-live and hide only when retired. Gates green; sq check clean.
-- [2026-07-22T15:37:55Z] Olivia Lead:
+- [2026-07-22T15:37:55Z] `tech-lead` Olivia Lead:
   - Superseded by ADR-604 / FEAT-605. This task's default-visibility mechanism (RETIRED_STATUS_ROLES + the hidden_by_default category-branch) is replaced by the role-object model: hidden_by_default becomes role.hidden, with no hardcoded role set or category branch (delivered by FEAT-605 TASK-607). The empty-view closed-count hint is orthogonal and survives — it is carried forward with FEAT-605 (rides the same list/tree change; see also TASK-597 for the --category filter it composes with). Cancelling to avoid committing the superseded mechanism.
 <!-- sq:discussion:end -->

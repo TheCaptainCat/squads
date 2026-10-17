@@ -129,7 +129,7 @@ Out-of-scope observation (NOT a TASK-453 finding): resources/squads-icon-vscode.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:08:32Z] Paul Reviewer:
+- [2026-07-17T15:08:32Z] `reviewer` Paul Reviewer:
   - RECOMMENDED VERDICT: APPROVE. The TASK-453 diff is correct, well-tested, and secure. F2 (link allowlist) is soundly fixed with no bypass; the two graph builders are mermaid-injection-safe and faithfully mirror the core CLI; packaging is clean (VSIX 995KB, no src/test leak). Gate green: check clean, 122/122 unit, 8/8 canary, vsce ls clean.
   - One condition to discharge (F1, medium): the CSP nonce-injection render path is SOUND and fail-closed — I recommend keeping it over the unsafe-inline fallback — but it is not exercisable by any test here and mermaid's inline style="" attributes are not covered by the style nonce. Before FEAT-449/US1 is called Done, validate the actual mermaid render in a live extension-host smoke test or a manual VS Code open (same deferral pattern as TASK-452's untestable webview wiring). This does not block the code merge; it blocks calling the visual behavior verified.
   - Per my do-not-self-approve rule: findings + recommended verdict recorded; the Approved status transition is left to the approver (main loop / operator). @tech-lead over to you.

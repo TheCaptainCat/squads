@@ -82,9 +82,9 @@ Measured on this machine with `VIRTUAL_ENV` unset and `~/.local/bin` on PATH: fr
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-29T13:52:06Z] Ada Typescript:
+- [2026-09-29T13:52:06Z] `typescript-dev` Ada Typescript:
   - Version probe and live tests share execSq from a non-repo dir; pinned uv/poetry commands get the same project rewrite.
-- [2026-09-29T13:57:15Z] Paul Reviewer:
+- [2026-09-29T13:57:15Z] `reviewer` Paul Reviewer:
   - Verified (driven): version probe and live tests share execSq; pinned uv run sq is rewritten to --project and printed version is the tested binary. Canary 50/50 from a cwd outside the repo.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -103,9 +103,9 @@ For the extension, falling through is the right call: config is a preference. Fo
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-29T13:52:15Z] Ada Typescript:
+- [2026-09-29T13:52:15Z] `typescript-dev` Ada Typescript:
   - A pin that does not resolve or answer --version fails the suite (beforeAll throws); no fall-through, no skip.
-- [2026-09-29T13:57:20Z] Paul Reviewer:
+- [2026-09-29T13:57:20Z] `reviewer` Paul Reviewer:
   - Verified (driven): a dead pin, a non-executable pinned file, and malformed or non-string JSON pins all fail the suite loudly (beforeAll throws, exit 1); none falls through or skips green.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -122,9 +122,9 @@ For the extension, falling through is the right call: config is a preference. Fo
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-29T13:52:21Z] Ada Typescript:
+- [2026-09-29T13:52:21Z] `typescript-dev` Ada Typescript:
   - A pin naming an existing file is one path; a JSON argv array is also accepted; else whitespace split.
-- [2026-09-29T13:57:26Z] Paul Reviewer:
+- [2026-09-29T13:57:26Z] `reviewer` Paul Reviewer:
   - Verified (driven): a pinned path with a space and its JSON-array form both resolve to one path; malformed JSON falls to whitespace split and fails as unresolved.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -145,9 +145,9 @@ The table row "a pinned poetry run sq is pointed at the repo" (and "only poetry 
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-29T14:01:18Z] Ada Typescript:
+- [2026-09-29T14:01:18Z] `typescript-dev` Ada Typescript:
   - Poetry now gets --project (keeps cwd); a guard test runs every resolution shape and fails on any cwd-moving flag. Driven with a fake poetry: sq ran in the scratch dir.
-- [2026-09-29T14:04:52Z] Paul Reviewer:
+- [2026-09-29T14:04:52Z] `reviewer` Paul Reviewer:
   - Verified (driven): pinned and discovered poetry now get --project. A live canary run through a fake poetry in the scratchpad (refusing --directory/-C and any repo cwd) passed 61/61; all 18 calls ran in the scratchpad or scratch squad, none in the repo. Real poetry --project keeps the cwd (driven, pwd). A pin carrying its own cwd flag is F7.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -164,9 +164,9 @@ The table row "a pinned poetry run sq is pointed at the repo" (and "only poetry 
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-29T14:01:23Z] Ada Typescript:
+- [2026-09-29T14:01:23Z] `typescript-dev` Ada Typescript:
   - Relative pin paths are resolved against the process cwd before the check and the spawn.
-- [2026-09-29T14:05:00Z] Paul Reviewer:
+- [2026-09-29T14:05:00Z] `reviewer` Paul Reviewer:
   - Verified (driven): relative pins, plain and as JSON, resolve to the absolute repo .venv/bin/sq before the check and the spawn.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -183,9 +183,9 @@ The table row "a pinned poetry run sq is pointed at the repo" (and "only poetry 
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-29T14:01:26Z] Ada Typescript:
+- [2026-09-29T14:01:26Z] `typescript-dev` Ada Typescript:
   - The pinned check now goes through resolveSqInvocation and rejects any result not sourced from config-command.
-- [2026-09-29T14:05:06Z] Paul Reviewer:
+- [2026-09-29T14:05:06Z] `reviewer` Paul Reviewer:
   - Verified (read + driven): the pinned branch calls resolveSqInvocation and requires source config-command; dead, malformed and non-string pins stay unresolved. absolutize runs twice on the first element (parsePin, then resolveCanarySq): redundant, harmless.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -208,9 +208,9 @@ All three came from `resolveCanarySq` with the real Node environment. `uv --dire
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-29T14:10:04Z] Ada Typescript:
+- [2026-09-29T14:10:04Z] `typescript-dev` Ada Typescript:
   - beforeAll now proves the invocation sees no squad from the scratch dir before any write; cwd-moving flags (split, = and attached forms) are also rejected at resolution.
-- [2026-09-29T14:12:28Z] Paul Reviewer:
+- [2026-09-29T14:12:28Z] `reviewer` Paul Reviewer:
   - Verified (driven, decoy squad in the scratchpad, never the repo): uv/poetry -C, --directory and =-form pins are rejected at resolution; a --dir pin at a squad and a TMPDIR symlinked into a squad both hit the beforeAll guard (refusing to write). A wrapper that changes directory only on write commands passes the guard by construction, but its init was refused by the target squad existing .squads.toml, so nothing was written (decoy sha1 unchanged). A pinned wrapper is trusted code, so that is residual, not a defect.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -219,12 +219,12 @@ All three came from `resolveCanarySq` with the real Node environment. `uv --dire
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T13:47:06Z] Paul Reviewer:
+- [2026-09-29T13:47:06Z] `reviewer` Paul Reviewer:
   - ChangesRequested. Default resolution (.venv first, via discovery.ts) and the 9-key exact set are sound; canary green 45/45 unpinned (driven). Both medium findings sit in the SQ_CANARY_CMD pin path: F1 a pinned uv run sq runs against the scratch dir while --version runs from the repo cwd (driven), F2 a dead pin falls through or skips green. F3 low: pin split on whitespace. @typescript-dev please address F1-F3 on TASK-968.
-- [2026-09-29T13:58:09Z] Paul Reviewer:
+- [2026-09-29T13:58:09Z] `reviewer` Paul Reviewer:
   - Re-review: F1-F3 Verified (driven). Still ChangesRequested for new F4 (high): poetry --directory chdirs into the repo, so a poetry-resolved canary runs sq init/create against the live squad; driven, init refused only because .squads.toml exists, nothing written. F5/F6 low. @typescript-dev please take F4-F6 on TASK-968.
-- [2026-09-29T14:05:35Z] Paul Reviewer:
+- [2026-09-29T14:05:35Z] `reviewer` Paul Reviewer:
   - Re-review 2: F4-F6 Verified (driven; poetry probed only through a scratchpad fake). Still ChangesRequested for new F7 (medium): the cwd guard is test-only, so a pin such as uv --directory <repo> run sq still runs the canary sq in the repo root. @typescript-dev please take F7 on TASK-968.
-- [2026-09-29T14:12:37Z] Paul Reviewer:
+- [2026-09-29T14:12:37Z] `reviewer` Paul Reviewer:
   - Re-review 3: F1-F7 all Verified; Approved at the coordinator request. sq honours no env var for the squad dir (only SQUADS_SESSION_ID/SQUADS_PARENT_SESSION_ID), so there is no env redirect to guard. Canary lane 68 tests; guard and resolution paths driven against a scratch decoy only.
 <!-- sq:discussion:end -->

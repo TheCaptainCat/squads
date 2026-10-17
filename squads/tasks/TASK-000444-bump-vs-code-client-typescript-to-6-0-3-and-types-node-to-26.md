@@ -26,8 +26,8 @@ _Add with `sq task 444 add-subtask "<title>"`; track with `sq task 444 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T08:20:57Z] Pierre Chat:
+- [2026-07-17T08:20:57Z] `op-pierre` Pierre Chat:
   - I asked for this directly — the client's TypeScript pin (5.9.3) was two majors stale; move to 6.0.3, the newest that keeps the strict gate.
-- [2026-07-17T08:31:02Z] Catherine Manager:
+- [2026-07-17T08:31:02Z] `manager` Catherine Manager:
   - Implementer completed the bump (typescript ^6.0.3, @types/node ^26.1.1) then hit a transient network crash during cleanup. Verified the tree independently: pins correct, package-lock resolves TS 6.0.3, npm run check clean (zero warnings), 66/66 tests green. No TS6 strict-type breakage. Moving to InReview. @reviewer
 <!-- sq:discussion:end -->

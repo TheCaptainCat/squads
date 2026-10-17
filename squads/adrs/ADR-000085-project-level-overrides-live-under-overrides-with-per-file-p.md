@@ -314,19 +314,19 @@ its reserved home — consistent with this umbrella.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T15:42:57Z] Pierre Chat:
+- [2026-06-12T15:42:57Z] `op-pierre` Pierre Chat:
   - Operator review (2026-06-12): .overrides location confirmed; frozen slugs confirmed. Two revisions before acceptance:
   - 1) Spell out the stale-override UPDATE workflow end-to-end — check warns, override diff shows both what I changed and what the upgrade changed, manual merge, then a re-stamp command clears the warning. Name the sq override subcommands; they join the contract.
   - 2) Naming UX: if the terminal is a TTY, sq init prompts interactively for missing names unless --default-names is passed; non-TTY implies --default-names. --name/[init.names] stay as the declarative path. @architect please revise; stays Proposed until then.
-- [2026-06-12T15:45:27Z] Robert Architect:
+- [2026-06-12T15:45:27Z] `architect` Robert Architect:
   - Revised per the operator's two rulings (2026-06-12); stays Proposed — acceptance is op-pierre / @manager.
   - §3 now spells out the stale-override update loop end-to-end and names the command group. The loop: (1) sq check warns on version drift — an override whose override-base predates the running squads_version AND whose bundled counterpart actually changed (per the shipped per-release content-hash manifest); an old stamp alone is silent. (2) `sq override diff <name>` shows BOTH deltas: Δ-mine (override vs current bundled = what the team customised) and Δ-upgrade (base-version bundled vs current bundled = what the upgrade changed underneath). The base-version bundled is recovered from the hash manifest. (3) the maintainer merges by hand — overrides are user-owned, never auto-rewritten. (4) `sq override update <name>` re-stamps override-base to the current version (body untouched) and the next sq check clears the warning.
   - Final `sq override` command surface (joins the durable contract): scaffold <name> (stamped copy into .overrides/, --force to clobber, --role <slug> for roles — the only writer of override bodies); diff [<name>] (read-only two-delta view, all drifted if no name); update [<name>] (re-stamp only, bulk-acknowledge if no name); list (each override's kind/base/state: current|drifted|broken). sq migrate still never touches .overrides/ — this group is the entire user-owned upgrade path.
   - §4 naming UX revised: at a TTY, sq init prompts interactively for each role still un-named after flags/[init.names], UNLESS --default-names is passed; non-TTY behaves exactly as --default-names (never blocks). The repeatable --name slug="Full Name" flags and [init.names] remain the declarative path and pre-answer prompts (named roles are not asked). Unnamed-after-everything still falls back to the bundled pool, never blank. Reflected in §5 contract and Consequences; the prompt presence + --default-names/TTY rule are contracted, the prompt copy is not.
   - Also folded the confirmed rulings into the body: .overrides/ location and non-renamable canonical slugs marked confirmed (2026-06-12).
-- [2026-06-12T20:52:24Z] Pierre Chat:
+- [2026-06-12T20:52:24Z] `op-pierre` Pierre Chat:
   - Revision reviewed — the override update workflow (check warn → override diff with both deltas → manual merge → override update re-stamp) and the TTY naming UX with --default-names answer my questions. Accepted.
-- [2026-08-03T08:41:57Z] Robert Architect:
+- [2026-08-03T08:41:57Z] `architect` Robert Architect:
   - Dropped the "Recorded as Proposed. Acceptance is the operators call" opener and retitled the section to Provenance, as part of the sweep across the ten retroactive decisions. The revision history it also carried is genuinely useful and is kept intact.
   - Verified in force end to end while in there, and it needs nothing else: `.overrides/templates|roles` resolution, the `ChoiceLoader` template precedence, field-wise role merge, the `override-base` stamp, the per-release content-hash manifest shipping as package data, all four `sq override` verbs including the two-delta diff, and `[init.names]`/`--name`/`--default-names`. `.overrides/workflow.toml` is a third category sanctioned by this decisions own "additional override categories are not frozen" clause.
   - One watch item rather than a defect, recorded so it is not rediscovered: when the shared deep-merge engine ADR-696 section 4 describes lands, the clause to reconcile is "templates override whole-file, roles merge field-wise" — a uniform merge model touches exactly that sentence.

@@ -69,12 +69,12 @@ restore around the `innerHTML` swap.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-28T07:32:56Z] Pierre Chat:
+- [2026-07-28T07:32:56Z] `op-pierre` Pierre Chat:
   - The subentity bodies collapse on refresh, all collapsible should stay open on refresh
-- [2026-07-28T07:59:28Z] Pierre Chat:
+- [2026-07-28T07:59:28Z] `op-pierre` Pierre Chat:
   - Confirmed the trigger: the webview, refreshing while an agent was running sq — so the watcher was firing on the index changing. Not a click on any refresh button.
-- [2026-07-28T07:59:29Z] Catherine Manager:
+- [2026-07-28T07:59:29Z] `manager` Catherine Manager:
   - Trigger confirmed by the operator, which makes this routine rather than an edge case: agents mutate the index continuously in this repo's normal workflow, so any preview left open collapses its sub-entity bodies and graph folds repeatedly through a session — exactly when someone is watching a preview to follow an agent's work.
-- [2026-07-29T08:32:21Z] Pierre Chat:
+- [2026-07-29T08:32:21Z] `op-pierre` Pierre Chat:
   - Verified on the Windows dev host: folds stayed expanded across a watcher-driven refresh.
 <!-- sq:discussion:end -->

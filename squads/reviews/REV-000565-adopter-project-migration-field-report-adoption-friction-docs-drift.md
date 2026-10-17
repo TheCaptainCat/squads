@@ -469,7 +469,7 @@ surface and aid scripting/verification.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T08:24:25Z] Pierre Chat:
+- [2026-07-22T08:24:25Z] `op-pierre` Pierre Chat:
   - Triage of all 15 findings (fix / won't-fix + how):
     - F1 WON'T FIX — prefer a generic *link* feature (design later) over alias/preferred-ID import.
     - F2 DEFER — draft an 'sq import' bulk-event-import command as a feature, for later.
@@ -486,10 +486,10 @@ surface and aid scripting/verification.
     - F13 FIX — add a guarded 'remove' (--yes) for finding/story/subtask.
     - F14 FIX — make the add-* command builder dynamically generate the spec's badge/field --flags (generic, not hardcoded --severity/--status).
     - F15 FIX — add a dedicated 'sq <type> <n> comments' read-back verb (+ --json).
-- [2026-07-23T07:48:05Z] Catherine Manager:
+- [2026-07-23T07:48:05Z] `manager` Catherine Manager:
   - F9 and F14 resolved by the 0.12 batch: F9 (Accepted/closed records hidden) by the FEAT-605 role model + FEAT-570 records-category visibility (an in_force status like Accepted stays shown, not hidden like finished work); F14 (add-* inline metadata flags) by FEAT-571 (--status inline on add-finding/story/subtask; the generic per-field --<code> flags incl. --severity already existed). Both Verified.
-- [2026-07-23T13:22:21Z] Pierre Chat:
+- [2026-07-23T13:22:21Z] `op-pierre` Pierre Chat:
   - F7 resolved by FEAT-543: a designer is a custom NON-DEV role (sq override scaffold --new <slug> + sq role activate), not a dev — no bundled designer role and no dev-add-kind path needed. Now that fully custom roles exist, the designer doesn't have to be a dev at all. Docs pointer to the custom-role path already landed in FEAT-574.
-- [2026-07-24T07:50:42Z] Catherine Manager:
+- [2026-07-24T07:50:42Z] `manager` Catherine Manager:
   - All findings now terminal — the adopter-project field report is fully triaged and addressed. Resolved by committed features: F2 import + F8 adopt (FEAT-576); F3/F5/F6 docs drift + F4 docs (FEAT-574) with the F4 operators verb + F3 role list, F10 body parity, F13 sub-entity remove, F15 comments read-back (FEAT-575); F9 records visibility (FEAT-570), F14 add-* --status (FEAT-571). WontFix: F1 (generic links → FEAT-566 shell), F7 (designer = custom role via FEAT-543), F11/F12 (advisory/process-overhead, by design). Closing the review.
 <!-- sq:discussion:end -->

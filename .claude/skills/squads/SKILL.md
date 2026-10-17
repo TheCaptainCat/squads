@@ -1,6 +1,7 @@
 ---
 name: squads
 description: "How to track work on this project with the squads (`sq`) CLI: create/transition items, comment, link context. Use whenever you start, hand off, or update work."
+user-invocable: false
 ---
 
 This is a squads-managed skill. Load and follow its full definition with:

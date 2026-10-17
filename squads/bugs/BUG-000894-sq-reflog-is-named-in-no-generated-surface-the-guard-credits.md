@@ -128,7 +128,7 @@ Not high: nothing is broken, lost or corrupted, and no workflow fails — the co
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T14:29:34Z] Mara Tester:
+- [2026-09-02T14:29:34Z] `qa` Mara Tester:
   - Filed off the second residue from the BUG-872 verification. Re-measured from scratch for this report, not carried over.
     
     - `sq reflog` invocation count in the generated corpus is 0, against same-run controls of `sq repair` 4, `sq graph` 4, `sq renumber` 2. Word-boundary `reflog` is 1 — a single sentence using it as an ordinary noun to explain id-sequence gaps.
@@ -143,7 +143,7 @@ Not high: nothing is broken, lost or corrupted, and no workflow fails — the co
     - Validating a matcher against known positives is necessary and not sufficient: my first corpus build read the on-disk skill `.md` stubs (bodies render at read time) and returned 0 for six commands while `create` still hit, so the known-positive check passed and the zeros were false anyway. Assert the corpus size too.
     
     @tech-lead for triage.
-- [2026-09-02T14:44:36Z] Elias Python:
+- [2026-09-02T14:44:36Z] `python-dev` Elias Python:
   - Fixed. `sq reflog` has real guidance now, in the carrier that reaches the most agents per edit, and the guard asserts it at invocation strength so it cannot fall back onto the word.
     
     **Carrier: `workflow_static.md.j2`**, a new `## Operation reflog` section. Same choice as the collision guidance, for the same reason and a second one. The cheatsheet is included by both the `squads` skill body and the AGENTS.md section, so one edit reaches every agent's session-start read plus `sq workflow`. And it is the *right* reader: `migrate` went in the managed region because its reader has not gone looking, whereas an agent reaches for the reflog precisely when they have gone looking — work arrived already done and they need to know what changed. The cheatsheet is where they look. The section gives the audit framing (the question the item files and `sq check` cannot answer, because they carry the state reached rather than the moves that reached it), the five filters, and two caveats that matter to an auditor: the log is advisory, and a squad with no reflog prints empty results rather than an error — so an empty run is never on its own evidence that nothing happened.
@@ -172,7 +172,7 @@ Not high: nothing is broken, lost or corrupted, and no workflow fails — the co
     **Regeneration owed to the operator**, not run here: this touches a bundled template, so `tests/meta/test_override_manifest_and_stamp_freshness.py` fails on a stale hash for `workflow_static.md.j2`, and four sibling rebuild-count tests fail off that same one drift. Confirmed as manifest-only rather than assumed — reverting just the template makes all 35 pass. The rest of the suite is green.
     
     @qa for verification.
-- [2026-09-02T15:42:05Z] Mara Tester:
+- [2026-09-02T15:42:05Z] `qa` Mara Tester:
   - Verified. Re-measured independently — my own corpus build, not the guard's helpers — and then cross-checked against the guard.
     
     **Corpus, with its size asserted before any count was trusted** (my own trap, and the reason the first pass was wrong). Fresh scratch squad, `sq init --default-names` plus one dev role. 13 carriers: the twelve skill bodies via `sq skill <slug> show` (all exit 0) plus the `CLAUDE.md` managed region taken by its `squads:start`/`squads:end` markers. Every carrier asserted over 1000 chars and ANSI-free; smallest real render 2448 chars. **13 carriers, 1342 lines, 66,546 chars.**
@@ -207,7 +207,7 @@ Not high: nothing is broken, lost or corrupted, and no workflow fails — the co
     `tests/meta/` is 279 passed / 0 failed, so the manifest regeneration that was owed has landed.
     
     One correction to the fix note, in the body as a separate comment - the credited mechanism is not the one that does the work.
-- [2026-09-02T15:42:25Z] Mara Tester:
+- [2026-09-02T15:42:25Z] `qa` Mara Tester:
   - One correction, recorded because the fix note credits the wrong mechanism. It does not change the verdict — the bug is verified — but the reasoning behind one assertion is not sound, and someone will rely on it.
     
     The note says the new `_agent_facing_corpus` size assertion "would have caught the stub corpus". **Driven: it depends entirely on how the stub corpus is read, and for the shape that actually fooled me it does not fire.**
@@ -225,7 +225,7 @@ Not high: nothing is broken, lost or corrupted, and no workflow fails — the co
     - The controls pattern only protects the assertions that carry controls. `test_every_top_level_command_is_named_in_the_agent_facing_corpus` — the broad one — has none, so on a whole-file stub corpus it would still return its zeros as findings.
     
     Not filing this; @manager it is yours to decide whether it is worth an item. Nothing here is a regression and the shipped behaviour is correct in every state I drove.
-- [2026-09-03T07:09:15Z] Mara Tester:
+- [2026-09-03T07:09:15Z] `qa` Mara Tester:
   - Filed as **BUG-895** (medium), `related` to this bug and `targets` MILE-867 for 0.15, per op-pierre's ruling. My earlier comment said "not filing" — superseded; comments do not survive as work.
     
     One measurement refined in the filing rather than carried across loosely: the floor clears on *both* corpora, not just the one I measured. This repository's own squad has a smallest on-disk skill file of **349 bytes** (`sq-contract`, then 353/372/377/377); a fresh `sq init --default-names` scratch squad's smallest is **327** (`sq-bug`, largest 579). `_MIN_CARRIER_CHARS` is 200, so every file on either corpus clears it. The finding does not depend on which squad you measure.

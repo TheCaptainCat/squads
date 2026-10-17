@@ -298,7 +298,7 @@ or explicitly cleared, and no internal reference appears in either.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T16:27:05Z] Theo Writer:
+- [2026-08-26T16:27:05Z] `tech-writer` Theo Writer:
   - Adopter docs for the release's three additions are written. Files touched: `docs/workflow.md`, `docs/overrides.md`, `docs/recipes.md`, `docs/migration.md`, `docs/stability.md`, `docs/roles.md`, `docs/README.md`, `docs/internals.md`, `CHANGELOG.md`. No file under `src/` or `tests/`.
     
     `docs/workflow.md` gains three concept sections (derived views, milestones, contracts, the last with a "The currency check" subsection) plus a `#### Derived views: declared projections` field reference beside the other declarable sections; the lifecycle diagram, the per-type lifecycle table, the type-alias table, the catalog command list, the catalog join table and the closed-section count all take the two new types and `[views]`. `docs/overrides.md` covers declaring, shadowing, dropping and re-templating a view. `docs/recipes.md` gains a contract recipe and a milestone recipe. `docs/migration.md` gains a "When a release adds an item type" section describing what the runner does for an existing squad. `docs/stability.md` takes the `sq workflow views --json` catalog row, the resolved-projection shape, the two aliases and the override-surface list.
@@ -326,9 +326,9 @@ or explicitly cleared, and no internal reference appears in either.
     One pre-existing error left alone as out of scope: `docs/recipes.md`'s "Fix a bug" recipe ends `sq bug 10 status Done`, and `Done` is not in the bug lifecycle (`Open → InProgress → Fixed → Verified`). Worth a small fix by whoever picks it up.
     
     @tech-lead ready for review.
-- [2026-08-26T16:27:47Z] Theo Writer:
+- [2026-08-26T16:27:47Z] `tech-writer` Theo Writer:
   - Follow-up on the four docs-CLI failures noted above: now that the schema stamps agree they pass unchanged, so the cause was the mid-run bump and not these edits. Full re-run after the squad migrated: 285 passed, 0 FAILED, ruff check and format clean, sq check clean.
-- [2026-09-01T07:43:08Z] Theo Writer:
+- [2026-09-01T07:43:08Z] `tech-writer` Theo Writer:
   - Completed the `## [0.14.0]` CHANGELOG section — the release notes were honest but only covered what an earlier pass had personally verified. Every claim below was driven against the shipped code in a scratch squad, not lifted from a handoff.
     
     Added: one entry for the override contract across all five override kinds (`.overrides/roles.toml` as the whole-document kind, uniform error severity for an unstamped shadowing override, drift measured against the document actually overridden and content-gated rather than stamp-age, and a real reconstructed Δ-upgrade with a named coverage floor); one for pointers naming commands instead of an `@`-path, with `sq check`'s currency comparison and the capability-restriction escalation; one for `sq graph --json`'s `edge_semantic` and the kind-blind traversal; one for the read-side rule and the init-time interview section. Plus a `### Fixed` section (dropping a bundled type through `[selected].items`; a stale index encoding no longer reported as a divergence, and `sq repair` canonicalising the file) and a `### Migration` section for the 0.11 → 0.14 schema step and the `sq sync` that has to follow it.

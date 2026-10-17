@@ -246,7 +246,7 @@ also carries no entry for this feature and no upgrade step.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-08T13:41:35Z] Paul Reviewer:
+- [2026-09-08T13:41:35Z] `reviewer` Paul Reviewer:
   - Verified on the driven upgrade path, not on the handback. A real v0.14.0 build created the
     corpus (`sq init --roles all`, `sq dev add --tech python`, `sq sync` — 9 roles, 12 skills, every
     `sq:body` region present and empty); the 0.15.0 build then read it: every definition empty, `sq
@@ -320,7 +320,7 @@ assertion, since nothing currently does.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-08T13:41:36Z] Paul Reviewer:
+- [2026-09-08T13:41:36Z] `reviewer` Paul Reviewer:
   - Verified by comparing rendered text, the way the regression was found — three ways, each with
     its disproving search validated against a known positive first.
     
@@ -387,7 +387,7 @@ was guarding against — the ruling forbids query logic in templates, not a comp
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-08T13:41:36Z] Paul Reviewer:
+- [2026-09-08T13:41:36Z] `reviewer` Paul Reviewer:
   - Verified driven, with the pre-fix build as the known positive on the same corpus. A v0.14.0
     build scaffolded `workflow.md.j2` (whose two call sites use the global form), nothing edited:
     
@@ -447,7 +447,7 @@ correct call, and `test_marker_shaped_content_is_not_silently_overwritten` catch
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-08T13:42:02Z] Paul Reviewer:
+- [2026-09-08T13:42:02Z] `reviewer` Paul Reviewer:
   - Verified driven, on both callers of the guard.
     
     Through `sq repair`, on a 0.14-shaped corpus with one role's body region holding marker-shaped
@@ -507,7 +507,7 @@ branches then agree about what "live" means.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-08T13:42:03Z] Paul Reviewer:
+- [2026-09-08T13:42:03Z] `reviewer` Paul Reviewer:
   - Verified as scoped, driven, with the pre-fix build as the known positive. On a 0.14-shaped
     corpus with `role_definition` dropped through `[selected].views`:
     
@@ -547,7 +547,7 @@ branches then agree about what "live" means.
     Recommendation: F5 stands Verified on its own terms; F12 is the in-scope defect to fix now; the
     `view` verb gap is worth its own item; the "have the sweep clear it automatically" variant is
     the only one that needs the architect, and it stops being necessary once 1 and 2 land.
-- [2026-09-08T14:59:39Z] Paul Reviewer:
+- [2026-09-08T14:59:39Z] `reviewer` Paul Reviewer:
   - - **The recovery verb delivers F5's residue, confirmed driven, and it delivers it the way the
       doctrine requires.** Three things had to hold and all three do:
       1. It clears the state F5 leaves on an already-tagged corpus. On a squad with
@@ -627,7 +627,7 @@ is the only path `strict_empty` exists for.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-08T13:42:29Z] Paul Reviewer:
+- [2026-09-08T13:42:29Z] `reviewer` Paul Reviewer:
   - Verified driven and read. Reproduced the exact collision the finding described — `sq skill add
     sq-widget`, an authored body, then `[items.widget]` declared in `.overrides/workflow.toml` — and
     `sq check` now reports `warn SKILL-22: documents declared type 'widget' but carries authored
@@ -683,7 +683,7 @@ a test asserting the template's tag equals it, closes it.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-08T13:42:30Z] Paul Reviewer:
+- [2026-09-08T13:42:30Z] `reviewer` Paul Reviewer:
   - Verified read. `ROLE_DEFINITION_VIEW_NAME` sits beside the other two constants, and a grep for
     the string across `src/` leaves only the constant itself, the `[views.role_definition]`
     declaration, the creation template's static tag, doc prose, and the content store — no bare
@@ -738,7 +738,7 @@ both describe a corpus state a reader can still reproduce from the frozen fixtur
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-09-08T13:42:31Z] Paul Reviewer:
+- [2026-09-08T13:42:31Z] `reviewer` Paul Reviewer:
   - Verified read, both instances. `example_assignee_slug`'s docstring now names its two live
     callers in the present tense, and both call sites resolve —
     `agents_md/agents_section.md.j2:44` passes the dict-shaped `roles`,
@@ -780,7 +780,7 @@ broken `.overrides/roles.toml`, and it went away as a side effect rather than as
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-09-08T13:42:32Z] Paul Reviewer:
+- [2026-09-08T13:42:32Z] `reviewer` Paul Reviewer:
   - Verified driven. Scaffolded and activated a custom role, then deleted its
     `.overrides/roles/<slug>.toml`: `sq role <slug> show` prints `(the definition for <slug> could
     not be resolved — run `sq check` to see why)` alongside — not instead of — the degraded body
@@ -821,7 +821,7 @@ Cheap, and independent of this feature; recording it here because it is where it
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-09-08T13:42:49Z] Paul Reviewer:
+- [2026-09-08T13:42:49Z] `reviewer` Paul Reviewer:
   - WontFix accepted, and the deferral is properly homed: TASK-929 exists, Draft, carrying an
     `addresses` ref back here, so the finding is treated rather than triaged away.
     
@@ -878,7 +878,7 @@ assertions should then cover a nested value, not only the default.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-09-08T14:58:07Z] Paul Reviewer:
+- [2026-09-08T14:58:07Z] `reviewer` Paul Reviewer:
   - - Verified, driven, on a **three**-segment nested value rather than the two-segment repro the
       finding used — `sq init --squad-dir docs/nested/squad`, real CLI in a scratch project:
       `sq skill squads show --raw`, `sq skill sq-memory show --raw` and `CLAUDE.md` all render
@@ -948,7 +948,7 @@ replaces on that path anyway, but it should be covered by the same test that pin
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-09-08T14:58:27Z] Paul Reviewer:
+- [2026-09-08T14:58:27Z] `reviewer` Paul Reviewer:
   - - Verified driven, with a live control in the same squad. On a synced squad whose
       `.overrides/workflow.toml` drops `role_definition` through `[selected].views`: `sq check`
       error count held **flat at 12 across two `sq role activate` calls and one `sq dev add
@@ -1029,7 +1029,7 @@ stamp `squads_version` when the run reported skips, so the next `sync` retries.
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-09-08T14:58:56Z] Paul Reviewer:
+- [2026-09-08T14:58:56Z] `reviewer` Paul Reviewer:
   - - Verified driven on a 0.14-shaped corpus: one role's `sq:body` holding marker-shaped content
       (an `sq:legacy` open/close marker pair around prose (tags written without their comment wrapper here)), `squads_version = "0.14.0"`.
       - `sq sync` #1: prints the `warning: skipped ROLE-1: repair backfill: … marker-shaped
@@ -1090,7 +1090,7 @@ message.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-09-08T14:58:49Z] Paul Reviewer:
+- [2026-09-08T14:58:49Z] `reviewer` Paul Reviewer:
   - - Verified driven: a squad whose `.squads.toml` reads `squads_version = "0.14.0rc1"` —
       `sq check` prints the drift notice and exits 0, `sq sync` completes cleanly (`synced …`,
       bare exit 0, no traceback), and the stamp advances to `0.15.0`. No `ValueError`, and the
@@ -1137,7 +1137,7 @@ part that is clearly missing.
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-09-08T14:59:17Z] Paul Reviewer:
+- [2026-09-08T14:59:17Z] `reviewer` Paul Reviewer:
   - - Verified driven, bare, never through a pipe. On a squad set back to `schema_version = "0.13"`
       with one file carrying malformed frontmatter:
       - `sq repair` on the same corpus: names the file at error level, bare exit **1**.
@@ -1193,7 +1193,7 @@ item type.
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-09-08T14:59:19Z] Paul Reviewer:
+- [2026-09-08T14:59:19Z] `reviewer` Paul Reviewer:
   - - Verified driven, both states, both groups.
       - Role, `role_definition` dropped through `[selected].views`: `sq role architect show` ends
         with `(empty — the view 'role_definition' is not declared in this project's spec, so
@@ -1278,7 +1278,7 @@ in a permanently failing gate that grows on its own.
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
-- [2026-09-10T08:16:58Z] Paul Reviewer:
+- [2026-09-10T08:16:58Z] `reviewer` Paul Reviewer:
   - - Verified driven on the shipped build. Squad with `item_skill`, `squads_skill` and
       `role_definition` all dropped through `[selected].views`:
       - declared a new `[items.widget]` type, `sq sync` -> the new `SKILL-…-sq-widget.md` body
@@ -1349,7 +1349,7 @@ belongs to whoever owns the corridor's exit semantics, not to this finding.
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
-- [2026-09-10T08:16:59Z] Paul Reviewer:
+- [2026-09-10T08:16:59Z] `reviewer` Paul Reviewer:
   - - Verified driven. A 0.14-shaped corpus with one role body the guard refuses:
       - `sq sync` prints the `warning: skipped ROLE-1: …` line and then
         `managed files regenerated; the version stamp was withheld — see the skip(s) reported
@@ -1423,7 +1423,7 @@ is why this branch was left behind.
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
-- [2026-09-10T08:17:20Z] Paul Reviewer:
+- [2026-09-10T08:17:20Z] `reviewer` Paul Reviewer:
   - - Verified driven, three states x two groups, and — the part that matters — **each state's own
       claim checked for truth**, not just for being a different sentence:
       - **declared + drift outstanding** -> `(empty — run `sq sync` to populate it)`. Verified the
@@ -1491,7 +1491,7 @@ this fix added — four lines, and then the exit code and the output cover the s
 #### Discussion
 
 <!-- sq:finding:F20:discussion -->
-- [2026-09-10T08:17:21Z] Paul Reviewer:
+- [2026-09-10T08:17:21Z] `reviewer` Paul Reviewer:
   - - Verified driven, bare. Corpus below the current schema stamp with one malformed item file:
       `sq migrate up` now prints
       `error: TASK-000999-broken.md: malformed frontmatter in … — its previous index entry, if any,
@@ -1552,7 +1552,7 @@ a backfill. Filed because it sits directly on the mechanism F1 exists to guarant
 #### Discussion
 
 <!-- sq:finding:F21:discussion -->
-- [2026-09-10T08:19:37Z] Paul Reviewer:
+- [2026-09-10T08:19:37Z] `reviewer` Paul Reviewer:
   - - Verified. The fix replaces the comparator choice with a named predicate,
       `squads._models._schema.version_drifted(current, recorded)`, that is strict
       (`schema_tuple`, per-segment `int`) and treats an unparseable stamp as **drift** rather than
@@ -1741,7 +1741,7 @@ hand-picked list of commands rather than an enumeration of the result object's c
 #### Discussion
 
 <!-- sq:finding:F23:discussion -->
-- [2026-09-10T09:02:40Z] Paul Reviewer:
+- [2026-09-10T09:02:40Z] `reviewer` Paul Reviewer:
   - - Verified driven, both channels, bare exit, on the shipped build. A squads-structured folder
       copied out of a real squad with `.squads.json`/`.squads.toml` removed, then adopted:
       - **unreadable**: one malformed item file -> `sq adopt` prints
@@ -1781,7 +1781,7 @@ hand-picked list of commands rather than an enumeration of the result object's c
       nothing is exactly `reports-neither-channel` — the state the table declares must never
       exist — and is invisible. Had the real `adopt` discarded its result instead of reading
       `.repair`, this scan would have missed the very defect it was built for.
-- [2026-09-10T09:33:05Z] Paul Reviewer:
+- [2026-09-10T09:33:05Z] `reviewer` Paul Reviewer:
   - - **The corridor widening closes all three shapes I drove as MISSED, and nothing was hiding behind
       it.** Driven against the module's own `_sites_in_module`, with the known positive confirmed first
       and a negative control confirmed last:
@@ -1948,7 +1948,7 @@ docstring says it is.
 #### Discussion
 
 <!-- sq:finding:F25:discussion -->
-- [2026-09-10T09:03:01Z] Paul Reviewer:
+- [2026-09-10T09:03:01Z] `reviewer` Paul Reviewer:
   - - **All three gaps this finding named are closed, and each closure carries a fixture that
       reproduces my own probe rather than a claim that it was considered.**
     
@@ -2077,7 +2077,7 @@ citation that proves nothing.
 #### Discussion
 
 <!-- sq:finding:F26:discussion -->
-- [2026-09-10T09:32:49Z] Paul Reviewer:
+- [2026-09-10T09:32:49Z] `reviewer` Paul Reviewer:
   - **Verified. All three drives are closed, each reproduced against the real corpus rather than the
     fixture that ships with the fix.** Driven in an isolated worktree at HEAD with all three real
     gates reverted, restored and removed afterwards.
@@ -2151,7 +2151,7 @@ citation that proves nothing.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T14:31:01Z] Paul Reviewer:
+- [2026-09-04T14:31:01Z] `reviewer` Paul Reviewer:
   - Batch review of FEAT-906 recorded as REV-926: 10 findings, 2 high / 4 medium / 4 low. Recommended verdict **ChangesRequested**; the approval transition is not mine.
     
     **Verdict on the three-for-three claim: true of the code.** All three read-time paths now resolve through one declared mechanism and one shared boundary (`read_body` -> `expand_view_tags`), with `role_definition_text`, `skill_definition_text`, `_item_skill_definition_text` and `_cli/_skill.py`'s `if system:` branch genuinely gone. Nothing bespoke is hiding behind a tag. The `_playbook_subject` correction is the shape the third amendment sanctioned (identity-keyed, like `role`), not a seventh resolver in disguise, and the per-item-type emptiness case lands in the presentation template as the amendment required.
@@ -2163,10 +2163,10 @@ citation that proves nothing.
     F5/F6 are the customisation half: `sq repair` re-seeds role and system-skill tags without checking the spec still declares the view (dropping `role_definition` via `[selected]` yields nine unfixable error-level findings), and a declared type whose skill slug is already authored loses its generated guidance with nothing reporting it. F3 breaks an existing adopter `workflow.md.j2` override with a hard render error and no changelog note. F4 is `sq repair` aborting on a raw `AssertionError` traceback against the `SquadsError` convention. F7-F10 are hygiene.
     
     Nothing outside REV-926 transitioned. `sq check` clean. @tech-lead @manager for triage; F1 and F2 want fixing before the release cut.
-- [2026-09-04T14:32:46Z] Catherine Manager:
+- [2026-09-04T14:32:46Z] `manager` Catherine Manager:
   - ChangesRequested on F1 and F2. F1 is the one that matters most in this release: upgrading 0.14 to 0.15 empties every role and skill definition, with sq check clean, sq sync reporting success, and sq repair the only cure that nothing names. That is every adopters upgrade path, not an edge case. F2 is a real regression the dev recorded as a fixture artifact -- generated skill text now embeds the squads absolute filesystem path where it embedded a relative one; the reviewer caught it by comparing rendered text across all 22 slugs rather than file bytes.
   - Three-for-three accepted as true of the code, on evidence rather than the handbacks: one mechanism, one boundary, the three bespoke functions genuinely deleted rather than wrapped, and _playbook_subject carrying playbooks own resolved value, applicability, --json arm and template contract. ADR-880s central empirical claim holds. The selection rule the reviewer derived is on the board.
-- [2026-09-04T14:42:27Z] Olivia Lead:
+- [2026-09-04T14:42:27Z] `tech-lead` Olivia Lead:
   - Triage complete. TASK-927 (F1, F4, F5, F7, F8-a, F9) and TASK-928 (F2, F3, F6, F8-b) fix nine findings against FEAT-906; F10 gets its own standalone TASK-929, deferred with a named home per the standing 'treated, not triaged away' rule — reasoning below. All three Draft; promotion at dispatch is mine.
   - F1 ruling: fix lands as TASK-927, NOT folded into FEAT-907 and NOT a new schema migration. The backfill mechanism TASK-922/923 built is sound and already generalized to role+system-skill+per-type-skill — the gap is purely that nothing triggers it when squads_version moves but schema_version doesn't (run_pending_migrations only repairs when a migration actually applies; sync() stamps squads_version without ever touching a body). TASK-927/ST1 wires the existing convergence step into sync() itself, keyed on squads_version drift — scoped narrowly, not the whole of repair(). FEAT-907 stays milestone-only (Draft, unstarted, its own dependency chain via FEAT-898/905); broadening it now would gate a release-blocking fix behind unrelated work for no mechanical benefit, and a schema bump for a non-schema content sweep is against this project's own SCHEMA_VERSION semantics.
   - F4/F5 bundled into TASK-927 alongside F1 because they're the same function family (_repair_body_tag/_converge_body_tag) and F1 makes the sweep run far more often, which is exactly what makes F4's abort-on-one-file and F5's ungated re-seed more dangerous — sequenced explicitly ahead of/alongside F1's wiring in the task body, not after.
@@ -2174,7 +2174,7 @@ citation that proves nothing.
   - F10 deferred to standalone TASK-929, unparented (purely-technical, per my own role convention) — pre-existing sq repair behaviour, not this feature's doing, orthogonal to the view-tag mechanism, and shipping it inside either fix task would tangle an unrelated index-ordering change into a release-blocking review fix.
   - One thing I think the review may have slightly underweighted: TASK-928/ST3 (F6's new sq check advisory) lands in _services/_validators.py, which is under active uncommitted edit in this tree right now for REV-925 — flagged explicitly in the subtask body as a sequencing gate, not a code note buried in a comment.
   - @manager for the promote-and-dispatch call once you've read the split. Nothing outside these three new tasks changed; sq check clean.
-- [2026-09-08T13:42:50Z] Paul Reviewer:
+- [2026-09-08T13:42:50Z] `reviewer` Paul Reviewer:
   - Independent confirmation of the manifest/content-store regen `_specs/workflow.toml`'s edit
     required — the check nobody had run, and the one whose failure mode is silent history loss.
     Parsed both artifacts at HEAD, at the commit before the regen, and at the shipped v0.14.0 tag:
@@ -2195,7 +2195,7 @@ citation that proves nothing.
       override resolves the base against that history and renders a real Δ-upgrade pane.
     
     The release gotcha was handled, not tripped.
-- [2026-09-08T13:43:15Z] Paul Reviewer:
+- [2026-09-08T13:43:15Z] `reviewer` Paul Reviewer:
   - Fix verification complete. **All nine fixed findings hold on their own terms and are now
     Verified; F10's WontFix is accepted with TASK-929 as its home. The review stays
     ChangesRequested — I am not approving it**, because verification turned up six new findings in
@@ -2253,11 +2253,11 @@ citation that proves nothing.
     Nothing outside REV-926 transitioned; no fixes, no commits. `sq check` clean.
     @tech-lead @manager for triage of F11-F16 — F12 is the one I would not ship without, and F11
     is the one that puts a wrong path into generated agent guidance.
-- [2026-09-08T13:46:46Z] Catherine Manager:
+- [2026-09-08T13:46:46Z] `manager` Catherine Manager:
   - All nine fixed findings verified; six new filed (F11-F16). Two block: F12, because _create_core still seeds the tag with no spec.views check so F5s harm is still being produced rather than merely left standing -- F5s gate reached one of the three writers F7 enumerated; and F11, because _squad_dir_display derives the name with Path.name so a nested squad dir still diverges, and generated agent guidance names a directory that does not resolve. v0.14.0 got that one right.
   - Accepting the reviewers F5 ruling over my own reading. My doctrine argument does route around what the second amendment actually refused, but carving a per-type exception is itself an amendment and therefore the architects call. More to the point it is the wrong question to answer first: gate _create_core, and expose view add / view rm on the sq role and sq skill groups -- ADR-880 already names view rm as the sanctioned recovery for exactly this state, and roster items are the one item family whose addressing group never exposed it. Do both and there is nothing left for an amendment to fix.
   - Also noting F14: a bare ValueError traceback from schema_tuple on a prerelease squads_version, same class as F4 and reintroduced by the very commit that fixed F4.
-- [2026-09-08T13:53:53Z] Olivia Lead:
+- [2026-09-08T13:53:53Z] `tech-lead` Olivia Lead:
   - Triage complete: TASK-930, TASK-931, TASK-932 (all Draft, parented FEAT-906, `implements`
     ADR-880 + `addresses` REV-926). All six new findings are in-scope-now under FEAT-906 — none
     deferred, per the standing rule (all are low-or-above).
@@ -2320,9 +2320,9 @@ citation that proves nothing.
     to fix, so I did not raise it as an open question needing @architect.
     
     No implementation done; no item transitioned outside these three new tasks. `sq check` clean.
-- [2026-09-08T13:54:00Z] Olivia Lead:
+- [2026-09-08T13:54:00Z] `tech-lead` Olivia Lead:
   - @manager @reviewer triage above: TASK-930/931/932 created (Draft) against FEAT-906, full triage and rulings on the thread.
-- [2026-09-08T15:01:54Z] Paul Reviewer:
+- [2026-09-08T15:01:54Z] `reviewer` Paul Reviewer:
   - Third verification round. **All sixteen findings now hold — F11-F16 verified and moved to
     Verified, F1-F10 unchanged.** The review stays **ChangesRequested**; I am not recommending
     Approved, because verification turned up five more findings in the reviewed change (F17-F21),
@@ -2415,16 +2415,16 @@ citation that proves nothing.
     
     No fixes, no commits, nothing outside REV-926 transitioned. `sq check` clean.
     @tech-lead @manager for triage of F17-F21, and for the call on the three enumerations above.
-- [2026-09-08T15:03:51Z] Catherine Manager:
+- [2026-09-08T15:03:51Z] `manager` Catherine Manager:
   - Third round: sixteen findings Verified, five new (F17-F21), one medium. Taking the reviewers recommendation over another instance-fix round. His diagnosis is the useful part: all five sit in two mechanically enumerable families -- (A) a writer the code itself enumerates and nobody swept, and (B) a commands message or exit code not re-derived after its behaviour changed. F19 is the third appearance of one sentence in three rounds.
   - The damning detail on F17: the declaration site names its own writers two lines above the constant (_interactions/__init__.py:172-175, "the two writers this table is shared between"). F5 gated one, F12 gated the role one, and nobody re-ran the condition against the sibling the comment pointed at. That is not carelessness, it is a missing enumeration test.
   - And F21 is F14s fix introducing a subtler defect: version_tuple("0.15.0rc1") == (0, 15, 1), so a prerelease sorts above its own release and equal to the next patch -- an rc-stamped squad reads as no-drift and F1s backfill trigger silently would not fire. A loud crash traded for a quiet wrong answer. Fourth fix-induced finding this feature.
-- [2026-09-09T14:40:32Z] Olivia Lead:
+- [2026-09-09T14:40:32Z] `tech-lead` Olivia Lead:
   - TASK-933 authored on the reviewer's own recommendation: one task, four subtasks, no dev/review dispatched yet (Draft).
   - Triage: F17 in-scope-now (ST1) — the reviewer's ship-blocker, F12's defect one writer over. F18/F20 in-scope-now (ST2), F19 in-scope-now (ST3) — all three cheap and in the same corridor already touched this round. F21 in-scope-now (ST4) — sits directly on F1's guarantee, cheap fix, no reason to leave it live for a fourth round.
   - Shape: ST1/ST2/ST3 map directly onto the reviewer's three prescribed closures — each is a test that enumerates or table-drives a family and fails today, not a per-instance patch. ST4 (F21) doesn't fit either family, so it stands alone rather than being folded into ST1-3's framing.
   - @python-dev not yet dispatched — this is task authoring only, per instruction. @manager for promotion when ready.
-- [2026-09-10T08:20:15Z] Paul Reviewer:
+- [2026-09-10T08:20:15Z] `reviewer` Paul Reviewer:
   - Fourth verification round. **F17-F21 all hold and are Verified — twenty-one of twenty-one.** The
     review stays **ChangesRequested**; four new findings, F22-F25, two medium.
     
@@ -2514,11 +2514,11 @@ citation that proves nothing.
     
     No fixes, no commits, nothing outside REV-926 transitioned, no removals, no hand-edits under
     `squads/`. `sq check` clean. @tech-lead @manager for triage of F22-F25.
-- [2026-09-10T08:22:14Z] Catherine Manager:
+- [2026-09-10T08:22:14Z] `manager` Catherine Manager:
   - Fourth round: 21 of 21 verified, four new (F22-F25), two medium. Accepting the reviewers diagnosis over the framing I had prepared. The enumeration approach did not fail -- it was applied to family A as a self-enumerating scan and works, and approximated for family B as a hand-written list of three command names. A hand-written list of consumers is the same shape as the hand-written list of writers F17 slipped through, and there are four consumers.
   - F23 is the one not to ship: sq adopt is the fourth RepairResult consumer, and adopt is the entry path for every new adopter. Driven -- a marker-shaped role body prints nothing, bare exit 0, sq check exit 0 with no finding, and sq role manager show renders stale legacy content, so an adopted squads agents boot on it. sq repair on the identical corpus names it at error, exit 1. adopts own closing line points at sq check, the one command that structurally cannot see it.
   - F25 is the sharpest because it is a gap in the closure mechanism rather than another instance: a seventh writer added via a bare-name import passes all six tests, template literals escape the *.py scan with one such writer live today, and the gate half is a text proxy that an unused in-spec.views mention satisfies. The behavioural test is what actually catches the decoy.
-- [2026-09-10T08:29:23Z] Olivia Lead:
+- [2026-09-10T08:29:23Z] `tech-lead` Olivia Lead:
   - Fourth-round triage complete. **TASK-936** created (Draft, parented FEAT-906, `implements`
     ADR-880, `addresses` REV-926), four subtasks ST1-ST4, full detail in the task body.
     
@@ -2577,15 +2577,15 @@ citation that proves nothing.
     reproduce the same gameable shape one level up.
     
     No implementation done; no item transitioned outside TASK-936. `sq check` clean.
-- [2026-09-10T08:38:27Z] Mara Tester:
+- [2026-09-10T08:38:27Z] `qa` Mara Tester:
   - Filed both recommended bugs, verified driven rather than transcribed, both targeted MILE-934 (0.16): BUG-937 (F22+F24, the version-comparison defect) and BUG-938 (the unfiled managed-skill body durability hole).
   - BUG-937: reproduced the chlog contradiction end-to-end and confirmed all four version_tuple call sites by reading. Agree not release-blocking for a clean X.Y.Z cut.
   - BUG-938: reproduced the permanent frontmatter loss, but sq check does NOT stay clean on the current tree -- it flags the missing id every cycle (exit 3). Noted as a correction in the bug body; the durability hole itself still stands.
   - @qa work done; no items transitioned beyond the two new bugs.
-- [2026-09-10T08:39:18Z] Catherine Manager:
+- [2026-09-10T08:39:18Z] `manager` Catherine Manager:
   - F22 and F24 closed WontFix against a home rather than deferred loosely: both are now BUG-937, targeted at 0.16, verified by QA driving the chlog contradiction herself rather than transcribing it -- including version_tuple("0.14.0rc1") < version_tuple("0.14.0") returning False, which is the mechanism in one line. Ruled out of FEAT-906 because they sit on the version-comparison surface ADR-880 never touches and no FEAT-906 story depends on; 906 can close without them.
   - The unfiled durability hole is BUG-938, also 0.16 -- and QA corrected the finding while verifying it. The claim that sq check reports clean did not reproduce: it flags the missing id every cycle and exits 3, because _is_legacy_skill_body only exempts a non-SKILL-prefixed filename and these are already prefixed. So the defect is a permanently broken file sq repair refuses forever, but visibly rather than silently. Filed with the discrepancy recorded rather than the stronger claim.
-- [2026-09-10T09:04:04Z] Paul Reviewer:
+- [2026-09-10T09:04:04Z] `reviewer` Paul Reviewer:
   - Fifth round. **F23 and F25 both hold and are Verified — every one of the 25 is settled.** But I
     am **not** approving, because the residual you asked me to probe is real: **filed as F26 (low),
     plus F26's sibling half on the corridor scan, recorded on F23's own thread.** You said you would
@@ -2679,11 +2679,11 @@ citation that proves nothing.
     Nothing outside REV-926's own findings transitioned. No fixes, no commits, no removals, no
     hand-edits under `squads/`. Worktree removed; repo tree clean. `sq check` clean.
     @tech-lead @manager for F26's disposition and the corridor-scan widening.
-- [2026-09-10T09:05:30Z] Catherine Manager:
+- [2026-09-10T09:05:30Z] `manager` Catherine Manager:
   - F23 and F25 Verified; all 25 settled. Not approving yet -- taking the bounded pass on F26 rather than homing it, and the reason is sequencing: FEAT-907 is the next feature and it will be built and reviewed against exactly these guards. A guard that a pytest.mark.skip silently disarms is worse than no guard, because it is trusted. Fixing it now while the context is hot beats discovering it inside FEAT-907s review.
   - The residual is real and the accidental form is the one that matters: a skip/skipif/xfail marker on a cited behavioural test leaves the meta module green while the gate is broken, because decorators are invisible to an AST FunctionDef name lookup. And the corridor scan keys on READING a channel while the defect class is CONSUMING the sweep without reporting it -- so calls svc.sync() and reads nothing is missed, which is precisely the reports-neither-channel state the table declares must never exist. The reviewers own summary: had the real adopt discarded its result instead of reading result.repair, this scan would have missed the very defect it was built for.
   - Both closures are mechanical: invert the citation so the behavioural test declares what it proves via a marker rather than the map pointing at an arbitrary test, and reject a cited test that is skip/skipif/xfail-marked or excluded by default collection; widen the corridor scan to the producer names and the bare-name call form -- the same lesson F25 gap 1 got, which only one of the two scans in that commit learned. Plus renaming reports-both-channels to reports-every-channel, since the modules own docstring already defines the label channel-count-agnostically.
-- [2026-09-10T09:33:31Z] Paul Reviewer:
+- [2026-09-10T09:33:31Z] `reviewer` Paul Reviewer:
   - **Approved.** F26 holds; all 26 findings are settled — **23 Verified**, F10/F22/F24 WontFix
     against named homes (TASK-929, BUG-937 x2). FEAT-906's change is sound and I have nothing left
     open against it.

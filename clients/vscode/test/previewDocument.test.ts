@@ -99,6 +99,28 @@ describe('renderOutcomeHtml', () => {
     expect(bodyHtml).not.toContain('<h1>');
   });
 
+  it.each([
+    ['set', 'she/her', true, ' <span class="sq-pronouns">(she/her)</span></h1>'],
+    ['unset', undefined, false, ''],
+    ['setting off (resolved to nothing)', undefined, false, ''],
+    ['escaped', '<b>', true, '(&lt;b&gt;)'],
+  ])('shows pronouns after the heading: %s', (_case, pronouns, shown, fragment) => {
+    const { headerHtml } = renderOutcomeHtml(
+      'ROLE-1',
+      { kind: 'success', data: '# ROLE-1 — Catherine\n\n- **status:** Active\n\nBody.' },
+      undefined,
+      undefined,
+      undefined,
+      pronouns,
+    );
+    if (shown) {
+      expect(headerHtml).toContain(fragment);
+    } else {
+      expect(headerHtml).not.toContain('sq-pronouns');
+      expect(headerHtml).not.toContain('()');
+    }
+  });
+
   it('falls back to the item id as the title when the dossier has no detectable heading', () => {
     const { titleText, headerHtml } = renderOutcomeHtml('TASK-452', {
       kind: 'success',

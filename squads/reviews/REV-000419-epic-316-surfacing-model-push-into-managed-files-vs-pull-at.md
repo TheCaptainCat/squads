@@ -180,21 +180,21 @@ Dropped the .index.jsonl clause from _memory/_model.py and _board/_model.py docs
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T12:24:43Z] Pierre Chat:
+- [2026-07-15T12:24:43Z] `op-pierre` Pierre Chat:
   - The if-gated push-surfacing is a terrible idea. Injecting memory and board content into the managed pointer/CLAUDE/AGENTS files means it's either a stale snapshot from the last sync or a dangling directive when it's empty — and empty is every new install's default.
   - Just tell the role sheet to list the board and memory at startup. Every agent runs `sq memory <its-slug> list` and `sq board list` at the start of a run and applies what's relevant. Always fresh, works when empty, nothing duplicated into managed files, nothing to go stale.
   - Do the full version: once surfacing is gone the .index.jsonl has no reader, so drop it too — storage is just the slug/hash-named .md files. That also kills the index merge-conflict problem at the root instead of patching around it (BUG-414 / the option-B design in REV-412).
-- [2026-07-15T12:24:53Z] Paul Reviewer:
+- [2026-07-15T12:24:53Z] `reviewer` Paul Reviewer:
   - ChangesRequested. F1 (dangling directive on fresh installs) and F2 (readerless .index.jsonl) verified against source; both trace to the push-into-managed-files model. F3 records op-pierre's directed resolution — pull-at-startup + drop the index (Full scope). Findings are the technical backing; this review is the record, fix-tasks come later. Amends ADR-314, FEAT-315/FEAT-317 US2, and FEAT-416 US1.
-- [2026-07-15T13:06:14Z] Paul Reviewer:
+- [2026-07-15T13:06:14Z] `reviewer` Paul Reviewer:
   - Verification of the TASK-420/397 rip-out (uncommitted on release/0.9). The index/surfacing CODE is fully and correctly removed — F2's core is resolved and F3's mechanical steps are done:
   - RESOLVED: _content_index.py / _memory_surface.py / _board_surface.py deleted; read_index + regenerate_from_content_files + regenerate_index gone; maintenance _regenerate_content_indexes/_memory_role_folders + both call sites removed; the four templates stripped of the ## Your memory / ## Board / per-role Memory blocks; role.md.j2 rewritten to the unconditional pull (sq memory <slug> list / sq board list), valid on empty pools. Stores read the .md files directly. Git-merge tests keep the .md-merge substance and drop only the index-conflict parts. Gates clean: pyright 0/0/0, ruff + format clean, sq check clean. No orphaned code refs (the one tests/ grep hit is the false-positive 'memory_surface_an_honest_conflict' test NAME). BUG-414 is genuinely obsolete — its subject (a committed conflicted .index.jsonl) no longer exists.
   - NOT resolved — two orphans the rip-out left behind (see F4/F5), both from the same scope gap: TASK-420 enumerated a fixed template/docstring list that missed these surfaces.
   - F4 (high): the sq-memory skill itself (memory_skill.md.j2 -> committed squads/agents/skills/sq-memory.md) still teaches the push-at-boot model — 'surfaced into your context automatically at boot ... you don't have to go looking'. That is F1's defect relapsed into the very skill governing memory/board use, and it contradicts the new pull directive. Keeping REV-419 in ChangesRequested for this.
   - F5 (low): _memory/_model.py and _board/_model.py docstrings still cite the generated .index.jsonl roll-up ADR-314 says no longer exists.
   - Not approving. Once F4/F5 land (rewrite the skill passages to the pull form + regenerate; drop the roll-up clause from the two docstrings), the rip-out fully resolves F1/F2/F3.
-- [2026-07-15T13:07:10Z] Catherine Manager:
+- [2026-07-15T13:07:10Z] `manager` Catherine Manager:
   - Dispatching @python-dev on F4 + F5. F4 (high): rewrite the two push-surfacing passages in memory_skill.md.j2 (the 'surfaced automatically at boot, you don't have to go looking' bits for both memory + board) to the PULL form — run sq memory <slug> list / sq board list at the start of a run — matching role.md.j2; then regenerate the on-disk sq-memory skill + manifest. F5 (low): drop the stale '.index.jsonl roll-up' clause from _memory/_model.py + _board/_model.py docstrings.
-- [2026-07-15T13:14:40Z] Catherine Manager:
+- [2026-07-15T13:14:40Z] `manager` Catherine Manager:
   - All findings resolved by the re-architecture (commit 7c9050b): F1/F2 removed (push-surfacing + the readerless .index.jsonl gone), F3 implemented (pull-at-startup role directive), F4/F5 fixed (skill + docstrings). Full suite green, no residual push/index language. Approving.
 <!-- sq:discussion:end -->

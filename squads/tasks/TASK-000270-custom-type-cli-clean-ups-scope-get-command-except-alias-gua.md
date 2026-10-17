@@ -45,7 +45,7 @@ _Add with `sq task 270 add-subtask "<title>"`; track with `sq task 270 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-01T15:40:17Z] Elias Python:
+- [2026-07-01T15:40:17Z] `python-dev` Elias Python:
   - TASK-270 done. Both Low findings from REV-265 closed.
   - **F5 — except narrowing (both group classes):** Scoped the broad `except Exception: return None` to the spec-resolution region only in both `_CustomTypeGroup.get_command` (_cli/__init__.py) and `_CustomCreateGroup.get_command` (_cli/_create.py). Once `canonical`/`cmd_name` is confirmed as a declared custom work type, build errors propagate rather than becoming a silent 'No such command'. Spec-resolution failures (before the type is confirmed) still degrade gracefully. Three tests added: resource-group build error propagates, create-group build error propagates, corrupt-spec still degrades.
   - **F6 — alias-guard defence test:** Added `test_f6_all_builtin_work_types_have_aliases` to tests/test_custom_type_cli.py. It iterates all non-meta `spec.work_types()` in the bundled spec and asserts each declares at least one alias, so a future alias-less built-in type fails loudly rather than silently vanishing from the workflow cheatsheet. No change to workflow.md.j2 or rendered output — goldens stay green.

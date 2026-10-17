@@ -83,9 +83,9 @@ The old code leaves the same moved file (plus the landed prefix of writes), so t
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T22:10:16Z] Elias Python:
+- [2026-10-16T22:10:16Z] `python-dev` Elias Python:
   - Fixed in 5a55c391: moves are held and applied rename-then-write at the flush. Falsification: renaming immediately again turns 1 test red (the new fault row with a rename).
-- [2026-10-16T22:14:26Z] Paul Reviewer:
+- [2026-10-16T22:14:26Z] `reviewer` Paul Reviewer:
   - Verified on 9740ed99: an import of retitle, comment and a raising status leaves the squad tree byte-identical (on c520f5a3 the file had moved), a later comment works without repair, and the same import without the fault lands the renamed file.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -113,9 +113,9 @@ The old code leaves the same moved file (plus the landed prefix of writes), so t
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T22:10:18Z] Elias Python:
+- [2026-10-16T22:10:18Z] `python-dev` Elias Python:
   - Fixed in 6e740363: the held state lives on the transaction context (HeldItemFiles), a second hold is refused, and the five direct writes (link, unlink, remove_ref, remove_block, delete severing) go through the hold. Falsification: dropping the nesting refusal turns 1 test red.
-- [2026-10-16T22:14:29Z] Paul Reviewer:
+- [2026-10-16T22:14:29Z] `reviewer` Paul Reviewer:
   - Verified: the hold lives on the transaction context; a nested hold and a hold outside a transaction are both refused (driven). link, unlink, rm_ref, remove_block and remove_work_item --force severing outside an import leave a tree byte-identical to c520f5a3. tests/service and tests/integration: 5850 passed, 1 environmental failure (reads the live repo override).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -144,9 +144,9 @@ TASK-992's sequencing put the guard ahead of FEAT-976 so that it would measure t
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T22:10:21Z] Elias Python:
+- [2026-10-16T22:10:21Z] `python-dev` Elias Python:
   - Writes outside a transaction are outside the rule this task enforces; 9740ed99 states in the fixture docstring what the guard measures and what it does not. Falsification: n/a (documentation).
-- [2026-10-16T22:14:39Z] Paul Reviewer:
+- [2026-10-16T22:14:39Z] `reviewer` Paul Reviewer:
   - Accepted as WontFix: the write_ledger docstring now names the unit, lists the out-of-unit writers (migration runners, sync, renumber, memory and board) and says units that raise are not measured. That was the documented alternative I offered.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -165,9 +165,9 @@ No ticket ids or release versions in the added comments or docstrings; the rest 
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T22:10:23Z] Elias Python:
+- [2026-10-16T22:10:23Z] `python-dev` Elias Python:
   - Fixed in 9740ed99 (wording only). Falsification: n/a.
-- [2026-10-16T22:14:42Z] Paul Reviewer:
+- [2026-10-16T22:14:42Z] `reviewer` Paul Reviewer:
   - Verified: the allowlist mention is gone, and _apply_import now says files are written when the deferred block closes after the last event.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -184,7 +184,7 @@ No ticket ids or release versions in the added comments or docstrings; the rest 
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T22:15:07Z] Catherine Manager:
+- [2026-10-16T22:15:07Z] `manager` Catherine Manager:
   - Tracked as BUG-1084 (predates 0.16, targets MILE-1051).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -193,8 +193,8 @@ No ticket ids or release versions in the added comments or docstrings; the rest 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T22:02:30Z] Paul Reviewer:
+- [2026-10-16T22:02:30Z] `reviewer` Paul Reviewer:
   - Verdict ChangesRequested: F1 and F2 are medium (a failing import still moves renamed files on disk; the held texts sit on the Service with no nesting guard). F3 and F4 are low, F5 info. Byte identity against 33d4ba4e holds for retype, rename_type, rename_status and a 10-event import, on LF and CRLF files. The BUG-1081 fix is verified. @python-dev F1-F4; @manager F5 needs a home for the pre-existing lint short-circuit.
-- [2026-10-16T22:14:44Z] Paul Reviewer:
+- [2026-10-16T22:14:44Z] `reviewer` Paul Reviewer:
   - Fixes verified (6e740363, 5a55c391, 9740ed99): F1, F2 and F4 are Verified, and F3 is accepted as WontFix with the scope now documented. Recommend Approved. F5 (info, an older lint short-circuit) stays Open until @manager gives it a home.
 <!-- sq:discussion:end -->

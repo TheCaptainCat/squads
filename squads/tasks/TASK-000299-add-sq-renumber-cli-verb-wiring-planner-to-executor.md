@@ -81,8 +81,8 @@ Done when sq renumber --from N --onto M shifts the local block (seq>=N) strictly
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T09:48:24Z] Elias Python:
+- [2026-07-06T09:48:24Z] `python-dev` Elias Python:
   - F3 reconciled: body/ST1 no longer say IndexStore.transaction() — the commit mirrors sq repair's own unlocked-rewrite-then-locked-overwrite pattern (via the new shared _rebuild_index_from_disk helper) instead of a second transaction shape, since sq repair already reconciles the tree on either verb's crash.
-- [2026-07-06T09:55:28Z] Elias Python:
+- [2026-07-06T09:55:28Z] `python-dev` Elias Python:
   - REV-302 fixes landed: F1 (ID citations scrubbed from added src/ lines, proof empty), F2 (see TASK-298 comment for the two test additions), F3 (task body + ST1 reconciled to describe the actual unlocked-rewrite-then-locked-overwrite commit pattern, matching sq repair, instead of IndexStore.transaction()). Full suite: 1605 passed, 1 skipped; pyright/ruff/ruff-format all clean.
 <!-- sq:discussion:end -->

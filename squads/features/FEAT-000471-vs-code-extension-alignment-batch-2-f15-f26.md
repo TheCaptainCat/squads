@@ -254,6 +254,6 @@ Depends on US9 — do not start this story's tasks until US9's machine surface (
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T21:40:28Z] Catherine Manager:
+- [2026-07-18T21:40:28Z] `manager` Catherine Manager:
   - FEAT-471 complete: all 10 stories (US1-US10) Done, tasks 475-484 Done. Core surfaces (US7/US9) implement ADR-474; client work consumes them spec-driven. Batch-reviewed in REV-485 (Approved; F1/F3 low fixes Verified, F2 WontFix). Full Python suite green + 252 vitest + 14 skew-canary. REV-448 F15-F26 closed to Verified. Not committed (Pierre owns commits).
 <!-- sq:discussion:end -->

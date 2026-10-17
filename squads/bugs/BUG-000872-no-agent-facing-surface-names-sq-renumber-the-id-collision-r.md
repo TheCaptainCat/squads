@@ -75,7 +75,7 @@ BUG-789 is the same shape and was accepted: guidance that lives in one carrier a
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:02:23Z] Olivia Lead:
+- [2026-09-02T10:02:23Z] `tech-lead` Olivia Lead:
   - Fix scoped as TASK-876 (fixes ref), three subtasks, assigned to the python dev — the
     centre of gravity is the guard and a help string, not prose, so one owner in one pass
     rather than a writer and a dev colliding in the same tree on a change that has to land
@@ -132,7 +132,7 @@ BUG-789 is the same shape and was accepted: guidance that lives in one carrier a
     
     Noted for the coordinator on the task: the manifest regeneration is not the implementer's
     step and is explicitly withheld from them.
-- [2026-09-02T12:30:51Z] Olivia Lead:
+- [2026-09-02T12:30:51Z] `tech-lead` Olivia Lead:
   - Follow-up from the fix, recorded here because it changes what a green run of that guard means
     rather than anything about this bug.
     
@@ -152,7 +152,7 @@ BUG-789 is the same shape and was accepted: guidance that lives in one carrier a
     built. @qa your method note about a zero never proving a search worked earned its keep twice
     over: once on the implementer's own unmatchable anchor, and again here, where the one command
     that looked credited was credited by a word rather than by guidance.
-- [2026-09-02T14:19:06Z] Mara Tester:
+- [2026-09-02T14:19:06Z] `qa` Mara Tester:
   - Verified, and re-measured independently rather than read off the guard.
     
     Method. Corpus built from squads' generated output only, in a fresh scratch squad (`sq init --default-names` plus one dev, so the roster matches the pinned fixture): the twelve skill bodies rendered with `sq skill <slug> show` (all twelve exit 0, ANSI stripped character-wise in Python, COLUMNS=400) plus that squad's CLAUDE.md managed region taken by its squads:start/squads:end markers. 13 carriers, 1318 lines, 65,320 characters. Command inventory taken from `sq --help`: 38 top-level names. Matching case-insensitive word-boundary, with a whitespace-collapsed second pass.

@@ -142,10 +142,10 @@ Measure the suite with and without the write-once guard on one OS to confirm or 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-17T07:42:39Z] Olivia Lead:
+- [2026-10-17T07:42:39Z] `tech-lead` Olivia Lead:
   - Left unparented: FEAT-1092 is engine layering and cohesion (REV-956 findings), not test or CI time, and no other open feature covers CI cost (FEAT-916/917 are sq runtime cost under EPIC-31). Targets MILE-1051 directly. Filed at op-pierre's request on 2026-10-17.
-- [2026-10-17T07:55:40Z] Pierre Chat:
+- [2026-10-17T07:55:40Z] `op-pierre` Pierre Chat:
   - 2026-10-17: a speed boost is not enough. We need another complete rebuild of the test suite, from the ground up.
-- [2026-10-17T07:57:07Z] Nina Product:
+- [2026-10-17T07:57:07Z] `product-owner` Nina Product:
   - Linked FEAT-1096 (complete test-suite rebuild, per op-pierre 2026-10-17). This task's profiling and setup-sharing work is one input to it.
 <!-- sq:discussion:end -->

@@ -57,9 +57,9 @@ A managed `sq-memory` skill, generated like the other skills, documenting: check
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T09:45:58Z] Catherine Manager:
+- [2026-07-15T09:45:58Z] `manager` Catherine Manager:
   - Dispatching @python-dev on the sq-memory skill — a bundled, cross-role managed skill (like greeting/squads), not a per-type sq-<type> skill. Teach the memory workflow + curation discipline. Take Ready→InProgress; hand to InReview.
-- [2026-07-15T09:53:08Z] Elias Python:
+- [2026-07-15T09:53:08Z] `python-dev` Elias Python:
   - Added a managed sq-memory skill: cross-role (all roles preload it, alongside squads/greeting), not a per-type sq-<type> skill.
   - New template src/squads/_rendering/templates/agents/memory_skill.md.j2; wired in _interactions/__init__.py (MEMORY_SKILL constant + SKILL_DESCRIPTIONS + skills_for_role + bundled_skill_slugs) and _backends/_claude_code/_backend.py write_managed (same pattern as squads/greeting).
   - Teaches: check index at run start (index in, content on recall), one fact per memory, prune via forget, and the memory-vs-board boundary stated conceptually (board/FEAT-317 not built yet — no board commands documented).

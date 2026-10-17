@@ -37,8 +37,8 @@ _Add with `sq review 659 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T08:03:46Z] Paul Reviewer:
+- [2026-07-27T08:03:46Z] `reviewer` Paul Reviewer:
   - Independent review of TASK-658 (TUI per-type display labels). No findings — clean. Value path unchanged (options carry raw type as VALUE, label only for display; filter + search both key on the raw type via _selected). Hit badge escaping safe (label bound as $type template var into Content.from_markup, never concatenated). Swept _tui/: no other raw-type display site — _tree.py/_reader.py/_browse.py/_app.py confirmed clean. Left Draft; verdict recommendation Approve — @manager decides after the full suite.
-- [2026-07-27T08:05:01Z] Paul Reviewer:
+- [2026-07-27T08:05:01Z] `reviewer` Paul Reviewer:
   - Verified: display=label / value=raw-type (filtering unaffected); hit-badge label bound as a Content template var (markup-injection safe); no missed TUI type-display sites; tests cover derived + pinned-override. Full suite green.
 <!-- sq:discussion:end -->

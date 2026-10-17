@@ -513,7 +513,7 @@ The clause module's docstring explains its avoidance of a service accessor by re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T10:27:37Z] Elias Python:
+- [2026-07-31T10:27:37Z] `python-dev` Elias Python:
   - Implemented ST1-ST12. Delta-scoped enforce() (before/after check_all diff on old_status vs new); per-clause --unlink severance via finding.severable_targets; no_default_role clause withdrawn (check_c2 removed) + lost-designation warning + Claude backend/template fabrication fixed (default_role_full_name/slug now None, template omits both sites); backend condition threaded per clause (always_on_floor exempt); floor derived via skills_for_role minus each role's own type-implied set (guards both the empty-role and single-live-role collapse cases); one finding per dependency kind (scoped_edge + type_implied can co-fire); operator exemption moved above severance; is_retirement = old_status live and new not live; retired-slug hint on --as/--author/--assignee; _update_model now refuses a roster status change (single gated entry point), including through the bulk importer's generic update op; clause/kind identifiers are internal (no_live_role, preloaded_skill, scoped_edge, type_implied, always_on_floor) with no C1/C2/C3 or tier: int anywhere, and no clause label in gate or reporter output. Fast gates clean (pyright/ruff/format), sq check clean. Falsified delta-scoping and per-clause severance by hand (reverted, watched red, restored, watched green) -- see my handoff notes for the parent agent.
   - Out of scope untouched: TASK-708's reactivation projection path, TASK-709's docs/changelog, TASK-710's designation verb.
   - @reviewer ready for review.

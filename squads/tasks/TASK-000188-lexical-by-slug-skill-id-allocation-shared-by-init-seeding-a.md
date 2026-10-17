@@ -95,10 +95,10 @@ Covers wiring sq init to seed each bundled skill as a full Item of ItemType.SKIL
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T19:39:20Z] Elias Python:
+- [2026-06-24T19:39:20Z] `python-dev` Elias Python:
   - Implementation complete. bundled_skill_slugs() added to _interactions.py as the single shared lexical-by-slug ordering primitive (ADR-181 decision #5). seed_bundled_skills() added to MaintenanceMixin in _maintenance.py: iterates slugs lexically, skips already-stamped files (idempotent, decision #4), allocates via IndexStore.transaction() (invariant 2), calls join_frontmatter to stamp id/sequence_id onto the existing body file. Called by service.init() after refresh_managed() so body files already exist at stamp time.
   - _iter_item_files extended to scan all *.md in agents/skills/ (not just SKILL-*.md) so sq repair works with slug-named files. _scan_for_check silently skips slug-named skill files without IDs (pre-migration). _check_items includes SKILL in registered set so no false warnings. _skip_skill_seed=True internal hook + --no-seed-skills hidden CLI flag added for backward-compatible testing.
   - 12 new tests in tests/test_skill_seeding.py: all pass. All 16 existing test files updated (--no-seed-skills). Golden json regenerated. Full suite green (exit 0). pyright 0 errors. ruff clean.
-- [2026-06-24T19:39:25Z] Elias Python:
+- [2026-06-24T19:39:25Z] `python-dev` Elias Python:
   - @manager TASK-187 and TASK-188 (FOUNDATION increment of FEAT-178) are ready for review. Both tasks remain InProgress per instructions. Key files: src/squads/_backends/_claude_code/_backend.py (frontmatter-preserving regen), src/squads/_services/_maintenance.py (seed_bundled_skills + _iter_item_files + _scan_for_check), src/squads/_interactions.py (bundled_skill_slugs), src/squads/_services/_service.py (_skip_skill_seed hook), src/squads/_cli/_main.py (--no-seed-skills flag), tests/test_skill_seeding.py (12 new tests). Pyright clean, ruff clean, full suite green.
 <!-- sq:discussion:end -->

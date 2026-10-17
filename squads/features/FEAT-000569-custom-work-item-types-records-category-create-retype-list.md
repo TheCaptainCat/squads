@@ -68,6 +68,6 @@ _Add with `sq feature 569 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T17:16:07Z] Catherine Manager:
+- [2026-07-22T17:16:07Z] `manager` Catherine Manager:
   - FEAT-569 Done: custom records-category types are fully spec-driven — create/retype/list category-generic, retype work<->records with no_parent gated through the shared ValidatorEngine, end-to-end override-spec proof. Reviewed REV-614 (Approved, gate-ordering independently verified); full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

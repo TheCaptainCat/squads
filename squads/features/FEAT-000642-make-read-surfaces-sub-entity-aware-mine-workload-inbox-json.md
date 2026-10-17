@@ -185,28 +185,28 @@ with no per-kind branch; a nonexistent local id fails cleanly.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-29T09:37:08Z] Pierre Chat:
+- [2026-07-29T09:37:08Z] `op-pierre` Pierre Chat:
   - Scheduled for 0.13.
-- [2026-07-30T07:57:44Z] Pierre Chat:
+- [2026-07-30T07:57:44Z] `op-pierre` Pierre Chat:
   - Next after FEAT-691 in 0.13, ahead of FEAT-644 and FEAT-321.
-- [2026-08-03T07:50:43Z] Pierre Chat:
+- [2026-08-03T07:50:43Z] `op-pierre` Pierre Chat:
   - Scope this together with the missing sub-entity discussion on the machine-readable surfaces. Both are the same theme — sub-entities are second-class in the read surfaces — so one pass is cheaper than two and closes the webview gap at the same time.
-- [2026-08-03T08:00:06Z] Olivia Lead:
+- [2026-08-03T08:00:06Z] `tech-lead` Olivia Lead:
   - Broken into TASK-729 (Python read surfaces: mine, workload, inbox attribution, sub-entity discussion in show --json, standalone sub-entity --json) and TASK-730 (VS Code preview rendering). Subtasks carry no story mapping because this feature has no stories declared — @product-owner, add them and I will map.
   - Three things this body leaves for you to settle, flagged in TASK-729 rather than guessed: whether a settled parent still shows in mine when my sub-entity is open (and the converse), whether sub-entity counts fold into workload existing columns or get their own, and whether inbox is meant to gain assignment semantics at all — it is mention-driven today and already detects sub-entity mentions, it just cannot name which sub-entity matched.
-- [2026-08-03T08:04:53Z] Nina Product:
+- [2026-08-03T08:04:53Z] `product-owner` Nina Product:
   - Ruling (a) - mine cross-status visibility: default (non --all) visibility follows whichever assignment matched, evaluated independently - item-level match uses the item own status, sub-entity match uses that sub-entity own status; the row shows if at least one matched reason is open.
   - Direction 1 - settled parent, open sub-entity assigned to the slug: shows. The slug still has open work (the sub-entity), and hiding the row because the parent happens to be settled would bury it.
   - Direction 2 (converse) - open parent, sub-entity assigned to the slug is settled, parent not itself assigned to the slug: does not show. The slug piece is done; the parent being open (someone elses work) is not a reason for it to sit in this slug queue. --all bypasses this predicate exactly as it does today.
-- [2026-08-03T08:05:00Z] Nina Product:
+- [2026-08-03T08:05:00Z] `product-owner` Nina Product:
   - Ruling (b) - workload granularity: separate additive columns, not folded into open/closed/total. Folding changes the meaning of columns already published as stable (they stop meaning item counts) and double-counts an actor who owns both a parent and its sub-entity - clarity and compatibility both point the same way.
   - Ruling (c) - inbox scoping: confirmed, attribution only. Inbox stays mention-driven; this feature names which sub-entity a hit matched using the sq search locator vocabulary, and does not add assignment semantics to inbox. An assignment-queue inbox would be a different view with its own spec - not this feature.
-- [2026-08-03T08:05:16Z] Nina Product:
+- [2026-08-03T08:05:16Z] `product-owner` Nina Product:
   - @tech-lead stories US1-US5 are in, mapped to the read surfaces in scope; rulings (a)/(b)/(c) above.
-- [2026-08-03T12:49:09Z] Pierre Chat:
+- [2026-08-03T12:49:09Z] `op-pierre` Pierre Chat:
   - Design conclusion following from the loop-hygiene question: sq mine should display mentions as well as assignments. Being mentioned is a reason an item needs you, so mine is the one view answering what needs me — whether because it is assigned or because someone called me out. This completes rather than reverses the inbox ruling in this feature: inbox stays mention-driven and does not become an assignment queue; mine gains the mention axis. Consequence for the orchestration loop: one command per agent rather than two, and sq mine becomes the honest check for whether an agent is already loaded before it is spawned.
-- [2026-08-03T12:52:37Z] Pierre Chat:
+- [2026-08-03T12:52:37Z] `op-pierre` Pierre Chat:
   - Reversing the previous note: do not change mine to carry mentions. The two views answer different questions at different granularities — mine is a queue of item rows, inbox is the matching comment lines with their text — so folding mentions into mine would duplicate items across both views while losing nothing that inbox already does better. Instead, have agents run both on spawn. Neither command changes.
-- [2026-08-03T14:39:16Z] Catherine Manager:
+- [2026-08-03T14:39:16Z] `manager` Catherine Manager:
   - All five stories delivered and closed: TASK-729 (mine/workload/inbox/show --json, review REV-734 Approved) and TASK-730 (VS Code preview, verified visually by op-pierre in the extension dev host). BUG-727 and BUG-728 Verified.
 <!-- sq:discussion:end -->

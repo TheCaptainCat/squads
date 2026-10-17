@@ -105,12 +105,12 @@ unsettled question.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T10:33:22Z] Pierre Chat:
+- [2026-08-22T10:33:22Z] `op-pierre` Pierre Chat:
   - Severity for the missing per-entry pointer report: warn, with error kept for the top-level managed files. An adopter who deliberately gitignores generated config made a choice, so erroring on their intent is wrong on its own merits and not only because a patch upgrade must not move their exit code. Ending the silence is the point; failing their gate is not. Raising it later would be a minor, not a patch.
-- [2026-08-22T11:10:42Z] Catherine Manager:
+- [2026-08-22T11:10:42Z] `manager` Catherine Manager:
   - Fix landed in 383d5e8 on release/0.14 (TASK-785), shipping in 0.13.1. Verified the severity split myself: with the per-entry pointers deleted and the top-level files intact, sq check emits 11 warn lines and exits 0; sq sync then reports 11 regenerations and a second sync is silent; retire and reactivate stay clean. Deleting a top-level managed file still errors at exit 3, unchanged.
   - One correction to the premise of the severity ruling, driven. An adopter who gitignores the whole .claude directory was ALREADY failing sq check at exit 3 before this change, because .claude/settings.json is a declared top-level path and reports at error. So the feared patch-bump exit-code regression did not exist for that shape - their gate was already red. The warn ruling is still right, since it avoids adding new errors, but the specific worry that motivated it was not real. Whether erroring on settings.json for an adopter who deliberately ignores generated config is itself defensible is a separate question I have not opened.
-- [2026-08-22T11:21:39Z] Mara Tester:
+- [2026-08-22T11:21:39Z] `qa` Mara Tester:
   - Verified on 383d5e8 against this bug's own reproduction, all in throwaway squads with both backends active. Severity split, exit code asserted directly on $? (not through a pipe): per-entry pointers gone (both backends, all of .claude/agents, .claude/skills, .agents_md/roles, .agents_md/skills) -> 22 warn lines, one per entry naming its backend, EXIT_CODE=0. CLAUDE.md gone -> error, EXIT_CODE=3. AGENTS.md gone -> error, EXIT_CODE=3. .claude/settings.json gone -> error, EXIT_CODE=3 -- all three top-level paths unchanged at error.
   - agents_md staging confirmed reported: 11 of the 22 warn lines above are .agents_md/roles/<slug>.md and .agents_md/skills/<slug>.md -- the half I originally found doubly silent.
   - Partial vs total: with two live roles, deleting only qa's .claude/agents/qa.md named exactly that file (manager's untouched), EXIT_CODE=0 -- no longer collapses to whole-set behaviour.

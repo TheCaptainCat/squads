@@ -131,13 +131,13 @@ As an AI agent working in a squad with custom types, I want the AGENTS.md workfl
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T07:31:05Z] Catherine Manager:
+- [2026-06-26T07:31:05Z] `manager` Catherine Manager:
   - Design constraint (from op-pierre): custom types are ADDITIVE over the reserved core — a project may add types but may NOT drop the reserved meta-types (role/skill/operator) that the role backend / skill generation / operator machinery depend on. Enforce via the RESERVED_TYPES invariant introduced in FEAT-208.
-- [2026-06-26T09:44:13Z] Catherine Manager:
+- [2026-06-26T09:44:13Z] `manager` Catherine Manager:
   - Process rule (from the FEAT-220 incident, REV-230): for externalize/refactor-with-byte-identical-output work, the characterization golden must be authored FIRST — against HEAD, as a gating test — BEFORE the rewire, so the change runs under a passing guard rather than leaving the proof as a last task an agent can abandon. Pin ALL inputs (roster/flags/clock) for generated-artifact comparisons. See [[pin-roster-when-diffing-generated-skills]].
-- [2026-06-26T15:22:23Z] Catherine Manager:
+- [2026-06-26T15:22:23Z] `manager` Catherine Manager:
   - Implementation note (carry-forward from FEAT-208): the dynamic CLI build must source per-type ALIASES from the spec too, not just the type set. FEAT-208 added the aliases flag to TypeSpec (and encoded the built-in aliases as values in default_workflow.toml), but nothing consumes it yet — the alias registration in _cli/__init__.py still reads the hardcoded TYPE_ALIASES dict in _enums.py. So the dynamic build has two enum->spec swaps, not one: (1) the app-build loop iterates the loaded spec types instead of `for t in ItemType`, and (2) alias sub-app registration reads each TypeSpec.aliases instead of TYPE_ALIASES. After this, TYPE_ALIASES can be retired (its values now live in the spec). Same startup-ordering caveat applies (spec loaded before the app tree is built).
-- [2026-06-30T12:04:14Z] Olivia Lead:
+- [2026-06-30T12:04:14Z] `tech-lead` Olivia Lead:
   - **Breakdown into tasks (Olivia Lead).** FEAT-210 → 7 tasks, all left Draft. Sequence (depends-on edges recorded in frontmatter):
   - TASK-256 — Characterization goldens FIRST (GATING): pin current `sq workflow`, CLAUDE.md + AGENTS.md workflow sections, and every bundled `sq-<type>` skill body, with roster/clock/flags frozen. No upstream deps; gates 257/260/261. (AC#7/#8 enforcement.)
   - TASK-258 — Spec-aware folder/prefix mapping in `_paths` (+ spec-driven folder scaffold in `_service`). ID allocation already custom-tolerant (verified — confirm round-trip). (AC#2.)
@@ -152,7 +152,7 @@ As an AI agent working in a squad with custom types, I want the AGENTS.md workfl
   - **FEAT-178 coordination:** Done — the lexical-by-slug SKILL allocator (`bundled_skill_slugs()` + `seed_bundled_skills`) already exists. TASK-260 EXTENDS that slug set for custom types; it does NOT build a new allocator (AC#6 = no SKILL-id churn).
   - **FEAT-211 seam (deconflict):** 'lifecycle auto-linearization' appears in BOTH FEAT-210 (slice 6) and FEAT-211's scope; FEAT-211 depends-on FEAT-210. Resolution: TASK-262 builds the core BFS-spine helper (F4 needs it to render at all); FEAT-211 CONSUMES + HARDENS it across status surfaces (filters/inbox/blocked/badge fallback for custom statuses). Boundary recorded in 262 + 261 bodies.
   - **Risks:** (1) import-time vs parse-time ordering (the ADR subject) — highest, all of 257 hinges on it. (2) golden drift in 262: built-in derived lifecycle strings must reconcile with the PLAYBOOK prose the golden captures — resolve explicitly. (3) two-backend coverage (CLAUDE.md AND AGENTS.md) in 261 — easy to miss agents_md. (4) `_paths` import-cycle risk in 258 — prefer threading the spec from the caller over a second filesystem load.
-- [2026-06-30T12:17:31Z] Nina Product:
+- [2026-06-30T12:17:31Z] `product-owner` Nina Product:
   - Workflow-override location reconciliation pass complete (Nina Product). This is the same fix applied to FEAT-209 on 2026-06-30 — the factual error '.squads.toml' as the workflow override location was still present in FEAT-210, FEAT-211, FEAT-212, and EPIC-206.
   - Changes made (surgical — only workflow-override-location references; all general .squads.toml config references left intact):
   - FEAT-210 body (2 hits): 'a project can write a custom type in .squads.toml' → '.overrides/workflow.toml'; AC#1 '[workflow.types.incident] to .squads.toml' → '.overrides/workflow.toml'.
@@ -161,13 +161,13 @@ As an AI agent working in a squad with custom types, I want the AGENTS.md workfl
   - FEAT-212 US1 body (1 hit): 'declare a custom sub-entity kind in .squads.toml' → '.overrides/workflow.toml'.
   - EPIC-206 body (1 hit): success criterion #1 'entirely in .squads.toml' → '.overrides/workflow.toml'.
   - Left unchanged — confirmed legitimate: ADR-214 line re ADR-179's .squads.toml knobs (global ID prefix / flat-layout — general project config, not the workflow override). FEAT-209 hits are all in immutable discussion comments (reviewer/QA records); the 209 body/stories were already corrected in the earlier pass.
-- [2026-06-30T12:35:16Z] Elias Python:
+- [2026-06-30T12:35:16Z] `python-dev` Elias Python:
   - @manager: TASK-258, TASK-259, and TASK-262 are Done. All gates clean (pyright 0 errors, ruff check clean, ruff format clean). 72 new tests, all passing in under 1 second.
   - TASK-258 (_paths.py spec-aware): folder_for/squad_relative/type_for_id accept optional spec= arg; builtins are byte-identical (AC#7 confirmed); custom types dispatch through spec.items[type].folder / spec.prefix_to_type. Import of WorkflowSpec in _paths.py is safe — no cycle. _iter_item_files() widened to yield str (not ItemType) to support custom folder scans.
   - TASK-259 (RESERVED_TYPES): the invariant was already fail-closed; tests prove it parametrically for all ItemType members and 12 floor statuses. Graceful degradation confirmed (no KeyError for custom work types absent from PLAYBOOK).
   - TASK-262 (linearize_lifecycle): signature is linearize_lifecycle(machine: Lifecycle) -> str, exported from squads._workflow. Algorithm is greedy spine + BFS side states. One option-b divergence on the review lifecycle is documented in both the test and the function docstring.
   - Risky/notable: the _iter_item_files() type change touches repair/renumber — existing tests for those paths still pass. Custom type write/repair round-trips bypass create() (no template yet, that's TASK-260); tests use write_new() + manual index transaction directly.
-- [2026-07-01T08:31:22Z] Olivia Lead:
+- [2026-07-01T08:31:22Z] `tech-lead` Olivia Lead:
   - @manager FEAT-210 corrective breakdown (from REV-265 ChangesRequested + ADR-266). 4 tasks, all left Draft for your greenlight. Refs recorded (implements ADR-266 / addresses REV-265 / depends-on edges).
   - TASK-267 — Spec-derive per-type prefix (F1 High). The foundation. Adds a stored-but-derived Item.prefix, one _models-local prefix_for(type, spec) resolver, stamps prefix at create/retype/load, retires the buggy type.upper()/bracket lookups at all 5 sites (_item.py, _index.py, _common.py, _refs.py x3, _items.py). Static sweep: PREFIX_BY_TYPE/TYPE_BY_PREFIX/FOLDER_BY_TYPE/TYPE_ALIASES shim/_META_NAMES retired to the reserved resolver. Per ADR-266. NO task deps.
   - TASK-268 — Working create path (F2 High). OWNS AC#1/US1 END-TO-END — the gap that fell between the original tasks. Generic items/_default.md.j2 + _template_for fallback, and a custom-aware create surface reconciled with TASK-257's _CustomTypeGroup. Depends 267.
@@ -178,7 +178,7 @@ As an AI agent working in a squad with custom types, I want the AGENTS.md workfl
   - Every task carries the two hard constraints: (1) AC#7/#8 byte-identical built-ins — TASK-256 goldens stay green; (2) tests must exercise the ACTUAL headline command end-to-end (declare custom type in .overrides/workflow.toml, then real sq <type> create/list/show with a correctly-prefixed id round-tripping) — closing the test gap where prior tests used write_new/retype and sidestepped create.
   - OPEN QUESTIONS for you / op-pierre: (Q1) Legacy-file backfill — 267 re-derives prefix on load when absent from frontmatter (keeps existing files valid, no schema bump). I've asked the dev to flag whether a sq repair/backfill or migration note is needed to actually write the prefix line into existing files, or whether re-derivation-on-load suffices. Decision to confirm at implementation. (Q2) AC#4/F3 wording — the review notes CLAUDE.md never carried the cheatsheet; custom vocab lands in the squads skill + AGENTS.md, not CLAUDE.md. Likely an AC-wording artifact; needs @product-owner reconciliation, not a code change. I flagged it in 269 rather than silently expanding CLAUDE.md scope. (Q3) create verb form — 268 must pick sq create <type> vs a create verb on the resource group; 269's skill text must match whichever ships. Left to the dev to decide + document; no blocker.
   - SCOPE BOUNDARY held per operator confirmation: _SUBENTITY_PLURAL deferred to FEAT-212 (kept as built-in fallback, NOT removed here); migration _KIND_BY_TYPE exempt/frozen.
-- [2026-07-01T08:56:52Z] Nina Product:
+- [2026-07-01T08:56:52Z] `product-owner` Nina Product:
   - AC wording correction (Nina Product) — REV-265 F3 confirmed: the workflow cheatsheet that carries per-type vocabulary and lifecycles lives in the `squads` skill and the AGENTS.md managed section, NOT in the managed CLAUDE.md section. CLAUDE.md's managed section never contained the cheatsheet; the AC as written chased a phantom artifact.
   - Changes made (wording accuracy only — scope and intent unchanged):
   - • Feature body intro: 'managed CLAUDE.md section' → 'managed AGENTS.md workflow section and `squads` skill' (two occurrences).

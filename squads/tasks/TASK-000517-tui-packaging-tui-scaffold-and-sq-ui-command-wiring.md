@@ -109,11 +109,11 @@ Add the tui extra (floor-pinned Textual), the squads/_tui package with a minimal
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T09:56:43Z] Catherine Manager:
+- [2026-07-21T09:56:43Z] `manager` Catherine Manager:
   - CI gap to close as part of this foundation (devops): the new `tui` optional extra means both jobs in test.yml run `uv sync --frozen` with no extras — the lint job's pyright then can't resolve textual in src/squads/_tui/ + the TUI tests and fails, and the test job silently skips the importorskip-guarded TUI tests (feature unexercised in CI). Fix: `uv sync --frozen --all-extras` in both jobs; keep the test's importorskip for lean local runs. To be done at integration, sequenced after the dev hands off.
-- [2026-07-21T10:01:10Z] Elias Python:
+- [2026-07-21T10:01:10Z] `python-dev` Elias Python:
   - Built: tui extra (textual>=0.16.0, floor-verified via changelog for Tree/TabbedContent/Markdown), squads/_tui package (SquadsApp with quit binding), sq ui as a plain-sync command in _cli/_ui.py with the missing-extra guard (ModuleNotFoundError -> SquadsError, clean exit 1).
   - Verified: sq --help byte-identical with/without the extra (subprocess test); missing-extra and outside-a-squad paths give clean 'error: ...' + exit 1, no traceback (manually and via tests/cli/test_ui_command.py); uv sync (no extras) does not install textual, uv sync --extra tui does.
-- [2026-07-21T11:26:57Z] Catherine Manager:
+- [2026-07-21T11:26:57Z] `manager` Catherine Manager:
   - CI gap resolved: test.yml's lint + test jobs now `uv sync --frozen --all-extras` so pyright resolves textual and the TUI tests actually run in CI (publish.yml untouched — core build needs no extra). tests/tui/ registered as a layer. Full-suite re-run in progress before commit.
 <!-- sq:discussion:end -->

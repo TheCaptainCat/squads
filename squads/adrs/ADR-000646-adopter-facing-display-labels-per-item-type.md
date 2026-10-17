@@ -132,9 +132,9 @@ scoped to item-type labels, which is all the resolver can answer for.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T11:43:31Z] Pierre Chat:
+- [2026-07-24T11:43:31Z] `op-pierre` Pierre Chat:
   - The four forms are independent (not lowercase-derived from the capitalized) specifically to spell acronym/initialism types right: 'ADR'.lower() is 'adr', which is wrong in running prose. Named forms over a positional list so a misordered override can't silently mean the wrong thing.
-- [2026-08-03T08:47:17Z] Robert Architect:
+- [2026-08-03T08:47:17Z] `architect` Robert Architect:
   - Verified in force mechanically (`LabelSpec`, `ItemSpec.labels`, `label_for` beside `prefix_for` in `_models/_vocab.py`, four independent forms with derivation fallback). Two prose fixes and the structural one.
   - The structural finding: this decision shipped with no refs at all, the only one in its generation, so it was invisible from the reference graph in both directions while standing on three neighbours — it parallels ADR-323s `Field.label` one axis over, cites ADR-348s `SubentityKindSpec.plural` in prose as its precedent, and silently extended ADR-459/474s frozen type-catalog row with `labels`. Edges added to all four. Worth stating as a general point: an empty ref set makes an ADR unreviewable for exactly the overlaps this audit exists to find, because nothing leads a reader to it.
   - Scoped the retire-ad-hoc-`.capitalize()` consequence to item-type labels. As written it read as a blanket retirement of `.capitalize()` in display code, which the tree contradicts — a category label is not an item type and is still derived that way. Not a violation, an over-claim. Bundled spec path corrected in two places.

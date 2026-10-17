@@ -41,6 +41,6 @@ _Add with `sq task 610 add-subtask "<title>"`; track with `sq task 610 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T16:21:02Z] Elias Python:
+- [2026-07-22T16:21:02Z] `python-dev` Elias Python:
   - Landed: new 'sq workflow roles --json' ({role, settled, hidden, color}); 'sq workflow statuses --json' drops terminal (keeps role+badge). Regenerated tests/goldens/workflow_statuses.json + new tests/goldens/workflow_roles.json via UPDATE_GOLDENS=1. Re-expressed test_workflow_statuses_cli.py, test_status_semantic_role_active.py, test_category_aware_default_visibility.py (Rejected now hides by default — deliberate), test_type_spec_capability_flags.py's role-catalog test, and the reachability-lint message/assertions in test_lifecycle_reachability_lint.py. TERMINAL stays allowlisted in the mutable-state guard (unchanged, still a derived CODE constant).
 <!-- sq:discussion:end -->

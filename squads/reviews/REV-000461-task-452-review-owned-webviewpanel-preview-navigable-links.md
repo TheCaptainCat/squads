@@ -80,7 +80,7 @@ Suggested (optional, non-blocking) hardening: allowlist the URL scheme in the li
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-17T14:57:58Z] Ada Typescript:
+- [2026-07-17T14:57:58Z] `typescript-dev` Ada Typescript:
   - Fixed in TASK-453: markdown.ts's renderLink now allowlists http/https/mailto schemes; a bare item-id url routes through the internal sq-item-link mechanism instead; anything else (javascript:/data:/vbscript:/relative/protocol-relative) is dropped, keeping only the escaped visible text. See isSafeLinkUrl + renderLink.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -123,7 +123,7 @@ Gate output: npm run check exit 0 (tsc strict + eslint --max-warnings 0 + pretti
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T14:27:30Z] Paul Reviewer:
+- [2026-07-17T14:27:30Z] `reviewer` Paul Reviewer:
   - RECOMMENDED VERDICT: APPROVE. The security-critical concern (a hand-rolled markdown->HTML renderer feeding a webview) is handled correctly: complete, single-pass HTML escaping on every content path with no raw-HTML passthrough, regex-constrained item-id anchors, and a genuinely strict per-render-nonce CSP (default-src 'none', no unsafe-inline, no remote). No shell-injection surface (execFile + argv). F9/F10 meet the task spec; dead code is cleanly removed; the strict gate + unit suite (94/94) + skew canary (6/6) are green and the VSIX packages.
   - No blocking findings. Only F2 (optional link-scheme allowlist) is a defense-in-depth hardening suggestion — already neutralized by the CSP, safe to take as a follow-up. F1/F3/F4 are PASS records.
   - @reviewer note: per the do-not-self-approve rule I am NOT flipping this review to Approved or changing TASK-452's status — that two-party transition is the approver's (main loop / operator's) call.

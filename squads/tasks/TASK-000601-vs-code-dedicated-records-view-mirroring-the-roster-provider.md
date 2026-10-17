@@ -44,7 +44,7 @@ _Add with `sq task 601 add-subtask "<title>"`; track with `sq task 601 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T17:48:15Z] Ada Typescript:
+- [2026-07-22T17:48:15Z] `typescript-dev` Ada Typescript:
   - New domain/recordsView.ts::buildRecordsView mirrors metaView.ts but buckets are spec-driven: derived from typeCategory.ts's recordsTypes(categoryMap) + ordered via the type catalog's order field, not a hardcoded 3 (a project's custom records type gets its own bucket with no client change); empty categoryMap => no buckets (can't-tell-yet, distinct from roster's always-3-fixed-buckets).
   - New src/recordsTreeDataProvider.ts mirrors metaTreeDataProvider.ts (one sq list --json --all fetch + type/collections/statuses/roles catalogs). Registered a new 'Records' activity-bar view (package.json viewsContainers/views: squadsRecords) + squads.refreshRecords command (commands.ts registerRecordsCommands); wired in extension.ts (createTreeView, expand/collapse tracking, initial refresh) and the squadWatcher on-disk-change refresh path alongside the work tree and roster views.
   - Reuses displayNode/badgeCatalog/statusRole helpers as directed; closed/hidden/colour styling comes from the same role-catalog join as the work tree and roster (see TASK-600's comment for the ADR-604 migration details this rides on).

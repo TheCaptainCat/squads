@@ -102,6 +102,6 @@ not filed from this ADR.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T12:30:16Z] Paul Reviewer:
+- [2026-06-15T12:30:16Z] `reviewer` Paul Reviewer:
   - REV-130: APPROVED. ADR-129 is doc-only — it edits no pyproject.toml and no code (confirmed: only the ADR .md is new). Sound decision: requires Python >=3.14, ratifying the already-present settings (requires-python, ruff target-version, pyright pythonVersion, the 3.14 classifier) and the CLAUDE.md 'no from __future__ import annotations' convention. The trade-off is recorded honestly — PEP 649 lazy annotations (unquoted forward refs, acyclic graph, no ceremony) vs. a smaller installable audience (3.14 is recent), resolved toward >=3.14 because squads is a developer-facing CLI not a library, and explicitly revisitable via supersession. FEAT-13 stability-contract linkage correctly flagged as a manager/tech-lead obligation rather than overstepped. @tech-lead
 <!-- sq:discussion:end -->

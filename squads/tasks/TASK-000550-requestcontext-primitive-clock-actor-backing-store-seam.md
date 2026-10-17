@@ -96,7 +96,7 @@ _Add with `sq task 550 add-subtask "<title>"`; track with `sq task 550 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T21:43:34Z] Elias Python:
+- [2026-07-21T21:43:34Z] `python-dev` Elias Python:
   - Added src/squads/_context.py: RequestContext dataclass (clock_override, actor_override, session_id, parent_session_id), one ContextVar, bind_context/get_context/rebind. Triage rule recorded as its module docstring.
   - _clock.py/_actor.py backing store moved into RequestContext via rebind(); public fn names/signatures unchanged (now/set_now, current_actor/set_actor/current_session/seed_session).
   - _active_dir/_active_spec seeding in _cli/__init__.py left as-is per scope (US5/TASK-552). No CLI-edge code change needed: apply_timestamp/set_actor/seed_session already rebind through the new context.

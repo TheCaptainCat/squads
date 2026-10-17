@@ -47,7 +47,7 @@ _Add with `sq task 457 add-subtask "<title>"`; track with `sq task 457 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T16:14:46Z] Ada Typescript:
+- [2026-07-17T16:14:46Z] `typescript-dev` Ada Typescript:
   - Group-by-type and the type-filter quick-pick now sort by `sq workflow types --json`'s per-type order (client half of F1).
   - Added getTypeCatalog adapter + domain/typeOrder.ts comparator; listView.ts/treeMapping.ts sort by it (default epic->feature->task->bug->decision->review->guide), fallback to type-name order (empty map) if the catalog fetch fails — no hardcoded type list.
   - Extended the skew canary to cover sq workflow types --json; npm run check + npm test (161) + npm run test:canary (10) all green. @reviewer

@@ -58,7 +58,7 @@ domain/typeOrder.ts exports sortTypesByOrder(types, orderMap), but production so
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-17T16:29:05Z] Ada Typescript:
+- [2026-07-17T16:29:05Z] `typescript-dev` Ada Typescript:
   - Fixed: routed listView.ts's distinctTypes and treeMapping.ts's distinctTypesInTree through sortTypesByOrder, folded into TASK-464.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -67,7 +67,7 @@ domain/typeOrder.ts exports sortTypesByOrder(types, orderMap), but production so
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T16:19:04Z] Paul Reviewer:
+- [2026-07-17T16:19:04Z] `reviewer` Paul Reviewer:
   - Recommended verdict: APPROVE. Spec-driven ordering, comparator correctness, and graceful fallback all confirmed; npm run check + 161/161 unit + 10/10 canary green; the committed type-catalog fixture is byte-identical to live `sq workflow types --json`.
   - One low, non-blocking finding (F1): `sortTypesByOrder` is exported but only tests use it — DRY or drop, reviewer's discretion, safe to land as-is or defer. No blocking findings.
   - Leaving the review status at InReview for the approver — not self-approving (per process). @tech-lead / @manager for the verdict call.

@@ -77,9 +77,9 @@ release.yml runs with 'permissions: contents: write' and uploads the VSIX releas
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-17T09:32:23Z] Operator:
+- [2026-07-17T09:32:23Z] `operator` Operator:
   - Pinned softprops/action-gh-release to the exact-SHA hardened form: @3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2 (latest v2.x release; verified via gh api tags). Scanned release.yml/vscode-client.yml/test.yml/publish.yml — no other third-party actions on mutable major tags (astral-sh/setup-uv already exact-pinned); actions/setup-node@v5 (first-party, mutable) left as-is, out of F2's third-party scope.
-- [2026-07-17T09:59:07Z] Hugo Ops:
+- [2026-07-17T09:59:07Z] `devops` Hugo Ops:
   - Superseded: publish.yml no longer uses softprops/action-gh-release at all — the VSIX job now attaches via the first-party gh CLI (gh release upload) under contents: write scoped to that job only. F2's SHA-pin no longer applies to anything; leaving status Fixed (accurate history) since the action it pinned is gone.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -94,7 +94,7 @@ clients/vscode/ has no .vscodeignore, so 'vsce package' will include everything 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-17T08:16:49Z] Ada Typescript:
+- [2026-07-17T08:16:49Z] `typescript-dev` Ada Typescript:
   - Added clients/vscode/.vscodeignore excluding src/**, test/** (incl. fixtures), toolchain config, package-lock.json, and node_modules/** — VSIX now bundles only out/ + package.json + README + resources; part of TASK-440.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -103,11 +103,11 @@ clients/vscode/ has no .vscodeignore, so 'vsce package' will include everything 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T07:59:58Z] Paul Reviewer:
+- [2026-07-17T07:59:58Z] `reviewer` Paul Reviewer:
   - Closes REV-438's two design rulings at the machine surface: (a) tree titles — TASK-439 adds an additive 'title' to every sq tree --json node, so the client can drop its second sq-list-join-by-id fetch (client cutover tracked as TASK-440). Confirmed correct + additive. (b) open/closed — TASK-439 adds a spec-driven 'is_open' to sq list --json and sq tree --json, so the client can stop diffing two sq list calls (default vs --all). Confirmed spec-driven (not a hardcoded terminal set) + additive. Both rulings are the right call and now correctly implemented at the surface rather than worked around client-side.
   - (c) TASK-432 three test layers: my REV-438 F2 stands — only the unit layer exists in CI. Acceptable-with-follow-up for 0.10 (unit layer is the bulk of value, runs headless); the integration skew-canary follow-up is now tracked as TASK-441. Not re-raised here.
-- [2026-07-17T09:33:29Z] Elias Python:
+- [2026-07-17T09:33:29Z] `python-dev` Elias Python:
   - F1 fixed: sq mine --json now emits is_open per item (spec.is_open(status)), same additive pattern as list/tree; mine_manager golden regenerated (empty list, unaffected).
-- [2026-07-17T11:38:08Z] Paul Reviewer:
+- [2026-07-17T11:38:08Z] `reviewer` Paul Reviewer:
   - F1 Fixed: sq mine --json now emits the additive, spec-driven is_open (spec.is_open(i.status)), consistent with sq list/tree --json — the un-enriched sibling surface is closed. Reviewed in REV-447 (APPROVE).
 <!-- sq:discussion:end -->

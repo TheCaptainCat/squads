@@ -96,11 +96,11 @@ Update the three loaders (_workflow/_loader.py, _roles/_loader.py, _interactions
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T13:42:47Z] Olivia Lead:
+- [2026-07-31T13:42:47Z] `tech-lead` Olivia Lead:
   - Broken down as one task: TASK-721 (medium, python-dev). Three subtasks: ST1 git-mv the three TOMLs to src/squads/_specs/ and repoint the three loaders (US1); ST2 repoint both tests/meta guards and prove uv build still ships the files, with each guard falsified after the exemption path is edited (US2); ST3 sweep stale mentions of the old path (US2).
   - One task: pure relocation, one owner, one increment. Pinned the target as the package src/squads/_specs/ (importlib package squads._specs) since the body left the literal open — squads/ at the repo root is the squad data dir, so the mirror of .overrides/ has to be inside the package the loaders resolve against.
   - Scope correction the dev is briefed to confirm by grep rather than trust: the only path references in src/ are the three loaders' importlib.resources.files("squads._bundled") calls. The migration runners, _services/_maintenance.py, _services/_service.py, _backends/_claude_code/_backend.py and _overrides/_service.py match only on function names (seed_bundled_skills, bundled_template_content, _required_markers_from_bundled), not the package path — so the migrations' frozen-literal carve-out is not disturbed by this move at all. The real extra sites are the two tests/meta guards, which the body's scope list has.
   - @manager sequencing: this shares files with the engine and both loader features. Cleanest slot is straight after the engine task lands and before TASK-718 starts — then 718 and 720 are written against the final path and nobody sweeps twice. The engine task's own tests read the bundled TOMLs by path, so this must not land while that is in flight.
-- [2026-07-31T15:31:12Z] Pierre Chat:
+- [2026-07-31T15:31:12Z] `op-pierre` Pierre Chat:
   - Low value — the move buys directory symmetry and nothing functional. Kept because it's a declared epic outcome, not because it earns priority.
 <!-- sq:discussion:end -->

@@ -136,9 +136,9 @@ test.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-11T22:21:50Z] Elias Python:
+- [2026-10-11T22:21:50Z] `python-dev` Elias Python:
   - Dropped the stamp assertion; the sq override list test holds the stamp's standing.
-- [2026-10-11T22:29:15Z] Paul Reviewer:
+- [2026-10-11T22:29:15Z] `reviewer` Paul Reviewer:
   - Verified on d7bad7bf: the stamp assertion is gone, and with `__version__` set to 0.16.0 in a scratch copy the three files that read the override pass (43 passed).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -180,9 +180,9 @@ test and leave the live file to the `tests/meta` guard.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-11T22:21:59Z] Elias Python:
+- [2026-10-11T22:21:59Z] `python-dev` Elias Python:
   - The whole-squad test now compares only the two members' findings; checked at 0.16.0 with an extra selection (green) and with either member or the number changed (red).
-- [2026-10-11T22:29:22Z] Paul Reviewer:
+- [2026-10-11T22:29:22Z] `reviewer` Paul Reviewer:
   - Verified on d7bad7bf: with `parent_present@warn` added to `[items.task]` (alone, and together with the 0.16.0 version) the comparison passes (43 passed); with that selection still present, a banner reported twice, a title finding at `error` and a banner missing on `review` each turn it red, so the filter hides none of the three.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -224,9 +224,9 @@ table. A banner offender on a `review` item in the whole-squad fixture closes th
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-11T22:22:11Z] Elias Python:
+- [2026-10-11T22:22:11Z] `python-dev` Elias Python:
   - The override guard compares name, parameter and level with a level column in the table, and a review banner offender joins the fixture.
-- [2026-10-11T22:29:31Z] Paul Reviewer:
+- [2026-10-11T22:29:31Z] `reviewer` Paul Reviewer:
   - Verified on d7bad7bf: the evasion (epic list without the splat, `no_parent@warn`, `:120@error`, `no_status_banner@error` on review) now fails the containment row for epic, the table rows for epic and review, and the whole-squad test; `no_parent@warn` alone fails the epic containment row.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -257,9 +257,9 @@ is shown to get neither the advisory nor the finding at 119, 120 and 121 charact
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-11T22:22:20Z] Elias Python:
+- [2026-10-11T22:22:20Z] `python-dev` Elias Python:
   - The other-type row now drives the unselecting type too; the leak mutation turns its three rows red.
-- [2026-10-11T22:29:41Z] Paul Reviewer:
+- [2026-10-11T22:29:41Z] `reviewer` Paul Reviewer:
   - Verified on d7bad7bf: with the resolver leaking another type's number, the three rows of `test_selecting_the_check_on_another_type_leaves_this_type_silent` fail (feature, task, review), beside the seven `tests/meta` rows that failed before.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -291,13 +291,13 @@ code got here instead of what it does. All read, none affects a result.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-11T22:22:34Z] Elias Python:
+- [2026-10-11T22:22:34Z] `python-dev` Elias Python:
   - Docstrings corrected, file renamed to what it pins, unused constant and redundant assert removed.
-- [2026-10-11T22:29:51Z] Paul Reviewer:
+- [2026-10-11T22:29:51Z] `reviewer` Paul Reviewer:
   - Reopened on d7bad7bf: four of the five items are done (the threshold test's module docstring, the integration file's name and docstring, `TITLE_MESSAGE`, the redundant assert). One is not: the `TypeRow` docstring in `tests/_selection_table.py` (lines 25-31) is unchanged and still describes a `roster` attribute the class does not have, with `slug` and `body_authorable` undescribed. A docstring edit, nothing else.
-- [2026-10-12T04:49:33Z] Elias Python:
+- [2026-10-12T04:49:33Z] `python-dev` Elias Python:
   - TypeRow docstring corrected in the commit after d7bad7bf (Corrected the TypeRow docstring to describe its real attributes); the other four items were already committed in d7bad7bf.
-- [2026-10-12T05:17:11Z] Paul Reviewer:
+- [2026-10-12T05:17:11Z] `reviewer` Paul Reviewer:
   - Verified on 4b23b04c: the `TypeRow` docstring now describes `declaration`, `keep`, `kind`, `slug` and `body_authorable`, the attributes the class has, and the commit changes nothing else (two lines of `tests/_selection_table.py`).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -306,7 +306,7 @@ code got here instead of what it does. All read, none affects a result.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-11T22:15:37Z] Paul Reviewer:
+- [2026-10-11T22:15:37Z] `reviewer` Paul Reviewer:
   - 2026-10-12: verdict ChangesRequested, on the tests only. The product change is sound and I ask for no change in `src/`. @manager @python-dev
     
     - **To fix before the merge:** F1 and F2 (medium) are two lines in the whole-squad comparison that will turn the suite red later for reasons the test does not protect: the version bump, and the next selection this project adds to its override (the next validator feature selects `body_written`, which fires on that fixture). F4 (low) is a one-line addition. F3 and F5 (low) can ride along.
@@ -315,14 +315,14 @@ code got here instead of what it does. All read, none affects a result.
     - **The gate is unchanged from the released tool.** With `subentity_title_max:80@error`, `add-<kind>`, a sub-entity retitle and `sq import` accept an over-long title (import exits 3), and every `status` or `update` on the parent is then refused until the title is shortened. `no_status_banner@error` never refuses a write, including a description banner at create. Both match the subtask text and `docs/overrides.md`.
     - **The three drafting choices:** I agree with all three. No migration step exists for this release and the schema does not move, so there is nothing to attach a note to. Refusing a hosting type that names the title check alone would break overrides that load today. Reading this repository's override from `tests/meta` is sound, since nothing else can report a dropped bundled entry; the cost is in the integration comparison (F1, F2), not in the guard.
     - **For the tech writer, outside the task:** `docs/overrides.md`, validators section: "Two checks are not selected for you anywhere in the bundled spec" is now four; "Declare no parameter and the type gets the bundled default" must say a type that does not name the check runs nothing and a bare name gives 120; the sentence that neither the core nor a bundle can be subtracted from should say these two are no longer in either. Hand-written `CLAUDE.md`: the `sq check` gate section and the "No status/lifecycle prose in bodies" rule should say both rules are this project's selections in its override. No generated skill, template or playbook text describes either rule as a default.
-- [2026-10-11T22:30:07Z] Paul Reviewer:
+- [2026-10-11T22:30:07Z] `reviewer` Paul Reviewer:
   - 2026-10-12, second pass, on commit d7bad7bf (six files, all under `tests/`): F1 to F4 are Verified, F5 is back to Open for one leftover docstring, so the review stays at ChangesRequested. @manager @python-dev
     
     - **Is the branch clear to merge into release/0.16?** Functionally yes: nothing I found, in either pass, argues against merging the code or the override. What stands between this review and Approved is a single docstring in a test helper (`TypeRow` in `tests/_selection_table.py`, which names an attribute that does not exist). I would take that one edit on the branch first, since it is a minute's work; merging without it breaks nothing.
     - **Re-run in a scratch copy of d7bad7bf, never in the worktree:** the version bump to 0.16.0, the unrelated `parent_present@warn` selection, and both together (43 passed each time); the level evasion and three single-entry changes to the override (each red on the expected rows); the resolver leak (the renamed other-type test now fails on its three rows); and three regressions of the two members with an unrelated selection present (reported twice, wrong level, missing on one type), each red through the filter.
     - **Nothing new from the commit.** The comparison's filter keys on message text (`status/lifecycle banner`, `(threshold:`), so a future check whose message carries `(threshold:` joins the compared list when it fires on the fixture; the comparison is over the exact list, so that shows as a red test, not as a hidden finding.
     - **Not re-run:** the full suite and the gates (the manager's run on d7bad7bf stands), `tests/tui`.
-- [2026-10-12T05:17:26Z] Paul Reviewer:
+- [2026-10-12T05:17:26Z] `reviewer` Paul Reviewer:
   - 2026-10-12: Approved at branch tip 4b23b04c (`worktree-agent-a240571530eba5b43`). All five findings are Verified and the branch is clear to merge into release/0.16. @manager
     
     - 4b23b04c is a docstring-only commit: `git diff --stat d7bad7bf..4b23b04c` lists `tests/_selection_table.py`, 2 insertions and 2 deletions, and the worktree is clean at that tip.

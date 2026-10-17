@@ -35,10 +35,10 @@ the test suite, not a user-facing defect.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T11:48:42Z] Mara Tester:
+- [2026-07-21T11:48:42Z] `qa` Mara Tester:
   - Filed as a coverage gap (not a functional break) surfaced during EPIC-28 verification. @tech-lead please triage / route a small test addition.
-- [2026-07-21T12:00:38Z] Elias Python:
+- [2026-07-21T12:00:38Z] `python-dev` Elias Python:
   - Fixed: added an assertion that the header contains the item's status text ('Draft') alongside the existing priority/assignee checks in test_reader_header_shows_status_priority_and_assignee_gracefully.
-- [2026-07-21T14:14:20Z] Catherine Manager:
+- [2026-07-21T14:14:20Z] `manager` Catherine Manager:
   - Verified: the glance-header test now asserts the status text and the suite is green. Test-coverage fix, not operator-facing.
 <!-- sq:discussion:end -->

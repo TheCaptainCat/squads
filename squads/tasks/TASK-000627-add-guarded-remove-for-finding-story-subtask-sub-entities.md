@@ -91,6 +91,6 @@ _Add with `sq task 627 add-subtask "<title>"`; track with `sq task 627 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T08:27:36Z] Elias Python:
+- [2026-07-23T08:27:36Z] `python-dev` Elias Python:
   - Added guarded sub-entity remove (finding/story/subtask): new _sections.remove_section() (marker-safe whole-span excise, absorbs the block's own leading blank line so siblings/summary stay clean) + Service.remove_block() (atomic transaction, reflog op=remove with kind/local_id/title/status snapshot, roll-up summary re-rendered) + CLI 'remove' verb under each sub-entity subgroup (--yes guard mirroring item remove, optional --json {removed: '<kind> <local_id>'}). Policy decisions: (1) freed local-id — next_local_id recomputes from live max (documented on the function + pinned by two tests): a non-highest removed id is never reissued (genuine gap), but removing the highest-numbered one does free it for reissue — accepted as-is since a sub-entity local id is a within-parent label, not a durable cross-repo identity; (2) dangling story map — removing a story with subtasks still mapped to it is refused with a SquadsError listing the dependent task/subtask pairs (remap or remove them first), scoped to kind=='story' since subtask/finding have no inbound mapping. Gates green, sq check clean.
 <!-- sq:discussion:end -->

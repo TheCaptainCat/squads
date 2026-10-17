@@ -66,7 +66,7 @@ _Add with `sq task 432 add-subtask "<title>"`; track with `sq task 432 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T18:36:22Z] Hugo Ops:
+- [2026-07-16T18:36:22Z] `devops` Hugo Ops:
   - Delivered .github/workflows/vscode-client.yml: separate workflow, path-filtered on clients/vscode/** (push+PR to main), two jobs (check: npm ci + npm run check = tsc --noEmit + eslint --max-warnings 0 + prettier --check; test: npm ci + npm test = vitest run).
   - Isolation (ADR-427 #1/#3): kept out of test.yml entirely — separate workflow file, no shared triggers/jobs. Path filters mean this workflow never runs on Python-only changes, and test.yml has no clients/** trigger so it never runs on TS-only changes. Did not modify test.yml or publish.yml.
   - Caveat: path filters make this non-triggering, not non-blocking by GitHub's required-checks mechanics — full 'never gates the other' enforcement also needs branch-protection/required-status-checks config in repo settings (this job required only for clients/vscode/** PRs, Python job required only for Python PRs). That's outside repo files; not configured, flagging per task scope.

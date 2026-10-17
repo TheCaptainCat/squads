@@ -93,6 +93,6 @@ decision per ADR rather than rewriting accepted ones.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-04T20:28:15Z] Robert Architect:
+- [2026-07-04T20:28:15Z] `architect` Robert Architect:
   - Forward pointer: ADR-282 refines this decision. The corpus-derived floor mechanism ruled on here (stored floor, repair recompute from filename width, repad on overflow) is preserved exactly; 282 only narrows the stored padding parameter's consumer from 'all ID formatting' (as it was under FEAT-27, described above) to 'filename formatting only' — display becomes a constant unpadded 0. The Context/Consequences prose here is the point-in-time record and stays unedited per the one-decision-per-ADR convention.
 <!-- sq:discussion:end -->

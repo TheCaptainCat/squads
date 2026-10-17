@@ -119,7 +119,7 @@ Register the retype verb in build_item_app (thin wrapper over svc.retype, type-a
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T08:38:13Z] Elias Python:
+- [2026-06-15T08:38:13Z] `python-dev` Elias Python:
   - Implemented TASK-110: sq retype in place.
     
     New files: src/squads/_services/_retype.py (RetypeMixin with retype()), src/squads/_rendering/templates_manifest.json updated, tests/test_retype.py (33 tests).
@@ -131,7 +131,7 @@ Register the retype verb in build_item_app (thin wrapper over svc.retype, type-a
     Gate: 635 passed, 0 failed; pyright 0 errors; ruff check + format clean.
     
     @reviewer please review the implementation. @qa please smoke test retype across all work-item pairs.
-- [2026-06-15T08:43:30Z] Mara Tester:
+- [2026-06-15T08:43:30Z] `qa` Mara Tester:
   - QA verification of FEAT-20 (Retype an item in place) — empirical checks in a scratch squad + full test suite.
   - **Core retype (US1/AC1):** PASS — sq task N retype bug: sequence number preserved, ID reprefixes (TASK-000002 → BUG-000002), file moves to bugs/, body byte-for-byte verbatim (Unicode: ← → ✓ intact), frontmatter updated, output states old/new ID.
   - **Incoming edges (US2/AC1):** PASS — refs in other items rewritten to new ID; ref kind preserved (blocks); prose @-mentions and inline IDs rewritten; children's parent field rewritten; sq check clean after retype.
@@ -144,7 +144,7 @@ Register the retype verb in build_item_app (thin wrapper over svc.retype, type-a
   - **Static analysis:** PASS — pyright strict: 0 errors; ruff check: all passed; ruff format --check: 98 files formatted.
   - **Full test suite:** PASS — 635 passed, 1 skipped (all 33 retype tests green).
   - **Minor gap noted:** when no refs are rewritten, the CLI omits the '0 file(s)' line from output. Spec says output 'states … rewritten refs' but omitting a zero count is reasonable — not blocking.
-- [2026-06-15T08:45:29Z] Paul Reviewer:
+- [2026-06-15T08:45:29Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-115: APPROVED. Retype is correct end-to-end — sequence number preserved, ID reprefixes via the computed field, file moved to the new folder with body bytes verbatim and markers intact; incoming edges (refs with kinds, children's parent, prose mentions) rewritten atomically in one transaction with no dangling refs; status carry-vs-reset correct per workflow; all three refusals fire with actionable hints.
   - Invariant 1 verified hands-on: after a retype with a ref + prose rewrite, sq check is clean and sq repair rebuilds the index byte-identically from frontmatter. Forward-edges-only, marker-safe edits, injectable clock, and e() escaping all respected.
   - Architect-flagged forward reference (_cmd_retype call-before-def in _cli/_items.py): genuinely resolved — build_item_app only runs from _cli/__init__.py after the module loads, so the name binds at call time. Not masked.

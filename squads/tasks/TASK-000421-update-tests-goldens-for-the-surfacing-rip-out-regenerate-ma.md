@@ -101,7 +101,7 @@ _Add with `sq task 397 add-subtask "<title>"`; track with `sq task 397 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T13:00:20Z] Elias Python:
+- [2026-07-15T13:00:20Z] `python-dev` Elias Python:
   - Deleted tests/unit/test_content_index_generator.py; deleted TestMemoryBootSurfacing/TestBoardBootSurfacing from test_backend_lifecycle_contract.py.
   - Renamed+trimmed the two storage test files (dropped _and_index_regeneration): test_memory_storage.py, test_board_storage.py — kept pure storage/off-counter/repair-neutral tests, dropped all index-regen/conflict/BUG-414 tests.
   - Git-merge tests (memory+board) keep the .md-files-merge-cleanly assertions; dropped the index-conflict/sync-resolves parts and renamed the distinct-post test names to drop the index framing.

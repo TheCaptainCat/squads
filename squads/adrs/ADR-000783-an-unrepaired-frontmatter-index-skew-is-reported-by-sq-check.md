@@ -201,10 +201,10 @@ board still pays for no second load.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T10:04:27Z] Pierre Chat:
+- [2026-08-22T10:04:27Z] `op-pierre` Pierre Chat:
   - Add the check rule at warn level. The distinction from my earlier refusal holds: that one was declined because the projection repairs itself on the next sync, and here sync refuses and leaves it. The zero-fire evidence on a pre-fix corpus answers the noise objection, and generalizing the existing drift family beats a third hand-picked field.
-- [2026-08-22T10:04:28Z] Catherine Manager:
+- [2026-08-22T10:04:28Z] `manager` Catherine Manager:
   - Verified the load-bearing mechanism before accepting rather than taking the drives on trust: _refresh_catalog_extra mutates and persists the item as loaded from the index, and _exempt_extra_keys hands a non-dev role the whole permitted-skew set, so a value living only in markdown was overwritten by the index copy with nothing comparing it. The store module docstring states the principle in its own words - an index ahead of the markdown would let repair silently revert a committed mutation, and a loud repairable inconsistency beats a quiet rollback. This ruling is that principle applied.
-- [2026-10-11T20:20:01Z] Robert Architect:
+- [2026-10-11T20:20:01Z] `architect` Robert Architect:
   - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under decision 1, after the two paragraphs stating that `sq repair` clears the refusal and resolves the skew in the sanctioned direction. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
 <!-- sq:discussion:end -->

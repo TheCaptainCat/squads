@@ -163,16 +163,16 @@ repairing it -- a report-not-repair direction worth carrying into whatever fixes
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T21:09:24Z] Catherine Manager:
+- [2026-08-21T21:09:24Z] `manager` Catherine Manager:
   - Drove the recovery question directly to settle a disagreement between QA and the tech lead. On a squad initialized with a role subset, sq role activate devops --name Hank Ops activates Hank Ops, the reflog create entry carries that name, sq sync then reverts the item to Hugo Ops, and the reflog still carries Hank Ops afterwards. So the activate path IS recoverable from squads/.reflog.jsonl, and the reverting sync writes no reflog entry of its own to clobber it. The tech lead is right and this body needs correcting.
   - Also recording a probe error of my own so nobody repeats it: activating a role that sq init already made live is a documented no-op that returns the existing item untouched, so --name appears to be ignored. It is not a defect. Use sq init --roles minimal and activate a role that is not yet live when driving this.
-- [2026-08-21T21:37:04Z] Catherine Manager:
+- [2026-08-21T21:37:04Z] `manager` Catherine Manager:
   - Fix landed in cc6c506 on release/0.14 (TASK-772). Four sites plus a stale docstring, not the two the review found: the same IS_DEV gating pattern also sat in sq role show and sq check. Verified myself on a minimal-roster squad: role activate architect --name Ada Lovelace survives two consecutive syncs across frontmatter, index, sq list and the CLAUDE.md roster; an override declaring full_name still renames over it, so tier 1 still wins; sq check exits 0. The catalog-refresh guard passes, which is what proves the fix did not freeze the whole definition. Full suite green with --run-slow at 3818 passed, pyright and ruff clean.
-- [2026-08-21T21:37:07Z] Theo Writer:
+- [2026-08-21T21:37:07Z] `tech-writer` Theo Writer:
   - Docs for the exposed gap landed in docs/overrides.md: a new "Which name wins" section under Agent naming states the three-level precedence (override full_name > the name stored on the role, however set > bundled catalog / dev pool), what sync keeps vs refreshes, that a rename moves updated_at and shows in the reflog, and the recovery for a squad already showing the bundled name (write full_name into the override, sync once). Also noted three traps in the same section and cross-referenced from docs/roles.md.
   - Driven in throwaway squads: init --name, [init.names] (needs init --force when the file pre-exists; flag beats table; table is init-only), activate --name on a not-yet-live role, dev add --name/--model — all survive three syncs; tampered mission/responsibilities/can_spawn/model/skills on a bundled role are all restored from the catalog while full_name is held; a developer keeps its --model too; an override full_name renames over a stored name once (updated_at moves, reflog logs old->new) and deleting the override afterwards does NOT restore the previous name.
   - One doc-relevant behaviour worth a look: activating an already-live role reports success and silently ignores --name. Documented as a trap; @reviewer if that should refuse instead.
-- [2026-08-21T21:42:29Z] Mara Tester:
+- [2026-08-21T21:42:29Z] `qa` Mara Tester:
   - Verified against the bug's own reproduction on cc6c506, all in throwaway squads. Both name-setting paths, each on a genuinely not-yet-live role (sq init --roles minimal then activate, avoiding the no-op trap): sq init --name architect="Ada Lovelace" and sq role activate devops --name "Hank Ops".
   - Two consecutive syncs, every surface (frontmatter title/extra.full_name, index, sq list -t role, sq role show, CLAUDE.md, AGENTS.md, .claude/agents/<slug>.md): both names held identically after sync #1 and #2. sq check clean throughout.
   - Tier 1 confirmed on both role kinds: an override declaring full_name still renames over an operator-set name -- devops Hank Ops -> Zoe Ops via override, and a dev role (python-dev) Grace Hopper -> Zoe Python via override, both applied on sync.
@@ -180,6 +180,6 @@ repairing it -- a report-not-repair direction worth carrying into whatever fixes
   - The regression check I most wanted to drive myself: hand-staled extra.mission/responsibilities/can_spawn (plus the matching frontmatter) on an operator-named architect item, then ran one sync. All three reconverged to the current bundled catalog values on that same sync, while extra.full_name/title stayed "Ada Lovelace" throughout -- the fix is narrow, not a whole-definition freeze.
   - sq dev add --name remains durable across two syncs, unregressed (Priya Dotnet held).
   - Visibility confirmed: the mission/responsibilities/can_spawn reconvergence bumped updated_at and appended a real reflog update entry with the exact before/after delta; a pure full_name override-rename did the same (Hank Ops -> Zoe Ops logged). In both cases the role's original create reflog entry, carrying the operator's chosen name, stayed intact and readable directly above the update entry -- confirms the recovery path BUG-771's own body describes still holds.
-- [2026-08-22T09:06:07Z] Pierre Chat:
+- [2026-08-22T09:06:07Z] `op-pierre` Pierre Chat:
   - Not filing the activate --name no-op. Activating an already-live role reports success and silently discards a --name the operator passed; it is documented as a trap in docs/overrides.md and that is where it stays for now. Do not re-raise it as a defect without new evidence that an adopter hit it.
 <!-- sq:discussion:end -->

@@ -112,7 +112,7 @@ Selecting a result does push_screen(ReaderScreen(svc, hit_item_id)) — NOT tree
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T13:03:15Z] Elias Python:
+- [2026-07-21T13:03:15Z] `python-dev` Elias Python:
   - Built: item-type/status Select widgets added to SearchScreen, forwarded as svc.search(text, item_type=, status=) (unset -> None) -- no TUI-side re-filter, re-runs on every select change (reactive narrowing). Selecting a result (ListView.Selected) pushes ReaderScreen(svc, hit.item_id) per ADR-527 s3 -- NOT tree navigation; verified this reaches a Done/closed item the browse ItemFilter would exclude. Escape chain: reader.dismiss() -> search (still on stack) -> search.dismiss() -> browse, browse's own tree cursor/selection is provably untouched by the whole excursion.
   - Verified: 2 new Pilot tests -- narrowing is forwarded to svc.search (spied) and changes the result set; selecting a hit (including a closed item excluded by browse's filter) pushes a ReaderScreen for that exact item, escape pops reader->search->browse, and browse's cursor stays on its pre-search node throughout. Full tests/tui/ (30, stable across repeated runs) + whole-repo pyright/ruff clean. Import graph verified: _search->_reader only, _app->_browse, _browse->_filter/_reader/_search/_tree, _filter has zero runtime _tui imports (TYPE_CHECKING-only) -- matches ADR-527 s4 exactly.
 <!-- sq:discussion:end -->

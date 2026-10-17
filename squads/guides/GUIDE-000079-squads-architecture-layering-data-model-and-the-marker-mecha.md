@@ -21,10 +21,9 @@ description: 'A standalone-readable map of how squads is built: the cli to servi
   ADRs.'
 created_at: '2026-06-12T14:25:59Z'
 updated_at: '2026-10-15T20:49:19Z'
-extra:
-  tech: python
-  tags:
-  - architecture
+tech: python
+tags:
+- architecture
 ---
 <!-- sq:body -->
 squads is a Typer CLI that tracks a team of AI agents and their work as identified markdown. This guide is the map: enough to grasp the system's shape without reading source. It explains how the code is layered, what the data model is, and how the tool edits files without trampling the prose agents write into them. For the full depth — worked lifecycles, every helper, the playbook — see `sq docs internals`; this guide points there rather than duplicating it.

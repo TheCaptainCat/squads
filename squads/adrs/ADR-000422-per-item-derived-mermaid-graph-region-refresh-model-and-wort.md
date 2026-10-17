@@ -112,8 +112,8 @@ and EPIC-325/EPIC-335 forbid.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T14:00:32Z] Catherine Manager:
+- [2026-07-15T14:00:32Z] `manager` Catherine Manager:
   - Accepted — op-pierre cancelled US2 on this analysis. US1 (on-demand fenced sq graph) ships; the per-item persisted :graph region is not built. US3 lands in workflow.md.j2 per the recommendation.
-- [2026-08-22T09:31:07Z] Robert Architect:
+- [2026-08-22T09:31:07Z] `architect` Robert Architect:
   - ADR-776 (Proposed) narrows the local-versus-non-local premise here, not the ruling — no persisted per-item derived region still stands and is reinforced. The correction: :head is not local. It resolves the assignee name from the ROLE item and the story label from the parent feature (_services/_subentities.py:753-776), and is stale in fact — so option C own verdict, that a silently-stale committed rendering is worse than none, applies to the region this decision used as its always-correct baseline. :summary is local as stated.
 <!-- sq:discussion:end -->

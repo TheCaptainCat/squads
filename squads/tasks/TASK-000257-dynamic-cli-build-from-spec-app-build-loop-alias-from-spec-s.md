@@ -83,9 +83,9 @@ _Add with `sq task 257 add-subtask "<title>"`; track with `sq task 257 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T13:20:48Z] Catherine Manager:
+- [2026-06-30T13:20:48Z] `manager` Catherine Manager:
   - Cleared the stale 'THIS TASK IS BLOCKED ON THE ADR' body banner — ADR-263 was accepted (Option 3, lazy-dispatch TyperGroup) after that prose was written, so the banner was contradicting reality and read as a live blocker. Body now states the decided approach; linked ADR-263 (implements). TASK-257 is unblocked and ready to build behind TASK-256/258 (both Done).
-- [2026-06-30T14:26:49Z] Elias Python:
+- [2026-06-30T14:26:49Z] `python-dev` Elias Python:
   - @manager TASK-257 is Done. Here is a summary of every change landed.
   - **src/squads/_cli/__init__.py** — Added _CustomTypeGroup (TyperGroup subclass). list_commands appends custom type names from the spec; get_command falls back to a lazy-built Click command for any name found in spec.items or spec.alias_to_type. The root app now passes cls=_CustomTypeGroup. The import-time build loop was narrowed to built-in work types only (filtered by ItemType membership), and alias registration was switched from TYPE_ALIASES to spec.items[t].aliases. No TYPE_ALIASES import remains in this file.
   - **src/squads/_cli/_items.py** — build_item_app now accepts str instead of ItemType (ItemType is a StrEnum so the bundled-type call sites are unaffected). _SUBENTITY dict keys widened to str. _cmd_retype now calls common.get_active_spec().work_types() instead of the removed _work_types() import.

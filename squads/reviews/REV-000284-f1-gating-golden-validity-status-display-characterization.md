@@ -85,7 +85,7 @@ Fix: commit the golden by itself (or confirm it already is — it is, at 495fc95
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-02T10:07:56Z] Paul Reviewer:
+- [2026-07-02T10:07:56Z] `reviewer` Paul Reviewer:
   - Fixed. Re-review of the TASK-276 working-tree change (git diff 495fc95) confirms the golden and the rewire are now cleanly separable: tests/test_status_display_characterization.py is byte-identical to HEAD (git diff 495fc95 on that path is empty) and the 5 forward-looking custom-status tests live in their own module tests/test_custom_status_badges.py. The gate is literally green-against-HEAD; the change under review is self-contained. F1's tree-contamination concern no longer applies.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -104,7 +104,7 @@ Fix: keep the 5 custom-status tests as part of TASK-276's deliverable, committed
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-02T10:07:57Z] Paul Reviewer:
+- [2026-07-02T10:07:57Z] `reviewer` Paul Reviewer:
   - Fixed. The 5 post-rewire assertions (TestCustomStatusBadgeResolvesThroughSpec) were moved out of the HEAD-pinned characterization golden into a standalone module tests/test_custom_status_badges.py, whose docstring explicitly states it holds the *new* behavior, not the built-in baseline. Baseline and acceptance are now distinct concerns as required.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -121,7 +121,7 @@ Severity low because the classification FUNCTION (spec.is_open) is transitively 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-02T10:07:58Z] Paul Reviewer:
+- [2026-07-02T10:07:58Z] `reviewer` Paul Reviewer:
   - Waived (WontFix). The rewire did not touch sq inbox's predicate — _collab.py::inbox still filters on self.spec.is_open(item.status), the same spec-derived classification the sq list/sq blocked golden tests transitively guard. As F3 itself noted, severity is low precisely because the classification function is already covered. No new inbox test is warranted for this change; the optional strengthening can be picked up later if inbox ever moves to a different predicate. Not a blocker for TASK-276.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -152,11 +152,11 @@ This keeps one source of truth for behaviour (the spec/toml) and moves the drift
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-02T10:07:57Z] Paul Reviewer:
+- [2026-07-02T10:07:57Z] `reviewer` Paul Reviewer:
   - Fixed. STATUS_EMOJI now has zero production consumers (grep src/ hits only its own definition in _enums.py + a comment in default_workflow.toml). Its docstring is relabeled as a test-only historical golden — the byte-identical reference that test_workflow_spec.py::test_golden_status_badges and the characterization golden check the spec's built-in badges against — with an instruction to delete it if it loses its last test consumer. Single source of truth for behavior (the spec/toml), single pinned reference for drift protection. Adequate.
-- [2026-07-02T10:09:14Z] Paul Reviewer:
+- [2026-07-02T10:09:14Z] `reviewer` Paul Reviewer:
   - Reopened (Open, not Fixed). op-pierre reviewed the mid-loop STATUS_EMOJI resolution and it does not hold. Two required changes now in the finding body: (1) remove the 'FEAT-211 / TASK-276' sq IDs from the src/squads/_models/_enums.py docstring — sq IDs must not appear in source; (2) delete STATUS_EMOJI from _enums.py entirely and move the 9-glyph golden into the test layer (shared test constant), repointing test_workflow_spec.py and test_status_display_characterization.py to import it. A dead production dict kept only as a test oracle should not ship. @python-dev @tech-lead
-- [2026-07-03T09:18:32Z] Paul Reviewer:
+- [2026-07-03T09:18:32Z] `reviewer` Paul Reviewer:
   - Fixed in commit 054af14. Independently verified in the current tree: (1) STATUS_EMOJI is deleted from src (the 054af14 diff removes the whole 9-glyph dict from _models/_enums.py; grep across src/ is clean) — the FEAT-211/TASK-276 IDs it carried are gone with it; (2) the 9-glyph golden is relocated to tests/_helpers.py::EXPECTED_BUILTIN_STATUS_BADGES (byte-identical glyphs) with both consumers repointed — test_workflow_spec.py::test_golden_status_badges asserts spec.badge against it, and test_status_display_characterization.py imports it for the domain guard + glyph checks. Behaviour source of truth stays the spec/TOML; the drift oracle now lives in the test layer.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -165,22 +165,22 @@ This keeps one source of truth for behaviour (the spec/toml) and moves the drift
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-02T09:53:48Z] Paul Reviewer:
+- [2026-07-02T09:53:48Z] `reviewer` Paul Reviewer:
   - VERDICT: The COMMITTED golden at HEAD (495fc95, 37 tests) is a VALID GATE — green against HEAD, right invariants pinned, and I confirmed by mutation it FAILS on a built-in glyph change (2 fails) and on open/terminal misclassification (3 fails). Roster pinned, clock frozen (load-bearing), no ANSI/order/time flakiness, pyright/ruff clean. As authored and committed it does its job.
   - ChangesRequested is about the WORKING-TREE STATE, not the golden's design. F1(high): the TASK-276 rewire (_discussion.py + _common.py + _subentities.py) is applied UNCOMMITTED, so the golden currently runs against already-rewired code — the FEAT-220/REV-230 anti-pattern the process rule forbids. F2(high): the in-tree test file has 5 added custom-status tests that FAIL against HEAD (they assert post-rewire behavior). Fix = sequence the commits: gate committed green-against-HEAD on its own (it is), rewire + its 5 acceptance tests as a SEPARATE commit — don't fold forward-looking assertions into the baseline.
   - F4(medium): after the rewire the badge source of truth moves from STATUS_EMOJI to default_workflow.toml — STATUS_EMOJI becomes orphaned as the badge source; confirm in TASK-276's review it's kept-in-sync/removed/documented. F3(low): sq inbox terminal-suppression is unpinned (transitively guarded via shared spec.is_open; optional 2-test strengthening). @tech-lead @manager to sequence the commits; @python-dev owns F2/F4 as part of TASK-276.
-- [2026-07-02T10:08:06Z] Paul Reviewer:
+- [2026-07-02T10:08:06Z] `reviewer` Paul Reviewer:
   - Verdict: Approved. Re-reviewed the TASK-276 rewire (git diff 495fc95, read-only). _discussion._status_badge no longer calls Status(value); it resolves active_spec.status_badge(status_value) or the neutral _DEFAULT_BADGE ('⚪'), with spec=None falling back to bundled_spec() so the frozen migration runner is unaffected. The label-spacing regex is preserved. Spec is threaded, not globalized: self.spec at the service boundary (_refresh_head) and the pre-existing get_active_spec() at the CLI boundary (_subentity_pane_title_raw). No new reportPrivateUsage suppression (29 at HEAD, 29 now; the one in _subentity_pane_title_raw is pre-existing). AC#3 ruling (b) holds — _build_item_panel_rows still renders plain it.status, no top-level badge added. All four findings resolved (F1/F2/F4 Fixed, F3 waived). Targeted tests green: test_status_display_characterization.py + test_custom_status_badges.py + test_discussion.py = 51 passed; pyright + ruff clean on all touched files. TASK-276 is good to mark Done. @tech-lead @manager
-- [2026-07-02T10:09:27Z] Paul Reviewer:
+- [2026-07-02T10:09:27Z] `reviewer` Paul Reviewer:
   - Verdict revised to ChangesRequested (correcting my earlier premature Approved). op-pierre reviewed F4's mid-loop resolution and it is not adequate — see F4 (reopened, Open) for the two required changes: (1) strip the 'FEAT-211 / TASK-276' sq IDs from the _enums.py docstring; (2) delete the dead STATUS_EMOJI dict from production and move its 9-glyph golden into the test layer, repointing test_workflow_spec.py and test_status_display_characterization.py.
   - 
   - Everything else in the review STANDS and re-verifies clean: the _status_badge crash fix is correct (spec-derived, '⚪' default, bundled fallback, no Status(value) parse); F1/F2 fixed (characterization golden byte-identical to 495fc95, custom-status tests in their own module); AC#3 (b) holds (no top-level badge; _build_item_panel_rows renders plain it.status); spec threaded, no new global; no new reportPrivateUsage suppression (29/29). Targeted tests green (51 passed).
   - 
   - TASK-276 is NOT Done until F4's follow-up fix lands and passes re-review. @tech-lead @python-dev @manager
-- [2026-07-02T10:09:46Z] Catherine Manager:
+- [2026-07-02T10:09:46Z] `manager` Catherine Manager:
   - F4 reopened beyond Paul's approval, per op-pierre: the 'keep STATUS_EMOJI + document it' resolution is not accepted. Required: (a) remove the ticket IDs (FEAT-211/TASK-276) from the _enums.py docstring — sq IDs must not appear in source; (b) delete the dead STATUS_EMOJI dict from production and relocate the 9-glyph golden reference into the test layer. Fix routed to python-dev; TASK-276 held InReview until verified.
-- [2026-07-02T10:22:08Z] Catherine Manager:
+- [2026-07-02T10:22:08Z] `manager` Catherine Manager:
   - F4 verified fixed: STATUS_EMOJI deleted from src (grep-clean), ticket IDs removed, the 9-glyph golden reference relocated to tests/_helpers.py::EXPECTED_BUILTIN_STATUS_BADGES with both test consumers repointed. Rendered-output golden (tests/goldens/) untouched and _EXPECTED_BADGES literals unchanged — built-in behavior byte-identical; 70 targeted tests green. TASK-276 → Done.
-- [2026-07-03T09:18:40Z] Paul Reviewer:
+- [2026-07-03T09:18:40Z] `reviewer` Paul Reviewer:
   - Closing out: all findings resolved — F1 Fixed, F2 Fixed, F3 WontFix (deliberate, transitively guarded via shared spec.is_open), F4 Fixed (verified against commit 054af14). The review's substance landed with FEAT-211/EPIC-206 (both closed Done): the _status_badge crash is fixed spec-driven with a neutral default, the characterization gate is byte-identical to its HEAD baseline, custom-status acceptance tests are split into their own module, and the dead STATUS_EMOJI oracle is relocated to the test layer. Moving to Approved.
 <!-- sq:discussion:end -->

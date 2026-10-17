@@ -54,7 +54,7 @@ Wrap the existing `graph_to_mermaid` output in a ```mermaid fence via a new `mer
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T14:30:35Z] Elias Python:
+- [2026-07-15T14:30:35Z] `python-dev` Elias Python:
   - Added --format mermaid-md to sq graph: wraps graph_to_mermaid output in a ```mermaid fence, printed markup=False/highlight=False. Serializer untouched.
   - Tests: tests/cli/test_graph_command_cli.py — fence-lines smoke test + an invalid --format rejection test. No golden churn.
 <!-- sq:discussion:end -->

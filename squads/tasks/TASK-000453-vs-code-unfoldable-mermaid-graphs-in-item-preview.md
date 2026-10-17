@@ -52,7 +52,7 @@ _Add with `sq task 453 add-subtask "<title>"`; track with `sq task 453 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T14:58:36Z] Ada Typescript:
+- [2026-07-17T14:58:36Z] `typescript-dev` Ada Typescript:
   - Implemented F11 (two collapsible mermaid graphs) + REV-461 F2 (link scheme allowlist).
   - Builders: src/domain/graphDiagrams.ts — buildSubtreeMermaid(SqTreeNode[]) from sq tree <id> --json (flowchart TD, parent-->child, no edge label); buildRefGraphMermaid(SqGraphNode) from sq graph <id> --json --all (flowchart LR, dedup by (from,to,label), 'depends on'/'required by' for depends-on else the kind verbatim, mirrors the core CLI's graph_to_mermaid convention). Both pure, unit-tested against literal cases + the new committed fixtures test/fixtures/graph.json (live sq graph FEAT-449 --all --depth 2) and the existing tree.json.
   - Adapter: sqAdapter.ts gains getGraph (+ isSqGraphNode shape guard, types.ts SqGraphNode) calling 'graph <id> --json --all'; refactored getTree/getList/getGraph/getRaw onto a shared runSqRaw+runSqJson/runSqJsonObject (no behavior change, existing tests untouched).

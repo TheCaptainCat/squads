@@ -126,7 +126,7 @@ Covers the fail-closed hardening + the characterization safety net (ADR-232 §5/
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T10:14:32Z] Elias Python:
+- [2026-06-26T10:14:32Z] `python-dev` Elias Python:
   - TASK-233 implementation complete. Three parts delivered:
   - **Part A — Characterization tests (39 tests in tests/test_spine_characterization.py)**. All 22+ identity-check behaviors pinned against today's unreified engine. Each test named for the behavior it pins, not the layer. Covers: meta-type exclusion from WORK_TYPES / retype; self-author bypass for role/skill/operator; SKILL- prefix scan convention; role/skill body-generation guard; regen gating on role/skill; sq <type> app only for WORK_TYPES; task→feature parent spine + parent_hint ref-add hint; feature/task/review→sub-entity kind resolution; bug severity panel row; decision supersedes warn/clean/non-decision-skip; sq check subtask→story spine; retype status-carry vs. reset; repair from frontmatter; roster blocks skill slugs; SUBENTITY_KIND map exactness.
   - **Part B — Capability flags (17 tests in tests/test_workflow_capability_flags.py + TOML/models)**. New fields added to ItemSpec (is_meta, subentity_kind, severity_field, parent_required, ref_rules) and StatusSpec (role). New RefRule model. All with extra='forbid'. Encoded in default_workflow.toml for all 10 types reproducing today's semantics exactly. NOT yet consumed by the engine — behavior byte-identical.

@@ -69,7 +69,7 @@ Required change: any `session_id` present in `session_entries` must surface SOME
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-22T11:50:32Z] Paul Reviewer:
+- [2026-06-22T11:50:32Z] `reviewer` Paul Reviewer:
   - Verified resolved. Reachability pass in _render_reflog_tree (after the root walk) emits every unvisited session_id as a cycle/forest root, so no recorded session is silently dropped. Confirmed for a 2-node A<->B cycle (both surface, each exactly once) and a self-loop A->A (surfaces once). The visited-set is threaded through _attach_session_node with an in-place guard (child_sid skipped if already visited), making the never-loop contract structural rather than argued. New cycle-root label escapes e(sid)/e(p).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -88,7 +88,7 @@ Minor (no change required, FYI): the render-level self-review test (`test_render
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-06-22T11:50:32Z] Paul Reviewer:
+- [2026-06-22T11:50:32Z] `reviewer` Paul Reviewer:
   - Verified resolved. Three renderer tests added: two_node_cycle (no-raise + both appear), self_loop (no-raise + session appears), and cycle_entries_each_appear_exactly_once (counts '[dim]session:[/dim] <id>' node-label occurrences == 1 each, via markup=False capture). Genuinely asserts both no-raise/no-loop AND surfacing, including the self-loop case.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -97,6 +97,6 @@ Minor (no change required, FYI): the render-level self-review test (`test_render
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-22T11:50:39Z] Paul Reviewer:
+- [2026-06-22T11:50:39Z] `reviewer` Paul Reviewer:
   - Re-review passed — both findings Verified, REV-162 Approved. F1 (silent cycle drop): reachability pass surfaces every session_id; visited-set guard in _attach_session_node makes the never-loop contract structural. F2: three cycle/self-loop renderer tests added asserting no-raise AND surfacing. No regression: --json still the flat dataclasses.asdict list (evaluated before --tree), best-effort/untrusted header still printed, e() escaping complete on the new cycle-root label. Gates: pyright 0 errors, ruff check + format clean, full pytest 920 passed / 1 skipped, complexity within limits.
 <!-- sq:discussion:end -->

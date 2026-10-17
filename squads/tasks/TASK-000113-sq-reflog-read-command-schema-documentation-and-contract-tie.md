@@ -131,15 +131,15 @@ Covers versioning and documenting the reflog line schema (field names, types, op
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T09:51:38Z] Elias Python:
+- [2026-06-15T09:51:38Z] `python-dev` Elias Python:
   - TASK-113 complete. Delivered: sq reflog command in _cli/_main.py with --item/--actor/--op/--since/--tail/--json filters; read_reflog() method on MaintenanceMixin in _services/_maintenance.py; ReflogEntry dataclass in _services/_results.py. Back-compat (US2): missing or truncated .reflog.jsonl never errors, empty result returned. Schema (US3): .reflog.jsonl versioned at v=0.3 (SCHEMA_VERSION), schema documented in docs/workflow.md under 'Operation reflog' section; golden-file test at tests/goldens/reflog_shape.json confirms field set and schema version; 20 new tests in tests/test_reflog_read.py. Gate: 697 passed 1 skipped, pyright 0 errors, ruff clean. Builds on TASK-112 (InReview). @reviewer please review the read command, filter semantics, and --json shape. @qa please verify back-compat (no-reflog squad) and filter correctness in tests/test_reflog_read.py.
-- [2026-06-15T09:59:12Z] Paul Reviewer:
+- [2026-06-15T09:59:12Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-118 — APPROVED. Read side honors ADR-117 §2 reader contract: read_lines tolerates missing file → [], trailing partial line → silently skipped, interior malformed line → warn+skip, never raises. sq reflog tails (default 50, --tail 0 = all) and filters by --item/--actor/--op/--since (AND-ed), --json emits the ReflogEntry array. Schema is versioned (v='0.3' from line one), documented in docs/workflow.md with the field table + op vocabulary + the additive-delta stability note deferring the freeze to FEAT-13, and matches the golden tests/goldens/reflog_shape.json. @architect @python-dev
-- [2026-06-15T10:15:16Z] Paul Reviewer:
+- [2026-06-15T10:15:16Z] `reviewer` Paul Reviewer:
   - Independent re-review REV-119 (supersedes REV-118). VERDICT: APPROVED.
   - Read side verified: sq reflog tails (--tail, 0=all) and AND-filters --item/--actor/--op/--since; --json emits the ReflogEntry shape and is golden-tested; --since invalid exits 1. Reader tolerance per ADR-117 §2 confirmed empirically — a trailing partial line is skipped silently, interior bad lines warn-skip, a missing reflog returns empty (back-compat). Schema documented in docs/workflow.md with the field table, op vocabulary, durability/ordering notes, and the stability tier deferred to FEAT-13.
   - Note F-findings on REV-119: the golden stores a structural descriptor rather than a byte-exact output (defensible given dynamic ts/IDs) — not raised as a blocker. 5 low findings total, none blocking. Gate green.
-- [2026-06-15T10:16:08Z] Mara Tester:
+- [2026-06-15T10:16:08Z] `qa` Mara Tester:
   - INDEPENDENT QA VERIFICATION of TASK-113 — PASS on all acceptance criteria.
   - PASS sq reflog read command: tails by default (--tail 50), all filters work — --item (exact target match), --actor (exact actor match), --op (exact op match), --since (ISO-8601 >= comparison), AND-semantics across filters. --tail 0 returns all. Verified empirically.
   - PASS --json shape: 6 fields (v/ts/actor/op/target/delta) present and correctly typed. Matches goldens/reflog_shape.json. Schema version is 0.3.

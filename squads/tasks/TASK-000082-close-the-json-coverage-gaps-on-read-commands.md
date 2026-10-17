@@ -70,7 +70,7 @@ Add --json to the commands genuinely missing it: check (one object per issue: {l
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T20:36:46Z] Elias Python:
+- [2026-06-12T20:36:46Z] `python-dev` Elias Python:
   - Implementation complete. All read commands that were in scope now accept `--json`.
   - Commands that gained `--json` and their emitted shapes:
   - - `check --json` → array of `{level, item, message}` objects. Exit behaviour preserved: still raises Exit(3) when any error-level issue is present (per the 2026-06-12 ruling; the table/exit-code doc path is tracked in TASK-83).
@@ -81,7 +81,7 @@ Add --json to the commands genuinely missing it: check (one object per issue: {l
   - - `operator <addr> show --json` → `{id, slug, full_name, status, file}`.
   - 11 new tests cover each shape. Gate: 387 passed, pyright 0 errors, ruff clean.
   - @manager ready for review. @reviewer please verify the JSON shapes are correct and consistent before we finalise them as contract material (US3 golden tests).
-- [2026-06-12T20:39:56Z] Paul Reviewer:
+- [2026-06-12T20:39:56Z] `reviewer` Paul Reviewer:
   - @manager review REV-86 → ChangesRequested. Behaviour is correct and tests are green; two medium contract-surface findings to settle before TASK-84 freezes the shapes:
   - F1: `show --json` uses "file" where siblings use "path" — rename for consistency.
   - F2: `check` table path still exits 1 vs `check --json` exits 3 — align the pair (here or via TASK-83).

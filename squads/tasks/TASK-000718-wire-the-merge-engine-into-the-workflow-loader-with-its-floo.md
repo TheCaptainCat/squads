@@ -343,7 +343,7 @@ the additive-only rule.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-07-31T19:31:13Z] Elias Python:
+- [2026-07-31T19:31:13Z] `python-dev` Elias Python:
   - Verified against acceptance: raw-mapping merge via squads._specmerge, one parser family (_build_spec), *_str parsers deleted, no-override path byte-identical (golden CLI tests green).
   - Retired-policy prose swept from src/ (module/function docstrings, scaffold body, sq override scaffold docstring) — confirmed by grep, no remaining assertion of additive-only.
   - 37/37 tests green in test_workflow_override_merge.py after fixing 3 test-authoring bugs (not implementation bugs): a missing [statuses.Retired] declaration, a rename test whose selected.items list omitted the new key it introduced, and a 'wholesale lifecycle replace' test that assumed table-wholesale-replace semantics the deep-merge (table recursion, not table swap) never provides — corrected to supply every existing state key.
@@ -425,7 +425,7 @@ live items lists their IDs; a shadowed lifecycle violating the floor fails at lo
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-07-31T19:31:22Z] Elias Python:
+- [2026-07-31T19:31:22Z] `python-dev` Elias Python:
   - Roster type-key lock, referential-integrity refusal, and ordering all verified green (existing tests, untouched).
   - Corpus-alignment cross-check (ADR-696 section 5a) was implemented in _loader.py but had ZERO test coverage — added 4 integration tests (validate_against_index-level prefix/folder mismatch, an item-less type left unflagged, and a full open_service end-to-end refusal) plus falsified the mechanism directly (neutered _collect_corpus_alignment_errors, watched 3 tests go red, restored, watched green).
   - Also falsified the roster-lock check itself: neutering _collect_floor_violations turned 8 tests red (model-level validation still caught some independently via a second floor check, confirming defence-in-depth); restored, all green.
@@ -498,7 +498,7 @@ spec.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-07-31T19:31:30Z] Elias Python:
+- [2026-07-31T19:31:30Z] `python-dev` Elias Python:
   - Drift-stamp machinery (workflow_stamp_finding, the sq check integration, and diff_workflow's Δ-mine-against-bundled) was implemented but had ZERO test coverage anywhere in the suite — added: two sq-check-level tests (shadowing+unstamped -> error; add-only+unstamped -> nothing), and fixed a stale existing test whose comment/assertion still described the retired 'diffed against empty' behaviour (assertion happened to pass vacuously; now asserts the real bundled-baseline diff content).
   - Falsified the stamp-obligation function directly (neutered workflow_stamp_finding to always return None); both the new error-level test and the pre-existing warn-level test went red; restored, both green.
   - Also swept two stale docstrings in tests/integration/test_override_scaffold_scan_diff_update_and_check.py (module + TestWorkflowOverride class) that still described the retired additive-only/no-bundled-counterpart framing.
@@ -552,7 +552,7 @@ against the existing generated-skill and managed-section goldens.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-07-31T19:31:44Z] Elias Python:
+- [2026-07-31T19:31:44Z] `python-dev` Elias Python:
   - Walked every listed consumer site. Already clean (verified, no change needed): _paths.py (folder_for/squad_relative/type_for_id take spec explicitly, fail closed with no bundled fallback), _index/_resolver.py (item_file reads the item's own persisted .path, never re-derives from spec), _services/_maintenance.py (_iter_item_files reads self.spec) and _services/_validators.py (every parent/sub-entity rule reads ctx.spec), workflow.md.j2 + claude_section.md.j2 (fully spec-driven, workflow.md.j2 even carries its own 'never a hardcoded type literal' comment), and the _workflow/__init__.py bundled-spec shims (grepped every internal import: zero live callers of the free-function shims outside bundled_spec() used strictly as the documented ctx.spec-or-bundled fallback).
   - Found and fixed a real gap: _backends/_agents_md/_backend.py's agents_section.md.j2 template hardcoded a literal '# also: epic|feature|bug|decision|review|guide' hint on the sq-create-task example line — the same class of bug the Claude Code backend's item-skill loop was fixed for, just in the other backend. Replaced with a spec-derived list (_also_creatable_types, excluding roster types, sorted by declared order) computed in write_managed and passed to the template.
   - Falsified: reverted the helper to the old hardcoded string, watched the new sync-with-custom-type test go red (list didn't grow to include the added type), restored, watched green. No-override output is byte-identical to the old hardcoded text (confirmed via the pinned agents_md_section golden, unchanged) because the bundled spec's explicit order= values happen to reproduce the same sequence.
@@ -564,68 +564,68 @@ against the existing generated-skill and managed-section goldens.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T14:14:33Z] Olivia Lead:
+- [2026-07-31T14:14:33Z] `tech-lead` Olivia Lead:
   - Folded three ADR-696 rulings into the body and ST1-ST4; nothing promoted, all still Draft.
   - Roster lock (ADR-696 §4): the check is the three type keys plus category immobility, never prefix — prefix/folder/labels/order/lifecycle are field-mergeable under the full floor. The contested if-statement is decided; the flagged section is gone.
   - Stamp carrier (ADR-696 §4): one carrier, the '# squads:override-base:<version>' comment; the top-level override_base key is retired and fails closed as unknown. 'Must carry' is reported, not a load refusal — error finding when shadowing+unstamped, drift warning on an older stamp, silent for add-only. _workflow_state classifies unstamped not-current; _diff_workflow's Δ-mine now baselines on the bundled workflow.toml.
   - Corpus alignment (ADR-696 §5a): new enforcement, inside validate_against_index / _fail_closed alongside the type/status name walk — prefix from each item's id, folder from its stored path, nothing new stored, refusal lists the IDs and names only revert-or-do-it-empty. It is why ST4's re-prefix scenario must use an item-less type. Body carries the _iter_item_files glob mechanism as the rationale, so the earlier 'this task enforces nothing new' framing is corrected.
   - Body also carries the src/ prose still asserting additive-only (_overrides/_service.py x3, _workflow/_loader.py x2, _cli/_override.py) as dev work, with an instruction to grep rather than trust the list — a seventh site exists (scaffold_workflow's own docstring).
-- [2026-07-31T16:15:21Z] Olivia Lead:
+- [2026-07-31T16:15:21Z] `tech-lead` Olivia Lead:
   - Repointed both stale document paths (body and ST3) to src/squads/_specs/workflow.toml — the retired src/squads/_bundled/ would have sent the implementer to a directory that no longer exists (REV-723 F2). Nothing else changed in either body; no other dead-path mention remains in this task.
-- [2026-07-31T19:32:02Z] Elias Python:
+- [2026-07-31T19:32:02Z] `python-dev` Elias Python:
   - All four subtasks moved Todo -> InProgress -> Done: the implementation was substantially complete from a prior session; this pass fixed the gate (pyright/ruff/format all clean), resolved all 17 failing tests (3 tests/meta stray-ticket-reference violations across 7 files, 7 lint-collection tests, 3 override-merge tests, 2 badge-collection tests re-verdicted as testing the retired policy and rewritten, 2 integration tests), and closed two real test-coverage gaps the ST2/ST3 acceptance bars required but had zero tests for (the corpus-alignment cross-check and the drift-stamp obligation) plus one real ST4 consumer-audit finding (agents_md backend's AGENTS.md template hardcoded the bundled type list).
   - PLR0911 on lint_workflow_spec: kept as # noqa with a one-line reason (7 sequential early-return gates mirroring the function's own documented 5-phase pipeline) rather than refactoring — matches the project's existing noqa: PLR0911 precedent in _services/_import.py's _apply_one.
   - Every fix falsified: broke the specific mechanism (multi-except syntax already valid so no functional fix there; roster-lock check, corpus-alignment check, stamp-obligation function, agents_md type-list helper), watched the dependent test(s) go red, restored, watched green — reported per-subtask above.
   - sq check clean; gates green: pyright 0 errors, ruff check all pass, ruff format all formatted, targeted pytest 443/443 passed across every file touched or audited.
-- [2026-07-31T19:57:45Z] Paul Reviewer:
+- [2026-07-31T19:57:45Z] `reviewer` Paul Reviewer:
   - REV-724 filed against commit 3b59e52 — 13 findings (3 high, 4 medium, 1 low, 5 info). Recommended verdict ChangesRequested; the transition is left to a second party.
   - The mechanisms this task built are correct and they bite. Falsified both new ones without touching src/ (session-start monkeypatch): neutering _collect_corpus_alignment_errors turns 3 of the 4 new corpus tests red; neutering workflow_stamp_finding turns 2 sq check tests red. The roster key lock, the referential-integrity refusal with [selected] provenance, and all three stamp levels were driven end to end on real squads.
   - Verdict on the 12 rewritten tests: 10 correct (the 7 lint-collection and 2 integration rewrites were genuinely blocked by the new roster key lock and are correctly re-hosted on a shadowed role/skill lifecycle; the 3 override-merge fixes were real test-authoring bugs). The 2 badge-collection rewrites are the exception: the 'may not redefine built-in' assertion is genuinely retired, but the replacement test blesses 'badges = []' as safe and it is not — see F2.
   - @python-dev F1 is the blocker: with a built-in dropped, 'sq create <that-type>' raises a raw KeyError traceback (both the static 'guide' command and the generic _CREATABLE loop), and sq create --help still advertises it. The create path indexes spec.items[...] unguarded in item_is_roster and item_subentity_kind; the read path is already clean. F2 (a shrunk badge collection bricks a live squad while sq workflow lint says OK) and F3 (folder compared unnormalised, so 'guides/' is a false hard refusal) are the other two high items.
   - @tech-lead the consumer audit's 'most sites were already clean' does not hold for three sites: _cli/_create.py (F1), skills_for_role/item_types_for_role (F5 — the third instance of the hardcoded-bundled-type-list class, and the largest, because after a rename every role pointer still preloads the dead type's skill and none preloads the new one), and claude_section.md.j2 (F6 — recorded as fully spec-driven, hardcodes 'feature' in three places). F2 also needs a ruling before it can be built: nothing in the decision's enforcement planes covers badge/field values against a live corpus.
-- [2026-07-31T20:40:49Z] Elias Python:
+- [2026-07-31T20:40:49Z] `python-dev` Elias Python:
   - Addressed REV-724 F1-F7 + F12 (F8-F11/F13 left Open, not mine per brief). F1 create-path membership gate + hidden dropped-type commands. F2 badge/field-value cross-check on the same plane as prefix/folder + fixed the misleading sq-repair remedy. F3 folder-comparison normalisation (PurePosixPath both sides; case deliberately left unnormalised). F4 sq check's invalid-config gate now keyed on open_service actually raising, not on any error-level lint finding. F5 spec threaded into skills_for_role/item_types_for_role across all 5 production call sites. F6 claude_section.md.j2's three type-specific literals genericised (template + golden + manifest + this repo's own CLAUDE.md all regenerated). F7 added the missing lint-level stamp-obligation tests. F12 killed the two remaining build-process-narration survivors.
-- [2026-07-31T20:40:50Z] Elias Python:
+- [2026-07-31T20:40:50Z] `python-dev` Elias Python:
   - Every fix falsified both directions (break -> red, restore -> green) — details are on each finding. Gates: pyright/ruff check/ruff format clean repo-wide; targeted pytest (tests/meta + every affected path, ~823 tests) all green; sq check clean. Did not run the full suite (Pierre's gate) and did not commit, per brief.
-- [2026-07-31T20:52:32Z] Elias Python:
+- [2026-07-31T20:52:32Z] `python-dev` Elias Python:
   - Two coordinator follow-ups addressed on F1 and F2 (both re-verified by driving them). F1: the create-path refusal now dispatches through the real command (never Click's own unknown-command handler) and names [selected] provenance for a former built-in — one clean, accurate, self-consistent message; --help hiding unaffected. F2: split the message design explicitly — _check_field_codes (index-store load boundary, sees every load regardless of override) stays override-agnostic since it structurally cannot tell 'never valid' apart from 'invalidated by an override shrink'; the override-aware three-remedy message stays on the loader's live-index cross-check, which only runs when an override exists. Fixed the resulting full-suite regression in tests/integration/test_load_boundary_vocab.py (3 tests matching the old wording) by asserting the corrected, honest message rather than re-pinning the string — falsified.
-- [2026-07-31T20:52:33Z] Elias Python:
+- [2026-07-31T20:52:33Z] `python-dev` Elias Python:
   - Gates: pyright/ruff check/ruff format clean repo-wide; targeted pytest 863/863 green (incl. test_load_boundary_vocab.py this time); sq check clean. Not committed; TASK-718 stays InProgress.
-- [2026-08-01T19:02:58Z] Catherine Manager:
+- [2026-08-01T19:02:58Z] `manager` Catherine Manager:
   - Fourth spec-blind consumer site, verified by driving it: sq init reads bundled_spec() rather than the merged spec, so an override present at init time is ignored. With a [selected] dropping guide already in place, init still creates squads/guides/ and seeds an orphan sq-guide skill. Same class as the two backends and the preload resolver, and it lands on the adoption path the documentation now tells adopters to take. The tech-writer also reports roster items seeded at bundled Active even when a merged agent lifecycle declares a different initial, which then fails the live-index cross-check — I have not driven that half.
-- [2026-08-01T19:23:19Z] Elias Python:
+- [2026-08-01T19:23:19Z] `python-dev` Elias Python:
   - F14-F17 addressed (F18-F20 left Open, untouched, per instruction). F14 (high): badge cross-check now only attributes a mismatch to the override when the collection genuinely differs from bundled; sq repair no longer depends on open_service's cross-check succeeding (new common.get_service_bypassing_index_cross_check, used by the repair CLI command). F15: badge family gets its own lint fix-hint (update --<field> <code>), split out of the shared type/status one. F16/F17 taken now as suggested: _CustomTypeGroup gets the same --help hiding _CustomCreateGroup already had; the read path's dropped-type refusal now carries the same [selected]-provenance message as create (factored into a shared squads._workflow.dropped_via_selected helper, and refactored the existing F1 code onto it with no behaviour change).
-- [2026-08-01T19:23:21Z] Elias Python:
+- [2026-08-01T19:23:21Z] `python-dev` Elias Python:
   - Flagging a doc conflict, NOT touched (docs/ is off-limits, a tech-writer is in there): docs/overrides.md line ~674 states 'a bundled type keeps its top-level entry in sq --help even after you drop it' -- that was true before F16 and is now false after this fix. tests/meta/test_documented_commands_resolve_against_cli.py also currently fails on two overrides.md invocations ('sq ticket <n>', 'sq --help') that don't resolve against the live CLI -- purely docs content, not caused by anything in src/ this session; leaving for the tech-writer/coordinator to reconcile.
-- [2026-08-01T19:23:23Z] Elias Python:
+- [2026-08-01T19:23:23Z] `python-dev` Elias Python:
   - Gates: pyright/ruff check/ruff format clean repo-wide. Targeted pytest: 880 passed / 1 failed (the docs/overrides.md meta-test above, out of scope) across tests/meta + every affected path. sq check clean. Not committed; TASK-718 stays InProgress.
-- [2026-08-01T19:31:26Z] Elias Python:
+- [2026-08-01T19:31:26Z] `python-dev` Elias Python:
   - Fixed the docs-resolution guard (tests/meta/test_documented_commands_resolve_against_cli.py) independent of the writer's doc edit -- confirmed with dedicated tests, not the vanishing symptom. Two distinct bugs, both fixed: (1) _resolve conflated 'nothing left to check because a bare root flag consumed the whole invocation' with 'never resolved' (path stayed empty either way) -- now the leading-flags loop records what it consumed. (2) _own_option_arity never saw Click's auto-added --help (it isn't a declared Option, so absent from cmd.params) -- now recognized via cmd.get_help_option_names(ctx), Click's own introspectable answer, applied at every level (root/group/leaf), not hardcoded to the root.
-- [2026-08-01T19:31:28Z] Elias Python:
+- [2026-08-01T19:31:28Z] `python-dev` Elias Python:
   - Falsified both halves independently (temporary neuter, no lasting src edit): reverting the path-recording turns the root-flag test red (--version/--install-completion/--show-completion); reverting the help-flag recognition turns only the --help test red, the other 8 stay green. Confirmed the negative/falsification cases still correctly fail after both fixes: -h (never registered by this app), a made-up flag, and the pre-existing role-list---nonexistent-flag case. New tests added directly (not relying on doc content): test_a_bare_root_level_flag_resolves_instead_of_being_read_as_unresolved, test_the_auto_added_help_flag_resolves_at_root_group_and_leaf_level, test_a_flag_this_cli_never_declared_still_fails_to_resolve.
-- [2026-08-01T19:31:30Z] Elias Python:
+- [2026-08-01T19:31:30Z] `python-dev` Elias Python:
   - Gates: pyright/ruff check/ruff format clean repo-wide; tests/meta full directory green (75 tests); sq check clean. Scope held to tests/meta/ only, stayed out of docs/ and CHANGELOG.md. Not committed; TASK-718 stays InProgress.
-- [2026-08-01T19:31:48Z] Elias Python:
+- [2026-08-01T19:31:48Z] `python-dev` Elias Python:
   - ST1-ST4 completeness, as asked -- straight answer:
-- [2026-08-01T19:31:50Z] Elias Python:
+- [2026-08-01T19:31:50Z] `python-dev` Elias Python:
   - ST1 (raw-mapping merge, retire additive refusal): complete against its acceptance. One parser family, *_str parsers gone, no-override byte-identical, selected-drop works, shadowing accepted. No open finding touches this subtask's own mechanism.
-- [2026-08-01T19:31:53Z] Elias Python:
+- [2026-08-01T19:31:53Z] `python-dev` Elias Python:
   - ST2 (loader floor: roster key lock, corpus alignment, referential integrity): complete against its acceptance, after F3 (folder normalisation) and F14 (badge cross-check's false attribution + repair-blocking). F20 (case/further-normalisation questions) is a deliberate, documented design choice left as a tracked follow-up question, not a gap in the stated acceptance bar.
-- [2026-08-01T19:31:55Z] Elias Python:
+- [2026-08-01T19:31:55Z] `python-dev` Elias Python:
   - ST3 (drift stamp): complete. Mechanism worked from the start; F7 closed the one real gap (no lint-level regression test on the stamp obligation, only the sq check half was covered).
-- [2026-08-01T19:31:58Z] Elias Python:
+- [2026-08-01T19:31:58Z] `python-dev` Elias Python:
   - ST4 (consumer audit) is the one I'd flag as thin, honestly -- not fully complete against its own acceptance bar today, for two reasons:
-- [2026-08-01T19:32:00Z] Elias Python:
+- [2026-08-01T19:32:00Z] `python-dev` Elias Python:
   - 1. The audit's original 'verified clean' claims were wrong on 3 of the 5 listed site groups: the create path (F1 -- traceback), skills_for_role/item_types_for_role (F5 -- stale/missing role-pointer preloads), and claude_section.md.j2 (F6 -- recorded spec-driven, hardcoded 'feature' in 3 places). A 4th site (_CustomTypeGroup's --help listing, F16) wasn't in the original audit's site list at all and needed the same fix as the create path's F1. That's 4 real misses against an audit that closed as Done.
-- [2026-08-01T19:32:02Z] Elias Python:
+- [2026-08-01T19:32:02Z] `python-dev` Elias Python:
   - 2. F18 is still Open and genuinely unmet against ST4's own stated bar ('no orphaned pointer'): a dropped/renamed type's sq-<type> SKILL item stays Active and its .claude/skills/ file survives orphaned, with sq check clean. Deliberately deferred as low-priority per your call, not fixed -- but it means the bar as literally written is not met today.
-- [2026-08-01T19:32:04Z] Elias Python:
+- [2026-08-01T19:32:04Z] `python-dev` Elias Python:
   - Plus the fourth site you're scoping separately (sq init reading bundled_spec() rather than the merged spec) was never in this audit's list and hasn't been assessed at all -- I haven't looked at it. Given the audit's actual hit rate so far, I would not assume it's clean without checking.
-- [2026-08-01T19:32:07Z] Elias Python:
+- [2026-08-01T19:32:07Z] `python-dev` Elias Python:
   - Bottom line: I would not call ST4 done as originally accepted. The mechanism-level work (F1-F17 fixed) is solid and falsified, but the audit's own completeness claim was wrong often enough (4 of 5-ish site groups) that I'd want either the sq init site checked or ST4 reopened/re-scoped rather than closed as-is, with F18 tracked explicitly as a known residual gap in its stated bar.
-- [2026-08-01T19:32:49Z] Catherine Manager:
+- [2026-08-01T19:32:49Z] `manager` Catherine Manager:
   - Reopened ST4. The implementer reports the consumer audit as thin rather than complete: its original verified-clean claims were wrong on three of about five site groups, a fourth site was never in the list, and F18 (an orphaned generated skill and pointer file surviving a drop) is genuinely unmet against ST4 own no-orphaned-pointer bar. A fifth site, sq init reading the bundled spec rather than the merged one, is unassessed. FEAT-713 does not close while a known consumer is spec-blind — that is the trap the epic was reopened for.
-- [2026-08-01T20:01:50Z] Elias Python:
+- [2026-08-01T20:01:50Z] `python-dev` Elias Python:
   - ST4 reopened work — sq init fix. init()/adopt() scaffolded from bundled_spec() unconditionally, ignoring a workflow override already sitting at <squad_dir>/.overrides/workflow.toml before either call runs. Fixed with _init_time_spec() in _services/_service.py: loads+validates the merged spec (fail-closed, same as open_service) when the override file is already present, else returns the bundled singleton unchanged (byte-identical, proven by identity assertion). Both the folder-scaffold loop and Service's own spec now use it in init() AND adopt() (adopt had the identical bug, included as part of the sweep).
   - Roster-initial-status half: confirmed REAL, and worse than reported — drove it to an actual crash, not just a mismatch. With init() using the bundled spec, a freshly-activated roster item's status comes from the WRONG spec's initial_status(); when the merged spec's roster lifecycle declares a status the bundled one doesn't (e.g. a fully renamed agent lifecycle), the very next command (any sq invocation goes through open_service's cross-check) raises SquadsError and the freshly-initialised squad cannot load at all. Reproduced then fixed by the same _init_time_spec fix — Service is now constructed with the merged spec, so activate_role's self.spec.initial_status resolves correctly from the start.
   - Falsified: reverted _service.py, watched 6/7 new tests go red (the 7th, the no-override identity check, correctly stayed green in both states); restored, all 7 green. New tests: tests/service/test_init_and_adopt_scaffold_against_a_preexisting_override.py.

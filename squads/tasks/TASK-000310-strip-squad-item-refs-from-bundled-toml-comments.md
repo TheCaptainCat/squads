@@ -43,7 +43,7 @@ Stripped squad-item refs from the structural comments in default_workflow.toml, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T13:21:31Z] Elias Python:
+- [2026-07-06T13:21:31Z] `python-dev` Elias Python:
   - Stripped squad-item refs from the structural comments in default_workflow.toml, roles.toml, playbook.toml. Data/keys unchanged; files still parse (sq init/sync unaffected).
   - Full suite green (shared run with TASK-308: 1641 passed, 1 skipped, 0 failed).
 <!-- sq:discussion:end -->

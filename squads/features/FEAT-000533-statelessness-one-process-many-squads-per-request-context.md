@@ -327,20 +327,20 @@ their own spec and dir; neither observes the other's, and a one-shot CLI invocat
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T12:39:49Z] Robert Architect:
+- [2026-07-21T12:39:49Z] `architect` Robert Architect:
   - Driver: agent-loop latency (N sequential sq calls each paying ~1s of Python import) is pushing us toward a long-lived server/daemon (FEAT-33). The precondition for a long-lived process serving more than one squad is zero static squad state — hence this feature. Leans on the async-core locking model (FEAT-34 / ADR-153).
   - Origin of the ask: operator op-pierre.
-- [2026-07-21T12:39:50Z] Robert Architect:
+- [2026-07-21T12:39:50Z] `architect` Robert Architect:
   - ADR recommendation: yes — the invariant 'no module-level mutable state; squad/request context is resolved per request and threaded, never a process singleton; caches may hold code/definitions but never squad data' is a standing rule, and rules belong in an ADR, not just a feature body (features are history, ADRs impose rules). It would formalize the data-vs-code triage as a durable constraint the enforcement guard (US1) checks against. Recommend a companion ADR; not creating it here — Pierre's call.
-- [2026-07-21T20:08:03Z] Pierre Chat:
+- [2026-07-21T20:08:03Z] `op-pierre` Pierre Chat:
   - Sequenced as Phase 1 ahead of the spec-customization epics (EPIC-538 rides this seam). See EPIC-538 for the full sequencing note.
-- [2026-07-21T20:52:59Z] Olivia Lead:
+- [2026-07-21T20:52:59Z] `tech-lead` Olivia Lead:
   - Refined the stories for clean, one-task-sized decomposition (still Draft — no tasks, not Ready).
   - Split the oversized US2 into US2 (request-scoped context primitive + clock/actor seam, incl. the real conftest rework — frozen_time monkeypatches clock.now directly, not _override, so it's a genuine fixture migration) and US5 (active-spec/active-dir seam onto the same context). Both flag the context primitive must stay extensible so EPIC-538 can fold the playbook spec into it.
   - Narrowed US1's workflow-shim work to audit-only: grep confirms zero src callers reach the module free functions (workflow.can_transition() etc.) or the derived WORKFLOWS/ALLOWED_PARENTS/TERMINAL constants — only golden-lock tests do, and the service layer already routes through Service.spec. The customization-exposed reroute (honouring a customized squad's own vocab) is handed to EPIC-538's consumer audit, not this feature.
   - Pinned US1's guard mechanism: an AST meta-test scanning engine modules for module-scope mutable-type assignments (dict/list/set) or global statements, checked against an explicit allowlist of the sanctioned code caches (_REGISTRY/_loaded; _BUNDLED_SPEC + derived WORKFLOWS/SUBENTITY_WORKFLOWS/ALLOWED_PARENTS/TERMINAL; _env_cache; _CATALOG/_BY_SLUG; _PLAYBOOK_SPEC; _create_spec; _spec/_STATIC_TYPES; _manifest_cache). Asserts: no NEW module-level mutable binding outside the allowlist.
   - Flagged the one open design point for @architect on US2: whether the request-scoped context is a single ContextVar at the CLI edge, N ContextVars, or folded into Service (ADR-534 sanctions ContextVar-at-edge and threading below it, but doesn't pick the shape). Flagged, not decided — wants settling once before build since it governs US2 and US5.
-- [2026-07-21T20:58:23Z] Robert Architect:
+- [2026-07-21T20:58:23Z] `architect` Robert Architect:
   - DESIGN DECISION (settles the US2/US5 open point flagged by @tech-lead): shape = (a) a SINGLE request-scoped context object held in ONE ContextVar, seeded at the CLI edge, read at the ambient boundary via thin accessor free-functions, and threaded into Service below. Rejected (b) N-ContextVars and (c) fold-into-Service.
   - Rationale: (c) is impossible — active_spec/active_dir are read at parse time (parse_type/parse_status, _CustomTypeGroup lazy dispatch) and by get_service()/version_notice()/require_current_schema() BEFORE any Service exists, and clock.now()/actor.current_session() are free-function reads from models with no Service handle; you can't thread a Service through Typer's parse machinery. (b) works mechanically and matches the _active_squad_dir precedent literally, but multiplies seed points, leak-guard reset fixtures, and gives a server no single per-request object to construct/bind — and it fails the extensibility bar: EPIC-538 folding the playbook spec + customization vocab means adding yet more vars. (a) is one object a server/test builds per request, one rebind in conftest, and additive extension (add a field). It is exactly ADR-534's 'ContextVar at the CLI/ambient edge + explicit threading below it', and it preserves ADR-249 unchanged (Service still owns spec/store by attribute).
   - THE SEAM — which values live in the ContextVar vs get threaded:
@@ -350,7 +350,7 @@ their own spec and dir; neither observes the other's, and a one-shot CLI invocat
   - Boundary rule for the dev: the ContextVar is SEEDED/REBOUND only at the CLI edge (main_callback replaces its four seed calls — set_active_dir/apply_timestamp/set_actor/seed_session — with one bind_context(RequestContext(...))), by a server request handler, and by test fixtures. It is READ only through the accessor free-functions above. No code below open_service reads the ContextVar directly. Suggested home: a new _context.py holding RequestContext + the single ContextVar + bind/get; _clock and _actor keep their public function names (now reading the context), so their ~all call sites are untouched.
   - conftest migration (US2, real work): frozen_time rebinds the context's clock field (not monkeypatch clock.now); _reset_clock_override/_reset_actor/_reset_session_seed collapse into one context-reset/rebind fixture.
   - ADR? No — feature-level implementation decision. ADR-534 already pins the standing rule (no module-level mutable state; ContextVar-at-edge + threading-below; caches are code) and explicitly sanctions this pattern; choosing 'one object vs N vars' is the concrete container shape within it, not a new durable constraint. Capture the 'single RequestContext object, not per-value vars' convention in US1's documented triage rule so it doesn't rot; no new ADR needed.
-- [2026-07-21T23:16:57Z] Mara Tester:
+- [2026-07-21T23:16:57Z] `qa` Mara Tester:
   - Verified acceptance: US1 AST guard (tests/meta/test_no_unallowlisted_module_level_mutable_state.py) green, wired-guard plant tests catch dict/list/set literals AND defaultdict/OrderedDict/Counter/deque factories (REV-557 F1 fix confirmed).
   - US2/US5: RequestContext (src/squads/_context.py) is the single ContextVar carrying clock/actor/session/spec/dir/client_cwd, seeded once at main_callback; grep confirms no module globals remain in _clock.py/_actor.py/_cli/_common.py for these.
   - US3: tests/service/test_client_cwd_independent_resolution.py green; confirmed live via CLI with --dir against two throwaway squads in one shell -- independent results, nothing remembered.
@@ -358,8 +358,8 @@ their own spec and dir; neither observes the other's, and a one-shot CLI invocat
   - Gates: pyright 0 errors, ruff check + format clean, full suite green (uv run pytest, all workers), sq check clean on this repo.
   - One-shot CLI regression smoke (fresh throwaway squads): --at backdating works (created_at forged correctly), invalid --at still exits non-zero with a clear error, --as op-slug/--author attribution correct, sq check clean, sq tree --json valid JSON with zero ANSI bytes, two --dir squads resolve independently in one shell. No behavior change found.
   - Recommend: TASK-549 and TASK-554 -> Done; FEAT-533 -> InReview for operator acceptance.
-- [2026-07-22T08:50:28Z] Pierre Chat:
+- [2026-07-22T08:50:28Z] `op-pierre` Pierre Chat:
   - Accepted. Statelessness precondition delivered across A/B1/B2 (per-request RequestContext, cwd seam, concurrency-isolation proof, module-mutable-state guard); 3 reviews approved, US1-US5 QA-verified, full suite green. Closing to Done.
-- [2026-07-30T08:35:04Z] Catherine Manager:
+- [2026-07-30T08:35:04Z] `manager` Catherine Manager:
   - Story statuses corrected to Done. The work was QA-verified across US1-US5 and the feature was accepted by the operator; only the sub-entity statuses were left stale.
 <!-- sq:discussion:end -->

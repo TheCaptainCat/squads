@@ -110,7 +110,7 @@ So every milestone created from now on keeps an unfillable TODO scaffold, unless
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-28T18:32:30Z] Paul Reviewer:
+- [2026-09-28T18:32:30Z] `reviewer` Paul Reviewer:
   - Fixed, driven on a fresh scratch squad: `sq milestone 21 body -m "hello"` over the untouched scaffold exits 0 with no `--force`, `--append` lands above the roll-up tag, and a later replace is refused only by the ordinary authored-body guard. Matches op-pierre's ruling (tags re-placed, never typed). Code: `_services/_items.py::_body_mutate` through `_views.place_view_tags` (1e317941, guard edge-blank fix 798ae789).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -135,7 +135,7 @@ op-pierre's ruling ("keep ST12's narrow scope … per-item-type skill with legac
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-28T18:32:34Z] Paul Reviewer:
+- [2026-09-28T18:32:34Z] `reviewer` Paul Reviewer:
   - Fixed, driven: a real squad initialised with released v0.13.1 (`uvx --from git+file://…@v0.13.1`), migrated, synced: `sq check` clean, `sq-bug` body is tag-only, `sq skill sq-bug show` renders the guidance once. Matches op-pierre's ruling: the reclaim set is `roster_body_view_name` itself (`_migrations/_v0_14_to_v0_15.py::_reclaim_legacy_roster_bodies`, 1e317941/4d9837fe). A new consequence of the widened reclaim (authored prose on a later-declared type's skill is wiped) is filed on the follow-up review.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -159,7 +159,7 @@ Three problems follow:
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-28T18:32:37Z] Paul Reviewer:
+- [2026-09-28T18:32:37Z] `reviewer` Paul Reviewer:
   - Fixed, driven: copies of v0_1, v0_5, v0_7, v0_11 and v0_14 migrate with no skip rows and no seeded-view errors; skip ids print resolvable (`ROLE-1`). The step reads each file's own frontmatter at write time (`_v0_14_to_v0_15.py::_write_body_change`, 4d9837fe).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -178,7 +178,7 @@ ST9 is marked Done. **Recommendation:** add the pointer to the role show hint, a
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-28T18:32:42Z] Paul Reviewer:
+- [2026-09-28T18:32:42Z] `reviewer` Paul Reviewer:
   - Fixed, driven: an empty-bodied role's `sq role qa show` hint names `.overrides/roles.toml` / `.overrides/roles/<slug>.toml` (`_cli/_role.py::_role_empty_body_hint`), and the §8 refusal carries the same surface on the write path (`_services/_items.py::_reject_unwritable_body`).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -199,7 +199,7 @@ Verified by tracing the code, as the dev claims. `_repair_body_tag` returns only
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-28T18:32:48Z] Paul Reviewer:
+- [2026-09-28T18:32:48Z] `reviewer` Paul Reviewer:
   - Fixed, read and grep-checked: `strict_empty`, `_strict_body_convergence`, `RepairResult.skipped`, `backfill_skipped` and the CLI skip rows are gone from src; the monkeypatched tests were deleted (4d9837fe). Matches op-pierre's ruling. A stale docstring that still cites the deleted symbol is listed under F10.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -218,7 +218,7 @@ A second problem: `test_migrate_up_prints_the_skip_and_exits_non_zero` asserts `
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-28T18:32:53Z] Paul Reviewer:
+- [2026-09-28T18:32:53Z] `reviewer` Paul Reviewer:
   - Fixed: the module is now `tests/cli/test_migrate_up_bare_subprocess_exit_parity.py`, built around the surviving `unreadable` exit parity, and the `SKILL-8` assertion is gone (4d9837fe).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -241,7 +241,7 @@ Either way the current text should not ship: its reason also describes a case th
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-28T18:32:57Z] Paul Reviewer:
+- [2026-09-28T18:32:57Z] `reviewer` Paul Reviewer:
   - Fixed per op-pierre's option A ruling (ADR-880 seventh amendment §8): replace and append are both refused on a roster-classified body, and the message names the real authoring surface instead of the spliced-render rationale. Driven for a role (via `sq import`), `squads`, `greeting`, `sq-memory` and `sq-bug`, with and without `--force`.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -264,7 +264,7 @@ The messages this change added or made stale, each measured on a scratch squad o
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-09-28T18:33:02Z] Paul Reviewer:
+- [2026-09-28T18:33:02Z] `reviewer` Paul Reviewer:
   - Fixed, item by item: (1) `view rm` is retired, so its message is gone; (2) the replace refusal is gone; (3) migrate skip text drops the repair remedy, prints resolvable ids and names the `sq role|skill <slug>` form (`_cli/_migrate.py`); (4) the role and skill hints no longer name `sq repair … plain-legacy`; (5) `item_skill_shadowed` has a tag-present message and a single remedy (45c3b2a2). Problems in the new messages are filed on the follow-up review.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -287,7 +287,7 @@ No ticket IDs or process narration in docs/ or the CHANGELOG entry: checked, fin
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-09-28T18:33:07Z] Paul Reviewer:
+- [2026-09-28T18:33:07Z] `reviewer` Paul Reviewer:
   - Fixed, read against docs/overrides.md, docs/workflow.md and CHANGELOG.md in the range: the append overclaims and the required-flag prose are gone, the upgrade subsection lists the migration's real exceptions, the `set_body` docstring no longer claims repair erases appended prose, and the CHANGELOG says a role takes a `sq import` body event (19631075). One new sample-output mismatch is filed on the follow-up review.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -308,22 +308,22 @@ Migration-module prose ("Before this release, …") passes, because a migration 
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-09-28T18:33:14Z] Paul Reviewer:
+- [2026-09-28T18:33:14Z] `reviewer` Paul Reviewer:
   - Still open. The instances this finding named in service code are rewritten, but a named test instance survives, and new narration landed in standing code:
     - `tests/integration/test_migration_corpus.py:534` still says "before this cycle's real 0.14->0.15 migration made that fixture"; `:587` cites the deleted `_strict_body_convergence`, and `:594`/`:600` still speak of a "required-view gap".
     - `src/squads/_views.py`: `place_view_tags` says "**Spacing** (op-pierre's ruling)"; `ConflictingViewStateError` says "(none does, today)"; `expand_view_tags` cites "the second amendment's" errors.
     - `src/squads/_services/_views.py::disable_view` says "the recovery role the second amendment gave ``view rm`` (retired outright by this amendment…)".
     - `src/squads/_migrations/_v0_14_to_v0_15.py` says "(op-pierre's ruling)" twice, "(reversing an earlier narrow scope)" and "as an earlier version of this runner did". These describe how the code was built, not a release delta.
     - `src/squads/_services/_validators.py` module docstring still names `_required_view_issues` and "a ``required = true`` view". ST7 asked for this paragraph to be updated.
-- [2026-09-28T22:11:52Z] Elias Python:
+- [2026-09-28T22:11:52Z] `python-dev` Elias Python:
   - Fixed: removed every 'op-pierre's ruling'/'this amendment'/'(none does, today)' citation, the migration docstring's redundant ruling-parenthetical, and the two stale test_migration_corpus.py references ('this cycle', the deleted _strict_body_convergence). Reworded 5 further build-process-narration sentences found in a full stranger-test read of every added line across the whole task range ('the reviewer's...', 'this task...', 'the dev's handback' style phrasing) into durable, present-tense statements. Grepped each old fragment across the tree after rewriting; none remain.
-- [2026-09-28T22:51:57Z] Paul Reviewer:
+- [2026-09-28T22:51:57Z] `reviewer` Paul Reviewer:
   - Re-verified against HEAD, still Open. Fixed: `test_migration_corpus.py` no longer says "this cycle" or cites `_strict_body_convergence`; the `_validators.py` tier-1 paragraph now describes `_seeded_view_issues`; "op-pierre's ruling" and "this amendment" are gone from src. Still present:
     - `src/squads/_migrations/_v0_14_to_v0_15.py:43` "(reversing an earlier narrow scope)" and `:126` "Driven: skipping here…". The first was named in this finding's last comment.
     - `tests/integration/test_migration_corpus.py:136,158,592` still say "required-view gap", the retired concept.
     - New narration from the fix commits: `_views.py::roster_slug` and `_maintenance.py::_check_slug` ("Before this existed, the write path read…"), `_converge_body_tag` ("used to reach … `KeyError`", "now tries"), `_absent_body_region_issues` ("the one that used to crash", "now try").
     - The adopter-facing MANUAL (`sq migrate chlog v0.14.0..v0.15.0`) says "`view disable <name>` alone is **not** this remedy any more". No release ever shipped that remedy, so the sentence narrates the build to the adopter.
-- [2026-09-28T23:45:50Z] Elias Python:
+- [2026-09-28T23:45:50Z] `python-dev` Elias Python:
   - Fixed the four named items and re-swept the whole diff (git diff 1e317941~1 -- src tests,
     including this batch and the F1/F15 fix commit) with the stranger test:
     
@@ -358,17 +358,17 @@ Migration-module prose ("Before this release, …") passes, because a migration 
     Grepped every rewritten fragment across src/ and tests/ afterward: all zero, validated against a
     known positive first (a "used to print" hit inside a kept Regression-style test docstring) to
     confirm the grep mechanism itself works.
-- [2026-09-29T00:04:49Z] Paul Reviewer:
+- [2026-09-29T00:04:49Z] `reviewer` Paul Reviewer:
   - Re-verified against HEAD, still Open for two in-range sentences: `src/squads/_migrations/_v0_14_to_v0_15.py:82` "(as an earlier version of this runner did, via ``ensure_no_skew``)", named in this finding's earlier comment, and `src/squads/_services/_views.py:67` "is not refused outright any more" (added in 61a95690). Everything else named before is gone. The `_expected_required_view_gap_files` helper name in `tests/integration/test_migration_corpus.py` still uses the retired "required" vocabulary. That's minor, but worth renaming in the same pass.
-- [2026-09-29T00:18:39Z] Elias Python:
+- [2026-09-29T00:18:39Z] `python-dev` Elias Python:
   - Fixed the three named items: dropped 'as an earlier version of this runner did' from the migration module (restated the mid-chain-skew bug as a general fact, no reference to a prior code version); '_services/_views.py's 'not refused outright any more' -> states the current refusal condition directly; renamed tests/integration/test_migration_corpus.py's _expected_required_view_gap_files to _expected_seeded_view_gap_files (9 sites) to match the current 'seeded-view gap' vocabulary. Re-swept the pre-filter (any more|earlier version|used to|no longer|now ) across the full 1e317941~1..HEAD added-lines set (61 hits after excluding a content_store.json data blob) and read each one: found and fixed one more standing-code instance outside the named three (test_sync_always_stamps_the_config.py's module docstring, 'stamp-withholding channel any more' -> 'stamp-withholding channel'); every other hit was either domain vocabulary (a view no longer declared, a runtime state within one test's own scenario), migration-module release-delta prose (the standing carve-out), or the accepted 'Regression: X used to Y' test-docstring convention. Grepped all four rewritten fragments afterward: zero.
-- [2026-09-29T00:25:50Z] Paul Reviewer:
+- [2026-09-29T00:25:50Z] `reviewer` Paul Reviewer:
   - Re-verified at HEAD 611f6988. The three named sentences are gone: the migration's "earlier version of this runner", `_services/_views.py`'s "not refused outright any more", and the `_expected_required_view_gap_files` name. Still Open for two test docstrings added in this range (cddec435) that narrate the fix rather than describe the behaviour:
     - `tests/service/test_absent_body_region_recovery.py:1-6`: "…hand-deleted entirely used to crash `sq repair`, `sq sync` and `sq migrate up` … the corpus-wide sweeps no longer crash, `sq check` now reports…"
     - `tests/unit/test_repair_body_tag_convergence_pure_function.py:100-104`: "The regression this finding exists to hold … used to reach `sections.replace_section`'s own `KeyError` … Now the pair is reinstated…" This one also points at a review finding.
     
     Present-tense rewrites would close this: "A roster file whose `sq:body` pair is missing does not crash repair/sync/migrate; the pair is reinstated around a safe tag run, and `sq check` reports the absent region."
-- [2026-09-29T00:35:27Z] Elias Python:
+- [2026-09-29T00:35:27Z] `python-dev` Elias Python:
   - Fixed the two named docstrings (test_absent_body_region_recovery.py's module docstring,
     test_repair_body_tag_convergence_pure_function.py's), then read every test module docstring and
     test docstring added or changed in 1e317941~1..HEAD for the same history-telling shape --
@@ -387,7 +387,7 @@ Migration-module prose ("Before this release, …") passes, because a migration 
     
     Docstring-only changes; ran all 19 touched test files (1125 tests) plus ruff -- all green, since
     nothing behavioural moved.
-- [2026-09-29T00:38:13Z] Paul Reviewer:
+- [2026-09-29T00:38:13Z] `reviewer` Paul Reviewer:
   - Verified at HEAD bafd1bed. Both named docstrings (`test_absent_body_region_recovery.py:1-8`, `test_repair_body_tag_convergence_pure_function.py:100-104`) now state behaviour in the present tense, and the 19-file sweep reads clean. A re-grep of the range for used to / no longer / any more / now / earlier version / finding references finds only spec-state wording ("a view the spec no longer declares"), the migration's release-delta prose, and "this finding" meaning the check finding itself.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -406,11 +406,11 @@ Migration-module prose ("Before this release, …") passes, because a migration 
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-09-28T18:33:16Z] Paul Reviewer:
+- [2026-09-28T18:33:16Z] `reviewer` Paul Reviewer:
   - Partly fixed. Fixed: the `kind:` row now goes through `roster_body_view_name`; `_strict_body_convergence` and `_LEGACY_ROSTER_VIEW_NAMES` are gone; `_stem_slug` and `_slug_from_path` share `slug_from_stem`. Still open: the slug still comes from two sources. The write path reads `extra.slug` and the check tier reads the filename, and the new docstring describes the disagreement without choosing a winner, which ST2 asked for. Driven: rename `SKILL-000010-sq-bug.md` to `SKILL-000010-bugnotes.md` and empty its body. `sq check` is then clean, while `sq skill sq-bug body -m x` is refused as a per-item-type skill and `sq skill sq-bug show` hints that the item_skill tag is missing.
-- [2026-09-28T22:11:54Z] Elias Python:
+- [2026-09-28T22:11:54Z] `python-dev` Elias Python:
   - Fixed: added views.roster_slug(item_type, slug, extra) as the one derivation (a skill's extra.slug when set, else the plain slug), replacing 8 duplicated inline ternaries across 4 files. The check tier's own _check_slug now reads frontmatter early (falling back to the filename-only _stem_slug only when frontmatter can't parse at all), so it agrees with the write path even on a hand-renamed sq-<type> skill file. Reproduced the exact repro (rename SKILL-...-sq-bug.md to ...-bugnotes.md, empty its tag) red-then-green.
-- [2026-09-28T22:51:59Z] Paul Reviewer:
+- [2026-09-28T22:51:59Z] `reviewer` Paul Reviewer:
   - Verified against HEAD (cddec435). I hand-renamed `SKILL-000010-sq-bug.md` to `SKILL-000010-bugnotes.md`, removed its tag and ran `sq repair`. `sq check` now classifies it by `extra.slug` (it names `sq skill sq-bug …`), and the write path refuses the same file as `sq-bug`. The two agree through `views.roster_slug`/`_check_slug`, and the filename is only a fallback for unparseable frontmatter.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -429,7 +429,7 @@ Only the role case exists (`test_role_definition_view_narrowing_round_trip.py`, 
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-09-28T18:33:12Z] Paul Reviewer:
+- [2026-09-28T18:33:12Z] `reviewer` Paul Reviewer:
   - Fixed: `tests/service/test_admitted_roster_shapes_survive_convergence.py` (cb8c9a53) drives the dropped system-skill view, the stale `sq-bug`, and the project-declared `sq-widget` through write, repair, version-drift sync and re-declaration. The role row stays in `test_role_definition_view_narrowing_round_trip.py`. The targeted run passed.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -438,47 +438,47 @@ Only the role case exists (`test_role_definition_view_narrowing_round_trip.py`, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-24T19:56:55Z] Paul Reviewer:
+- [2026-09-24T19:56:55Z] `reviewer` Paul Reviewer:
   - @manager REV-964 on TASK-942. Recommended verdict: **ChangesRequested**. Review status left at Requested; the approval transition is not mine to take.
     
     - **High, 2.** F1: a replace on any required host is refused unconditionally, so a milestone's Objective/Scope TODO scaffold can never be filled, and the sq-milestone skill's "set the body with body -m" instruction now always fails. The "no compliant replace" premise is false: the tool can put the tag back itself. F2: released 0.13.1 stored rendered bodies in every sq-<type> skill. A real 0.13.1 squad migrated with this tree ends with 7 check errors and 7 warnings. The documented remedy, view add, renders the definition twice and leaves a permanent warning whose claim is false. The ST12 scope ruling rests on a premise the code states wrongly, so it needs op-pierre again.
     - **Medium, 5.** F3: the reclaim is skipped for every role and system skill when migrating from v0_1–v0_7 (mid-chain skew, reported as UNRESOLVED-n ids). F4: the role-authoring remedy was never moved to sq role show; _cli is untouched. F5: the repair skip corridor is dead; recommend deleting it together with its monkeypatched tests. F7: the append-refusal rationale also describes the milestone append it admits (design question for a ruling). F8: several messages name wrong or no-op remedies.
     - **Low, 5.** F6, F9, F10, F11, F12: the test module's subject, docs overclaims, narration, derivation side lists, and the missing narrowing test table.
     - Checked fine: the v0_15 fixture regenerates byte-identically and v0_1–v0_14 are unchanged, gates are clean, the write path uses a single derivation, and view_placement_invocation's command forms are real. sq check is clean.
-- [2026-09-24T20:16:50Z] Pierre Chat:
+- [2026-09-24T20:16:50Z] `op-pierre` Pierre Chat:
   - Ruling on REV-964 F1 (how a replace works on a required host):
     
     - View tags stay forbidden in body input (`reject_markers` unchanged).
     - A view declaration gains an optional `position` key, default `"bottom"`. Values: `"top"`, `"bottom"`, `"after(<regex>)"`, and possibly others later.
     - After a body write, the tool inserts each required view's tag at its declared position. Several views go in declaration order; an explicit order key may come later.
     - After the write, a check requires every required view to be present, and no view to appear more than once.
-- [2026-09-24T20:25:59Z] Pierre Chat:
+- [2026-09-24T20:25:59Z] `op-pierre` Pierre Chat:
   - Rulings, following the `position` ruling above:
     
     - **Drop `required`.** A document's seeded views (its creation template, or its roster classification for a role or skill) are kept for good. Storing a flag for that duplicates what the seeding already says.
     - **Disabled, never deleted.** Disabling a view does not remove its tag. It marks it with a colon suffix, `<!-- sq:view:<name>:disabled -->`, which stays inside `MARKER_RE`'s character set (brackets would make the tag invisible to `find_markers`/`reject_markers`). A disabled view renders nothing. The verbs become enable/disable; `view add` places or re-enables.
     - **Every body write re-places the tags.** Replace and append alike: read all view tags (enabled and disabled), strip them, apply the prose edit, then re-insert each at its view's `position`, in declaration order, each keeping its state. So a `bottom` view moves back below appended prose. Hand-placed and disabled tags survive.
     - **Post-write check:** each seeded view is present exactly once (enabled or disabled), and no view appears twice. `sq check` reports the same two conditions.
-- [2026-09-24T20:35:25Z] Pierre Chat:
+- [2026-09-24T20:35:25Z] `op-pierre` Pierre Chat:
   - Rulings on REV-964:
     
     - **F2 — yes.** The 0.14 to 0.15 migration also reclaims per-item-type `sq-<type>` skills carrying legacy stored text (0.13.1 wrote the rendered body into every managed skill). This reverses the earlier narrow-scope ruling, which rested on the premise that those skills never stored a body.
     - **F5 — yes.** Delete the dead body-tag skip-report channel (`RepairResult.skipped` from the non-strict convergence branch, sync's stamp-withholding on it, the CLI skip rows), together with the monkeypatched tests that re-enable the wide convergence to feed it.
     - **F7 — open.** Undecided whether append stays refused on roles and system skills. The architect should put the options in the ADR-880 amendment.
     - **`position = "after(<regex>)"`:** no match falls back silently to `bottom`; several matches means after the first.
-- [2026-09-28T18:36:28Z] Paul Reviewer:
+- [2026-09-28T18:36:28Z] `reviewer` Paul Reviewer:
   - @manager Close-out pass on REV-964 against the committed range `1e317941~1..HEAD`, checked in the code and on scratch squads rather than from the handoffs.
     
     - **Fixed (10):** F1, F2, F3, F4, F5, F6, F7, F8, F9, F12. Each finding's comment cites its evidence. The code matches op-pierre's rulings on F1 (tags re-placed on every write, never typed), F2 (the reclaim set is the roster classification), F5 (the skip channel is deleted) and F7 (option A: roster bodies take no prose).
     - **Still Open (2, both low):** F10 and F11. F10: a named test instance survives, new narration landed in standing src, and the `_validators.py` tier-1 docstring still describes `_required_view_issues`/`required = true`. F11: the slug still comes from two sources (the write path reads `extra.slug`, the check tier reads the filename). Driven with a hand-renamed skill file.
     - REV-964 stays at Requested, because two findings have no disposition yet. Once F10 and F11 are settled, it can go to its terminal status.
     - New findings from the full-range review are on REV-967.
-- [2026-09-28T22:52:37Z] Paul Reviewer:
+- [2026-09-28T22:52:37Z] `reviewer` Paul Reviewer:
   - @manager Re-review of REV-964 against HEAD 5897ba45. F11 is verified Fixed (a hand-renamed skill is now classified by `extra.slug` in both check and the write path). F10 is reopened: the migration's "(reversing an earlier narrow scope)" and "Driven:", the "required-view gap" test comments, the new "Before this existed / used to / now tries" docstrings, and "not this remedy any more" in the adopter-facing MANUAL. Status is ChangesRequested.
-- [2026-09-29T00:05:04Z] Paul Reviewer:
+- [2026-09-29T00:05:04Z] `reviewer` Paul Reviewer:
   - @manager Second re-verification: F10 is still Open for two in-range sentences (migration line 82 "an earlier version of this runner", `_services/_views.py:67` "not refused outright any more"). F11 is verified. Stays ChangesRequested, not Approved.
-- [2026-09-29T00:25:55Z] Paul Reviewer:
+- [2026-09-29T00:25:55Z] `reviewer` Paul Reviewer:
   - @manager Third pass at 611f6988: the three named F10 sentences are gone, but two test docstrings from this range still narrate the fix (test_absent_body_region_recovery.py:1-6, test_repair_body_tag_convergence_pure_function.py:100-104). F10 stays Open, so REV-964 is not moved to Approved.
-- [2026-09-29T00:38:19Z] Paul Reviewer:
+- [2026-09-29T00:38:19Z] `reviewer` Paul Reviewer:
   - @manager F10 verified at bafd1bed; every finding on REV-964 is Fixed, so REV-964 is Approved.
 <!-- sq:discussion:end -->

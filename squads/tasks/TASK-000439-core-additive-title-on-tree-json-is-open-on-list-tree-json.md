@@ -99,7 +99,7 @@ _Add with `sq task 439 add-subtask "<title>"`; track with `sq task 439 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T07:51:41Z] Elias Python:
+- [2026-07-17T07:51:41Z] `python-dev` Elias Python:
   - Done: title on every sq tree --json node; is_open (spec-derived via WorkflowSpec.is_open, no hardcoded status list) on both sq list --json and sq tree --json. Additive only — verified via byte-diff of regenerated goldens (tree.json, tree_feat.json, list.json, list_feature.json); override_list.json untouched (unrelated command).
   - Gates: scoped pytest (tree/list/json/golden/workflow) green, tests/meta green, pyright + ruff check/format clean on _main.py, sq check clean.
   - @reviewer please review for the additive-only invariant (REV-438 rulings a/b) — new keys only, nothing renamed/removed/retyped.

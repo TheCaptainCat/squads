@@ -87,7 +87,7 @@ _Add with `sq task 544 add-subtask "<title>"`; track with `sq task 544 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T21:05:36Z] Elias Python:
+- [2026-07-21T21:05:36Z] `python-dev` Elias Python:
   - Added --new <slug> to sq override scaffold (mutually exclusive w/ --role), backed by scaffold_new_role() in _overrides/_service.py: stamps the override-base line, stubs full_name/title/description/mission as active keys, comments out responsibilities/agreements/model/color/can_spawn, refuses to clobber w/o --force, rejects bundled slugs pointing at --role. Also added --can-spawn (used by TASK-545).
   - Files: src/squads/_overrides/_service.py, src/squads/_cli/_override.py; tests: tests/integration/test_override_scaffold_scan_diff_update_and_check.py (TestScaffoldNewRole), tests/cli/test_override_commands_cli.py.
   - Gates: pyright clean, ruff check + format clean, targeted pytest (override scaffold/CLI + role-merge unit tests) 61 passed, sq check clean.

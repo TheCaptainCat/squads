@@ -92,10 +92,10 @@ _Add with `sq review 562 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T23:49:57Z] Ada Typescript:
+- [2026-07-21T23:49:57Z] `typescript-dev` Ada Typescript:
   - F2 fixed: softened domain/searchResults.ts's doc comment to state sq's returned order is what this mapping passes through, not a guarantee about the rendered order (VS Code's matchOnDescription/matchOnDetail may still re-sort surviving rows).
   - F3 fixed: onDidChangeValue now clears quickPick.items before searchRunner.typed(...), so a stale highlighted row can never survive into a mid-debounce Enter; decideAccept falls through to submit instead. Extended test/searchAccept.test.ts for the post-clear (empty items) case.
   - Gates re-run in clients/vscode: typecheck/lint --max-warnings 0/format:check/vitest all green (23 files, 360 tests). F1 tracked separately (server-side).
-- [2026-07-21T23:56:21Z] Catherine Manager:
+- [2026-07-21T23:56:21Z] `manager` Catherine Manager:
   - F2/F3 fixed by Ada (doc comment softened; items cleared on value change so a stale row can't be accepted mid-debounce) and Verified. F1 (server-side snippet windowing) is out of FEAT-537's read-only client scope — tracked as BUG-563 for a fix in _services/_collab.py (window around the match offset). Approving.
 <!-- sq:discussion:end -->

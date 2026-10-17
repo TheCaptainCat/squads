@@ -124,6 +124,6 @@ Low: the real test reuses the same `_mutable_state_hits` + `names - ALLOWLIST`, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T23:02:56Z] Paul Reviewer:
+- [2026-07-21T23:02:56Z] `reviewer` Paul Reviewer:
   - Verdict: CHANGES REQUESTED (rigor, not correctness). One-shot CLI behavior is correct and all gates are green; the env_cache LRU, backend-stateless guard, and the REV-556 F1 client_cwd fix are all sound, and no DATA hides in the guard allowlist. But the feature's two headline deliverables — the durable guard and the acceptance proof — each fall short of what they claim: F1 (Medium) the AST guard is blind to a mutable cache built via OrderedDict/defaultdict/helper and mutated in place, so the exact forbidden pattern can be reintroduced with the build staying green; F2 (Medium) the acceptance test genuinely proves ambient (clock/actor/dir) isolation but its data/uncommitted-write claims are broader than what it exercises (A's write runs after B reads, and on a different squad's store). Address F1/F2 (or consciously accept + document the guard's factory-call gap and reword the test's data claim) before this is treated as the durable enforcement + proof FEAT-533 promises. F3/F4 are Low/forward-looking.
 <!-- sq:discussion:end -->

@@ -29,11 +29,11 @@ updated_at: '2026-06-21T22:27:41Z'
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-17T20:09:25Z] Pierre Chat:
+- [2026-06-17T20:09:25Z] `op-pierre` Pierre Chat:
   - Filing this from a real incident I hit: Elias was given a big task and started spawning himself in cascade, up to ~6 levels deep, each time saying it was a big task so better to call a subagent. I want this prevented.
-- [2026-06-17T20:12:08Z] Pierre Chat:
+- [2026-06-17T20:12:08Z] `op-pierre` Pierre Chat:
   - Decision: fix this the structural way — option (2), per-role capability attenuation (withhold the spawn tool from leaf specialists). Tracked as FEAT-122, which we'll pick up very soon. Option (1) instruction-tightening is optional interim mitigation.
-- [2026-06-21T22:27:41Z] Mara Tester:
+- [2026-06-21T22:27:41Z] `qa` Mara Tester:
   - QA verification complete. BUG-152 is closed — the recursive self-spawn mechanism is no longer possible for leaf specialist roles.
   - **Verification evidence:**
   - **1. Full test suite:** 862 passed, 1 skipped. All 19 tests in tests/test_can_spawn.py green, covering three seams: RoleDef.can_spawn catalog field values, rendered pointer frontmatter (YAML-parsed), and sq role show surfacing.

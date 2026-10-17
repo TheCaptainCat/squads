@@ -630,7 +630,7 @@ feature or task yet.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T19:31:52Z] Robert Architect:
+- [2026-10-15T19:31:52Z] `architect` Robert Architect:
   - 2026-10-15: drafted from the op-pierre ruling on MILE-934 (2026-10-15T19:25:09Z). @manager, the points that need the operator's call:
     
     1. **Concurrency guard (the risk section).** An index read before another actor removes an earlier comment points one further, and the author match does not catch it when both comments share an author. That is the common case: an agent cleaning up its own comments. Recommended: an optional `--expect-digest` flag, with a derived `digest` key in the JSON, checked under the lock. Alternative: `--expect-ts`, which is readable by humans but cannot separate two comments from one author in the same second (driven). Accept A, B, both, or neither.
@@ -652,7 +652,7 @@ feature or task yet.
     - CLAUDE.md lines 160 and 340. Line 340 is changed through `claude_section.md.j2` line 116.
     - ADR-979, in its Context and §2.
     - ADR-981 §1.
-- [2026-10-15T19:35:27Z] Robert Architect:
+- [2026-10-15T19:35:27Z] `architect` Robert Architect:
   - 2026-10-15: the body has been redone for the operator's amendment of 2026-10-15T19:31:40Z, which addresses comments by short hash. My comment above is superseded: the positional index and the concurrency guard (`--expect-digest`, `--expect-ts`) are gone and are recorded under Alternatives. @manager, these points need the operator's call:
     
     1. **Whole seconds break the duplicate premise (driven).** This squad has 3,789 comment headers. In 15 groups, two or more distinct comments share an item, an author and a second. 12 of those groups are per-finding closures written in one burst. In 3 groups the comments sit in the same region; TASK-328 ST4, for example, has four different comments across two seconds. Under the merge rule, editing one of them destroys another. Proposed:
@@ -673,9 +673,9 @@ feature or task yet.
     - The inbox follows edits on its own, because it is a live scan.
     
     Build order for the verbs is unchanged: after FEAT-977, before FEAT-961. The dated notes owed (CLAUDE.md lines 160 and 340 via the template, ADR-979, ADR-981) are not written yet.
-- [2026-10-15T19:54:29Z] Pierre Chat:
+- [2026-10-15T19:54:29Z] `op-pierre` Pierre Chat:
   - 2026-10-15: the comment hash covers the text too: item sequence number, author slug, timestamp as written, and the comment text. An edit gives the comment a new hash (printed by the edit verb), and a stale hash is refused. Duplicates are therefore same author, same second, same text. Timestamps stay whole seconds, and no millisecond fraction or migration of existing comments is needed.
-- [2026-10-15T19:56:22Z] Robert Architect:
+- [2026-10-15T19:56:22Z] `architect` Robert Architect:
   - 2026-10-15: I revised the body to follow the op-pierre ruling of 2026-10-15T19:54:29Z. The comment text is now a hash input: `"sq-comment-1" NUL seq NUL slug NUL ts NUL text`. @manager, the changes:
     
     - **Canonical text** (§1). The text is the comment's stored lines after its header, normalised as follows:
@@ -691,11 +691,11 @@ feature or task yet.
     - **The edit mark is kept.** A changed hash does not show that an edit happened, or when.
     
     ADR status was not changed.
-- [2026-10-15T20:08:33Z] Pierre Chat:
+- [2026-10-15T20:08:33Z] `op-pierre` Pierre Chat:
   - 2026-10-15: the verbs follow the sq address grammar: sq <type> <n> comment <hash> edit|remove, and on a sub-entity sq <type> <n> <kind> <k> comment <hash> edit|remove. No edit-comment / remove-comment verbs.
-- [2026-10-15T20:09:44Z] Pierre Chat:
+- [2026-10-15T20:09:44Z] `op-pierre` Pierre Chat:
   - 2026-10-15: comment <hash> also takes show, with the usual --json flag: sq <type> <n> [<kind> <k>] comment <hash> show [--json].
-- [2026-10-15T20:11:45Z] Robert Architect:
+- [2026-10-15T20:11:45Z] `architect` Robert Architect:
   - 2026-10-15: I revised the body for the address-grammar ruling (2026-10-15T20:08:33Z) and the ruling that `comment <hash>` also takes `show`. @manager, the changes:
     
     - **Grammar.**
@@ -726,9 +726,9 @@ feature or task yet.
       - a bare address defaulting to `show`.
     
     I did not change the ADR status.
-- [2026-10-15T20:17:06Z] Pierre Chat:
+- [2026-10-15T20:17:06Z] `op-pierre` Pierre Chat:
   - 2026-10-15: accepted.
-- [2026-10-17T02:01:33Z] Robert Architect:
+- [2026-10-17T02:01:33Z] `architect` Robert Architect:
   - 2026-10-17: where the build settled points this decision left open, from TASK-1079 ST14 (read in the tree; review evidence in REV-1088). Additions only; body and status untouched.
     - **One line rule.** §1 normalises CR, LF and CRLF for the hash but named no splitter. `sections.split_lines` breaks at CR, LF and CRLF only (never U+2028, form feed, VT or NEL, which `str.splitlines` also breaks at), and it is the one rule for the discussion layer, `region_lines`, the search and inbox region scan, and the 0.16 header migration (REV-1088 F3). The migration change altered nothing in this corpus (REV-1088, driven dry run); a separator inside a line no longer makes a header of the text after it.
     - **Reflog delta shape.** §10 gave the per-comment entry, not its container. The delta of `comment_edit` and `comment_remove` is `{"comments": [{"author", "hash", "region", "ts", "before"}, ...]}`, one entry per member of the group touched, with `hash` the full hash before the change, `region` the discussion marker tag, and `after_hash` added on each entry of an edit. The op rows go in both `docs/stability.md` (§10) and the `docs/workflow.md` op table, which `tests/meta/test_reflog_op_vocabulary_has_one_source.py` pins.

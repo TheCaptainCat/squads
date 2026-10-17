@@ -50,8 +50,8 @@ _Add with `sq task 481 add-subtask "<title>"`; track with `sq task 481 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T20:26:44Z] Elias Python:
+- [2026-07-18T20:26:44Z] `python-dev` Elias Python:
   - Done: shared badges.resolve_badges (moved out of _refs._resolve_badges, delegates now) gives sq tree/list/show --json + show's subentities a generic badges map (additive, priority/severity/extra untouched). New sq workflow collections --json (COLLECTION_CATALOG_FIELDS) + sq workflow types --json fields[] (A3, TYPE_CATALOG_FIELDS extended). Goldens: workflow_collections.json + workflow_statuses.json new, workflow_types/list/list_feature/tree/tree_feat/feature_show/task_show additive-diffed (verified key-add only). Tests: test_generic_badge_map_resolution, test_item_json_badges_map, test_workflow_collections_cli, extended test_workflow_types_cli. pyright/ruff clean, sq check clean.
-- [2026-07-18T20:37:05Z] Elias Python:
+- [2026-07-18T20:37:05Z] `python-dev` Elias Python:
   - Fix-back: stripped stray ADR-474/ADR-459 ticket-ID tokens from src/ docstrings (_badges.py, _cli/_workflow_cmd.py, _cli/_common.py, _services/_refs.py) and test docstrings (test_generic_badge_map_resolution, test_workflow_collections_cli, test_workflow_types_cli, test_item_json_badges_map) — rationale kept, ID pointer dropped per repo convention. Meta ticket-ref gate + full targeted suite green.
 <!-- sq:discussion:end -->

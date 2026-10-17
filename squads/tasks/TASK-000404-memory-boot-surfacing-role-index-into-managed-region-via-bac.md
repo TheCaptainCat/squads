@@ -53,9 +53,9 @@ At boot, the agent's own role `.index.jsonl` is surfaced into context through th
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T08:31:47Z] Catherine Manager:
+- [2026-07-15T08:31:47Z] `manager` Catherine Manager:
   - Dispatching @python-dev on memory boot-surfacing. Surface the role's memory .index.jsonl at boot THROUGH the backend (not hard-coded) — index-only (not full bodies), slug-addressed, empty pool surfaces nothing. Take Ready→InProgress; hand to InReview.
-- [2026-07-15T08:42:04Z] Elias Python:
+- [2026-07-15T08:42:04Z] `python-dev` Elias Python:
   - Implemented: role memory index surfaces at boot through the AgentBackend ABC.
   - Seam: per-role artifacts each backend already regenerates on sq sync — the Claude Code pointer (.claude/agents/<slug>.md, via generate_role_entry) and the AGENTS.md per-role section (via write_managed, mirroring how mission text is compiled). New shared formatter squads/_backends/_memory_surface.py::memory_index_lines reads the role's generated .index.jsonl (squads/_memory/_store.py::read_index, new) and renders slug+summary bullet lines; both backends call it and pass memory_lines into their templates, rendered only when non-empty (no header noise on an empty pool).
   - Tests: tests/integration/test_backend_lifecycle_contract.py::TestMemoryBootSurfacing (parametrized over both backends) — empty pool surfaces nothing, index reaches the managed output, only summary (never body) surfaces, and a memory added after first sync only reaches output on the next regeneration (proves the backend path, not a one-off write).

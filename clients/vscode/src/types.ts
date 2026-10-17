@@ -142,6 +142,7 @@ export interface SqCollectionCatalogEntry {
 /** The identity fields the client reads from a `sq role list --json` / `sq operator list --json`
  * row. `pronouns` is the resolved string, `null` when unset, and absent on an older `sq`. */
 export interface SqRosterIdentity {
+  readonly id?: string;
   readonly slug: string;
   readonly pronouns?: string | null;
 }

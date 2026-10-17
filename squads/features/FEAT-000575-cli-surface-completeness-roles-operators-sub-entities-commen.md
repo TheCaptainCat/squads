@@ -177,7 +177,7 @@ F7: no bundled designer/UX role today; dev add requires a coding --tech. Track t
 #### Discussion
 
 <!-- sq:story:US6:discussion -->
-- [2026-07-23T13:22:23Z] Catherine Manager:
+- [2026-07-23T13:22:23Z] `manager` Catherine Manager:
   - Cancelled: F7 (designer/UX role) is resolved by FEAT-543's custom non-dev roles + the FEAT-574 docs pointer — no bundled role or dev-add path to build.
 <!-- sq:story:US6:discussion:end -->
 <!-- sq:story:US6:end -->
@@ -186,6 +186,6 @@ F7: no bundled designer/UX role today; dev add requires a coding --tech. Track t
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T08:40:50Z] Catherine Manager:
+- [2026-07-23T08:40:50Z] `manager` Catherine Manager:
   - FEAT-575 Done: sq role list, sq operator list, sq <type> <n> comments, add-* body parity, and a guarded sub-entity remove (marker-safe remove_section + atomic remove_block with dangling-story refusal). Reviewed REV-632 (Approved; remove correctness + store._log + json fidelity verified, F1/F2 nits fixed). Full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

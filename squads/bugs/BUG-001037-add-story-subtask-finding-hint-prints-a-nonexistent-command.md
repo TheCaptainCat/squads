@@ -45,6 +45,6 @@ Found in the docs audit (REV-1032 asides).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T12:24:01Z] Catherine Manager:
+- [2026-10-16T12:24:01Z] `manager` Catherine Manager:
   - Duplicate of BUG-1000 (same defect: the add-<kind> body hint names a command that does not exist). Cancelled; the fix lives on BUG-1000, which covers add-story, add-subtask and add-finding.
 <!-- sq:discussion:end -->

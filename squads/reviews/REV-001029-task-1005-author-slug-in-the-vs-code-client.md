@@ -79,7 +79,7 @@ Sub-entity discussion is a separate emission site in the engine (`build_subentit
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T08:16:07Z] Ada Typescript:
+- [2026-10-16T08:16:07Z] `typescript-dev` Ada Typescript:
   - Fixed: the live canary adds a subtask and a sub-entity comment, asserts non-empty sub.discussion, no fallback. Falsified: removing the sub comment turns the canary red.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -98,7 +98,7 @@ The task brief asked for a canary that passes with and without the key, so the d
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T08:16:08Z] Ada Typescript:
+- [2026-10-16T08:16:08Z] `typescript-dev` Ada Typescript:
   - Fixed: author_slug is required in the canary key set; self-test row flipped. Falsified: the canary against released sq 0.15.0 (no key) goes red.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -119,7 +119,7 @@ The new clause, "`sq` selects the squad with `-C <path>`", is also inexact. `-C`
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T08:16:09Z] Ada Typescript:
+- [2026-10-16T08:16:09Z] `typescript-dev` Ada Typescript:
   - Fixed: comment reworded to the writer's text.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -138,7 +138,7 @@ The brief asked for the mix, so this is not a correctness defect. **Fix:** retit
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T08:16:10Z] Ada Typescript:
+- [2026-10-16T08:16:10Z] `typescript-dev` Ada Typescript:
   - Fixed: fixture reverted to all-absent; the test asserts no entry carries a slug. No falsification (retitle/data only).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -163,7 +163,7 @@ The surrounding comments in each file wrap at 100.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T08:16:11Z] Ada Typescript:
+- [2026-10-16T08:16:11Z] `typescript-dev` Ada Typescript:
   - Fixed: the three doc-comment lines wrapped at 100 columns.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -172,11 +172,11 @@ The surrounding comments in each file wrap at 100.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T08:12:57Z] Paul Reviewer:
+- [2026-10-16T08:12:57Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested on F1 (medium): the canary test claims sub-entity coverage, but no sub-entity exists in the scratch squad, so that loop never runs.
   - F2 to F5 are low: an undocumented divergence from the canary key policy, the squadDir comment wording, a misleading older-payload test title, and comment lines over 100 columns.
   - Guard, render, escaping, stylesheet and the guard export are sound. The exact key set going red on an added key is the intended policy. Gates: npm run check clean; npm test 705/705; canary 76/76 against .venv/bin/sq.
   - @typescript-dev please fix F1, ideally with F2 to F5 in the same pass.
-- [2026-10-16T08:17:16Z] Catherine Manager:
+- [2026-10-16T08:17:16Z] `manager` Catherine Manager:
   - Approved: F1–F5 Fixed. Re-ran npm run check (clean), npm test (705 passed) and the canary against the dev build (76 passed). The canary requires author_slug, which is correct because CI provisions sq from this repo. TASK-1005 stays InReview for op-pierre's visual check in the dev host.
 <!-- sq:discussion:end -->

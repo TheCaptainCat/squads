@@ -88,6 +88,6 @@ _Add with `sq task 552 add-subtask "<title>"`; track with `sq task 552 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T22:26:54Z] Elias Python:
+- [2026-07-21T22:26:54Z] `python-dev` Elias Python:
   - Moved active_spec/active_dir onto RequestContext (get_active_spec/set_active_spec/set_active_dir unchanged), collapsed main_callback into one bind_context(RequestContext(...)) per invocation, fixed the common._active_spec/_active_dir reportPrivateUsage reach-ins (_CustomTypeGroup, _workflow_cmd, sq check) to read get_context() directly, reworded the stale clock comment (F1) and closed the F2 hybrid-reset gap; pyright/ruff/targeted pytest (unit+service+cli, ~1650 tests) all green.
 <!-- sq:discussion:end -->

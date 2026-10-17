@@ -223,7 +223,7 @@ the `mine_manager` golden diff is additive.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-08-03T09:04:52Z] Elias Python:
+- [2026-08-03T09:04:52Z] `python-dev` Elias Python:
   - Landed: mine now surfaces sub-entity-only assignments via Service.mine (visibility follows whichever match is open); mine --json carries additive matched_subentities. Table-driven visibility matrix + falsification in tests/service/test_subentity_aware_assignment_views.py. Golden mine_manager updated additively.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -253,7 +253,7 @@ diff is additive.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-08-03T09:05:06Z] Elias Python:
+- [2026-08-03T09:05:06Z] `python-dev` Elias Python:
   - Landed: Service.workload adds separate additive subentity_open/subentity_closed/subentity_total keys; existing open/closed/total untouched. An actor owning both a parent and its sub-entity is counted once in each set (falsified: folding them together broke the independence test).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -282,7 +282,7 @@ distinguishable from it; the `inbox_manager` golden diff is additive.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-08-03T09:05:15Z] Elias Python:
+- [2026-08-03T09:05:15Z] `python-dev` Elias Python:
   - Landed: inbox attributes each hit to the region it matched, reusing search's <kind>:<local_id>:discussion#<n> locator; item-level hits keep region=null. Additive 'regions' key alongside the existing 'lines'. Falsified by nulling the region-detection branch; the new cross-kind attribution test went red.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -313,7 +313,7 @@ at least story/subtask/finding; `feature_show` and `task_show` golden diffs are 
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-08-03T09:05:25Z] Elias Python:
+- [2026-08-03T09:05:25Z] `python-dev` Elias Python:
   - Landed: build_subentity_json (src/squads/_cli/_common.py) is the one shared shape-building function; build_item_json now calls it per sub-entity, adding an additive discussion array (author/ts/body, same order as the item-level one) generic across story/subtask/finding. Fixes BUG-727. Falsified by zeroing the discussion field; the discussion tests went red.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -341,7 +341,7 @@ parent item's `show --json`; a golden pins it; a nonexistent local id still fail
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-08-03T09:05:33Z] Elias Python:
+- [2026-08-03T09:05:33Z] `python-dev` Elias Python:
   - Landed: sq <type> <n> <kind> <k> show --json (generic, spec-driven, no per-kind branch) built from the same build_subentity_json path as ST4, so the two payloads cannot drift. A test asserts byte-for-byte equality against the item payload's matching subentities entry across story/subtask/finding; a nonexistent local id still fails cleanly (existing _find error).
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -350,14 +350,14 @@ parent item's `show --json`; a golden pins it; a nonexistent local id still fail
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T07:59:47Z] Olivia Lead:
+- [2026-08-03T07:59:47Z] `tech-lead` Olivia Lead:
   - One task, five sub-entity-aware read surfaces: mine, workload, inbox attribution, sub-entity discussion in the item JSON payload, and a standalone sub-entity --json. Same owner, same shipping increment, and the sub-entity JSON shape must be decided once — hence one task, not five.
   - Three open design questions in the body (mine cross-status visibility, workload granularity, inbox semantics) need a product-owner ruling; the inbox premise in the parent feature is off — inbox already detects sub-entity mentions, it just cannot say which sub-entity. @product-owner
-- [2026-08-03T08:10:14Z] Olivia Lead:
+- [2026-08-03T08:10:14Z] `tech-lead` Olivia Lead:
   - Subtasks mapped ST1-ST5 to US1-US5. The three rulings are folded into the body: mine visibility is now per-match with both directional cases spelled out (reusing spec.hidden_by_default at sub-entity granularity, not a new predicate), workload gets separate additive columns with the existing three unchanged, inbox stays attribution-only. The open-questions section is gone; acceptance is now numbered against US1-US5.
   - One residual the rulings did not cover, specified rather than left open: the matched-sub-entity key lists every sub-entity assigned to the slug with its status, even the settled ones — the visibility rule governs whether the row appears, not what the reason list contains. Say so if you read it the other way.
-- [2026-08-03T09:06:07Z] Elias Python:
+- [2026-08-03T09:06:07Z] `python-dev` Elias Python:
   - All five subtasks done, mapped 1:1 to US1-US5. Falsification per behaviour, table-driven visibility matrix (parent-status x sub-entity-status x which-side-assigned), goldens regenerated additively (mine_manager, workload, inbox_manager, feature_show, task_show, + new subtask_st1_show). Gates green: pyright/ruff/ruff-format/tests-meta. Leaving InProgress for your review.
-- [2026-08-03T14:36:59Z] Catherine Manager:
+- [2026-08-03T14:36:59Z] `manager` Catherine Manager:
   - Review approved (REV-734), all five subtasks Done, full suite green at 2950 passed. Closing on delegation: non-visual work, reviewed and independently verified.
 <!-- sq:discussion:end -->

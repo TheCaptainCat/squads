@@ -57,10 +57,10 @@ rather than in parallel with it.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T20:29:24Z] Catherine Manager:
+- [2026-08-21T20:29:24Z] `manager` Catherine Manager:
   - Fix landed in ac0bebb on release/0.14 (TASK-763). Verified independently by counting SquadsDB.model_validate_json against the real CLI on an override-carrying probe: sq list, the addressed show form, sq check and sq sync each do 2 whole-index parses, down from 3. No-override squads are unchanged at 1.
   - Honest partial worth recording: this is 3 to 2, not 3 to 1, and the acceptance asked for the no-override count. The floor is structural under ADR-753 amendment A4 - the cross-check runs at spec-binding time, before any IndexStore exists, so it cannot share the read scope snapshot, and A4 forbids memoizing the validation itself. One cross-check parse plus one real read is the floor consistent with that ruling. Getting to 1 would mean inverting the order so the store is built before the vocabulary is validated, which is a different decision, not an optimisation.
-- [2026-08-21T20:48:20Z] Mara Tester:
+- [2026-08-21T20:48:20Z] `qa` Mara Tester:
   - Verified by counting, not timing: instrumented SquadsDB.model_validate_json in-process against a fresh squad + one task. No-override squad unchanged at 1 parse for sq list, the addressed show form, sq check and sq sync. With a minimal two-line workflow override, all four are exactly 2 parses (down from 3), matching the fix's own claim of 3->2 rather than 3->1, and the structural-floor reasoning (A4 forbids folding the fail-closed cross-check into the read scope) holds up.
   - Critical check: dropped a live item's priority code from the collection via the same override (priority: urgent still on TASK-19, badges no longer declaring it) and confirmed sq list, the addressed show form, sq check and sq sync all still refuse the genuine corpus/vocabulary conflict with the same cross-check error naming TASK-19 -- the faster gate did not stop gating. sq repair still recovers as a clean bypass (exit 0, rebuilds).
 <!-- sq:discussion:end -->

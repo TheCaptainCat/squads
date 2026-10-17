@@ -240,7 +240,7 @@ Prove every consumer named in this task's Acceptance #1 unaffected or correctly 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T14:04:40Z] Elias Python:
+- [2026-09-04T14:04:40Z] `python-dev` Elias Python:
   - Handoff — TASK-923 implemented, all 6 subtasks Done. TASK-923 itself left InProgress per scope (only subtasks transitioned).
     
     **ST2, resolved before writing the rest — shape (2) from the task body, corrected.** Not "resolve_source keyed on the skill's own slug" verbatim, but ADR-880's third amendment landed the equivalent: _resolve_playbook_source's implicit target corrected via a new `_playbook_subject(item, spec)` helper. Gated on `item.type == ROSTER_SKILL`; ungated, it falls back to the host's own type. Composed from a new `item_type_for_skill_slug(slug, spec)` in `_interactions/__init__.py` (the inverse of `item_skill_name`, built over the same enumeration `active_skill_slugs` uses) rather than re-deriving the inversion in `_views.py`.

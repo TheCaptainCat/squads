@@ -65,9 +65,9 @@ ADR-984 decision 2 (the template is read from the catalog the squad resolves) is
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-11T20:18:25Z] Mara Tester:
+- [2026-10-11T20:18:25Z] `qa` Mara Tester:
   - Verification scope, per the operator's ruling in the MILE-934 discussion (2026-10-11): a developer's model stays as stored at `sq dev add` (ADR-984 as written). The retirement therefore fixes the colour half of this bug only. The model half (a later `[dev]` model change never reaching an existing developer) is behaviour by decision, not a defect. When verifying against FEAT-986, check the colour and do not fail the bug on the model.
-- [2026-10-16T21:04:04Z] Mara Tester:
+- [2026-10-16T21:04:04Z] `qa` Mara Tester:
   - Verified fixed (colour half, per the 2026-10-11 scope ruling) on release/0.16 HEAD 5918fb49. Driven in scratch squads with [dev] model=haiku, color=pink, capabilities=["x"].
   - 0.15.0: dev add rust gives haiku/pink; after sync colour is green (bug reproduced).
   - Dev build, fresh squad: dev add go gives haiku/pink; pink survives sync, repair, and a later dev add + sync (go and rust both pink). sq role go-dev show prints model, color and capabilities from the override.

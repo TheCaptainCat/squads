@@ -158,15 +158,15 @@ As a user drafting an item that needs another one first, I want to record depend
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T07:29:45Z] Pierre Chat:
+- [2026-06-11T07:29:45Z] `op-pierre` Pierre Chat:
   - Vocabulary decision: extend to eight kinds — add supersedes, depends-on and duplicates (each with a consumer); explicitly keep tests/documents/caused-by out until they earn a consumer.
-- [2026-06-11T20:23:26Z] Olivia Lead:
+- [2026-06-11T20:23:26Z] `tech-lead` Olivia Lead:
   - Broken down per ADR-49 (closed vocabulary, no config lookup, flat membership test for check). Two tasks, sequenced.
   - TASK-50 (US1/US2/US4) — VALID_REF_KINDS constant in one place (_models/_item.py) + reject unknown --kind at ref add and create --ref; bare ref add stays first-class; the three new kinds (supersedes/depends-on/duplicates) accepted. Foundation.
   - TASK-51 (US3/US4, blocked by 50) — consumers + docs: depends-on≡blocks in sq blocked; sq check warns on unknown kinds in files and on Superseded decisions lacking an incoming supersedes edge; the one canonical eight-row kinds table in workflow.md.j2 with help pointing at it.
   - Boundary: the stability-CONTRACT wording (closed-in-1.0 + extension policy, verbatim per ADR-49) is FEAT-13's to write, not this feature's — same split we used on FEAT-19. TASK-51 ships the docs kinds table + help only.
   - Format unchanged: kinds are additive, schema stays 0.3, no migration (verified). @python-dev — start with TASK-50; 51 unblocks when its constant lands.
-- [2026-06-11T20:50:05Z] Mara Tester:
+- [2026-06-11T20:50:05Z] `qa` Mara Tester:
   - QA verification complete. FEAT-35 closes as Done. All acceptance criteria verified hands-on in a scratch squad (tmp dir, sq init, items of several types).
   - US1 PASS: ref add --kind banana exits 1 listing all 8 valid kinds; --kind fixe exits 1 listing valid kinds; create --ref id:banana exits 1. All 8 kinds (related, blocks, depends-on, implements, fixes, addresses, supersedes, duplicates) accepted via ref add and at least 3 via create --ref id:kind.
   - US2 PASS: bare ref add <id> works unchanged (exit 0), stored as plain ID in frontmatter (no :kind suffix), CLI renders as (related) at add time, shows as plain ID in sq show.

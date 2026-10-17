@@ -45,6 +45,6 @@ _Add with `sq task 559 add-subtask "<title>"`; track with `sq task 559 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T23:33:03Z] Ada Typescript:
+- [2026-07-21T23:33:03Z] `typescript-dev` Ada Typescript:
   - QuickPick command wired (package.json + searchQuickPick.ts), domain/searchRunner.ts (debounce+last-wins) and domain/searchResults.ts (hit mapping) pure/unit-tested; accept + filter-args left as explicit seams for TASK-560/561. Gates green.
 <!-- sq:discussion:end -->

@@ -297,16 +297,16 @@ row fails against a discrimination built on raw equality alone.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T18:13:55Z] Olivia Lead:
+- [2026-08-25T18:13:55Z] `tech-lead` Olivia Lead:
   - Authored from ADR-775 A4. Verified both surfaces myself: skew_message at _itemfile.py:251-260 and the sq check finding at _services/_maintenance.py:215-227 (_drift_message), produced by _value_skew_issue at :230-260 which calls frontmatter_skew verbatim so check reports exactly what the write seam refuses on. Both consume the same list of diverging keys, so they move together or they disagree.
   - One correction to A4 stated test, driven in-process rather than argued. A4 says the two cases separate on whether the RAW disk value already equals the index, with the legacy extra.ref_kinds map falling on the differs-raw side. It does not: the round trip pops ref_kinds out of extra, so extra never reaches the diverging list at all - only refs does, and its raw value equals the index. I drove three states; the raw-equality test gets the stale-encoding and hand-edit rows right and misclassifies the legacy-map row as normalisation, which is the one thing A4 says it must not be.
   - ST1 names the remedy shape rather than inventing one: _invented_timestamps (_itemfile.py:240-248) already reads the raw frontmatter before the round trip, on the stated ground that once a value is invented the two cases are indistinguishable. A key whose fold drew on information from another raw key is the same shape. The acceptance makes the legacy-map row load-bearing, so a suite that omits it cannot pass a naive implementation.
   - @architect flagging the gap rather than encoding around it quietly - the separability claim in A4 holds, but not on the raw-equality test alone. Nothing else in A4 changes: the refusal stands, no manual clause, no release note.
-- [2026-08-25T18:19:53Z] Robert Architect:
+- [2026-08-25T18:19:53Z] `architect` Robert Architect:
   - A4 corrected in place - your middle row was right and the reasoning it contradicted is withdrawn. Drove the same three states in-process and reproduced your table exactly: the legacy-map row gives diverging refs with raw equal to the index, so the raw-equality test alone classifies it as a normalisation difference when it needs repair. The reason A4 got it wrong is the one you named - _read_extra pops ref_kinds before the comparison, so extra never reaches the diverging list and only refs does, with the kind having lived in a different key.
   - The corrected rule now in A4: a diverging key is a normalisation difference only when its raw on-disk value equals the index AND the round trip produced that value from that raw key alone. When the fold drew on a second raw key the difference is information-adding and needs repair - and raw equality on the folded key is exactly what makes that case look innocent, because the round trip consumes the key carrying the information and discards it.
   - Your _invented_timestamps citation is now the precedent A4 rests on, with the point sharpened: the raw side must be consulted for every input the round trip drew on, not only for the key that ends up diverging. ST1 acceptance is unchanged and still correct as written - nothing in the ruling moves the task, it just means the decision no longer states a test that misclassifies your load-bearing row.
-- [2026-08-25T21:12:38Z] Elias Python:
+- [2026-08-25T21:12:38Z] `python-dev` Elias Python:
   - SkewKey(name, stale_encoding) added to _itemfile.py; frontmatter_skew now returns list[SkewKey], classified at the site via raw-equality plus a second-raw-key check (_drew_on_second_raw_key, refs-only today: non-empty raw extra.ref_kinds means the fold drew on a second key).
   - stale_encoding_clause() is the one shared explanation string; skew_message and _maintenance._drift_message both split diverging keys into diverged/stale, keep today's wording verbatim for diverged, and append the shared clause for stale — mixed items report both, never conflated.
   - Verified naive raw-equality alone misclassifies the legacy-map row (drove it directly: raw refs equal, stale_encoding=True) vs the corrected discriminator (False, needs repair) — matches A4's correction.
@@ -314,7 +314,7 @@ row fails against a discrimination built on raw equality alone.
   - Updated tests/unit/test_absent_frontmatter_timestamp_is_not_a_skew.py for the new return type (list[SkewKey]).
   - pyright/ruff clean on my files; targeted tests green (tests/service/test_frontmatter_skew_guard.py, test_check_reports_frontmatter_index_value_skew.py, test_default_ref_kind_encoding_convergence.py, bulk import/rename skew tests, meta from_frontmatter enumeration — 726 total across those runs). sq check clean. Did not touch _overrides/, gen_template_manifest.py, or tests/meta/ (TASK-801's territory).
   - Moving to InReview.
-- [2026-08-25T21:37:07Z] Elias Python:
+- [2026-08-25T21:37:07Z] `python-dev` Elias Python:
   - Fixed the stray-ticket-reference guard failures: removed all 6 ADR-775 citations (src/squads/_itemfile.py:186,224,235,321; src/squads/_services/_maintenance.py:223; tests/.../test_stale_index_encoding_reported_as_such.py:1), plus a REV-808 F3 citation the guard's docstring/name scan also caught in the new test file, none flagged by the earlier targeted run since it did not include tests/meta.
   - Every docstring now cites the rule by content: stale-encoding-versus-divergence, the two raw-key discriminator, raw equality alone being insufficient. No behavior changed.
   - tests/meta run in full this time (227 passed) plus the earlier targeted skew/drift/ref_kind/frontmatter sweep re-run (670 passed). pyright/ruff clean, sq check clean.

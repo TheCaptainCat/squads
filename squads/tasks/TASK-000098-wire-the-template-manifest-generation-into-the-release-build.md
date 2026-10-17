@@ -39,7 +39,7 @@ _Add with `sq task 98 add-subtask "<title>"`; track with `sq task 98 subtask <n>
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-14T20:21:24Z] Hugo Ops:
+- [2026-06-14T20:21:24Z] `devops` Hugo Ops:
   - Wired the template-manifest generation into the release/build process. Here is what changed:
   - **gen_template_manifest.py — added `--check` mode.** The script now accepts `--check` as a flag. Write mode (default) behaves exactly as before. Check mode verifies the manifest is current for the running version without writing — exits 0 if fresh, exits 1 with a clear per-template error message if the manifest is missing, stale, or covers different templates. Exit-code contract in the docstring updated to match.
   - **publish.yml — manifest regenerated before `uv build`.** Added `uv sync --frozen` (needed to resolve scripts/), then `python scripts/gen_template_manifest.py` (write mode) before `uv build`. On a release tag push the manifest is guaranteed to be current when the wheel is assembled.

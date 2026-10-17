@@ -254,7 +254,7 @@ sweep test that runs at an already-carried version is the leg the guard is missi
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-08-25T23:01:59Z] Robert Architect:
+- [2026-08-25T23:01:59Z] `architect` Robert Architect:
   - Ruled. F1 upheld at high; ADR-777 amended in place (D1-D7). C1 sweep withdrawn: the generator steady state never deletes again, A6 never-deletes stands as written.
   - The premise is not repairable where the sweep runs. From inside the working tree, "an entry for V names hashes this run no longer names" describes an unreleased V scratch revision and a released V shipped revision identically - only publication separates them, and that is not in the tree. So scoping the sweep to blobs the run itself orphaned removes nothing (those ARE the shipped ones), and refusing an existing-and-differing entry refuses the ordinary dev loop. Published is the right discriminator, the generator is the wrong actor: a rule answering off the local tag list gives different answers per clone and fails unsafe when it cannot see a tag.
   - D3: the store is a DERIVED artifact - every hash the index names, resolved to its content, a total function of index + tags + tree. Driven on a clone: after a regeneration at 0.9.0 destroyed 3 blobs and rewrote 11 of 29 hashes, seed_content_store.py ALONE reproduced both documents byte-identically vs branch head (git diff empty), printing every correction. So removal is a rebuild from ground truth, owned by the one git-reading step A1 already sanctions - all-or-nothing, a missing tag is a refusal that deletes nothing, never a skip.
@@ -263,7 +263,7 @@ sweep test that runs at an already-carried version is the leg the guard is missi
   - D6, coverage owed, stated so it cannot pass at the running version: the fixture takes its version as a PARAMETER and asserts it differs from the repo - that clause is what makes the rest non-vacuous. Then a case at a version the copied index already carries with hashes differing from the copied tree; a case that damages, applies the documented recovery, and asserts the whole index resolves; and a --check failure for a hash missing from a HISTORIC entry.
   - D4: an orphan-free store is a property of the release artifact, not the working tree. Your diagnosis in C1 was right - a guard with no discharging action becomes a problem - the error was giving the generator the deletion instead of moving the assertion where it is true. Between releases orphans are dev residue; the rebuild at the cut clears them; A4 ceiling measured on the rebuilt store.
   - Leaving F1 Open - not fixed until the work lands. @tech-lead for the tasks: generator sweep removal + --check widening, the rebuild mode and its refusal, the release gate, and the D6 fixture parametrisation. Repo state today: 85 blobs, 85 referenced, 0 unresolvable, 0 orphans, manifest and store clean vs git - exposed, not damaged, and the window opens the moment 0.14.0 is tagged.
-- [2026-08-25T23:11:01Z] Olivia Lead:
+- [2026-08-25T23:11:01Z] `tech-lead` Olivia Lead:
   - Authored as TASK-822 (Ready, urgent, python-dev, FEAT-791 US1) — "Rebuild the content store from ground truth and retire the sweep". Five subtasks: withdraw the sweep, the rebuild and its all-or-nothing refusal, the whole-index --check widening, the orphan assertion moving to the release gate, and the D6 fixture parametrisation.
   - Verified every cited line before writing. The sweep at gen_template_manifest.py:186-193 with its argument restated at :19-24 and :27-29; _check_mode binding recorded = manifest[version] at :127 so coverage is one entry, with the orphan scan at :147-152 detecting extra rather than missing and the success line at :161 claiming more; the sweep_tree fixture copying pyproject.toml verbatim at :328-330 and _run_write_mode reading _current_version() at :352-355.
   - Repo state confirmed independently: 16 indexed versions, 85 blobs, 85 referenced, 0 unresolvable, 0 orphans, no diff vs git, v0.14.0 untagged. One extra fact that shapes ST2 and is not in the ruling — all 15 non-running indexed versions are tagged locally and only 0.14.0 is not. So the happy path is reachable today, and the seeders existing skip at :145-149 is correct for exactly one version and is the forbidden skip for every other. The discriminator is stated on the subtask rather than left to be inferred.
@@ -324,7 +324,7 @@ true of the service layer and not of the CLI layer, and the distinction is exact
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-25T23:03:17Z] Olivia Lead:
+- [2026-08-25T23:03:17Z] `tech-lead` Olivia Lead:
   - Triaged to TASK-818 (Ready, FEAT-791 US5). Its own task, not a rider: this is the guard that passed an unreachable kind, so it is not something to fold into a task about the kind it missed.
   - CLI reachability becomes the fifth element. The evidence is direct — roles satisfied all four service-level parts and was still unreachable from the command line, and the guard drives the service layer one layer below where the gap was. Reachability also has to assert the resolved kind, not just exit 0: roles would have mis-routed to template.
   - The kind set is derived from scan_overrides rather than pinned to the OverrideEntry.kind comment. Pinning one hand-written list to another does not detect a kind absent from both. Deriving the per-kind registry in _overrides/_service.py is out of scope — that is a service refactor, not a guard fix.
@@ -384,7 +384,7 @@ when the unknown slug is one `[selected]` removed.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-25T23:03:30Z] Olivia Lead:
+- [2026-08-25T23:03:30Z] `tech-lead` Olivia Lead:
   - Triaged to TASK-820 ST1 (Ready, FEAT-791 US3). Verified: all three raise sites say "Invalid bundled role catalog" and _validate/_build_catalog run on the merged mapping, so a [selected] deselect is reported against a document the adopter can open and disprove.
   - Accepted as ADR-775 A4 applied one axis over — a refusal may not assert a cause the reader can disprove. Two more gaps carried into the task: the message names no file at all, and it never mentions [selected], the mechanism that caused it. The floor doing the work with no deselect-specific guard stays; only the diagnosis changes.
   - Acceptance includes the inverse leg: a genuinely invalid bundled catalog must still say bundled. Carrying the origin, not swapping one wrong document name for the other.
@@ -434,7 +434,7 @@ the closure without the compensation the decision traded for it.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-08-25T23:03:31Z] Olivia Lead:
+- [2026-08-25T23:03:31Z] `tech-lead` Olivia Lead:
   - Triaged to TASK-821 (Ready, FEAT-791 US4).
   - Pre-existing debt, not new. _unknown_key_violations landed in 2f8b1ab (2026-08-15), before this range begins, and squads.__version__ has never appeared in _specmerge.py. What is new is the promise: the roles catalog work applied the shared refusal to a fifth key space and wrote the naming-the-version acceptance clause against it without adding it.
   - Scoped at the shared helper rather than the roles layer, so one message change discharges the clause for role, roles catalog, workflow and playbook at once. Confirmed squads/__init__.py imports nothing internal, so importing __version__ into _specmerge.py introduces no cycle.
@@ -492,7 +492,7 @@ naming a forbidden identifier, and add the resolves-in-`_models._item` pin.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-25T23:03:33Z] Olivia Lead:
+- [2026-08-25T23:03:33Z] `tech-lead` Olivia Lead:
   - Triaged to TASK-819 ST1 (Ready, FEAT-790 US2). Verified: _imported_forbidden_names walks ast.ImportFrom only; an aliased ImportFrom is caught and a module import plus attribute access is not.
   - Grouped with F9 rather than left with the guard that re-derived it, because F5s secondary half and F9s second bullet are the same one-line pin in the same file — two tasks would have put two developers in tests/meta on the same lines. TASK-809 is linked as related.
   - Acceptance requires a no-false-positive leg: a migration module importing squads._models without naming a forbidden attribute must stay unflagged, or the next author suppresses the guard.
@@ -545,7 +545,7 @@ The scaffold path emits no field values today, so the visible consequence is con
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-25T23:03:44Z] Olivia Lead:
+- [2026-08-25T23:03:44Z] `tech-lead` Olivia Lead:
   - Triaged to TASK-820 ST3 (Ready, FEAT-791 US3). Folded in with F3 and F7 rather than given its own task: all three land in _roles/ and _overrides/_service.py, and splitting them puts two developers in the same file.
   - One correction to the finding, carried into the subtask: the three call sites are not uniform. _cli/_role.py:265 and _overrides/_service.py:1450 do have squad_dir in hand, but :882 sits inside _shadowed_bundled_role_toml(slug), which takes none — its callers are _diff_role (has one) and _role_override_shadows_bundled (has none), so threading there means changing signatures. Also flagged: the same functions bundled branch calls role_by_slug(slug), equally un-threaded; the subtask asks for a stated in-or-out call rather than a silent one.
 <!-- sq:finding:F6:discussion:end -->
@@ -592,7 +592,7 @@ Also stale for the same reason: `_overrides/_service.py:1290-1293`'s reference t
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-08-25T23:03:45Z] Olivia Lead:
+- [2026-08-25T23:03:45Z] `tech-lead` Olivia Lead:
   - Triaged to TASK-820 ST2 (Ready, FEAT-791 US3). Verified both halves: _cli/_override.py now matches roles at :172, :326-327 and :444-445, and the sibling kinds all name their own object (_workflow/_loader.py:1069,1076; _overrides/_service.py:1397-1398) while roles names the bulk form.
   - One citation I could not confirm: the second stale reference at :1290-1293. That range is check_override_issues docstring on the dev_base_for_slug roster fallback and reads accurate to me — no "split" reference anywhere in the file. Scoped the subtask to the one instance I verified at :1237, plus a grep sweep for the same claim shape.
 <!-- sq:finding:F7:discussion:end -->
@@ -642,11 +642,11 @@ the supersession clause is — not back in a hand-written row.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-08-25T23:04:01Z] Olivia Lead:
+- [2026-08-25T23:04:01Z] `tech-lead` Olivia Lead:
   - Reasoning. Verified the loss: the clause lived at workflow_static.md.j2:103 as "; A is usually closed as {{ dropped or \"dropped\" }}", spec-resolved through spec.first_dropped_status, and went when the Meaning column became the declared hint verbatim. The two clauses that survived survived because they describe engine bindings the spec declares as semantic roles — supersession keys sq checks rule, the dependency pair keys sq blocked. duplicates has no binding, so the derived line has nothing to key off.
   - The spec offers exactly two homes and both are wrong. A declared hint would hardcode Cancelled into spec data an adopter may have renamed or dropped — the same defect TASK-816 is removing from the targets hint this release, in the same table. A new duplication semantic role would declare a semantic the engine binds nothing to, which widens ADR-775s [ref_kinds] contract; that is the architects call, not a triage call on a low finding, and the Consumer column would have to render it as Navigation, i.e. a role whose consumer is no consumer.
   - So the generated table keeps the loss, which is the price of the table being generated — a hand-written row cannot describe an adopter-declared kind, and that was the point of the rewrite. The guidance is real, though, so it is restored where naming a bundled kind by name is legitimate because the bundled set is the subject: docs/workflow.mds ref-kinds field reference, which TASK-815 is already creating. Stated there as a convention nothing enforces, with Cancelled named as this squads bundled status rather than a universal.
-- [2026-08-25T23:04:23Z] Olivia Lead:
+- [2026-08-25T23:04:23Z] `tech-lead` Olivia Lead:
   - Decision: the guidance does not go into the spec, and it does not go back into the generated cheatsheet. It is restored in the ref-kinds field reference in the docs — TASK-815 ST5 (Ready, tech-writer). Reasoning in the comment above.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -681,7 +681,7 @@ than three separate coincidences.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-08-25T23:04:24Z] Olivia Lead:
+- [2026-08-25T23:04:24Z] `tech-lead` Olivia Lead:
   - Triaged to TASK-819 ST2 and ST3 (Ready, FEAT-790 US2), together with F5 — F9s second bullet and F5s secondary half are the same pin in the same file, so they could not be split without a collision.
   - Verified both: _REF_KIND_LITERALS is a hand-typed frozenset of ten with no test pinning it to bundled_spec().ref_kinds, and _WIRE_ENCODING_PRIMITIVES has no resolution assertion. Taking your framing that this is one pattern rather than three coincidences — F2s derivation is the third instance and is tracked on TASK-818.
   - The ref-kind pin is specified as equality, not superset: a literal the spec no longer declares means the scan is guarding a name that does not exist while the real one goes unguarded.
@@ -692,12 +692,12 @@ than three separate coincidences.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T22:50:34Z] Paul Reviewer:
+- [2026-08-25T22:50:34Z] `reviewer` Paul Reviewer:
   - Recommended verdict: ChangesRequested on F1 alone. Everything else is a message, a docstring or a guard gap — none of it blocks the release. F1 is a data-loss path that opens the moment 0.14.0 is tagged, so it wants a decision before the tag, not after.
   - What I drove and what came back clean, so it is not re-driven: the ref-kind semantic binding (renamed dependency kind keeps sq blocked; retired name refused by name; renamed supersession kind refused while live refs carry it, naming the offending IDs in sq workflow lint); undeclared-kind edges traverse sq graph in both directions with edge_semantic null while --kind filtering still gates; the refrozen 0.5-to-0.7 runner reproduces the pre-structural byte table exactly on all six fixtures; the stale-index-encoding diagnosis discriminates correctly on all three states including the legacy extra.ref_kinds map, with the same wording at the write seam and in sq check.
   - Two things I could not test, both stated in the findings: whether the generator sweep has already destroyed store history in some other checkout (I only proved it can, in a copied tree), and the VS Code edge-label conversion from TASK-810 — that is a TypeScript suite I did not run, and its correctness turns on edge_semantic reaching the client, which I verified only on the Python side of the wire.
   - @tech-lead F1 needs an owner before the 0.14.0 tag. F2/F5/F9 are guard hardening and can ride any later pass. F3/F4 are adopter-facing message defects on a capability shipping this release, so they are worth catching now while the code is warm. Findings left Open — @manager the verdict transition is yours.
-- [2026-08-25T23:04:57Z] Olivia Lead:
+- [2026-08-25T23:04:57Z] `tech-lead` Olivia Lead:
   - F2 through F9 are triaged and authored. F1 is not mine — the architect is ruling it, and I left it and everything touching the generator sweep alone.
   - TASK-818 (FEAT-791 US5) — F2. The uniformity guard derives its kind set from scan_overrides and gains CLI reachability as a fifth element. Its own task, because it is the guard that passed an unreachable kind rather than a rider on the kind it missed.
   - TASK-819 (FEAT-790 US2) — F5 and F9. The migration guards import-form evasion, plus the two hand-maintained literal lists pinned to their sources. Grouped because F5s secondary half and F9s second bullet are the same one-line pin in the same file.
@@ -707,7 +707,7 @@ than three separate coincidences.
   - Three notes back on the citations, all recorded on the findings. F4 is pre-existing debt: _unknown_key_violations landed in 2f8b1ab on 2026-08-15, before this range begins, and squads.__version__ has never been in _specmerge.py — this round added the promise, not the defect. F6s "all three call sites have a squad_dir in hand" is not right for _overrides/_service.py:882, which sits inside _shadowed_bundled_role_toml(slug) — that takes none, and one of its two callers has none either, so threading means changing signatures. F7s second citation at :1290-1293 I could not confirm; that range is check_override_issues docstring on the roster fallback and reads accurate, and there is no "split" reference in the file.
   - F8 was the judgement call and it went against the spec: the two homes the spec offers are a hint that would hardcode a status an adopter may have dropped — the defect TASK-816 is removing from targets this same release — and a semantic role the engine binds nothing to, which is an architects call on ADR-775s contract. Full reasoning on the finding.
   - @reviewer nothing here needs re-driving; every citation verified. @manager F1 is still the only thing between this and the tag, and it is with the architect.
-- [2026-08-25T23:11:14Z] Olivia Lead:
+- [2026-08-25T23:11:14Z] `tech-lead` Olivia Lead:
   - F1 authored: TASK-822 (Ready, urgent, python-dev, FEAT-791 US1) — "Rebuild the content store from ground truth and retire the sweep", five subtasks covering the four workstreams @architect named. All nine findings are now triaged. Details on each finding.
   - One ordering edge found, and it is not the one I expected. TASK-818s guard work shares no written file with TASK-822 — 818 is test_override_kind_uniformity.py and only reads _overrides/_manifest.py, while 822 is the two scripts plus test_override_manifest_and_stamp_freshness.py — so no dependency there, just do not run them concurrently in one tree. The real edge is TASK-816: it regenerates the manifest, which is safe while 0.14.0 is untagged and becomes the exact destructive case if the tag lands first. Recorded on both, as a tag-day constraint rather than a blocking ref.
 <!-- sq:discussion:end -->

@@ -127,7 +127,7 @@ base_version_template_content is hash-only, so Δ-upgrade is unavailable for any
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T22:01:48Z] Paul Reviewer:
+- [2026-06-12T22:01:48Z] `reviewer` Paul Reviewer:
   - Verdict: APPROVED. Contract surface matches ADR-85 §3, FEAT-15 exit-code contract intact and tested both ways, marker safety holds, migrate proven not to touch .overrides/, suite green, build ships the manifest, manifest regenerates byte-stable and its hashes match the installed bundle.
   - Five non-blocking findings filed (2 medium, 3 low). No open high-severity findings — approval is clean. Recommend closing F1 (manifest-freshness guard test) and F2 (golden-pin override list/diff --json) before 1.0 since this is durable-contract surface; F3-F5 are polish/recorded-deferral. @python-dev these can be picked up as follow-ups, not a re-review gate.
 <!-- sq:discussion:end -->

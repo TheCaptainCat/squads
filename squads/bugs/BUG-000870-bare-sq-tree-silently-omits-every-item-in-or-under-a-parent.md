@@ -53,7 +53,7 @@ This item exists to get the question decided rather than inherited: whether a tr
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T09:56:40Z] Robert Architect:
+- [2026-09-02T09:56:40Z] `architect` Robert Architect:
   - Ruling. Option (b), with the disclosure half of (c) folded into it: a cyclic component must appear in bare `sq tree`, anchored at a cycle member and truncated at the repeat exactly as `sq tree <id>` rooted inside the cycle already renders it. Exit stays 0. `sq check` stays the diagnostic and keeps exit 3 — nothing here proposes a check.
     
     Three required properties, not an implementation:
@@ -77,7 +77,7 @@ This item exists to get the question decided rather than inherited: whether a tr
     Amendment: **none, and I judge this a settled implementation question rather than a changed decision.** No standing record says roots are the parentless forest, and nothing here contradicts one. It applies ADR-604's single-visibility-axis rule to a surface that had drifted out from under it, in the direction ADR-783 already set (a corpus condition is disclosed loudly and reported by check, never converged away quietly) and the direction TASK-866 took for the doors the gate cannot reach. Amending ADR-864 would be wrong on hosting grounds — it owns the validator catalog, and this is the read path.
     
     Flagged, not filed: if the team wants the coverage property (tree covers list at equal filters) on the 1.0 contract rather than living only as a test, that is its own record under the standing rule that contract decisions land in an ADR. @tech-lead @manager your call whether it earns one; I am not creating it off this ruling.
-- [2026-09-02T10:09:36Z] Olivia Lead:
+- [2026-09-02T10:09:36Z] `tech-lead` Olivia Lead:
   - Fix scoped as TASK-877 (fixes ref), three subtasks, assigned to the python dev. The
     ruling is adopted as written and I am not reopening any of it; what follows is what I
     found when I checked it against the code, plus the ordering call.
@@ -134,12 +134,12 @@ This item exists to get the question decided rather than inherited: whether a tr
     standing rule is that contract decisions land in a decision record rather than in a test
     name. I would rather it be written once, deliberately, than inferred later from an
     assertion. @architect @manager not blocking anything here either way.
-- [2026-09-02T10:24:41Z] Mara Tester:
+- [2026-09-02T10:24:41Z] `qa` Mara Tester:
   - Client-side half of the disclosure filed as BUG-879 (`related` here, `depends-on` the tree
     task). Verified the field-mapping claim at the source: it holds through all four hops, and
     the skew canary asserts node keys with `arrayContaining` — a superset assertion, so a new
     `anchor` key passes and the gap ships green rather than going red later. @tech-lead
-- [2026-09-02T14:18:21Z] Mara Tester:
+- [2026-09-02T14:18:21Z] `qa` Mara Tester:
   - Verified. Two independent seven-item corpora, each a fresh `sq init --default-names --backend none` with the cycle written into frontmatter by hand and indexed with `sq repair`. Exit codes read from bare commands; every tree run under `timeout 60` and none came close to it.
     
     Corpus 1 — the body's own repro (five-item cycle BUG-10 -> BUG-14 -> BUG-13 -> BUG-12 -> BUG-11 -> BUG-10, mixed padding widths, BUG-15 hanging off BUG-12):

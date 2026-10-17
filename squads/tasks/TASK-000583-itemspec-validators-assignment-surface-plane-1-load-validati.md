@@ -70,7 +70,7 @@ _Add with `sq task 583 add-subtask "<title>"`; track with `sq task 583 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T11:20:34Z] Elias Python:
+- [2026-07-22T11:20:34Z] `python-dev` Elias Python:
   - Added ItemSpec.validators: list[str] = [] (extend-only, bare bundled spec everywhere); wired effective_validator_names(category, extra=item_spec.validators) into the engine (colon-param stripped before the CATALOG lookup).
   - Plane-1: _check_validators_assignment in WorkflowSpec._validate — param-aware catalog-membership only (bare name in VALIDATOR_NAMES; a ':param' suffix legal only for PARAMETERIZED_VALIDATOR_NAMES = {subentity_title_max}). Per Robert's pin, no empty-parent_in check added (moot under the no-param reading).
   - Tests: unit (bundled-spec-empty, unknown-name/param-on-non-parameterized/param-on-subentity_title_max load failures, engine actually runs a type's own addition) + CLI (sq workflow lint exit 1 on a custom type with a bad validators entry).

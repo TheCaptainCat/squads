@@ -271,18 +271,18 @@ not yet an override kind" note are corrected to match what ships.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T13:38:47Z] Nina Product:
+- [2026-08-25T13:38:47Z] `product-owner` Nina Product:
   - Amendment reflected: US1 now carries the retention clause (seed-once to 0.4.0 floor from release tags, store's insert-if-absent/never-deletes write mode distinct from the index's wholesale replace, and the coverage-equals-index guard).
   - Uncarried-base acceptance extended into US2, not a new story — it's a mode of the same diff/drift work US2 already owns (silent classifier, sq override diff exits 0 with a partial Δ-upgrade from the earliest carried revision, never an sq check finding); US2's existing 'Δ-upgrade works whenever changed' line is narrowed to carried revisions to match.
   - Feature-level Shape/Acceptance updated to match (new store-retention bullet, narrowed + split diff acceptance line).
-- [2026-08-25T14:50:19Z] Olivia Lead:
+- [2026-08-25T14:50:19Z] `tech-lead` Olivia Lead:
   - Broken into three tasks. TASK-799 (US1+US2) widens the manifest to every overridable bundled artifact, adds the retained content store, and content-gates workflow/playbook/role drift including the uncarried-base path from the amendment. TASK-800 (US3+US4) gives the roles catalog a whole-document override and closes the role override key space. TASK-801 (US5) makes an unstamped shadowing override an error for every kind and adds the uniformity guard.
   - US1 and US2 are one task deliberately: same two files (_overrides/_manifest.py, _overrides/_service.py), one increment - the widening is inert without its consumers and the consumers cannot exist without it - so splitting them would only create a collision. TASK-800 is separable because it is the roles axis and touches none of the manifest surface. TASK-801 is last because its guard asserts a property of the whole registry, so it needs both the manifest entries from 799 and the catalog kind from 800.
   - TASK-799 is the FEAT-693 prerequisite named in ADR-776 section 7 and ADR-777 section 7: with workflow.toml outside the manifest, every adopter who declares a view is warned their override may be stale on every release, forever. It runs in parallel with FEAT-790 TASK-796 - disjoint files - and those two together are what FEAT-693 waits on.
   - Two operator rulings are stated in the task bodies so nobody reverses them mid-implementation: the exit-code tightening on TASK-801 (an unstamped shadowing template or role override becomes an error, exit 3, on an existing squad first run after upgrade - deliberate, not a regression), and the retention policy on TASK-799 (nothing pruned, seeded once back to the 0.4.0 floor, store write is insert-if-absent and never deletes, and the uncarried-base path is not an sq check finding at any severity).
-- [2026-08-25T15:49:56Z] Olivia Lead:
+- [2026-08-25T15:49:56Z] `tech-lead` Olivia Lead:
   - Added TASK-805 under US2: content-gate _workflow/_loader.py workflow_stamp_finding, which TASK-799 could not reach because _workflow/ was TASK-796 territory this pass. sq check, sq override list and sq override diff are gated correctly; sq workflow lint still warns on stamp age alone, which is the exact false positive the widening exists to remove. It also collapses the duplicate gated copy TASK-799 added in _overrides/_service.py, so the obligation has one implementation again.
   - Kept under this feature rather than folded into FEAT-790 TASK-797 because it implements US2 here; TASK-797 carries only FEAT-790 stories, so a subtask there could not be mapped to US2. The _workflow/ concurrency constraint is carried as a depends-on ref instead.
-- [2026-08-25T21:06:49Z] Olivia Lead:
+- [2026-08-25T21:06:49Z] `tech-lead` Olivia Lead:
   - Do not close this feature on the roles catalog document until TASK-814 lands. TASK-800 shipped the kind at the service layer - merge, scaffold, state classifier, both diff deltas - but the kind is not reachable from any sq override verb and the document does not apply to a role that has been activated, which is every role sq init creates. The stamp-obligation finding for it is TASK-801. US3 acceptance is met when all three are in, not when the resolver merges.
 <!-- sq:discussion:end -->

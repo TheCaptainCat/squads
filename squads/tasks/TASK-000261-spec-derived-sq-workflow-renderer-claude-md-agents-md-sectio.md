@@ -79,9 +79,9 @@ _Add with `sq task 261 add-subtask "<title>"`; track with `sq task 261 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T12:36:24Z] Catherine Manager:
+- [2026-06-30T12:36:24Z] `manager` Catherine Manager:
   - CARRY-FORWARD / known tripwire (from TASK-262, confirmed by Olivia's risk #2): linearize_lifecycle(review machine) yields 'Requested → InReview → ChangesRequested → Rejected (+ Approved)' — Approved is a SIDE state under the greedy-spine heuristic because Rejected is the first unvisited successor of ChangesRequested. But the hand-written PLAYBOOK string + the TASK-256 golden (goldens/skill_body_sq-review.txt) put Approved ON the spine. So the moment this task (and TASK-260) render the review skill/cheatsheet FROM the spec via the linearizer, the review golden BREAKS. Resolve EXPLICITLY, do not silently re-baseline: options — (a) tie-break the spine heuristic toward terminal-Approved-style happy paths; (b) reorder the review machine's transitions so the greedy spine picks Approved; (c) consciously accept the new canonical string and re-bless the golden WITH sign-off (it's a bundled-output change the golden exists to catch — needs explicit approval, not a silent update). Pick one in this wave.
-- [2026-06-30T21:46:19Z] Elias Python:
+- [2026-06-30T21:46:19Z] `python-dev` Elias Python:
   - @manager TASK-261 complete. Summary of what was built and how:
     
     **Files changed:**
@@ -118,6 +118,6 @@ _Add with `sq task 261 add-subtask "<title>"`; track with `sq task 261 subtask <
     
     **Notable concerns / FEAT-211 seam:**
     The renderer is intentionally minimal. workflow.md.j2 only renders the alias table from the spec — it does NOT render per-type lifecycle strings in a separate table (that would be FEAT-211 scope). The static sections are a literal include so FEAT-211 can insert lifecycle/status surfaces above or below them without touching the stability-contract prose. The spec object is passed end-to-end (CLI → template) so FEAT-211 can extend what gets rendered without architectural changes.
-- [2026-06-30T22:01:55Z] Catherine Manager:
+- [2026-06-30T22:01:55Z] `manager` Catherine Manager:
   - Review-machine change approved by op-pierre (accept as reconciliation, no ADR). Rationale on the record: the advertised review lifecycle string (playbook.toml, sq-review skill golden, test_playbook) always read 'Requested → InReview → ChangesRequested → Approved (+ Rejected)' — i.e. ChangesRequested → Approved as the happy path — but the machine forbade that transition (ChangesRequested = [InReview, Rejected]). Rendering the lifecycle FROM the machine surfaced the mismatch; the fix loosens the machine to permit what the docs always promised. Strict loosening, no test regressions, rendered goldens byte-identical. _SUBENTITY_PLURAL residual confirmed correctly deferred to FEAT-212 (which explicitly owns making the _SUBENTITY map spec-driven); not a FEAT-210 gap.
 <!-- sq:discussion:end -->

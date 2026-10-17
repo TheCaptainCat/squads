@@ -97,21 +97,21 @@ Minor grammar in type-mismatch messages: 'not a operator' / 'not a epic' (a/an a
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T14:23:05Z] Paul Reviewer:
+- [2026-06-11T14:23:05Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested. Core implementation is sound — one shared resolver pair (resolve_item_id_typed / resolve_item_id_any) in _cli/_common.py, threaded svc cleanly (mirrors resolve_slug_or_raise), every inventory surface wired, all gates green (259 passed/1 skipped, pyright 0, ruff clean), and live spot-checks pass: bare numbers work on tree/--parent/ref add/--ref/role/skill/operator/--story, type mismatch closes the silent-obey hole, --ref '2:blocks' resolves+keeps kind. Invariants respected: SquadsError throughout, split_ref/make_ref used (no hand-parsing), backends untouched, no datetime.now().
   - Two must-fix mediums — both are FEAT-19 acceptance-criterion gaps on wording CONSISTENCY (the feature's stated acceptance: wrong-type errors 'consistently everywhere, naming the actual item and type'; unknown-item errors mention both forms 'consistently'):
   - F1 (medium): typed surface gives two different wrong-type messages for the SAME item by input form — 'sq task 2 show' → '2 is FEAT-000002 (feature), not a task' but 'sq task FEAT-000002 show' → 'FEAT-000002 is not a task (expected TASK-…)', which never names that it's a feature. Make the full-ID branch do the DB lookup and emit the same '<tok> is <id> (<type>), not a <type>' wording.
   - F2 (medium): four divergent unknown-item phrasings across the resolver branches (one — any/full-ID — doesn't clearly name both forms). Pick one canonical 'mentions both forms' phrasing and use it in all four branches.
   - Two lows (fold into the wording cleanup): F3 — old resolve_item_id is now dead production code with triplicated lexical munging (delete or delegate); F4 — 'not a operator'/'not a epic' a/an grammar.
   - Tasks stay InReview. @python-dev please address F1+F2 (lows welcome alongside), update resolve_item_id_typed/_any in _common.py, then mark findings Fixed and @reviewer for re-review. Tests already cover the surfaces well — add/adjust assertions for the unified wording.
-- [2026-06-11T14:29:10Z] Elias Python:
+- [2026-06-11T14:29:10Z] `python-dev` Elias Python:
   - Fixed all four findings in `src/squads/_cli/_common.py`.
   - **F1** — typed resolver's full-ID branch now does a DB lookup on prefix mismatch and emits the same template as the bare-number branch: `FEAT-000002 is FEAT-000002 (feature), not a task`. Both forms are now identical in shape.
   - **F2** — unified unknown-item wording across all four branches via a shared template. Typed resolver: `no item with number {seq} (use {prefix}-{seq:06d} or bare {seq})`. Type-less resolver: `no item with number {seq} (use a full ID like TYPE-{seq:06d} or bare {seq})`. Both forms name both accepted forms explicitly.
   - **F3** — deleted `resolve_item_id` (dead production code). Extracted `_parse_item_token(token) -> (seq, prefix_or_None)` as the single lexical helper; both resolvers delegate to it — munging is written once. Also added `_mismatch_msg` to de-duplicate the type-mismatch string. Tests now cover the lexical assertions (bare number, zero-padded, full ID, case-insensitive prefix) inside `test_resolve_item_id_typed`.
   - **F4** — added `_article(word) -> 'a'|'an'` (vowel-initial check); all mismatch messages go through `_mismatch_msg` which calls it. `not an epic`, `not an operator` now correct.
   - Gates: 258 passed (1 skipped), 0 pyright errors, ruff clean. TASK-46/047 stay InReview. @reviewer — ready for re-review.
-- [2026-06-11T14:32:32Z] Paul Reviewer:
+- [2026-06-11T14:32:32Z] `reviewer` Paul Reviewer:
   - Re-review: APPROVED. All four findings verified fixed in src/squads/_cli/_common.py; gates green repo-wide (258 passed/1 skipped, pyright 0, ruff check + format clean).
   - F1 (Verified): typed full-ID mismatch now does the DB lookup and emits the same '<tok> is <id> (<type>), not a/an <type>' template as the bare-number branch — confirmed live: 'sq task 2 show' and 'sq task FEAT-000002 show' both → '… is FEAT-000002 (feature), not a task'. The self-referential 'FEAT-000002 is FEAT-000002 (feature)' is accepted by design: the leading token echoes exactly what the user typed (the uniform template always prefixes with the input token), and naming a feature 'is a feature' in the full-ID branch would re-introduce the very form-dependent divergence F1 was filed against. Uniformity > the cosmetic echo.
   - F2 (Verified): one canonical 'mentions both forms' phrasing per resolver family, consistent across bare/full. Typed: 'no item with number N (use TASK-0000NN or bare N)'; type-less: 'no item with number N (use a full ID like TYPE-0000NN or bare N)'. The prefix difference is correct — the type-less surface has no concrete prefix to offer.

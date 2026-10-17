@@ -67,7 +67,7 @@ Fix: enforce ordered in _meets_min/_badge_rank (skip or raise for unordered fiel
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-09T12:51:07Z] Elias Python:
+- [2026-07-09T12:51:07Z] `python-dev` Elias Python:
   - Fixed: spec load now fails closed on an unordered collection (WorkflowSpec._validate -> _check_field_collections, src/squads/_workflow/_models.py) — 'collection <code>: unordered collections are not supported yet'; ordered stays reserved in the schema per ADR-323 §3 but is no longer silently ignored. Tests: test_unordered_collection_fails_closed + test_unordered_collection_override_fails_closed (tests/test_workflow_badges.py).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -84,7 +84,7 @@ UX inconsistency between the dedicated sugar and the generic escape hatch. Non-b
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-09T12:52:22Z] Catherine Manager:
+- [2026-07-09T12:52:22Z] `manager` Catherine Manager:
   - Deferred/accepted: the generic --badge/--min-badge escape hatch not validating code/value is a minor power-user UX gap; the dedicated --priority path gives the clear error. Revisit only if the generic path sees real use.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -101,7 +101,7 @@ Assessment: defensible and arguably better. Typer options are fixed at import ti
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-09T12:52:21Z] Catherine Manager:
+- [2026-07-09T12:52:21Z] `manager` Catherine Manager:
   - Accepted as designed: per-field --<field> Typer options are import-time while the spec is per-invocation, so the generic --badge/--min-badge CODE=VALUE escape hatch (plus byte-identical --priority/--min-priority sugar) is the correct shape. Not a defect.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -118,9 +118,9 @@ Disposition: LOW / deferred. A clean byte-identical relocation to a top-level _b
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-09T15:06:51Z] Elias Python:
+- [2026-07-09T15:06:51Z] `python-dev` Elias Python:
   - Fixed by TASK-347: _status_badge/resolve_collection/badge_render (+ _DEFAULT_BADGE) relocated verbatim from _discussion.py to a new src/squads/_badges.py; callers repointed (_discussion, _cli/_common, _cli/_main, _cli/_items). Byte-identical, no golden change.
-- [2026-07-09T19:23:21Z] Paul Reviewer:
+- [2026-07-09T19:23:21Z] `reviewer` Paul Reviewer:
   - Reviewer verification (independent): the relocation is sound. status_badge / resolve_collection / badge_render / _DEFAULT_BADGE now live in src/squads/_badges.py with byte-identical bodies (diffed vs 53e651c:_discussion.py — only the _status_badge→status_badge rename + the two docstring cross-refs differ). _discussion.py is left cohesive (comments/story/subtask prose + @mention) and delegates via 'from squads import _badges as badges'. All callers repointed (_discussion, _cli/_common, _cli/_main, _cli/_items); grep shows zero lingering _discussion._status_badge / discussion.badge_render refs in src. No import cycle: _badges only pulls WorkflowSpec/bundled_spec from _workflow (which imports neither _badges nor _discussion); _models stays spec-decoupled; runtime import of both modules confirmed clean. Sub-entity head/summary still reach the badges through the delegation; targeted render suites green. Gates green (pyright/ruff/format), 215 targeted tests pass. Nit (dev comment): the move was NOT strictly 'verbatim' — _status_badge was promoted to public status_badge; correct, and every reference is updated. Confirmed Fixed.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -135,7 +135,7 @@ The new test file is well-named by behavior (test_custom_badge_axis.py) but its 
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-07-09T12:51:08Z] Elias Python:
+- [2026-07-09T12:51:08Z] `python-dev` Elias Python:
   - Fixed: dropped the 'TASK-000342:' ticket-ID prefix from tests/test_custom_badge_axis.py's module docstring (now leads with the behavior description); also fixed the stale priority_badge() reference in tests/test_graph.py:675's docstring to say badge_render().
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -144,7 +144,7 @@ The new test file is well-named by behavior (test_custom_badge_axis.py) but its 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-09T12:40:45Z] Paul Reviewer:
+- [2026-07-09T12:40:45Z] `reviewer` Paul Reviewer:
   - APPROVE. Independent review of the uncommitted TASK-342 diff (read-only, no full suite — main loop ran it green, 0 failures/151s).
   - Byte-identical default: CONFIRMED. Golden JSON/rendered/show_render (104 tests) pass with zero regen; manual smoke on a fresh no-override squad shows the Priority column, 🟠 high raw-code badge, and listing order unchanged. All new options (--min-priority/--badge/--min-badge/--sort) are additive/optional.
   - F1 collapsed: CONFIRMED. grep of parse_priority|parse_severity|priority_badge|_severity_badge|_severity_emoji|_badge_emoji across _cli+_discussion is empty; one parse_badge_code + one badge_render(as_label=…) + resolve_collection drive every axis.

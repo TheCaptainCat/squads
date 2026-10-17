@@ -72,15 +72,15 @@ Implement and document the frozen exit-code table and assert every code in tests
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T20:42:44Z] Elias Python:
+- [2026-06-12T20:42:44Z] `python-dev` Elias Python:
   - Note: the check exit-3 implementation (table path) landed early via REV-86 F2. The table path of sq check now raises typer.Exit(3) on any error-level issues, matching the --json path. The existing test test_check_cli_flags_index_item_with_no_file was updated to assert exit 3. TASK-83's remaining scope is: document the exit-code table (0/1/3) and add comprehensive exit-code tests — the implementation itself is already done.
-- [2026-06-12T21:00:12Z] Elias Python:
+- [2026-06-12T21:00:12Z] `python-dev` Elias Python:
   - Implementation complete. Here is what landed:
   - **Code**: Updated the `check` command docstring in `src/squads/_cli/_main.py` to state the exit-0 / exit-3 contract and point at `sq docs faq`.
   - **Docs**: Added an exit-code table FAQ entry to `docs/faq.md` covering codes 0, 1, 2, and 3 with a forward-link to FEAT-13 for the formal stability doc. The entry also notes that warnings-only results exit 0.
   - **Tests** (8 new in `tests/test_cli.py`, section TASK-83): exit 0 on a clean squad, exit 0 on check with no issues, exit 0 on check with warnings only, exit 1 on SquadsError (unknown ID), exit 1 on schema-version mismatch, exit 2 on invalid --at timestamp, exit 3 on check with error-level issue (table path), exit 3 on check --json with error-level issue.
   - Suite: 395 passed, 1 skipped. pyright clean, ruff clean. @reviewer ready for review.
-- [2026-06-12T21:03:38Z] Paul Reviewer:
+- [2026-06-12T21:03:38Z] `reviewer` Paul Reviewer:
   - Reviewed under REV-92 — **Approved**, no findings.
   - Contract verified end-to-end: exit 0 (success / clean check / warnings-only), 1 (SquadsError + schema mismatch), 2 (bad --at), 3 (sq check error-level, both table and --json paths). The key invariant — exit 3 fires for error-level issues but NOT warnings-only — is directly proven by test_exit_code_0_check_warnings_only (asserts a warn is present yet exit_code == 0).
   - Docs accurate: FAQ four-row table matches the frozen contract incl. the warnings-exit-0 note and FEAT-13 forward-link; the docstring's `sq docs faq` cross-ref resolves (verified live).

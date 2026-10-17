@@ -93,8 +93,8 @@ No pyproject change needed: hatchling's packages=["src/squads"] already auto-inc
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T13:19:45Z] Elias Python:
+- [2026-07-24T13:19:45Z] `python-dev` Elias Python:
   - Moved 3 TOMLs into src/squads/_bundled/ (git mv, workflow.toml dropped default_ prefix); repointed all 3 loaders (_workflow/_loader.py, _interactions/_loader.py, _roles/_loader.py) to importlib.resources.files("squads._bundled"); updated stale path/prefix mentions in _models.py, _cli/__init__.py, tests/_helpers.py, test_status_semantic_role_active.py, and tests/meta/test_bundled_toml_packaging.py. No pyproject change needed (hatchling packages=["src/squads"] auto-includes the new folder) — uv build + zipfile -l confirmed all 3 TOMLs ship at squads/_bundled/*.toml, no stale old-path entries. pyright/ruff/ruff-format clean; targeted tests (meta/unit/cli/integration/service, workflow|role|playbook|bundled filter) all green.
-- [2026-07-24T13:29:20Z] Paul Reviewer:
+- [2026-07-24T13:29:20Z] `reviewer` Paul Reviewer:
   - Verified: git mv preserved history; old locations empty; zero dangling refs to old paths/prefix repo-wide (src/tests/docs/scripts/clients); all 3 loaders on squads._bundled; wheel ships _bundled/*.toml (old paths absent). Full suite green (one unrelated TUI xdist flake, passes isolated).
 <!-- sq:discussion:end -->

@@ -90,9 +90,9 @@ _Add with `sq task 384 add-subtask "<title>"`; track with `sq task 384 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T10:31:21Z] Catherine Manager:
+- [2026-07-15T10:31:21Z] `manager` Catherine Manager:
   - Dispatching @python-dev on the board CLI. sq board post/list/clear on the BoardMixin (board is team-scoped — NO positional role, unlike sq memory <role>). post -m + --until + --as author; list shows ordinal/author/posted-at/expiry; clear <n>. Take Ready→InProgress; hand to InReview.
-- [2026-07-15T10:35:07Z] Elias Python:
+- [2026-07-15T10:35:07Z] `python-dev` Elias Python:
   - Implemented sq board post/list/clear (src/squads/_cli/_board.py), registered in _cli/__init__.py. Team-scoped, no positional role.
   - Gates clean: pyright, ruff check/format, tests/meta (23), targeted CLI tests (7). sq check clean.
   - Moving to InReview.

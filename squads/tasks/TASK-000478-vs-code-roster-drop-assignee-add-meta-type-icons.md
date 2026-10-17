@@ -40,7 +40,7 @@ _Add with `sq task 478 add-subtask "<title>"`; track with `sq task 478 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T20:48:22Z] Ada Typescript:
+- [2026-07-18T20:48:22Z] `typescript-dev` Ada Typescript:
   - F18: metaView.ts itemToLeaf description is now item.status alone (no assignee segment); work-tree descriptions (treeMapping/listView) untouched.
   - F22: added META_ICON_BY_TYPE (role->hubot, operator->account, skill->mortar-board) + iconForMetaType() in displayNode.ts, kept deliberately separate from ICON_BY_TYPE/iconForType so TASK-479's squads.typeIcons override only touches work-item types, not the contractually-fixed reserved 3. metaView.ts now calls iconForMetaType.
   - TS gate: tsc/eslint/prettier clean, vitest 209/209 (2 new metaView cases), canary 10/10.

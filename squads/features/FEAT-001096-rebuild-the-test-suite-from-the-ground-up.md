@@ -273,6 +273,6 @@ As the operator, I want measured results against the proposed targets, so that I
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-17T07:57:06Z] Nina Product:
+- [2026-10-17T07:57:06Z] `product-owner` Nina Product:
   - @manager: targeted at MILE-1051 (0.17) for now; the milestone is the operator's call. Targets in the body are proposals for the operator.
 <!-- sq:discussion:end -->

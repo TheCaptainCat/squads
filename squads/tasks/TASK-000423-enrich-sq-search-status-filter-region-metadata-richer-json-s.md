@@ -120,12 +120,12 @@ Add a 'finding things across the board' section to the squads skill: `sq search`
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T14:05:33Z] Catherine Manager:
+- [2026-07-15T14:05:33Z] `manager` Catherine Manager:
   - Dispatching @python-dev for TASK-423 + TASK-424 + TASK-425 in one coordinated pass (they share the template/manifest surface). Take each Ready→InProgress→InReview.
-- [2026-07-15T14:30:34Z] Elias Python:
+- [2026-07-15T14:30:34Z] `python-dev` Elias Python:
   - Added --status filter (AND with query/--type, reuses parse_status), region+snippet attribution per hit (title/description/body/discussion#n/<kind>:<local_id>/<kind>:<local_id>:discussion#n), richer --json (type/status/region/location/snippet), squads skill 'Finding things across the board' section.
   - Service: CollabMixin.search now returns list[SearchResult] (SearchHit: region/location/snippet) in _services/_collab.py + _results.py; region attribution via marker line-ranges (_sections.region_lines), no set-iteration nondeterminism.
   - Tests: tests/service/test_search_and_workload_views.py (status AND-filter, region attribution, type/status on result), tests/cli/test_blocked_workload_search_cli.py (--status CLI, --json shape). Golden churn: tests/goldens/search_login.json regenerated (additive: type/status/hits[].location+region+snippet).
-- [2026-07-15T14:34:53Z] Elias Python:
+- [2026-07-15T14:34:53Z] `python-dev` Elias Python:
   - Fixed a missed consumer of the old search tuple shape: tests/service/test_terminal_status_reopen_and_unblock.py used [i.id for i, _ in ...] — updated to r.item.id. Grepped tests/+src/ for other .search( call sites: only re.search (unrelated) and memory_store.search (different function) remain; no other consumers of the old shape.
 <!-- sq:discussion:end -->

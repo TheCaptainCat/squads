@@ -98,11 +98,11 @@ _Add with `sq task 788 add-subtask "<title>"`; track with `sq task 788 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T13:54:06Z] Olivia Lead:
+- [2026-08-22T13:54:06Z] `tech-lead` Olivia Lead:
   - Small stream-contract fix, scoped to _cli/_main.py and its tests, with an explicit instruction to stay out of src/squads/_backends/ while the agents_md rework is in flight. Confirmed the affected set from source: one helper, target = err_console if json_out else console, four call sites (two for inbox, two for search) and no other caller in the CLI.
   - One addition from reading the helper: its docstring justifies the stream choice as a --json concern ("Out-of-band matters for --json: the messages go to stderr"), which is the reasoning this defect disproves. Body requires that corrected too, so the fix does not leave a docstring arguing for the behaviour being removed.
   - Acceptance makes the separate-streams test explicit rather than advisory (a combined-output grep passes on the defect, which is how this survived the first sweep), requires soft_wrap=True asserted still present, and requires the exit code checked on the process status directly rather than through a pipeline. Changelog: the dev hands one line for the writer, no CHANGELOG edit.
-- [2026-08-22T14:02:14Z] Elias Python:
+- [2026-08-22T14:02:14Z] `python-dev` Elias Python:
   - Fixed: _report_unreadable's human branch now always targets err_console (was target = err_console if json_out else console); docstring corrected to say out-of-band matters in both modes, not just --json.
   - Driven, throwaway squad, broken-directory unreadable file, stdout/stderr captured as separate real pipes, exit checked on the process status directly (no shell pipeline):
   - BEFORE (stashed the fix): sq inbox manager -> stdout carries BOTH the readable hit AND the error line, stderr empty, exit=1. sq search quinoa -> same: stdout carries results AND the error, stderr empty, exit=1.

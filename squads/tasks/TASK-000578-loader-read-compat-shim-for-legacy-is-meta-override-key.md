@@ -49,6 +49,6 @@ _Add with `sq task 578 add-subtask "<title>"`; track with `sq task 578 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T09:37:26Z] Elias Python:
+- [2026-07-22T09:37:26Z] `python-dev` Elias Python:
   - loader read-compat shim added (_pop_legacy_is_meta, wired in both bundled + override item parsers), CHANGELOG Unreleased deprecation note, 4 new tests for the three branches + unknown-key control; sq check byte-identical.
 <!-- sq:discussion:end -->

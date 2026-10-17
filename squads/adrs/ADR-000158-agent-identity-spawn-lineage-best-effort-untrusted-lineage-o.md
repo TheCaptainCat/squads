@@ -232,14 +232,14 @@ actor (slug or session) is **inherently advisory**:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-22T09:04:58Z] Robert Architect:
+- [2026-06-22T09:04:58Z] `architect` Robert Architect:
   - Revised per Pierre's correction (foundational): squads is a passive tool that agents invoke — it is NEVER in the spawn path. Spawning lives entirely in the Claude Code / Task layer, driven by the agents. So squads cannot mint a nonce at spawn time or inject env vars into a child; it has no spawn moment to hook.
   - Retracted the earlier framing that cast a squads role as the spawner that mints+injects. Recast the identity primitive as read-and-record only: squads reads optional SQUADS_SESSION_ID / SQUADS_PARENT_SESSION_ID from its own invocation env IF present, and records them. Setting/propagating those vars is the agent layer's job (orchestrator skills/prompts), explicitly out of scope for squads.
   - Guarantee downgraded and stated prominently: best-effort, explicitly-UNTRUSTED, observability-only — not verified identity, not tamper-evident. A self-declared slug stays a self-declaration; the session pair just widens it one hop. Wrote this into the 1.0 contract wording so no future sq check over-trusts the field.
   - Kept what survives the correction (pure recording/rendering): additive dual-form actor (flat slug + optional sibling session_id/parent_session_id), slug-only back-compat, sq reflog --tree, show --full surfacing, additive schema bump via the migration registry.
   - Knock-on for FEAT-122 Slice B: since squads can never obtain a verified actor, lane enforcement keyed on it is inherently ADVISORY — catches the honest accident, bypassable by a wrong/forged --as or session id. Must be framed as 'catch the accident,' never as a security boundary. Title updated to drop 'spawner-minted'.
-- [2026-06-22T09:10:06Z] Pierre Chat:
+- [2026-06-22T09:10:06Z] `op-pierre` Pierre Chat:
   - Accepted on the reframed basis: squads records best-effort, untrusted lineage (reads env if present, never spawns/injects). Build FEAT-125 as observability, then Slice B as an explicitly-advisory guardrail.
-- [2026-08-03T08:51:19Z] Robert Architect:
+- [2026-08-03T08:51:19Z] `architect` Robert Architect:
   - One Context sentence annotated: `_actor.py` no longer holds a module-global string — since ADR-534 it reads and rebinds the ambient `RequestContext`. Everything decided here verified in force: `session_from_env()` off the two env vars read once at the root callback, flat `actor` kept with additive optional `session_id`/`parent_session_id` and legacy-line tolerance, optional `created_session`/`modified_session` omitted when unset, `sq reflog --tree`, and the show surface carrying the literal "(best-effort session, untrusted)" label this decision demanded.
 <!-- sq:discussion:end -->

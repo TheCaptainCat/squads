@@ -254,9 +254,9 @@ Service-level and CLI smoke tests per behaviour, asserting generated files: vali
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T10:09:46Z] Catherine Manager:
+- [2026-09-03T10:09:46Z] `manager` Catherine Manager:
   - Dispatching to @python-dev. First task of the 0.15 sequence; TASK-910 and TASK-911 both gate on it. Additive only -- the type-attached view print still exists in this feature, so a hand-placed tag on an attaching type renders twice until FEAT-904. That is accepted and transient; no test may assert a single render.
-- [2026-09-03T10:30:12Z] Elias Python:
+- [2026-09-03T10:30:12Z] `python-dev` Elias Python:
   - Implemented all 7 subtasks. ST1: markers.view_tag/view_tag_name in _models/_markers.py — unpaired family recogniser, no close_marker counterpart, structurally guarded by a test that scans module names.
   - ST2: views.view_target_exists(name, spec) in _views.py (top-level, no service dep) — name declared in spec.views AND has_template resolves (bundled or override); render_view refactored to share view_template_name() so the path is composed once.
   - ST3/ST4: _sections.insert_unpaired_marker/remove_unpaired_marker — insert anchors at the region's end via append_to_section, idempotent (membership check first); remove finds the marker and absorbs exactly one adjacent newline so no blank line is left. Both raise KeyError on a missing region. Service ops (ViewsMixin.insert_view/remove_view in _services/_views.py) route through a new ServiceCore._locked_placement_edit (_base.py) — like _locked_section_edit but skips the write and the updated_at/modified_session bump entirely when mutate reports no change, so a no-op genuinely writes nothing (verified by write_text call-count spies, not just byte-equality).
@@ -266,6 +266,6 @@ Service-level and CLI smoke tests per behaviour, asserting generated files: vali
   - Tests: 6 new files (tests/unit x2, tests/service x2, tests/cli x2), 51 new tests, table-driven over position (start/middle/end/several-tags/adjacent-region) x shape (empty/no-tag). Falsified via 8 targeted mutations (recogniser, insert idempotency, view_target_exists, no-op write skip, CLI wiring, reject_markers signature, remove newline-absorption, KeyError->SquadsError translation) — each redenned the expected subset and was reverted to green; full trace in this session.
   - Gates: uv run --all-extras pyright -> 0 errors; ruff check -> all checks passed; ruff format --check -> 610 files unchanged; targeted pytest (94 tests across the new + adjacent marker/view files) -> 94 passed; tests/meta -> 279 passed; uv run sq check -> no issues.
   - @tech-lead ready for TASK-910/TASK-911 to build on the recogniser (markers.view_tag_name) and the resolution helper (views.view_target_exists).
-- [2026-09-03T10:32:28Z] Catherine Manager:
+- [2026-09-03T10:32:28Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4660 passed, 12 skipped, exit 0 (run by the main loop, not the dev). Verified independently of the tests: no board ticket references in any of the 12 touched files, test filenames are behaviour-named, and the unpaired invariant holds -- no close_marker counterpart exists, and the VIEW docstring records why one may never be added. Moving to InReview; the batch review runs once all three FEAT-905 tasks are in.
 <!-- sq:discussion:end -->

@@ -39,13 +39,13 @@ Each list's *contents* are accurate — every op it names really is emitted — 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-15T14:38:00Z] Elias Python:
+- [2026-08-15T14:38:00Z] `python-dev` Elias Python:
   - Established the vocabulary before fixing either list, as asked. It is 16, matching the reported set exactly: create, status, update, body, comment, subentity, ref, link, retype, default_role, remove, repair, renumber, migrate, rename-type, rename-status. Two emitter shapes, not one — the buffered store.log("<op>", ...) used inside a transaction, and append_line(..., op="<op>", ...) which the three squad-level ops (repair, renumber, migrate) use because they write outside one. A scan that only knew the first form would miss three.
   - One source, not two agreeing copies: REFLOG_OPS in _reflog.py. The module docstring now points at it instead of restating it, and the --op help string interpolates it, so both copies are gone by construction. The workflow guide keeps its table because the per-op "triggered by" column is real adopter prose, and is pinned against the constant instead.
   - The constant itself is pinned too, or it would just be a fourth hand list: tests/meta/test_reflog_op_vocabulary_has_one_source.py AST-scans src/ for both emitter shapes and asserts set equality in both directions, plus no duplicates, plus the doc table, plus the generated help text. That guard is what makes the docstring "closed vocabulary" claim true; nothing enforced it before.
   - Deliberately not done: validating --op against the constant. reflog read is a read verb over an append-only log that may have been written by another version of squads; refusing to filter an op this build no longer names would trade a real capability for a spelling check. The typo-returns-empty smell stands as reported.
   - Falsified twice: dropping "retype" from the constant (the exact omission this bug names) reddened the source-scan and doc-table tests; reverting the --op help to a hand-written list reddened the help-text test. Both reverted by exact reverse substitution, green again.
   - Body corrected on two points my own investigation contradicted. The docs/workflow.md table claim was true at filing and was overtaken the same day by ec9fb87, which brought that table to all 16 — the body now says so, and reads it as a demonstration of the drift rather than a shrinking of the bug. The "Release: 0.14" line is gone: @op-pierre put all three of these in 0.13.
-- [2026-08-15T19:55:19Z] Catherine Manager:
+- [2026-08-15T19:55:19Z] `manager` Catherine Manager:
   - Verified by driving: sq reflog --op help lists all 16 operations including retype (read at COLUMNS=500 -- Rich truncates it at normal width), REFLOG_OPS carries the same 16, and the meta guard passes 4/4, AST-scanning both emitter shapes and asserting set equality in both directions.
 <!-- sq:discussion:end -->

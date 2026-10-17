@@ -43,6 +43,6 @@ _Add with `sq task 635 add-subtask "<title>"`; track with `sq task 635 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T07:46:48Z] Theo Writer:
+- [2026-07-24T07:46:48Z] `tech-writer` Theo Writer:
   - Documented pre-existing CLAUDE.md/.claude collision handling: managed section inserted at top (with warning), orphan files listed and left untouched, reconciliation steps provided. Added subsection 'Pre-existing CLAUDE.md and .claude files' to docs/adoption.md.
 <!-- sq:discussion:end -->

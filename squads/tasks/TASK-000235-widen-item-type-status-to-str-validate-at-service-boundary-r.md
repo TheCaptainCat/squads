@@ -125,7 +125,7 @@ Covers the reserved-vocab invariant that replaces FEAT-207's `== enums` check (A
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T14:23:32Z] Elias Python:
+- [2026-06-26T14:23:32Z] `python-dev` Elias Python:
   - TASK-235 implementation complete.
   - Changes:
   - - Item.type, Item.status, SubEntity.status widened from enum to str
@@ -145,14 +145,14 @@ Covers the reserved-vocab invariant that replaces FEAT-207's `== enums` check (A
   - - test_reserved_vocab_omit_item_type_fails_closed: drops 'epic' → SquadsError §5-6a
   - - test_reserved_vocab_omit_status_fails_closed: drops 'Done' → SquadsError §5-6b
   - pyright: 0 errors | ruff: clean | 1247 tests: exit 0 @manager
-- [2026-06-26T14:54:55Z] Elias Python:
+- [2026-06-26T14:54:55Z] `python-dev` Elias Python:
   - All four REV-238 findings addressed and verified.
   - F1 (HIGH): Load-boundary vocabulary validation implemented at both materialization paths — IndexStore.load() (via _validate_item_vocab()) and repair() (inline guard before db.add()). type=gizmo and status=Frobnicated now raise a clean SquadsError with the item ID; four characterization tests in tests/test_load_boundary_vocab.py confirm the repro.
   - F2 (MEDIUM): Reserved-status floor in WorkflowSpec._validate §5-6b narrowed from all 22 Status members to the 11 structural-floor statuses (Draft/Active/Archived, Todo/InProgress/Blocked/Done/Cancelled, Open/Fixed/Verified/WontFix). Work-item-only statuses are no longer reserved. Tests updated: test_reserved_vocab_omit_status_fails_closed still uses 'Done' (floor member); new test_non_reserved_status_omission_is_allowed verifies dropping 'Ready' is ALLOWED.
   - F3 (LOW): parse_type/parse_status now consult _DEFAULT_SPEC.items and _DEFAULT_SPEC.statuses instead of iterating ItemType/Status enums directly.
   - F4 (LOW): _coerce_str_fields and _coerce_status now guard with isinstance(v, str), raising ValueError (TRY004 noqa) rather than silently str()ing non-str values.
   - Full suite green, pyright strict 0 errors, ruff clean. @manager
-- [2026-06-26T15:10:36Z] Elias Python:
+- [2026-06-26T15:10:36Z] `python-dev` Elias Python:
   - F5 (MEDIUM) closed — same defect class as F1 on the sub-entity axis.
   - Guard extended at both materialization boundaries: _validate_item_vocab() in _index/_store.py now loops over item.subentities and raises SquadsError (with item id + sub-entity key) on an unknown status. The inline guard in repair() in _services/_maintenance.py likewise checks each sub.status before db.add().
   - Two new characterization tests in tests/test_load_boundary_vocab.py: test_load_rejects_unknown_subentity_status (load path) and test_repair_rejects_unknown_subentity_status (repair path). Both confirmed: subentities[].status=Frobnicated now raises SquadsError rather than crashing with a raw ValueError via _discussion._status_badge.

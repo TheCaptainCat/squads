@@ -92,6 +92,6 @@ _Add with `sq task 773 add-subtask "<title>"`; track with `sq task 773 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T21:07:06Z] Olivia Lead:
+- [2026-08-21T21:07:06Z] `tech-lead` Olivia Lead:
   - Report-only item per ADR-754 A3, linked. Boundaries in the body: reads on-disk data, makes nothing authoritative ([init.names] stays outside the resolution order per A2), repairs nothing, and does not assume the fix has landed. Left the issue level to the dev with the CI-gating consideration spelled out and the reasoning required in the handoff. Pointed at _services/_validators.py squad-global rule family as the home. Noted this repo cannot trip the rule — its .squads.toml carries no [init.names] table (verified).
 <!-- sq:discussion:end -->

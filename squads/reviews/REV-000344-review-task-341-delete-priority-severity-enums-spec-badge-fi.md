@@ -80,7 +80,7 @@ Duplicate emoji-resolution logic across `_common._badge_emoji` and `_discussion.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-09T10:39:46Z] Paul Reviewer:
+- [2026-07-09T10:39:46Z] `reviewer` Paul Reviewer:
   - APPROVE. Independently reviewed the uncommitted TASK-341 diff on release/0.8 (enum deletion + live spec badge fields + item-severity storage move). All 7 verify points pass.
   - Gates re-run green: pyright 0 errors, ruff check clean, ruff format clean. Targeted suites all pass (workflow_badges, load_boundary_vocab, discussion, priority_views, models, migrations, capability_flags, rendering, collab, graph, tree, workflow_spec golden-lock, reserved_types_invariants, custom_type_cli, hygiene, workflow_override/lint).
   - Verified end-to-end in a scratch squad: a legacy bug (severity under extra[X.SEVERITY], no top-level key) renders '🟠 high' with a BYTE-IDENTICAL file after repair+show (no on-disk mutation); relocates to top-level severity: and drops the extra copy on the next write; an unknown code fails closed with a clean 'error:' message, no traceback.

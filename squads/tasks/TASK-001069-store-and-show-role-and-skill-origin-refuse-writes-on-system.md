@@ -199,7 +199,7 @@ Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-16T21:29:56Z] Elias Python:
+- [2026-10-16T21:29:56Z] `python-dev` Elias Python:
   - Done. origin rule in _interactions (role_origin, skill_origin, item_origin); constants ORIGIN_SYSTEM/PROJECT in _models/_attributes. Falsification, 11 new tests red in total across three breaks: dropping the tech branch 2 red, treating every slug as bundled 6 red, treating every skill as system 3 red (tests/unit/test_origin_rule_by_shape.py, 24 tests).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -246,7 +246,7 @@ raw value: the `System` and unknown-word rows go red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-16T21:29:59Z] Elias Python:
+- [2026-10-16T21:29:59Z] `python-dev` Elias Python:
   - Done. origin declared required + settable=false on role and skill, pinned, accessor attrs.origin, closed-vocabulary check inside attribute_valid (no new validator name). Falsification: pin removed 2 red, accessor returning the raw value 4 red, vocabulary check disabled 6 red (tests/service/test_a_stored_origin_is_judged_by_check_and_survives_repair.py, 64 tests; pinned rows added to the attribute-declaration CLI table).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -292,7 +292,7 @@ red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-16T21:30:03Z] Elias Python:
+- [2026-10-16T21:30:03Z] `python-dev` Elias Python:
   - Done. One stamp in ServiceCore._create_model (covers init, activate, dev add, skill add, import, role/skill creates) plus the three Item constructions in the skill seeding/restore code in _maintenance. Falsification: constant system stamp 4 red, skill-seed stamp dropped 8 red, sync backfilling origin 5 red (tests/integration/test_every_creation_path_stamps_the_origin_the_rule_gives.py, 20 tests).
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -342,7 +342,7 @@ developer row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-10-16T21:30:06Z] Elias Python:
+- [2026-10-16T21:30:06Z] `python-dev` Elias Python:
   - Done. origin on role list/show (text+json), skill show (text+json), role catalog (system replaces bundled; templated and declared developers listed), the kind line and bundled-blind system flag removed. Falsification: skill show re-derived from the body classification 2 red, skill json back to the bundled-blind rule 2 red, catalog from slug-in-bundle 2 red (tests/cli/test_origin_is_printed_identically_on_every_role_and_skill_surface.py, 6 tests x shapes x surfaces, fresh and after delete+repair).
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -468,15 +468,15 @@ one verb: the meta test goes red. Restore each.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T19:21:18Z] Olivia Lead:
+- [2026-10-16T19:21:18Z] `tech-lead` Olivia Lead:
   - Broken down into ST1-ST6. Starts after TASK-990 (shared files listed in the body). Two open questions on FEAT-976 for @manager: stored vs derived origin (ST2/ST3/ST5 drop if derived), and whether status/rm count as content writes (ST6).
-- [2026-10-16T19:31:31Z] Catherine Manager:
+- [2026-10-16T19:31:31Z] `manager` Catherine Manager:
   - Rulings recorded on FEAT-976: origin stored (ST2/ST3/ST5 stand); status and rm allowed on system entries, ST6 refuses update, body and view edits only. Dispatch after TASK-990 closes.
-- [2026-10-16T19:53:50Z] Olivia Lead:
+- [2026-10-16T19:53:50Z] `tech-lead` Olivia Lead:
   - ST6: role title (the name) must pass the system-role gate, or the documented bundled-role rename via sq import update breaks. Question and recommendation on FEAT-977 for @manager; TASK-1070 ST4 makes the gate field-level with a declared exemption set.
-- [2026-10-16T19:54:19Z] Catherine Manager:
+- [2026-10-16T19:54:19Z] `manager` Catherine Manager:
   - @tech-lead ST6: the role name (title) is exempt from the system-role refusal, per the 2026-10-16 stored-name ruling; see FEAT-977.
-- [2026-10-16T21:30:34Z] Elias Python:
+- [2026-10-16T21:30:34Z] `python-dev` Elias Python:
   - ST1-ST4 done, checkpoint. Adopter-visible changes for the tech writer:
     - Frontmatter of every role and skill carries origin: system or project (required, not settable by update --set; sq check reports a missing value or one outside the two words).
     - sq skill show: the kind line becomes an origin line; show --json carries origin and no longer carries system.
@@ -489,15 +489,15 @@ one verb: the meta test goes red. Restore each.
     - The closed-vocabulary rule lives inside attribute_valid (error level) rather than as a new validator name, so no new entry in the validator catalogs.
     - Stamping happens once in ServiceCore._create_model plus the three skill Item constructions in _maintenance, not per call site.
     Expected red until ST5: tests that migrate a corpus and then run sq check (migration corpus, resume-after-runner, developer-marker and comment-header CLI tests), because migrated files do not yet carry origin.
-- [2026-10-16T21:31:13Z] Elias Python:
+- [2026-10-16T21:31:13Z] `python-dev` Elias Python:
   - ST6 ruling from the coordinator (citing the 2026-10-09 op-pierre ruling on FEAT-976: origin is provenance, the refusal follows whether the body is generated): the refusal follows the existing body classification. A role's body is a generated view, so a role is refused whatever its origin. The label-equals-refusal invariant applies to skills only; for roles the invariant is refused iff the body is generated, and the title stays exempt.
-- [2026-10-16T21:43:57Z] Elias Python:
+- [2026-10-16T21:43:57Z] `python-dev` Elias Python:
   - ST5 done. Contribution "origin" appended last to the 0.15 to 0.16 step (the diff under _migrations is that one contribution, its MANUAL section and its CONTRIBUTIONS entry); POSTCONDITIONS row added.
     Falsification, new or changed tests red when reverted: stamping every role system 4 red; overwriting a stored origin 1 red; removing the POSTCONDITIONS row 1 red (the contribution test names it).
     Tests: tests/cli/test_migrate_up_stamps_the_origin_of_every_role_and_skill_cli.py (developer fixture shapes by migrate / second migrate / delete index + repair; a stripped fresh-init squad migrates to byte-identical files, then sync is a fixed point and check is clean; chlog prints the section once, after the developer section).
     Fixtures: tests/fixtures/corpus/v0_16 regenerated by the real migrate up on a copy of v0_15 (clock pinned); the diff is 5 origin lines plus the matching index attributes. The migrated_corpus goldens were regenerated with UPDATE_GOLDENS=1; the diff is only added origin lines and their JSON commas. Existing partial-chain tests (4.5 and 8.10 runners only) now ignore the missing-origin error since the 0.16 step has not run; the hand-built current-stamp corpus helper stores origin.
     Dry run on a copy of this repository's squad (scratch copy, dev build, -C): migrate up wrote 4363 comment headers in 927 files, flattened 27 files, stamped 10 roles system, 12 skills system, 2 skills project; sync ok; sq check clean; second migrate up changes nothing (hashes stable).
-- [2026-10-16T22:19:55Z] Elias Python:
+- [2026-10-16T22:19:55Z] `python-dev` Elias Python:
   - ST6 done. One shared gate, ServiceCore._refuse_classified_roster_write (in _base.py), built on views.roster_body_view_name, the classification the body refusal already used; the body refusal now calls it too. It is called from: body replace and append (and the importer's body simulation), the metadata update (_update_model, which the importer's update simulation and apply share), and view disable. --force never reaches it.
     Rules as built: a role is refused whenever its body is generated (every role), title exempt; a skill is refused exactly when classified, so a skill whose view or type the project dropped is writable and still shows origin system. status, rm, comment stay open; status passed through update keeps its own existing refusal message.
     Deviation to review: view add is NOT refused. Every check remedy and the four-step legacy-body remedy ends in view add on a role or generated skill (restoring a missing or absent seeded tag), so refusing it leaves those states unrecoverable; view disable is the edit that hides generated content and is refused. One line to flip (add the gate call to add_view). The check remedy text that names view disable for an absent-region role/skill now points at a refused verb on a classified host.
@@ -505,11 +505,11 @@ one verb: the meta test goes red. Restore each.
     Error text: "<ID>'s body renders through its declared sq:view:<name> tag, and its content already has one validated authoring surface: <surface>. <An update|A view edit|A replace|Append> is refused - --force does not lift this. Drop the view from [selected] to author this directly instead." Exit 1.
     Existing tests changed because role updates by description/--set/view disable are now refused: skew guard, drifted-sync, selection-table banner planting (role description set at creation), slug-fixed import tests, view add/disable CLI and service tests, retirement update seam, generic extra field. One test removed: interrupting a developer's --set model (the write is no longer reachable).
     Not changed, for the tech writer: sq role/skill have no update verb; update is reachable through sq import. Adopter-visible: update (except a role's title), body, view disable refused on role and generated-skill hosts; sq role catalog lists every activated role the document does not declare.
-- [2026-10-16T22:43:59Z] Elias Python:
+- [2026-10-16T22:43:59Z] `python-dev` Elias Python:
   - F4-F7 fixed. Also: the origin stamp is now written inside the flatten write for files that flatten rewrites (the write-once-per-transaction rule from the merged work flagged the double write on the v0_15 corpus in the -C migrate tests); the origin writer only handles files flatten leaves alone.
-- [2026-10-16T22:48:08Z] Catherine Manager:
+- [2026-10-16T22:48:08Z] `manager` Catherine Manager:
   - Done: REV-1082 approved; ca5866bd; full suite 12136 passed, 0 failed.
-- [2026-10-16T22:59:05Z] Theo Writer:
+- [2026-10-16T22:59:05Z] `tech-writer` Theo Writer:
   - Docs for origin and the write refusal written, not committed (export of 0e6e52cf, scratch squads). @manager
     
     - docs/roles.md: new sections "Where a role or skill comes from: `origin`" and "What a generated role or skill refuses"; the catalog passage rewritten (rows for undeclared roles, the default marker). docs/migration.md: an origin part under the 0.16 step, with upgrade notes. Fixes in overrides.md (attributes passage, the FAQ on custom role keys, the authoring-by-hand section), workflow.md (refusal text, the missing-region remedy, `view disable` on roster bodies), stability.md, README. CHANGELOG: one Added entry, two BREAKING under Changed.

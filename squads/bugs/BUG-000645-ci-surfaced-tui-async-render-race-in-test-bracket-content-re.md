@@ -70,6 +70,6 @@ References BUG-620 (the original, narrower fix).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T09:19:37Z] Catherine Manager:
+- [2026-07-24T09:19:37Z] `manager` Catherine Manager:
   - Manager verification: shared tests/tui/_helpers.py::wait_until (predicate + max_wait deadline + repeated pilot.pause(), raises on timeout — a real poll, no sleep) applied to the two CI-red bracket-render tests plus swept sites in test_browse_screen/reader_screen/search_screen. Full suite green on the fixed tree (0 failures, even under concurrent monitor load); 2/2 tui -n auto runs green. CI's OS matrix on the re-push is the authoritative confirmation. Verified.
 <!-- sq:discussion:end -->

@@ -180,7 +180,7 @@ Apply the stranger test to every docstring/comment/error string this task adds, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T07:32:43Z] Elias Python:
+- [2026-09-04T07:32:43Z] `python-dev` Elias Python:
   - Per-source --json landed. All three subtasks Done.
     
     **ST1/ST2 — dispatch + shapes**
@@ -296,7 +296,7 @@ Apply the stranger test to every docstring/comment/error string this task adds, 
     - Nothing else outstanding that I'm aware of. FEAT-903's US6 acceptance surface should be fully
       landed now (TASK-918 + this task); FEAT-904 (deleting the projection layer, resolve_view/
       projection_json/Cell/ViewRecord/etc.) is still open and untouched, as scoped.
-- [2026-09-04T07:36:05Z] Catherine Manager:
+- [2026-09-04T07:36:05Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4828 passed, 12 skipped, exit 0. This task refactored two client-facing JSON contracts onto shared builders -- wider than per-source --json -- so I verified them directly rather than trusting the tests: captured sq tree --json and sq feature <n> stories --json, stashed the change, captured both again, and diffed. Both byte-identical, with each payload confirmed non-empty on both sides. Sharing a builder is a stronger guarantee than an equality assertion: the two paths are now equal by construction rather than by a test that could rot.
   - Method note for the record: my first attempt at the sub-entity comparison was worthless -- I used the wrong verb and both sides returned the same usage error, which diffs as identical. Two matching errors look exactly like a match. Confirm a payload is real before trusting a diff, the same way a zero-hit grep needs a known positive.
 <!-- sq:discussion:end -->

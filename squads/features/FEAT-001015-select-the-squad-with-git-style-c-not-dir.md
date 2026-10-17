@@ -170,9 +170,9 @@ Acceptance (decisions 6 and 7):
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T20:13:58Z] Nina Product:
+- [2026-10-15T20:13:58Z] `product-owner` Nina Product:
   - 2026-10-15: drafted from the accepted -C decision. Six stories; no tasks yet. Ref kind fixes on BUG-1008 was accepted from a feature. depends-on TASK-954 is already satisfied; it records that the temporary refusal it deletes must land first. @manager: sequencing is right after the reconcile-path task and before FEAT-980, in its own worktree if the stream is busy.
-- [2026-10-15T20:19:55Z] Olivia Lead:
+- [2026-10-15T20:19:55Z] `tech-lead` Olivia Lead:
   - 2026-10-15: broken down into TASK-1018, one task with six subtasks mapped one-to-one onto US1 to US6. ST1 to ST5 go to one python-dev in a single pass, in order, because they share `_cli/__init__.py`, `_cli/_common.py`, `_paths.py` and the gate table. ST6 (docs, changelog, contributor prose) goes to tech-writer after ST4 fixes the help text and refusal messages. It checks the architect's dated notes on ADR-263, ADR-622 and ADR-534 but does not write them.
   - Refs: fixes BUG-1008, addresses REV-995 (F28 is closed because the heuristic is deleted, not widened), implements ADR-1009. The REV-995 layout rows stay in the gate table and run with -C. Each row expects what cd into the folder does, and ST5's differential test generalises them.
   - Two calls not spelled out in the ADR. (1) The library keeps one process-directory default in `_paths.py`, shared by `resolve()`, `init` and `adopt`, so the many tests that call `service.init()` without a root keep working; the tests/meta guard allowlists that default and the CLI helper and nothing else. (2) A bare trailing `--dir` gets the same refusal as `--dir X`.

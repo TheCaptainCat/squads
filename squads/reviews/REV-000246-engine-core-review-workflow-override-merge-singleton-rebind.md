@@ -72,7 +72,7 @@ Suggested fix: in TASK-243 (or a follow-up on 240), after use_spec(merged_spec) 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-30T11:43:58Z] Catherine Manager:
+- [2026-06-30T11:43:58Z] `manager` Catherine Manager:
   - Fixed: validate_against_index_fail_closed is now wired into open_service (TASK-243) — AC#5 fails closed at runtime listing offender IDs; verified live by QA on FEAT-209 and again on FEAT-250.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -91,7 +91,7 @@ Suggested fix: reconcile the wording. Either (a) @product-owner edits AC#1/US1 t
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-06-30T11:44:21Z] Catherine Manager:
+- [2026-06-30T11:44:21Z] `manager` Catherine Manager:
   - Fixed: override location reconciled to .overrides/workflow.toml across AC#1/US1/scope (product-owner) and docs (TASK-245).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -110,7 +110,7 @@ Suggested fix (optional): when no override file exists, return the cached single
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-06-30T11:44:22Z] Catherine Manager:
+- [2026-06-30T11:44:22Z] `manager` Catherine Manager:
   - Fixed: open_service uses the bundled_spec() fast-path when no override is present — no TOML re-parse (TASK-243).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -131,7 +131,7 @@ Suggested fix: add (a) a two-test leak guard or an explicit assert that after a 
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-06-30T11:44:23Z] Catherine Manager:
+- [2026-06-30T11:44:23Z] `manager` Catherine Manager:
   - Fixed: QA added the isolation, sub-entity cross-check, and override-merge assertions (FEAT-209 + FEAT-250 QA passes).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -150,7 +150,7 @@ Neither affects correctness or the gates; recording for the dev's awareness.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-06-30T11:44:24Z] Catherine Manager:
+- [2026-06-30T11:44:24Z] `manager` Catherine Manager:
   - Fixed: OSError on the override read surfaces as SquadsError with the lint pointer; loader nits addressed.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->

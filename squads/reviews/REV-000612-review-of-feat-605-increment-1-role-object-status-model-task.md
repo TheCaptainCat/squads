@@ -44,7 +44,7 @@ Why it still matters: ADR-604 §1 frames absent-role -> bundled pending as a gua
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-22T16:35:10Z] Elias Python:
+- [2026-07-22T16:35:10Z] `python-dev` Elias Python:
   - Fixed: _check_role_references now errors if FALLBACK_ROLE_NAME ('pending') isn't declared in roles; role_for's docstring corrected to state _validate guarantees both explicit-role resolution and the fallback role's presence. One hand-built fixture (test_type_spec_capability_flags.py's parent_hint test) needed a 'pending' role added to its custom roles dict — everything else already carried it via dict(base.roles). Gate green (pyright/ruff/format); targeted workflow/validation tests green.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -53,16 +53,16 @@ Why it still matters: ADR-604 §1 frames absent-role -> bundled pending as a gua
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T16:32:11Z] Paul Reviewer:
+- [2026-07-22T16:32:11Z] `reviewer` Paul Reviewer:
   - Lead #1 (fallback fail-closed): CONFIRMED as a code/contract gap, REFUTED as an adopter-reachable crash. Additive merge keeps bundled 'pending' in every loaded spec, so no adopter override path KeyErrors. Filed F1 (Medium) for the latent gap + false role_for docstring.
   - Lead #2 (fixture integrity): CLEAN. Sampled the reachability-lint floor (terminal=True->settled 'done', False->'pending' — faithful), semantic-role, artifact golden-lock, and terminal-status CLI diffs. No weakened assertions; the deleted 'no other status gained a role' test is genuinely obsolete under the new model. Goldens (workflow_statuses drop terminal + populate role; new workflow_roles) faithfully match the ADR §2 table and are consumed by test_json_output_shape.
   - Lead #3 (behaviour-preservation): CONFIRMED. settled is byte-identical to old terminal for all 23 statuses; hidden matches the ADR table. Accepted/Published stay settled-but-visible (in_force), Done/Verified/Approved hide (done), Rejected->retired hides (deliberate). tree_view's candidate gate moved is_open->hidden_by_default — the intended in-force/records visibility contract, tested. No unexpected flips.
   - Lead #4 (single derivation site): CONFIRMED. is_open/terminal_set/hidden_by_default + services (_roster/_refs/_collab) + template all route through role_for/spec.is_open. No lingering .terminal reads or hardcoded role/terminal sets. _main.py still EMITS is_open (now spec.is_open-derived) — that field-drop is TASK-611 (Draft), correctly out of this increment.
   - Conventions: clean — no ticket IDs, no 'meta', no bare (non-PEP695) type aliases in the new code; SquadsError-family used; no SCHEMA_VERSION bump (spec-format + --json-contract only). Gate green: pyright/ruff/format clean, targeted tests pass.
-- [2026-07-22T16:32:19Z] Paul Reviewer:
+- [2026-07-22T16:32:19Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested — one Medium finding (F1). Everything else is clean and faithful to ADR-604. F1 is a latent Plane-1 fail-closed gap (not adopter-reachable today) plus a false docstring guarantee; ~2-line fix in _check_role_references + a docstring correction closes it. @tech-lead / @python-dev.
-- [2026-07-22T16:35:25Z] Elias Python:
+- [2026-07-22T16:35:25Z] `python-dev` Elias Python:
   - F1 fixed (see finding comment) — back in InReview for re-verification.
-- [2026-07-22T16:37:09Z] Paul Reviewer:
+- [2026-07-22T16:37:09Z] `reviewer` Paul Reviewer:
   - F1 verified: fallback-role load check added to _check_role_references (fails closed if 'pending' undeclared); role_for docstring corrected. Full suite green.
 <!-- sq:discussion:end -->

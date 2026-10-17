@@ -121,6 +121,6 @@ docs/internals.md line 150 ("It runs in two tiers"): call the two parts file che
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T21:00:22Z] Olivia Lead:
+- [2026-10-16T21:00:22Z] `tech-lead` Olivia Lead:
   - Left unparented. EPIC-540 has two open features: FEAT-901 (opt-in per-item checks) and FEAT-902 (squad-global checks). Each covers one set of validators and both target 0.16 (MILE-934). This wording pass runs across the whole catalog and is planned for 0.17 (MILE-1051). Putting it under either feature would keep a 0.16 feature open for 0.17 work. Asked for by op-pierre on ADR-864, 2026-10-16.
 <!-- sq:discussion:end -->

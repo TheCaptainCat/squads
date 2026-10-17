@@ -111,8 +111,8 @@ any other `--json` surface.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T13:45:25Z] Robert Architect:
+- [2026-09-29T13:45:25Z] `architect` Robert Architect:
   - @op-pierre for your call: left Proposed. Written to settle the TASK-969 ST4/ST5 questions the tech lead raised.
-- [2026-09-29T13:52:52Z] Pierre Chat:
+- [2026-09-29T13:52:52Z] `op-pierre` Pierre Chat:
   - Accepted.
 <!-- sq:discussion:end -->

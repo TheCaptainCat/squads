@@ -97,9 +97,9 @@ Covers the dedicated idempotence test (FEAT-178 AC#4, ADR-181 #4): stamp a skill
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T19:39:08Z] Elias Python:
+- [2026-06-24T19:39:08Z] `python-dev` Elias Python:
   - Implementation complete. _write_managed_skill in _backends/_claude_code/_backend.py now reads the existing skill file before writing: if the file has frontmatter and a sq:body region, only the body region is replaced (via sections.replace_section); otherwise the body-with-markers is written as before. Mirrors the _regen_role_body pattern exactly.
   - Two subtasks done: (1) body-region-only marker-safe regen preserving stamped frontmatter, (2) mandatory idempotence test test_sync_twice_leaves_skill_ids_unchanged confirming sq sync twice never changes id/sequence_id. Full suite green (exit 0).
-- [2026-06-24T19:53:47Z] Elias Python:
+- [2026-06-24T19:53:47Z] `python-dev` Elias Python:
   - F1 nit from REV-191 addressed. The else-branch in _write_managed_skill (_backends/_claude_code/_backend.py) was split into two cases: (1) frontmatter present but sq:body region absent/partial — now re-emits the existing frontmatter via sections.join_frontmatter(fm, body_with_markers) so stamped id/sequence_id are never lost (ADR-181 #3 fail-safe); (2) genuinely no frontmatter — unchanged, writes bare body_with_markers. The happy-path branch (frontmatter + body region present) is untouched.
 <!-- sq:discussion:end -->

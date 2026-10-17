@@ -106,14 +106,14 @@ approach, not a defect to fix here.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T13:44:44Z] Robert Architect:
+- [2026-09-29T13:44:44Z] `architect` Robert Architect:
   - Ruled in ADR-971: stored slugs are identity and never re-derived; dev roles pin to the stored slug; no migration; duplicate detection also matches the pre-fix rule. Build plan in TASK-969 ST5.
-- [2026-09-29T14:03:28Z] Elias Python:
+- [2026-09-29T14:03:28Z] `python-dev` Elias Python:
   - Fixed: slugify transliterates accented Latin letters; dev roles resolve to their stored slug; add_operator/add_skill/add_dev also refuse a slug matching the earlier rule.
-- [2026-09-29T14:24:08Z] Catherine Manager:
+- [2026-09-29T14:24:08Z] `manager` Catherine Manager:
   - Reopened for REV-975 findings.
-- [2026-09-29T14:36:27Z] Elias Python:
+- [2026-09-29T14:36:27Z] `python-dev` Elias Python:
   - Review fixes: self-contained frozen legacy rule; map extended; the length cut never splits an expansion.
-- [2026-09-29T16:05:57Z] Mara Tester:
+- [2026-09-29T16:05:57Z] `qa` Mara Tester:
   - Verified by QA against c5331f42 (src clean at the time of the drives), dev tree via uv run, scratch squads. Driven slugify table: Reduire la latence, Grosse prufen, Ca marche, Elodie Martin, AE/O/OE/L/D forms, sharp-s capital, NFD input, thorn/eth/h-stroke/dotless i, punctuation mix, max_len cuts next to a sharp-s expansion (never split), plain ASCII unchanged, CJK and empty fall back to untitled. ADR-971 consumers driven on a squad built by released 0.15.0 with mangled slugs (op-lodie, lixir-dev, r-duire-latence, a memory): sync, check, repair leave every file and pointer as is; show, --as, --author, --assignee all resolve the stored slug; re-adding the same operator, skill and dev is refused; new names get the clean slug. Not driven: the dev-role override TOML path (read only).
 <!-- sq:discussion:end -->

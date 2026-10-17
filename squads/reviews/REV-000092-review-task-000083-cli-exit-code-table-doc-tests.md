@@ -60,6 +60,6 @@ _Add with `sq review 92 add-finding "…" --severity high`; track with `sq revie
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T21:03:26Z] Paul Reviewer:
+- [2026-06-12T21:03:26Z] `reviewer` Paul Reviewer:
   - Approved. Contract (0/1/2/3) implemented and documented correctly; exit 3 fires only on error-level check issues — warnings-only exits 0 (proven by test_exit_code_0_check_warnings_only). All 8 tests pass, pytest 395 passed/1 skipped, pyright+ruff clean. No findings.
 <!-- sq:discussion:end -->

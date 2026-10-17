@@ -41,7 +41,7 @@ _Add with `sq task 475 add-subtask "<title>"`; track with `sq task 475 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T20:23:03Z] Ada Typescript:
+- [2026-07-18T20:23:03Z] `typescript-dev` Ada Typescript:
   - Implemented: types.ts SqSubEntity + SqShowJson.subentities; sqAdapter.ts isSqSubEntity guard + isSqShowJson extended; previewDocument.ts buildSubEntitiesHtml/SubEntitiesOutcome (mirrors buildDiscussionHtml: failure msg / empty->'' / populated details, head badge line status+severity+assignee+story omitting nulls, per-entity body as collapsible <details> through renderMarkdownToHtml mermaid-fences-off); itemPreviewManager.ts wires getShowJson's subentities into the new section (both success and no-invocation-resolved paths).
   - Section sits between graphsHtml and discussionHtml in buildPreviewHtml. Client-only, no core change.
   - Gates: tsc --noEmit clean, eslint --max-warnings 0 clean, prettier --check clean, npm test 188/188 green, npm run test:canary 10/10 green.

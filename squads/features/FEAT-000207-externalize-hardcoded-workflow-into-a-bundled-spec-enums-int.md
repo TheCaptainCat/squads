@@ -93,6 +93,6 @@ As a squads maintainer, I want a golden test that asserts the loaded default `Wo
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T14:20:50Z] Catherine Manager:
+- [2026-06-25T14:20:50Z] `manager` Catherine Manager:
   - ADR-214 accepted; FEAT-207 → Ready. Building F1 full loop (Pierre greenlit). Scope reminder for the breakdown: externalize the workflow into a bundled WorkflowSpec loaded from default_workflow.toml, ItemType/Status enums STAY (spec coerced/validated against them, must equal not extend), golden-lock test that the loaded default == today's exact behavior. NO de-typing/overrides/custom-vocab (F2/F3/F4).
 <!-- sq:discussion:end -->

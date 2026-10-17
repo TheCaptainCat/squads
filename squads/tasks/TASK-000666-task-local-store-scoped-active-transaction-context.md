@@ -212,6 +212,6 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T15:55:40Z] Catherine Manager:
+- [2026-07-27T15:55:40Z] `manager` Catherine Manager:
   - Implementation note from the build: with one ambient slot per task (a single ContextVar, required for the foreign-store guard to mean anything), a genuinely nested different-store transaction makes the outer store's _log() no-op while the inner is active, then restore on unwind. Verified by test and intentional — a real per-store binding would need more ambient state than ADR-663 §4 allows. No such call site exists today; revisit with Robert if one appears.
 <!-- sq:discussion:end -->

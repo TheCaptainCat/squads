@@ -179,7 +179,7 @@ override resolution trips it.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T17:26:24Z] Elias Python:
+- [2026-08-26T17:26:24Z] `python-dev` Elias Python:
   - Fixed the seam in _cli/_common.py: get_service() and get_service_bypassing_index_cross_check() now re-call set_active_squad_dir(cached.paths.squad_dir) on every memo-hit fetch, not only at Service construction.
   - Fixed there, not at render sites: get_service() is the one call every leaf verb already makes before touching render() (each anyio.run crossing gets its own copied contextvars.Context, so ServiceCore.__init__'s set on crossing 1 never reaches crossing 2). Re-asserting on fetch covers every render() consumer uniformly — views, item-template regen, subentity block/head/summary (_discussion.py), role-body regen — with zero changes to _views.py or _discussion.py.
   - Driven proof on a real squad (bash, not CliRunner): scaffolded views/milestone_rollup.md.j2, edited it. Before fix: sq milestone 9 show and --raw rendered bundled Delivered/Outstanding; sq workflow view rendered the override. After fix: show, show --raw and workflow view all render the override.

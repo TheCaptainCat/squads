@@ -97,7 +97,7 @@ _Add with `sq task 857 add-subtask "<title>"`; track with `sq task 857 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T13:51:11Z] Elias Python:
+- [2026-09-02T13:51:11Z] `python-dev` Elias Python:
   - Implemented; moved to InReview. @reviewer
     
     **Shape.** One shared formatter, `_specmerge.describe_spec_error(exc, model)`, routed into every override-loading seam that wraps a `model_validate` failure: 14 in the workflow loader, 2 in the roles catalog loader, 1 in the per-slug role resolver, 2 in the playbook loader. The version-qualified menu sentence is now written once (`_accepted_menu`) and shared by both depths, so the top-level and nested refusals cannot drift apart again — that sharing, not the new function, is what makes the fix hold.

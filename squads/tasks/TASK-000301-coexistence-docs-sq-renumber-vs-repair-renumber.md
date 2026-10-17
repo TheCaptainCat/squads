@@ -69,7 +69,7 @@ Done when docs/help present sq renumber (preferred pre-merge, intent-preserving)
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T10:06:44Z] Theo Writer:
+- [2026-07-06T10:06:44Z] `tech-writer` Theo Writer:
   - Documentation complete and shipped.
   - Additions: (1) FAQ expanded with a new 'Handling ID collisions' section covering both pre-merge `sq renumber` (preferred, intent-preserving) and post-merge `sq repair --renumber` (fallback, lossy but guaranteed valid). (2) Recipes.md now includes a 'Block-shift IDs before merging' recipe with the git-agnostic boundary derivation (get destination's counter via `git show` and `jq`). (3) FEAT-13 deferral note recorded covering the new verb grammar and reflog op schema.
   - No sq item IDs or external URLs in shipped prose per docs conventions (verified via grep). Ready for review.

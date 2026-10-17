@@ -131,7 +131,7 @@ to detect it, and nothing is reported for a view that is not required.
 #### Discussion
 
 <!-- sq:story:US4:discussion -->
-- [2026-09-15T08:03:05Z] Olivia Lead:
+- [2026-09-15T08:03:05Z] `tech-lead` Olivia Lead:
   - Cancelled here rather than removed: the scope is not abandoned, it moved. FEAT-948 carries it as a five-story breakdown, broadened past the milestone-only frame this story was written in, and TASK-942 is reparented there with its subtasks remapped onto those stories. Cancelling keeps the move legible from this feature; removing would leave the Scope section's pointer to FEAT-948 referring to something with no trace here.
 <!-- sq:story:US4:discussion:end -->
 <!-- sq:story:US4:end -->
@@ -140,7 +140,7 @@ to detect it, and nothing is reported for a view that is not required.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-14T12:21:16Z] Olivia Lead:
+- [2026-09-14T12:21:16Z] `tech-lead` Olivia Lead:
   - Broken into two tasks, both Draft (promotion at dispatch is mine): TASK-941 the seeding and the
     one-time migration (US1/US2/US3), TASK-942 the `sq check` advisory (US4).
     
@@ -178,7 +178,7 @@ to detect it, and nothing is reported for a view that is not required.
       confirmation.
     
     `sq check` clean. @manager both ready for dispatch in that order; I hold the Draft-to-Ready gate.
-- [2026-09-14T13:50:14Z] Pierre Chat:
+- [2026-09-14T13:50:14Z] `op-pierre` Pierre Chat:
   - Three rulings on this feature's build:
     
     - **Schema bump**: build it and run it in-session. The 0.14 to 0.15 runner, registry step and
@@ -190,10 +190,10 @@ to detect it, and nothing is reported for a view that is not required.
     - **The sq check advisory's selection**: catalog member only. The validator lands in the
       catalog, but this repo does NOT select it in its own spec, so no `.overrides/workflow.toml`
       is created here. The advisory will not fire in this repo; that is accepted.
-- [2026-09-15T07:20:25Z] Nina Product:
+- [2026-09-15T07:20:25Z] `product-owner` Nina Product:
   - Corrected the Scope section: removed the deleted warn-level, catalog-only sq check advisory bullet (and its ADR-864/FEAT-898 framing), replaced with a pointer to FEAT-948, which now owns the required-view requirement half per op-pierre's ADR-880 fourth amendment. US1-US3 and the discussion are untouched.
   - FEAT-948 (Required views: a declared, enforced document invariant) is the new home for that scope, under EPIC-897. @manager
-- [2026-09-15T08:03:13Z] Olivia Lead:
+- [2026-09-15T08:03:13Z] `tech-lead` Olivia Lead:
   - Dropped the stale `FEAT-898 (depends-on)` ref. Confirmed from the record rather than assumed: commit 3b6aeed6 added that edge in the same hunk as the Scope bullet 'Declared through ADR-864's declared-level assignment grammar (FEAT-898)' and US4's acceptance clause 'requires ADR-864's declared-level grammar (FEAT-898) to exist as a catalog member'. Both texts are gone — the fourth amendment's tier-1 ruling deleted the catalog advisory — and nothing left in US1-US3 (creation template, migration runner, changed-body count) touches validator-assignment grammar. FEAT-948 does not inherit it: a tier-1 finding is unconditional and takes no declared level.
   - US4 moved to Cancelled with the reason on the story. It is not abandoned — FEAT-948 owns it as five stories, and TASK-942 is reparented there. Cancelling rather than removing keeps the move legible from this feature, which the Scope section now points at.
   - @manager FEAT-907's remaining scope is US1-US3 only; nothing here is blocked by the required-view work any more.

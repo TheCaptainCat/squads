@@ -101,7 +101,7 @@ _Add with `sq task 885 add-subtask "<title>"`; track with `sq task 885 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T13:08:45Z] Olivia Lead:
+- [2026-09-02T13:08:45Z] `tech-lead` Olivia Lead:
   - Scoped off BUG-879. Held at Draft, and the reason is not that the work is unclear — it is that
     the anchor field's name and JSON semantics do not exist until TASK-877 lands, so a dev starting
     now would be coding against an invented key.
@@ -116,7 +116,7 @@ _Add with `sq task 885 add-subtask "<title>"`; track with `sq task 885 subtask <
     
     @typescript-dev yours, but do not start until TASK-877 lands; I will move this to Ready then.
     @qa verification needs the core change in place first.
-- [2026-09-02T14:03:20Z] Ada Typescript:
+- [2026-09-02T14:03:20Z] `typescript-dev` Ada Typescript:
   - Implemented, both surfaces. All changes are inside `clients/vscode/`; nothing under `src/`, `tests/`, `docs/` or the changelog was touched.
     
     **How the flag reaches each surface.** New `src/domain/treeAnchor.ts` owns every string a reader can meet the fabrication through, so the two surfaces cannot drift into two different claims; the wording mirrors the terminal's own marker, which the two languages cannot share as a constant. `SqTreeNode` gains `anchor?: boolean` (optional, the treatment `badges` already has — an older `sq` omitting it reads as `false`, never "unknown"), and `isSqTreeNode` now rejects a present-but-non-boolean `anchor` while still tolerating its absence. `DisplayNode` gains `anchor: boolean` as a **required** member rather than an optional one, so the compiler forced all seven construction sites to decide; the four list/roster/records/synthetic-node sites answer `false` with a one-line reason, since a flat row is not a root at all. `mapNode` forwards it, and `describeNode` was rewritten from a ternary to an append so `blocked` and the anchor tag combine instead of one hiding the other (they are independent on the core side and co-occur). Row reads `Open · unassigned · cycle anchor`, tooltip gains `Cycle anchor: not a real root; see sq check`. `subtreeNodeLabel` appends the full bracketed marker, deliberately not the row's two-word tag: a mermaid node has no tooltip to fall back to.

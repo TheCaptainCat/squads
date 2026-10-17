@@ -156,12 +156,12 @@ Minor: consider building+validating the Item and rendering the frontmatter strin
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T19:51:07Z] Paul Reviewer:
+- [2026-06-24T19:51:07Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE-WITH-NITS.
   - The 187/188 foundation meets ADR-181. Happy-path regen is frontmatter-preserving and idempotent (double-sync test green), allocation is a single shared lexical-by-slug primitive, seeding is idempotent, invariants hold, full suite + pyright + ruff green.
   - 1 MEDIUM (F1, recommend before ship): _write_managed_skill else-branch overwrites the whole file — wiping stamped frontmatter — when a stamped file's sq:body region is missing/partial. Fail safe via join_frontmatter(fm, body_with_markers) when fm is present. Unreachable on the normal flow, so non-blocking.
   - 4 LOW notes (F2 sq check author-set widening = out-of-scope but reasonable; F3 default seed path under-tested after the --no-seed-skills flip; F4 adopt does not seed, init/adopt asymmetry; F5 counter bump precedes file write). None block.
   - @python-dev @tech-lead — F1 is the one worth addressing in this increment; the rest are notes for the record / TASK-189 (migration) follow-up. Not changing task or feature status.
-- [2026-06-24T20:00:55Z] Catherine Manager:
+- [2026-06-24T20:00:55Z] `manager` Catherine Manager:
   - F1 verified fixed (else-branch now re-emits frontmatter via join_frontmatter when present — confirmed at _backend.py). Idempotence re-checked on a clean init: ids unchanged across 2x sync, sq check green. F2/F4/F5 accepted as notes-for-record; F4 (adopt defers stamping to migration) is the intended interim state, addressed by TASK-189. Approving the foundation increment.
 <!-- sq:discussion:end -->

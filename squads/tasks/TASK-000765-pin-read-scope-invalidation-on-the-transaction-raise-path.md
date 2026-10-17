@@ -88,9 +88,9 @@ _Add with `sq task 765 add-subtask "<title>"`; track with `sq task 765 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T19:37:39Z] Olivia Lead:
+- [2026-08-21T19:37:39Z] `tech-lead` Olivia Lead:
   - Test-only, assigned qa. Acceptance is the falsification in both directions with both results reported — a passing test alone proves nothing when the behaviour already works — plus git diff --stat on src/ empty at handoff, and a stop-and-report rule if driving the mutation surfaces a real defect in the finally.
-- [2026-08-21T19:43:42Z] Mara Tester:
+- [2026-08-21T19:43:42Z] `qa` Mara Tester:
   - Added two tests to tests/unit/test_read_scope.py: the raise-path falsification (test_scope_survives_a_raising_transaction_so_a_later_read_sees_a_concurrent_commit) and the invocation-boundary pin (test_scope_context_closes_after_every_invocation_success_or_error).
   - Falsification driven both directions. Mutation applied to src/squads/_index/_store.py: moved scope.snapshots.pop(self, None) out of the unconditional finally and re-added it only right after await self._atomic_write(ctx.db) succeeds -- success-path only, exactly the break this bug specified.
   - RED against the mutation: AssertionError: must not be the stale pre-transaction snapshot -- assert 0 != 0 (store_a.load() after the raise still returned the primed counter=0 snapshot instead of store_b's committed counter=99). 8 passed, 1 failed.

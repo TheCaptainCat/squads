@@ -62,7 +62,7 @@ Do NOT strip legitimate non-references: CLI-syntax templates (--parent FEAT-…,
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T14:06:17Z] Elias Python:
+- [2026-07-06T14:06:17Z] `python-dev` Elias Python:
   - Stripped squad-item refs from docs/*.md + README.md (removal only, no rewording): converted standalone/reference-doc examples (agents.md, workflow.md, README.md, stability.md, internals.md, docs/README.md) to non-digit placeholder tokens (FEAT-<n>, TASK-<n>, BUG-<n>, USn, STn, TASK-NNNNNN for the zero-padded filename shape) so no digit-bearing squad-item token remains.
   - Deliberately kept as illustrative (non-citing) CLI-output examples, per the task's own carve-out: docs/tutorial.md, docs/recipes.md, docs/adoption.md — each is a coherent, self-consistent worked walkthrough (fictional 'auth' feature) using concrete EPIC/FEAT/TASK/BUG/REV/ADR numbers exactly as sq would print them; recipes.md already discloses 'IDs are illustrative — use the ones sq prints'. None cites a real tracked item in this repo's own history.
   - Verification: git diff added-line grep for the ref pattern over docs/+README.md is empty (only untouched files still contain matches, all confirmed illustrative above); pyright/ruff check/ruff format all clean; no external/GitHub URLs introduced.

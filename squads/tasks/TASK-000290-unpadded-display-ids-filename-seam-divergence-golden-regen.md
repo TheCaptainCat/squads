@@ -163,9 +163,9 @@ Regenerate every managed artifact and golden fixture that embeds an ID so shippe
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-04T20:47:34Z] Olivia Lead:
+- [2026-07-04T20:47:34Z] `tech-lead` Olivia Lead:
   - Sequencing: this is the core, land it first. TASK-000291 (schema bump + migration) depends on it. Golden/managed-artifact regen is folded in here (ST4) because the display flip breaks goldens in the same change — no separate green PR is possible.
-- [2026-07-04T22:08:52Z] Elias Python:
+- [2026-07-04T22:08:52Z] `python-dev` Elias Python:
   - Done. ST1 (US1): Item.id_padding removed as a stored/settable field; added module constant DISPLAY_ID_PADDING=0 in _models/_item.py, Item.id now always formats at width 0. Removed SquadsDB._propagate_padding (no longer needed) and stripped every id_padding=db.padding construction kwarg (_base.py create, _maintenance.py seed_bundled_skills/seed_custom_skills, _v0_4_to_v0_5.py). SquadsDB.padding/format_id/allocate_id unchanged (still filename width).
   - ST2 (US2): fixed the two BREAKING filename-seam sites — _services/_items.py _rename (now threads db through and formats format_item_id(item.prefix, item.sequence_id, db.padding) for the stem) and _services/_retype.py retype (same fix, keeps new_id=item.id unpadded for content/refs, new_stem padded for the path). Also found and fixed a THIRD site the audit missed: _maintenance.py _renumber_plan/_renumber — it was feeding the same minted id into both the rename target (needs padded) and the rewrite_ids remap that patches frontmatter/refs/prose (needs unpadded); now mints new_padded and new_display separately. Added clarifying ADR-282 comments at every filename-building call site (_base.py create, _items.py rename, _retype.py, _maintenance.py seed/renumber/repad).
   - ST3 (US4): added test_unpadded_and_padded_ids_resolve_to_same_item (test_cli.py) pinning FEAT-2/FEAT-000002 resolve identically via resolve_item_id_typed, resolve_item_id_any, and db.get — no input-parsing change, confirmed.

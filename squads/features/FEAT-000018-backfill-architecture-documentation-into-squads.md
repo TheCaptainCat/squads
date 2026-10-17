@@ -83,11 +83,11 @@ As a new agent or contributor, I want an architecture guide readable through sq,
 #### Discussion
 
 <!-- sq:story:US1:discussion -->
-- [2026-06-12T14:19:14Z] Olivia Lead:
+- [2026-06-12T14:19:14Z] `tech-lead` Olivia Lead:
   - Carried by TASK-70 ST1 (architect): the single architecture guide covering layering, data model, and the marker mechanism.
-- [2026-06-12T14:27:14Z] Robert Architect:
+- [2026-06-12T14:27:14Z] `architect` Robert Architect:
   - Delivered as GUIDE-79 (Draft). Covers the three required areas — layering (cli→services→index/backends/rendering, _models shared base), the data model (items/sub-entities/index), and the marker mechanism — and sq search architecture finds it, satisfying the acceptance. Kept it lean and standalone-readable, pointing at sq docs internals for depth rather than duplicating it. Awaiting tech-writer polish before Published.
-- [2026-06-12T14:28:47Z] Theo Writer:
+- [2026-06-12T14:28:47Z] `tech-writer` Theo Writer:
   - GUIDE-79 is Published and ready. Polish focused on: (1) breaking the marker mechanism paragraph into two for breath—intro + anchor details; (2) re-framing 'Two cross-cutting conventions…' to 'Cross-cutting conventions' with tighter phrasing; (3) consistent house voice throughout. The guide flows cleanly for a new contributor: system's shape, data model, the marker boundary, and a "Going deeper" pointer to internals docs.
 <!-- sq:story:US1:discussion:end -->
 <!-- sq:story:US1:end -->
@@ -104,7 +104,7 @@ As an architect, I want the standing design decisions on record as ADRs, so that
 #### Discussion
 
 <!-- sq:story:US2:discussion -->
-- [2026-06-12T14:19:14Z] Olivia Lead:
+- [2026-06-12T14:19:14Z] `tech-lead` Olivia Lead:
   - Carried by TASK-69 (architect): the retroactive ADRs, one per standing call, each Proposed, framed as a decision already in force.
 <!-- sq:story:US2:discussion:end -->
 <!-- sq:story:US2:end -->
@@ -121,9 +121,9 @@ As a team member working an item, I want guides and ADRs cross-linked by refs, s
 #### Discussion
 
 <!-- sq:story:US3:discussion -->
-- [2026-06-12T14:19:15Z] Olivia Lead:
+- [2026-06-12T14:19:15Z] `tech-lead` Olivia Lead:
   - Carried by TASK-70 ST2 (architect): cross-link the guide and the retroactive ADRs both directions with related refs. Depends on TASK-69 for the ADR IDs.
-- [2026-06-12T14:27:14Z] Robert Architect:
+- [2026-06-12T14:27:14Z] `architect` Robert Architect:
   - Cross-links done and verified both directions: GUIDE-79 refs all eight retroactive ADRs (ADR-71..078) plus ADR-49, all --kind related, and each ADR refs the guide back. Forward edges stored on both sides; backrefs computed (confirmed via sq guide 79 refs --all and sq decision 74 refs --all). The schema_version / Python-floor ADRs called for elsewhere in the epic can attach to this same record by ref'ing GUIDE-79 or any of the ADRs.
 <!-- sq:story:US3:discussion:end -->
 <!-- sq:story:US3:end -->
@@ -132,11 +132,11 @@ As a team member working an item, I want guides and ADRs cross-linked by refs, s
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T14:27:06Z] Robert Architect:
+- [2026-06-12T14:27:06Z] `architect` Robert Architect:
   - @tech-writer the architecture guide is drafted and cross-linked — GUIDE-79 "squads architecture: layering, data model, and the marker mechanism", status Draft, ready for your polish-and-publish pass (TASK-70 ST1/ST2 done, sq check clean). Three sections: (1) the layering cli→services→index/backends/rendering with _models as the dependency-free base, one para per layer + where each lives; (2) the data model — items/global counter, sub-entities-in-frontmatter, rebuildable index, forward-only refs; (3) the marker mechanism + cross-cutting conventions. It cites all eight standing ADRs (ADR-71..078) plus ADR-49, and ends with a "Going deeper" pointer to sq docs internals / sq docs README / CLAUDE.md rather than duplicating them.
   - Cross-links are both directions and verified: GUIDE-79 → all nine ADRs (--kind related), and each ADR → GUIDE-79; sq guide 79 refs --all and sq decision 74 refs --all both render the pair. sq search architecture finds the guide.
   - Polish focus for @tech-writer: tighten prose to house voice, sanity-check the layer responsibilities read cleanly for a brand-new contributor, and flip the guide Draft→Published when satisfied. The body deliberately writes anchor names as plain references (e.g. "a sq:body region") not literal comment tags, since the body guard rejects the comment form — please keep that if you re-touch section 3.
-- [2026-06-12T14:28:44Z] Theo Writer:
+- [2026-06-12T14:28:44Z] `tech-writer` Theo Writer:
   - GUIDE-79 polish complete: tightened section 3 intro (marker mechanism) for clarity, strengthened cross-cutting conventions framing, improved overall readability for new contributors. All nine ADR citations verified intact (ADR-71..078, ADR-49). Guide status → Published. ADRs audited: all eight retroactive ADRs (ADR-71..078) show consistent voice and Status-note phrasing; no substantive edits needed. sq check clean.
   - @manager: the architecture documentation is ready for acceptance. ADRs are Proposed and await your sign-off to close the feature.
 <!-- sq:discussion:end -->

@@ -153,11 +153,11 @@ Acceptance (authored by the tech writer): the override reference's validators se
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T15:35:10Z] Nina Product:
+- [2026-10-09T15:35:10Z] `product-owner` Nina Product:
   - 2026-10-09 readiness pass: checked against ADR-864 and the engine as it stands. Corrected stale premise (subentity_title_max sits in the work bundle, not the floor; its threshold is already a declared param from FEAT-898); the create-time advisory now follows selection; own-spec selection moved from the bundled spec to a project override (no override file exists today); rewrote acceptance; added US4 (docs). Moved to Ready.
-- [2026-10-09T17:04:03Z] Pierre Chat:
+- [2026-10-09T17:04:03Z] `op-pierre` Pierre Chat:
   - 2026-10-09: yes, this project's own validator selections go in a project override (squads/.overrides/workflow.toml), the first one in this repo. Same answer for FEAT-901.
-- [2026-10-12T05:32:17Z] Mara Tester:
+- [2026-10-12T05:32:17Z] `qa` Mara Tester:
   - QA of stories 1 to 3, driven as an adopter with the dev build (HEAD 4b23b04c plus uncommitted tree) against the released 0.15.0 tool, in scratch squads and in a scratch COPY of this repository's squads/, .squads.toml, .claude and CLAUDE.md. Nothing was run against the repository's own squad except board writes with the released tool. Exit codes read from the bare command.
     
     - US1 (verified): fresh `sq init` squad selects nothing. Seven types (feature, bug, decision, guide, epic, milestone, contract) x body shapes `## Status`, `### Status`, `STATUS:`, `**Status:**`, plus a `STATUS:` description, a mid-body mention and no body: released tool 35 findings, dev build 0 (exit 0). Naming `no_status_banner` bare on all seven: `sq check --json` byte-identical to the released tool and to the released baseline. `no_status_banner@error` on bug: error level, exit 3, same as released. `no_status_banner:5` refused at load (takes no param), exit 3, `sq workflow lint` exit 1; an unknown name is refused too; the bare name is accepted.
@@ -166,8 +166,8 @@ Acceptance (authored by the tech writer): the override reference's validators se
     - Upgrade path (verified): a squad built with the released tool carrying 10 banner and 3 title findings: the dev build reports "no issues" (exit 0). `sq sync` changes nothing; `sq repair` rewrites only the index order and appends one reflog line, identical to what the released tool does, and a second `repair` and `sync` change only the reflog. Adding the repository's override file brings all 13 findings back, `sq check --json` byte-identical to the released tool's.
     - Observation (not filed, for @manager to judge): `sq import` prints its warnings in a different order when both checks are selected. The set is identical (sorted outputs equal); for the same item, the dev build prints "US1 body is unwritten" before "body opens with a status/lifecycle banner", where the released tool prints the banner first. The order follows the type's effective validator list, which now appends the selected names after the bundle. `sq check` output is unaffected (it sorts). Reproduction: scratch squad with this repository's override, import a feature with a `## Status` body and an add-story of 121 characters, diff against the released tool.
     - Not covered: roster types (role, skill, operator) banner path on the board (no verb sets their description), `[categories]` level overrides, TUI and VS Code, story 4 (documentation) left as is.
-- [2026-10-12T05:32:22Z] Mara Tester:
+- [2026-10-12T05:32:22Z] `qa` Mara Tester:
   - Correction to the QA comment above: the upgrade-path squad carried 8 banner and 3 title findings (11 in all, not 10 and 13).
-- [2026-10-12T06:20:42Z] Catherine Manager:
+- [2026-10-12T06:20:42Z] `manager` Catherine Manager:
   - Closing under the operator's standing delegation for reviewed, verified, non-visual work: all four stories Done, TASK-996 and TASK-997 Done, REV-998 Approved at 4b23b04c, QA verified stories 1 to 3 against the merged build and the released tool, docs and changelog committed. BUG-999 (import warning order) is the one side effect found, tracked on its own.
 <!-- sq:discussion:end -->

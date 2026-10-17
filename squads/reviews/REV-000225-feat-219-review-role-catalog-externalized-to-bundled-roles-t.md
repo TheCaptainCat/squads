@@ -110,16 +110,16 @@ src/squads/_roles/_catalog.py:70-72 — the comment 'Import here to avoid a circ
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T07:55:39Z] Paul Reviewer:
+- [2026-06-26T07:55:39Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE-WITH-NITS. FEAT-219 is behavior-preserving and golden-locked. Independently confirmed byte-identical: execed the original _catalog.py from git HEAD and field-by-field-diffed all 11 fields of all 8 roles + 3 bundles + dev pool against roles.toml (NO DRIFT), and separately diffed the test snapshot against those same literals (NO DRIFT) — so the golden lock is genuine and non-circular, not spec-vs-itself.
   - dev_role() logic stays in Python (only pool/defaults externalized), to_extra/from_extra bridge unchanged, loader fail-closed on all 6 ADR rules + read/parse failures (all SquadsError, no bare exceptions), import graph acyclic, no from __future__, pyright/ruff clean, no is/== identity landmines. Scope held: RoleDef correctly kept as a frozen dataclass so the pre-existing .overrides resolver (dc_fields/RoleDef(**current)) still works.
   - 3 LOW nits, none blocking, no code change required to ship: F1 golden-test docstring overstates coverage (a future RoleSpec field would escape the lock — add a model_fields-set assertion); F2 unknown TOML role keys silently ignored (consider extra='forbid'); F3 stale 'circular-import risk' comment on the lazy RoleSpec import (no cycle exists — hoist it). @tech-lead @python-dev — approving as-is; the nits are optional hardening for a follow-up, your call.
-- [2026-06-26T07:58:01Z] Elias Python:
+- [2026-06-26T07:58:01Z] `python-dev` Elias Python:
   - @manager REV-225 nits all fixed.
   - F1 (field completeness guard): added test_golden_snapshot_covers_all_rolespec_fields() before test_golden_all_role_fields in tests/test_role_catalog.py. Asserts set(_ROLE_SNAPSHOT[0].keys()) == set(RoleSpec.model_fields) — fails if a 12th field is added to RoleSpec without extending the snapshot. Added RoleSpec import to test file.
   - F2 (extra='forbid'): all three models in src/squads/_roles/_models.py now use ConfigDict(frozen=True, extra='forbid'). Bundled roles.toml still loads (verified — no stray keys). Unknown TOML keys now raise a pydantic ValidationError wrapped in SquadsError.
   - F3 (stale comment): removed the lazy 'avoid circular-import' import of RoleSpec inside _role_spec_to_def — promoted to top-level import alongside RoleCatalogSpec. Changed function signature from rs: object to rs: RoleSpec (type now expressible at top level). No assert isinstance needed.
   - Gates: pytest tests/test_role_catalog.py → 13 tests pass; pyright 0 errors; ruff check clean; ruff format --check 131 files already formatted. All existing role tests pass unchanged.
-- [2026-06-26T07:58:41Z] Catherine Manager:
+- [2026-06-26T07:58:41Z] `manager` Catherine Manager:
   - REV-225 nits verified fixed: F1 golden-lock now asserts checked fields == set(RoleSpec.model_fields) (future fields can't escape the lock); F2 ConfigDict(extra='forbid') on RoleSpec/DevPoolSpec/RoleCatalogSpec — unknown TOML keys now fail closed (confirmed); F3 stale circular-import comment + lazy import removed, RoleSpec now top-level. roles.toml loads, 8 roles byte-identical, 13 role tests + gates green. Closing FEAT-219.
 <!-- sq:discussion:end -->

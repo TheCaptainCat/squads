@@ -107,9 +107,9 @@ Fix: pin a recorded issue list (level, item, message) for a corpus fixture that 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T20:50:04Z] Elias Python:
+- [2026-10-16T20:50:04Z] `python-dev` Elias Python:
   - Fixed: the no-selection test now asserts exact equality with a baseline recorded from the preceding build (4d29cecb) over a corpus triggering index_reconciled, backend_reconciled and default_designation_duplicated, with no filter. Falsification: changing an always-on default level turns 3 new tests red.
-- [2026-10-16T20:53:16Z] Paul Reviewer:
+- [2026-10-16T20:53:16Z] `reviewer` Paul Reviewer:
   - Verified on dd15be98: the recorded baseline passes unchanged against the 4d29cecb build. Leaving out roster_config_integrity, roster_slug_valid and playbook_guide_role_live is acceptable. The diff only threads their level through the resolver, and that path is pinned by the default-level table test and the no-level-literal AST guard.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -126,7 +126,7 @@ Fix: pin a recorded issue list (level, item, message) for a corpus fixture that 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T20:50:06Z] Elias Python:
+- [2026-10-16T20:50:06Z] `python-dev` Elias Python:
   - Fixed: SquadGlobalContext.now is required (no default), the None guard and the test pinning the silent skip are removed; every builder passes clock.now(). Structural: enforced by construction and pyright, no test to turn red.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -143,7 +143,7 @@ Keep one. The custom check carries the better message, so drop `SELECTABLE_SECTI
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T20:50:08Z] Elias Python:
+- [2026-10-16T20:50:08Z] `python-dev` Elias Python:
   - Fixed: SELECTABLE_SECTIONS removed; [selected] squad has one refusal path (the custom message). Falsification: dropping the custom refusal turns 1 new test red.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -160,7 +160,7 @@ FEAT-902 justifies the check by the permanent mutual block that `sq blocked` wou
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T20:50:10Z] Elias Python:
+- [2026-10-16T20:50:10Z] `python-dev` Elias Python:
   - Fixed per the manager ruling: dependency_acyclic reports every group of dependency edges, settled or not, as "dependency cycle: A -> B -> A" (each depends on the next), plus "(also involving ...)" for a larger group; no claim about what can start. Falsification: reintroducing the block claim turns 10 new tests red; skipping settled items turns 1 red.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -177,7 +177,7 @@ ST10 also records "26 issues with nothing selected" without saying where they co
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T20:50:12Z] Elias Python:
+- [2026-10-16T20:50:12Z] `python-dev` Elias Python:
   - Fixed: bullet-to-test map and the ST10 correction are on TASK-1074.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -199,7 +199,7 @@ Some messages have plural and table-shape mistakes:
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T20:50:15Z] Elias Python:
+- [2026-10-16T20:50:15Z] `python-dev` Elias Python:
   - Fixed: singular forms for item/day, and a squad-specific hint when [squad] is not a table. Falsification: unassigned singular 2 red, days singular 1 red, hint 1 red.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -208,12 +208,12 @@ Some messages have plural and table-shape mistakes:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T20:43:55Z] Paul Reviewer:
+- [2026-10-16T20:43:55Z] `reviewer` Paul Reviewer:
   - Review of c4c413d8 done: 6 findings (1 medium, 4 low, 1 info). Recommended verdict: ChangesRequested, for F1 (the no-selection invariant is not pinned against a baseline). The engine behaved correctly on every shape probed. The 26 dry-run issues come from the copy, which has no .claude/ or CLAUDE.md, and sync clears them. F4 needs a decision. @python-dev @manager
-- [2026-10-16T20:44:32Z] Catherine Manager:
+- [2026-10-16T20:44:32Z] `manager` Catherine Manager:
   - F4 ruling (simplest predictable rule): dependency_acyclic reports every cycle, settled or not, worded neutrally as a cycle with its path; no claim about what can start.
-- [2026-10-16T20:53:17Z] Paul Reviewer:
+- [2026-10-16T20:53:17Z] `reviewer` Paul Reviewer:
   - Fixes in dd15be98 verified; F1 to F6 Verified. 712 targeted tests pass, and the F1 baseline also passes on the base build. F4 follows the manager ruling: every cycle is reported with its path, worded neutrally. Recommended verdict: Approved. The approver makes that transition, since a reviewer approving its own review skips the two-party gate. @manager
-- [2026-10-16T20:53:41Z] Catherine Manager:
+- [2026-10-16T20:53:41Z] `manager` Catherine Manager:
   - Approved on the reviewer's verification of all six findings (dd15be98). Merge into release/0.16 follows TASK-990's commit.
 <!-- sq:discussion:end -->

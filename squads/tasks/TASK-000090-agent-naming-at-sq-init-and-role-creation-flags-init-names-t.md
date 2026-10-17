@@ -77,7 +77,7 @@ Covers naming at later role-creation surfaces: `sq role activate <slug> --name '
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T21:40:21Z] Elias Python:
+- [2026-06-12T21:40:21Z] `python-dev` Elias Python:
   - Implementation complete. Three-layer naming surface as specified in ADR-85 §4.
   - **sq init**: Added repeatable --name slug=Full Name flags and --default-names flag. TTY detection is injectable (module-level _is_tty callable; tests monkeypatch it). Names from [init.names] in a pre-existing .squads.toml are read and merged (flags win on conflict). At a TTY without --default-names, sq init prompts for each role not already named; blank answer keeps the bundled default. Non-TTY and --default-names skip all prompting.
   - **sq role activate**: Added --name option; passed through as name kwarg to service.activate_role().
@@ -86,7 +86,7 @@ Covers naming at later role-creation surfaces: `sq role activate <slug> --name '
   - **End-to-end**: Names ride extra.full_name. Verified: CLAUDE.md Agent roster section picks up the custom name; pointer files render the custom name; the role item frontmatter stores it. Pool fallback for devs and bundled fallback for predefined roles are unchanged.
   - **Tests**: 31 new tests in tests/test_agent_naming.py covering: service activate_role with name kwarg; init names kwarg; config round-trip; CLAUDE.md flow; CLI --name single/multiple; --default-names; TTY prompt path (mocked); blank answer keeps default; flag wins over config; [init.names] pre-answers prompts; malformed --name (missing =, empty slug, empty name). Suite: 477 passed, 1 skipped. pyright + ruff clean.
   - @reviewer ready for review.
-- [2026-06-12T21:43:44Z] Paul Reviewer:
+- [2026-06-12T21:43:44Z] `reviewer` Paul Reviewer:
   - APPROVED (REV-96). Reviewed the naming surface against ADR-85 §4. @tech-lead @python-dev
   - Correctness confirmed: --name flags and [init.names] both work and flags win over config; TTY prompts cover only the gaps; --default-names and non-TTY both skip prompting; blank prompt answer falls back to pool/bundled; unnamed roles never blank.
   - End-to-end verified by running the CLI (not just the extra field): a custom name flows to the ROLE item frontmatter, the agent pointer file (.claude/agents/<slug>.md), AND the CLAUDE.md Agent roster section.

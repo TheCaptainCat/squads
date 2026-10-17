@@ -155,16 +155,16 @@ So the primary corruption-reporting tool (check) works, and the crash is confine
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T14:34:00Z] Paul Reviewer:
+- [2026-06-26T14:34:00Z] `reviewer` Paul Reviewer:
   - Independent review complete — verdict CHANGES-REQUESTED. Reification equivalence is faithful (all ~22 checks behaviour-identical, every flag value correct, each pinned by a characterization test) and the extra=forbid hardening is clean.
   - Blocking: F1 (HIGH) — ADR-232 §1 load-boundary vocab validation was never implemented; corrupt frontmatter (unknown type/status) is silently indexed by repair and crashes sq check/sq list with a raw KeyError (verified via live repro vs HEAD, which rejected it). The ADR §7 hazard-(b) path is uncharacterized. @tech-lead please scope a fix: validate type/status against the loaded WorkflowSpec at the load boundary, raise SquadsError with the item id, and add a characterization test for the bad-value path.
   - Should-fix in same pass: F2 (MEDIUM) — reserved_statuses uses all of Status, not the structural floor the ADR-accept comment pinned; fail-closed today but will wrongly reject custom work-item statuses in F5.
-- [2026-06-26T14:35:48Z] Catherine Manager:
+- [2026-06-26T14:35:48Z] `manager` Catherine Manager:
   - Confirmed F1 independently: corrupted a task to 'type: gizmo' — sq repair silently re-indexed it (19 items, no rejection) and sq check crashed with a raw Traceback. HEAD rejected it at enum construction; the de-typing dropped that guard and the ADR-mandated load-boundary validation was never added. Real regression + SquadsError-invariant violation. Reopening TASK-235; fixes dispatched (F1+F2 blocking, F3/F4 cheap). The bad-value path also needs a characterization test — it's the §7 hazard-b gap that let this through the green suite.
-- [2026-06-26T15:02:53Z] Paul Reviewer:
+- [2026-06-26T15:02:53Z] `reviewer` Paul Reviewer:
   - Re-review complete — verdict APPROVE-WITH-NITS. All four original findings independently re-verified as resolved (F1/F2/F3/F4 -> Fixed), with live repros + the new tests/test_load_boundary_vocab.py (load/repair × type/status) and test_non_reserved_status_omission_is_allowed.
   - F1 item-level guard confirmed clean on both paths (index-load + repair): corrupt type/status now raises a one-line SquadsError with the item id, no raw KeyError. F2 reserved floor is the 12 structural statuses, matching the accepted decision. F3 spec-driven. F4 raises on non-str.
   - One residual nit on the record — F5 (MEDIUM, NON-BLOCKING): sub-entity status (SubEntity.status, also de-typed to str) is still an unguarded ingestion path. A corrupt subentities[].status survives load/repair and crashes sq show --full with a raw ValueError; sq check reports it cleanly. Same defect class as F1 on the sub-entity axis. @tech-lead recommend a quick follow-up: extend _validate_item_vocab + the repair guard to also validate each item.subentities[].status, with a matching test. Approving now; this can land as a fast-follow.
-- [2026-06-26T15:12:51Z] Catherine Manager:
+- [2026-06-26T15:12:51Z] `manager` Catherine Manager:
   - F5 verified fixed — the load-boundary guard now also validates sub-entity status on both paths (_validate_item_vocab at index-load + the repair inline guard). Confirmed: a bad subentities[].status injected into the index → sq feature show --full / sq list now raise a clean SquadsError (item id + sub-entity key), no raw ValueError; 2 new tests added. The guard is complete across item AND sub-entity vocabulary. All of F1-F5 resolved; running a final full-suite confirmation before marking Done.
 <!-- sq:discussion:end -->

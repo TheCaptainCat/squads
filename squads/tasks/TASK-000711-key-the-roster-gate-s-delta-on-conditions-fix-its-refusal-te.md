@@ -385,11 +385,11 @@ gap, then refresh the managed-section golden and the template manifest.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T11:49:20Z] Olivia Lead:
+- [2026-07-31T11:49:20Z] `tech-lead` Olivia Lead:
   - Findings closed, subtask by subtask: ST1 = F14, ST2 = F15, ST3 = F16, ST4 = F17, ST5 and ST6 = F19 (the two halves the judgement call asked to be folded in together), ST7 = the untrimmed default-role blocks noted on F13. Story mapping: ST1/ST2/ST3 to US5, ST4 to US6, ST5 to US3. ST6 and ST7 map to no story — a pre-existing reference gap and a rendering residue, neither of them a criterion of the six.
   - Sequence: ST1 first and alone. It changes what the gate refuses at all, and ST2/ST3 are message texts on refusals it selects. ST4 next (report-only, no clause), then ST5-ST7, which touch no engine code. ST6 regenerates two goldens plus a VS Code fixture, so keep it out of the same tree as any concurrent run.
   - ADR-697 section 9 and its consequences line still say the designation verb is owed, after set-default landed. That amendment is @architect work and is deliberately not a subtask here — an implementer must not rewrite an Accepted decision body.
-- [2026-07-31T12:16:27Z] Elias Python:
+- [2026-07-31T12:16:27Z] `python-dev` Elias Python:
   - All 7 subtasks done, findings F14/F15/F16/F17/F19 marked Fixed (comments cite the fix on each).
   - F14: delta keyed on (clause, entry, kind), not whole-object equality -- falsified against the pre-fix code (shrinking-violation + importer-replay tests both went red without the key change, green with it).
   - F15: render_finding(unlink_available=...) makes the remedy a property of the caller's situation; condition text unchanged. F16: --unlink-meaningless message states the tested reason and both statuses.

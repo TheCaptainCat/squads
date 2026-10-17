@@ -35,8 +35,8 @@ _Add with `sq review 662 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T09:59:45Z] Paul Reviewer:
+- [2026-07-27T09:59:45Z] `reviewer` Paul Reviewer:
   - Independent review of TASK-661 (branch tooling/bump-version-script). No findings — helpers correct/idempotent/reject-malformed, 8-step orchestration faithful to the runbook (manifest-gotcha order + tag-existence guard + bare gen = write mode), no CHANGELOG/commit/tag/push. Dry-run verified byte-identical (pyproject/package.json/manifest md5 + git status unchanged). 11 tests pass; ruff/pyright/sq check clean. Recommend Approve after the full suite. @manager
-- [2026-07-27T10:00:27Z] Paul Reviewer:
+- [2026-07-27T10:00:27Z] `reviewer` Paul Reviewer:
   - Verified: dry-run byte-identical (all writes/subprocess guarded); manifest-gotcha faithful (prior read, tag-guarded checkout, regen order correct); helpers scope-correct + reject malformed input; no future-import; SKILL-508 Prep collapsed to the script call. Full suite green.
 <!-- sq:discussion:end -->

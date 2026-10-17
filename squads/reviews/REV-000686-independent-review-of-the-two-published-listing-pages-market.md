@@ -202,18 +202,18 @@ drifted from the "read-only, planned direction for editing" framing settled here
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-28T15:08:16Z] Nina Product:
+- [2026-07-28T15:08:16Z] `product-owner` Nina Product:
   - Verdict: not quite ship-as-is. Fix F1 (worked example fails as written — 2-line fix, same block on both pages) before this goes live; F2/F3 are worth a fast follow but wouldn't block a release on their own.
   - Highest-value single change: add 'sq dev add --tech python' before the add-story step in the shared worked example (F1) — it's the one thing a reader will actually type, and it's currently broken on both pages.
   - Direction steer addressed: MARKETPLACE's 'planned direction, not a shipped feature' line for editing is the right shape and stays as-is (F3 notes it as the model). PYPI's pre-1.0 framing states the present cleanly but has no equivalent forward clause — F3 recommends one clause, no specifics, no version numbers.
   - @tech-lead cross-cutting note in F4: worth a quick check that README.md's description of the extension's read/write boundary still matches 'read-only, planned direction for editing' while you're in there.
-- [2026-07-29T07:33:41Z] Theo Writer:
+- [2026-07-29T07:33:41Z] `tech-writer` Theo Writer:
   - F1 fixed on both pages, and the root cause was worse than a missing line: my verification run had 17 commands and the published block had 16 — I ran 'sq dev add --tech python' first to make python-dev real, then omitted it when writing the block. That single omission caused both symptoms, because dev add also consumes a counter slot: without it the roles/skills leave the counter at 18 and the first feature is FEAT-19, with it the feature is FEAT-20. The page showed the numbers from my run and the commands from a run that never happened.
   - Fix goes further than adding the line back: literal IDs are now gone. The block uses typed placeholders (FEAT-<n>, TASK-<n>, REV-<n>) with a lead-in saying sq create prints the ID to substitute. Full-ID addressing is a legal, type-checked form ('sq feature FEAT-20 add-story' works; 'sq task FEAT-20 show' is rejected), so the page shows real syntax and cannot drift when init's role/skill count changes or when a reader uses --roles core instead of all.
   - Verified twice from a clean 'sq init --roles all': once with substituted numbers, once with the page's exact full-ID form. All 17 commands succeed, including 'sq inbox reviewer' listing the task at the moment the example calls it.
   - F3 fixed: 'Neither writes anything today … Editing from a client is a planned direction, not a shipped feature' beside the clients sentence, and 'pre-1.0 and under active development' in the maturity section. Present tense stays exact, no dates, no version numbers.
   - F2 (Marketplace missing the pre-1.0/schema disclosure) is NOT fixed — it fell between the coordinator's fix list and defer list, so I left the published page alone rather than adding unrequested copy to it. @op-pierre @manager it is a two-line addition when someone wants it. F4 left Open as an informational record.
-- [2026-07-29T07:38:38Z] Theo Writer:
+- [2026-07-29T07:38:38Z] `tech-writer` Theo Writer:
   - F2 fixed: MARKETPLACE.md now carries the pre-1.0 disclosure as a fourth bullet in 'What it doesn't do' — 'It doesn't promise a frozen format.' squads is pre-1.0, the on-disk format can change between releases, sq migrate up carries a squad forward, and the stability contract (absolute link) sets out what holds after 1.0.
   - Placed there rather than in a footer or a callout for three reasons: it is the section a reader passes immediately before Getting started, so the fact lands before the install decision; its siblings are already the page's other honest limits (no writing, doesn't bundle squads, doesn't phone home), so the register is plain statement rather than warning; and the 'doesn't …' construction keeps it grammatically of a piece with them instead of reading as a disclaimer bolted on. No dates, no version numbers, and migrate-up sits inside the same bullet so the limitation arrives with its remedy.
 <!-- sq:discussion:end -->

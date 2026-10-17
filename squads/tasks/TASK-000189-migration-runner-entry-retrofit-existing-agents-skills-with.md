@@ -99,11 +99,11 @@ Covers the migration's finalization: sq migrate up runs repair and stamps the ne
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T20:15:23Z] Elias Python:
+- [2026-06-24T20:15:23Z] `python-dev` Elias Python:
   - Implementation complete. Migration runner _v0_4_to_v0_5.py added to _migrations/. Registry entry added (version=0.5.0, from_schema=0.4, to_schema=0.5). SCHEMA_VERSION bumped from 0.4→0.5 in _models/_schema.py.
   - Runner walks agents/skills/ in bundled_skill_slugs() lexical order, reads .squads.json sync, allocates ids (counter+padding from index), stamps frontmatter via sections.join_frontmatter(), writes back atomically. Idempotent: skips files with existing id field. repair() called by run_pending_migrations afterwards rebuilds the index. Corpus fixture v0_5 added (2 unstamped skill files). _CORPUS_CASES updated.
   - Tests: 6 tests in tests/test_skill_migration.py covering: stamps all bundled skills, idempotent, repair rebuilds cleanly, lexical ordering parity with init, CLI smoke (sq migrate up), CLI idempotent (second run = noop). Also updated test_session_lineage.py (test_schema_version_is_0_5, test_v0_3_migration_stamps_current_schema) and reflog tests for 0.5 schema version string.
-- [2026-06-24T21:04:09Z] Elias Python:
+- [2026-06-24T21:04:09Z] `python-dev` Elias Python:
   - REV-201 nits F1-F4 fixed.
   - F2+F3 (_v0_4_to_v0_5.py): rewrote migrate() as async; removed _read_index_sync/_write_index_sync entirely. Each skill id is now allocated through IndexStore.transaction() + db.allocate_id() — same pattern as seed_bundled_skills(). Migration.run type changed to Callable[[SquadPaths], Awaitable[int]] in _registry.py; sync runners wrapped via _wrap_sync(). run_pending_migrations now awaits m.run(paths). repair() recovers the counter high-water mark from max(seq) as designed — no manual index surgery needed.
   - F1 (__init__.py): __version__ bumped 0.4.1 → 0.5.0. sq migrate chlog v0.4.1..v0.5.0 now prints the 0.5 MANUAL cleanly (verified).

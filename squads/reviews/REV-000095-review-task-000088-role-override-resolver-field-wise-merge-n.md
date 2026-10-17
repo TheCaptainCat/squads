@@ -69,7 +69,7 @@ RoleDef is a frozen dataclass, so scalar override values are not type-validated.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T21:33:39Z] Paul Reviewer:
+- [2026-06-12T21:33:39Z] `reviewer` Paul Reviewer:
   - VERDICT: Approved. The resolver implements ADR-85 §2/§4 correctly: field-wise merge over PREDEFINED (only TOML-set fields change, rest inherited — verified for scalars and tuple fields), new-slug admission requires full_name/title/description/mission, the slug key is genuinely ignored (filename stem is canonical), and malformed TOML raises SquadsError (exit 1, clear message with path).
   - All role-producing paths route through the resolver: activate_role→resolve_role, add_dev→resolve_dev_role (explicit name kwarg correctly wins over TOML full_name), _refresh_catalog_extra→resolve_role (RoleNotFoundError caught for dev/unknown slugs — correct, it subclasses SquadsError), author() fallback→resolve_role, and sq role show display+json→resolve_role with e()-escaping on every dynamic field. sq role catalog intentionally lists the bundled PREDEFINED menu (not project-resolved) — acceptable. init/adopt use resolve_roles for the bundled --roles menu but only consume .slug, and activate_role re-resolves through the override, so bundled-slug overrides apply at init; new slugs are added post-init via sq role activate (in scope, works).
   - REV-093 F1 conftest teardown is correct: _env_cache.clear() is pure-memoization (rebuild-on-access, can't change behaviour) and set_active_squad_dir(None) resets the ContextVar post-test; it cleans up rather than pre-seeds, so it cannot mask a bug within the test under run — it kills exactly the order-dependent coupling it targets.

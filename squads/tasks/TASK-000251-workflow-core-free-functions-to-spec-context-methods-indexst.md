@@ -66,7 +66,7 @@ _Add with `sq task 251 add-subtask "<title>"`; track with `sq task 251 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T10:03:43Z] Elias Python:
+- [2026-06-30T10:03:43Z] `python-dev` Elias Python:
   - Implemented TASK-251 (workflow core + IndexStore spec threading).
   - WorkflowSpec gains workflow_for/subentity_workflow/subentity_initial/subentity_can_transition/parent_hint methods. Workflow dataclass moved from __init__.py to _models.py. _workflow/__init__.py: deleted _active_spec/use_spec(real logic)/reset_spec(real logic)/_terminal_ref/in-place dict mutation; WORKFLOWS/SUBENTITY_WORKFLOWS/ALLOWED_PARENTS/TERMINAL are now immutable constants backed by _BUNDLED_SPEC. use_spec/reset_spec retained as documented no-op stubs (callers in _service.py and _cli/_main.py swept in TASK-252/253). active_spec() now returns _BUNDLED_SPEC directly.
   - IndexStore.__init__ gains spec: WorkflowSpec | None = None constructor arg; _validate_item_vocab takes spec explicitly, no more lazy _workflow import. Default is bundled_spec() (backward compat for init/adopt/tests without an explicit spec).

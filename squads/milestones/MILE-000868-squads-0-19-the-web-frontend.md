@@ -33,12 +33,12 @@ A squad readable in a browser: the squad's state stops being visible only to who
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T08:04:47Z] Nina Product:
+- [2026-09-02T08:04:47Z] `product-owner` Nina Product:
   - Linked to the sq web epic with a plain related ref, not membership: the roll-up inverts incoming targets refs only, so the shell stays empty while the epic's outcome and framing stay one hop away instead of being restated here and drifting.
-- [2026-10-16T11:22:52Z] Pierre Chat:
+- [2026-10-16T11:22:52Z] `op-pierre` Pierre Chat:
   - 2026-10-16: split this milestone. A new milestone, squads 0.17, is the daemon release: the API (serves and listens on localhost, no authentication), the CLI's remote and local modes, and the daemon logic. This milestone keeps only the browser frontend and builds on 0.17. Transport (HTTP port vs Unix socket) is undecided and goes to an ADR.
-- [2026-10-16T11:51:38Z] Pierre Chat:
+- [2026-10-16T11:51:38Z] `op-pierre` Pierre Chat:
   - 2026-10-16: this milestone becomes squads 0.18 (the web frontend), after 0.17 (MILE-1051, the daemon).
-- [2026-10-16T13:39:35Z] Pierre Chat:
+- [2026-10-16T13:39:35Z] `op-pierre` Pierre Chat:
   - 2026-10-16: renumbered to 0.19; the backends release takes 0.18 because supported backends take priority over the web frontend.
 <!-- sq:discussion:end -->

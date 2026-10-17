@@ -51,9 +51,9 @@ Suggested fix (small): add a direct unit test that calls _v0_2_to_v0_3._migrate_
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-16T14:49:50Z] Elias Python:
+- [2026-06-16T14:49:50Z] `python-dev` Elias Python:
   - Addressed per op-pierre's decision: _migrate_toml removed as redundant. The helper was dead code — run_pending_migrations already canonicalizes the TOML via to_toml() in the stamp step, and from_toml_dict() already translates the legacy key on load. The corpus test test_v0_2_migration_rewrites_backend_key is kept (it still proves the end-to-end contract) with a comment explaining that the canonicalization comes from the schema-stamp re-serialization, not an explicit migration step. Back-compat reader tests (TestLegacyDefaultBackendRead) retained. Gate: 839 passed, 1 skipped; pyright 0 errors; ruff clean; sq check clean.
-- [2026-06-16T14:58:28Z] Paul Reviewer:
+- [2026-06-16T14:58:28Z] `reviewer` Paul Reviewer:
   - Verified: _migrate_toml fully removed (grep: zero references in src/ or tests/). _v0_2_to_v0_3.py diff vs HEAD is docstring-only — migrate() is back to item-files-only, no logic change. Now-unused imports (tomllib, CONFIG_FILENAME, SquadsConfig) also gone. The end-to-end contract still holds via the schema-stamp path: to_toml() only emits active_backends, from_toml_dict() translates+discards legacy default_backend. test_v0_2_migration_rewrites_backend_key drives run_pending_migrations and asserts post has active_backends and NOT default_backend — a real regression guard at the flow level (fails if to_toml regresses or from_toml_dict stops translating). v0_3 fixture canonical, v0_2 stays legacy (non-vacuous). TestLegacyDefaultBackendRead retained and non-vacuous (agents_md non-default name). Gate green: 839 passed/1 skipped, pyright 0 errors, ruff + format clean, sq check clean.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->

@@ -100,7 +100,7 @@ tests/test_cli.py:1764 `test_spec_bound_before_parse_type_runs` documents that p
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-30T11:51:37Z] Catherine Manager:
+- [2026-06-30T11:51:37Z] `manager` Catherine Manager:
   - Fixed: test now invokes 'list --type task --status InProgress' so parse_type/parse_status actually fire — exit 0 proves the spec was bound in the root callback before parse. Docstring corrected to match.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -115,7 +115,7 @@ tests/test_rendering.py defines a module-local `_template_for` that hand-copies 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-06-30T11:51:38Z] Catherine Manager:
+- [2026-06-30T11:51:38Z] `manager` Catherine Manager:
   - Fixed: hand-copied _template_for removed; test now calls the real bundled_spec().item_is_meta(), single source of truth, no suppression.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -134,7 +134,7 @@ It is a minor shape deviation from the task's "pass it in" wording — `bundled_
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-06-30T11:43:44Z] Catherine Manager:
+- [2026-06-30T11:43:44Z] `manager` Catherine Manager:
   - Accepted by design: migrations intentionally use the bundled vocabulary (not the project override), so _meta_compat reading bundled_spec() directly is correct and byte-identical. No change.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -149,7 +149,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-06-30T11:43:38Z] Paul Reviewer:
+- [2026-06-30T11:43:38Z] `reviewer` Paul Reviewer:
   - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -164,7 +164,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-06-30T11:43:39Z] Paul Reviewer:
+- [2026-06-30T11:43:39Z] `reviewer` Paul Reviewer:
   - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -179,7 +179,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-06-30T11:43:41Z] Paul Reviewer:
+- [2026-06-30T11:43:41Z] `reviewer` Paul Reviewer:
   - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -194,7 +194,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-06-30T11:43:42Z] Paul Reviewer:
+- [2026-06-30T11:43:42Z] `reviewer` Paul Reviewer:
   - Closing as duplicate tool-retry artifact; canonical findings are F1/F2/F3.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -203,7 +203,7 @@ Duplicate created by a CLI retry (a shell-quoting artifact emitted spurious `--f
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T11:51:10Z] Elias Python:
+- [2026-06-30T11:51:10Z] `python-dev` Elias Python:
   - Fixed F1 and F2 (test-hygiene only; no production behaviour changed).
   - F1 (test_cli.py:1764 test_spec_bound_before_parse_type_runs): changed the invocation from ['list', '--all'] to ['list', '--type', 'task', '--status', 'InProgress']. Both --type and --status now trigger parse_type/parse_status as Typer parser callbacks; exit 0 is only possible if the bundled spec was already bound by the root callback. Docstring updated to match. The test_workflow_override.py coverage (override-spec parse-ordering via 'incident' type) is complementary and untouched.
   - F2 (test_rendering.py): removed the hand-copied _template_for helper function entirely. The parametrized test now calls bundled_spec().item_is_meta(type_str) directly — the exact same public method ServiceCore._template_for calls — and builds the template path inline. No separate copy exists; any new branch added to the production method will break the test immediately. No reportPrivateUsage suppression added; no production code touched.

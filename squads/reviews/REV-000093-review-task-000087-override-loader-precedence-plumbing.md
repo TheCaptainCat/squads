@@ -49,7 +49,7 @@ No autouse fixture resets engine module-state between tests (_active_squad_dir C
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T21:11:31Z] Paul Reviewer:
+- [2026-06-12T21:11:31Z] `reviewer` Paul Reviewer:
   - Verification & reasoning notes (not findings):
   - Traversal guard: the .overrides/templates path is built from code-constant segments (squad_dir / '.overrides' / 'templates'), not from hand-edited frontmatter, so there's no traversal vector for abspath() to guard — and Jinja2's FileSystemLoader already rejects '../' in template names. The guard is respected by construction; routing through paths.abspath() would be belt-and-suspenders but isn't required for safety.
   - Thread/async safety: _active_squad_dir is a ContextVar (correct — per logical call stack); _env_cache is a plain module dict but is only keyed by squad_dir and only inserted/popped, so the worst race (two threads building the same key) discards a redundant Environment harmlessly — no corruption, no cross-squad leak. Jinja2 Environments are render-thread-safe. set_active_squad_dir uses .set() without a token reset (last-writer-wins) — fine for the synchronous CLI execution model; the ContextVar is the right foundation if concurrency is ever added.

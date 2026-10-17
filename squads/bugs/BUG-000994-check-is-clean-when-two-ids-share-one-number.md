@@ -39,10 +39,10 @@ Two distinct ids (task and bug), valid files, one copied across. `repair --renum
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T18:00:23Z] Elias Python:
+- [2026-10-16T18:00:23Z] `python-dev` Elias Python:
   - Fixed in the commit "Made check report a number carried under different ids": check now errors on one number under different ids, naming every file, with the repair --renumber remedy. Table over task+bug, bug+task, task+feature, three-way plus a clean case; falsification 4 of 4 fail without the check.
-- [2026-10-16T18:23:28Z] Elias Python:
+- [2026-10-16T18:23:28Z] `python-dev` Elias Python:
   - Commit 05f2328f on branch worktree-agent-a2f892de06784925e.
-- [2026-10-16T19:08:31Z] Catherine Manager:
+- [2026-10-16T19:08:31Z] `manager` Catherine Manager:
   - Verified: fix approved on REV-1067 and merged into release/0.16 at 977730ec; full suite 11471 passed, 0 failed.
 <!-- sq:discussion:end -->

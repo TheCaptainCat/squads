@@ -227,7 +227,7 @@ Service-level and CLI smoke tests per behaviour, asserting generated files: vali
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T10:59:21Z] Elias Python:
+- [2026-09-03T10:59:21Z] `python-dev` Elias Python:
   - ST1-ST6 done. Expansion lives at ItemsMixin.read_body (_services/_items.py) — the one boundary; grep-provable, pinned by a structural test. Mechanism: views.expand_view_tags(body, item, db, spec) in _views.py, scanning with a new _sections.iter_marker_spans() (positions computed once against the original text, never re-matched after substitution — that's the no-recursion guarantee, no depth counter needed).
   - ST2: renders through the existing views.resolve_records/project/render_view — untouched, additive, survives the coming source-widening/projection-deletion without moving.
   - ST3: read-only by construction — set_body's mutate closure still reads sq:body via sections.get_section directly, never through read_body/expand_view_tags. Central round-trip test: insert a tag, read (expanded), append, assert the stored file still carries the literal tag byte-for-byte and the rendered output is nowhere on disk.
@@ -241,6 +241,6 @@ Service-level and CLI smoke tests per behaviour, asserting generated files: vali
   - Nothing undecided that the task didn't already settle -- ADR-880's amendment covered both failure modes and the no-recursion rule precisely enough to implement directly.
   - One thing I'd flag, not a defect: the accepted double-render (expanded tag + the still-live type-attached view print) means an item whose type attaches a view AND carries a hand-placed tag for that same view renders it twice in --raw/show. Verified live, matches the task's own 'additive, no single-render test' framing -- named here only so the reviewer doesn't mistake it for a regression.
   - @tech-lead ready for review.
-- [2026-09-03T11:01:19Z] Catherine Manager:
+- [2026-09-03T11:01:19Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4691 passed, 12 skipped, exit 0. Verified beyond the tests: exactly one expansion call site (read_body, _services/_items.py:589) so every read surface inherits it from one place; and the two TASK-909 CLI tests this task rewrote still assert real behaviour -- they now pin the exact on-disk marker form and keep the occurrence count, which is a stronger assertion than the console substring they replaced.
 <!-- sq:discussion:end -->

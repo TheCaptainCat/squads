@@ -64,6 +64,6 @@ _Add with `sq task 584 add-subtask "<title>"`; track with `sq task 584 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T12:03:13Z] Elias Python:
+- [2026-07-22T12:03:13Z] `python-dev` Elias Python:
   - Wired no_parent into CATEGORY_BUNDLES[records] and epic's validators addition in default_workflow.toml; sq check stays clean (exit 0), 10 new enforcement tests + full unit/service/cli/meta suite green, pyright/ruff/format clean.
 <!-- sq:discussion:end -->

@@ -118,9 +118,9 @@ Replaced the individual bump/manifest/goldens/sq-sync bullets in SKILL-508 Prep 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T09:55:23Z] Hugo Ops:
+- [2026-07-27T09:55:23Z] `devops` Hugo Ops:
   - TASK-661 done: scripts/bump_version.py implements the 8-step bump (pure rewrite helpers + orchestration), --dry-run verified side-effect-free, tests added, SKILL-508 Prep updated to call the script.
   - Fast gates clean: pyright, ruff check, ruff format --check, and the new tests/meta suite (11 tests). sq check clean.
-- [2026-07-27T09:56:49Z] Hugo Ops:
+- [2026-07-27T09:56:49Z] `devops` Hugo Ops:
   - Coordinator correction applied: removed 'from __future__ import annotations' from both scripts/bump_version.py and scripts/gen_template_manifest.py (pre-existing violation of the project's no-future-annotations convention, PEP 649 makes it unneeded on 3.14). Gates re-run clean (pyright/ruff check/ruff format --check + the 11 tests).
 <!-- sq:discussion:end -->

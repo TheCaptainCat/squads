@@ -328,7 +328,7 @@ ends, and that fallback is said out loud, not chosen silently.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-03T12:56:07Z] Elias Python:
+- [2026-09-03T12:56:07Z] `python-dev` Elias Python:
   - Folded: _locked_placement_edit removed entirely. _section_edit_core/_locked_section_edit now take mutate: (text, item) -> (new_text, changed) and skip the write/timestamp bump when changed=False -- the exact conditional _locked_placement_edit used to own alone.
   - 5 mutate closures updated to return (text, True) unconditionally (body, block-body, comment) since only placement can be a no-op; insert_view/remove_view now call _locked_section_edit directly and unpack (item, changed).
   - 3 direct callers of _section_edit_core (2x import.py BodyEvent/SubBodyEvent, 1x collab.py _comment_core) updated to unpack the tuple; _items.py set_body and _subentities.py set_block_body updated similarly (the latter's return was already discarded).
@@ -360,7 +360,7 @@ this mechanism and the fix is in the boundary's own function.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-03T12:59:57Z] Elias Python:
+- [2026-09-03T12:59:57Z] `python-dev` Elias Python:
   - Added squads._views.has_view_tag(text) -- same span-and-name check expand_view_tags already does, computed from body text alone (no index/spec/item), exposed so read_body can decide before paying either cost.
   - read_body now checks has_view_tag(body) first; returns immediately (no store.load(), no expand_view_tags call) when absent. A tagged body's path is unchanged (self.get()'s pre-existing load, then the expansion load, same as before).
   - Clarified: self.get(item_id) (needed to resolve the item's type/path) already called store.load() once before this feature ever existed -- that call is the baseline and stays. The load this bails is the SECOND, expansion-only store.load() call this mechanism added; that's what doubles per-body-read cost outside a read scope (the TUI), and what the fix removes for the common (tagless) case.
@@ -391,7 +391,7 @@ the duplicate directly — the existing suite covers only the different-name sha
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-03T13:03:11Z] Elias Python:
+- [2026-09-03T13:03:11Z] `python-dev` Elias Python:
   - F5 and F8 share one function and one docstring sentence, so rewritten together in _sections.remove_unpaired_marker as the task record anticipated -- recorded on ST3, cross-referenced from ST4.
   - remove_unpaired_marker now loops: removes every occurrence of the named marker (was: first only), returning removed=True iff at least one was found. The different-name case (another view's tag) is untouched -- unaffected by the loop since it never matches marker.find().
   - Coverage: 3 new unit tests (duplicate x2 -> both removed and restores the region; triplicate -> all three; duplicate-with-a-different-name-interleaved -> only the named one goes). Plus a service-level test reproducing the reviewer's exact repro: hand-seed a duplicate milestone_rollup tag, sq check reports 'duplicate marker', remove_view, assert removed is True AND read_body no longer renders the view AND sq check goes clean.
@@ -422,7 +422,7 @@ normalises.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-03T13:03:22Z] Elias Python:
+- [2026-09-03T13:03:22Z] `python-dev` Elias Python:
   - Same function/docstring sentence as F5 (ST3) -- rewritten once, both findings closed by the one change described there. This comment covers the byte-preservation half specifically.
   - remove_unpaired_marker no longer calls replace_section at all: it now finds the region's open/close marker positions directly in the original text (mirroring get_section's own bound-finding, since a start/end offset is needed to splice back rather than just the inner text), mutates a local copy of inner across the removal loop, then splices text[:start] + inner + text[ci:] using the ORIGINAL bounds. No newline is prepended or appended anywhere in the path.
   - Fell back to nothing -- the splice was doable inside the primitive with zero change to replace_section's behaviour for its other callers (it's simply no longer called from here); no stop-and-comment needed.
@@ -451,7 +451,7 @@ survives intact.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-03T13:04:41Z] Elias Python:
+- [2026-09-03T13:04:41Z] `python-dev` Elias Python:
   - Anchored: assert not any("view" in name for name in CATALOG) -> assert not any(name.startswith("view") for name in CATALOG). Narrow claims (dangling_view/view_target not in CATALOG) untouched.
   - Proved by construction per the brief, not by reasoning about the substring: new test builds fake_catalog = {**CATALOG, "review_findings_closed": <dummy>} and asserts the unanchored form DOES fire on it (any("view" in name...) is True -- the trap) while the anchored startswith form does not.
   - Falsified: temporarily reverted the anchored assertion back to the bare substring form inside the new test -- reddened exactly as the trap predicts (assert not True). Restored, 18/18 green in the file.
@@ -482,7 +482,7 @@ and change no other renderer's success path.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-09-03T13:08:22Z] Elias Python:
+- [2026-09-03T13:08:22Z] `python-dev` Elias Python:
   - Translation moved into squads._rendering._engine.render() itself: catches jinja2.TemplateError, raises SquadsError(f"template {template_name!r} failed to render: {exc}") from exc. This is the one funnel every renderer in the codebase already calls.
   - _views._render_view_or_raise now catches SquadsError (was jinja2.TemplateError) and re-raises with the item named -- same re-raise-with-context shape, just off the engine's own SquadsError instead of the raw jinja2 one. Local 'from jinja2 import TemplateError' import removed.
   - _services._base.pristine_body now catches SquadsError (was jinja2.TemplateError) and still returns None -- swallow behavior byte-identical, only the caught type changed. Local jinja2 import removed.
@@ -521,7 +521,7 @@ that is the docstring this subtask corrects. Flag the inheritance on FEAT-898 in
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-09-03T13:10:30Z] Elias Python:
+- [2026-09-03T13:10:30Z] `python-dev` Elias Python:
   - Documentation-only, no mechanism change, as directed. _services/_validators.py's module docstring: corrected the 'sole source' sentence to its actual scope (per-item and squad-global issues, not sq check's issues as a whole) and added a new paragraph naming the file-level tier -- both members (_marker_issues, _view_target_issues), why they're per-file/unconditional and therefore not catalog-shaped, and why a caller that wants the complete finding surface must read both tiers.
   - Generalised finding named by its current name (_view_target_issues, the name the applicability-widening task landed) -- no stale 'dangling' reference introduced.
   - Matching back-reference added at the tier-1 end: MaintenanceMixin._scan_for_check's own docstring now opens by naming itself 'Tier 1 of sq check's two finding tiers', names both its members, and points at _validators.py's module docstring for the other end -- recoverable from either direction now.
@@ -554,7 +554,7 @@ so say that rather than reporting a falsification that did not happen.
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
-- [2026-09-03T13:12:03Z] Elias Python:
+- [2026-09-03T13:12:03Z] `python-dev` Elias Python:
   - All 6 delivered-text hits + both source-side borderline lines from the review taken:
   - 1) tests/cli/test_view_tag_placement_cli.py module docstring: dropped 'landed after this verb' build-order clause, kept the durable fact (expansion renders the tag in show --raw, so the file is where a literal tag is assertable).
   - 2) tests/cli/test_view_tag_placement_cli.py test_view_is_not_a_flag_on_body: dropped 'The task's own constraint:' prefix -- the constraint is the design, stands alone.
@@ -573,7 +573,7 @@ so say that rather than reporting a falsification that did not happen.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T13:15:01Z] Elias Python:
+- [2026-09-03T13:15:01Z] `python-dev` Elias Python:
   - All 8 subtasks Done; full per-ST detail + falsification already recorded on each. This is the consolidated handback.
   - F3/F8 disposition, as asked to say out loud: BOTH folded/spliced, neither fell back. F3 -- _locked_placement_edit removed entirely; _section_edit_core's mutate callback now returns (text, changed) and every existing caller (body/comment/sub-body/bulk-import) was updated to return changed=True, so the docstring's 'second of the two write seams' count is true again with zero wording change needed -- the fold itself restored correctness. F8 -- remove_unpaired_marker now splices region bounds directly instead of routing through replace_section, with zero change to replace_section's behaviour for its other callers (it is simply no longer called from this one site). No caller behaviour changed in either case; both were verified against every existing caller's own suite, not just new tests.
   - F5 -- remove_unpaired_marker loops and removes every occurrence of the named tag (was first-only); rewritten together with F8 in the same function/docstring pass as directed.
@@ -587,17 +587,17 @@ so say that rather than reporting a falsification that did not happen.
   - Falsification: every new/changed test broken red and restored green, both directions reported per-subtask (F3: 7 tests via removing the no-write-on-no-change guard; F4: 2 new tests via reverting the has_view_tag bail, at both the service call-count layer and the real TUI component; F5/F8: 5 unit + 1 service test via reverting to first-occurrence+replace_section; F6: the new anchoring test via reverting its own assertion to the bare substring; F7: 3 of 4 new tests via reverting render()'s translation, including a raw jinja2 traceback observed in the CLI run's captured output; F9/F10: documentation-only, said explicitly, nothing to falsify).
   - One correction to the acceptance record, stated for the next reader: F4's brief said 'before this change the body-read boundary loaded no index' -- that's not quite right. svc.get(item_id), needed to resolve the item's type/path, already called store.load() once before this feature ever existed. What this feature actually added was a SECOND, expansion-only store.load() call -- doubling the cost outside a read scope (the TUI). The fix bails that second call, not the first; the measured 0.035s-per-load driven number and the fix's effect are unchanged by this correction, only the 'before' baseline description.
   - @tech-lead ready for review.
-- [2026-09-03T13:18:55Z] Catherine Manager:
+- [2026-09-03T13:18:55Z] `manager` Catherine Manager:
   - Full suite green including the slow scale tests as the authoritative gate: 4779 passed, 7 skipped, exit 0 -- run with --run-slow deliberately, because the F3 fold changed the mutate callback contract across every write-seam caller and F7 moved Jinja translation into _engine.render, which every renderer goes through. Verified both folds myself: _locked_placement_edit has zero references left, so the "second of the two write seams" docstring is true rather than recounted, and translation sits at _engine.py:199 with the other two sites reduced to cross-references. Accepting the correction to my own brief: the boundary already loaded an index via svc.get(); the regression was a second expansion-only load, which is what the fix bails.
-- [2026-09-03T13:43:32Z] Elias Python:
+- [2026-09-03T13:43:32Z] `python-dev` Elias Python:
   - F9: deleted the two remaining rename-narration sentences the reviewer's re-sweep found -- _maintenance.py:495's `_view_target_issues` docstring ("used to answer only the first reason and was named for it...") and the module docstring of test_check_flags_a_view_tag_whose_target_cannot_resolve.py ("used to be test_check_flags_a_dangling_view_tag_name.py..."). Nothing else touched.
   - F11: added squads._views.ViewTemplateMissingError(SquadsError) -- render_view's own pre-check refusal now raises this instead of a bare SquadsError. _render_view_or_raise catches it first (bare re-raise, unwrapped) before the broader except SquadsError that wraps a real engine render failure. Corrected _render_view_or_raise's docstring to name the mechanism precisely; its 'let through unchanged' claim is true again.
   - F11 test: tests/service/test_render_view_or_raise_lets_a_missing_template_error_through_unwrapped.py drives _render_view_or_raise directly with a view name that has no template and asserts the message is byte-identical to render_view's own raise (no item-naming prefix, no doubling). Falsified: reinstated the wide 'except SquadsError' catch, test went red reproducing the exact doubled message from the finding's driven repro (`view 'no_such_template_view' failed to render on EPIC-2: view 'no_such_template_view' has no presentation template...`); restored the narrowed catch, test green.
   - Gates: pyright/ruff check/ruff format --all-extras clean. Targeted tests (touched files + related view/check suites) + tests/meta: 62 + 279 passed. sq check clean. Did not touch F1-F8/F10 (Verified) or run the full suite.
   - @reviewer ready for re-review on F9/F11.
-- [2026-09-03T13:54:53Z] Catherine Manager:
+- [2026-09-03T13:54:53Z] `manager` Catherine Manager:
   - Reopening for F9 remaining surface: four clauses in _rendering/_engine.py and one sentence in _services/_base.py, both from ed26f99c. These want rewrites, not deletions -- the durable facts stay in the present tense. Also: the TASK-914 status moves the reviewer flagged as a concurrent unknown writer were mine, as were the FEAT-916/917 comments earlier. No unaccounted writer in this tree.
-- [2026-09-03T14:35:12Z] Elias Python:
+- [2026-09-03T14:35:12Z] `python-dev` Elias Python:
   - Fourth prose pass, closing item by replacing the instrument per the brief.
     
     **Item 1 — block scanner (throwaway, scratchpad only, never in the repo).** ast+tokenize

@@ -63,7 +63,7 @@ Emit two spec-derived fenced Mermaid diagrams in `workflow.md.j2`: a hierarchy f
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T14:30:35Z] Elias Python:
+- [2026-07-15T14:30:35Z] `python-dev` Elias Python:
   - workflow.md.j2 gains two fenced Mermaid diagrams: an item-type hierarchy flowchart (parent_chain/spec.items) and a per-type lifecycle stateDiagram-v2 (spec.machine_for + new lifecycle_states_in_order/lifecycle_edges helpers in _workflow/_models.py, registered as Jinja globals in _engine.py alongside a mermaid_id filter for safe node ids on a customized vocab).
   - Both diagrams are deterministic (Lifecycle.states is a frozenset — hash-seed ordered — so diagrams use BFS-from-initial ordering, not direct set iteration). sq workflow renders the fences as a plain code block in Rich, no crash.
   - Tests: tests/unit/test_workflow_cheatsheet_mermaid_diagrams.py (fencing, edges, terminal markers, renamed-type shows/bundled-literal-doesn't-leak, determinism), CLI smoke in tests/cli/test_workflow_command_points_to_cheatsheet.py. Golden churn: tests/goldens/workflow_cheatsheet.txt + agents_md_section.txt regenerated (additive, both include workflow.md.j2); claude_md_section.txt untouched (separate template).

@@ -161,6 +161,6 @@ ADR-622's one flagged rough edge: a mid-apply crash (rare I/O failure after the 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T07:49:29Z] Catherine Manager:
+- [2026-07-24T07:49:29Z] `manager` Catherine Manager:
   - FEAT-576 Done: adoption ergonomics complete. Import (ADR-622): sq import JSONL engine (validate-first pre-pass + single-transaction apply, per-event at/as, client handles) + the sq import CLI (--dry-run/--json/--at/--as). Adopt: orphan-pointer + pre-existing-CLAUDE.md warnings (warn-only, non-destructive). Docs: adoption runbook + import-recovery note. Reviewed REV-641 (engine) + REV-643 (surfaces), both Approved. Full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

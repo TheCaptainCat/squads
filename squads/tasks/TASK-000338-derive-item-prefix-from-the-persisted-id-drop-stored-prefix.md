@@ -83,7 +83,7 @@ _Add with `sq task 338 add-subtask "<title>"`; track with `sq task 338 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-08T16:26:55Z] Elias Python:
+- [2026-07-08T16:26:55Z] `python-dev` Elias Python:
   - Mechanism: Item now derives prefix from the persisted id via a model_validator(mode="before") (rsplit on the last '-'), covering both read paths that hand the model a raw id — the JSON index round-trip (id is a computed field, included in the dump) and from_frontmatter (passes the frontmatter's id: line through). A stray legacy prefix: key is silently overwritten by the derived value, never trusted or errored on.
   - to_frontmatter_dict() no longer emits prefix: at all. _index/_store.py's _propagate_prefix load-boundary backfill removed entirely (no longer needed — the JSON index's own id field round-trips prefix automatically now). Removed the now-dead equivalent backfill block in _maintenance.py's repair rebuild (id is guaranteed present by the time that code runs, so from_frontmatter already derives prefix).
   - Consumers checked: _items.py, _refs.py, _retype.py, _cli/_common.py all read item.prefix (the real field, still populated correctly) — no changes needed there; none read a frontmatter prefix: key directly.

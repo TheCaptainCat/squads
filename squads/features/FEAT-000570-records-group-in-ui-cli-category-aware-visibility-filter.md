@@ -143,6 +143,6 @@ Render status colour from the role catalog (FEAT-605): fetch the roles catalog, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T07:09:26Z] Pierre Chat:
+- [2026-07-23T07:09:26Z] `op-pierre` Pierre Chat:
   - Dev-host visual pass done — happy with the Records view, the work-tree exclusion, and role-colored statuses (Accepted shows in its own colour, not greyed). Accepting. Follow-up noted: the Roster section has no filters yet — do that later.
 <!-- sq:discussion:end -->

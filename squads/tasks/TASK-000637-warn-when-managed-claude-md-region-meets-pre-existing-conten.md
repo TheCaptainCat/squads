@@ -48,7 +48,7 @@ _Add with `sq task 637 add-subtask "<title>"`; track with `sq task 637 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T07:33:45Z] Elias Python:
+- [2026-07-24T07:33:45Z] `python-dev` Elias Python:
   - Landed: _backends/_managed_region.inject() now returns a bool — True iff it inserted the managed block into a pre-existing file with real hand-written content and no squads markers yet (in that case it prepends the block above the existing content instead of appending, so the authoritative section reads first); an already-existing file with markers or a from-scratch file both return False and behave as before. _claude_md.inject / _agents_md/_managed.inject propagate the bool; both backends' write_managed attach a warning string to the CLAUDE.md/AGENTS.md Artifact when True (Artifact gained an optional warning field). Service.refresh_managed() collects these into a list[str], surfaced on InitResult/AdoptResult.warnings for the CLI to print — insertion is never refused, hand-written content is never touched.
   - Tests: tests/integration/test_backend_scaffold_warnings.py covers both backends — pre-existing content warns + leads with the block + preserves the hand-written text, a second sync over an already-managed file warns only once and never moves the block, a missing file is created with no warning. CLI smoke on init. Gates green, tests/meta green, sq check clean.
 <!-- sq:discussion:end -->

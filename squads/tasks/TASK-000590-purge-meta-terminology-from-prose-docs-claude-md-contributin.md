@@ -78,7 +78,7 @@ _Add with `sq task 590 add-subtask "<title>"`; track with `sq task 590 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T12:45:39Z] Elias Python:
+- [2026-07-22T12:45:39Z] `python-dev` Elias Python:
   - Purged 'meta'/'meta-type(s)'/'non-meta' roster-concept prose from src/tests comments+docstrings, docs/internals.md + docs/workflow.md, and CLAUDE.md; also updated the two error strings this touched (test_rename.py/test_workflow_reserved_vocab.py assertions updated to match). Added the naming convention to CONTRIBUTING.md, and fixed CLAUDE.md's stale gate command to --all-extras per your note.
   - Left ADR bodies, :meta region concept (_meta_compat.py, migrations, docs mentions, _cli/_common.py's local meta var), tests/meta/ layer naming, and the is_meta literal/shim untouched.
   - 3 .j2 templates changed (comment-only) -> regenerated templates_manifest.json for v0.12.0 (only those 3 entries). sq check byte-identical; full suite green.

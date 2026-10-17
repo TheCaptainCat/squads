@@ -210,11 +210,11 @@ land independently.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-23T08:34:23Z] Robert Architect:
+- [2026-06-23T08:34:23Z] `architect` Robert Architect:
   - Settled the two open questions in ADR-167: title-length threshold = 120 chars (single constant in _interactions.py, not .squads.toml-configurable), advisory/warn-and-proceed, body presence never gated.
   - 120 chosen over the ~80 hypothesis to sit above the ambiguous 70–120 band — fires only on the 44 unambiguous-prose titles, stays silent through the borderline middle, so the advisory keeps its credibility.
   - Warning copy + scope (three add-* entry points, a sq check advisory rule, skill reinforcement) are pinned in the ADR. Ready for tech-lead breakdown when greenlit.
-- [2026-06-23T08:39:27Z] Olivia Lead:
+- [2026-06-23T08:39:27Z] `tech-lead` Olivia Lead:
   - Breakdown complete against ADR-167 (threshold = 120, single constant in _interactions.py, advisory/warn-and-proceed mirroring CreateResult.lane_warning, body presence never gated). Three tasks, one per story — all parented to this feature and ref'd to ADR-167 (related). Left in Draft; nothing greenlit.
   - TASK-168 — Authoring-time advisory at add-finding/add-subtask/add-story (US1). Subtasks: ST1 add TITLE_ADVISORY_MAX=120 constant; ST2 carry advisory on the three service results (lane_warning pattern); ST3 render + reflog at the CLI edge. All ST → US1.
   - TASK-169 — sq check advisory rule (US2). Subtasks: ST1 pass walking every sub-entity title against the shared constant; ST2 emit advisory findings (ID/kind+index/length/threshold), still exit 0 when otherwise clean. All ST → US2.

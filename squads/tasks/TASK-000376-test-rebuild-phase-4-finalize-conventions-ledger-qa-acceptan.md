@@ -52,7 +52,7 @@ _Add with `sq task 376 add-subtask "<title>"`; track with `sq task 376 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-10T15:49:27Z] Mara Tester:
+- [2026-07-10T15:49:27Z] `qa` Mara Tester:
   - FEAT-231 ACCEPTED — all 6 ACs + US1-4 verified on final state (old flat suite gone, tests/{unit,service,cli,integration}/ + kept test_scale.py is the sole suite).
   - AC1 (default <30s) PASS: bare 'uv run pytest' = 24.09s real, 1219 passed/6 skipped (1225 collected), exit 0.
   - AC5 (slow paths pass) PASS: 'uv run pytest --run-slow' = 2m34.7s real, 1224 passed/1 skipped (1225 collected, exit 0) — the 5 scale tests all ran. Note: shipped mechanism is a custom --run-slow collection hook, not a literal 'pytest -m slow' (that alone just skips all 5, exit 0, exercising nothing) — licensed by Principle 3's 'or equivalent' wording; CONVENTIONS.md $8 now documents this explicitly (was stale, said 'addopts -m not slow', which never shipped).

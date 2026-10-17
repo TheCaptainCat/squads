@@ -245,8 +245,8 @@ fourth.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T20:39:47Z] Olivia Lead:
+- [2026-10-09T20:39:47Z] `tech-lead` Olivia Lead:
   - 2026-10-09: authored for story 10 of FEAT-986; assigned to the tech writer and left in Draft. Its input is the developer's handoff list on TASK-990, so it starts after that task is reviewed. Dispatch note for @manager: this is adopter-facing contract text (the stability refresh, the upgrade section), which has needed a stronger model than the writer's default before.
-- [2026-10-12T06:58:55Z] Olivia Lead:
+- [2026-10-12T06:58:55Z] `tech-lead` Olivia Lead:
   - 2026-10-12: aligned with the FEAT-980 breakdown. TASK-1006 creates the 0.16 section of `docs/migration.md` and the changelog's migration entry; this task adds the developer-role part to that section and extends that entry. ST2 also gains the read of the migration runbook's developer-role section, with proposed wording posted on TASK-990, as TASK-1006 does for its own section. The colour-only wording of story 8 is carried into ST2. The `sq check` gate is spelled `~/.local/bin/sq check`, with the rule that the dev build is not run at the repository root. Now depends on TASK-1006. Still Draft.
 <!-- sq:discussion:end -->

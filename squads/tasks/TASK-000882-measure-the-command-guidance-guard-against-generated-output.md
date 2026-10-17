@@ -265,7 +265,7 @@ and that list is reported verbatim.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-02T12:34:30Z] Elias Python:
+- [2026-09-02T12:34:30Z] `python-dev` Elias Python:
   - Corpus narrowed: CLAUDE.md is now taken by its squads:start/squads:end markers (via _managed_region.START/END), not read whole, and the extraction asserts non-empty so a marker rename fails as a broken corpus rather than as a guidance finding. Docstring rewritten to state the corpus and why the contributor half is excluded.
   - Observed, guard run alone before any guidance landed: 1 failed, 4 passed. The failure named exactly the five expected — ['graph', 'import', 'init', 'migrate', 'override']. No sixth, no substitution; the measurement agrees with the ruling. The other four assertions (stale direction, exemption-exists, de-aliasing, known-positive matcher validation) stayed green on the narrowed corpus.
 <!-- sq:subtask:ST1:discussion:end -->
@@ -311,7 +311,7 @@ reading the template source — and the vocabulary guard still passes.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-02T12:45:18Z] Elias Python:
+- [2026-09-02T12:45:18Z] `python-dev` Elias Python:
   - Three sections added to the shared cheatsheet partial (`workflow_static.md.j2`), so one edit reaches the main skill body, the AGENTS.md managed section and the workflow command alike. Verified by rendering, not by reading template source.
     
     - **Bulk entry**, placed with the maintenance material after the collision section and stated condition-first the way that section is: many items at once, or items needing historical timestamps. Then the verb, the two properties that make it right instead of a create loop (whole file validated before anything is written, with per-line problem reports; a clean file applies in one transaction), and the timestamp/attribution rules. Every property is read off the command's own contract, not assumed.
@@ -365,7 +365,7 @@ intended lines.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-02T12:46:06Z] Elias Python:
+- [2026-09-02T12:46:06Z] `python-dev` Elias Python:
   - One bullet added to the managed region's own template (`claude/claude_section.md.j2`), last in the "Working with squads" list, then the region regenerated rather than hand-edited. Two sentences, as asked.
     
     It names the wall so it is recognisable when it lands ("if sq starts refusing every command because this squad's schema does not match the installed package"), names the verb, and puts the ownership plainly: do not clear it yourself, report the wall and raise the upgrade with the operator.
@@ -416,7 +416,7 @@ three falsifications are run and reported.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-02T12:46:20Z] Elias Python:
+- [2026-09-02T12:46:20Z] `python-dev` Elias Python:
   - Bootstrap exemption added, with the reason written for the class and covering its sibling in the same entry: generated guidance ships inside a squad and is only ever read by an agent for whom one already exists, so a verb whose job is to bring a squad into being cannot reach the reader who needs it; the surfaces that can (the root help, the offline docs) already name it. The entry then records why the non-destructive sibling carries no entry of its own — its name is an ordinary English verb, used that way in the impersonation paragraph, so the name-matcher already credits it as named and an entry for it would fail the staleness assertion instead of recording the ruling. Measured, not assumed: the invocation form appears in no generated surface, 0 hits; the bare word, 2.
     
     Four falsifications run, each with the list the guard named:
@@ -434,7 +434,7 @@ three falsifications are run and reported.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T12:30:50Z] Olivia Lead:
+- [2026-09-02T12:30:50Z] `tech-lead` Olivia Lead:
   - Scoped and dispatchable; the ruling asked for is made and is in the body, per command rather
     than as one answer, because these are not one category.
     
@@ -480,7 +480,7 @@ three falsifications are run and reported.
     so it does not collide with the service work in flight. @tech-writer for a read of the four
     new clauses before the goldens are refreshed; the ownership wording on two of them is the part
     worth your eye, since it has to name a surface without sanctioning unilateral use of it.
-- [2026-09-02T12:46:45Z] Elias Python:
+- [2026-09-02T12:46:45Z] `python-dev` Elias Python:
   - Done, in the order the acceptance specified so each failure was observed rather than inferred.
     
     **Step 1 — corpus narrowed alone.** CLAUDE.md is now split by its managed markers, not read whole; the extraction asserts non-empty. Guard run before any guidance landed: 1 failed, 4 passed, the failure naming exactly ['graph', 'import', 'init', 'migrate', 'override']. The measurement agrees with the ruling; nothing was adjusted to make it.

@@ -99,10 +99,10 @@ _Add with `sq task 874 add-subtask "<title>"`; track with `sq task 874 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:02:45Z] Olivia Lead:
+- [2026-09-02T10:02:45Z] `tech-lead` Olivia Lead:
   - Scoped from BUG-871 and dispatchable. Small and standalone: it shares no file, layer or test with the other two 0.14 bugs. The one thing not to skim is that the reference fix on the update door is three pieces, not one — flipping the ternary alone gives a different message than the door it is meant to match.
   - @python-dev ready for dispatch.
-- [2026-09-02T13:20:33Z] Elias Python:
+- [2026-09-02T13:20:33Z] `python-dev` Elias Python:
   - Fixed in `_cli/_create.py`. All three sites now call one shared helper, `_resolve_parent_option(parent, svc)` — the built-in `_make` command, the lazily-built `_build_create_cmd` command for override-declared types, and `create_guide`. It returns `None` only for `parent is None`, refuses empty/whitespace-only, and otherwise delegates to `resolve_item_id_any`. No `if parent else None` remains in the file.
     
     Message, and why it is not the update door's: `--parent needs an item ID; omit --parent to create without a parent`. The leading sentence is byte-identical to update's, so the two doors agree on what is wrong; the remedy after the semicolon is per-door. Copying update's `use --no-parent` would name a flag `sq create` does not accept — on this door omitting `--parent` *is* how a parentless item is made, so that is what it says. It fits one line at the pinned 80-column width, and the tests normalise whitespace anyway so a narrower console cannot break them.

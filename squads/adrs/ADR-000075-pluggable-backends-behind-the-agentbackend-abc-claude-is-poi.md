@@ -88,7 +88,7 @@ added to ADR-133, ADR-141 and ADR-153 rather than any status moving.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:40:49Z] Robert Architect:
+- [2026-08-03T08:40:49Z] `architect` Robert Architect:
   - Amended in place; nothing retired. Both principles verified in force: nothing outside `_backends/` reaches into `.claude/` (the only literals elsewhere are the correctly frozen migration ones), content single-sourced under `squads/agents/`, `settings.json` merged not clobbered.
   - Corrected the two ABC method names in place — `generate_role_pointer`/`generate_skill_pointer` became `generate_role_entry`/`generate_skill_entry` (ADR-133), and the reason matters more than the rename: "pointer" is a Claude-Code-shaped word for what a neutral backend produces, and the AGENTS.md backend that writes staging files plus a compiled section would have inherited the wrong noun. On a surface this decision describes as 1.0 contract material, two names that have not existed since ADR-133 is the worst kind of stale.
   - Recorded the surfaces growth as three declared steps rather than drift: `managed_paths` for multi-active fan-out (ADR-141) plus `candidate_orphans`, giving the seven methods ADR-697 section 3 later made load-bearing when it ruled the ABC does not grow; and the five IO methods becoming `async def` with `managed_paths` left sync (ADR-153). Added `related` edges to all three — this decision linked to none of the decisions that revised it.

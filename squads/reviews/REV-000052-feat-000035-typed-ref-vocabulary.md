@@ -44,7 +44,7 @@ Style: _check_decisions() in _maintenance.py uses a function-local 'from squads.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T20:43:10Z] Paul Reviewer:
+- [2026-06-11T20:43:10Z] `reviewer` Paul Reviewer:
   - VERDICT: Approved. Both tasks meet acceptance, conform to ADR-49, and respect every CLAUDE.md invariant. No blocking findings.
   - Acceptance verified live: unknown --kind (banana, typo fixe, embedded ID:banana) rejected exit 1 listing all eight kinds; create --ref ID:banana rejected; all eight accepted; bare ref add stays related (frictionless). depends-on shows in sq blocked with correct direction (dependent blocked by blocker); mixed blocks+depends-on dedups (item once, union of blockers); same-pair via both spellings appears once. sq workflow shows the single eight-row kinds table (meaning/direction/consumer) matching the ADR's direction conventions verbatim; --kind help points at it. check warns (exit 0) on unknown kinds naming item+edge and on Superseded decisions lacking an incoming supersedes edge.
   - ADR-49: vocabulary lives in ONE place (VALID_REF_KINDS in _models/_item.py). The only kind literals left in src/ are legitimate consumer dispatch points — blocked() matching blocks/depends-on, _check_decisions matching supersedes — which must name the kind they consume. No config lookup on the validation path; flat set-membership throughout.

@@ -62,7 +62,7 @@ CLAUDE.md currently has zero digit-refs (only template forms like --parent FEAT-
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T14:06:18Z] Elias Python:
+- [2026-07-06T14:06:18Z] `python-dev` Elias Python:
   - Stripped digit-bearing squad-item refs from the 4 bundled prose templates (greeting_skill.md.j2, squads_skill.md.j2, agents_md/agents_section.md.j2, workflow.md.j2): TASK-3→TASK-<n>, FEAT-2→FEAT-<n>, FEAT-10→FEAT-<n>, US1→USn, matching the placeholder convention already used elsewhere in the same files (FEAT-…, USn).
   - CLAUDE.md verified clean: grep of the full pattern (incl. US/ST/§) over CLAUDE.md returns zero matches — it already only carried non-digit template forms (FEAT-…, USn, <n>); no edit needed.
   - Regenerated via 'uv run sq sync': squads/agents/skills/SKILL-000192-greeting.md and SKILL-000200-squads.md re-rendered from the cleaned templates (only the touched lines changed). No AGENTS.md backend is active in this repo so agents_section.md.j2's change has no on-disk generated counterpart here; it is covered by the golden test instead.

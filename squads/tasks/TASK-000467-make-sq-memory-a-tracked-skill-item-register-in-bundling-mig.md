@@ -52,9 +52,9 @@ _Add with `sq task 467 add-subtask "<title>"`; track with `sq task 467 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:47:42Z] Pierre Chat:
+- [2026-07-17T15:47:42Z] `op-pierre` Pierre Chat:
   - Transversal skills must be tracked items too — greeting is transversal and tracked, so cross-role is no excuse. Make sq-memory an item.
-- [2026-07-18T20:43:18Z] Robert Architect:
+- [2026-07-18T20:43:18Z] `architect` Robert Architect:
   - ARCHITECT RULING — no ADR. This applies ADR-181 (SKILL as first-class Item, role/operator pattern) to the last straggler; it introduces no new architectural decision. Recording the approach here instead of an ADR to avoid ceremony.
   - Correction to the task premise: the BUNDLING half is already done. MEMORY_SKILL is in bundled_skill_slugs() and seed_bundled_skills() stamps it — verified by a fresh 'sq init' (sq-memory lands as a tracked SKILL, e.g. SKILL-000015). No code change needed for fresh-init/adopter-init tracking. The only real gap is existing squads (incl. this dogfood repo) carrying a legacy untracked squads/agents/skills/sq-memory.md written by write_managed after TASK-381, which never re-ran seeding (seed runs at init only, not sync).
   - Migration approach (four points resolved):
@@ -63,18 +63,18 @@ _Add with `sq task 467 add-subtask "<title>"`; track with `sq task 467 subtask <
   - 3) Backend pointer — the live seed/sync path already repoints via backend.generate_skill_entry (the ABC), satisfying invariant #6. In the MIGRATION runner, follow the established _v0_4_to_v0_5 precedent: a frozen point-in-time pointer render (claude/pointer_skill.md.j2), NOT a call into the live backend registry — a migration must stay immune to future ABC/spec drift and only receives SquadPaths. That is the accepted deviation for migration runners; do not reach into .claude anywhere else.
   - 4) Schema version — CORRECTION: a bump IS needed (0.8 -> 0.9), contrary to the task's 'likely no bump'. The frontmatter SHAPE is unchanged (a SKILL item's frontmatter already exists), so this is a data backfill — but sq's migration registry is version-keyed and 'sq migrate up' only triggers on a schema transition. The bump is the trigger/apply-once marker, not a claim of structural change (same shape as the additive v0_3_to_v0_4 lineage backfill, which also rode a bump). It also correctly forces existing squads to run the backfill via the root-callback hard-stop. NOTE: we are on release/0.10 with the registry still ending at 0.8 — if the 0.10 cut introduces any OTHER schema transition, fold the sq-memory stamp into that runner rather than minting a separate step, to avoid gratuitous schema churn. Absent that, ship a standalone 0.8 -> 0.9 backfill.
   - Folded doc-clarity fix (summary-vs-body split, --slug, _cli/_memory.py 'fact' help reword) is unaffected by this ruling — apply it at the post-conversion source of truth (the tracked SKILL body / memory_skill.md.j2). Proceed to implementation.
-- [2026-07-18T20:48:42Z] Pierre Chat:
+- [2026-07-18T20:48:42Z] `op-pierre` Pierre Chat:
   - Decision: ship the tracked-item migration in the 0.10 cut (accepted it's 0.10's only schema transition + a forced sq migrate up for existing squads; safe idempotent backfill, precedented). Schema goes 0.8 → 0.10 (tracks the release), runner _v0_8_to_v0_10.py. No ADR (applies ADR-181, per architect).
-- [2026-07-18T21:54:31Z] Elias Python:
+- [2026-07-18T21:54:31Z] `python-dev` Elias Python:
   - Shipped: migration _v0_8_to_v0_10.py (schema 0.8->0.10, version=0.10.0 in the registry), scoped to sq-memory, 3-branch idempotent, modeled on _v0_4_to_v0_5.
   - Applied to this dogfood repo: sq-memory is now SKILL-486, .claude pointer repointed, sq check clean; verified idempotency (2nd run no-op) and the SKILL-000486 filename via the corpus unit tests.
   - Caught + fixed a real bug in my own runner: the .claude pointer path was squad_dir-relative instead of root-relative (dropped the 'squads/' segment) — affects every real repo since squad_dir='squads' is the init default, not just this one. Tightened the pointer test to assert the exact @-path so it doesn't regress.
   - Folded-in doc fix: memory_skill.md.j2 now explains the summary-vs-body split and documents --slug in the command block; reworded the CLI 'fact' arg help in _cli/_memory.py to say summary/headline, not 'the fact'.
   - New corpus fixture tests/fixtures/corpus/v0_10 added per the standing rule (copy of v0_8, migrated forward, schema-stamped); templates_manifest.json regenerated (only the memory_skill.md.j2 hash under the existing unreleased 0.9.0 key changed, no prior release entries touched).
   - Gates: pyright/ruff/ruff-format clean; targeted pytest (migration + corpus + memory/skill + override-manifest suites) all green. Flag: found substantial unrelated uncommitted changes already in this working tree (clients/vscode/*, _badges.py, _workflow_cmd.py, new badge/collections-catalog work) that weren't part of my scope or present in the session's initial git status — looks like other work landed in this tree concurrently; didn't touch any of it, but the 'only agent touching the repo' assumption may not hold.
-- [2026-07-18T21:58:07Z] Elias Python:
+- [2026-07-18T21:58:07Z] `python-dev` Elias Python:
   - Fixed 2 full-suite failures flagged by the coordinator: (1) stray FEAT-315/TASK-381 reference in _v0_8_to_v0_10.py's docstring, removed (kept the rationale, dropped the IDs) — grep confirmed clean across the new migration+test files. (2) tests/goldens/reflog_shape.json's pinned schema_version 0.8 -> 0.10 (only field that changed; fields/example_ops untouched).
   - Confirmed green: tests/cli/test_reflog_cli.py + tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py (-n0). Re-ran ruff check/format, pyright, sq check — all clean.
-- [2026-07-18T21:59:20Z] Catherine Manager:
+- [2026-07-18T21:59:20Z] `manager` Catherine Manager:
   - Done: _v0_8_to_v0_10 migration (sq-memory → tracked SKILL-486), schema 0.8→0.10, summary/body + --slug rewording. Dogfood migrated + idempotent; .claude pointer @-path bug caught & fixed via real migrate-up run. Full suite green. Not committed (Pierre owns).
 <!-- sq:discussion:end -->

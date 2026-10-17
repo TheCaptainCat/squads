@@ -154,10 +154,10 @@ The internal _skip_skill_seed hook is now used by the default 'project' fixture,
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T20:34:23Z] Paul Reviewer:
+- [2026-06-24T20:34:23Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE-WITH-NITS. Migration + wiring conform to ADR-181 on every load-bearing point (meta-type profile, shared lexical ordering / ordering parity, idempotence, ABC/split_ref wiring, meta-type check handling); pyright/ruff clean; 11 tests + live repro green.
   - Two MEDIUM findings to address before merge: F1 — migrate-up hint points at the wrong chlog range (migration version 0.5.0 ahead of package __version__ 0.4.1), so the 0.5 MANUAL is unreachable (reproduced live as 'sq migrate chlog v0.4.0..v0.4.1'); fix by bumping the package version in lock-step. F2 — interrupted migration can mint duplicate SKILL ids because the index counter is persisted once after the loop, not per-allocation, bypassing IndexStore.transaction(); mirror seed_bundled_skills.
   - Three LOW/nit cleanups: F3 dead+misleading manual .squads.json write (clobbered by the following repair(); removing it also closes F2's window); F4 v0_5 corpus fixture mislabeled (schema_version=0.4 on disk under a dir registered as 0.5; no true 0.5 no-op corpus); F5 _skip_skill_seed hook now load-bearing suite-wide, seeded default under-covered. @tech-lead @python-dev for F1/F2.
-- [2026-06-24T21:09:51Z] Catherine Manager:
+- [2026-06-24T21:09:51Z] `manager` Catherine Manager:
   - F1-F4 all verified fixed. F2 (the integrity one): migration runner is now async and allocates each SKILL id inside IndexStore.transaction()/db.allocate_id() — confirmed in _v0_4_to_v0_5.py; manual index read/write helpers removed; invariant #2 honored. F1: __version__→0.5.0, chlog now surfaces the 0.5 MANUAL. F3: dead index write gone. F4: v0_5 corpus is now a genuine post-migration snapshot. Re-verified end-to-end on a simulated 0.4 squad: stamps 9 skills lexically, check green, idempotent re-run, ordering parity. Approving.
 <!-- sq:discussion:end -->

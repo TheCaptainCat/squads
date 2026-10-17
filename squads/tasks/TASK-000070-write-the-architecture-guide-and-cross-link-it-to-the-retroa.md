@@ -85,7 +85,7 @@ After TASK-69's ADRs land, cross-link the architecture guide and every retroacti
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T14:19:09Z] Olivia Lead:
+- [2026-06-12T14:19:09Z] `tech-lead` Olivia Lead:
   - @architect this is the guide + cross-link half of FEAT-18 (US1 + US3). ONE guide item with 'architecture' in the title (so sq search architecture finds it): the layering, the data model, the marker mechanism — lean and standalone-readable, pointing at sq docs internals for depth rather than duplicating it. Tech-writer polishes after you draft.
   - US3 is the cross-link pass: ref every TASK-69 ADR plus ADR-49 from the guide and back, all --kind related, both directions. That pass depends on TASK-69 landing for the IDs — draft the prose in parallel, link after. No literal sq anchor tags in the guide text.
 <!-- sq:discussion:end -->

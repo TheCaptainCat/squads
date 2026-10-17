@@ -221,7 +221,7 @@ Table-driven coverage over position and shape: a view tag at the body region sta
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T11:17:50Z] Elias Python:
+- [2026-09-03T11:17:50Z] `python-dev` Elias Python:
   - ST1 (US6): _marker_issues in _services/_maintenance.py exempts the unpaired view family from the unclosed-marker pairing count via markers.view_tag_name(tag) is None — one line, no name list. Duplicate detection (n>1) is untouched, so a doubled view tag still errors as 'duplicate marker'. Every other family's balance arithmetic is byte-identical to before.
   - ST2 (US7): new _dangling_view_issues(text, spec) sits beside _marker_issues in the same always-on file-level scan (_scan_for_check, where self.spec is already in hand) — not in the per-item validator catalog, no level knob, unconditional. Resolves through views.view_target_exists (TASK-909's helper), reusing the exact predicate insert_view already refuses a dangling name through. Message names the file and the offending view name (e.g. sq:view:no-such-view), escaped centrally by the existing e(i.message) at the check CLI's print site — no new escaping code needed.
   - ST3 (US7): proved with tests, not asserted — a view tag alone, alongside authored prose, alongside a genuinely-retired sq:summary region in the same file (which the sweep still strips), and across two successive sweeps all come back byte-identical. No change made to _retired_region_tags/_strip_retired_regions.
@@ -230,6 +230,6 @@ Table-driven coverage over position and shape: a view tag at the body region sta
   - Gates: pyright 0 errors; ruff check all passed; ruff format 620 files unchanged. Targeted pytest (all check/repair/retype/marker/view test files, 864 tests across service+cli+unit+integration+meta) all passed. tests/meta 279 passed (caught and fixed one stray ticket-ID reference I'd left in a docstring — the hygiene gate working as intended). sq check: no issues.
   - Decision I made, not pre-specified: the dangling-name finding is NOT added to _services/_validators.py's CATALOG/VALIDATOR_NAMES/CONSISTENCY_CLAUSES at all -- it mirrors _marker_issues' own treatment (hardcoded into the always-on scan, never a catalog member), so no member was added to that closure and no guard/floor/argued-no-guard decision was needed for it.
   - No defects found in the acceptance criteria. @tech-lead ready for review; the batch review can pick up all three FEAT-905 tasks together.
-- [2026-09-03T11:19:43Z] Catherine Manager:
+- [2026-09-03T11:19:43Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4719 passed, 12 skipped, exit 0. Read the exemption myself: one added condition keyed on markers.view_tag_name, no name list, duplicate detection untouched -- the shape-not-name-list requirement holds. Routing one decision to the batch review rather than accepting it silently: the dangling-view finding was wired into the file-level scan beside _marker_issues instead of the per-item validator catalog, where ADR-880 said "floor". Defensible -- it reads raw text at file level, exactly like _marker_issues -- but it needs ruling, and FEAT-898 must know these two checks sit outside the catalog closure deliberately.
 <!-- sq:discussion:end -->

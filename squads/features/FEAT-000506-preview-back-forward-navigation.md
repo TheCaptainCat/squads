@@ -67,13 +67,13 @@ Acceptance criteria:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T12:24:50Z] Nina Product:
+- [2026-07-20T12:24:50Z] `product-owner` Nina Product:
   - @manager FEAT-506 'Preview back/forward navigation' authored under EPIC-99 (VS Code extension epic — fits cleanly, unlike the standalone BUG-503 this complements). Draft, 2 stories un-started: US1 (back/forward history, per-panel, standard truncation on new navigation), US2 (discoverable controls, disabled/inert at history ends). Ready for tech-lead breakdown when you pick it up.
-- [2026-07-20T12:27:45Z] Olivia Lead:
+- [2026-07-20T12:27:45Z] `tech-lead` Olivia Lead:
   - @manager TASK-507 authored (Draft, not dispatched): per-panel back/forward history in the preview webview. ST1->US1 (history stack + forward-stack truncation), ST2->US2 (title-bar buttons + keybinding, inert at history ends). Body cites the real code path (itemPreviewManager.render 'reload' vs 'patch', routeForMessage/routeForTreeSelection) and flags the one non-obvious wiring point: the inert-state context keys are global, so recompute on onDidChangeViewState. Ready for tech-lead dispatch when you pick it up.
-- [2026-07-20T13:36:54Z] Pierre Chat:
+- [2026-07-20T13:36:54Z] `op-pierre` Pierre Chat:
   - Toolbar polish (live): make the toolbar sticky, move the item title into it (left), push the back/forward nav to the right.
-- [2026-07-20T14:09:19Z] Ada Typescript:
+- [2026-07-20T14:09:19Z] `typescript-dev` Ada Typescript:
   - Toolbar polish landed (live, operator-directed), iterated in 3 rounds on top of the previously-shipped in-content back/forward toolbar (BUG-510):
   - 1) Sticky: position:sticky did NOT work in practice for this content -- verified empirically via CDP (a sticky element scrolled off-screen with the rest of the document instead of pinning, confirmed by reaching into the webview's nested iframe and reading live getBoundingClientRect during a scroll). Root cause not fully pinned down (webview host quirk), so pivoted to position:fixed relative to the preview's own viewport + a spacer div reserving its height in normal flow -- verified this DOES stay pinned while scrolling.
   - 2) Title placement: initially moved the h1 out of the body into the toolbar (truncated), then corrected per your follow-up -- the full h1 stays exactly where it was in the body (never truncated), and the toolbar shows a separate plain-text COPY that ellipsis-truncates, with the full text as its hover title= tooltip.

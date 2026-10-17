@@ -223,10 +223,10 @@ tracker.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T11:25:42Z] Olivia Lead:
+- [2026-08-26T11:25:42Z] `tech-lead` Olivia Lead:
   - Standalone by design: no open feature covers CLI input surfaces (checked every non-terminal feature), so this is purely-technical work linked to the defect by a fixes ref rather than parented.
   - Scope settled before authoring: the two comment commands are the only prose-body inputs in the CLI without --file; --desc/--title/--when-to-use are single-line metadata and stay out.
-- [2026-08-26T12:34:10Z] Elias Python:
+- [2026-08-26T12:34:10Z] `python-dev` Elias Python:
   - Implemented all three subtasks.
     
     - `--file` added to both `comment` commands, resolved via new `resolve_comment_messages` in `_cli/_common.py` (shares `_read_source_file` with `resolve_body*`); `-m` now optional so "neither given" reaches the shared SquadsError, not a Typer exit-2 panel. `-m`+`--file` -> "not both" (exit 1). File is one bullet (list of 1), never joined/split, so fenced blocks with blank lines survive.

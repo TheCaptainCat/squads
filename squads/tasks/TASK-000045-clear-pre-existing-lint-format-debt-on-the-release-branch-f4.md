@@ -30,6 +30,6 @@ _Add with `sq task 45 add-subtask "<title>"`; track with `sq task 45 subtask <n>
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T12:50:45Z] Olivia Lead:
+- [2026-06-11T12:50:45Z] `tech-lead` Olivia Lead:
   - Done. Pre-existing branch debt cleared surgically: ruff --fix removed 11 unused imports from _services/_items.py + manually removed the unused ItemType import from _cli/__init__.py (WORK_TYPES on the same line is used, kept); ruff format reformatted _discussion.py. All four gates now clean: pytest green, pyright 0 errors, ruff check passes, ruff format clean. None of TASK-42/43/44's files were touched.
 <!-- sq:discussion:end -->

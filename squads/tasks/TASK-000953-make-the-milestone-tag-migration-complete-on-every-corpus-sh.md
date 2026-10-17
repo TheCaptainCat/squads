@@ -417,7 +417,7 @@ code, and it is worth saying so in the handback.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T09:11:28Z] Elias Python:
+- [2026-09-15T09:11:28Z] `python-dev` Elias Python:
   - ST1/ST2/ST3/ST5/ST6/ST7/ST8 done. ST4 parked Todo per the manager's mid-task stop (F8/F9 in REV-952) — reverted, see below.
     
     **Disposition landed.** `migrate()` in `_v0_14_to_v0_15.py` never raises now: an unresolvable `(type, name)` pair skips the pair (ST1); a skewed item, a missing indexed file or a body with no `sq:body` region skips that one item (ST2), left untouched on disk. `Migration.run`'s contract widened to `MigrationOutcome(count, skipped)` — only via `_registry.py`'s `_wrap_sync`/new `_wrap_async` adapters, so the other 10 runners' own functions and their existing direct-call tests (test_skill_migration.py, test_memory_skill_migration.py, test_new_item_type_migration_surface_parity.py) are untouched. `MigrationRun` gained a `skipped: dict[str, list[str]]` field alongside `changed`, populated at the same single construction site; `sq migrate up` prints skipped ids plus the remedy (ST3).
@@ -443,7 +443,7 @@ code, and it is worth saying so in the handback.
     **Open for you / TASK-954:** the gate question (`require_current_schema` exemption for `repair`) is untouched, as briefed. ADR-880's sixth condition record correction is still for the architect.
     
     `sq check` clean. @manager
-- [2026-09-15T09:26:44Z] Elias Python:
+- [2026-09-15T09:26:44Z] `python-dev` Elias Python:
   - ST4 landed with the unparked shape. Marked Done.
     
     **Premise verified first, as asked.** Fresh throwaway squad, milestone tag moved by hand to just above `## Discussion` (outside `sq:body`), downgraded to 0.14, ran `sq migrate up` against the code as it stood (region-scoped insert, my earlier revert): `1 changed`, tag count went 1→2, and `sq check` came back "error MILE-000021-moved-tag.md: duplicate marker sq:view:milestone_rollup", exit 3. Premise held — did not come back clean.

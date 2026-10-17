@@ -57,7 +57,7 @@ The search results ListView leaves a large empty gap between the type/status sel
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-21T14:28:04Z] Elias Python:
+- [2026-07-21T14:28:04Z] `python-dev` Elias Python:
   - Fixed: the selects row (a Horizontal) defaults to height:1fr like every Horizontal -- pinned it to height:auto via id (#search-filters) and gave the results ListView height:1fr explicitly, so it now fills the remaining screen.
   - Verified: new Pilot test asserts results height > 2x the filters row height.
 <!-- sq:finding:F1:discussion:end -->
@@ -73,7 +73,7 @@ The @work search gives no feedback — the UI looks frozen. Show a 'Searching…
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-21T14:28:05Z] Elias Python:
+- [2026-07-21T14:28:05Z] `python-dev` Elias Python:
   - Fixed: SearchScreen sets the status line to 'Searching...' and ListView.loading=True right before dispatching the @work search, clearing both (loading=False, status cleared/set) once results or the empty state land.
   - Verified: new Pilot test gates svc.search behind an anyio.Event, asserts loading+status mid-flight, then releases the gate and asserts both clear.
 <!-- sq:finding:F2:discussion:end -->
@@ -89,7 +89,7 @@ The sub-entities tab renders only the summary row (status/assignee/title), not e
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-21T14:28:20Z] Elias Python:
+- [2026-07-21T14:28:20Z] `python-dev` Elias Python:
   - Fixed: sub-entities tab now renders each story/subtask/finding as its own block (head line -- status/assignee/declared-field badges/mapped story, spec-generic, same derivation as the CLI's pane-title line -- plus its rendered body), not just the summary table. Read path: svc.get_block(parent_id, kind, local_id) -> SubentityDetail.body (read-only, already existed for 'sq <kind> show'). Widget changed Static->Markdown so the body actually renders as markdown; empty body per-block shows '(no body yet)', no sub-entities shows '(none)'.
   - Verified: extended test_subentities_tab_... in test_browse_screen.py to assert the head line, assignee and body prose all appear in the rendered markdown source; empty states for a story-less feature and a role (no kind) still pass. Plus a bracket-content regression test for the new body-rendering surface.
 <!-- sq:finding:F3:discussion:end -->
@@ -105,7 +105,7 @@ Comments render as plain text; bullet lists and other markdown aren't rendered. 
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-21T14:28:21Z] Elias Python:
+- [2026-07-21T14:28:21Z] `python-dev` Elias Python:
   - Fixed: discussion tab widget changed Static->Markdown; each comment renders as '**timestamp** _author_' + its body rendered as markdown (bullet lists etc. now actually render as list blocks), separated by a rule. Bracket-safe by construction, not by escaping: Markdown parses commonmark, not Textual's Content markup, so the BUG-535 class of bug doesn't apply to this widget at all (same reasoning as the existing body tab).
   - Verified: extended the discussion test to assert a bullet-containing comment mounts a MarkdownParagraph child (not raw text) and ordering/author still hold; empty state ('(none)') still passes.
 <!-- sq:finding:F4:discussion:end -->
@@ -121,7 +121,7 @@ Mirror the VS Code extension: two top-level groups — Work (epics/features/task
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-07-21T14:28:30Z] Elias Python:
+- [2026-07-21T14:28:30Z] `python-dev` Elias Python:
   - Fixed: populate_tree now takes the active WorkflowSpec and adds two synthetic top-level nodes (Work, Roster; data=None, so selecting the group header itself is a no-op, not a reader load) before attaching each tree_view() root under whichever group matches spec.item_is_meta(root.item.type). Filter/sort untouched -- both already operate on the flat tree_view()-returned forest before grouping, so narrowing/sorting still work identically within each group (partition-after-sort preserves each group's relative order).
   - Verified: new Pilot test asserts the top-level labels are exactly ['Work','Roster'], work items land under Work, ROLE-1 lands under Roster, and the two sets are disjoint. Migrated every existing test that walked tree.root.children directly (structure is now one level deeper).
 <!-- sq:finding:F5:discussion:end -->
@@ -131,8 +131,8 @@ Mirror the VS Code extension: two top-level groups — Work (epics/features/task
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T14:31:10Z] Catherine Manager:
+- [2026-07-21T14:31:10Z] `manager` Catherine Manager:
   - All five findings Fixed and verified: F1 results list now fills height (1fr), F2 'Searching…' + loading state during the worker, F3 sub-entities tab renders each block's head + body (read-only get_block), F4 discussion renders as markdown (bullets etc.), F5 tree split into Work/Roster top-level nodes. Full suite green, pyright/ruff/sq check clean, 38 tui tests. Left Requested for your re-review — approve when you're happy.
-- [2026-07-21T14:37:53Z] Pierre Chat:
+- [2026-07-21T14:37:53Z] `op-pierre` Pierre Chat:
   - Re-reviewed on the branch — looks good. Approved.
 <!-- sq:discussion:end -->

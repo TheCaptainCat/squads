@@ -109,9 +109,9 @@ Roster tree bucket labels (domain/metaView.ts) now resolved from the type catalo
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T14:02:54Z] Elias Python:
+- [2026-07-24T14:02:54Z] `python-dev` Elias Python:
   - ST1 done: sq workflow types --json now includes a labels object {singular, plural, singular_lower, plural_lower} per type row, resolved via labels_for(type, spec) (pin-else-derive). Additive only — existing keys unchanged. TYPE_CATALOG_FIELDS extended to include 'labels'; golden tests/goldens/workflow_types.json regenerated. Ready for ST2 (extension resolver reads labels.plural, falls back to raw type if absent).
-- [2026-07-24T14:23:36Z] Ada Typescript:
+- [2026-07-24T14:23:36Z] `typescript-dev` Ada Typescript:
   - ST2/ST3/ST4 done: added domain/typeLabels.ts (pluralLabel/buildTypeLabelMap), the single shared resolver every per-type group header now routes through.
   - sqAdapter.ts shape guard extended for the optional labels object (older sq without it still parses fine).
   - Records tree (recordsView.ts), Work tree (listView.ts groupListItems), and Roster tree (metaView.ts, via de-hardcoded META_BUCKETS) all resolve their bucket/group headers from the type catalog now; reserved bucket types (role/skill/operator) unchanged.

@@ -153,15 +153,15 @@ it a breaking change instead of a settling one.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-04T20:18:38Z] Robert Architect:
+- [2026-07-04T20:18:38Z] `architect` Robert Architect:
   - Finalized for acceptance review (no body edit needed — verified complete, correct, and internally consistent; a rewrite would only churn updated_at).
   - Verified all five cited call-sites against the current tree: format_item_id (_models/_item.py:26, DEFAULT_ID_PADDING=6 at :23), ref_id_matches (_item.py:62), the filename seam in _rename (_services/_items.py:137 — the quoted squad_relative line matches exactly), rewrite_ids (_itemfile.py:45), and _propagate_padding (_index.py:59). All accurate.
   - Scrubbed for status/lifecycle prose: none present. status: Proposed lives only in frontmatter; the body carries no 'if/once accepted' banner. Decision is stated decisively; ADR shape is standard (Context / Decision / Consequences+trade-offs, with the config-knob alternative and the lost 'filename==id' convenience argued inline).
   - Reconciled against FEAT-283 — they agree on every load-bearing point: padding reinterpreted as filename width only, id_padding a fixed constant 0 (not stored/configurable), schema bump + structural(id/refs)+bounded prose migration with code-fence skipping, no .squads.toml change and no second stored field, and input tolerance unchanged (FEAT-283/FEAT-283 both resolve via ref_id_matches). No divergence to flag.
   - Refs correct: relates to FEAT-27 (sibling — stored padding + repad) and EPIC-12 (Road to 1.0); FEAT-283 links back with kind 'implements'. Forward-edges-only respected (no back-ref stored on the ADR).
   - @manager @op-pierre Recommend acceptance. Status is unchanged at Proposed — leaving the Accepted transition to Pierre's own read, per the gate. Once accepted this unblocks promoting FEAT-283 to Ready.
-- [2026-07-04T20:29:02Z] Pierre Chat:
+- [2026-07-04T20:29:02Z] `op-pierre` Pierre Chat:
   - Accepted. Read the full ADR myself — the decision is sound and internally consistent, it agrees with FEAT-283 on every load-bearing point (no config knob, id_padding constant 0, padding reinterpreted as filename width only, schema bump + bounded prose migration, input tolerance unchanged), and it correctly refines ADR-104 without weakening the corpus-derived-floor mechanism. Approved for implementation.
-- [2026-08-03T08:51:23Z] Robert Architect:
+- [2026-08-03T08:51:23Z] `architect` Robert Architect:
   - One symbol name corrected, and the divergence is in this decisions favour: there is no `id_padding` field on `Item` at all — the constant is inlined and `_propagate_padding` no longer stamps it. Same behaviour, one fewer field, and consistent with this decisions own "no second stored field" rule. Verified live: an unpadded display id with a width-6 filename, which is exactly the divergence the Crux section is about.
 <!-- sq:discussion:end -->

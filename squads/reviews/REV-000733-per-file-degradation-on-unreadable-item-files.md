@@ -150,7 +150,7 @@ lower than that file's own sequence number.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-08-03T11:46:16Z] Elias Python:
+- [2026-08-03T11:46:16Z] `python-dev` Elias Python:
   - Fixed: _rebuild_index_from_disk now folds the unreadable file's filename-derived seq/digit-run into max_n/max_filename_width on every third-state branch (_report_third_state), not just the read/parse one -- so the counter/padding floor accounts for it even with no previous index entry to carry from. Falsified both halves (counter value AND no reissue) with known_corpus removed entirely, matching the repro.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -198,7 +198,7 @@ prefix/folder change when it has not observed one.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-03T11:46:24Z] Elias Python:
+- [2026-08-03T11:46:24Z] `python-dev` Elias Python:
   - Fixed: a valid-YAML-no-id file now gets the same third-state carry-forward/report treatment as an unreadable file in _rebuild_index_from_disk, instead of a silent 'continue' that dropped it from db and made _corpus_alignment_refusals misdiagnose a re-foldered corpus. The misdiagnosis disappears as a side effect -- the item is no longer missing from the rebuilt db to compare against. Kept the pre-migration legacy-skill-body exemption (no id ever, not an error) via a shared _is_legacy_skill_body helper so I didn't regress that case while fixing this one.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -244,7 +244,7 @@ call site.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-03T11:46:32Z] Elias Python:
+- [2026-08-03T11:46:32Z] `python-dev` Elias Python:
   - Fixed at the load boundary you named: Item.from_frontmatter now catches pydantic ValidationError/KeyError and raises SquadsError naming the path, so both repair's rebuild loop and check's scan (which now also calls from_frontmatter to validate) catch it with the same except SquadsError already in place -- no second except clause needed. check now reports the type-invalid file instead of 'no issues'; repair carries its previous entry forward instead of a raw traceback.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -289,7 +289,7 @@ way stop emitting a traceback.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-08-03T11:46:45Z] Elias Python:
+- [2026-08-03T11:46:45Z] `python-dev` Elias Python:
   - Fixed, with the ruling you asked for: a FileNotFoundError on a dirent the scan's own glob just saw is decided by Path.is_symlink() (lstat, doesn't follow the link) -- present-but-broken (is_symlink() true) gets the same third-state report+carry-forward as any other unreadable file; genuinely vanished (is_symlink() false, truly gone) is skipped with nothing reported, on the theory that a real deletion is the missing-direction reconciliation's claim to make (from the previous index), not a second, competing claim invented by the scan that raced it. Applied at all four sites you drove: check's scan, repair's rebuild, board list, memory list -- plus repad/renumber's _scan_records preflight, which previously would have propagated a raw FileNotFoundError instead of refusing cleanly. New tests cover both branches, including a simulated glob-then-read race (monkeypatched delete) for the genuinely-vanished half, which isn't otherwise reproducible on demand.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -330,7 +330,7 @@ than the human one about a data-integrity failure is the wrong default.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-03T11:46:53Z] Elias Python:
+- [2026-08-03T11:46:53Z] `python-dev` Elias Python:
   - Fixed via the additive-safe option you weighed: board list/memory list/memory search's --json branches now print each unreadable-file message to stderr before returning, leaving the JSON array shape untouched (no envelope, no new key -- the Tier-3 contract stays frozen). A machine consumer that only reads stdout still gets a bare array, but the exit code (see F6) plus stderr now say the read was degraded rather than genuinely empty/short.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -363,15 +363,15 @@ Not a defect on its own — recorded so the contract is decided rather than inhe
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-03T11:47:04Z] Elias Python:
+- [2026-08-03T11:47:04Z] `python-dev` Elias Python:
   - Fixed: board list and repair now exit 1 when they report at least one unreadable file/notice, mirroring check's existing error-level-issue-means-nonzero contract rather than the old bare 0. Decided both the same way for consistency: repair did succeed at everything it safely could (nothing lost, carried forward), but what it returns is an index it knows contains a stale entry and its own message tells the operator to fix the file and repair again -- a caller gating on $? needs to see that as not-clean, same as board list's printed error: line. Updated the two pinned exit-0 CLI tests (test_malformed_frontmatter_and_config_fail_cleanly.py, test_undecodable_squad_files_fail_cleanly.py) that encoded the old contract; the clean-board parametrized tests are unaffected (still 0). Noting for visibility: this changes an existing shipped CLI exit code, which the VS Code client (clients/vscode/, out of my scope) may also observe -- flagging in case its repair/board-list handling assumes the old contract.
-- [2026-08-03T12:38:31Z] Catherine Manager:
+- [2026-08-03T12:38:31Z] `manager` Catherine Manager:
   - Code half is Fixed. Assigning the writer the adopter-facing half: the exit-code move from 0 to 1 on board list and repair needs a Changed entry, since the published exit-code table is a frozen contract and the VS Code client branches on it.
-- [2026-08-03T13:07:25Z] Theo Writer:
+- [2026-08-03T13:07:25Z] `tech-writer` Theo Writer:
   - Adopter-facing half done. Wrote the exit-code move as a **Changed — action required** entry under 0.13.0 (board list + repair 0→1, and check 1→3 for the same unreadable-file case, which moved with the per-file degradation work), naming the wrapper-script/CI/editor-integration branches as the thing to re-check, and stating plainly that reporting an error at status 0 was itself the contract violation.
   - Also corrected the published table: docs/faq.md code `1` now reads "squads could not complete what you asked" and covers a command that finished only partly and named what it could not read, plus a short "A degraded read is a non-zero exit" note covering check exiting 3 and board list --json keeping its bare-array stdout with names on stderr. Measured every code without a pipe before writing it.
   - Inconsistency left standing, not written into the notes: `sq memory list` degrades and names the unreadable file but still exits 0, in both output modes — the ruling on this finding covered board list and repair only. @manager worth a ruling so the three degrade-and-report surfaces agree.
-- [2026-08-03T13:12:52Z] Catherine Manager:
+- [2026-08-03T13:12:52Z] `manager` Catherine Manager:
   - Ruling on the memory list inconsistency raised by the writer: sq memory list should exit 1 on a degraded read too. The condition is identical and the published table treats a non-zero status as the signal, so leaving one of three commands at 0 makes the contract depend on which command you happened to run. Queued as code work, not a docs change — the release notes correctly name only the two commands that behave that way today.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -402,7 +402,7 @@ reconciliation check that does not exist. Either add the claim to `check` or cor
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-08-03T11:47:17Z] Elias Python:
+- [2026-08-03T11:47:17Z] `python-dev` Elias Python:
   - WontFix-the-behaviour, fixed-the-claim: check does NOT invent an on-disk-but-not-indexed claim for an unreadable file, and I judged that correct rather than a gap to close. That claim would have to guess the file's id from its filename and report the guess as fact -- exactly the kind of unconfirmed claim this whole task family (suppress_missing, the stem-vs-frontmatter keying decision) already refuses to make elsewhere. Corrected TASK-674's body and its ST3 subtask body instead (both had this same inaccurate claim) to say what actually happens: the file is reported as unreadable, full stop, with no additional on-disk-but-not-indexed claim layered on top.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -529,7 +529,7 @@ call sites would keep them from drifting again.
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-08-03T15:21:16Z] Elias Python:
+- [2026-08-03T15:21:16Z] `python-dev` Elias Python:
   - Fixed as you suggested, including the shared helper: `_missing_dirent_message(md, *, is_symlink)` in `_services/_maintenance.py` is now the single wording for a FileNotFoundError on a dirent the caller's own glob just saw, used by check, repair and the repad/renumber preflight.
   - All three of your points, driven on one broken-symlink dirent: repad and renumber now say `<path> is a broken symlink (its target does not exist) — refusing to rewrite ids while a file in the corpus cannot be read` — same sentence as check and repair, the path named once, no errno text. The refusal itself is unchanged (both still refuse before any rename).
   - Pinned in `tests/service/test_unreadable_files_degrade_per_file.py::test_every_command_gives_a_broken_symlink_the_same_diagnosis`: one dirent through all four commands, asserting the shared sentence in each and — for the two refusals — no "No such file or directory", no "Errno", and `message.count(path) == 1`. Falsified: restoring the errno wrapper reddens it alone.
@@ -620,7 +620,7 @@ correctly limited to the empty string.
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-08-03T15:21:02Z] Elias Python:
+- [2026-08-03T15:21:02Z] `python-dev` Elias Python:
   - Fixed as you suggested: all four container keys now route through one of two helpers — `_empty_list_if_unset` for `labels`/`refs`/`subentities`, a new `_empty_dict_if_unset` sibling for `extra`. Driven over 4 keys x {absent, null, empty string}: all twelve load as the right empty container.
   - Pinned in both directions and over the whole scope, not a subset: `_CONTAINER_FIELDS` in `tests/service/test_type_invalid_frontmatter_load_boundary.py` carries all four keys with their empty value, and the bare-string rejection is parametrized over the same four. Added a coverage guard that derives the container-field set from `Item.model_fields` annotations, so a fifth container field cannot be added behind the table the way the fourth slipped past.
   - Falsified: reverting `subentities`/`extra` to the pre-fix expressions reddens the compat test for exactly those two keys and nothing else.
@@ -685,7 +685,7 @@ worth treating as a pattern rather than three separate wordings.
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-08-03T15:20:42Z] Elias Python:
+- [2026-08-03T15:20:42Z] `python-dev` Elias Python:
   - Fixed by rewording, resolution (1) — with a wider fault than reported. Driven across the shape family: `id: TASK-abc` and `id: TASK-` rebuild cleanly (exit 0, correct entry); `id: 5`, `id: -19`, `id: [a, b]` are refused by the load boundary, so repair reports the file, carries the previous entry forward and exits 1; and `id: NOTANID` (a string with no hyphen) rebuilds exit 0 but mints an entry whose id renders `UNRESOLVED-<n>`. Three outcomes, so no single sentence about repair could be true — the message now describes the file only and names no other command.
   - The neighbouring clause had the same fault and you did not name it: "Fix the `id:` line (or delete it) to clear this". Driven — deleting the line yields `error <file>: file has no `id` in frontmatter` from check (exit 3) and an error plus carry-forward from repair (exit 1). It swapped one error for another. The message now says removing the line is reported too, and the one action it names is verified to clear both check and repair.
   - Also flagged as its own defect, not fixed here (out of this finding scope): repair accepting a hyphen-less string `id` and indexing an `UNRESOLVED-<n>` entry silently is exactly the outcome `_derive_prefix_from_id`s docstring says it raises to prevent. Routing to @manager to ticket — `prefix_from_id` returns "" for a hyphen-less value and the boundary does not treat that as corrupt.
@@ -732,7 +732,7 @@ misleads.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-08-03T15:21:04Z] Elias Python:
+- [2026-08-03T15:21:04Z] `python-dev` Elias Python:
   - Fixed at `Item.from_frontmatter` as you scoped it: a new `_validation_message(exc)` renders `exc.errors()` instead of `str(exc)`. `labels: 5` now reads `invalid item data in <path>: labels: Input should be a valid list (got int)`; `id: 5` reads `expected str for `id`, got 'int': 5`; two bad fields join with `; `; a nested one addresses as `subentities.0.status`.
   - One thing your suggestion would have produced that I dropped: appending `(got <type>)` to a validator-raised error stutters, because our own validators already name the type. So the type suffix is added only for pydantic's own error kinds, not `value_error`/`assertion_error`.
   - Pinned as a sweep, not an example: `test_no_shape_leaks_pydantics_own_dump_into_the_message` runs the whole existing 34-shape table against four banned fragments (`errors.pydantic.dev`, `input_value=`, `input_type=`, `validation error for`) — the leak is per error *kind*, not per field, so one shape proved nothing. Plus three tests that the usable half survived (field named, type named, every bad field named, nested path addressed).
@@ -760,61 +760,61 @@ Test: tests/service/test_type_invalid_frontmatter_load_boundary.py — extended 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T11:09:28Z] Paul Reviewer:
+- [2026-08-03T11:09:28Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested. The mechanism works and the asymmetry is preserved correctly (repad/renumber still refuse cleanly, no partial rename), but three of seven findings are high and all three are shapes one step outside the three that were falsified.
   - Blocking: F1 (repair loses an unreadable, never-indexed file\s counter high-water mark -> duplicate TASK-11 across two files, then a real item silently deleted on the next repair with sq check reporting no issues); F2 (valid YAML with no id still aborts repair board-wide, misdiagnosed as a workflow-override re-prefix pointing at a file that does not exist); F3 (type-invalid frontmatter crashes repair with a raw pydantic traceback while sq check says no issues).
   - F1 is the load-bearing property broken: "no item whose file exists may be silently dropped". F3 needs Item.from_frontmatter brought inside the per-file guard - that is the seam. F4 (FileNotFoundError on a present dirent) needs a ruling on absent-vs-unparseable, not a blanket catch.
   - Reproductions are in each finding body, all driven against throwaway squads. @python-dev for the fixes; @tech-lead for the F4 and F5 rulings (absent-vs-unparseable, and how a top-level --json array reports a degraded read).
-- [2026-08-03T11:52:21Z] Catherine Manager:
+- [2026-08-03T11:52:21Z] `manager` Catherine Manager:
   - Exit-code change needs declaring at release. F6 moves board list and repair from exit 0 to exit 1 when they report an unreadable file. Assessed against the published frozen table: code 1 covers a validation failure, so the old exit 0 while printing an error was itself the contract violation and this brings the behaviour into line rather than breaking it. But it is observable — the VS Code client branches on exit codes, and a script treating board list exit 0 as healthy will now see 1. This earns a Changed entry in the changelog, and the release notes should say plainly which two commands moved and why.
-- [2026-08-03T13:18:17Z] Paul Reviewer:
+- [2026-08-03T13:18:17Z] `reviewer` Paul Reviewer:
   - Delta pass at 12540ce (src unchanged since ed4a41d; 1f4b721 and 12540ce are docs/board only). Verdict: still ChangesRequested, on one new high finding.
   - Dispositions that hold, driven: F1 — unreadable-with-no-prior-entry now recovers counter=11 from the filename and sq create allocates TASK-12, no collision; the no-id branch folds the floor too. F2 — carried forward, TASK-11 still in list -a, no bogus workflow-override refusal, check names the file. F4 — broken symlink third-stated across check/repair/board/memory, counter absorbed, repad and renumber still refuse before any rename. F5 — messages on stderr with the JSON array shape intact, which is the right call. The legacy pre-migration skill-body exemption holds: a slug-named body with no frontmatter is silently skipped by both check and repair, an ID-prefixed SKILL file missing its id is still an error, and a clean board is clean at exit 0.
   - Blocking F8 (high): the widened boundary catches (ValidationError, KeyError) but six helper calls inside the dict literal raise TypeError/ValueError before model_validate is reached. Swept ten type-invalid shapes — four now clean, six still traceback on BOTH check and repair (labels/refs as ints, extra as a string, subentities as a dict or a list of ints, created_at garbage). Because F3 widened the boundary the same traceback now reaches every single-item verb too. The docstring asserts the guarantee, which is what makes it worse than the pre-fix state. title-as-a-list is the one shape that happens to route through pydantic, which is why one example passed.
   - F9 medium: id: TASK-abc still aborts the whole check scan (clean SquadsError, but zero other items reported) while repair rebuilds the same file silently — number_for_id is unguarded on both the new and the original line. F10 low and F11 info are message quality and a hardening note; neither blocks.
   - On F6: I agree with your reading. Exit 0 while printing error: was the violation — the published table already defines 1 as a command that finished only partly and named what it could not read, so this is filling in a documented code, not moving a frozen one, and check staying at 3 is right. The memory-list gap the writer raised and you ruled on is the same call correctly extended; nothing to add. Note docs/faq.md now states the general rule ("A degraded read is a non-zero exit") while naming only two commands, so the code work closes a documented inconsistency, not just an internal one.
   - Not filed as a finding: _scan_for_check now builds a full Item per file purely to validate it, so sq check gains one pydantic construction per item. Fine at this size; worth a glance in the scale tests since docs/internals.md tracks check cost. @python-dev for F8 and F9.
-- [2026-08-03T13:54:27Z] Elias Python:
+- [2026-08-03T13:54:27Z] `python-dev` Elias Python:
   - F8/F9/F11 landed together — they were one change. `Item.from_frontmatter` now has exactly two failure channels: required keys read by name up front (SquadsError naming the key), then `model_validate` as the only validator. `_frontmatter_payload` is non-raising by construction; the coercions moved into pydantic or into helpers that pass an unexpected shape through untouched. `SubEntity.from_frontmatter` deleted in favour of a before-validator, so the raw subentities list goes to pydantic.
   - Your six shapes were the floor: the sweep found ten. Also tracebacking before the fix — `extra: [1, 2]`, `subentities: oops`, `updated_at: not-a-date`, `id: 5`, `id: [a, b]`. All ten now clean on check, repair and every single-item verb.
   - Tests: `tests/service/test_type_invalid_frontmatter_load_boundary.py` — 34 shapes over field × wrong type, each driven through the boundary itself, `check`, `repair` and six single-item verbs (315 cases). Its coverage guard asserts the table against `Item.model_fields`, so a new model field fails the module until a shape exists for it. Falsified: restoring the `list(labels or [])` and `dict(extra)` coercions turns 27 of them red, then green again on restore.
   - `created_at: 5` is deliberately outside the refusal contract and pinned as such — pydantic reads a number as a Unix epoch, which beats the old `else: return now()` that made a corrupt timestamp indistinguishable from a fresh one.
   - F9: repair does not rewrite the `id:` line at all, so there was nothing silently rewritten to report — the line is simply never read. Resolved the disagreement the other way: `check` always reports it (per file, scan continues, saying the value is ignored and why), `repair` rebuilds without complaint, `renumber`/`repad` refuse cleanly. All three directions pinned. Also closed the same hole in `_scan_records`, which still threw a raw AttributeError on `id: 5`.
   - F11: the `KeyError` arm is gone entirely, so an internal spec-lookup miss can no longer be relabelled `invalid item data in <path>`. @reviewer
-- [2026-08-03T13:56:45Z] Catherine Manager:
+- [2026-08-03T13:56:45Z] `manager` Catherine Manager:
   - Driven during release prep, on a throwaway squad with one chmod-000 item file: sq search exits 1 with EMPTY stdout, so a single unreadable file kills the whole result set instead of degrading per-file and returning the matches it could read. Everything else holds -- list/tree/blocked read the index and exit 0 with both items, and show on the unreadable item exits 1, which is correct.
   - Two reasons this matters for 0.13 rather than later. It is the same per-file-degradation family this review covers, so search looks like a surface the work missed. And the VS Code client calls search and turns any non-zero exit into a runtime error (sqAdapter classifyNonZeroExit), so extension search breaks entirely on a squad where the tree views keep working -- arbitrary from the user side.
   - @reviewer your call whether this is a finding here or its own bug; I have not authored one, and I would rather you re-drive it than take my probe on trust. Not sending it to @python-dev mid-round as a scope addition.
-- [2026-08-03T14:17:50Z] Elias Python:
+- [2026-08-03T14:17:50Z] `python-dev` Elias Python:
   - Adopter-visible, for routing: a corrupt frontmatter field now yields a clean `invalid item data in <path>` error instead of a traceback on every verb; `sq check` reports a malformed `id:` per file instead of aborting the scan; `sq renumber`/`sq migrate repad` refuse cleanly on one. Also a tightening worth a line: `labels: abc` (a bare string) is now rejected rather than silently split into one label per character. Not mine to document.
-- [2026-08-03T14:33:57Z] Paul Reviewer:
+- [2026-08-03T14:33:57Z] `reviewer` Paul Reviewer:
   - Third pass on the load boundary at e59c10b. F8 itself holds — I swept it myself rather than reading his sweep. 46 frontmatter shapes through Item.from_frontmatter on a real item file, 25 of them shapes neither of us had named (a dict labels, an int-element list, a non-str id, severity/priority/parent/title/slug/author/assignee/description/created_session as wrong types, a list-of-lists subentities, a sub-entity missing status, a sub-entity with a non-dict extra, a non-str ref_kinds value, a non-dict ref_kinds): ZERO raw escapes. Every failure is a SquadsError, and BASELINE-untouched loads, so the probe is not vacuous. The design is what earns it — _frontmatter_payload never raises and model_validate is the single channel — not a wider except clause.
   - The KeyError claim holds and I traced it rather than taking it: three data[...] subscripts, all covered by the REQUIRED_FRONTMATTER_KEYS pre-check; fold_legacy_kinds uses legacy.get and is gated on _is_str_list; make_ref is an f-string so a non-str kind cannot raise; prefix_from_id and _slug_from_path only ever see a real str; _extra_mapping and _read_extra never coerce a non-mapping; and the removed SubEntity.from_frontmatter has no stale caller anywhere in src, tests or clients. One note for whoever touches it next: _frontmatter_payload documents "callers must have checked the required keys first" and has exactly one caller, so a second caller that skips the check reopens the hole — KeyError is deliberately no longer caught. Worth a one-line assert rather than a docstring, but not a finding.
   - Blocking F13 (medium, new): check tells the operator that a malformed id is being ignored and that sq repair "rebuilds the index from this file without complaint". Driven: repair DOES complain, third-states the file and carries the previous entry forward stale. The claim also cannot be made true by rewording repair — _derive_prefix_from_id now raises on a non-str id for a good reason, and from_frontmatter holds no spec, so it cannot derive the prefix from sequence_id plus type the way the message promises. Body has both coherent resolutions. That is the third message in this batch to name a remedy the tool does not perform; worth treating as a pattern.
   - F12 low, and it answers your question directly: the preserved-compat case covers only the two fields he names. subentities and extra were coerced by the same or-default and both loaded with an empty string before this commit — I evaluated the removed expressions literally to be sure. The compat test parametrizes labels and refs only, so neither regressed field is pinned either way. Low because the failure is clean, reported per-file, and carried forward, and sq never writes either key empty. On labels: abc — I endorse rejecting it; list("abc") produced three one-character labels, which was garbage in every view, so no working file depends on it.
   - F14 low: the per-file message for a type-invalid field is now whatever pydantic says, errors.pydantic.dev URL and truncated payload repr included. Direct consequence of the correct decision to make model_validate the single channel; render exc.errors() into one line per field instead of str(exc). F10 is still Open from the last round.
   - Falsification quality checked, not assumed: the sweep test carries its own coverage guard so an omitted shape reddens there rather than in someone repo; the blast-radius test exists specifically so a fix that refuses every verb on every item cannot pass; and the boundary-level assertion is ordered before the two command-level ones so they cannot pass by accident. Those fail for the stated reason. @python-dev for F13; F12 and F14 are cheap and I would take them in the same pass.
-- [2026-08-03T14:34:14Z] Paul Reviewer:
+- [2026-08-03T14:34:14Z] `reviewer` Paul Reviewer:
   - On the search defect you left for me to classify — reproduced independently, and it is wider than your probe found. Throwaway squad, three tasks, chmod 000 on one of them.
   - sq search login: EMPTY stdout, exit 1, one clean error on stderr naming the file. The match on TASK-9 — a readable file, matched on its title from the index before any file read — is discarded with everything else. sq search login --json emits nothing at all on stdout, not even [], so a JSON consumer gets a parse failure on top of the non-zero exit.
   - It is TWO commands, not one: sq inbox reviewer behaves identically (empty stdout, exit 1) and loses the readable item mention. Same mechanism, same file: _services/_collab.py, both loops do full_text = await _aio.read_text(path) with no per-item guard, so UnreadableFileError propagates out of the loop and discards the accumulated results. Meanwhile list, tree, blocked, mine and workload all exit 0 with everything, check exits 3 and degrades per file, show on the unreadable item exits 1 which is correct.
   - Client impact confirmed at the source, not inferred: clients/vscode/src/sqAdapter.ts line 531 calls search with --json through runSqJson, which at line 426 turns any non-zero exit into classifyNonZeroExit, and 1 is neither 2 nor 3 so it becomes kind runtime-error. So extension search dies on a squad where the tree views keep working. inbox is not in the client, but every agent role definition tells the agent to run sq inbox at session start, which was TASK-674 own stated motivation.
   - My classification: its own bug, in 0.13, not a finding on this review and not 0.14. Not a finding — TASK-674 scoped itself to check, repair, board list and memory list by name, and never claimed search or inbox, so none of the six fixes regressed this and none of the eleven findings covers it. Not 0.14 — the release notes will say unreadable files degrade per file, and shipping that sentence while two read commands still die whole is a promise the product does not keep; one of the two is consumed by the VS Code client. I would file it high: total loss of results already gathered from readable files, plus a client runtime error, on a board the tree views handle fine. Bugs are the QA lane, so I am recording the reproduction here rather than authoring it. @qa @manager
-- [2026-08-03T14:34:45Z] Theo Writer:
+- [2026-08-03T14:34:45Z] `tech-writer` Theo Writer:
   - Release notes written for this round: four entries covering the malformed-`id` per-file report, the type-invalid frontmatter boundary (with the `labels: abc` tightening and the `created_at` change), the `sq inbox` empty-hit fix, and the new playbook-guidance warning. Each driven against `e59c10b^` as baseline rather than translated from the round's comments.
   - Corrections to what the round reported, found by driving it. (1) The old `sq check` failure on a malformed *string* id was not a traceback — it was a bare `error: malformed ID 'NOTANID'` that did not name the file, and it stopped at the first one (two broken files reported one). The traceback shape belongs to the non-string case (`id: 5` → `AttributeError: 'int' object has no attribute 'rpartition'`). Two different old symptoms, so the entry states both precisely. (2) `labels: abc` did not merely split — `sq check` reported `✓ no issues` on a corpus silently carrying the three labels `a`/`b`/`c`, which is the part worth telling an adopter. My first probe on this read the index rather than the frontmatter and showed nothing; forcing a rebuild is what surfaced it, so I am flagging the probe error too.
   - DEFECT at the seam of two fixes from this round, not documented and not mine to fix (no Python in my scope). The malformed-`id` check message asserts "so `sq repair` rebuilds the index from this file without complaint" — true for a malformed *string* id (`id: NOTANID` → repair exit 0, silent) but FALSE for a wrong-typed one (`id: 5` → repair prints `invalid item data ... expected str for id`, carries the previous entry forward, exit 1). The new type-invalid load boundary rejects the file before the id-parsing question arises, so `check` promises an outcome the adopter will not get. `sq renumber`'s refusal reuses the same sentence verbatim, where it is doubly misleading. Source: `_malformed_id_message` in `_services/_maintenance.py`, whose own docstring states the promise as intended behaviour. @manager for routing — I kept the promise out of the changelog entirely rather than repeat it.
-- [2026-08-03T15:22:06Z] Elias Python:
+- [2026-08-03T15:22:06Z] `python-dev` Elias Python:
   - F10, F12, F13, F14 all Fixed — see each finding for what was driven and what was pinned. Gates clean: pyright 0 errors, ruff check + format clean (all with --all-extras); tests/meta, unit, service, integration, cli, tui all pass (3019 tests). Every fix falsified by reverting it and watching the intended tests redden.
   - Adopter-visible, for @tech-writer to route (I did not touch CHANGELOG or docs): (1) the malformed-frontmatter-`id` report no longer promises a `sq repair` outcome and no longer offers "delete the line" as a fix — it names the required `<PREFIX>-<number>` shape and the correction; (2) a type-invalid frontmatter field now reports in project vocabulary (`labels: Input should be a valid list (got int)`) instead of a raw pydantic dump with an errors.pydantic.dev link; (3) `sq migrate repad` / `sq renumber` now diagnose a broken symlink the same way `check`/`repair` do, instead of "No such file or directory"; (4) `subentities: ''` and `extra: ''` load as empty again, matching `labels`/`refs`.
   - One new defect found while driving F13 and NOT fixed (needs its own ticket, @manager): `sq repair` accepts a hyphen-less string `id` (e.g. `id: NOTANID`), exits 0, and indexes an entry whose id renders `UNRESOLVED-<n>` — the exact outcome `_derive_prefix_from_id` raises on non-strings to prevent. `prefix_from_id` returns "" for a hyphen-less value and nothing treats that as corrupt. I deliberately did not pin the current behaviour, since a test asserting it would enshrine it.
-- [2026-08-03T15:31:53Z] Paul Reviewer:
+- [2026-08-03T15:31:53Z] `reviewer` Paul Reviewer:
   - Targeted delta at 8473abf, scoped to what the widening created. One new low finding (F15); everything else in scope holds.
   - On the three-outcome call for F13: I accept it, and it is the right call. Drove all four id shapes. TASK-abc rebuilds cleanly as TASK-10 at exit 0; a non-string 5 is refused by the boundary so repair reports it and keeps the previous entry, exit 1; TASK and NOTANID both rebuild at exit 0 and index UNRESOLVED-10. Three outcomes, and the message is reused verbatim by renumber which refuses outright, so no sentence about another command could be true. Saying less is correct here. And it still says enough to act: the bad value, the required grammar, why the line is load-bearing, the exact action, and the two inputs to compute it (sequence_id in the same file, the type prefix). The only thing it does not name is how to look the prefix up — sq workflow types — and I would not add it; the message is already five lines.
   - The neighbouring clause he fixed unasked is correct and I verified the action clears both shapes, which is the part worth checking. Starting from id: TASK and from id: 5, correcting the line to TASK-10 gives check exit 0, repair exit 0, and the entry indexed as TASK-10 in both cases. Deleting the line instead gives error <file>: file has no id in frontmatter at exit 3 plus a repair carry-forward at exit 1 — so the old "(or delete it)" was a false remedy and removing it was right. The replacement pre-empts the obvious wrong move by saying removing the line is reported too, which is better than silence.
   - F15 (low, new): the (got <type>) suffix keys on error provenance rather than on whether the type is the missing information. Swept 39 shapes and read every clause — 36 read well, but pydantic missing carries the ENCLOSING mapping as its input, so subentities.0.status: Field required (got dict) reads as "status was given a dict" when the fault is that it is absent; and title: String should have at least 1 character (got str) is a stutter. Field path is right in all three, so it is the parenthetical only. One predicate fixes it; body has both the narrow and the general version.
   - Not re-verified: the dispositions confirmed across the three previous passes. @python-dev for F15.
-- [2026-08-03T15:47:22Z] Catherine Manager:
+- [2026-08-03T15:47:22Z] `manager` Catherine Manager:
   - Approved as second party -- the reviewer authored this, so the decision is mine. Fifteen findings, zero Open: eleven Fixed, two WontFix with reasoning that engages the evidence, one delivered by the writer, one (F7) closed as not-a-defect. Full suite 3076 passed, pyright 0 errors, ruff and format clean, sq check exit 0, all verified by me rather than taken from the reports.
   - Recording the shape of this review because it cost five rounds. Rounds one to three found defects in the mechanism; round four found a message promising a remedy the tool does not perform; round five found a parenthetical describing an omission as a value. Every round found something the previous fix created, so that pattern held throughout -- but the severity collapsed monotonically, which is convergence rather than recurrence. Two follow-ups the dev raised were dispositioned without tickets: repair minting UNRESOLVED-<n> is honest and reported at error level, and the workflow-lint false pointer was reproducible when flagged and is not now, closed by commit 2997383. Both answers came from driving, one of them from the reporter contradicting his own earlier claim.
 <!-- sq:discussion:end -->

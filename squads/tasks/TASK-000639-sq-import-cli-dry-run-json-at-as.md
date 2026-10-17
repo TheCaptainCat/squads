@@ -58,7 +58,7 @@ _Add with `sq task 639 add-subtask "<title>"`; track with `sq task 639 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T07:33:43Z] Elias Python:
+- [2026-07-24T07:33:43Z] `python-dev` Elias Python:
   - Landed: new _cli/_import.py wraps Service.import_events — sq import <file> ('-' = stdin), --dry-run (pre-pass only, prints handle->id plan + op counts, writes nothing), --json (ok/applied/dry_run/op_counts/handle_to_id/handle_to_sub/issues/created_ids/warnings), --as (file-level actor default, falls through to config default_role). --at reuses the existing global --at (root-level clock override) rather than a redundant local flag, since the CLI's own arg-hoisting always routes a bare --at to root anyway; documented in the command's own help.
   - Validation issues print line-numbered, non-traceback, exit 1, nothing written. CLI tests: tests/cli/test_import_cli.py (clean apply, dry-run, seeded errors, stdin, --json shape both success/failure, --at/--as flow-through, unreadable file). Gates green (pyright/ruff/format), tests/meta green, sq check clean.
 <!-- sq:discussion:end -->
