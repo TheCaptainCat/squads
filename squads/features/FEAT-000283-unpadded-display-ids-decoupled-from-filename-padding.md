@@ -260,7 +260,7 @@ As the team maintaining squads' own bundled content, I want every managed skill,
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-04T23:00:41Z] Mara Tester:
+- [2026-07-04T23:00:41Z] `qa` Mara Tester:
   - QA sign-off — acceptance verified end-to-end by behavior in throwaway squads (never touched this live repo).
   - US1 (unpadded everywhere) — PASS. In a fresh squad: 'sq create feature' printed 'created FEAT-9 -> .../FEAT-000009-....md' (unpadded in the message, padded on disk in the same breath). Frontmatter id: FEAT-9; parent: FEAT-9 on a child task; refs: - BUG-11:fixes after 'sq task 10 ref add BUG-11'. 'sq task 10 show --full', 'sq bug 11 show --full', 'sq list', 'sq tree FEAT-9', and 'sq task 10 show --json' all render every id/parent/ref unpadded (confirmed the JSON payload's id/parent/refs fields too).
   - US2 (padded filenames, unpadded id) — PASS. 'sq task 10 update --title ...' renamed the file to a new padded stem (TASK-000010-implement-paginated-widget-list-endpoint.md) while frontmatter stayed id: TASK-10. 'sq task 10 retype bug' relocated it to bugs/BUG-000010-....md (padded, 6-digit) with frontmatter id: BUG-10, parent: FEAT-9, refs: - BUG-11:fixes all unpadded. Directory listing (BUG-000010 before BUG-000011) confirms lexicographic sort intact.
@@ -268,6 +268,6 @@ As the team maintaining squads' own bundled content, I want every managed skill,
   - US4 (lookup tolerance) — PASS. Both 'sq show BUG-000011' and 'sq show BUG-11' return the identical item; '--parent FEAT-000009' on create resolved and stored unpadded (parent: FEAT-9); 'sq bug 13 ref add BUG-000011' resolved and stored 'refs: - BUG-11:duplicates'.
   - US5 (managed artifacts unpadded) — PASS. Read-only checks on this dogfood repo: no 6-digit padded FEAT-0.../TASK-0.../ADR-0.../BUG-0.../EPIC-0.../REV-0... pattern remains under squads/agents/skills/ or CLAUDE.md; SKILL-000200-squads.md and 'sq workflow' output use unpadded examples (FEAT-2, TASK-3-style). A freshly 'sq init --backend claude_code' throwaway squad's generated SKILL-000017-squads.md likewise has zero padded examples and only unpadded ones.
   - Everything above was exercised in /tmp scratch squads via 'uv run --project /home/pchat/projects/squads sq ...'; the dogfood repo itself was only read (show/grep), never written. Recommending FEAT-283 move toward Done once TASK-291's review lands (task is currently InReview).
-- [2026-07-04T23:23:53Z] Catherine Manager:
+- [2026-07-04T23:23:53Z] `manager` Catherine Manager:
   - Deferral note for the FEAT-13 stability contract: this feature changes a documented public surface — item IDs now DISPLAY unpadded (FEAT-283, TASK-30) everywhere (frontmatter id:, refs, prose, CLI, --json) while on-disk filenames stay zero-padded. The FEAT-13 contract doc, which froze the ID-format surface, now lags reality and must be refreshed before 1.0 to state: display/canonical form is unpadded (JIRA-style), filename width is a separate index-derived value, and input remains width-tolerant (FEAT-283 and FEAT-000283 both resolve). Authoritative design: ADR-282 (Accepted).
 <!-- sq:discussion:end -->

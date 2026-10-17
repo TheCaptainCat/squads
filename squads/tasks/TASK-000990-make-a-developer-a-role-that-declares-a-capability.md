@@ -434,7 +434,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-16T18:54:08Z] Elias Python:
+- [2026-10-16T18:54:08Z] `python-dev` Elias Python:
   - Falsification count 3. Broke: skills_for_role in the service resolver called with the bundled documents instead of the active ones. Red: test_every_surface_answers_from_the_active_documents for the two playbook-guide rows and the workflow-drops row (3 of 4 rows). Restored, 4 green. Table: tests/integration/test_role_derivations_answer_from_the_active_documents.py. Generated files for a fixed roster (init --roles all + one developer) diff clean against HEAD output.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -502,7 +502,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-16T18:54:10Z] Elias Python:
+- [2026-10-16T18:54:10Z] `python-dev` Elias Python:
   - Falsification count 43. Broke (a) the capability name check in the catalog loader and the role-file resolver: 22 red (every malformed-name row at every declaration site, plus the sq check and sq sync smoke tests); (b) dropped capabilities from the service role view: 21 red (every view column that declares a capability). Restored, 64 green. Table: tests/service/test_a_role_declares_capabilities_that_resolve_onto_the_role.py (5 declaration sites x 12 value shapes, plus the no-stored-state invariant, hash of item files and index, delete index then sq repair).
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -581,7 +581,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-16T18:54:12Z] Elias Python:
+- [2026-10-16T18:54:12Z] `python-dev` Elias Python:
   - Falsification count 22. Broke (a) dev_base_from_item pointed back at the bundled catalog: 13 red (override-added, colour-changed, override-removed rows); (b) model taken from the [dev] table instead of the item: 9 red (model-changed and override-removed rows). Restored, 26 green. Table: tests/cli/test_an_existing_developer_follows_the_resolved_dev_table.py. AGENTS.md renders neither model nor colour, so it has no column.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -631,7 +631,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-10-16T18:54:15Z] Elias Python:
+- [2026-10-16T18:54:15Z] `python-dev` Elias Python:
   - Falsification count 2. Broke: omitted capabilities from the fallback branch of build_role_json_payload. Red: the role-show definition-gone cell and the dedicated fallback test. Restored, 25 green. Table: tests/cli/test_capabilities_are_readable_on_every_role_surface.py. Old keys unchanged: verified against payloads from the HEAD build on one scratch squad (role catalog, list, show; only new key is capabilities).
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -702,7 +702,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-10-16T19:45:46Z] Elias Python:
+- [2026-10-16T19:45:46Z] `python-dev` Elias Python:
   - Falsification count 16. Broke (a) a blanket exemption for a *-prefixed subject in orphaned_playbook_guides: 8 red (the override rows with no live holder); (b) the capability test hard-coded to *dev: 8 red (every *audit and *reviewer row). Restored, 25 green. Table: tests/integration/test_a_playbook_guide_addresses_every_role_holding_a_capability.py (3 subjects x holder states x authors; four surfaces compared as one set, plus malformed subjects naming playbook.toml and the silent bundled *dev guides). The DEV constants are gone; no capability name remains in code or templates outside _specs and _migrations.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -773,7 +773,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-10-16T19:45:49Z] Elias Python:
+- [2026-10-16T19:45:49Z] `python-dev` Elias Python:
   - Falsification count 4. Broke (a) the addresses helper also counting a -dev slug as holding the capability: 2 red (the suffixed rosters); (b) sq dev list filtering on the tech attribute: 2 red (the declared rosters). Restored, 4 green. Table: tests/integration/test_a_declared_developer_is_treated_like_a_templated_one_on_every_surface.py (four rosters; pointer skills, section, create lane, sq dev list, example assignee, delegate examples; developers alike, ordinary roles alike). The derivations take the resolved role; is_dev_slug is deleted. Two suffix reads remain for ST11 (preview of an unadded dev slug in _cli/_common.py and _overrides/_service.py).
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
@@ -848,7 +848,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-10-16T19:45:52Z] Elias Python:
+- [2026-10-16T19:45:52Z] `python-dev` Elias Python:
   - Falsification count 8. Broke (a) example_assignee_slug returning a literal: 4 red (every roster without that slug); (b) the old <tech>-dev sentence put back in the CLAUDE.md template: 4 red. Restored, 5 green. Table: tests/integration/test_generated_text_names_only_live_roster_slugs.py (4 rosters over CLAUDE.md, AGENTS.md, pointers, every skill body; whitespace-collapsed scan validated against the old sentence). Not covered: a roster sharing no slug with the bundled catalog, which tests/meta/test_generated_agent_text_names_no_bundled_vocabulary.py keeps. Per-type skill lane commands still name bundled authoring slugs from the bundled playbook text (--author product-owner); outside this subtask.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
@@ -985,7 +985,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
-- [2026-10-16T20:23:17Z] Elias Python:
+- [2026-10-16T20:23:17Z] `python-dev` Elias Python:
   - Falsification count 15. Broke (a) is_dev out of the retired role keys: 8 red (the marker stays on every developer row, plus the POSTCONDITIONS row); (b) the templated predicate always false: 7 red (a developer loses its model on the second rebuild). Restored, 21 green. Table: tests/cli/test_migrate_up_drops_the_developer_marker_cli.py (7 corpus shapes x migrate up, second migrate up, repair, delete index then repair: file hashes, name/tech/model, index values), a file missing from the index, unreadable YAML beside a healthy developer, and a 0.16 file still carrying the marker (reads through tech, check clean). Fixture tests/fixtures/corpus/v0_15_developers written by the released tool (README lists the commands); v0_16 regenerated by the README rule and is byte-identical. Dry run on a copy of the real squad (scratchpad real_copy, -C resolved to the copy, git status squads unchanged afterwards): migrate up, sync and check exit 0 and clean; both developer items (python-dev, typescript-dev) lost is_dev and kept title, model, tech; 948 files changed on migrate (4295 headers in 921 files, 27 flattened, 2 roles lost the marker), a second migrate changed nothing. The contribution is developer-capability; the manifest and content store were regenerated (the store rebuild was needed for workflow.toml).
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
@@ -1064,7 +1064,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
-- [2026-10-16T20:23:20Z] Elias Python:
+- [2026-10-16T20:23:20Z] `python-dev` Elias Python:
   - Falsification count 6. Broke (a) the held-capability test reduced to any capability: 1 red; (b) the templated branch (tech) removed from the planner: 5 red. Restored, 16 green. The planner reads each role file through flatten_frontmatter, reports roles named -dev that hold no capability the [dev] table declares (retired and no-role-file-left noted), carries no failure and writes nothing; a squad with none prints no report. The transition is pinned: declaring the capability then syncing gives a role named -dev the developer skills, dropping it takes them away.
 <!-- sq:subtask:ST9:discussion:end -->
 <!-- sq:subtask:ST9:end -->
@@ -1136,7 +1136,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
-- [2026-10-16T20:23:23Z] Elias Python:
+- [2026-10-16T20:23:23Z] `python-dev` Elias Python:
   - Falsification count 6. Broke sq dev add --slug not reaching the stored slug: 6 red. Restored, 17 green. Table: tests/cli/test_dev_add_takes_a_slug_and_no_read_path_reads_the_suffix_cli.py (default, free and tech-bearing slug; refusals for the operator prefix, the grammar and a taken slug; the per-slug role file follows the stored slug). dev add joined the --slug allowlist of the roster-slug test.
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
@@ -1199,7 +1199,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST11:discussion -->
-- [2026-10-16T20:23:26Z] Elias Python:
+- [2026-10-16T20:23:26Z] `python-dev` Elias Python:
   - Falsification count 2. Broke the suffix read back into the override check (a generated base for an unadded -dev file): 2 red. Restored, 17 green. dev_base_for_slug, dev_preview_full_name and the three suffix reads are gone; role show on a slug nothing declares exits 1 for every spelling; a role file for an unadded dev slug is a new role that needs its fields, reported by sq check.
 <!-- sq:subtask:ST11:discussion:end -->
 <!-- sq:subtask:ST11:end -->
@@ -1208,7 +1208,7 @@ Gates and working rules: the task body.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T20:39:45Z] Olivia Lead:
+- [2026-10-09T20:39:45Z] `tech-lead` Olivia Lead:
   - 2026-10-09: authored from ADR-984 order of work, steps 4 to 6, covering stories 1 to 9; BUG-985 is fixed by ST3. Left in Draft; nothing promoted, no developer briefed. Open points before a developer can start, for op-pierre through @manager:
     
     1. **Working version.** `pyproject.toml` still reads 0.15.0 on `release/0.16`. This task changes bundled bytes, and the manifest generator would overwrite the shipped 0.15.0 entry. Who bumps to 0.16.0, and when?
@@ -1217,9 +1217,9 @@ Gates and working rules: the task body.
     4. **One task or three.** The eleven subtasks have two points where the suite is green and the tree can be committed (after ST4, after ST7). They stay one task because one developer edits the same three modules throughout; splitting at those points is mechanical if preferred.
     
     Calls made in the bodies, to overturn if wrong: the "no capability name in code" grep excludes `_migrations/` as well as `_specs/`; the migration also reports retired suffix-only roles; `sq role show` prints colour on the text card and `--json` gains no `color` key; the delegate example is at most four live slugs in roster order, never the default role, with a developer included.
-- [2026-10-11T20:15:30Z] Pierre Chat:
+- [2026-10-11T20:15:30Z] `op-pierre` Pierre Chat:
   - 2026-10-11: the working version stays 0.15.0 until release preparation. This task does not bump it and does not wait for a bump; the developer does not regenerate the template manifest.
-- [2026-10-11T20:23:52Z] Olivia Lead:
+- [2026-10-11T20:23:52Z] `tech-lead` Olivia Lead:
   - 2026-10-11: brought in line with op-pierre's rulings of the same date (MILE-934). Still Draft.
     
     - **Working version.** The stop-and-report instruction is gone. The developer does not bump the version and does not regenerate the manifest. A new section, "Building at the released version", records what follows; ST2 and ST7 point at it.
@@ -1230,9 +1230,9 @@ Gates and working rules: the task body.
     - **Model.** ST3's acceptance now states both directions: the colour follows a `[dev]` override on sync for an existing developer; the stored model does not change. It matches story 8 as reworded.
     - **One task**, reviewed after ST4, after ST7 and at the end.
     - Added to the handoff list: the hand-written `CLAUDE.md` sentences this task makes false (the `*dev` sentinel line, `dev_role()`). They are listed, not edited, since only TASK-989 has that file in scope.
-- [2026-10-11T20:24:56Z] Catherine Manager:
+- [2026-10-11T20:24:56Z] `manager` Catherine Manager:
   - Correction of attribution: keeping this as one task, reviewed at its commit points, is the manager's call, not a ruling by the operator. I relayed it to the tech lead as his answer in error.
-- [2026-10-12T06:34:29Z] Olivia Lead:
+- [2026-10-12T06:34:29Z] `tech-lead` Olivia Lead:
   - 2026-10-12: brought in line with op-pierre's ruling of this date on MILE-934 (FEAT-980 first, then the bump to 0.16.0, then TASK-989 and this task). Still Draft. This replaces the parts of my 2026-10-11 comment about building at 0.15.0.
     
     - **Migration.** The task no longer creates the step or touches `SCHEMA_VERSION`. It adds one contribution to the runner FEAT-980 creates: the retired `is_dev` key, the read-only report of suffix-only `-dev` roles, a `MANUAL` section and a summary clause. ST8 and ST9 are rewritten and ST8 is retitled. A `depends-on` edge to FEAT-980 stands in until its task exists.
@@ -1240,7 +1240,7 @@ Gates and working rules: the task body.
     - **Manifest.** "Building at the released version" is replaced by "Bundled files and the manifest": regenerate with each bundled change, freshness checks green, drift observable with the dev build. One thing read and not run: an artifact changed twice at 0.16.0 leaves an unreferenced blob that fails one retention test until the store is rebuilt.
     - **Back in this task's acceptance:** the 0.16.0 manifest entry with the 0.15.0 entry untouched; the freshness tests and the generator's check passing; drift observed with the unpatched build for a catalog, a playbook, a per-slug role and a template override. Still at release preparation: the migration of this repository's own squad.
     - Unchanged: the model rule and ST3's two-way acceptance, the hazard that a second rebuild deletes `extra.model` unless the shape reads change with the retired key, the ban on running migrate, repair or sync on the live squad, and one task reviewed at its commit points.
-- [2026-10-12T06:58:46Z] Olivia Lead:
+- [2026-10-12T06:58:46Z] `tech-lead` Olivia Lead:
   - 2026-10-12: aligned with TASK-1004, which now creates the 0.16 migration step. Still Draft.
     
     - **Migration section.** Rewritten: the step, `SCHEMA_VERSION`, `migrate()` and the report channel are TASK-1004's and this task edits none of them. It appends one contribution to the tuple and one row to the runner's test table. Planning function: the read-only report of suffix-only roles, with no failure in its plan. Writing function: none; the key leaves through the retired-key list and the rebuild after the runners. The `MANUAL` facts and the summary clause are stated, with the wording left to the tech writer through a comment here.
@@ -1249,7 +1249,7 @@ Gates and working rules: the task body.
     - **ST10.** The reserved-slug refusal is TASK-1004's (ST3), at the seam every role creation passes through; this subtask no longer writes one. `dev add` joins the allowlist of TASK-1004's test that fails on any `--slug` option under the roster groups.
     - **Gates.** `sq check` is now spelled `~/.local/bin/sq check`, with a rule that the dev build is not run at the repository root: from TASK-1004 on it refuses everything there but `sq migrate up`.
     - **Refs.** `depends-on FEAT-980` replaced by `depends-on TASK-1004`.
-- [2026-10-12T06:58:50Z] Olivia Lead:
+- [2026-10-12T06:58:50Z] `tech-lead` Olivia Lead:
   - 2026-10-12, for @architect: my question of this morning about the role catalog, restated against the contributions shape. It replaces the earlier wording.
     
     The retirement's planning function needs two things `MigrationContext` does not carry: the capabilities the squad's resolved `[dev]` table declares, and the resolved definition of each role whose slug ends in `-dev`. Both come from the role catalog override and the per-slug role files.
@@ -1260,14 +1260,14 @@ Gates and working rules: the task body.
     
     1. ADR-955 A5 says the vocabulary is resolved once, before the first write, together with every other document a pending runner loads. Does the role catalog have to travel on `MigrationContext` for that to hold? If so the change is to the context and to `run_pending_migrations`, outside the contribution, and per-slug role files would still be read by the resolver at planning time.
     2. Should the static guard on runners ban the role loader and resolver as it bans the spec and playbook resolvers? As written, the task tells the developer to report, not to add an exemption, if it does.
-- [2026-10-16T18:21:55Z] Olivia Lead:
+- [2026-10-16T18:21:55Z] `tech-lead` Olivia Lead:
   - 2026-10-16: refreshed against today's release/0.16 (flat frontmatter, the contributions-based 0.16 step, TASK-989's moves, the stored-name rule, the BUG-1065 model ruling). Scope unchanged; no new stored state.
   - Removed as done: the merge and version-bump preconditions (TASK-989, TASK-954, TASK-1004 Done; working version 0.16.0); `tech` leaving the settable role fields (already `settable = false`, ST8 keeps one pinning row); the claim that no corpus fixture holds a developer (`v0_15_discussions` has `python-dev`, whose migrated golden loses `is_dev: true` in ST8).
   - Re-pointed: `extra.*`/`ExtraKey`/`X.IS_DEV` to top-level attributes, `AttributeKey` and `attrs.*` in `_models/_attributes.py`; `RETIRED_ROLE_KEYS`, `_retired_role_keys`, `_refresh_catalog_attributes`, `_exempt_attribute_keys`, `to_attributes`/`stored_attribute_keys`, `RoleDef.from_item`, `_ATTRIBUTE_FIELDS`; ST1 drops stale line numbers; ST10 names the reserved-slug seam and the `--slug` allowlist test.
   - ST8: one `Contribution` appended after `flat-frontmatter`, no writer; `is_dev` joins `RETIRED_ROLE_KEYS` and leaves both `[items.role.attributes]` and `PINNED_ROSTER_ATTRIBUTES` in the same commit (a still-declared name is never swept). The flat contribution's frozen key set is not edited. Model stays developer-only here; BUG-1065 is not folded in.
   - ST9: the planner reads `slug`/`tech` through `flatten_frontmatter`, since it plans before the flat writer; it also reports a suffixed role with no definition left. ST3: the stored name is pinned in every row.
   - My 2026-10-12 @architect question on the role catalog and `MigrationContext` is settled by the guard as landed: it bans the spec and playbook resolvers, not the role loader or resolver, so the planner reads the catalog itself and the context is not widened. Moved to Ready. @manager
-- [2026-10-16T18:54:44Z] Elias Python:
+- [2026-10-16T18:54:44Z] `python-dev` Elias Python:
   - Checkpoint after ST1 to ST4 (tree uncommitted, suite not run by me beyond the targeted floor). Adopter-visible changes so far, for the writer:
     
     - New role document key `capabilities`, a list of names matching `[a-z0-9][a-z0-9-]*` (lowercase letters, digits, hyphens, not starting with a hyphen). It is accepted on a `[[roles]]` entry and on `[dev]` in `.overrides/roles.toml`, and in a per-slug `.overrides/roles/<slug>.toml`. A per-slug value replaces the base list; the splat form `["$(*self)", "x"]` appends; a repeated name resolves once. The bundled `[dev]` table declares `capabilities = ["dev"]`; the eight bundled roles declare none. A malformed name is refused naming the file, by `sq check` (exit 3, its error code) and `sq sync` (exit 1). An older package refuses a catalog or role document that carries the key.
@@ -1279,9 +1279,9 @@ Gates and working rules: the task body.
     - New-role scaffold and the catalog scaffold comment document `capabilities`.
     
     For the hand-written part of CLAUDE.md, listed not edited (ST5 and later make these false; nothing in ST1 to ST4 does): the `*dev` sentinel line and the `dev_role()` mention.
-- [2026-10-16T19:04:24Z] Paul Reviewer:
+- [2026-10-16T19:04:24Z] `reviewer` Paul Reviewer:
   - Checkpoint ST1-ST4 reviewed in REV-1068: 2 medium (F1 lane-exemption bundled fallback, F2 false sq check drift claim), 6 low. @python-dev @manager
-- [2026-10-16T19:45:55Z] Elias Python:
+- [2026-10-16T19:45:55Z] `python-dev` Elias Python:
   - Correction to my ST1 to ST4 note for the writer: `sq check` does warn "may be stale" for role documents. A catalog override (`.overrides/roles.toml`) and a per-slug role file stamped at the previous release warn (exit 0) once the bundled `roles.toml` changed; the same holds for the playbook override and a template override when their bundled counterparts changed. All four also show as `drifted` in `sq override list`; stamped at the running version they are silent.
     
     ST5 to ST7, adopter-visible, for the writer:
@@ -1293,7 +1293,7 @@ Gates and working rules: the task body.
     - A developer is a live role holding a capability the `[dev]` table declares: `sq dev list` lists templated and declared developers alike (live ones only), and a role merely named `...-dev` without the capability loses the developer guidance (pointer skills, section, example assignee).
     - Generated text: the CLAUDE.md sentence "a developer's slug is `<tech>-dev`" is gone; the delegate examples are up to four live roles in roster order (never the default role, a developer included when one is live); the example `--assignee` is a live developer, else the first live role; the six `<tech>-dev` placeholders in the bundled playbook guide text read `<developer>`; the memory skill no longer names `python-dev`.
     - Hand-written CLAUDE.md sentences made false, not edited: the `_interactions/` bullet ("`*dev` sentinel = any `<tech>-dev` role") should read "a guide subject is a role slug or `*<capability>`"; the `_roles/_catalog.py` bullet loses `dev_role()`. Proposed wording for the first: "which roles interact with each item type (a guide addresses a role slug, or every role holding a capability with `*<capability>`)".
-- [2026-10-16T20:23:28Z] Elias Python:
+- [2026-10-16T20:23:28Z] `python-dev` Elias Python:
   - ST8 to ST11, adopter-visible, for the writer:
     
     - `sq migrate up` (0.16 step, contribution "developer-capability"): removes the stored `is_dev` key from role items and changes nothing else in them; a developer keeps its name, `tech` and `model`. The MANUAL section (`sq migrate chlog v0.15.0..v0.16.0`) states the facts: a developer is a role that declares a capability the `[dev]` table declares; a reported role keeps working as an ordinary role and regains the developer guidance when its role file declares the capability and `sq sync` runs (no automatic fix); an override file for a developer not yet added is now reported by `sq check` (ways out: `sq dev add` or remove the file); an existing developer picks up a project `[dev]` colour on the next `sq sync` and keeps its model and name; stamped catalog, playbook, workflow and per-slug role overrides report "may be stale". Summary clause: "The developer marker is dropped from role items, and roles named -dev that declare no capability are reported."
@@ -1305,8 +1305,8 @@ Gates and working rules: the task body.
     - Merged-playbook errors name the override file once; `sq role catalog --json` capabilities are the catalog document's value.
     
     Hand-written CLAUDE.md sentences these make false (not edited): line 88 "`dev_role()`" (gone; developers are built from the `[dev]` table of the resolved catalog); lines 89-90 "`*dev` sentinel = any `<tech>-dev` role" (proposed: "a guide subject is a role slug, or `*<capability>` for every role holding it"). The `<tech>-dev` sentences at lines 309 and 341 are inside the managed region and regenerate on the next `sq sync`.
-- [2026-10-16T21:01:48Z] Catherine Manager:
+- [2026-10-16T21:01:48Z] `manager` Catherine Manager:
   - Done: REV-1068 approved; committed fce1019d; merged suite 11742 passed, 0 failed (8cc6d3b5).
-- [2026-10-16T21:16:05Z] Theo Writer:
+- [2026-10-16T21:16:05Z] `tech-writer` Theo Writer:
   - Documented: docs/roles.md (developers, Capabilities), overrides.md (roles.toml [dev], developer override, playbook *<capability>), migration.md 0.16 developer-capability step, CHANGELOG 0.16 (Added capabilities, dev add --slug; BREAKING developer entry; Fixed [dev] colour), plus is_dev/<tech>-dev/*dev fixes in stability, adoption, faq, internals, agents, README. Uncommitted. @manager
 <!-- sq:discussion:end -->

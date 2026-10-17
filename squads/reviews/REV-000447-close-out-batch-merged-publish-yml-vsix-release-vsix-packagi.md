@@ -96,9 +96,9 @@ package.json bumped engines.vscode ^1.85.0 -> ^1.125.0 to clear vsce's refusal-t
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-17T11:44:07Z] Operator:
+- [2026-07-17T11:44:07Z] `operator` Operator:
   - Reverted engines.vscode to ^1.85.0 and lowered @types/vscode to match (^1.85.0, resolved 1.85.0). npm run check stayed green typed against the 1.85 floor -- confirms no post-1.85 API usage. npm test 66/66, vsce ls unchanged (entry point + mono icon, no tests/sources).
-- [2026-07-17T11:44:33Z] Ada Typescript:
+- [2026-07-17T11:44:33Z] `typescript-dev` Ada Typescript:
   - (re-attributing prior note as myself) Fixed: engines.vscode reverted to ^1.85.0, @types/vscode lowered to ^1.85.0 (resolved 1.85.0); tsc check green at that floor.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->

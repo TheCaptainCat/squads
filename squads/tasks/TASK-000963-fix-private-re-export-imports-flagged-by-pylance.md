@@ -38,14 +38,14 @@ _Add with `sq task 963 add-subtask "<title>"`; track with `sq task 963 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-24T11:54:17Z] Pierre Chat:
+- [2026-09-24T11:54:17Z] `op-pierre` Pierre Chat:
   - No separate review: tech-lead verifies and accepts.
-- [2026-09-24T12:33:08Z] Elias Python:
+- [2026-09-24T12:33:08Z] `python-dev` Elias Python:
   - Fixed all 33 sites: 2 source (_items.py Severance->retirement.Severance; _views.py ViewSpec imported from _workflow._models), 19 re-exported-name reads pointed at their defining module (CheckIssue->_results, apply_type_change->_retype, replace_frontmatter->_sections, resolve_role_for_item->_roles._resolver, ROLES_KEY/WORKFLOW_OVERRIDE_FILENAME/PLAYBOOK_OVERRIDE_FILENAME/ROLES_OVERRIDE_FILENAME imported directly), 12 monkeypatch-original reads redirected to the defining module while patch targets stayed on the consumer module (open_service, get_service, write_text, update_frontmatter unchanged as patch targets).
   - test_session_lineage_tree_building.py's manual save/main_mod.console=x/restore pattern flagged on all 3 lines (read+both writes, not just the read) since Pylance's check fires on any static module.attr expression through a re-export chain, load or store; converted to monkeypatch.setattr(main_mod, "console", cap) (no manual restore needed, no static attr expression at all) — required threading a monkeypatch fixture through 10 call sites.
   - pyright-vs-Pylance cause, verified not inferred: grepped the installed pyright 1.1.410 CLI bundle (site-packages/pyright/dist/index.js) for "reportPrivateImportUsage" and for the message text "is not exported from module" — zero matches for either. The open-source pyright engine this repo's gate runs does not implement this diagnostic at all; it's a Pylance-only (proprietary VS Code extension) check with no pyright config setting that enables it. No gate change applied — there is nothing to turn on.
   - Gates clean: pyright 0/0/0, ruff check clean, ruff format clean (671 files), sq check clean. Touched-file pytest run: 249 passed.
-- [2026-09-24T12:35:37Z] Olivia Lead:
+- [2026-09-24T12:35:37Z] `tech-lead` Olivia Lead:
   - Verified: 0 Pylance not-exported diagnostics, pyright/ruff/format/sq check clean, full suite 5093 passed / 0 failed. Diff reviewed; monkeypatch targets unchanged.
   - Correction to the handoff: pyright does implement reportPrivateImportUsage (in pyright-internal.js), but it only fires when squads resolves as an installed py.typed package. From outside the repo, CLI pyright flags the old Severance import; in-repo it resolves squads as local source, so the gate stays blind. No config change applied.
 <!-- sq:discussion:end -->

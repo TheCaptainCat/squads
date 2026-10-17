@@ -47,9 +47,9 @@ Add the working-norm instruction to CLAUDE.md: status/lifecycle/workflow-state n
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-07-06T12:31:29Z] Operator:
+- [2026-07-06T12:31:29Z] `operator` Operator:
   - Done: added the 'No status/lifecycle prose in bodies' bullet to CLAUDE.md's Conventions/gotchas section. Names both surfaces (body + description:), explicitly permits dated discussion comments, and draws the topic-vs-declaration line.
-- [2026-07-06T12:31:42Z] Elias Python:
+- [2026-07-06T12:31:42Z] `python-dev` Elias Python:
   - (re-attributing) Done: added the 'No status/lifecycle prose in bodies' bullet to CLAUDE.md's Conventions/gotchas section. Names both surfaces (body + description:), explicitly permits dated discussion comments, and draws the topic-vs-declaration line.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -64,9 +64,9 @@ Decide the fate of the repo's own CLAUDE.md `## Status` section (product-maturit
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-07-06T12:31:30Z] Operator:
+- [2026-07-06T12:31:30Z] `operator` Operator:
   - Done: reworded CLAUDE.md's '## Status' section to '## Build scope', dropping the phase-completion framing for a durable scope statement. Decision + rationale recorded on the parent task.
-- [2026-07-06T12:31:43Z] Elias Python:
+- [2026-07-06T12:31:43Z] `python-dev` Elias Python:
   - (re-attributing) Done: reworded CLAUDE.md's '## Status' section to '## Build scope', dropping the phase-completion framing for a durable scope statement. Decision + rationale recorded on the parent task.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -75,8 +75,8 @@ Decide the fate of the repo's own CLAUDE.md `## Status` section (product-maturit
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T12:24:02Z] Elias Python:
+- [2026-07-06T12:24:02Z] `python-dev` Elias Python:
   - ST2 decision: reworded the repo CLAUDE.md section rather than keeping it as-is. Renamed the heading from '## Status' to '## Build scope' and dropped the phase-completion framing ('All three planned phases are built and green') in favor of a durable statement of what's implemented and what's deferred. Rationale: even though sq check's new banner guard only scans index items (never CLAUDE.md), a '## Status' heading is exactly the shape the new convention paragraph just told every agent to avoid — leaving it would read as 'do as I say, not as I do'. The reworded section states scope, not a lifecycle claim, so it won't go stale as the roadmap moves.
-- [2026-07-06T12:31:32Z] Elias Python:
+- [2026-07-06T12:31:32Z] `python-dev` Elias Python:
   - Both subtasks done. CLAUDE.md now carries the working-norm convention (Conventions/gotchas) and the repo's own '## Status' section is reworded to '## Build scope' — no self-declared lifecycle banner left in our own file. Full suite green (1641 passed, 1 skipped, 0 failed) after this + TASK-306's changes; gates (pyright/ruff/ruff format) clean.
 <!-- sq:discussion:end -->

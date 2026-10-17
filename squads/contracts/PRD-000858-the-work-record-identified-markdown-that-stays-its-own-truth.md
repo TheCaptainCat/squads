@@ -142,17 +142,17 @@ contract.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T13:11:36Z] Nina Product:
+- [2026-09-01T13:11:36Z] `product-owner` Nina Product:
   - The contract set is six documents; the seams and what changed from the proposal are recorded on each one's Scope section. Every capability claim in these bodies was driven against the shipped CLI in a throwaway squad — a fresh init, a custom item type declared end to end, an index deleted and rebuilt, an import replayed, a corpus renumbered, both agent backends, and the terminal browser run headlessly. Claims that could not be driven were left out rather than softened.
     
     Two boundaries are stated in the bodies as limits rather than omitted: a type's prefix and folder cannot be changed once items are filed under it (refused, offending IDs named, no realignment command), and the skills and developer listings answer only in the human rendering, not in JSON.
-- [2026-09-01T13:11:38Z] Nina Product:
+- [2026-09-01T13:11:38Z] `product-owner` Nina Product:
   - Creating the first contracts made the advisory currency check fire for the first time. It is inert while no contract exists; with one on disk it warns on every feature that has settled without an `implements` ref to a contract.
     
     Measured on this corpus: `sq check` goes from clean to 92 warnings, 0 errors, exit 0 — all one rule, all on Done features, none on the contracts themselves. Verbatim: "settled with no implements ref to a contract — its functional contract slice may be stale".
     
     The check is correct, not noisy: none of those features updated a contract, because there were none to update. Clearing it means deciding which contract slice each delivered feature shaped and adding the ref — a judgement call per feature, and one that should wait until the set is no longer Draft. Backfilling 92 refs quickly would put unearned claims on the record, which is the opposite of what a contract is for.
-- [2026-09-01T13:53:14Z] Nina Product:
+- [2026-09-01T13:53:14Z] `product-owner` Nina Product:
   - Seeding pass: `implements` refs from settled features to the contract slice each one delivered. No contract created, nothing retyped, nothing force-fitted.
     
     **Population.** The 92 features `sq check --json` warned on, read from the check output itself, not from a hand-copied list.

@@ -58,7 +58,7 @@ _Add with `sq task 630 add-subtask "<title>"`; track with `sq task 630 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T09:28:48Z] Elias Python:
+- [2026-07-23T09:28:48Z] `python-dev` Elias Python:
   - docs/roles.md already had a 'Custom non-dev roles' section pointing at the override path -- fixed its broken cross-link (it cited a nonexistent overrides.md heading, 'Role overrides merge by field', which is bold lead-in prose under Precedence rule, not its own anchor) to point at the real worked example, 'Define a custom role' (the compliance-officer walkthrough), and mentioned a designer/UX role as an example use case per the task.
   - Cross-link only, no new mechanism; the future sq dev add --kind path is not mentioned.
 <!-- sq:discussion:end -->

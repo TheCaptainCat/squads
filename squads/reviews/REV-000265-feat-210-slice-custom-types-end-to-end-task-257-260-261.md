@@ -132,7 +132,7 @@ jinja2.exceptions.TemplateNotFound: items/incident.md.j2
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-01T14:38:08Z] Elias Python:
+- [2026-07-01T14:38:08Z] `python-dev` Elias Python:
   - Fixed in TASK-269. Added ## Type lifecycles section to workflow.md.j2, spec-driven via linearize_lifecycle(spec.machine_for(type)) — covers both built-in and custom types (prefix + type + lifecycle per row). linearize_lifecycle now uses _SIDE_PRIORITY for canonical side-state ordering so all built-in strings match PLAYBOOK exactly (zero divergence). Golden workflow_cheatsheet.txt updated (additive: +15 lines).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -155,7 +155,7 @@ Secondary: the shared item-skill template footer references `sq incident <n> <ki
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-01T11:29:45Z] Elias Python:
+- [2026-07-01T11:29:45Z] `python-dev` Elias Python:
   - F4 fixed in TASK-269: (1) custom-type skill no longer advertises dead <kind> <k> sub-entity verbs — guarded by subentity_kind=None in the template render; (2) sq create <type> command verified to run end-to-end (TASK-268 landed sq create <type> path); new tests in test_custom_type_skill.py.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -207,16 +207,16 @@ Severity low because no current code path is known to throw past line 152; this 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T22:12:36Z] Paul Reviewer:
+- [2026-06-30T22:12:36Z] `reviewer` Paul Reviewer:
   - @manager Independent review of the FEAT-210 slice (TASK-257/260/261) complete. **Verdict: ChangesRequested** — the lazy-CLI / skill / renderer machinery is well-built and the AC#7/#8 byte-identical guarantee is genuine, but the slice does not actually deliver a usable custom type: it cannot be CREATED, and when it is materialised (via retype) its id is malformed.
   - **Must-fix (high):** F1 — `Item.id` (`_models/_item.py:162`) formats custom-type ids as `type.upper()` not the spec prefix, so a `prefix="INC"` type gets stored id `INCIDENT-000019` and `sq incident INCIDENT-000019 show` errors 'is INCIDENT-000019, not an incident'. Violates AC#2 + invariant #1. F2 — no create path at all: `sq create <type>` is static (create_app untouched) AND `svc.create('incident',…)` raises `TemplateNotFound: items/incident.md.j2` (`_template_for` has no fallback). AC#1/US1 unmet; needs a generic item template + a custom-aware create entry.
   - **Should-fix (medium):** F3 — `sq workflow` renders the alias table from spec but NO lifecycle/prefix for any type; the linearizer is built and used in the skill but never wired into the cheatsheet, so AC#2/#3 'includes the custom type's lifecycle' is unmet. F4 — the auto-generated thin skill advertises `sq create <type>` (broken per F2). Both F3/F4 are gated on the high fixes.
   - **Low / no change required:** F5 — `get_command`'s bottom `except Exception: return None` masks genuine build errors for a declared custom type as 'No such command' (scope the except to the resolution region). F6 — the alias-table `{% if aliases %}` guard would silently drop a future alias-less built-in (latent only; goldens green today).
   - **Verified clean (no findings):** the review state-machine reconciliation (`ChangesRequested → Approved`) is correct, nothing depended on the old forbidden edge, and the advertised lifecycle string now matches the machine; the static/dynamic split is sound — `workflow_static.md.j2` is genuinely literal (no spec context, FEAT-013 contract cannot become config-editable); AC#6 no-churn HOLDS and the docstrings do NOT oversell (bundled SKILL 9-17 unchanged, sq-incident=SKILL-18 allocated strictly after, idempotent across repeat syncs); `BackendContext.spec` is backward-compatible (Optional, both backends fall back to bundled_spec); imports stay acyclic; the FEAT-211 seam was respected (linearizer consumed, no status-surface scope absorbed); the per-process `_custom_cmd_cache` is fine for single-shot CLI (tests reset it via autouse fixture).
   - Recommend routing F1+F2 (and their gated F3/F4) back to @tech-lead / Elias Python as a follow-up task on FEAT-210 before this feature is called done. F5/F6 are reviewer's discretion.
-- [2026-07-01T14:41:13Z] Catherine Manager:
+- [2026-07-01T14:41:13Z] `manager` Catherine Manager:
   - F2 marked Fixed: TASK-268 (Done, committed 5a827dd) delivered the create path — generic items/_default.md.j2 fallback + lazy-dispatch _CustomCreateGroup so 'sq create <type>' registers from the spec. Verified live: 'sq create incident' yields INC-000001 in an auto-created incidents/ folder, 'sq list -t incident' + 'sq inc <id> show' round-trip, 'sq check' green. F1/F3/F4 also Fixed (267/269). Remaining: F5/F6 (low) → TASK-270. Independent re-review will Verify once 270 lands.
-- [2026-07-01T19:44:56Z] Paul Reviewer:
+- [2026-07-01T19:44:56Z] `reviewer` Paul Reviewer:
   - @manager Independent re-review of the FEAT-210 CORRECTIVE slice (ee6f9eb / 5a827dd / a66c48e) complete. **Verdict: Approved.** All six findings independently verified — Verified, not taken on the implementer's word. Gates clean (pyright 0, ruff check + format clean); the 175 targeted tests across the 10 custom-type/golden/workflow files are green; I ran the headline end-to-end in a throwaway squad.
   - **Per-finding verification:** F1 (Verified) — retype a task→incident now stamps item.prefix from the spec via _vocab.prefix_for; live retype yields INC-000012 (file INC-000012-*.md), and a legacy custom file with NO 'prefix:' line still resolves to INC- after sq repair (store._propagate_prefix re-derives on load, parallel to _propagate_padding). No type.upper() in the id path. The old self-contradiction is gone — the stored id is INC-, and 'sq incident INCIDENT-000012 show' now correctly REJECTS a wrong-prefix token rather than having stored it.
   - F2 (Verified) — 'sq create incident' works end-to-end: INC-000015 minted in an auto-created incidents/ folder, sq list -t incident + sq incident <id> show round-trip. _template_for falls back to the new generic items/_default.md.j2 via _engine.has_template (honours user template overrides); built-ins keep their dedicated templates. _CustomCreateGroup mirrors _CustomTypeGroup for lazy dispatch. F3 (Verified) — sq workflow now renders a 'Type lifecycles' table: INC | incident | Open → Done (+ WontFix), spec-driven via linearize_lifecycle(machine_for). The static FEAT-013 partial (workflow_static.md.j2) is untouched. F4 (Verified) — generated sq-incident skill advertises the working 'sq create incident', lifecycle string correct, and the sub-entity <kind> <k> footer is guarded out (subentity_kind=None) — built-in skills keep their footer (byte-identical). Advertised create command verified to actually run.

@@ -502,7 +502,7 @@ behaviour exactly.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-09-01T11:47:22Z] Elias Python:
+- [2026-09-01T11:47:22Z] `python-dev` Elias Python:
   - Fixed, driven both ways.
     
     **The fix — caller-side ordering inside `authoring_owner`, no signature change anywhere.** `role_titles` (the live slug->title map, already threaded to both renderers) is now consulted **first**; the bundled `role_by_slug` catalog is the fallback for a caller that threads no roster (a bundled reference render); the `RoleNotFoundError` arm past it returns `None` as before. I did not add a `squad_dir` to `role_by_slug`: the resolved value was already in hand at the call site, so plumbing a second resolution path would have been redundant work for the same answer — and `_interactions` cannot reach the resolver-backed roster itself without inverting the `_interactions` -> `_rendering/_engine` import edge.
@@ -529,7 +529,7 @@ behaviour exactly.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T09:44:06Z] Elias Python:
+- [2026-09-01T09:44:06Z] `python-dev` Elias Python:
   - Implemented all six subtasks. Every role-mirror consumer now resolves through the catalog while the mirror stays fully written (no key removed, no template touched, no migration, no corpus change).
     
     **The seam**: `resolve_role_for_item(item, squad_dir)` in `_roles/_resolver.py` — wraps `role_base_from_item` + `resolve_role_with_base`, falling back to `RoleDef.from_extra` only for the genuinely-orphaned custom-role edge case (no catalog entry, no override file). Used by `roster()`/`roster_all()` (via a new `_role_view` helper), `_resync_role_skills`, `_project_roster_item`, `regen()` (items.py), and `backend_entry_drift` (sq check).
@@ -551,11 +551,11 @@ behaviour exactly.
     Gates: `pyright`/`ruff check`/`ruff format --check` clean. `tests/meta` 261 passed, 5 failed (all `test_override_manifest_and_stamp_freshness.py`, the orphan-content-store residue named as the coordinator's). Targeted (129 tests across every file touched): all pass. Full suite: 4345 passed, 7 failed (the 2 above + the same 5 orphan-store), 7 skipped — stable across three runs. `sq check`: clean.
     
     @qa the BUG-850 acceptance is proven behaviourally in the new test file above; ready to close alongside this task. @tech-lead flagging the `--set`-field visibility narrowing above for your call on whether it needs its own decision.
-- [2026-09-01T10:38:56Z] Catherine Manager:
+- [2026-09-01T10:38:56Z] `manager` Catherine Manager:
   - Reopened Done->InProgress. Acceptance clause 2 is breached on the exact surface it names, driven not inferred: with squads/.overrides/roles.toml carrying [roles.reviewer] title = OVERRIDE-TITLE, a fresh init + role activate + sync renders CLAUDE.md line 17 as OVERRIDE-TITLE and line 107 as 'code reviewer'. squads:start is line 3 and squads:end is line 123, so both disagreeing lines sit inside the compiled managed region.
   - Mechanism: _interactions/__init__.py calls role_by_slug(slug).title, and role_by_slug takes no squad_dir — it is a bundled _BY_SLUG lookup. The live resolved titles are consulted only in the RoleNotFoundError branch, so a bundled role whose title an override changes never resolves.
   - Not amending the acceptance to match what shipped. The clause says an override reaches the compiled managed regions; it reaches one line of them and not another. Scope of the reopen is that consumer only — everything else the review drove is clean.
-- [2026-09-01T11:21:23Z] Olivia Lead:
+- [2026-09-01T11:21:23Z] `tech-lead` Olivia Lead:
   - - Remaining scope written down as **ST7**, and it is the whole of the reopen. Everything else in this task was driven clean by REV-854 — the mirror stripped key by key and separately poisoned with wrong values, `CLAUDE.md`, all eight `.claude/` pointers and the role bodies regenerating byte-identical, and `sq role set-default` surviving sync on both a bundled and a developer role. ST1–ST6 stay Done.
     
     - **The acceptance is not amended.** Clause 2 already says a project override "reaches the compiled managed regions and the pointers on the next regeneration". It reaches line 17 and not line 107 of the same region, so the clause is breached, not mis-worded.

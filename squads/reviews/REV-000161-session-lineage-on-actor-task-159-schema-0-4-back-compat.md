@@ -71,6 +71,6 @@ Fix: re-stamp tests/fixtures/corpus/v0_4/.squads.json schema_version to "0.4" so
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-22T10:09:50Z] Paul Reviewer:
+- [2026-06-22T10:09:50Z] `reviewer` Paul Reviewer:
   - Approved. Independent review of TASK-159 (session lineage / schema 0.4). All six review priorities verified: schema bump + no-op migration correct (idempotent + clean on a real 0.3 corpus), back-compat holds (legacy reflog lines and items load None), additive-not-nesting (actor stays a flat slug, siblings omitted when None), env-only invariant (session set only via seed_session(from_env) at main_callback, never a flag), untrusted wording everywhere, modified_session propagation complete. Gates green: pyright/ruff/format clean, full pytest green. One LOW non-blocking finding (F1): v0_4 corpus fixture's .squads.json left at schema 0.3 while its toml is 0.4 — fixture hygiene, no runtime impact.
 <!-- sq:discussion:end -->

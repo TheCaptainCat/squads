@@ -56,8 +56,8 @@ _Add with `sq task 577 add-subtask "<title>"`; track with `sq task 577 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T09:37:17Z] Elias Python:
+- [2026-07-22T09:37:17Z] `python-dev` Elias Python:
   - category axis lands: ItemSpec.category replaces is_meta, shims preserve item_is_meta()/work_types(), bundled TOML regenerated, 3 direct field-access sites + 3 Jinja templates updated, test sweep done; sq check byte-identical, pyright/ruff clean.
-- [2026-07-22T09:47:29Z] Elias Python:
+- [2026-07-22T09:47:29Z] `python-dev` Elias Python:
   - operator directive: renamed item_is_meta() -> item_is_roster() (definition + all call sites in src/tests), work_types() left as-is; no new 'meta' language introduced; re-verified sq check byte-identical + full gates after the rename.
 <!-- sq:discussion:end -->

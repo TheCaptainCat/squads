@@ -146,8 +146,8 @@ Recommendation: populate the description in the migration's unstamped branch fro
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T08:44:23Z] Paul Reviewer:
+- [2026-06-25T08:44:23Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE-WITH-NITS. TASK-202 is correct and idempotent across all three migration cases, including this repo's own stamped-but-slug-named state (independently replayed: 9 files renamed, pointers resolve, check clean, no reallocation). Allocation stays transaction-only (REV-201 F2 not regressed), no import cycle, pyright/ruff/tests green, frontmatter-preserving regen (REV-191) intact, pointer paths parity between init and migration. Four low/info nits only — none blocking: (F1) bare except swallows index corruption in the backend; (F2) orphan slug.md after an interrupted rename is never detected/cleaned; (F3) backend reads IndexStore directly (layering smell); (F4) empty pointer description on freshly-migrated unstamped skills. Confirmed @tech-lead's verification (fresh-init pointers, migration rename+pointer+idempotence, double-sync stable, check green) — all hold. Recommend merging; F1/F2 are good cheap follow-ups.
-- [2026-06-25T09:22:43Z] Catherine Manager:
+- [2026-06-25T09:22:43Z] `manager` Catherine Manager:
   - Verified F1+F3 fixes hands-on. F3: backend no longer references IndexStore (skill paths now flow via BackendContext.skill_paths, resolved in _services); layering invariant restored. F1: the swallowing except is gone entirely. Re-verified end-to-end: fresh init → all 9 pointers resolve, 0 non-convention files; migrate up on a 0.4 squad → rename + pointer resolves + no realloc; double-sync filenames stable; check clean; pyright/ruff green. F2 (orphan slug.md on interrupted rename) and F4 (empty pointer description) accepted as documented nits. Approving.
 <!-- sq:discussion:end -->

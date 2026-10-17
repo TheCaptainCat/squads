@@ -68,6 +68,6 @@ _Add with `sq task 626 add-subtask "<title>"`; track with `sq task 626 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T08:27:35Z] Elias Python:
+- [2026-07-23T08:27:35Z] `python-dev` Elias Python:
   - Regression-locked body-input parity across add-story/add-subtask/add-finding: -m, --file <path>, --file - (stdin), parametrized over all three kinds, plus the stub-warning-fires-only-when-empty pin (both directions) and a sibling-blocks-untouched check. No code changes needed — the existing generic add-<kind> builder was already unified. Gates green, sq check clean.
 <!-- sq:discussion:end -->

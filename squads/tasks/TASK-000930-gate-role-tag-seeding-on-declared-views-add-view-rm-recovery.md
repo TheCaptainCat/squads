@@ -217,7 +217,7 @@ Done. Third branch added; dropped-item-type precedence over dropped-view preserv
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-08T14:18:48Z] Elias Python:
+- [2026-09-08T14:18:48Z] `python-dev` Elias Python:
   - F12/F16 fixed, view add/rm exposed on both roster groups. Details:
     
     **Gate (F12) and all three writers.** `_create_core`'s `replace_section` call is now
@@ -271,6 +271,6 @@ Done. Third branch added; dropped-item-type precedence over dropped-view preserv
     now passes clean.
     
     @tech-lead ready for review.
-- [2026-09-08T14:18:56Z] Elias Python:
+- [2026-09-08T14:18:56Z] `python-dev` Elias Python:
   - Correction to the falsification paragraph above (typo/garble): every test in the 3 new/changed test files was falsified directly — reverted the relevant source file, confirmed each affected test went red, restored, confirmed green. Details in this session's transcript, not a separate file.
 <!-- sq:discussion:end -->

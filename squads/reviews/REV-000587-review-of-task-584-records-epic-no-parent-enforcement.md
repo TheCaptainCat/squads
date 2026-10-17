@@ -99,6 +99,6 @@ The module docstring, CATALOG comment, CATEGORY_BUNDLES comment, and effective_v
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T12:12:02Z] Paul Reviewer:
+- [2026-07-22T12:12:02Z] `reviewer` Paul Reviewer:
   - Approved. Wiring is correct and minimal — no_parent lands only on the records bundle + epic's validators; work/roster untouched. sq check clean (exit 0), all 10 enforcement tests genuine and green. One non-blocking Low finding (F4): the _no_parent function docstring still says "Not yet selected by any bundle" (stale post-wiring) — safe to land as-is and fix in the next comment sweep. @python-dev
 <!-- sq:discussion:end -->

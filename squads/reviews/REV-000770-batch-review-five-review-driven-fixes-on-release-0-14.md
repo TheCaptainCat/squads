@@ -255,7 +255,7 @@ projection that discards `--name` passes it.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-08-21T20:58:34Z] Catherine Manager:
+- [2026-08-21T20:58:34Z] `manager` Catherine Manager:
   - Confirmed independently, and the pre-existing/new split is now measured. On a fresh squad at 0.13.0 (ea891a6, in a throwaway worktree): sq init --name architect=Ada Lovelace then sq sync leaves sq list showing Ada Lovelace while extra.full_name has already reverted to Robert Architect. So 0.13.0 shipped half of this - the extra copy and the generated roster already lost the operator-set name on the first sync. On release/0.14 the same sequence now reverts the item title and the frontmatter too, so the last surviving correct copy is gone and sq list shows the bundled name. sq check exits 0 in both cases.
   - Accepting this as ChangesRequested on F1. It is silent loss of an operator-set name, the docs promise the opposite in so many words, and the remedy is a shape already shipped for dev roles. Treating it as its own bug rather than reopening BUG-756, whose reported defect is genuinely fixed and verified.
 <!-- sq:finding:F1:discussion:end -->
@@ -306,9 +306,9 @@ against and files a bug on.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-21T21:43:31Z] Catherine Manager:
+- [2026-08-21T21:43:31Z] `manager` Catherine Manager:
   - Confirmed both halves. Drove sq --at nope list piped at 80 columns: the ISO example still splits across a newline, while sq reflog --since nope is intact - so the sweep genuinely missed the root callbacks --at parser. The CHANGELOG sentence claiming --at was fixed was mine, not the developers; I have corrected it so the adopter-facing text no longer overclaims, and named --at explicitly as still unchanged. The code half stands open as this finding.
-- [2026-08-22T09:23:52Z] Catherine Manager:
+- [2026-08-22T09:23:52Z] `manager` Catherine Manager:
   - Both halves closed. The code half landed in 04945d2 and I drove it: sq --at nope list piped at 80 columns keeps the ISO example on one line and the exit code stays 2. The CHANGELOG sentence is corrected back - --at is now listed among the fixed sites rather than the exceptions.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -371,7 +371,7 @@ written to prevent.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-22T09:23:55Z] Catherine Manager:
+- [2026-08-22T09:23:55Z] `manager` Catherine Manager:
   - Fixed in 04945d2 and it proved itself: the widened predicate flagged the --at site on the live tree before any fix was applied, so the guard caught a real defect rather than only a planted one. An attribute-form plant test now pins the hole shut, and the dev declined two tempting widenings with reasoning recorded in the module docstring - growing the marker list to [red]line (too generic a Rich tag) and the forbid-computed-style-tag rule (one site, already wrapped).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -427,7 +427,7 @@ the name through a seam both paths share.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-08-22T09:35:38Z] Mara Tester:
+- [2026-08-22T09:35:38Z] `qa` Mara Tester:
   - Re-driven independently: sq dev add --tech go --name "   " and sq role activate architect --name "   " both land the whitespace-only name everywhere (frontmatter, CLAUDE.md, the .claude pointer's identity sentence), sq check silent, exit 0 on both; the override path refuses the identical value on the same squad. Also confirmed --name "" is harmless only by accident (falsy, falls through to a pool name) -- a separate small inconsistency worth closing in the same pass.
   - Not fixed in this review's scope -- tracked on BUG-778. WontFix here means homed elsewhere, not declined.
 <!-- sq:finding:F4:discussion:end -->
@@ -477,7 +477,7 @@ worth someone's judgement rather than a code change decided here:
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-22T09:35:53Z] Mara Tester:
+- [2026-08-22T09:35:53Z] `qa` Mara Tester:
   - Re-driven, and the regression-vs-pre-existing question settled by direct comparison, not inferred: simulated the interrupt on release/0.14 (index rolled back on title/description) -- warning prints twice, sync exits 0, no convergence, sq check silent, sq repair heals it. Re-drove the same simulated interrupt on the parent commit ac0bebb (git worktree) rolling back extra.full_name instead: no warning at all, and the sync silently reconverges both sides in one pass, because that key sits in PERMITTED_EXTRA_SKEW. This IS a regression introduced by the projection landing title/description as ordinary top-level keys the skew guard already polices -- not a pre-existing gap the projection merely inherited.
   - Not fixed in this review's scope -- tracked on BUG-779 together with F6 (one subject: the behaviour and the test meant to pin it). WontFix here means homed elsewhere, not declined.
 <!-- sq:finding:F5:discussion:end -->
@@ -523,7 +523,7 @@ re-derived:
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-22T09:36:01Z] Mara Tester:
+- [2026-08-22T09:36:01Z] `qa` Mara Tester:
   - Confirmed by reading update_frontmatter directly: its own last statement is the atomic_write_text call, so the test's monkeypatch (replacing the whole function to raise) means that write is never reached at all -- nothing written on either side, not the markdown-written/index-not-committed shape the test's own name promises. Confirmed the test never calls svc.repair() and that assert not second_sync is true only because the retry starts from an untouched state, not because a genuinely torn state healed.
   - Not fixed in this review's scope -- tracked on BUG-779 together with F5 (one subject). WontFix here means homed elsewhere, not declined.
 <!-- sq:finding:F6:discussion:end -->
@@ -570,7 +570,7 @@ be.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-08-22T09:36:11Z] Mara Tester:
+- [2026-08-22T09:36:11Z] `qa` Mara Tester:
   - Confirmed against history: git show ea891a6:src/squads/_services/_roster.py already writes X.DESCRIPTION: role.description at both create sites (lines 56 and 87, unchanged today) -- predates the table whose comment claims no such legacy write ever happened. The conclusion (no exemption owed) still holds, for the reason the test docstring already states correctly (never written outside a transaction); only the code comment's premise is false. Also confirmed the explicit X.DESCRIPTION assignment at both create sites is now redundant with to_extra()'s own output.
   - Not fixed in this review's scope -- tracked on BUG-780 together with F8 (one subject: stale in-code justifications in this seam). WontFix here means homed elsewhere, not declined.
 <!-- sq:finding:F7:discussion:end -->
@@ -621,7 +621,7 @@ a different and larger claim, and the docstring should be the one that says so.
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-08-22T09:36:19Z] Mara Tester:
+- [2026-08-22T09:36:19Z] `qa` Mara Tester:
   - Traced the call graph directly: sq ui's root callback populates ctx.active_spec for every invocation; since sq ui never crosses command's async bridge, get_service() falls to _build_plain_service(), which unconditionally passes resolved_spec=ctx.active_spec -- non-None. So sq ui DOES supply resolved_spec, contradicting the docstring naming it as an exception; same for the bypass path's step 1 (a direct get_service() call). Confirmed no behavioural consequence (TUI never rebuilds a Service; grep for open_service/get_service under _tui/ is empty).
   - Not fixed in this review's scope -- tracked on BUG-780 together with F7 (one subject). WontFix here means homed elsewhere, not declined.
 <!-- sq:finding:F8:discussion:end -->
@@ -631,14 +631,14 @@ a different and larger claim, and the docstring should be the one that says so.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T20:56:43Z] Paul Reviewer:
+- [2026-08-21T20:56:43Z] `reviewer` Paul Reviewer:
   - Recommended verdict: ChangesRequested on F1 alone. sq init --name architect=Rob then sq sync silently renames the role back to Robert Architect in the frontmatter, the index, sq list, CLAUDE.md, AGENTS.md and the .claude pointer, with no warning and sq check clean. Driven on a fresh squad with no override files, and measured against the parent commit: extra.full_name and the generated roster already reverted before this commit, so what 03c0802 added is the loss of the last surviving copy (the item title). docs/overrides.md states the opposite guarantee in as many words.
   - Yes, one fix treated a symptom. BUG-756 reported the item disagreeing with itself; the projection resolves that disagreement by always letting the resolved catalog win. Right for the override input it was driven on, wrong for the --name input, where the item is the only record. The cause is that resolve_role has no dev_base_from_item equivalent for a non-dev role and never reads the [init.names] table sq init itself persists into .squads.toml. The dev-role half of the same function already does this correctly, so the fix is the shape that is already shipped.
   - On the class guard: worth keeping, and the AST literal-text framing is right - it excludes Table/Panel/bound-prose renders by construction, which is what makes an empty allowlist honest. Its predicate is what falls short: _receiver_name only accepts an ast.Name, so every common.console / common.err_console call is never even a candidate. Driven - the guard reports zero hits on a tree that has two, one of them the --at refusal the CHANGELOG now claims is fixed (F2, F3). The documented runtime-computed hole is narrower than feared: I scanned the package and found exactly one such site, the sq check issue line, which was fixed by hand.
   - What holds up, so it is not re-derived: the projection never moves the role file (path and slug are filename-derived, title is assigned directly, never through _rename); the no-op gate performs 0 index writes on a no-change sync; no path produces index-ahead-of-markdown, including the rollback; the cross-check runs exactly once per invocation (2 whole-index parses with an override, 1 without, including the custom-type dispatch path) and neither its refusal nor the repair/check bypass is lost; the blank-field check covers every string-bearing field with None kept distinct from empty, and _apply_override really is the only adopter-editable RoleSpec construction site; the raise-path test is a real falsifier.
   - @python-dev F1 first - it is data loss and it needs a driven test on the --name-then-sync sequence, which no test in the projection file exercises. F2 and F3 are one job: fix the guard predicate to accept an attribute receiver and the two sites it cannot see fall out. F4 is the same refusal applied at the two roster entry points. @tech-writer F2 also needs the 0.14.0 error-wrap entry narrowed again - it names --at as fixed and --at still reflows.
   - Process note for the coordinator, not a finding: this tree had uncommitted work by another agent while I reviewed (QA verification comments on BUG-755/756/758/760/761 plus an untracked BUG-769). I touched none of it; all my driving ran in throwaway squads under a scratch directory and a git worktree I removed afterwards.
-- [2026-08-22T09:46:16Z] Catherine Manager:
+- [2026-08-22T09:46:16Z] `manager` Catherine Manager:
   - Closing this review. All eight findings are dispositioned: F1, F2 and F3 fixed and driven; F4, F5, F6, F7 and F8 homed on BUG-778, BUG-779 and BUG-780, which op-pierre has now scheduled for fixing rather than deferring. F1 was the one that mattered - silent loss of an operator-set name that every gate passed - and the fix turned out to touch four sites plus a stale docstring rather than the two this review identified.
   - Recording my own process miss: I closed the findings as they landed but left the review item at ChangesRequested, and op-pierre had to ask. Same class as leaving BUG-755 in InProgress after verifying its fix. The item status is part of the disposition, not bookkeeping after it.
 <!-- sq:discussion:end -->

@@ -80,6 +80,6 @@ _Add with `sq task 623 add-subtask "<title>"`; track with `sq task 623 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T08:27:30Z] Elias Python:
+- [2026-07-23T08:27:30Z] `python-dev` Elias Python:
   - Added `sq role list` (+ --json) listing the active roster with a status-derived active/inactive marker; new `RosterMixin.list_roles()`. Reversed the docs/stability.md 'standalone list commands removed' paragraph (role/operator only — skill list stays absent) per op-pierre's REV-565 triage (F3/F4). Golden: tests/goldens/role_list.json. Gates green, sq check clean.
 <!-- sq:discussion:end -->

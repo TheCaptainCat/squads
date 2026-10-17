@@ -47,8 +47,8 @@ _Add with `sq task 483 add-subtask "<title>"`; track with `sq task 483 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T20:26:46Z] Elias Python:
+- [2026-07-18T20:26:46Z] `python-dev` Elias Python:
   - Done: default_workflow.toml InProgress/Active gain role="active" (orthogonal to terminal; Superseded unchanged). New sq workflow statuses --json (STATUS_CATALOG_FIELDS: status/terminal/role/badge) + human table; golden workflow_statuses.json. Catalog-only per B3 — proved negatively (no role/is_active on show/list/tree). Tests: test_status_semantic_role_active, test_workflow_statuses_cli. pyright/ruff clean, sq check clean.
-- [2026-07-18T20:37:06Z] Elias Python:
+- [2026-07-18T20:37:06Z] `python-dev` Elias Python:
   - Fix-back: stripped stray ADR-474 tokens from test_status_semantic_role_active.py + test_workflow_statuses_cli.py docstrings. Updated the stale test_type_spec_capability_flags::test_superseded_carries_a_role_no_other_bundled_status_carries (renamed to test_exactly_superseded_inprogress_and_active_carry_a_bundled_role) to the new spec truth: Superseded->superseded, InProgress/Active->active, everything else->None. Meta ticket-ref gate + capability-flags test + full targeted suite green.
 <!-- sq:discussion:end -->

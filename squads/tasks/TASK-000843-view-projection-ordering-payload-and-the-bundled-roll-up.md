@@ -372,7 +372,7 @@ none is, and whichever scope was chosen — generic or one-off — is recorded w
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T18:21:34Z] Elias Python:
+- [2026-08-26T18:21:34Z] `python-dev` Elias Python:
   - F5 shape: two new generic base view fields, settled (role_for(status).settled) and delivered. delivered means the record's own kind reached its declared lifecycle's happy-path settled terminal - WorkflowSpec.first_settled_status, generalized to also resolve a sub-entity kind's own lifecycle (not just an item type), so a custom lifecycle gets a correct answer purely from its own declared spine + role.settled, no literal status name anywhere. milestone_rollup's template now buckets on record-level delivered/settled into Delivered / Outstanding / Settled without delivering; group_by stays status_role, unaffected.
   - F2/F3: _sort_key now threads the record's own kind + the active spec. id sorts on number_for_id with a prefix tie-break (a shared number can never really happen - SquadsDB.items is dict[int, Item] - but the tie-break is recorded and unit-tested as a defensive contract). A badge field on an ordered collection sorts by declared position; unordered/unrecognised falls back to code, same graceful-degrade as ItemFilter._meets_min.
   - F8: ViewGroup.count is now a property; projection_json reads it too, so template and --json can't drift.

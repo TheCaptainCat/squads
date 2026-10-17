@@ -219,7 +219,7 @@ TASK-946.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T07:55:07Z] Pierre Chat:
+- [2026-09-15T07:55:07Z] `op-pierre` Pierre Chat:
   - Accepted. The partial-read contract stands as ruled: exit code 4 for a usable-but-short result,
     the omissions report on stderr under --json, payload shapes untouched. The memory commands moving
     from 0 to 4 is the intended fix, not a regression to soften.

@@ -184,7 +184,7 @@ wrong.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-08-26T00:06:25Z] Elias Python:
+- [2026-08-26T00:06:25Z] `python-dev` Elias Python:
   - Fixed: discriminator is now publication (tag exists), not running-version equality. _resolve_version() sources any tagged version from its own tag, always; the working tree is only used for a version with no tag. Driven: v0.14.0 tagged + still running, a post-tag edit written by the generator, then --rebuild — the entry corrected back to the tag-derived hash, the shipped blob survives (git show v0.14.0:... matches). Coverage: test_seed_content_store_rebuild_prefers_the_tag_even_when_it_is_also_the_running_version.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -246,7 +246,7 @@ is the thing to fix, since it promises a refusal the tool does not perform.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-26T00:06:27Z] Elias Python:
+- [2026-08-26T00:06:27Z] `python-dev` Elias Python:
   - Fixed: _git_ls_tree now returns None (not []) on a non-zero git exit, propagated as a refusal; _collect_tree_at_tag also refuses when a tag's listing comes back empty while the old entry recorded templates. Driven both shapes: a git-ls-tree shim forcing exit 128, and v0.4.0's tag moved onto the root commit — both now refuse, exit 1, nothing written. Coverage: test_seed_content_store_rebuild_refuses_when_a_tag_resolves_but_lacks_an_artifact.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -302,7 +302,7 @@ name both. And SKILL-000508 §1 should distinguish the two failures rather than 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-26T00:06:29Z] Elias Python:
+- [2026-08-26T00:06:29Z] `python-dev` Elias Python:
   - Fixed: _check_mode splits freshness_problems (running version only) from store_problems (whole-index unresolved + orphan-under-gate) and prints the remedy for whichever fired, both if both fired. Driven: a hash missing from a historic entry now prints 'run: seed_content_store.py --rebuild', which actually clears it (verified the old remedy exited 0 and healed nothing, the new one clears the check).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -347,7 +347,7 @@ finding.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-08-26T00:06:31Z] Elias Python:
+- [2026-08-26T00:06:31Z] `python-dev` Elias Python:
   - Fixed: SKILL-508 rewritten to one ordered sequence in Prep -- fetch tags, changelog, bump, THEN fetch tags again + rebuild + release-gate (with the 'why the bump comes first' stated explicitly), then commit both documents. Gates section now only points at that sequence instead of carrying its own contradictory standalone bullet. Both failure classes (unresolved hash vs orphan) are named with their distinct remedies.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -389,7 +389,7 @@ four lines and removes the whole class.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-26T00:06:32Z] Elias Python:
+- [2026-08-26T00:06:32Z] `python-dev` Elias Python:
   - Fixed: both scripts reject any argv entry outside their small allow-list with exit 2 and a usage line. seed_content_store.py also refuses --check + --rebuild together (exit 2, writes nothing) rather than letting --rebuild's write win silently. Driven: --relase-gate and --rebiuld (typos) both now exit 2 instead of running write mode.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -426,9 +426,9 @@ each reported on its own.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-26T00:13:12Z] Olivia Lead:
+- [2026-08-26T00:13:12Z] `tech-lead` Olivia Lead:
   - Tracked on TASK-824 (Ready, low, python-dev, FEAT-791 US1) — "Rebuild reporting and durability: honest counts, atomic writes", subtask ST1. Re-verified against the tree after 3fb7c38, not against the reviewed 2a81c06.
-- [2026-08-26T00:13:16Z] Olivia Lead:
+- [2026-08-26T00:13:16Z] `tech-lead` Olivia Lead:
   - Confirmed at seed_content_store.py:360 (dropped = store_before_size - len(new_store)) reported at :363-366. Acceptance asks for two set computations plus an explicit no-negative-count assertion, since a negative count is the deltas signature.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -467,9 +467,9 @@ entirely and narrows the window to two adjacent renames.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-08-26T00:13:14Z] Olivia Lead:
+- [2026-08-26T00:13:14Z] `tech-lead` Olivia Lead:
   - Tracked on TASK-824 (Ready, low, python-dev, FEAT-791 US1) — "Rebuild reporting and durability: honest counts, atomic writes", subtask ST2. Re-verified against the tree after 3fb7c38, not against the reviewed 2a81c06.
-- [2026-08-26T00:13:29Z] Olivia Lead:
+- [2026-08-26T00:13:29Z] `tech-lead` Olivia Lead:
   - Keeping your low, correcting the reason rather than inheriting it. Two mitigants hold: both documents are git-tracked so checkout is a complete recovery, and the manifest-written/store-not state IS diagnosable — it is an index naming hashes the store lacks, exactly what the whole-index --check widening catches at exit 1 pointing at --rebuild.
   - One does not hold. "The store is a superset of the closure, not a subset, and no blob is lost" is true of the drop half only. The rebuild also restores: a corrected entry names hashes present in new_store and absent from the old one. Interrupt between :361 and :362 on a recovery run and the index is rewritten to the corrected hashes while the store still lacks the blobs behind them — nothing lost from git, but the tree is left in the state the operator ran the rebuild to leave.
   - So the genuinely undiagnosed state is narrower than a half-written pair: a truncated JSON document. write_text truncates before writing and _load_json parses with no error handling, so a partial content_store.json surfaces as an unhandled JSONDecodeError traceback rather than a diagnosis. That is the piece I added scope for beyond the atomic write.
@@ -512,9 +512,9 @@ blobs — and word the count as references, e.g. "416 index reference(s) over 85
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-08-26T00:13:16Z] Olivia Lead:
+- [2026-08-26T00:13:16Z] `tech-lead` Olivia Lead:
   - Tracked on TASK-824 (Ready, low, python-dev, FEAT-791 US1) — "Rebuild reporting and durability: honest counts, atomic writes", subtask ST3. Re-verified against the tree after 3fb7c38, not against the reviewed 2a81c06.
-- [2026-08-26T00:13:19Z] Olivia Lead:
+- [2026-08-26T00:13:19Z] `tech-lead` Olivia Lead:
   - Confirmed by driving both modes on the current tree — the two success lines are byte-identical, release_gate reaches :206-207 and never the success path at :222-228, and 416 vs 85 checks out (416 index references, 85 stored blobs). Added one thing the finding did not name: SKILL-000508 section 2 tells the operator what each gate failure means and never what a clean gate line looks like, so the runbook half is in scope too.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -523,19 +523,19 @@ blobs — and word the count as references, e.g. "416 index reference(s) over 85
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T23:53:13Z] Paul Reviewer:
+- [2026-08-25T23:53:13Z] `reviewer` Paul Reviewer:
   - Review of 2a81c06 (TASK-822) complete: 8 findings — 1 critical, 1 high, 3 medium, 3 low. Verdict ChangesRequested; the Approved transition is the approver's, not mine.
   - The one that matters (F1, critical, driven): removal moved from the generator to the rebuild, but the discriminator did not. seed_content_store.py:243 branches on "is this the running version", not on "is this published" — the discriminator ADR-777 D2 moved into this script precisely because it holds the tags. The two differ exactly when [project].version names an already-tagged release, and in that window --rebuild sources a shipped version from the working tree, rewrites its index entry, and deletes the shipped blob. Same loss as the withdrawn sweep, same false premise, and --release-gate reports clean afterwards. Both script docstrings name --rebuild as the recovery for the mis-ordered regeneration, which is by definition that exact state; the recovery as documented is the damage. The test suite knows the precondition and states it in a docstring — it never reached the shipped prose.
   - Clean, driven, and worth saying plainly: the generator has no removal path left (only _write_mode writes; --check and --release-gate leave both documents byte-identical); the whole-index coverage widening works and names version:artifact; the orphan split works (note at exit 0 under --check, failure at exit 1 under --release-gate); the untagged-version refusal works and writes nothing; and a no-op --rebuild reproduces both documents byte-identically. The fixture's non-vacuity assertion is load-bearing where it needs to be.
   - @tech-lead @architect F1 is a design correction (and ADR-777 D3's own wording needs it too), F2 is a missing floor in the rebuild, F4 is the runbook order. @manager my read on the release: not safe to cut until F1 and F4 are settled — following the runbook as written puts the operator in F1's state at every cut.
-- [2026-08-26T00:06:47Z] Elias Python:
+- [2026-08-26T00:06:47Z] `python-dev` Elias Python:
   - F1-F5 fixed and driven; F1 (critical) verified two ways: v0.14.0 tagged+running with a post-tag edit recovers the shipped blob and corrects the entry, and a new fixture leg asserts it directly without ever moving the version off the tagged release. F2's two shapes (git-ls-tree failure, tag moved to an artifact-less commit) both refuse with nothing written.
   - F6-F8 left untouched, tracked separately per your note.
   - Gates clean: pyright/ruff/ruff format (--all-extras), tests/meta 238 passed, targeted file 24 passed (23 + the new tag-resolves-but-empty leg). Both manifest documents byte-identical to git throughout.
   - @tech-lead @architect for awareness -- TASK-822 back to InReview.
-- [2026-08-26T00:09:16Z] Catherine Manager:
+- [2026-08-26T00:09:16Z] `manager` Catherine Manager:
   - F1 through F5 fixed and committed; the rebuild now takes publication as its discriminator, so a tagged version is sourced from its tag even while it is also the running version. F6 to F8 stay open and are tracked for follow-up.
-- [2026-08-26T00:13:40Z] Olivia Lead:
+- [2026-08-26T00:13:40Z] `tech-lead` Olivia Lead:
   - F6, F7 and F8 now have a home: TASK-824 (Ready, low, python-dev, FEAT-791 US1) — "Rebuild reporting and durability: honest counts, atomic writes", one subtask each. They were left untracked when F1-F5 were fixed; that is closed now.
   - Grouped as one task rather than three lines. They are one surface — what the rebuild writes and what it tells the operator it did. F6 and F7 are adjacent lines in the same function (:360-362) and F8 is the success line in the sibling script the same operator reads in the same release step. Splitting F7 out would put a second dev inside seed_content_store.py:355-366 while F6s is already there.
   - F7 severity: keeping low, but the stated reason needed correcting — the superset argument holds for drops and not for restores, so an interrupted recovery run leaves the tree in the broken state the operator ran the rebuild to leave. Detail on the finding. The one state nothing diagnoses is a truncated document, which is in scope now.

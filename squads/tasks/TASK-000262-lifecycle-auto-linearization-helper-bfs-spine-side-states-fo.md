@@ -70,9 +70,9 @@ _Add with `sq task 262 add-subtask "<title>"`; track with `sq task 262 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T12:15:30Z] Elias Python:
+- [2026-06-30T12:15:30Z] `python-dev` Elias Python:
   - Starting TASK-262: lifecycle auto-linearization helper. Algorithm decision: greedy spine + BFS side states. Spine = follow first unvisited transition from each state; side = remaining reachable states in BFS discovery order. This produces byte-identical output for work/adr/guide/agent/bug lifecycles vs TOML comments. For review lifecycle, algorithm produces 'Requested → InReview → ChangesRequested → Rejected (+ Approved)' rather than the hand-written PLAYBOOK 'Requested → InReview → ChangesRequested → Approved (+ Rejected)' — option-b divergence, documented. The TASK-256 characterization golden is not yet written, so no golden update needed here. Helper placed in _workflow/_models.py alongside WorkflowSpec/Lifecycle. No I/O, pure deterministic utility.
-- [2026-06-30T12:35:04Z] Elias Python:
+- [2026-06-30T12:35:04Z] `python-dev` Elias Python:
   - Done. linearize_lifecycle(machine: Lifecycle) -> str added to _workflow/_models.py and exported from _workflow/__init__.py (__all__). Algorithm: greedy spine (follow first unvisited transition from initial, halt when no unvisited successors) + BFS side states (all reachable states not on the spine, in BFS discovery order). Pure utility — no I/O, deterministic.
   - Option-b divergence documented explicitly (TASK-262): the review lifecycle spine ends at Rejected (first unvisited from ChangesRequested), leaving Approved as a side state — 'Requested → InReview → ChangesRequested → Rejected (+ Approved)' vs. the hand-written PLAYBOOK '...→ Approved (+ Rejected)'. Both are correct; the algorithm follows first-listed transitions.
   - 22 tests in tests/test_linearize_lifecycle.py: linear, branching, diamond, terminal-side, determinism, bundled lifecycle smoke tests for all 9 bundled lifecycle names. All pass in 0.41 s.

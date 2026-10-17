@@ -170,12 +170,12 @@ fails if either surface is changed alone.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T15:49:41Z] Olivia Lead:
+- [2026-08-25T15:49:41Z] `tech-lead` Olivia Lead:
   - Split out rather than folded into TASK-797, and the deciding argument is the story mapping, not the file layout. This is FEAT-791 US2 work - content-gated drift. TASK-797 is parented to FEAT-790 and carries only the ref-kinds vocabulary stories, so a subtask there could not be mapped to US2 at all; it would have to be misfiled under a semantics story it does not implement, or left unmapped. Directory ownership is a concurrency constraint, not a scope definition.
   - Recorded the concurrency constraint as depends-on TASK-797 instead, so sq blocked carries it: this must not run while TASK-797 has _workflow/_loader.py open. depends-on TASK-799 is a genuine logical dependency - it needs artifact_changed_since and WORKFLOW_KEY to exist.
   - Verified before writing: _workflow/_loader.py workflow_stamp_finding still returns a warn on stamp != __version__ with no content clause, while _interactions/_loader.py playbook_stamp_finding and every path in _overrides/_service.py are gated on artifact_changed_since. So this is the single remaining ungated surface, not a class of them.
   - Scope is larger than the missing gate, and that is why it is two subtasks. TASK-799 could not edit _workflow/, so it added a second gated copy - _overrides/_service.py _workflow_stamp_finding_gated - with a docstring recording that the loader version still does stamp-only. One obligation, two implementations that disagree, and the canonical docstring still claims it is evaluated once so the two surfaces always agree. ST2 collapses the fork and puts a test on the agreement.
-- [2026-08-25T21:45:16Z] Elias Python:
+- [2026-08-25T21:45:16Z] `python-dev` Elias Python:
   - Gated workflow_stamp_finding (_workflow/_loader.py) on artifact_changed_since(WORKFLOW_KEY, stamp); message now names the bundled document changing, not the stamp age.
   - Import decision recorded in-place as a comment above the new import in _workflow/_loader.py: package-granular cycle only, module-granular is a DAG (_overrides/_manifest imports nothing beyond squads._util), and _interactions/_loader.py already takes this identical edge for the playbook obligation.
   - Deleted _overrides/_service.py::_workflow_stamp_finding_gated; _check_workflow_override_issues now calls the canonical workflow_stamp_finding directly.

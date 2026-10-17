@@ -105,11 +105,11 @@ its accepted build order (see the features grouped under this epic).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T15:56:27Z] Pierre Chat:
+- [2026-07-21T15:56:27Z] `op-pierre` Pierre Chat:
   - Split out from the EPIC-538 discussion: generalize parent_required into a pluggable, closed-catalog validator framework powering sq check + create/update gating. Sibling to EPIC-538 (its records-no-parent enforcement is the first customer, built as the no_parent validator). Category axis + validator model to be pinned together in one foundational ADR before features are cut.
-- [2026-07-24T07:55:02Z] Catherine Manager:
+- [2026-07-24T07:55:02Z] `manager` Catherine Manager:
   - Reconciled to Done — the pluggable-validator model shipped: FEAT-567 (ValidatorEngine dispatch) + FEAT-568 (named-validator catalog). Every sq check rule is a named catalog validator (same issues as before), effective set = category defaults + per-type additions with a closed catalog failing closed, create/update + sq check share one engine (no duplicated rule logic), and adopter-supplied validator code is rejected (catalog-by-name only). Acceptance met.
-- [2026-09-03T09:01:43Z] Nina Product:
+- [2026-09-03T09:01:43Z] `product-owner` Nina Product:
   - Epic-parentage call: reopened this epic (Done -> InProgress) rather than opening a new one, for ADR-864's full catalog build-out.
   - Its outcome statement -- turn sq check + create/update gating from hardcoded checks into a declarative, pluggable validator catalog, composable per type -- was closed on FEAT-568's seed catalog, but that seed never delivered the declared-level/parameter/required-context dimension ADR-864 identifies as the missing piece, and never built the Part 2 members. The outcome was not actually complete; closing it against FEAT-568's children rather than the outcome is the exact failure this team has been burned by before. Reopening says so honestly instead of inventing a second epic for the same outcome.
   - Contrast with EPIC-897 (new epic for ADR-880): that case has no existing epic whose stated outcome matches, so a new epic is the honest move there. Here one already exists and matches precisely.

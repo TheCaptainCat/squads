@@ -23,16 +23,16 @@ Repro: sq init; rm squads/.squads.json; sq list. Expected: the corrupt-index wor
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-30T12:26:10Z] Pierre Chat:
+- [2026-07-30T12:26:10Z] `op-pierre` Pierre Chat:
   - 0.13, and take it now — ahead of the remaining roster tasks.
-- [2026-07-30T12:29:28Z] Operator:
+- [2026-07-30T12:29:28Z] `operator` Operator:
   - Fixed: IndexStore.load now catches FileNotFoundError and raises a clean SquadsError naming sq repair, mirroring the corrupt-index wording ("missing index X.json; run sq repair..." vs "corrupt index X.json (...); run sq repair...").
   - Write path: transaction() calls load() internally, so it inherits the same clean error for free — no separate fix needed there.
   - repair() already guards with store.exists() before its own load() call, so it was unaffected; verified explicitly with a new CLI test that repair rebuilds from zero .squads.json.
   - Tests: service-level (tests/unit/test_index_allocation.py) + CLI smoke + repair-still-works (tests/cli/test_undecodable_squad_files_fail_cleanly.py). Falsified: reverting the fix reproduces the raw FileNotFoundError traceback in both new tests.
-- [2026-07-30T12:29:50Z] Elias Python:
+- [2026-07-30T12:29:50Z] `python-dev` Elias Python:
   - Correction: the previous comment (mis-attributed to Operator by a missed --as flag) is mine — Elias Python, python-dev.
-- [2026-07-30T12:36:51Z] Catherine Manager:
+- [2026-07-30T12:36:51Z] `manager` Catherine Manager:
   - Verified on the committed build (17d5dfe) by running the repro directly, not off the dev's report: sq list, sq check and a create mutation all give the clean 'missing index ...; run sq repair' message with a bare exit code of 1; sq repair rebuilds (18 items) and sq list is normal afterwards. The write path is confirmed in practice, which the report had only reasoned about.
   - Verified by the manager rather than QA — a one-line error-path fix with a reproducible check, so I did not spawn a QA pass for it.
 <!-- sq:discussion:end -->

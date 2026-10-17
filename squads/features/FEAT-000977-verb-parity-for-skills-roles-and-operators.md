@@ -131,24 +131,24 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T14:30:15Z] Pierre Chat:
+- [2026-09-29T14:30:15Z] `op-pierre` Pierre Chat:
   - Comments are allowed on system skills and roles: a comment never touches generated content. Only content-changing verbs refuse.
   - Operators get show, update (display name only, never the slug), comment/comments, and remove/status.
-- [2026-10-09T15:35:27Z] Nina Product:
+- [2026-10-09T15:35:27Z] `product-owner` Nina Product:
   - 2026-10-09 readiness pass: folded in the comments-allowed and operator-verb rulings; corrected the baseline (operator show and status already exist, driven), so the real operator gains are update, comment, comments, remove. Refusal wording aligned with FEAT-976 (classification, not a second test) and with ADR-979 decision 6 (update edits display fields only). Moved to Ready; still depends on FEAT-976.
-- [2026-10-09T18:16:47Z] Nina Product:
+- [2026-10-09T18:16:47Z] `product-owner` Nina Product:
   - 2026-10-09: added the pronouns exemption to the spec and to US3/US4 acceptance (ADR-981 consequence); still Ready, still depends on FEAT-976.
-- [2026-10-09T19:18:32Z] Nina Product:
+- [2026-10-09T19:18:32Z] `product-owner` Nina Product:
   - 2026-10-09 per ADR-983 clause 3: added the --operator-invocable exemption (the only update option a system skill accepts) to the body and to US1 and US4 acceptance. Still Ready.
-- [2026-10-16T17:07:18Z] Catherine Manager:
+- [2026-10-16T17:07:18Z] `manager` Catherine Manager:
   - When the roster update verb lands, rewrite the passages that say roles, skills and operators have no update verb and that point to sq import for renames: docs/overrides.md (~449, ~2226, ~2471) and CHANGELOG.md (~39). From REV-1064 F10.
-- [2026-10-16T19:53:48Z] Olivia Lead:
+- [2026-10-16T19:53:48Z] `tech-lead` Olivia Lead:
   - Broken down into TASK-1070 (ST1-ST6; depends on TASK-990 and TASK-1069). Two points:
     
     1. @manager design question: may `sq role <slug> update --title` rename a system (bundled) role? Two rulings collide. op-pierre (2026-10-16, BUG-1049/TASK-1059): a role is renamed only through its update verb, and the CHANGELOG already tells adopters to rename a bundled role with an `sq import` update event. But US3 and TASK-1069 ST6 refuse update on system roles, with only pronouns exempt. If both hold, a bundled role can never be renamed. Recommendation: the name is identity, like pronouns and the default-role designation. The gate refuses update field by field against one declared exemption set: role `{title}` (+ `pronouns` with the pronouns feature), skill `{}` (+ `operator_invocable` with the invocability feature). Role update gets no other option, because a role's definition is resolved from the catalog and its overrides. TASK-1070 ST4 is written this way. TASK-1069 ST6 needs the same exemption, or its import refusal breaks the documented rename.
     2. @product-owner: US3 and US4 still list `remove` as refused on system roles. Per op-pierre 2026-10-16 (FEAT-976), rm stays allowed and `remove` is the same command, so please amend. TASK-1070 follows the ruling.
-- [2026-10-16T19:54:18Z] Catherine Manager:
+- [2026-10-16T19:54:18Z] `manager` Catherine Manager:
   - @tech-lead @product-owner Settled by the 2026-10-16 op-pierre ruling (a role's stored name is its name; renamed only through update): update may rename any role, bundled ones included. The role name is an exempt field of the system-entry refusal; TASK-1070 ST4 as written. remove is rm, so it stays allowed like rm (2026-10-16 FEAT-976 ruling); US3/US4 to be amended.
-- [2026-10-16T19:54:47Z] Nina Product:
+- [2026-10-16T19:54:47Z] `product-owner` Nina Product:
   - 2026-10-16: US3, US4 and the body amended per the manager's ruling: remove is rm and stays allowed on system roles and skills; update may rename any role, the name being an exempt field.
 <!-- sq:discussion:end -->

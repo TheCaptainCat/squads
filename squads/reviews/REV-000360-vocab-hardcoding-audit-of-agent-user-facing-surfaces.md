@@ -82,14 +82,14 @@ _Add with `sq review 360 add-finding "…" --severity high`; track with `sq revi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-09T21:39:59Z] Paul Reviewer:
+- [2026-07-09T21:39:59Z] `reviewer` Paul Reviewer:
   - Findings from the FEAT-336 audit sweep (5 surfaces). Highs include current-behavior bugs, not just custom-vocab gaps: every built-in sq-<type> skill trailer lists 'user stories/subtasks/findings' for ALL types (incl. epic/decision/guide); built-in skill Lifecycle lines render frozen playbook prose instead of the spec machine; review.md.j2 severity legend is hardcoded because item templates aren't passed the active spec. workflow.md.j2 findings belong to FEAT-334. Fix-tasks spawned per finding only as we act.
-- [2026-07-10T00:09:30Z] Paul Reviewer:
+- [2026-07-10T00:09:30Z] `reviewer` Paul Reviewer:
   - Additional services-core finding (surfaced during FEAT-212/TASK-361): _cli/_common.py:392 print_subentity hardcodes a severity-only meta line in the 'sq <kind> show' pane — it won't display any other declared field on a custom sub-entity kind. Display-incompleteness only (data round-trips and shows on the list table, pane title, and --json); same class as the other hardcoded-vocab render surfaces here. Fold into the FEAT-336 fix pass.
-- [2026-07-10T03:48:51Z] Catherine Manager:
+- [2026-07-10T03:48:51Z] `manager` Catherine Manager:
   - The print_subentity severity-only-meta-line finding (added during TASK-361) is now RESOLVED by TASK-365: print_subentity loops fields_for(kind) via badge_value, byte-identical for built-ins and showing a custom kind's declared fields.
-- [2026-07-10T04:14:40Z] Catherine Manager:
+- [2026-07-10T04:14:40Z] `manager` Catherine Manager:
   - FEAT-336 fix pass complete: all non-workflow.md.j2 findings addressed across TASK-365 (CLI help + print_subentity), 366 (item templates + spec plumbing), 368 (sq-<type> skill lifecycle/trailer), 369 (squads skill + roles, sq story add bug), 370 (services-core messages + EXTRA_FIELDS rename-safety). Sanctioned deferrals (INFO/WontFix): SUBENTITY_CONTAINER/_CONTAINER_HEADINGS/_SUBENTITY_KINDS (custom sub-entity-kind non-goal, now partly moot post-FEAT-212), _SIDE_PRIORITY (cosmetic, deterministic fallback), CREATE_LANES (documented graceful degradation). Follow-ups filed: BUG-371 (cold-first --help timing gap), optional GraphNode priority→generic-axis rename (CLI-facing, not needed now). REMAINING OPEN: the workflow.md.j2 / claude_section.md.j2 findings, owned by FEAT-334 (TASK-363) — REV-360 stays open until that lands.
-- [2026-07-10T04:44:06Z] Catherine Manager:
+- [2026-07-10T04:44:06Z] `manager` Catherine Manager:
   - Closing: all 42 findings dispositioned. FIXED across TASK-365/366/368/369/370 (FEAT-336 surfaces) and TASK-363 (workflow.md.j2/claude_section.md.j2, FEAT-334). Sanctioned WontFix/INFO deferrals noted earlier. Follow-ups tracked: BUG-371 (cold-first --help timing gap) and the optional GraphNode priority→generic-axis rename. Audit complete.
 <!-- sq:discussion:end -->

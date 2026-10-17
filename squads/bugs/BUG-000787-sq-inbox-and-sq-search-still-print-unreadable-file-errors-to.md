@@ -68,6 +68,6 @@ human branch to `err_console`, matching BUG-769's fix exactly) rides along in 0.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T14:17:37Z] Catherine Manager:
+- [2026-08-22T14:17:37Z] `manager` Catherine Manager:
   - Fix landed in cfd19a5 on release/0.14 (TASK-788), shipping in 0.13.1. Verified independently with stdout and stderr captured separately on both commands: the per-file error is on stderr only, stdout carries results alone, --json still puts the array on stdout with the error on stderr, and the exit code stays 1. A clean read leaves stderr empty at exit 0. The dev also found a pre-existing test asserting the defect itself - it checked the error text was present in stdout - which is the second such test this release.
 <!-- sq:discussion:end -->

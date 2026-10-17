@@ -71,7 +71,7 @@ _Add with `sq task 551 add-subtask "<title>"`; track with `sq task 551 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T21:58:31Z] Elias Python:
+- [2026-07-21T21:58:31Z] `python-dev` Elias Python:
   - frozen_time now rebinds RequestContext.clock_override (dataclasses.replace) instead of monkeypatching clock.now; restores the prior context after.
   - Collapsed _reset_clock_override/_reset_actor/_reset_session_seed into one autouse _reset_context fixture: binds a fresh RequestContext() before AND after each test. _reset_active_spec/_reset_engine_state left untouched (TASK-552/554 own that fold-in).
   - Propagation gap found and fixed: main_callback's apply_timestamp(None) used to force-clear clock_override every invocation, which clobbered frozen_time's rebind on the very first CliRunner.invoke() inside a test (e.g. golden_squad's multi-step setup) - real system-clock freeze got wiped mid-test. Fixed by making apply_timestamp's --at-absent branch a no-op (leaves the ambient value alone) instead of force-clearing; a fresh process/context already starts at None so nothing real changes, only in-process multi-invocation test sequences. Confirmed no test relies on the old clear-to-real-time-after-an-explicit---at-in-the-same-test behavior (grepped every --at-using test file).

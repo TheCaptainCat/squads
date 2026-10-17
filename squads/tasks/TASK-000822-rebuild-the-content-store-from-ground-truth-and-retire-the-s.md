@@ -353,7 +353,7 @@ green, and report both.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T23:35:10Z] Elias Python:
+- [2026-08-25T23:35:10Z] `python-dev` Elias Python:
   - Sweep withdrawn from gen_template_manifest.py write mode (code + all 3 prose sites: docstring store paragraph, steady-state contract, inline comment). Write mode is back to hash/replace/insert only.
   - seed_content_store.py gained --rebuild: recomputes each version's entry from git ls-tree at its own tag (not trusted from the possibly-corrupted key set on file) — running version from the working tree — union of hashes becomes the store, drops the rest. All-or-nothing: an untagged non-running version refuses (names it, points at git fetch --tags) and writes nothing at all.
   - --check widened to whole-index store coverage (version:artifact naming), success line states what it checked; orphan always reported, only fails under new --release-gate.
@@ -362,9 +362,9 @@ green, and report both.
   - tests/meta/test_override_manifest_and_stamp_freshness.py: rebuild_tree fixture takes version as a parameter, asserts it differs from __version__ (falsified: removing that assert makes the guard-proving test fail with DID NOT RAISE, confirming it's load-bearing) — 4 new/rewritten legs per D6 plus the sweep-era tests updated for no-deletion. tests/meta: 237 passed. Targeted file: 23 passed.
   - pyright/ruff check/ruff format clean (--all-extras). sq check clean. Both templates_manifest.json and content_store.json unchanged in git status throughout.
   - Not done: full pytest suite (left for the gate per instructions); no CHANGELOG entry (scripts/ is a repo dev tool, not adopter-facing).
-- [2026-08-25T23:53:25Z] Paul Reviewer:
+- [2026-08-25T23:53:25Z] `reviewer` Paul Reviewer:
   - Reviewed at 2a81c06 — REV-823, 8 findings (1 critical, 1 high, 3 medium, 3 low). Acceptance 1, 5, 7, 8 and the D6 coverage all verified by driving the CLI. Acceptance 2/3 do not hold: the rebuild sources the running version from the working tree even when its tag exists, so it destroys a shipped release's blobs in the between-releases window (REV-823 F1), and an unreadable or artifact-less tag empties an entry instead of refusing (F2). Acceptance 9 (the documented recovery) is wrong as written for the very case it names. Leaving the status alone — @manager @tech-lead.
-- [2026-08-26T00:07:05Z] Elias Python:
+- [2026-08-26T00:07:05Z] `python-dev` Elias Python:
   - Addressed REV-823 F1-F5 (F6-F8 left, tracked separately).
   - F1 (critical): discriminator fixed. _resolve_version() now sources a version from its own tag whenever the tag exists, including when that version is also the running one -- only a truly untagged version falls back to the tree. Driven: v0.14.0 tagged + still running + a post-tag edit + --rebuild now corrects the entry to the tag and keeps the shipped blob, where before it deleted it.
   - F2 (high): the rebuild now has a floor. _git_ls_tree distinguishes a git failure (None) from a legitimate empty listing ([]); a tag whose listing comes back empty while the index previously recorded templates for it is also a refusal. Driven both shapes from the review (a git-ls-tree shim exiting 128; v0.4.0's tag moved onto the root commit) -- both refuse, exit 1, nothing written.

@@ -77,7 +77,7 @@ _Add with `sq task 616 add-subtask "<title>"`; track with `sq task 616 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T18:13:22Z] Elias Python:
+- [2026-07-22T18:13:22Z] `python-dev` Elias Python:
   - Added --status to the shared add-<kind> builder (_register_add in _cli/_items.py), threaded into Service.add_block/add_story/add_subtask/add_finding.
   - Validated in two layers: CLI parse_status (global status vocabulary, existing) + a new Service._resolve_add_status that scope-checks against spec.subentity_workflow(kind).states — the KIND'S OWN lifecycle, not can_transition (creation seeds, no prior state) — raising SquadsError listing that kind's valid states on mismatch. Omitted --status is untouched: still seeds subentity_initial(kind).
   - Gates: pyright/ruff/ruff-format clean; targeted pytest (62 tests) + tests/meta green; sq check clean.

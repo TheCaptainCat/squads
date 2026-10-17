@@ -195,12 +195,12 @@ Done when all four cases are covered and the client's lint, type-check and test 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T18:00:53Z] Olivia Lead:
+- [2026-08-25T18:00:53Z] `tech-lead` Olivia Lead:
   - Authored from REV-808 F8. Verified the citation: edgeLabel at clients/vscode/src/domain/graphDiagrams.ts:130-134 compares the kind against the literal depends-on, and the docstring above it at :120-129 states that literal as the contract; the call site is :159.
   - Why a separate task rather than a line in TASK-797 scope. The owner role differs - typescript-dev, a different toolchain and gate, and 797 acceptance is the Python gate. And 797 anti-drift mechanism is a tests/meta AST scan over src/squads, a Python parser over Python files: this call site is outside it by construction, not by omission, and will still be there when that scan passes clean. Adding a scan root cannot reach TypeScript.
   - Depends-on TASK-797: there is nothing to branch on until edge_semantic ships on sq graph --json (ADR-775 A2). Low priority, and it should land right behind 797 rather than drifting.
   - The client already has the pattern to copy - clients/vscode/src/domain/statusRole.ts resolves a status through its declared role rather than a literal name, with a defensive fallback for values it does not recognise. @typescript-dev that file is the model, not a fresh design.
-- [2026-08-25T21:14:26Z] Ada Typescript:
+- [2026-08-25T21:14:26Z] `typescript-dev` Ada Typescript:
   - edgeLabel now branches on node.edge_semantic === 'dependency' (fallback null via ?? for an sq predating the field); edge_kind is only ever rendered, never compared. Docstring above edgeLabel restates the semantic binding.
   - SqGraphNode.edge_semantic added as string|null, optional; isSqGraphNode tolerates absence.
   - Verified against this squad's own sq graph --json: FEAT-790's related edges report edge_semantic: default (not one of dependency/preload/supersession/null) - confirmed the client only special-cases 'dependency' and falls through to spelling for anything else, same as the core CLI's _collect_edges.

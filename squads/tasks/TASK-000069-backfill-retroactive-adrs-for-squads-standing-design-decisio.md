@@ -72,10 +72,10 @@ Author the retroactive ADRs as sq decision items (one per standing call), each c
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T14:19:03Z] Olivia Lead:
+- [2026-06-12T14:19:03Z] `tech-lead` Olivia Lead:
   - @architect this is the retroactive-ADR half of FEAT-18 (US2). One ADR per standing call — the six in the body are required; the two candidates (injectable clock, module privacy) are your call. Model on ADR-49: Context / Decision / Consequences + a Status note that frames each as a decision already in force. Create them Proposed; the manager accepts the set at the end. Source: CLAUDE.md invariants + conventions, docs/internals.md, docs/README.md.
   - If drafting one surfaces a decision genuinely worth REVISITING (not just recording), that's a new item — drop a comment here flagging it, don't grow this task. And no literal sq anchor tags anywhere in the ADR prose.
-- [2026-06-12T14:24:01Z] Robert Architect:
+- [2026-06-12T14:24:01Z] `architect` Robert Architect:
   - Done. Authored eight retroactive ADRs (US2), all Proposed for the manager to accept with the set: ADR-71 Frontmatter is the source of truth / index is rebuildable; ADR-72 One global monotonic ID counter; ADR-73 Forward-only refs with computed backrefs; ADR-74 Marker-safe editing (sq owns anchors, agents own prose); ADR-75 Pluggable backends behind the AgentBackend ABC, .claude/ as pointers; ADR-76 Dotted 0.x schema-version scheme + sq migrate runner; ADR-77 Time is injectable via _clock; ADR-78 Module-privacy convention. The last two are the optional candidates — both are clearly standing calls of the same rank, so I included them; the set is eight.
   - Each follows ADR-49's shape: Context (why it was decided then, honestly — these were made off the record before squads tracked itself) / Decision (the call as it stands) / Consequences (what it binds today, including the costs) / Status note (retroactive, recorded in force, left Proposed). No literal sq anchor tags in any ADR prose — verified each file carries only the template's own 4 markers; sq check is clean.
   - Refs added: ADR-76 → FEAT-27 and FEAT-13 (related, both build on the migrate runner); ADR-74 → BUG-56 (related, the literal-marker-in-comment bug) and → ADR-71 (related, the frontmatter/body state split); ADR-72 → ADR-71 (related, repair reconstructs the counter from frontmatter).

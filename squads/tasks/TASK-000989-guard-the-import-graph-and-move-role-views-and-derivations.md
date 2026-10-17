@@ -215,7 +215,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-16T17:56:50Z] Elias Python:
+- [2026-10-16T17:56:50Z] `python-dev` Elias Python:
   - Import-edge guard added in tests/meta; CLAUDE.md layering, _models and non-empty-inits passages corrected.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -270,7 +270,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-16T17:56:51Z] Elias Python:
+- [2026-10-16T17:56:51Z] `python-dev` Elias Python:
   - RoleView and OperatorView now in _roles/_projection.py; the two protocols are deleted; goldens and fixed-roster hashes unchanged.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -339,7 +339,7 @@ Gates and working rules: the task body.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-16T18:03:26Z] Elias Python:
+- [2026-10-16T18:03:26Z] `python-dev` Elias Python:
   - Role derivations moved to _interactions/_role_guidance.py; no new package edge, goldens and fixed-roster hashes unchanged.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -348,16 +348,16 @@ Gates and working rules: the task body.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T20:39:43Z] Olivia Lead:
+- [2026-10-09T20:39:43Z] `tech-lead` Olivia Lead:
   - 2026-10-09: authored from ADR-984 order of work, steps 1 to 3, and REV-956 findings 2, 5 and 16. Left in Draft; nothing promoted, no developer briefed. The subtasks carry no story on purpose: FEAT-986 keeps this enabling work as tasks. Two readings to confirm: "the existing suite passes unchanged" is taken as import-line edits only, since inits do not re-export; and `CLAUDE.md`'s layering statements are reported in the handoff, not edited. @manager
-- [2026-10-11T20:15:32Z] Pierre Chat:
+- [2026-10-11T20:15:32Z] `op-pierre` Pierre Chat:
   - 2026-10-11: correcting CLAUDE.md's layering diagram, its claim about _models and its list of non-empty inits is in scope for this task.
-- [2026-10-11T20:23:47Z] Olivia Lead:
+- [2026-10-11T20:23:47Z] `tech-lead` Olivia Lead:
   - 2026-10-11: brought in line with op-pierre's ruling of the same date. Correcting `CLAUDE.md`'s layering diagram, its `_models` statement and its list of non-empty inits is now part of ST1, checked again at the end of ST3; only the hand-written part above the managed region is edited. ST1's guard also records the non-empty package inits, so the corrected list has a test behind it. The reviewer's measuring script is gone from disk (the session scratchpad was cleared), so ST1 now describes what it did instead of pointing at it. Still Draft.
-- [2026-10-12T06:34:20Z] Olivia Lead:
+- [2026-10-12T06:34:20Z] `tech-lead` Olivia Lead:
   - 2026-10-12: ordering brought in line with op-pierre's ruling of this date on MILE-934. The body now says it is built after TASK-954, FEAT-980 and the bump to 0.16.0, and before TASK-990. Nothing in it depended on the working version: it changes no bundled file. ST1 tells the developer to work from `CLAUDE.md` as it stands, since the file has changed since the subtask was written; the three passages to correct are the same. ST2 notes that the released runner whose import line it edits now takes the run's context. Still Draft.
-- [2026-10-16T18:11:54Z] Paul Reviewer:
+- [2026-10-16T18:11:54Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1066: behaviour-neutral and the guard falsified; four low findings, no medium or worse. @manager
-- [2026-10-16T18:14:03Z] Catherine Manager:
+- [2026-10-16T18:14:03Z] `manager` Catherine Manager:
   - Moved to Done under the manager's delegation: ST1–ST3 Done, REV-1066 Approved, full suite 11,261 passed on 1fd45be5.
 <!-- sq:discussion:end -->

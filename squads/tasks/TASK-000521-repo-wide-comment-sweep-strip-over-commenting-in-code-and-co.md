@@ -64,14 +64,14 @@ _Add with `sq task 521 add-subtask "<title>"`; track with `sq task 521 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T00:09:59Z] Elias Python:
+- [2026-07-22T00:09:59Z] `python-dev` Elias Python:
   - Swept 29 files (0 executable-code changes; comments/docstrings only).
   - ID-citation strips: ADR-427 (pyproject.toml x2), ADR-322 (tests/_helpers.py x5 docstrings, substance kept), AC#5/#6/#7/#8 + F3/F4 (src/_cli/__init__.py, _cli/_create.py, _cli/_main.py, _services/_service.py, _services/_maintenance.py, _backends/_claude_code/_backend.py, tests/meta/test_no_unallowlisted_module_level_mutable_state.py).
   - Local sub-entity ID annotations stripped from ~16 test files (# US1/# ST1/# FEAT-2/# TASK-3/etc trailing comments on create/add-story/add-subtask calls) — redundant with adjacent code.
   - Verbose multi-line narration condensed (substance kept): .github/workflows/test.yml and vscode-client.yml top-of-file blocks, src/_interactions/__init__.py (3 section blocks), src/_workflow/_models.py (2 long comments).
   - Kept: all noqa/type:ignore/pyright:ignore/fmt:skip pragmas, non-obvious gotchas/invariants (e.g. _rendering/_engine.py thread-safety note, conftest.py FORCE_COLOR ordering note, test_item_lifecycle_edge_operations.py:52 spine-breaking gotcha), section-divider labels, module/durable docstrings.
   - Gates: uv run pyright (0 errors), uv run ruff check . (all checks passed), uv run ruff format --check . (341 files formatted), uv run pytest -q (full default suite, exit 0, all dots/skips no failures).
-- [2026-07-22T00:21:45Z] Elias Python:
+- [2026-07-22T00:21:45Z] `python-dev` Elias Python:
   - Addressed REV-564 F1/F2 (task stays InReview):
   - F1 — restored the dropped 'which check owns what' half-line in src/squads/_workflow/_models.py's reserved-vocab comment.
   - F2a — added the terse-comment bar to CONTRIBUTING.md's Conventions section (default no comment; one short line only if genuinely non-obvious; no ticket/ADR IDs in code/config comments).

@@ -259,13 +259,13 @@ A dedicated small read surface on each client, not a tree branch: a modal screen
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T07:41:51Z] Nina Product:
+- [2026-09-01T07:41:51Z] `product-owner` Nina Product:
   - Refreshed against the current tree — every technical claim in the body still holds (verified, not assumed): sq memory list --json still hand-picks slug/filename/description dropping created_at, show --json still exits 2, board list --json already carries posted_at/until/author, the extension's metaTreeDataProvider.ts/domain/metaView.ts and sq ui's _tree.py/_reader.py/_filter.py/_search.py shapes described here are unchanged, and roster size (10 roles + 1 operator) still supports the eager-fetch call.
   - Added one new section answering a question the body left open: derived views (FEAT-693, shipped since this feature was written) don't apply — ViewSource.kind is ref/subentity/subtree, all Item-relation sources resolved off SquadsDB; memory entries and board notices are neither items nor indexed there. Confirmed by reading _workflow/_models.py::ViewSource and _views.py directly.
   - No story rewrite needed — US1/US2 premises are still accurate, left as-is per no-churn guidance. This is a refresh, not a reauthor: nothing here is stale or broken, the feature was simply missing the derived-views answer.
   - Splits cleanly by client for delivery, but the CLI is the shared dependency both lean on: sq ui needs zero CLI change (in-process Service already exposes created_at + full body); the extension's overview needs the small created_at addition to memory list --json, and its drill-to-body needs the separate memory show --json addition — both CLI-side, land once, unlock the extension regardless of which client builds first. Board needs no CLI change on either side.
   - Left Draft per instruction. @tech-lead for breakdown once greenlit.
-- [2026-09-14T12:17:30Z] Olivia Lead:
+- [2026-09-14T12:17:30Z] `tech-lead` Olivia Lead:
   - Breakdown done: two tasks, split by owning role, not by story — TASK-939 (python-dev: `sq ui` + the `sq memory` JSON additions, 5 subtasks) and TASK-940 (typescript-dev: the extension, 4 subtasks). Both carry US1 and US2 subtasks; both left Draft.
     
     Build order, in one pass each: TASK-939 first, because the two CLI additions it carries (`created_at` on `sq memory <role> list --json`; a new `sq memory <role> show <slug> --json`) are the only things gating the extension's depth, and `sq ui` needs neither. Then TASK-940. I put a `depends-on` edge on TASK-940 → TASK-939: its board subtask and the count-only level of its memory subtask are genuinely independent, but its full acceptance cannot be met until the JSON surfaces exist, so the edge is honest for the task as a whole rather than per-subtask.

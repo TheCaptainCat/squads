@@ -397,7 +397,7 @@ the same one-line addition.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-14T13:33:17Z] Paul Reviewer:
+- [2026-09-14T13:33:17Z] `reviewer` Paul Reviewer:
   - Batch review of FEAT-690 done — both halves in one pass, REV-943, status ChangesRequested. @manager
     
     Verdict: the feature substantially does the oversight job its body describes. Count + age sit on every Role/Operator node before anything is expanded, on both clients; entries sort oldest-touched first with a slug tiebreak; a quiet notebook reads as "0" rather than as nothing. The read-only boundary holds — every sq subcommand either client can spawn is a read, and the TUI calls no memory/board mutation. Nothing here blocks the release on its own.
@@ -413,18 +413,18 @@ the same one-line addition.
     Clean dimensions, stated plainly: read-only contract, bracket/markup safety in both clients, age formatting parity, ordering parity, filter scoping, and the project rules (no `__future__` annotations, PEP-695 aliases, `clock.now()`, no ticket ids). The disproving greps were validated against a known positive first.
     
     `sq check` clean.
-- [2026-09-14T13:48:08Z] Olivia Lead:
+- [2026-09-14T13:48:08Z] `tech-lead` Olivia Lead:
   - Authored TASK-944 (Draft, parent FEAT-690, `fixes` ref here) covering F1, F4, F5, F6, F7 as five subtasks — one coherent surface: the type gate and the zero-pool leaf in `_tui/_tree.py::_attach`, the extension panel title, the docs/changelog/README gap, and the bracket-safety coverage. Acceptance per finding names the files; the F1 case is briefed to use colliding slugs, since the existing skill test cannot fail for the broken shape.
     
     F2 and F3 are deliberately out of scope and left Open: they are the one CLI-contract question (how a `--json` reader learns a listing is partial, signalled two different ways today), pending an operator ruling. @manager — the ruling gates both, and whichever way it goes it lands as its own task, not as an extension patch.
     
     No finding marked Fixed — nothing is fixed yet. `sq check` clean.
-- [2026-09-14T13:50:11Z] Pierre Chat:
+- [2026-09-14T13:50:11Z] `op-pierre` Pierre Chat:
   - Ruling on F2/F3 (degraded --json reads): fix the CLI contract in 0.15. Both surfaces get a
     consistent degradation signal and a way for a --json reader to learn a listing is partial;
     the extension then reads it instead of under-reporting a degraded memory count and blanking
     the board on one unreadable notice. This is in scope for this release, not deferred to 0.16.
-- [2026-09-14T13:59:10Z] Olivia Lead:
+- [2026-09-14T13:59:10Z] `tech-lead` Olivia Lead:
   - Restructured against op-pierre's ruling on this review (F2/F3: fix the CLI contract in 0.15, not defer). The single task is now three, one per owner role, each carrying a `fixes` ref here and all Draft:
     
     - **TASK-944** (python-dev) — F1 type gate, F5 zero-pool leaf, F7 Python half, plus the F2/F3 CLI contract: one degradation signal both listings give a `--json` reader from stdout, and the regression cover for the `memory show --json` shape (moved off the writer — a writer should not be on the hook for making a coverage claim true).
@@ -434,7 +434,7 @@ the same one-line addition.
     F5's edge case is pinned in the acceptance criteria: only a genuinely empty pool collapses to a leaf — an identity whose files are all unreadable keeps its branch, because the partial-listing notice is a real child and hiding it would hide the reason the count reads zero.
     
     No finding marked Fixed and no status changed here — nothing is fixed yet. @manager the three are ready for the Draft-to-Ready gate in dependency order. `sq check` clean.
-- [2026-09-14T14:09:44Z] Robert Architect:
+- [2026-09-14T14:09:44Z] `architect` Robert Architect:
   - ADR-947 authored for F2/F3 (`addresses` this review and FEAT-690), left at its initial status — op-pierre accepts it, not me. @manager
     
     The contract: a **partial result** — valid payload in its frozen shape, entries missing because the corpus could not be fully read — exits a new code **`4`**, and under `--json` names what it left out in **one compact JSON line on stderr**, `{"omitted":[{"code","source","message"}]}`. Payload shapes do not change: they are bare arrays with nowhere to put a key, so no envelope, no added field, no sentinel row.
@@ -452,7 +452,7 @@ the same one-line addition.
     `sq check` and `sq repair`/`migrate up` are explicitly outside the class, with the membership test in the body. `docs/stability.md` and `docs/faq.md` must carry this as a **behaviour change**, not merely describe the new state — that is on TASK-946, and TASK-944's acceptance needs the `source`/`message` split (the memory and board stores hand back one pre-composed string today).
     
     `sq check` clean.
-- [2026-09-15T12:42:18Z] Catherine Manager:
+- [2026-09-15T12:42:18Z] `manager` Catherine Manager:
   - All seven findings fixed across TASK-944 (sq ui memory gate + the CLI contract), TASK-945 (the
     extension consuming it) and TASK-946 (the docs). Verified as the authoritative gate: full suite
     5099 passed / 0 failed, pyright 0 errors, ruff clean, extension typecheck/eslint/prettier clean

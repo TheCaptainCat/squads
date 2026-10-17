@@ -143,7 +143,7 @@ Acceptance:
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-07-29T09:29:38Z] Ada Typescript:
+- [2026-07-29T09:29:38Z] `typescript-dev` Ada Typescript:
   - Hide-archived predicate reuses resolveRole(status).hidden (domain/statusRole.ts) — the same field the sq CLI's --all flag gates server-side (hidden_by_default), never the literal string 'Archived'. Default hidden; two-command icon-swap toggle (squads.toggleShowArchived/squads.hideArchived, context key squads.metaShowArchived) follows BUG-687's idiom exactly. Contributed to squadsMeta view/title only.
   - What to check in the dev host: open Roster, archive a role (sq role <slug> status Archived if available, or via workflow), confirm it disappears by default; click the toolbar toggle, confirm it reappears and the button's icon/title swap; confirm Work Items and Records toolbars are untouched.
 <!-- sq:subtask:ST1:discussion:end -->
@@ -188,7 +188,7 @@ Acceptance:
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-07-29T09:30:46Z] Ada Typescript:
+- [2026-07-29T09:30:46Z] `typescript-dev` Ada Typescript:
   - Status list sourced from sq workflow statuses --json (already fetched for statusRole join), not scoped per roster type — sq workflow types --json/roles --json expose no type->lifecycle->states mapping, and sq ui's own FilterScreen has the identical scoping (sorted(spec.statuses) over the whole spec, _tui/_filter.py) — so this mirrors an established precedent rather than inventing a narrower one. Means a status filter can genuinely match zero roster items (e.g. a decision-only status); tree renders 3 empty-but-labelled buckets plus the view description naming the filter, which reads as 'filtered, no matches' rather than broken.
   - Interaction decision: a status filter always overrides hide-archived (matches the sq CLI's own --status-reveals-hidden rule) — documented at the call site in domain/metaFilter.ts::matchesMetaFilter. Filtering to Archived shows archived entries even with the toggle off; the toggle's own on/off state is unchanged by this (it only matters again once the filter is cleared).
   - What to check in the dev host: filter to Active (all 3 buckets narrow); filter to Draft; filter to Archived with the toggle off and confirm archived entries show (not a blank tree).
@@ -236,7 +236,7 @@ Acceptance:
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-07-29T09:30:58Z] Ada Typescript:
+- [2026-07-29T09:30:58Z] `typescript-dev` Ada Typescript:
   - Toggle's on/off state follows BUG-687's icon-swap pair (squads.toggleShowArchived/squads.hideArchived). The status filter has no icon pair to swap, so its state (and, once set, the toggle's) surfaces via the Roster TreeView's own .description — 'Filtered: <status>' takes priority, else 'Archived shown' when the toggle alone is on, else no description (default state) — a small grey label beside the view title, updated in extension.ts on every metaTreeDataProvider refresh.
   - Clear (squads.clearMetaFilter, 1_squads group, mirrors clearFiltersAndGrouping's placement) resets to the default — archived hidden, no status filter — not to show-everything; documented at the command's registration site in commands.ts.
   - What to check in the dev host: set both the toggle and a status filter, confirm the description text is visible without opening a menu; Clear Filter, confirm the view returns to its first-open appearance (no description, archived hidden).
@@ -282,7 +282,7 @@ Acceptance:
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-07-29T12:46:08Z] Pierre Chat:
+- [2026-07-29T12:46:08Z] `op-pierre` Pierre Chat:
   - Verified on the stable dev host: the roster and records controls read and behave correctly.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -291,8 +291,8 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-29T09:31:08Z] Ada Typescript:
+- [2026-07-29T09:31:08Z] `typescript-dev` Ada Typescript:
   - Blocker for ST4's manual check, flagged rather than fixed (out of clients/vscode scope): sq role/skill/operator expose no CLI verb to change status at all — sq role <slug> --help only offers show/regen/rm (same for skill/operator), and the generic item 'status'/'update' subcommands (_cli/_items.py) aren't wired onto the roster's own Typer apps. There is currently no sq command to put a role/skill/operator into Archived (or any non-default status) to exercise the new hide-archived toggle or status filter live. Needs a python-dev follow-up (or a documented manual frontmatter edit for this one-off verification) before ST4 can be checked end-to-end.
-- [2026-07-29T09:37:06Z] Pierre Chat:
+- [2026-07-29T09:37:06Z] `op-pierre` Pierre Chat:
   - The roster status/update CLI gap is deferred to 0.13, alongside FEAT-321, FEAT-642 and FEAT-644. Not fixing it in 0.12.3.
 <!-- sq:discussion:end -->

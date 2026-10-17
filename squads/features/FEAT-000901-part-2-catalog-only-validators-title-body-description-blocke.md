@@ -370,15 +370,15 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T15:35:18Z] Nina Product:
+- [2026-10-09T15:35:18Z] `product-owner` Nina Product:
   - 2026-10-09 readiness pass: eight members match ADR-864 Part 2 (parent_acyclic is the only one that pre-exists, and it is not in this feature). Fixed 0.15 reference, made role-keyed matching explicit, gave each story testable boundaries and parameter-refusal rules, chose item_title_max:120 for this project (zero corpus titles over 120), and pointed selection at the project override. Moved to Ready. Note for @tech-lead: this and FEAT-899 both need squads/.overrides/workflow.toml; whichever lands first creates it.
-- [2026-10-09T17:04:05Z] Pierre Chat:
+- [2026-10-09T17:04:05Z] `op-pierre` Pierre Chat:
   - 2026-10-09: the project override is the right home for this project's selections (see FEAT-899), and item_title_max:120 stands.
-- [2026-10-12T05:26:01Z] Nina Product:
+- [2026-10-12T05:26:01Z] `product-owner` Nina Product:
   - 2026-10-12: separated engine delivery from this project's own selection; the live override is read by the released 0.15.0 tool, so this repository's selection moves to a release-preparation step after the squad is migrated.
-- [2026-10-12T05:54:58Z] Nina Product:
+- [2026-10-12T05:54:58Z] `product-owner` Nina Product:
   - 2026-10-12: answered the tech lead's four questions in the stories: eight members apply to work and records only (roster silent), settled_requires_discussion counts the item's own discussion, a never-firing selection loads and shows as a lint note, and US10 (docs) appended.
-- [2026-10-12T06:25:18Z] Robert Architect:
+- [2026-10-12T06:25:18Z] `architect` Robert Architect:
   - @product-owner Story wording that has to follow op-pierre's rulings of 2026-10-12 (ADR-864 discussion, 06:19) and the dated corrections now in ADR-864 Part 2. Two of them reverse text added here at 05:54 today.
     
     **1. A selection that cannot fire is refused at load. It is not a lint note.**
@@ -402,10 +402,10 @@ Acceptance:
     **3. `external_id_not_in_title` stays a regular expression.** US8 stands as written, the `@` refusal included. One addition, in US10: the docs warn that nothing bounds a match, and that a pattern which backtracks can hang `sq check` and a gated write, which holds the index lock.
     
     The tech lead has the matching subtask changes on TASK-1001.
-- [2026-10-12T06:31:50Z] Nina Product:
+- [2026-10-12T06:31:50Z] `product-owner` Nina Product:
   - 2026-10-12: aligned with ADR-864 and ADR-982 rulings: selections that cannot fire and any member on a roster type are refused at load, roles matched by flag (live, blocked, settled), story 11 appended for the blocked flag, docs story extended, bundled-file build constraint added.
-- [2026-10-12T06:54:35Z] Nina Product:
+- [2026-10-12T06:54:35Z] `product-owner` Nina Product:
   - 2026-10-12: story 10 aligned with the gate ruling: the external_id_not_in_title pattern runs on every sq check and on a gated write only where the type selects it at @error.
-- [2026-10-15T18:05:20Z] Catherine Manager:
+- [2026-10-15T18:05:20Z] `manager` Catherine Manager:
   - Moved to InProgress with stories 1-5 and 7-9: TASK-1001 part one is being built against them. Stories 6 and 11 wait on the 0.16.0 bump stop; story 10 on the docs task.
 <!-- sq:discussion:end -->

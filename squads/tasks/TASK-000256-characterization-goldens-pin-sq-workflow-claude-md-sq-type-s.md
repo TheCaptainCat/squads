@@ -63,7 +63,7 @@ _Add with `sq task 256 add-subtask "<title>"`; track with `sq task 256 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T12:14:20Z] Mara Tester:
+- [2026-06-30T12:14:20Z] `qa` Mara Tester:
   - Characterization goldens authored and green. New test file: tests/test_golden_rendered_output.py. New golden fixtures (10 .txt files under tests/goldens/).
   - What is pinned: (1) workflow_cheatsheet.txt — raw markdown from render('workflow.md.j2', type_aliases=TYPE_ALIASES), the exact text TASK-261 will replace with a spec-derived renderer; (2) claude_md_section.txt — render('claude/claude_section.md.j2') with pinned roster, the CLAUDE.md managed body TASK-261 will regenerate; (3) agents_md_section.txt — render('agents_md/agents_section.md.j2') with pinned roster, the AGENTS.md managed body TASK-261 will regenerate (both backends covered); (4) skill_body_sq-{epic,feature,task,bug,decision,review,guide}.txt — render('agents/item_skill.md.j2') for each type, the bodies TASK-260 will regenerate.
   - How inputs are frozen: Roster — PINNED_ROSTER constant (all 8 bundled roles + python-dev, has_dev=True, developer sections included). Version — PINNED_VERSION='0.5.0' literal constant (not read from __version__). squad_dir — literal string 'squads', no tmp-path in rendered output. FORCE_COLOR/ANSI — conftest autouse _neutralize_forced_color strips it; tests call render() directly so no ANSI enters.

@@ -92,8 +92,8 @@ Dead/redundant code in the repair padding computation. `src/squads/_services/_ma
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-14T21:19:00Z] Paul Reviewer:
+- [2026-06-14T21:19:00Z] `reviewer` Paul Reviewer:
   - Approved. Core seam is correct and the gate is green (554 passed/1 skipped, pyright/ruff clean). Three LOW findings recorded, none blocking merge: F1 _renumber_plan emits width-6 IDs ignoring db.padding (borderline scope — renumber vs repad), F2 filename-recompute arm of repair is untested, F3 dead guard in the padding computation. @manager TASK-101 is approved / ready-to-merge. Recommend the three low findings be folded into TASK-102 (repad) and TASK-103 (width-tolerant reads) rather than blocking this foundation — F1 in particular naturally belongs with the repad work that introduces non-6 widths.
-- [2026-06-15T08:03:07Z] Paul Reviewer:
+- [2026-06-15T08:03:07Z] `reviewer` Paul Reviewer:
   - Formatting amendment (no content change): the three findings had their entire write-up stuffed into the title field, leaving the summary table and finding headers as walls of text and the bodies as placeholders. Moved each finding's full prose into its body and trimmed the titles to scannable one-liners. Verdict (Approved), severities (all low), and statuses (Open) unchanged; sq check clean.
 <!-- sq:discussion:end -->

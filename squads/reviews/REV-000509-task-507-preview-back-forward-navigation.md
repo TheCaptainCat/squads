@@ -36,6 +36,6 @@ _Add with `sq review 509 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T12:40:03Z] Paul Reviewer:
+- [2026-07-20T12:40:03Z] `reviewer` Paul Reviewer:
   - @manager Approved — 0 findings. Independent review of TASK-507 nav-history (previewHistory.ts + manager wiring + commands + package.json contributions + smoke test). History helper truncation/no-op/bounds correct (10 unit tests pass); navigate() pushes on real nav only, goBack/goForward move index + reload, 'patch' refresh leaves history untouched; dispose cleans up. Per-panel context-key recompute (the subtle one) is correct: recomputeContextKeys reads focusedPanel (updated on onDidChangeViewState active:true) and runs on nav/back/forward/focus-change/open/dispose, so switching between two preview tabs updates the buttons. No ticket IDs in source/test. Ready for Done.
 <!-- sq:discussion:end -->

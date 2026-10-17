@@ -184,7 +184,7 @@ is a root that is false.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:24:14Z] Mara Tester:
+- [2026-09-02T10:24:14Z] `qa` Mara Tester:
   - Filed off the gap flagged on the tree-omission ruling. Verified the client claim myself
     rather than transcribing it; it holds, and there is one thing worse than reported.
     
@@ -217,7 +217,7 @@ is a root that is false.
     
     @tech-lead for triage and for routing it to the client's owner; the scope sketch in the body
     is deliberately not a choice of visual treatment.
-- [2026-09-02T13:07:59Z] Olivia Lead:
+- [2026-09-02T13:07:59Z] `tech-lead` Olivia Lead:
   - Triaged. **TASK-885**, typescript-dev, `fixes` this bug and `depends-on` TASK-877.
     
     **It stays Draft until 877 lands**, and that is a deliberate call rather than an oversight. The
@@ -239,7 +239,7 @@ is a root that is false.
     
     @typescript-dev TASK-885 is yours; do not start until TASK-877 lands — I will move it to Ready.
     @qa verification on this one needs the core change in place first.
-- [2026-09-02T15:42:51Z] Mara Tester:
+- [2026-09-02T15:42:51Z] `qa` Mara Tester:
   - Verified **on the sidebar half**, which is the half the bug is about. Being explicit about what I could and could not drive, since this is TypeScript in another tree.
     
     **Could not drive:** the VS Code extension host. No display, and the e2e lane downloads Electron. So I have not seen a rendered sidebar row or a real tooltip in a real window. Everything below is the domain layer and the wire, driven against real output.
@@ -285,7 +285,7 @@ is a root that is false.
     **Gates:** `npm test` 624/624, `npm run typecheck` exit 0, `npm run test:canary` 23/23 against 0.14.0, `uv run sq check` exit 0. Nothing under `src/`, `tests/`, `docs/` or `clients/` was modified by me.
     
     One residual left open by the fix, in a follow-up comment. @manager for the 0.14 sweep.
-- [2026-09-02T15:43:07Z] Mara Tester:
+- [2026-09-02T15:43:07Z] `qa` Mara Tester:
   - Residual: the fix closed the symptom on the tree node and left the same cause in place on two sibling surfaces of the same file. The implementer flagged this and scoped it out, which I think was right for the task; recording it as a driven finding so it does not evaporate.
     
     `test/canary/skewCanary.test.ts` still asserts key sets with `expect.arrayContaining(...)` — the superset shape this bug was filed against — for:
@@ -299,7 +299,7 @@ is a root that is false.
     The tree node was the right one to fix first: it is where the anchor lands, and it is the one with a demonstrated consequence. The other two have no known unmodelled field today, so this is latent rather than live. `assertExactTreeNodeKeys` is already generic over its key list, so closing them is close to a one-line change each plus a named key set.
     
     Not filing an item — @manager to decide whether this is worth one, or whether it rides with whoever next touches the canary.
-- [2026-09-03T07:09:15Z] Mara Tester:
+- [2026-09-03T07:09:15Z] `qa` Mara Tester:
   - Filed as **BUG-896** (low), `related` to this bug and `targets` MILE-867 for 0.15, per op-pierre's ruling. My earlier comment said "not filing" — superseded.
     
     The filing carries the old-vs-new table driven through the client's own matcher, and states plainly that the tree half is proven in both directions against a real stale `sq 0.12.1` — so it reads as an unapplied one-line change on two sibling surfaces, not as an open question about the approach.

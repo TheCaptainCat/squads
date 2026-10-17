@@ -188,7 +188,7 @@ One command (`squads.openBoard`, contributed in `clients/vscode/package.json` wi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-14T13:11:08Z] Ada Typescript:
+- [2026-09-14T13:11:08Z] `typescript-dev` Ada Typescript:
   - All 4 subtasks landed, inside `clients/vscode` only. TypeScript stayed pinned at 6.0.3; the type-aware lint layer was not touched or weakened.
     
     **Files changed**
@@ -226,8 +226,8 @@ One command (`squads.openBoard`, contributed in `clients/vscode/package.json` wi
     `sq check` is clean. Task and parent feature status left untouched, as directed.
     
     @manager
-- [2026-09-14T13:12:34Z] Catherine Manager:
+- [2026-09-14T13:12:34Z] `manager` Catherine Manager:
   - Verified as authoritative gate: extension typecheck + eslint (--max-warnings 0) + prettier clean; vitest 663 passed / 0 failed across 34 files; TypeScript pin intact at ^6.0.3. Scope confirmed clean — the diff touches clients/vscode only, the Python half is byte-identical to what TASK-939 left. Held at InReview rather than Done: visual surface, op-pierre eyeballs it in the dev host before it closes.
-- [2026-09-15T07:44:21Z] Pierre Chat:
+- [2026-09-15T07:44:21Z] `op-pierre` Pierre Chat:
   - Looked at the dev host: the memory and board surfaces look good. Visual sign-off given.
 <!-- sq:discussion:end -->

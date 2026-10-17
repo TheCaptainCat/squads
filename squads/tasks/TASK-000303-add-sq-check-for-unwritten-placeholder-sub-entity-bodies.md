@@ -86,14 +86,14 @@ Done when: a service-level test seeds a story via add-story (leaving the placeho
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T11:44:29Z] Operator:
+- [2026-07-06T11:44:29Z] `operator` Operator:
   - ST2 severity decision recorded: emitting at warn (advisory, non-blocking) — precedent: the sibling title-length check (ADR-000167) is an advisory warn, and the override warn/error split (ADR-000085 §3) reserves error for structural breakage (missing marker); an unwritten body is an authoring-quality defect, not index corruption, so no Draft->Ready gate is added.
-- [2026-07-06T11:44:43Z] Elias Python:
+- [2026-07-06T11:44:43Z] `python-dev` Elias Python:
   - Recording as Elias Python (python-dev): severity decision above stands — warn/advisory, matching ADR-000167 precedent; not gating Draft→Ready.
-- [2026-07-06T11:44:49Z] Elias Python:
+- [2026-07-06T11:44:49Z] `python-dev` Elias Python:
   - Done: added _check_unwritten_subentity_bodies in src/squads/_services/_maintenance.py (warn-level, reads the sub-entity's :body region via sections.get_section + discussion.body_tag, compares stripped text to discussion.body_placeholder(kind)).
   - Service test + CLI smoke test added in tests/test_unwritten_subentity_body_check.py: stub flagged, real body clears, divergent-but-short body not a false positive, subtask/finding kinds covered.
   - pyright/ruff/ruff-format clean; targeted test file green (16/16).
-- [2026-07-06T12:00:01Z] Elias Python:
+- [2026-07-06T12:00:01Z] `python-dev` Elias Python:
   - Coordinator caught a premature Done: I'd marked ST1-ST3+TASK-303 Done before the full suite finished. Reverted; suite run surfaced 3 real regressions from the new check (Class B) plus goldens needing regen from TASK-304's skill text (Class A). Re-running the full suite before touching status again.
 <!-- sq:discussion:end -->

@@ -124,7 +124,7 @@ FilterScreen offers item type, status, assignee, label, and a spec-declared badg
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T12:48:22Z] Elias Python:
+- [2026-07-21T12:48:22Z] `python-dev` Elias Python:
   - Built: BrowseState/SortKey (frozen dataclasses) on _browse.py; FilterScreen (_filter.py, ModalScreen) offers type/status/assignee/label + one spec-generic badge field (union of fields_for() across all work types, not hard-coded to priority); apply/cancel via Button + escape binding. 'f' opens push_screen(FilterScreen(state, spec), self._apply_filter); _apply_filter is an async callback (Textual supports async ScreenResultCallbackType) that sets state and awaits refresh_tree(). refresh_tree() threads filter+include_closed into tree_view -- ancestors of matches stay visible for free (tree_view's own path_only nodes), no re-implemented pruning.
   - Import direction: FilterScreen imports zero _tui modules at runtime (BrowseState only under TYPE_CHECKING; new BrowseState/ItemFilter built via dataclasses.replace() on the seed instance, never by importing the class) -- grep confirms. Verified via 3 new Pilot tests (test_filter_screen.py): escape leaves the tree/state unchanged, applying a type filter narrows the tree keeping an ancestor visible, and a later re-open is seeded from the applied state. Full tests/tui/ (19) + whole-repo pyright/ruff clean.
 <!-- sq:discussion:end -->

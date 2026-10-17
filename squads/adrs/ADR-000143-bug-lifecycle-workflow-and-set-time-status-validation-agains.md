@@ -254,7 +254,7 @@ is why §2's check needed no restatement at all.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:36:04Z] Robert Architect:
+- [2026-08-03T08:36:04Z] `architect` Robert Architect:
   - Amended in place; nothing retired. Both substantive rulings verified edge for edge: `[lifecycles.bug]` in the bundled spec reproduces section 1s table row for row with `initial = "Open"`, and `StatusNotInWorkflowError` fires from `_apply_status` at `_services/_items.py:397` before the transition check and independently of `force`, which is exactly what section 2 required.
   - Narrowed the framing clause, and this is the one the audit rightly put ahead of the cosmetic fixes: "the status vocabulary and the per-type workflows are stability-contract surface that freezes at 1.0" was true of a `StrEnum` codebase and is false now. Stated precisely what moved where — names are adopter-renamable (ADR-322, then ADR-474/604/696 binding engine behaviour to a declared status role), while what actually freezes is the set-time membership check with its force-independence and distinct error type, the role vocabulary a lifecycle must supply, and this lifecycle as the bundled default.
   - Flagged for whoever runs the bundled-assumption sweep off this map: read the clause as narrowed, not as written. Left as written it will report every renamable status name as a frozen surface the code fails to guarantee, which inverts the finding.

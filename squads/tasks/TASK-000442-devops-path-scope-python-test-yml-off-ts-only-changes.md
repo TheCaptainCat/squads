@@ -86,7 +86,7 @@ _Add with `sq task 442 add-subtask "<title>"`; track with `sq task 442 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T07:50:36Z] Hugo Ops:
+- [2026-07-17T07:50:36Z] `devops` Hugo Ops:
   - Checked branch protection: 'main' currently has NO required status checks configured (gh api branches/main/protection -> 404 'Branch not protected'), so path-scoping test.yml is safe today — no pending-blocked-PR risk right now.
   - Added paths-ignore: ['clients/vscode/**'] to both push and pull_request triggers in .github/workflows/test.yml, mirroring vscode-client.yml's existing path filter in the other direction.
   - Caveat documented in-file (top-of-workflow comment) and here for the record: if test.yml's jobs are EVER made required checks on main, this filter will leave them 'pending' on TS-only PRs and block merge (GitHub required-checks semantics). Before doing that, either (a) don't mark these jobs required, or (b) add an always-running, non-path-filtered 'gate passed' aggregation job for branch protection to require instead. Not configuring branch protection myself -- flagging for Pierre/ops to weigh.

@@ -96,6 +96,6 @@ The 0.12.0 CHANGELOG entry drops '## [Unreleased]' to '## [0.12.0]' with no ' - 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T10:25:28Z] Catherine Manager:
+- [2026-07-22T10:25:28Z] `manager` Catherine Manager:
   - F1 (mutable-default param) hardened to a None sentinel, behavior identical, byte-identical confirmed. F2 (undated [0.12.0] heading) is by-design — the working heading stays undated until Pierre cuts the release. Approving.
 <!-- sq:discussion:end -->

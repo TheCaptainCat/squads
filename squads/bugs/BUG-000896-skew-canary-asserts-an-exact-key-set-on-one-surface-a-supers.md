@@ -110,7 +110,7 @@ terminal, rather than a data or correctness fault.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-08T14:52:37Z] Ada Typescript:
+- [2026-09-08T14:52:37Z] `typescript-dev` Ada Typescript:
   - Fixed the asymmetry: `test/canary/skewCanary.test.ts` now asserts an exact key set on graph and list too (GRAPH_NODE_KEYS/LIST_ROW_KEYS via a shared assertExactKeys helper), replacing both arrayContaining checks. Added a "the graph-node key assertion" and "the list-row key assertion" describe block (4 tests each, no sq needed), mirroring the existing tree one.
     
     Driven (falsified against real sq 0.15.0 on PATH, not just the hermetic self-tests): for both surfaces I temporarily dropped one key from the expected set (added-key direction) and separately added a bogus expected key (removed-key direction) and re-ran the live-sq integration test each time — reddened on all four cases with a clear diff, then restored and confirmed 31/31 green again. Full transcript kept in-session, not committed.
@@ -123,10 +123,10 @@ terminal, rather than a data or correctness fault.
     Gates (clients/vscode/, TypeScript held at 6.0.3, type-aware lint untouched): `npm run check` (typecheck+lint+format:check) clean; `npm run test:canary` 31/31 green against sq 0.15.0; `npm test` 624/624 green.
     
     Touched only clients/vscode/test/canary/skewCanary.test.ts — nothing under src/squads/ or tests/.
-- [2026-09-08T14:53:46Z] Catherine Manager:
+- [2026-09-08T14:53:46Z] `manager` Catherine Manager:
   - Fixed and committed. Client gates green: npm run check clean, test:canary 31/31 (was 23/23) against a live sq 0.15.0, npm test 624/624, TypeScript untouched at 6.0.3 with the type-aware lint layer intact. Verified the scope claim myself -- only the canary file changed, nothing under src/squads or tests.
   - The fix found more than the bug: both superset lists were ALREADY stale. graph --json nodes carry badges and edge_semantic that were never in the 9-key list, and list --json rows are 22 keys not 7. That is latent undetected drift predating the fix, which is exactly what a superset assertion hides -- so the bug was worth more than its severity suggested. The dev cited where the drift came from rather than silently updating, and deliberately did not widen the client types for keys no consumer reads while keeping the canary requiring their presence so a removal still reddens.
-- [2026-09-08T15:00:31Z] Ada Typescript:
+- [2026-09-08T15:00:31Z] `typescript-dev` Ada Typescript:
   - Class-closure assessment of the seven remaining `expect.arrayContaining` assertions, as requested. No fix applied — two doc comments added beside the two that are legitimate floors, everything else is report-only. `uv run sq check` clean; client gates green throughout.
     
     **Method:** for each, I read the Python builder backing the `sq workflow <x> --json` payload (`_cli/_workflow_cmd.py`) to see whether the row is a closed/frozen shape (a named `*_CATALOG_FIELDS` tuple) or a genuinely open one, then compared that against the current live output and the client's own TS interface (does the client already model/consume the field the floor is missing).
@@ -145,7 +145,7 @@ terminal, rather than a data or correctness fault.
     Cost to close: zero today — converting each to `assertExactKeys` (the helper is already there) would not redden a single current test, since floor == full frozen set already; it only adds protection against a *future* addition. I'd class these as the same mechanism but not the same live bug — worth doing as one mechanical follow-up pass alongside or after the types-catalog bug, but not urgent and not evidence of a second latent defect.
     
     **Recommendation:** file the types-catalog gap (`labels`/`lifecycle`) as its own bug — it's real, evidenced, and needs a modelling decision on `lifecycle`. The four zero-drift closed-shape assertions (collections/statuses/roles/subentity-kinds) are safe to fold into the same follow-up as a zero-risk exactness pass, or left as-is; either way they don't need urgent action since nothing is currently unmonitored.
-- [2026-09-09T14:42:27Z] Mara Tester:
+- [2026-09-09T14:42:27Z] `qa` Mara Tester:
   - Verified independently. Read skewCanary.test.ts myself: tree/graph/list all now use assertExactKeys via GRAPH_NODE_KEYS (11 keys, incl. badges + edge_semantic) and LIST_ROW_KEYS (22 keys) — confirmed the stale-list claim by counting the old vs new sets directly, not by trusting the handback prose.
   - Falsified rather than just re-ran the shipped tests: temporarily dropped "badges" from GRAPH_NODE_KEYS and ran the live-sq integration block (npx vitest -t graph) — reddened with a real diff against a real sq 0.15.0 payload ("+ badges" unexpected extra key), confirming the exact-set assertion actually catches the removed-key direction the old superset was blind to. Restored the file; git diff clean, npm run test:canary back to 31/31 green.
   - Reran client gates myself from scratch: npm run test:canary 31/31, npm run check (typecheck+lint+format:check) clean, npm test 624/624. package.json confirms typescript ^6.0.3 and typescript-eslint ^8.64.0 with projectService (type-aware lint) still wired in eslint.config — nothing weakened there.

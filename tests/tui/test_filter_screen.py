@@ -16,6 +16,8 @@ from squads._tui._filter import FilterScreen
 from squads._workflow import bundled_spec
 from squads._workflow._models import LabelSpec
 
+from ._helpers import wait_until
+
 pytestmark = pytest.mark.anyio
 
 
@@ -73,9 +75,9 @@ async def test_applying_a_type_filter_narrows_the_tree_keeping_an_ancestor_visib
         popup.query_one("#apply", Button).press()
         await pilot.pause()
 
+        await wait_until(pilot, lambda: task.id in _all_ids(browse))
         assert app.screen is browse
         ids = _all_ids(browse)
-        assert task.id in ids
         assert feat.id in ids  # ancestor of the match kept as context
 
 
@@ -94,9 +96,7 @@ async def test_applying_returns_a_new_state_and_a_later_open_is_seeded_from_it(s
         assert isinstance(popup, FilterScreen)
         popup._type_select.value = "feature"
         popup.query_one("#apply", Button).press()
-        await pilot.pause()
-
-        assert browse.state.filter.item_type == "feature"
+        await wait_until(pilot, lambda: browse.state.filter.item_type == "feature")
 
         await pilot.press("f")
         await pilot.pause()
@@ -122,8 +122,7 @@ async def test_show_closed_toggle_reveals_and_hides_a_done_item(svc):
         assert isinstance(popup, FilterScreen)
         popup._show_closed_switch.value = True
         popup.query_one("#apply", Button).press()
-        await pilot.pause()
-        assert closed.id in _all_ids(browse)
+        await wait_until(pilot, lambda: closed.id in _all_ids(browse))
 
         await pilot.press("f")
         await pilot.pause()
@@ -131,8 +130,7 @@ async def test_show_closed_toggle_reveals_and_hides_a_done_item(svc):
         assert isinstance(popup2, FilterScreen)
         popup2._show_closed_switch.value = False
         popup2.query_one("#apply", Button).press()
-        await pilot.pause()
-        assert closed.id not in _all_ids(browse)
+        await wait_until(pilot, lambda: closed.id not in _all_ids(browse))
 
 
 async def test_sort_by_title_reorders_siblings_without_crossing_levels(svc):
@@ -152,10 +150,14 @@ async def test_sort_by_title_reorders_siblings_without_crossing_levels(svc):
         assert isinstance(popup, FilterScreen)
         popup._sort_select.value = "title"
         popup.query_one("#apply", Button).press()
-        await pilot.pause()
 
+        def _top_level() -> list[object]:
+            work_group = browse._tree.root.children[0]
+            return [n.data for n in work_group.children if n.data in (zeta.id, alpha.id)]
+
+        await wait_until(pilot, lambda: _top_level() == [alpha.id, zeta.id])
         work_group = browse._tree.root.children[0]
-        top_level = [n.data for n in work_group.children if n.data in (zeta.id, alpha.id)]
+        top_level = _top_level()
         assert top_level == [alpha.id, zeta.id]  # "Alpha" sorts before "Zeta"
 
         zeta_node = next(n for n in work_group.children if n.data == zeta.id)
@@ -180,8 +182,7 @@ async def test_clear_resets_the_popup_and_applying_reproduces_the_default_view(s
         popup._show_closed_switch.value = True
         popup._sort_select.value = "title"
         popup.query_one("#apply", Button).press()
-        await pilot.pause()
-        assert not browse.state.is_default()
+        await wait_until(pilot, lambda: not browse.state.is_default())
 
         await pilot.press("f")
         await pilot.pause()
@@ -191,9 +192,7 @@ async def test_clear_resets_the_popup_and_applying_reproduces_the_default_view(s
         await pilot.pause()
         assert not browse.state.is_default()  # clearing alone doesn't apply yet
         popup2.query_one("#apply", Button).press()
-        await pilot.pause()
-
-        assert browse.state.is_default()
+        await wait_until(pilot, lambda: browse.state.is_default())
 
 
 async def test_applying_a_category_filter_round_trips_into_browse_state(svc):
@@ -228,8 +227,7 @@ async def test_applying_a_category_filter_round_trips_into_browse_state(svc):
         await pilot.pause()
         assert reopened._category_select.value is Select.NULL
         reopened.query_one("#apply", Button).press()
-        await pilot.pause()
-        assert browse.state.filter.category is None
+        await wait_until(pilot, lambda: browse.state.filter.category is None)
 
 
 async def test_active_filter_indicator_shows_only_while_filtered(svc):
@@ -246,8 +244,7 @@ async def test_active_filter_indicator_shows_only_while_filtered(svc):
         assert isinstance(popup, FilterScreen)
         popup._type_select.value = "feature"
         popup.query_one("#apply", Button).press()
-        await pilot.pause()
-        assert browse._indicator.content != ""
+        await wait_until(pilot, lambda: browse._indicator.content != "")
 
         await pilot.press("f")
         await pilot.pause()
@@ -255,8 +252,7 @@ async def test_active_filter_indicator_shows_only_while_filtered(svc):
         assert isinstance(popup2, FilterScreen)
         popup2.query_one("#clear", Button).press()
         popup2.query_one("#apply", Button).press()
-        await pilot.pause()
-        assert browse._indicator.content == ""
+        await wait_until(pilot, lambda: browse._indicator.content == "")
 
 
 def test_type_filter_options_display_resolved_labels_with_raw_type_values() -> None:

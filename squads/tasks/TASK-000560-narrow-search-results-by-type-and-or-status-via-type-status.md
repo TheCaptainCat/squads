@@ -41,6 +41,6 @@ _Add with `sq task 560 add-subtask "<title>"`; track with `sq task 560 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T23:36:29Z] Ada Typescript:
+- [2026-07-21T23:36:29Z] `typescript-dev` Ada Typescript:
   - Type/status narrowing wired as QuickPick title-bar buttons (companion pick, vocab from getTypeCatalog/getStatusesCatalog, reserved types excluded); domain/searchFilterArgs.ts builds the --type/--status argv, unit-tested for type-only/status-only/both/neither. Gates green.
 <!-- sq:discussion:end -->

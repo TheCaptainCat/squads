@@ -163,7 +163,7 @@ _Add with `sq review 975 add-finding "…" --severity medium`; track with `sq re
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-29T14:33:41Z] Elias Python:
+- [2026-09-29T14:33:41Z] `python-dev` Elias Python:
   - version_tuple fallback takes each segment's leading digits and never joins digits across a suffix
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -187,7 +187,7 @@ The trailing-zero strip hides this for `X.Y.Z.0`. `.post` is not a recognised ta
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-29T14:33:49Z] Elias Python:
+- [2026-09-29T14:33:49Z] `python-dev` Elias Python:
   - release numbers compare as their own tuple; post sorts above its release; rows added
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -211,7 +211,7 @@ On the released 0.15.0, the same rename leaves the re-seeded file without an `id
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-29T14:34:01Z] Elias Python:
+- [2026-09-29T14:34:01Z] `python-dev` Elias Python:
   - restamp refuses and reports when another file already carries the id
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -234,7 +234,7 @@ Invariant 1 says the index can always be rebuilt from the markdown. A recovery t
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-29T14:34:19Z] Elias Python:
+- [2026-09-29T14:34:19Z] `python-dev` Elias Python:
   - frontmatter is rebuilt from file name plus skill catalog; sync rebuilds the index when it lacks the restored file
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -251,7 +251,7 @@ Invariant 1 says the index can always be rebuilt from the markdown. A recovery t
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-29T14:34:34Z] Elias Python:
+- [2026-09-29T14:34:34Z] `python-dev` Elias Python:
   - unreadable YAML in a managed skill file is rebuilt like missing frontmatter; check names sync
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -275,7 +275,7 @@ Both verbs in the error's remedy now refuse in this state, because an out-of-reg
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-29T14:34:50Z] Elias Python:
+- [2026-09-29T14:34:50Z] `python-dev` Elias Python:
   - duplicate message defers to remove-or-move when a copy sits outside sq:body
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -298,7 +298,7 @@ file has no `id` in frontmatter -- `sq sync` restores a managed skill's frontmat
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-29T14:34:59Z] Elias Python:
+- [2026-09-29T14:34:59Z] `python-dev` Elias Python:
   - repair/adopt/migrate print the sync remedy alone for a managed skill file
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -315,7 +315,7 @@ file has no `id` in frontmatter -- `sq sync` restores a managed skill's frontmat
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-09-29T14:35:09Z] Elias Python:
+- [2026-09-29T14:35:09Z] `python-dev` Elias Python:
   - legacy_slugify is a verbatim self-contained copy pinned by tests
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -335,7 +335,7 @@ Both are cosmetic for new slugs and harmless to stored ones. Recording them so t
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-09-29T14:35:15Z] Elias Python:
+- [2026-09-29T14:35:15Z] `python-dev` Elias Python:
   - map extended with thorn, eth, h/t stroke, dotless i; the length cut never splits an expansion
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -360,9 +360,9 @@ The tests miss this because the `project` fixture freezes the clock, so seed tim
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-09-29T15:16:45Z] Elias Python:
+- [2026-09-29T15:16:45Z] `python-dev` Elias Python:
   - restamp keeps the index's timestamps when it knows the item; tested with a later clock
-- [2026-09-29T15:55:04Z] Paul Reviewer:
+- [2026-09-29T15:55:04Z] `reviewer` Paul Reviewer:
   - Verified (driven, real clock, index older than the restamp): deleted, empty, stripped, empty id, missing id and invalid-YAML skill files all come back byte-identical after one sync, index unchanged, check clean.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -385,9 +385,9 @@ Before this round, the index-path guard (`_stamped_skill_slug == item.extra.slug
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-09-29T15:16:54Z] Elias Python:
+- [2026-09-29T15:16:54Z] `python-dev` Elias Python:
   - restamp refuses a file when another file or the index already holds the slug
-- [2026-09-29T15:55:20Z] Paul Reviewer:
+- [2026-09-29T15:55:20Z] `reviewer` Paul Reviewer:
   - Reopened (driven). With the index present, a stray `SKILL-000099-sq-task.md` is now refused. Two shapes still mint a second skill item for one slug, and `sq check` stays clean afterwards:
     
     1. **Slug in `extra.slug`.** Rename `SKILL-000019-sq-task.md` to `SKILL-000019-foo.md` with its frontmatter intact, add a frontmatter-less `SKILL-000099-sq-task.md`, delete `.squads.json`, then run `sync`. SKILL-99 is restamped, and the index then holds SKILL-19 and SKILL-99, both with slug `sq-task`. `SkillFolder.build` reads a top-level `slug`, but skill frontmatter carries it under `extra.slug`, so the renamed file is filed under its filename slug `foo`.
@@ -396,9 +396,9 @@ Before this round, the index-path guard (`_stamped_skill_slug == item.extra.slug
     Both need the index gone. F4 made that a supported case: the restamp is meant to work without the index.
     
     **Fix direction:** read the slug from `extra.slug` (the same way `_file_slug` in `_duplicate_ids` does), and when several unstamped files claim one slug, restamp none of them and report the group. A check rule for two skill items sharing a slug would catch whatever the restamp still misses.
-- [2026-09-29T16:21:30Z] Elias Python:
+- [2026-09-29T16:21:30Z] `python-dev` Elias Python:
   - one file-slug helper (extra.slug first); several unstamped files for one slug are all left alone and reported
-- [2026-09-29T16:33:51Z] Paul Reviewer:
+- [2026-09-29T16:33:51Z] `reviewer` Paul Reviewer:
   - Verified (driven, no index, then repair and sync): with the slug in extra.slug of a renamed file, and with two unstamped files for one slug, nothing is restamped, the index holds one sq-task item, and check names remove-or-rename.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -420,9 +420,9 @@ In both cases `sync` turns a merge a human must resolve into a file that looks r
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-09-29T15:17:06Z] Elias Python:
+- [2026-09-29T15:17:06Z] `python-dev` Elias Python:
   - only a conflict wholly inside the frontmatter is rebuilt; any other position refuses
-- [2026-09-29T15:55:05Z] Paul Reviewer:
+- [2026-09-29T15:55:05Z] `reviewer` Paul Reviewer:
   - Verified (driven): a conflict wholly inside the frontmatter is rebuilt byte-identical; a conflict spanning frontmatter and body, and one wrapping the whole file, refuse sync with exit 1 and check names resolve-by-hand.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
@@ -439,9 +439,9 @@ In both cases `sync` turns a merge a human must resolve into a file that looks r
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-09-29T15:17:14Z] Elias Python:
+- [2026-09-29T15:17:14Z] `python-dev` Elias Python:
   - check names the working remedy: sync, remove-or-rename, or resolve-by-hand
-- [2026-09-29T15:55:10Z] Paul Reviewer:
+- [2026-09-29T15:55:10Z] `reviewer` Paul Reviewer:
   - Verified (driven): for a stray copy and for the renamed-file shape, check names the same remove-or-rename remedy sync prints; a restampable file still names sync.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -469,9 +469,9 @@ The same rule also misfires within one folder. `TASK-000022-alpha-copy.md` sorts
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-09-29T16:21:37Z] Elias Python:
+- [2026-09-29T16:21:37Z] `python-dev` Elias Python:
   - renumber keeps the index's file, refuses a group with a file outside its type folder, and orders by name without the suffix
-- [2026-09-29T16:33:57Z] Paul Reviewer:
+- [2026-09-29T16:33:57Z] `reviewer` Paul Reviewer:
   - Verified (driven): a cross-folder different-slug copy is refused, and TASK-22 stays indexed with both files unchanged. A whitespace-only -copy renumbers the copy, not the original, with or without an index.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -490,9 +490,9 @@ The same rule also misfires within one folder. `TASK-000022-alpha-copy.md` sorts
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
-- [2026-09-29T16:21:44Z] Elias Python:
+- [2026-09-29T16:21:44Z] `python-dev` Elias Python:
   - references are listed after every rename, so a renumbered file's own text and earlier groups' renames are scanned
-- [2026-09-29T16:34:02Z] Paul Reviewer:
+- [2026-09-29T16:34:02Z] `reviewer` Paul Reviewer:
   - Verified (driven): the renumbered copy's own body reference is listed, and the command exits 1.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
@@ -514,9 +514,9 @@ In both cases a command that exits 1 has still changed the corpus. The retitle c
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
-- [2026-09-29T16:21:56Z] Elias Python:
+- [2026-09-29T16:21:56Z] `python-dev` Elias Python:
   - every write verb checks its subject and referrers before touching a file; a refused write leaves the tree byte-identical (hash rows)
-- [2026-09-29T16:34:05Z] Paul Reviewer:
+- [2026-09-29T16:34:05Z] `reviewer` Paul Reviewer:
   - Verified (driven): a retitle and remove --force on a duplicated subject or referrer refuse with the tree unchanged.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
@@ -536,9 +536,9 @@ In both cases a command that exits 1 has still changed the corpus. The retitle c
 #### Discussion
 
 <!-- sq:finding:F17:discussion -->
-- [2026-09-29T16:22:03Z] Elias Python:
+- [2026-09-29T16:22:03Z] `python-dev` Elias Python:
   - remove is guarded, and retype, status rename and default-role refuse while any id is duplicated
-- [2026-09-29T16:34:11Z] Paul Reviewer:
+- [2026-09-29T16:34:11Z] `reviewer` Paul Reviewer:
   - Verified (driven): remove refuses on a duplicated id; retype refuses while any id is duplicated. Global refusal for retype, rename-status and set-default is judged proportionate: a duplicate is a check error cleared by one hand edit, and refusing more writes until then cannot lose data.
 <!-- sq:finding:F17:discussion:end -->
 <!-- sq:finding:F17:end -->
@@ -560,9 +560,9 @@ The module docstring says one detector is shared by check, repair and the restam
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
-- [2026-09-29T16:22:13Z] Elias Python:
+- [2026-09-29T16:22:13Z] `python-dev` Elias Python:
   - the guard uses the detector's rule (frontmatter id, any name, any folder) via a stat-cached scan; a missing own file falls through to the missing-file error
-- [2026-09-29T16:34:17Z] Paul Reviewer:
+- [2026-09-29T16:34:17Z] `reviewer` Paul Reviewer:
   - Verified (driven): unprefixed and other-number copies now warn on show and refuse writes; a stale index path gives the missing-file error again. Its cost is F23.
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
@@ -583,9 +583,9 @@ The module docstring says one detector is shared by check, repair and the restam
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
-- [2026-09-29T16:22:21Z] Elias Python:
+- [2026-09-29T16:22:21Z] `python-dev` Elias Python:
   - skill folder built once per scan; index consulted only if a file could be restamped; check reads and parses match the earlier checkpoint
-- [2026-09-29T16:34:21Z] Paul Reviewer:
+- [2026-09-29T16:34:21Z] `reviewer` Paul Reviewer:
   - Verified (driven, same probe on 48cf1444 and HEAD): sync clean 7/7 parses; check with three stripped skills 2/2 parses, 1 re-read file each; sync with them 8 vs 9.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
@@ -607,9 +607,9 @@ Two smaller output issues from the same run:
 #### Discussion
 
 <!-- sq:finding:F20:discussion -->
-- [2026-09-29T16:22:32Z] Elias Python:
+- [2026-09-29T16:22:32Z] `python-dev` Elias Python:
   - not-in-index line suppressed for a refused duplicate; key dropped from the check message; repair prints the group once
-- [2026-09-29T16:34:27Z] Paul Reviewer:
+- [2026-09-29T16:34:27Z] `reviewer` Paul Reviewer:
   - Verified (driven): without an index, check no longer names repair; the key is not repeated; repair prints the group once.
 <!-- sq:finding:F20:discussion:end -->
 <!-- sq:finding:F20:end -->
@@ -626,9 +626,9 @@ Two smaller output issues from the same run:
 #### Discussion
 
 <!-- sq:finding:F21:discussion -->
-- [2026-09-29T16:22:39Z] Elias Python:
+- [2026-09-29T16:22:39Z] `python-dev` Elias Python:
   - skill, role, operator and any-item show warn on a duplicated id
-- [2026-09-29T16:34:30Z] Paul Reviewer:
+- [2026-09-29T16:34:30Z] `reviewer` Paul Reviewer:
   - Verified (driven): sq skill sq-task show warns on stderr for a copied skill file.
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
@@ -652,9 +652,9 @@ Two smaller output issues from the same run:
 #### Discussion
 
 <!-- sq:finding:F22:discussion -->
-- [2026-09-29T16:22:50Z] Elias Python:
+- [2026-09-29T16:22:50Z] `python-dev` Elias Python:
   - constants moved, one file_slug, Literal verdict kind, parenthesised excepts, async reads, SelfRemedied replaces remedy-text matching
-- [2026-09-29T16:34:38Z] Paul Reviewer:
+- [2026-09-29T16:34:38Z] `reviewer` Paul Reviewer:
   - Verified (read): constants moved to _skill_files, one file_slug, Literal verdict kind, parenthesised excepts with fmt: skip, _aio.read_bytes, SelfRemedied replaces substring matching.
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
@@ -681,9 +681,9 @@ On the base scratch squad, a probe counted a single `comment` reading 25 files (
 #### Discussion
 
 <!-- sq:finding:F23:discussion -->
-- [2026-09-29T16:51:25Z] Elias Python:
+- [2026-09-29T16:51:25Z] `python-dev` Elias Python:
   - the guard and show read only files whose name carries the item number or no number; a well-formed name for another number is check and repair territory; timings within noise of the checkpoint
-- [2026-09-29T16:57:15Z] Paul Reviewer:
+- [2026-09-29T16:57:15Z] `reviewer` Paul Reviewer:
   - Verified (driven, repo-squad copy of 1029 files, 3 runs each, same interpreter): show 0.81-0.93s against 0.75-0.81s at 48cf1444, comment 0.87-0.92s against 0.83-0.85s. A comment reads 2 files. Trade-off accepted: a copy named for another number is caught by check and repair, and writes meanwhile land on the indexed file.
 <!-- sq:finding:F23:discussion:end -->
 <!-- sq:finding:F23:end -->
@@ -706,9 +706,9 @@ This is scan-scoped state kept on a long-lived object, where the project prefers
 #### Discussion
 
 <!-- sq:finding:F24:discussion -->
-- [2026-09-29T16:51:35Z] Elias Python:
+- [2026-09-29T16:51:35Z] `python-dev` Elias Python:
   - scan state moved to a ScanContext made per call and passed down; nothing kept on the service; comment moved back onto default_kind
-- [2026-09-29T16:57:19Z] Paul Reviewer:
+- [2026-09-29T16:57:19Z] `reviewer` Paul Reviewer:
   - Verified (read, driven tests): scan state is carried in a ScanContext/SkillScan made per check, repair or restamp; nothing remains on the service. The set_default_role comment sits on default_kind again.
 <!-- sq:finding:F24:discussion:end -->
 <!-- sq:finding:F24:end -->
@@ -726,9 +726,9 @@ This is scan-scoped state kept on a long-lived object, where the project prefers
 #### Discussion
 
 <!-- sq:finding:F25:discussion -->
-- [2026-09-29T16:51:44Z] Elias Python:
+- [2026-09-29T16:51:44Z] `python-dev` Elias Python:
   - scan-order test reverses what the kept-file choice reads; parse and re-read counts pinned to the measured 2 and 1
-- [2026-09-29T16:57:21Z] Paul Reviewer:
+- [2026-09-29T16:57:21Z] `reviewer` Paul Reviewer:
   - Verified (read): the parse test pins 2 parses and 1 re-read; the scan-order test now reverses the _id_carriers result that the renumber consumes.
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
@@ -737,23 +737,23 @@ This is scan-scoped state kept on a long-lived object, where the project prefers
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T14:22:32Z] Paul Reviewer:
+- [2026-09-29T14:22:32Z] `reviewer` Paul Reviewer:
   - Reviewed the uncommitted src/tests changes. The ADR-970 digest and the ADR-971 stored-slug handling conform, and I drove both on scratch squads seeded with the released 0.15.0. Verdict ChangesRequested: F1 (version_tuple fallback still concatenates digits), F3 (the restamp manufactures a silent duplicate id when a file is renamed away from its slug) and F4 (the restamp depends on a carried-forward index entry, and check then names sync falsely) are medium. F2 and F5 to F8 are low, F9 is info.
   - @python-dev please address F1, F3 and F4. F2 and F5 to F8 are small follow-ons in the same files. Claims in each finding are labelled driven or read.
   - @qa: out of scope here, but check and repair do not report two files with the same id (driven on 0.15.0). F3 relies on that gap, and it deserves its own bug.
-- [2026-09-29T14:45:58Z] Paul Reviewer:
+- [2026-09-29T14:45:58Z] `reviewer` Paul Reviewer:
   - Round 2: F1 to F9 Verified, all driven on scratch squads. version_tuple follows PEP 440 across post, dev, 4-segment and fallback shapes. An ASCII fuzz (200k cases) of slugify vs legacy_slugify is identical. The index-lost, invalid-YAML and renamed-file restamp shapes now behave. Targeted tests 464 passed, ruff clean.
   - Still ChangesRequested, on three new medium findings in the restamp. F10: on a real clock every restamp leaves a created_at/updated_at drift warning in check; the tests freeze the clock. F11: a stray SKILL-<n>-sq-task.md copy is minted into a second skill item for the same slug. F12: the merge-conflict change is right only for a conflict wholly inside the frontmatter; a conflict reaching the body, or wrapping the file, is absorbed with exit 0 and leaves markers behind. F13 is low.
   - @python-dev F10 to F13 please; all are in _restamp_managed_skill_frontmatter and its callers. F11 is a duplicate slug, not a duplicate id, so ST6 does not cover it.
-- [2026-09-29T15:57:18Z] Paul Reviewer:
+- [2026-09-29T15:57:18Z] `reviewer` Paul Reviewer:
   - Round 3 (F10-F13 plus ST6): F10, F12 and F13 are Verified (driven). F11 is reopened: a slug stored in extra.slug is not seen, and two unstamped files that share a slug are both minted when the index is gone.
   - ST6: check, repair, list and show behave on every BUG-978 shape, the padded spelling and the three-file group. The identical-copy refusal holds. New: F14 (high) renumber keeps a copy from the wrong type folder, so the original is renumbered and the id drops out of the index. F15 to F18 (medium): the renumbered copy's own references are not listed; retitle and remove --force change files before refusing; remove and retype referrer rewrites are unguarded; the write guard's filename scan disagrees with the detector. F19 to F22 are low.
   - Whitespace-only copies: renumbering loses no data, but byte order keeps the -copy file and renumbers the original. That is folded into F14's kept-file rule.
   - @python-dev please address F11 and F14 to F22. Every claim in them is labelled driven or read.
-- [2026-09-29T16:35:12Z] Paul Reviewer:
+- [2026-09-29T16:35:12Z] `reviewer` Paul Reviewer:
   - Round 4: F11 and F14-F22 Verified, all driven except F22 (read). Global refusal for retype, rename-status and set-default is judged proportionate.
   - Still ChangesRequested on F23 (medium): the write guard and show now read every item file per CLI invocation, about 2.3x on this repo's 1029-file squad (show 0.78s to 1.8s, comment 0.79s to 1.89s). F24 (low): scan caches kept as mutable Service state. F25 (low): two tests prove less than their names claim.
   - @python-dev F23 to F25 please.
-- [2026-09-29T16:57:26Z] Paul Reviewer:
+- [2026-09-29T16:57:26Z] `reviewer` Paul Reviewer:
   - Round 5: F23-F25 Verified. Every finding F1-F25 is Verified. The narrowed guard is accepted: show and comment are back within about 0.1s of 48cf1444, and the one shape it no longer sees (a copy named for another number) is reported by check and repair.
 <!-- sq:discussion:end -->

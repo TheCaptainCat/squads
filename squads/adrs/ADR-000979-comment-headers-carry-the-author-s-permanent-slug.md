@@ -483,20 +483,20 @@ change and buys nothing a release could observe.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T14:35:26Z] Robert Architect:
+- [2026-09-29T14:35:26Z] `architect` Robert Architect:
   - @op-pierre for your call. Written from your direction: permanent slugs, a slug-anchored header, and a single migration with no dual-read parser (your ruling, relayed by the manager). Open questions:
     - Slug reuse after `rm --purge`. Nothing stops a new entity from taking a purged slug, and old headers would then name the newcomer. My recommendation: creation refuses a slug that appears as an author in any comment header. This is derived from history, so nothing new is stored.
     - Delimiter. I chose backticks. Brackets and parentheses sit next to markdown link syntax, and `@slug` would make every header an inbox mention.
     - Reserved slugs. `operator` and `squads` become reserved participant slugs that no role can take. Should a role slug starting with `op-` also be refused?
     - Migration failures. The ADR leaves no escape hatch: fix the roster and re-run. Say if you want a `--map "Name=slug"` override instead.
-- [2026-09-29T14:39:42Z] Pierre Chat:
+- [2026-09-29T14:39:42Z] `op-pierre` Pierre Chat:
   - Slug reuse after rm --purge: allowed (accept the ambiguity).
   - Delimiter: backticks.
   - Reserved: also refuse a role slug starting with op-.
   - Migration failures: fix the roster and re-run; no --map flag.
-- [2026-09-29T14:57:04Z] Pierre Chat:
+- [2026-09-29T14:57:04Z] `op-pierre` Pierre Chat:
   - Accepted.
-- [2026-10-15T22:17:49Z] Robert Architect:
+- [2026-10-15T22:17:49Z] `architect` Robert Architect:
   - - 2026-10-16: amended for REV-1026 F3, additions only (three dated notes plus "Amendments — 2026-10-16", A1 to A5); status untouched.
     - A1: an operator slug is `op-[a-z0-9][a-z0-9-]*`, refused otherwise at the roster creation seam (operator add --slug, importer). No silent lowercasing.
     - A2: one author namespace, roles plus operators plus the two reserved slugs; skills are outside it (the bundled SKILL-200 already holds `squads`, driven). agent_registered stops counting skill slugs.
@@ -504,21 +504,21 @@ change and buys nothing a release could observe.
     - A4: the 0.16 planning pass refuses, not report-only: before the run a breaching operator can be purged and re-added under the same name and its legacy headers resolve to the new slug; after it the slug is fixed in history. An out-of-grammar slug would also produce header lines the new pattern does not match. This changes ST5 as briefed. This squad is unaffected (op-pierre only, driven).
     - A5: ADR-1013's match stays slug equality; `--as squads` is refused by every writer including the importer actor, `operator` is always the anonymous author.
     - @manager for op-pierre's confirmation: this changes what an adopter may type (operator add --slug) and makes a non-compliant operator block `sq migrate up`. Route A4 to @python-dev for ST5 once confirmed.
-- [2026-10-16T07:43:46Z] Robert Architect:
+- [2026-10-16T07:43:46Z] `architect` Robert Architect:
   - - 2026-10-16: two additions for REV-1027, additions only; status untouched.
       - A6 (REV-1027 F2): the 0.16 migration resolves a legacy name by title first and, failing that, by an operator's slug, because the released 0.15.0 writer wrote an operator without `full_name` as its slug (`- [ts] op-ann:`). A dated note under decision 4 points to it. A6 is part of the pending amendment and is subject to op-pierre's confirmation together with A1 to A5.
       - Note under decision 4 (REV-1027 F7): the header rewrite replaces whole header lines in the raw bytes, keeping each line's terminator, with `_sections.find_markers` used only to locate regions; reason: byte preservation and header-line-only edits, which `_sections.py`'s whole-region API does not give.
       - @manager for op-pierre's confirmation of A1 to A6; once confirmed, A6 goes to @python-dev with REV-1027 F2.
-- [2026-10-16T11:16:25Z] Pierre Chat:
+- [2026-10-16T11:16:25Z] `op-pierre` Pierre Chat:
   - 2026-10-16: confirmed the amendment A1–A6 as drafted (A1 operator slugs op-…; A2 one author namespace, skills excluded; A3 roster_slug_valid check; A4 the 0.16 migration refuses a non-conforming operator slug; A5 --as squads refused everywhere; A6 slug fallback when no title matches).
-- [2026-10-16T11:53:31Z] Robert Architect:
+- [2026-10-16T11:53:31Z] `architect` Robert Architect:
   - - 2026-10-16: two additions for REV-1055, additions only; status untouched.
       - Note under A3 (F5): `roster_slug_valid` is squad-global, always on at a fixed `error`, not selectable; "on by default" reads as "always on". Reason: an identity check, and selectable squad-global rules would be an engine change.
       - A7 (F7): role activation and skill creation refuse a slug equal to a group verb of `sq role` (`catalog`, `list`, `activate`) or `sq skill` (`add`), read from the registered commands; `roster_slug_valid` also reports an entry that already holds one; the 0.16 migration does not refuse on it.
       - @manager A7 needs op-pierre's confirmation, as A6 did: it changes what an adopter may name a project role or skill.
-- [2026-10-16T11:56:42Z] Pierre Chat:
+- [2026-10-16T11:56:42Z] `op-pierre` Pierre Chat:
   - 2026-10-16: confirmed A7 (roles and skills refuse a slug equal to their group's verbs, like operators).
-- [2026-10-17T02:01:31Z] Robert Architect:
+- [2026-10-17T02:01:31Z] `architect` Robert Architect:
   - 2026-10-17: two dated notes owed under ADR-1013 (The append-only statement), from TASK-1079 ST14; body and status untouched.
     - **Context, first sentence** ("Discussion comments are append-only history: there is no verb that edits or deletes one"). Since ADR-1013, a comment can be edited and removed by its author through `sq <type> <n> [<kind> <k>] comment <hash> show|edit|remove`, and the same on `sq skill|role|operator <addr>`. What this decision relied on still holds: a comment is a timestamped record, only its author (matched by slug, ADR-1013 §9 and A5 here) can change it, and an edit keeps its timestamp, slug and display-name snapshot (§3).
     - **§2, the header grammar.** The header gains one optional group inside the brackets, after the timestamp: ``- [<ts>, edited <ts>] `<slug>` <name>:``. It records the last edit only: a second edit replaces the mark, it never stacks. It is not a hash input and needs no migration; the 0.16 header migration writes no mark. `--json` carries it as `edited_ts` (null when never edited).

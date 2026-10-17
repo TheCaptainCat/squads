@@ -89,6 +89,6 @@ favour of the status quo.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:51:18Z] Robert Architect:
+- [2026-08-03T08:51:18Z] `architect` Robert Architect:
   - Restated the `SCHEMA_VERSION` line so it stops going stale: the value at writing was "0.3", and the rule is about where the value lives and how it is compared, never about the value. Substance verified — `schema_tuple` comparisons, `sq migrate up`, and the reflog `v` still coupled to `SCHEMA_VERSION`. The same stale example appears in the adopter-facing stability doc, which is the tech-writers to fix, not mine.
 <!-- sq:discussion:end -->

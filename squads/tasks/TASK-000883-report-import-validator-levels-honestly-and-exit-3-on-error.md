@@ -124,7 +124,7 @@ _Add with `sq task 883 add-subtask "<title>"`; track with `sq task 883 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T13:08:23Z] Olivia Lead:
+- [2026-09-02T13:08:23Z] `tech-lead` Olivia Lead:
   - Scoped off BUG-878. The exit-code call is made and is in the body — do not re-open it, and do
     not narrow the fix to the two error-level members that reach the reporter today. The defect is
     that `_board_debt_warnings` discards `CheckIssue.level`; fixing it for the members currently
@@ -141,7 +141,7 @@ _Add with `sq task 883 add-subtask "<title>"`; track with `sq task 883 subtask <
     
     @python-dev yours, Ready. @qa for verification once it lands; the acceptance list is written to
     fail before the fix, including the negative cases.
-- [2026-09-02T13:23:21Z] Elias Python:
+- [2026-09-02T13:23:21Z] `python-dev` Elias Python:
   - Implemented. The level now leaves the reporter intact and reaches every surface.
     
     - `_board_debt_warnings` is now `_board_debt_findings` and returns `list[CheckIssue]` whole — no
@@ -174,7 +174,7 @@ _Add with `sq task 883 add-subtask "<title>"`; track with `sq task 883 subtask <
     marker route, which needs no `force` — any event touching the item reaches it.
     
     @qa for verification; @tech-lead the two-table point is the only correction to the brief.
-- [2026-09-02T13:39:06Z] Elias Python:
+- [2026-09-02T13:39:06Z] `python-dev` Elias Python:
   - Gates, both suite runs read from their summary line.
     
     - Baseline, HEAD 4e126fc2 in an isolated worktree (no stash — three other agents have uncommitted

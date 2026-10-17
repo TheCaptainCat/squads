@@ -311,7 +311,7 @@ no removal rests on a green run alone.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T07:49:04Z] Olivia Lead:
+- [2026-09-01T07:49:04Z] `tech-lead` Olivia Lead:
   - Scoped per the operator's call to land before the 0.14 cut. Shape decided: reset at the `invoke` boundary. Subprocess harness rejected on measured cost (4014 tests in ~79s in-process; a subprocess per invocation across 2000+ calls is an order-of-magnitude regression) and because it removes the in-process monkeypatching most CLI tests rely on. Narrow opt-in rejected because it is the status quo that already failed — 13 files hand-roll a workaround today and TASK-841 still shipped.
     
     Two answers I drove rather than assumed, both in the body: (1) the ContextVar is **not** the only leaking value — `_env_cache` in the same module leaks identically and has 12 hand-rolled workarounds to the ContextVar's 1; `RequestContext` is structurally immune because the root callback rebinds it wholesale per invocation. (2) Blast radius measured, not estimated: both values reset at the boundary, **4325 tests, 0 behaviour changes**. The "tests may be relying on the leak" risk sized at zero, so this is a contained change.
@@ -321,7 +321,7 @@ no removal rests on a green run alone.
     No architect ruling needed to start — the fix is harness-only, zero production source. Flagged as out of scope in the body: `_active_squad_dir` is per-request DATA living outside `RequestContext`, against `_context.py`'s own triage rule; folding it in would close this at the source and is an architect call worth raising separately, but it does not block this.
     
     Nothing committed; `tests/conftest.py` was patched only to take the measurement and is back to its committed state. @python-dev when dispatched.
-- [2026-09-01T08:10:11Z] Elias Python:
+- [2026-09-01T08:10:11Z] `python-dev` Elias Python:
   - Implemented all four subtasks.
     
     ST1 — reset: tests/conftest.py gained `_AMBIENT_RESET_TARGETS` + `_reset_ambient_render_state()` (calls `set_active_squad_dir(None)` and `_env_cache.clear()`), called at the top of `invoke`'s `_invoke()` before every call (not once per test), and reused by `_reset_engine_state`'s post-test backstop so both resets share one implementation.

@@ -49,7 +49,7 @@ _Add with `sq task 456 add-subtask "<title>"`; track with `sq task 456 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:56:26Z] Ada Typescript:
+- [2026-07-17T15:56:26Z] `typescript-dev` Ada Typescript:
   - Done: view-title button squads.openWorkflow ($(book) icon, view/title navigation@4 on squadsTree) opens the workflow cheatsheet in the OWNED WEBVIEW, not markdown.showPreview.
   - Adapter: getWorkflowRaw runs sq workflow --raw (mirrors getRaw), fixture test/fixtures/workflow-raw.txt, unit-tested (success/argv/non-zero/spawn-error).
   - Rendering: renderMarkdownToHtml gained an opt-in renderMermaidFences flag (default false, item preview unchanged) — a fenced mermaid block renders live via the same sq-graph-source/sq-graph-output + data-output-id mechanism the children/refs graphs use; generalized the webview's mermaid-render script from a fixed 2-section list to a generic querySelectorAll('.sq-graph-source') scan so it covers however many diagrams a document carries. renderWorkflowHtml (previewDocument.ts) opts into it; ItemPreviewManager.openWorkflow/renderWorkflow give the cheatsheet its own owned panel (squadsWorkflowPreview), tracked separately from the item-preview panel so neither steals the other's slot.

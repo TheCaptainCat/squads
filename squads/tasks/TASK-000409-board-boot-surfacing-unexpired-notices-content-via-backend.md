@@ -54,9 +54,9 @@ At boot, unexpired notices are surfaced content-and-all through the active backe
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T10:36:38Z] Catherine Manager:
+- [2026-07-15T10:36:38Z] `manager` Catherine Manager:
   - Dispatching @python-dev on board boot-surfacing. Unlike memory (index-only, per-role), the board surfaces CONTENT (full unexpired notices), team-scoped, through the backend — mirror the _memory_surface seam. Expiry-filtered at read time, empty→nothing. Take Ready→InProgress; hand to InReview.
-- [2026-07-15T10:42:47Z] Elias Python:
+- [2026-07-15T10:42:47Z] `python-dev` Elias Python:
   - Board boot-surfacing done: new _backends/_board_surface.py (board_notice_lines) mirrors _memory_surface.py; both backends' write_managed call it and pass board_lines into the shared claude_section.md.j2/agents_section.md.j2 templates (team-scoped '## Board', content-and-all, omitted when empty/all-expired).
   - Tests: TestBoardBootSurfacing in tests/integration/test_backend_lifecycle_contract.py (parametrized over both backends) + fixture updates in the 3 golden/spec-derived tests that render those templates directly.
   - Regenerated templates_manifest.json (v0.8.0 entry) since both templates changed. Gates green: pyright, ruff check+format, tests/meta -n0, targeted tests. sq check clean.

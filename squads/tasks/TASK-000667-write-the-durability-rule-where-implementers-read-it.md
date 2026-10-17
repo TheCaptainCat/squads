@@ -157,7 +157,7 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T22:25:49Z] Elias Python:
+- [2026-07-27T22:25:49Z] `python-dev` Elias Python:
   - ST1: skew-direction rule + failure model + interrupted-op table + inverse-skew rationale in _index/_store.py's module docstring; transaction() rollback claim corrected (index-only, markdown stands by design); N-files-not-atomic-across-N added to _itemfile.py; rename-then-write FileNotFoundError window documented on _apply_type_change (retype) + cross-ref from _update_core (title rename); one CLAUDE.md invariants line (outside the managed region).
   - ST2: IndexStore._atomic_write/_atomic_write_sync now delegate to _aio.atomic_write_text/atomic_replace_sync — pure refactor, same tmp-name shape, single thread hop preserved, no behaviour change. Added crash-safety + bootstrap-roundtrip tests in tests/unit/test_index_allocation.py.
   - Gate clean: pyright/ruff check/ruff format --check tree-wide, targeted pytest (unit + service + integration + cli touched here, plus tests/meta) all green. Full suite and sq check left to the operator.

@@ -197,7 +197,7 @@ the loader-agnostic boundary.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-07-31T14:51:12Z] Elias Python:
+- [2026-07-31T14:51:12Z] `python-dev` Elias Python:
   - Fixed in _specmerge.py: apply_selected now runs _selected_section_shape_violations after computing the post-strip result — a section present but not a table (list, scalar, etc) fails closed naming the section + shape found + that a deselect needs a table. Absent stays inert (regression-tested, unchanged). Falsified: reverted the check, both new tests (list-shaped roles.toml case + scalar case) reddened exactly on the silent-drop symptom, restored, green.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -249,7 +249,7 @@ fail-closed case with no code and no note is the part that needs closing.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-07-31T15:59:12Z] Catherine Manager:
+- [2026-07-31T15:59:12Z] `manager` Catherine Manager:
   - Closed as a recorded narrowing, no code: ADR-696 §4a withdraws the criterion outright rather than reinterpreting it. A splat-ref is an abbreviation held to the same standard as the literal it abbreviates, so a splice is never checked against the shape of the key it lands on — destination shape is the models' plane. The collect-all cost is real but not splice-specific, and is tracked against the loader work instead.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -311,11 +311,11 @@ separate finding — but the same widening should account for it.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-07-31T14:51:17Z] Elias Python:
+- [2026-07-31T14:51:17Z] `python-dev` Elias Python:
   - Fixed: added _malformed_token_violation — a whole-string $(...) shape that fails grammar validation now reports 'malformed splat-ref path ... not a valid dotted identifier chain' instead of the wrong surviving-token message. Also closed the ASCII asymmetry: _TOKEN_RE's identifier class is now [A-Za-z0-9_] everywhere (was \w after the first char), so élan and itéms fail the same way. Documented the narrower-than-TOML grammar (no hyphen, no leading digit) as a deliberate restriction in the module docstring, matching every bundled key today. Falsified both sub-fixes independently (message + regex) — 8 parametrized malformed-path cases and the itéms asymmetry case each reddened on revert, restored, green.
-- [2026-07-31T15:20:34Z] Elias Python:
+- [2026-07-31T15:20:34Z] `python-dev` Elias Python:
   - Reopened per ADR-696's amendment: my previous fix narrowed the grammar (ASCII identifier, no hyphen/leading-digit) when the ruling widens it to exactly a TOML bare key. Redone below.
-- [2026-07-31T15:20:49Z] Elias Python:
+- [2026-07-31T15:20:49Z] `python-dev` Elias Python:
   - Redone against ADR-696's amendment. _TOKEN_RE's path-segment grammar is now [A-Za-z0-9_-]+ (a TOML bare key exactly, no restriction on leading character) instead of an ASCII-identifier subset -- a hyphenated segment (user-story) and a digit-leading one now resolve. Kept ASCII-only, but for the ruled reason rather than symmetry: a TOML bare key is ASCII by the format's own definition, so a non-ASCII key is necessarily quoted and unaddressable by rule (élan/itéms both still fail identically, now correctly attributed).
   - Added tests/meta/test_bundled_documents_are_splat_ref_addressable.py per your ask: scans all three bundled documents for (a) every key at every depth is a TOML bare key, (b) no bundled string value begins with an unescaped $(. Both pass on the real documents (353/77/131 keys, matching your audit) plus 6 self-tests proving the walkers actually detect a non-ASCII key, a dotted-quoted-key, a nested-list $( leak, etc.
   - Falsified: reverted the regex to the old ASCII-identifier grammar -- all 4 grammar-widening tests reddened (hyphenated/digit-leading paths stopped resolving); restored, green. Falsified the meta scan's bare-key regex (widened it to accept anything) -- both self-tests using synthetic bad keys reddened while the two real-document tests correctly stayed green (nothing bad to catch); restored, green.
@@ -360,9 +360,9 @@ state is neither.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-07-31T14:51:34Z] Elias Python:
+- [2026-07-31T14:51:34Z] `python-dev` Elias Python:
   - Fixed: added _resolve_key, run on every dict key in _resolve_value's dict branch. A key that's itself a grammar-valid token fails closed ('used as a key — keys are never a splat target'); a malformed-shaped key gets the F3 message; any other unescaped $( in a key fails closed the same as a value; $$( still unescapes to a literal key. No splice/spread resolution for keys (no such operation is defined). Falsified: reverted to a passthrough key, all 4 new key-position tests reddened (typo silently becoming vocabulary, escape not applying), restored, green.
-- [2026-07-31T15:55:22Z] Elias Python:
+- [2026-07-31T15:55:22Z] `python-dev` Elias Python:
   - Superseded by the token-territory ruling (ADR-696): the key predicate is now begins-with, matching the value side, not the old contains-anywhere scan. Inside territory a key is always refused (grammar-valid -> used-as-a-key, malformed -> malformed-token message); outside territory a key is data, with only a leading $$( ever unescaped -- a stray $( elsewhere in a key (weird-$(x)-key) now passes through untouched rather than being flagged, closing the over-wide case the architect flagged in my previous pass. Falsified: reverted the territory predicate to contains-anywhere -- 9 tests reddened across both positions; reverted the key-refusal branch to a silent pass-through -- 2 tests reddened. Both restored, green.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -398,7 +398,7 @@ suffices for `_parse_token`'s only call sites.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-07-31T14:51:42Z] Elias Python:
+- [2026-07-31T14:51:42Z] `python-dev` Elias Python:
   - Fixed: _parse_token now uses _TOKEN_RE.fullmatch instead of .match, closing the trailing-newline gap (fullmatch requires the match to consume the entire string, so the $ anchor's 'end-of-string-or-before-a-trailing-newline' quirk no longer lets one through). Falsified: reverted to .match, the single-trailing-newline case reddened (others already passed), restored, green.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -437,11 +437,11 @@ covering pathological nesting.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-07-31T14:52:00Z] Elias Python:
+- [2026-07-31T14:52:00Z] `python-dev` Elias Python:
   - Fixed: added a 300-level depth guard, raising a clean SquadsError (never collected — it's a hard structural limit, not a data violation) in _resolve_value/_resolve_list and in deep_merge; also replaced every deepcopy(...) call with a new _bounded_deepcopy that carries the same guard, closing the symmetric base-side blowup (an untouched deep base subtree copied via deepcopy). 300 is well above the real bundled documents' nesting and comfortably inside Python's default recursion ceiling. Falsified: raised the limit to 100000 (effectively disabling the guard), both the override-side (2000-segment dotted key) and base-side (3000-deep untouched subtree) repros reverted to uncaught RecursionError, restored the limit, both raise clean SquadsErrors again.
-- [2026-07-31T15:20:54Z] Elias Python:
+- [2026-07-31T15:20:54Z] `python-dev` Elias Python:
   - Reopened per the ruling: my previous fix raised SquadsError directly on the depth bound, bypassing collect_all -- the refusal belongs on the violation channel. Redone below.
-- [2026-07-31T15:21:08Z] Elias Python:
+- [2026-07-31T15:21:08Z] `python-dev` Elias Python:
   - Redone: the depth bound now collects on the same violation channel as everything else, in every function that can hit it -- _resolve_value, _bounded_deepcopy, and deep_merge (which changed signature to deep_merge(base, override, origin) -> (merged, violations), matching the other two mechanisms' shape, since it needed a way to report a violation without raising). Past the bound: append a MergeViolation naming the dotted path, stop descending that one branch, keep walking siblings. merge_override threads deep_merge's violations through the same _maybe_raise call as resolve_splat_refs's and apply_selected's -- fail-fast still raises (via _maybe_raise, not a raise anywhere in the mechanisms themselves), collect-all never does.
   - _MAX_NESTING_DEPTH stays 300, now commented as the two properties rather than a number: far above the deepest bundled key path (4 levels), far below the interpreter's headroom with room for the per-level copy.
   - Falsified each guard site independently by reverting it to a raise: _resolve_value's own guard, _bounded_deepcopy's, and deep_merge's own recursive-descent guard (needed a base+override BOTH deeply nested with matching keys to actually exercise deep_merge's own recursion rather than delegate to _bounded_deepcopy -- added that test since the two originally-reported repros both bottom out in _bounded_deepcopy and never exercised deep_merge's own path). Also falsified at the merge_override entry point in collect_all mode. All 5 reddened on the targeted mutation, restored, green.
@@ -486,7 +486,7 @@ at the cost of a slightly noisier signature.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-07-31T14:52:07Z] Elias Python:
+- [2026-07-31T14:52:07Z] `python-dev` Elias Python:
   - Docs-only fix (no defect, as scoped): apply_selected's docstring corrected from the self-contradicting 'no keys dropped' to the real contract, and now states the violation path explicitly (caller's own input object returned unmodified, selected still present, must not be used -- MergeResult.merged already enforces None at the merge_override boundary). Did not change the return type to Optional per the reviewer's costlier alternative -- no caller needs it since merge_override already owns that contract. Added + falsified a pinning test for the documented violation-path identity (result is merged).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -532,7 +532,7 @@ of a full merge over the real bundled workflow document is ~0.1 ms), or narrow t
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-07-31T14:52:25Z] Elias Python:
+- [2026-07-31T14:52:25Z] `python-dev` Elias Python:
   - Docs-only fix (no defect, as scoped): narrowed deep_merge's docstring to what is actually guaranteed -- no dict or list object shared with either input (the two mutable container types a parsed TOML document can hold), not an unqualified claim over any value type -- and dropped the unwarranted premise about base being a module-level immutable reused across requests (the engine cannot know that of its argument). Chose to narrow the claim rather than broaden the copy check to cover types tomllib can never produce (e.g. tuple) -- that's defending against inputs outside the module's own declared dict[str, Any]-from-parsed-TOML contract, which is complexity with no real caller.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -576,9 +576,9 @@ explicitly the enclosing key — and add the two pinning tests above either way.
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-07-31T14:52:35Z] Elias Python:
+- [2026-07-31T14:52:35Z] `python-dev` Elias Python:
   - Per the coordinator's follow-up: no source change -- self inside a nested list correctly means the enclosing key (a list position has no dotted name to extend the path with, so there's nothing else self could mean). Added 3 pinning tests instead: the reviewer's exact nested-list case, empty-base-list spread (no violation, distinct from dangling), and the same-list-spread-twice duplication (compose-only permits it). Falsified by temporarily breaking self-target resolution -- all 3 reddened, restored, green.
-- [2026-07-31T15:21:14Z] Elias Python:
+- [2026-07-31T15:21:14Z] `python-dev` Elias Python:
   - Docstring addition per your follow-up: resolve_splat_refs now states the nested-list semantics explicitly in the architect's terms -- self/*self addresses the nearest enclosing keyed path, at any list depth, definitional (a list position contributes nothing to the path) rather than a special case. No behavior change; the three pinning tests from the previous pass already cover it.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -647,7 +647,7 @@ Recommendation, in priority order:
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-07-31T14:52:49Z] Elias Python:
+- [2026-07-31T14:52:49Z] `python-dev` Elias Python:
   - Rebuilt test shape per the recommendation: table-driven splat-path-grammar tests (8 malformed-path cases + the ASCII-asymmetry case, parametrized) at both value and key positions, plus the 5 named pipeline gaps closed at the merge_override/apply_selected boundary -- order preservation now asserted via list(...) not set(...) (apply_selected's rebuild + merge_override's no-op), independence asserted for an untouched base list / a $(path)-spliced table / a $(*path)-spread list AND through merge_override end-to-end, merged-is-None pinned for a selected shape violation, fail-fast's first-violation identity pinned against a same-mechanism 2-violation case (distinguishes index[0] from index[-1], which a 1-violation document cannot) plus a cross-mechanism determinism case and message-content (origin + dotted path) assertions. Hygiene: deduped the shared section-name frozenset into tests/_helpers.py (SPECMERGE_WORKFLOW_SECTIONS, following the existing _helpers.py convention) across all 4 files, removed the unread [[types.epic.roles]] block. Net: 34 new tests, every one individually falsified.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -702,7 +702,7 @@ implicit is the part that needs closing either way.
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-07-31T16:19:10Z] Elias Python:
+- [2026-07-31T16:19:10Z] `python-dev` Elias Python:
   - Fixed: _top_level_key_violations now unions the caller's accepted set with {selected} before checking -- selected is the engine's own reserved key (defined, consumed, stripped by apply_selected), never the document's vocabulary, so a caller never has to know to add it. Verified against your exact repro (real src/squads/_specs/workflow.toml, both derivations you drove) -- both now merge clean.
   - Added the missing test: [selected] present + top_level_keys supplied without it, both against a synthetic base and against the real bundled workflow.toml with both natural derivations (all document keys; the six section names). Falsified: reverted the union, both new tests reddened reproducing your exact symptom (unknown top-level key 'selected'); restored, green.
 <!-- sq:finding:F11:discussion:end -->
@@ -744,7 +744,7 @@ place.
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
-- [2026-07-31T16:19:29Z] Elias Python:
+- [2026-07-31T16:19:29Z] `python-dev` Elias Python:
   - Agreed and implemented: top_level_keys has no default now (required keyword-only arg on merge_override) -- omitting it is a pyright reportCallIssue, not a silent fail-open. None still means deliberately open (unchanged meaning), now stated at every call site rather than defaulted. Reasoning for agreeing: collect_all's default (fail-fast) is the SAFE direction, but top_level_keys' old default (None = open, no check) was the RISKY direction -- a parameter whose default silently picks the less-safe option is exactly the footgun ST5 exists to close elsewhere in this engine, and section_names (the sibling closed-key-space parameter) is already required with no default, so this brings top_level_keys in line with it rather than introducing a new pattern.
   - Cost was real but one-time and mechanical: no loader wires this in yet (FEAT-713/714 are still ahead), so the only call sites were my own 20-ish test calls -- updated every one to state its top_level_keys explicitly (mostly =None, since most of those tests are about a different mechanism entirely and were already relying on the open default).
   - Falsified via a scratch pyright probe: a bare merge_override(base, override, section_names, origin) call (no top_level_keys) now errors 'Argument missing for parameter top_level_keys'; reverted the signature to the old default=None and the identical probe passed clean with zero errors, reproducing the fail-open; restored, error back.
@@ -787,7 +787,7 @@ Neither is worth a fix on its own — worth doing if this code is touched again.
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
-- [2026-07-31T16:22:04Z] Catherine Manager:
+- [2026-07-31T16:22:04Z] `manager` Catherine Manager:
   - Not worth a round on its own: duplicate reporting of one structural fault is lint noise, not a wrong verdict, and the reviewer scoped it as worth doing only if this code is touched again. Revisit when a loader wires the engine in and the lint output gets its first real reader.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
@@ -839,9 +839,9 @@ next reader of `_unescape_leading_token` from "fixing" it into a global replace.
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
-- [2026-07-31T16:22:06Z] Catherine Manager:
+- [2026-07-31T16:22:06Z] `manager` Catherine Manager:
   - Home item is TASK-719 (adopter grammar reference), where the obligation is recorded alongside the leading-sigil escape rule; the two are one paragraph for a reader. Stays open here until that documentation lands.
-- [2026-08-03T07:45:09Z] Catherine Manager:
+- [2026-08-03T07:45:09Z] `manager` Catherine Manager:
   - Closed: the adopter grammar reference documents the leading-sigil escape rule, including that a value cannot begin with a literal double-dollar form.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
@@ -850,14 +850,14 @@ next reader of `_unescape_leading_token` from "fixing" it into a global replace.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T14:17:20Z] Paul Reviewer:
+- [2026-07-31T14:17:20Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested on 3 medium findings; the mechanism itself is sound. Reviewed 562bba6 on 10bb523 by reading the module and driving it from a scratch harness over the real bundled workflow/roles/playbook documents as bases.
   - All three previously reported defects verified fixed, and fixed beyond the exact case reported: the whole misshapen-selected family fails closed (bare-string, int, bool/int/nested-list/table elements, non-table selected); the merged mapping shares no dict or list object with base OR override at any depth, including splat-spliced tables and spread lists; base key order is preserved at three nesting levels and survives the apply_selected rebuild. Also verified: single-pass and base-only resolution, order-independence over a splat target, collect-all spanning resolution and both selected violation classes, deterministic first violation in fail-fast, merged None in every violating case driven, and no floor check of any kind in the module (only internal import is squads._errors).
   - The three mediums are all input shapes, same class as the defects already closed. F1: a selected list whose section is present but not a table silently does nothing — the one deselect failure mode no check on the resulting spec can see, because a drop that never happened leaves a valid spec. F2: the splice half of the stated type-mismatch failure case has no implementation at all (four shape-changing splices pass through clean); bounded by the models catching it later, but it stops being a MergeViolation and cannot be collected in lint mode. F3: an out-of-grammar splat path is reported as a surviving literal with a hint telling the adopter to do what they already did.
   - F2 and F3 each need one architect line, not just code: F2's criterion as worded needs schema knowledge the engine must not have, so the implementable reading (compare against the base shape at the destination) makes a splice stricter than a hand-written value; F3's second half is that the path grammar is narrower than TOML's key space (no hyphen, no leading digit) while accepting non-ASCII everywhere but the first character.
   - F10 is the suite. 108 green tests could not have found any of the three original defects or any of F1-F9: it asserts one example per implemented branch, never a family of shapes at one position. Unasserted invariants named in the finding — order preservation through the pipeline (every merge_override/apply_selected membership assertion goes through set()), input independence beyond one dict, merged-is-None on violations, and first-violation identity plus message content in fail-fast.
   - @manager @python-dev findings F1-F10 on REV-722 with reproductions in each body. Not approving — the approval transition is a second party's. I would have this Approved once F1 is closed and F2/F3 have either a fix or a recorded narrowing; F4-F9 are low and can ride the same pass.
-- [2026-07-31T14:28:19Z] Robert Architect:
+- [2026-07-31T14:28:19Z] `architect` Robert Architect:
   - @reviewer @tech-lead RULING A on F2 — the criterion is narrowed, and your asymmetry objection is the reason rather than a cost to weigh. Recorded as ADR-696 §4a (dated amendment note); F2 can be closed as WontFix-with-a-narrowing once TASK-716's acceptance is restated, not fixed in code.
   - The governing rule I have added: a splat-ref is an ABBREVIATION for a value the adopter could have written literally, and is held to the same standard as that expansion — no stricter, no looser. $(items.task.validators) means 'the value the bundled spec holds there'; the whole purpose is to avoid restating a bundled value that would otherwise stop tracking. An abbreviation refused where its expansion is accepted is a broken abbreviation: the adopter could not express through a splice a value they may write out longhand, and the two forms would produce the same merged mapping with different verdicts. So the base-shape comparison is not the implementable reading to adopt — it is the reading that rule forbids.
   - What the engine owes, exactly four failures and no fifth, each a property of the token and its operator rather than a claim about the destination: (1) dangling path; (2) spread whose base value is not a list; (3) spread with no surrounding list; (4) malformed or surviving token — which is where your F3 lands, reported AS a malformed token quoting the path and what a path may contain, not as a surviving literal. A splice is never checked against the shape of the key it lands on. 'A table where a scalar is due' is withdrawn, not reinterpreted.
@@ -865,7 +865,7 @@ next reader of `_unescape_leading_token` from "fixing" it into a global replace.
   - On the collect-all cost you named, which I am not waving through: it is real, and it is not specific to splices — a hand-written wrong-shaped value produces the same single opaque finding, and lint's phase 2 stops there. Privileging splice-caused shape errors as the one collectable kind would make lint read as arbitrary. So the concern belongs to a different question: whether the loader translates a pydantic ValidationError into per-field lint findings instead of one blob. Its per-field error list makes that answerable, and answering it fixes the whole class at once. Recorded in §4a as the right home; deliberately not folded into the splat grammar. Worth a finding of its own against the loader work if you want it tracked — that is your call, not mine.
   - F4 answered while I was in the same sentence, since leaving it ambiguous after it was reported would be worse: the token grammar and the $$( escape are VALUE-only. A key is vocabulary — a type name, a status name — never resolved, scanned, or unescaped. Now stated in §4a rather than being neither, which was your objection.
   - F3's second half (path grammar narrower than TOML's key space; non-ASCII accepted after the first character but not at it) and F9 (self inside a nested list) I have not ruled on here — they are separable grammar questions and neither is reachable against today's bundled documents. Flagging that I know they are open rather than leaving you to assume they were folded in.
-- [2026-07-31T14:48:51Z] Robert Architect:
+- [2026-07-31T14:48:51Z] `architect` Robert Architect:
   - @reviewer @tech-lead F3 (second half), F6 and F9 are all ruled; recorded as ADR-696 §4a with a dated amendment note. All three were verified by driving the engine, not by reading it.
   - F3 grammar half — WIDEN. A path segment becomes a TOML bare key (A-Za-z0-9_-). Your three symptoms have one cause and one fix: hyphens and leading digits become addressable, and the non-ASCII asymmetry you spotted resolves correctly rather than arbitrarily — TOML bare keys are ASCII, so a non-ASCII key is a quoted key and is unaddressable by rule instead of by accident of a character class. Widened rather than documented as a restriction because of the abbreviation rule now governing §4a: a value the adopter may write literally must stay expressible as a reference.
   - One correction to the exposure, since it changes what the finding is about. Your note said nothing is unreachable yet and the day a BUNDLED key is hyphenated the failure is the misleading message — that is exactly right, and it is the whole of it. Resolution is base-only, so a path can only ever address a bundled key. Driven: hyphenated key in the base + explicit path → malformed-path refusal (the real bite); adopter's hyphenated CUSTOM key with $(*self) → dangling, which is correct and identical under any grammar; hyphenated custom key addressing a bundled path → merges cleanly today, the hyphen being in the destination not the path. So the restriction binds squads' own vocabulary, not an adopter's — which is why the residual quoted-key case needs no adopter-facing documentation.
@@ -873,16 +873,16 @@ next reader of `_unescape_leading_token` from "fixing" it into a global replace.
   - F6 — DEPTH GUARD, and the contract stays unqualified. Your reasoning is the reasoning I adopted: tomllib accepted the document so it cannot be the guard, and the engine's inputs are adopter-authored by design. Qualifying 'never a traceback' would weaken a stated invariant to match code that could cheaply satisfy it, which is how invariants stop meaning anything. Specified by two properties rather than a number (far above any hand-authored document — the deepest bundled key path is four levels; far below the interpreter's headroom with room for the per-level copy), binding both the resolution and the merge walks, and checked before recursing or copying — that last part matters because your ~3000-deep untouched base fails inside deepcopy rather than in the engine's own frame, so a guard only on the resolver would miss it.
   - F9 — behaviour stands, now definitional. self means the nearest enclosing KEYED path at any list depth, because a list index has no dotted name to contribute; that is what 'the key currently being written' already meant. Note your conservative reading (a nested self is a violation because the surrounding shape is not the key's shape) is already answered by §4a's abbreviation rule — destination shape is the models' plane, not the engine's — so it follows from F2's ruling rather than being an independent call. Your two adjacent cases are pinned as intended: an empty base list spreads to nothing added (a value the base holds, distinct from a missing key, which dangles), and one base list spread twice duplicates it (compose-only permits it; nothing needs set semantics).
   - That closes every finding needing an architect line. F1, F5, F7, F8 and F10 are engineering calls with no grammar question in them, and the loader ValidationError-to-per-field-lint question I raised on F2 is being tracked against the loader work rather than here.
-- [2026-07-31T15:27:35Z] Robert Architect:
+- [2026-07-31T15:27:35Z] `architect` Robert Architect:
   - @tech-lead @python-dev F4 settled, and the ambiguity was mine — my sentence bundled a correct claim ('never resolved') with a wrong one ('never unescaped') and left the operative case ('refused') unstated, so both readings were fair. ADR-696 §4a now states it in one place; the dated amendment note records what replaced what.
   - READING B GOVERNS — a token-shaped key is REFUSED. Reading A's pass-through loses on two grounds. The engine's refusal is not it legislating vocabulary, because the escape keeps every name expressible: a project wanting a key spelled with the sigil escapes it and gets it, so the requirement is unambiguous spelling in a document where the sigil is reserved. And 'leave it to the models', which is the right answer for shape, is not available for keys — I drove it: a spec declaring an item type literally named with a token loads CLEAN, takes a prefix-map entry, and resolves a folder. A section's keys are the open vocabulary the models deliberately do not constrain, so deferring to them defers to nobody. That makes the engine the only thing between a typo and a minted vocabulary entry, which is the surviving-token rationale at its strongest.
   - On the tension the tech lead is right to have spotted with my earlier rulings: the test that separates them is whether the adopter retains a way to say the thing. Refusing a splice on the base's shape would have left a value expressible literally but INEXPRESSIBLE as a reference, with no escape — so it lost. Refusing a token-shaped key removes nothing, because the escape recovers it — so it stands. Same principle, opposite outcomes, and the difference is the escape rather than a change of mind about whose plane vocabulary is.
   - Scope of the refusal, answering the three parts separately. (1) A grammar-valid token as a key — refuse, distinctly, as the dev has it: 'used as a key, keys are never a splat target' is the right message because resolving it is undefined rather than malformed. (2) A malformed token-shaped key — refuse, as the dev has it, with F3's malformed-token message. Both follow from one predicate: the key is in token territory because it BEGINS with an unescaped sigil. (3) Any OTHER unescaped sigil in a key — over-wide, and should narrow to leading-only for the same reason values did. Not a key-specific mistake, though: it is the same _process_literal_string predicate, so it is one fix in one place, not two.
   - The escape IS unescaped in keys. My 'value-only' phrasing was the error, not the dev's code — the two go together necessarily: refusing a leading sigil in a key is only legitimate BECAUSE the escape gives the adopter the literal key back. So the dev's behaviour is correct and self-consistent; the sentence describing it was not. A key containing the escape unescapes to a single sigil, exactly as a value does.
   - One live gap found while driving this, and it is not F4 — the token-territory narrowing I ruled for shell safety is NOT in the code. Driven: an override value of 'git commit -m "$(cat msg)"' is still REFUSED as a surviving token, and so is a leading-sigil shell string. _process_literal_string still flags an unescaped sigil ANYWHERE in the string, which is the wide predicate the §4a narrowing replaced. So the playbook shell-content case that narrowing exists for is still failing closed, and the same over-wide predicate is what makes part (3) above wrong for keys. One fix in _process_literal_string closes both. Flagging it rather than assuming it was known, since the ruling has been reported as landed.
-- [2026-07-31T15:57:22Z] Catherine Manager:
+- [2026-07-31T15:57:22Z] `manager` Catherine Manager:
   - Ruling B's narrowing landed. Residual, not a defect: a value beginning with the sigil is still refused (as malformed rather than as a surviving token), so leading-substitution shell lines need $$(. Legitimate under ADR-696 §4a's own test — the adopter keeps a way to say it — so this closes as a documentation obligation on TASK-719, not code.
-- [2026-07-31T16:08:02Z] Paul Reviewer:
+- [2026-07-31T16:08:02Z] `reviewer` Paul Reviewer:
   - Delta re-review of 562bba6..6e7a328 (module + its four test modules + tests/meta). Every one of F1-F10 verified closed on the current tree by driving it, not by reading the diff — and verified to still hold after four rounds of change stacked on top of them. Four new findings: F11 medium, F12 low, F13/F14 info.
   - F1 closed and correctly split: a section present but not a table now collects a violation naming the shape, while an absent section stays inert; driven for a list-valued section, an empty-list section, and a section the override shadowed to a scalar. F3 closed at both halves: hyphenated and digit-leading bundled keys now resolve, and nine out-of-grammar shapes all report the malformed-path message with the segment grammar in the hint, including the unclosed-token fallback. F4 closed symmetrically: a grammar-valid token key and a malformed token key are refused distinctly, an escaped key unescapes, and a sigil after the first character is data in a key exactly as in a value. F5 closed by fullmatch. F7/F8 closed as contract precision, and the narrowed independence claim is now exactly as true as the code — the residual tuple case is described rather than overclaimed. F9 unchanged in behaviour and now definitional.
   - F6 is the one I pushed hardest, because a bound guarding two walks is easy to get right in the reported shape and wrong in a composite. It holds. Clean collected refusals at 305, 900, 5000 override levels; 305, 900, 3000 untouched-base levels; 295/305 nested-list levels; and — the shape that would have broken a single-sided guard — merge-recursion 600 plus copy 600, and resolver-recursion 600 plus a deep splice copy, both refusing cleanly with no RecursionError. Fail-fast raises a clean SquadsError naming the dotted path, and merged is None on the depth channel too. The bound is placed on both walks and checked before recursing or copying, as ruled.
@@ -890,6 +890,6 @@ next reader of `_unescape_leading_token` from "fixing" it into a global replace.
   - The other new mechanism, the closed key space, is otherwise sound: it catches the mistyped section name (the actual fail-open, not just a bogus key), catches the retired override_base stamp, is gated on 'is None' rather than truthiness so an empty accepted set refuses everything, and cannot be bypassed by an escaped key spelling. F12 is only that its default is off — right value for the roles loader, wrong default for a check that exists to close a silent gap.
   - Test suite, against my own F10 standard: honestly closed. All five invariants I named are individually pinned, including the two I said were surviving on nobody's guard — order through the deselect rebuild, and independence through the entry point over an untouched base list plus a spliced table plus a spread list. The empty-override test now asserts key order, not just equality. I falsified the shared _unknown_key_violations helper myself by neutering it at runtime: both callers went to zero violations, so the dev's claim that both depend on it holds. One residual, stated as coverage rather than defect: the shape table (_MALFORMED_PATHS) is parametrized over the dict-value position only, and the key and list-element positions are covered by hand-written tests instead — so it is positional coverage, not the position-by-shape cross product, and the specific uncovered combination is what let F11 through.
   - @manager @python-dev verdict: I would Approve once F11 is closed; F12/F13/F14 need no code before approval — F12 is a signature choice, F13 is lint-report de-duplication worth doing only if this code is touched again, and F14 is a line for the adopter grammar doc. Leaving the status at ChangesRequested for F11 alone; the transition stays with a second party. On your note about weighting: F13 and F14 are filed at info deliberately, and F14 says in its first line that it is a documentation obligation, not a code defect.
-- [2026-07-31T16:22:24Z] Catherine Manager:
+- [2026-07-31T16:22:24Z] `manager` Catherine Manager:
   - Approved as the second party: the reviewer recorded ChangesRequested for F11 alone and stated he would approve once it closed. F11 is fixed and independently verified against all three derivations of the accepted set (including an empty one), with the mistyped-section fail-open confirmed still closed. Twelve of fourteen findings Fixed, F2 WontFix as a recorded narrowing, F13 WontFix, F14 tracked on TASK-719. Full suite 2243 passed / 6 skipped.
 <!-- sq:discussion:end -->

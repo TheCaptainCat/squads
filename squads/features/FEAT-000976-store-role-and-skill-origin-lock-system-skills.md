@@ -105,24 +105,24 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-29T14:30:18Z] Pierre Chat:
+- [2026-09-29T14:30:18Z] `op-pierre` Pierre Chat:
   - A project-overridden bundled role keeps origin "system": origin records where it came from. Drop the claim from role catalog's docstring.
-- [2026-10-09T15:35:22Z] Nina Product:
+- [2026-10-09T15:35:22Z] `product-owner` Nina Product:
   - 2026-10-09 readiness pass: folded in the origin-stays-system ruling (already in body and US1), the comment/comments carve-out, and the role catalog value change bundled to system. Reconciled the refusal with origin: the refusal follows the existing body-refusal classification (the code already documents that a dropped-view system skill becomes writable while staying template-owned), origin is the label. Moved to Ready.
-- [2026-10-09T18:13:12Z] Pierre Chat:
+- [2026-10-09T18:13:12Z] `op-pierre` Pierre Chat:
   - 2026-10-09: confirmed as written. A system skill whose view the project dropped is writable again and still shows origin system: origin is provenance, the refusal follows whether the body is generated.
-- [2026-10-09T18:43:30Z] Nina Product:
+- [2026-10-09T18:43:30Z] `product-owner` Nina Product:
   - 2026-10-09 per ADR-984: migration and origin stamping now read a role carrying extra.tech as system and a declared developer (dev capability) as project; body, US1 and US2 updated. Still Ready.
-- [2026-10-12T06:32:11Z] Nina Product:
+- [2026-10-12T06:32:11Z] `product-owner` Nina Product:
   - 2026-10-12: build order: origin stamping is a contribution to the existing 0.15 to 0.16 step; constraint and story 2 say so.
-- [2026-10-16T19:21:17Z] Olivia Lead:
+- [2026-10-16T19:21:17Z] `tech-lead` Olivia Lead:
   - @manager two points from the breakdown into TASK-1069 (Draft, depends-on TASK-990).
     
     1. Origin looks derivable, not stored. The rule the migration stamps by is a pure function of data that already exists: a role is `system` when its slug is in the bundled catalog or it carries `tech`; a skill is `system` exactly when `is_system_skill(slug, spec)` holds. Creation stamps would call the same rule, so stored equals derived at creation and after migration. `sq role catalog` must derive it anyway for definitions that have no item. Storing it adds a pinned attribute, a closed-vocabulary check rule, stamps on about six creation paths, a migration contribution and repair round-trip tests. It only buys a different answer when a later spec or bundled catalog changes membership (a project type dropped after its `sq-<type>` skill was made; a future bundled role sharing a project role's slug). Deriving would fix the disagreement the feature describes with one function every surface calls. TASK-1069 is built so ST2, ST3 and ST5 drop out if the ruling is "derive"; ST1, ST4 and ST6 stand either way. The operator confirmed "stored" on 2026-10-09, so this needs a ruling, not a quiet change.
     2. US3 lists `status` and `rm` among the refused verbs. `sq role <slug> status Archived` and `sq skill <slug> status Archived` are the help-text examples and today the only way to retire a bundled role or skill. Refusing them removes that path. Proposal: treat lifecycle (`status`, `rm`) as not content-changing, like `comment`; refuse `update`, `body` and view edits. ST6 waits on the ruling for those two verbs.
-- [2026-10-16T19:31:29Z] Pierre Chat:
+- [2026-10-16T19:31:29Z] `op-pierre` Pierre Chat:
   - 2026-10-16: origin stays stored, as confirmed on 2026-10-09; it is a fixed record of where the entity came from. TASK-1069 keeps ST2, ST3 and ST5.
   - 2026-10-16: status and rm stay allowed on system roles and skills, like comment; only update, body and view edits are refused. US3 to be amended accordingly.
-- [2026-10-16T19:32:00Z] Nina Product:
+- [2026-10-16T19:32:00Z] `product-owner` Nina Product:
   - 2026-10-16: US3 amended per op-pierre ruling: status and rm stay allowed on system roles and skills; only update, body and view edits are refused.
 <!-- sq:discussion:end -->

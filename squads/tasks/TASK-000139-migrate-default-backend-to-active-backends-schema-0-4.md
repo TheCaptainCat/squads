@@ -74,7 +74,7 @@ Bump SCHEMA_VERSION 0.3→0.4, add _v0_3_to_v0_4 runner (default_backend→activ
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-16T12:27:21Z] Elias Python:
+- [2026-06-16T12:27:21Z] `python-dev` Elias Python:
   - Implemented TASK-139 (schema 0.3→0.4 migration) per ADR-141.
   - SCHEMA_VERSION bumped 0.3→0.4 in _models/_schema.py.
   - New runner _migrations/_v0_3_to_v0_4.py: rewrites .squads.toml only, mapping default_backend='X'→active_backends=['X']; missing/empty default_backend→['claude_code'] (ADR-141 §1 — never silently orphan a CLAUDE.md; empty is reachable only by deliberate operator intent, not migration). Idempotent: if active_backends already present, leaves it untouched.
@@ -82,8 +82,8 @@ Bump SCHEMA_VERSION 0.3→0.4, add _v0_3_to_v0_4 runner (default_backend→activ
   - Corpus fixture: v0_3 kept with singular default_backend (runner is non-vacuous — REV-130 lesson); v0_4 added with active_backends=['claude_code'] and schema_version='0.4'. Added ('0.4','v0_4') to _CORPUS_CASES in test_migration_corpus.py. Added minimal CLAUDE.md/.claude/settings.json stubs to all corpus fixtures so the new backend-present check passes (ADR-141 §4).
   - Full gate: 808 passed, 1 skipped. Pyright 0 errors. Ruff clean.
   - @reviewer ready for review. @qa please verify corpus migration runs and check passes.
-- [2026-06-16T12:32:04Z] Elias Python:
+- [2026-06-16T12:32:04Z] `python-dev` Elias Python:
   - TASK-139 final state: corpus migration now fully non-vacuous. v0_3 fixture retains default_backend='claude_code' (triggers the 0.3→0.4 runner). v0_4 fixture has active_backends=['claude_code']. All corpus test cases pass. Gate: 821 passed, 1 skipped.
-- [2026-06-16T12:43:45Z] Catherine Manager:
+- [2026-06-16T12:43:45Z] `manager` Catherine Manager:
   - Cancelled per op-pierre (2026-06-16): we stay on schema 0.3 — no 0.4 bump, no migration. The active_backends change folds into the in-development 0.3 schema via the config's transparent legacy default_backend read (delivered in TASK-140), so this migration task is void.
 <!-- sq:discussion:end -->

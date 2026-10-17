@@ -425,7 +425,7 @@ silently, which is the default.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T18:50:20Z] Robert Architect:
+- [2026-10-15T18:50:20Z] `architect` Robert Architect:
   - Drafted from the operator's rulings of 2026-10-15 on MILE-934 (flatten `extra`, ship it in 0.16, the core/declared/unknown shape, and the no-silent-removal guarantee). @manager, five points need the operator's call:
     
     1. **Override grammar break.** `extra_fields` becomes an `[items.<type>.attributes]` table with a declared `kind`. An adopter override that still uses the old key is refused at load, with a message naming the replacement. There is no alias. Accept the break, or ask for a one-release alias.
@@ -435,9 +435,9 @@ silently, which is the default.
     5. **Optional typo check** (section 11). The operator can accept or decline an opt-in `frontmatter_key_undeclared` catalog-only check, at warn. It reports and never rewrites.
     
     Also: `--json` item rows lose `extra` and gain flat keys. This narrows ADR-427's additive-only rule for this release, and the canary changes ride with FEAT-980's. 15 ADRs need a dated note, listed under Consequences. I did not touch them. Probe evidence: in a scratch squad on 0.15, a hand-added top-level key is invisible to `sq check` and `--json`, and the next write erases it. Every roster slug in this corpus matches its file name (25/25).
-- [2026-10-15T18:50:30Z] Robert Architect:
+- [2026-10-15T18:50:30Z] `architect` Robert Architect:
   - Correction to the count above: 16 ADRs need a dated note (the list under Consequences), not 15.
-- [2026-10-15T19:07:58Z] Pierre Chat:
+- [2026-10-15T19:07:58Z] `op-pierre` Pierre Chat:
   - 2026-10-15, on the five points of this record:
     
     1. An override still using `extra_fields` is refused at load, naming the replacement. No alias.
@@ -445,15 +445,15 @@ silently, which is the default.
     3. `tech` stays a declared role attribute, per ADR-984.
     4. The operator's `full_name` folds into `title`.
     5. The opt-in `frontmatter_key_undeclared` check is in: catalog-only, warn, reports and never rewrites. The default stays silent.
-- [2026-10-15T19:09:11Z] Robert Architect:
+- [2026-10-15T19:09:11Z] `architect` Robert Architect:
   - 2026-10-15: body updated to state the five rulings of op-pierre (2026-10-15T19:07:58Z) as decisions: extra_fields refused with no alias (decision 4, Rejected), build order (decision 9, also commented on MILE-934), tech kept (decision 8, Rejected), full_name folded into title (decision 8), frontmatter_key_undeclared as an opt-in catalog-only warn check (decision 11). Status left as is. @manager
-- [2026-10-15T20:11:50Z] Pierre Chat:
+- [2026-10-15T20:11:50Z] `op-pierre` Pierre Chat:
   - 2026-10-15: accepted.
-- [2026-10-15T20:17:27Z] Robert Architect:
+- [2026-10-15T20:17:27Z] `architect` Robert Architect:
   - @manager Dated notes are added for all 16 ADRs listed in the Consequences, each as "Note 2026-10-15 (ADR-1007)" at the affected passage, and each has a related ref back to this record: ADR-085 (section 5 naming contract), ADR-221 (the to_extra bridge, section 1), ADR-323 (section 6 storage), ADR-348 (section 4), ADR-427 (section 2 consumer contract), ADR-474 (the "additive superset" consequence), ADR-663 (the round-trip normalisation paragraph), ADR-754 (decision 2), ADR-766 (section 6), ADR-775 (A3), ADR-776 (amendment 2(d)), ADR-971 (decision 1), ADR-979 (the sq repair bullet, plus the operator-name lookup), ADR-981 (decision 1), ADR-983 (section 3), ADR-984 (decision 4).
     None was skipped: on reading, each one names an extra key, the extra container or the additive-only JSON rule at the passage noted. ADR-492, ADR-697 and ADR-753 got nothing, as this record says.
     Every diff against HEAD is additions only, apart from the updated_at the body verb stamps. No status changed, no stray content tags, and sq check is clean.
     One reading to confirm: the ADR-979 note says a lookup of an operator by title after the flattening gives the name extra.full_name held. That is inferred from decision 9 and holds only if the comment-header rewrite runs after the flattening step in the 0.16 runner.
-- [2026-10-16T16:14:44Z] Pierre Chat:
+- [2026-10-16T16:14:44Z] `op-pierre` Pierre Chat:
   - 2026-10-16: accepted that frontmatter values are kept as JSON-representable values: YAML-only types are normalized on write (an unquoted date becomes a string of the same value; a non-string mapping key becomes a string key). Record it as a dated note on decision 5.
 <!-- sq:discussion:end -->

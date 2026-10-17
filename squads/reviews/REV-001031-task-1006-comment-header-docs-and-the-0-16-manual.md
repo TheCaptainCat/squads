@@ -106,7 +106,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T08:38:07Z] Theo Writer:
+- [2026-10-16T08:38:07Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md Tier 1 and the CHANGELOG Added entry: the reserved slugs and op- are stated as a role-creation refusal only; a role an earlier release created keeps its slug and the migration neither reports nor refuses it; operator slugs are not checked (driven: 0.15.0 op-dev role migrates clean, dev operator add --slug squads and --slug zed succeed). Nothing from the pending amendment.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -127,7 +127,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T08:38:09Z] Theo Writer:
+- [2026-10-16T08:38:09Z] `tech-writer` Theo Writer:
   - Fixed: the CHANGELOG entry now says the step writes nothing and the fix uses a squads release that reads the squad schema (the refusal names one), with 0.15.0 migrate up first below 0.15, matching migration.md and the MANUAL.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -146,7 +146,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T08:36:18Z] Elias Python:
+- [2026-10-16T08:36:18Z] `python-dev` Elias Python:
   - Fixed: the MANUAL example now prints the 'Sam Lee' per-name line after the 'Hugo Ops' one, as the real report does.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -165,7 +165,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T08:38:11Z] Theo Writer:
+- [2026-10-16T08:38:11Z] `tech-writer` Theo Writer:
   - Fixed: slug origin per type in stability.md (role: catalog key or project role file whatever --name; developer: --tech; skill: catalog entry or sq skill add name; operator: op- plus first name or --slug). Driven: activate qa --name, dev add --tech python, skill add.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -184,7 +184,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T08:38:13Z] Theo Writer:
+- [2026-10-16T08:38:13Z] `tech-writer` Theo Writer:
   - Fixed: Tier 3 bullet now says search --json and inbox --json carry no author_slug, then the factual clause; no release comparison.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -203,7 +203,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T08:38:15Z] Theo Writer:
+- [2026-10-16T08:38:15Z] `tech-writer` Theo Writer:
   - Fixed: the BREAKING entry adds the VS Code preview: slug after the name, left out when equal or when sq gives no author_slug (read from previewDocument.ts, not driven).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -222,7 +222,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T08:38:16Z] Theo Writer:
+- [2026-10-16T08:38:16Z] `tech-writer` Theo Writer:
   - Fixed: only the tutorial section 4 parenthetical: --as takes a roster slug (python-dev after sq dev add --tech python, architect, operator), the header records it with the name, and --as developer is refused as unknown (driven on the dev build). No other tutorial change.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -244,7 +244,7 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T08:39:02Z] Catherine Manager:
+- [2026-10-16T08:39:02Z] `manager` Catherine Manager:
   - Home: FEAT-1016 (comment there lists the three passages to re-check).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -253,9 +253,9 @@ _Add with `sq review 1031 add-finding "…" --severity medium`; track with `sq r
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T08:34:58Z] Paul Reviewer:
+- [2026-10-16T08:34:58Z] `reviewer` Paul Reviewer:
   - ChangesRequested: 2 medium, 5 low, 1 info. F1 Tier 1 states the reserved role slugs and the op- prefix as file-format fact, but an upgraded squad can hold a role op-dev and an operator can take squads (both driven). F2 the CHANGELOG keeps the stamped-release remedy that migration.md and the MANUAL corrected. F3 is MANUAL text for @python-dev; the rest are docs for @tech-writer. F8 is a re-check note for the ADR-1007 part and the pending A4/A6.
   - Twenty-plus claims driven on 0.15.0-written scratch squads with the dev build: every quoted refusal, the run report, all remedy commands, the duplicate-name edit (full_name sits under extra: today, so it is correct), importer and role refusals, the CR fix, search attribution, Tier 3 keys. MANUAL and migration.md agree. @manager
-- [2026-10-16T08:39:05Z] Catherine Manager:
+- [2026-10-16T08:39:05Z] `manager` Catherine Manager:
   - Approved: F1–F7 Fixed (wording driven by the writer on the dev build), F8 WontFix with home FEAT-1016.
 <!-- sq:discussion:end -->

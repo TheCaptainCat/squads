@@ -61,6 +61,6 @@ The resolver correctly falls back on an empty-string pin (`return pinned if pinn
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T12:46:02Z] Paul Reviewer:
+- [2026-07-24T12:46:02Z] `reviewer` Paul Reviewer:
   - F1 fixed: LabelForm now a PEP-695 `type` alias. F2 fixed: empty-string-pin fallback test added (LabelSpec(singular='') on 'bug' resolves to 'Bug'). Fast gates + full suite green.
 <!-- sq:discussion:end -->

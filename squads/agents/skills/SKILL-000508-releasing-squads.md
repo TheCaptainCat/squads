@@ -3,6 +3,7 @@ id: SKILL-508
 sequence_id: 508
 type: skill
 title: Releasing squads
+slug: releasing-squads
 status: Active
 author: releasing-squads
 refs:
@@ -13,12 +14,9 @@ description: 'The team''s runbook for cutting a squads release: gates, prep, and
   the release (the operator publishes).'
 created_at: '2026-07-20T12:32:09Z'
 updated_at: '2026-08-26T09:06:52Z'
-extra:
-  slug: releasing-squads
-  description: 'The team''s runbook for cutting a squads release: gates, prep, and
-    drafting the release (the operator publishes).'
-  when_to_use: When preparing or cutting a squads release.
-  allowed_tools: ''
+when_to_use: When preparing or cutting a squads release.
+allowed_tools: ''
+origin: project
 ---
 <!-- sq:body -->
 # Releasing squads

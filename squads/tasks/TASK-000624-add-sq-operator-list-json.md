@@ -67,6 +67,6 @@ _Add with `sq task 624 add-subtask "<title>"`; track with `sq task 624 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T08:27:31Z] Elias Python:
+- [2026-07-23T08:27:31Z] `python-dev` Elias Python:
   - Added `sq operator list` (+ --json), CLI-only over the existing list_operators(). --json field set matches operator show --json (id/slug/full_name/status). Golden: tests/goldens/operator_list.json. Gates green, sq check clean.
 <!-- sq:discussion:end -->

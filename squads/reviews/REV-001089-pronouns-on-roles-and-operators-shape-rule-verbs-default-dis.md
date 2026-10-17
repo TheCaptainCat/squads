@@ -74,7 +74,7 @@ Tests: the display parser and `display_config_valid` have no tests yet, apart fr
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-17T03:04:09Z] Elias Python:
+- [2026-10-17T03:04:09Z] `python-dev` Elias Python:
   - Fixed. A stamp now splices the [display] text (or top-level display lines) from the file as read, so a default, a bad value, an unknown key, comments inside the table and its separating blank line survive byte for byte; to_toml no longer writes the table. New tests: parser, display_config_valid, stamp byte-compare and a second-stamp no-op over 11 contents. Reverting to the rebuilt table turns 9 tests red.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -93,7 +93,7 @@ Smaller point: the 40-character limit counts raw code points. `subentity_title_m
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-17T03:04:11Z] Elias Python:
+- [2026-10-17T03:04:11Z] `python-dev` Elias Python:
   - Fixed. Cf is rejected and the 40-character count is taken after NFC. Rows added to the unit, stored, check and verb tables. Dropping Cf turns 27 tests red; counting raw code points turns 7 red.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -108,7 +108,7 @@ Smaller point: the 40-character limit counts raw code points. `subentity_title_m
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-17T03:04:13Z] Elias Python:
+- [2026-10-17T03:04:13Z] `python-dev` Elias Python:
   - Fixed. The config before-validator drops any incoming display_problems key; the problems are derived from display only. Letting the file set it turns 1 test red.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -123,7 +123,7 @@ Smaller point: the 40-character limit counts raw code points. `subentity_title_m
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-17T03:04:15Z] Elias Python:
+- [2026-10-17T03:04:15Z] `python-dev` Elias Python:
   - Fixed. The fallback is now sq role <addr> update --pronouns, tested with and without a slug. Reverting it turns 1 test red.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -145,7 +145,7 @@ Possible fixes: check the spliced result with `tomllib.loads` and keep the origi
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-17T03:10:54Z] Catherine Manager:
+- [2026-10-17T03:10:54Z] `manager` Catherine Manager:
   - Folded into BUG-1090: a real TOML round-trip of .squads.toml fixes both shapes.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -154,10 +154,10 @@ Possible fixes: check the spliced result with `tomllib.loads` and keep the origi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-17T02:48:46Z] Paul Reviewer:
+- [2026-10-17T02:48:46Z] `reviewer` Paul Reviewer:
   - Changes requested: two medium findings (F1 the config stamp drops [display] values without a report, F2 the shape rule admits bidi and zero-width format characters) and two low (F3, F4). ST1 to ST4 are otherwise sound; see the body for what was checked.
   - @python-dev fix F1 to F4 on TASK-1071; F1 belongs with ST6 tests. @manager the older loss of comments and unknown keys in .squads.toml on every sync is not this task; it should get its own item.
-- [2026-10-17T03:10:27Z] Paul Reviewer:
+- [2026-10-17T03:10:27Z] `reviewer` Paul Reviewer:
   - Re-review of the final checkpoint (committed as 2deeb34d): F1 to F4 Verified by running them. Every [display] shape now survives a stamp byte for byte: a default, a bad value, an unknown key, inline, dotted, comments and a missing final newline. A second stamp changes nothing. Cf characters are refused, length is counted after NFC, and display_problems can no longer be set from the file.
   - The [display] table moving below [init.names] is acceptable: what it means is unchanged, and the reorder comes from rebuilding the whole file, which is BUG-1090. New finding F5 (low): the line splice misreads a multi-line string inside [display] (sync then writes a file sq cannot load) and a quoted ["display"] header (dropped).
   - Sound: the pin, since a merge override need not restate pronouns and the operator type cannot be dropped, so only a spec built whole by hand restates it; ST5 generated files carry pronouns whatever [display] says, as FEAT-961 rules; ST7 escaping, the unset case and the dim style on role, operator and dev list/show, the creation messages and the sq ui tree; comment headers carry no pronouns. @manager I recommend Approved, with F5 fixed here or folded into BUG-1090.

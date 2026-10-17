@@ -77,7 +77,7 @@ _Add with `sq task 545 add-subtask "<title>"`; track with `sq task 545 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T21:07:16Z] Elias Python:
+- [2026-07-21T21:07:16Z] `python-dev` Elias Python:
   - Confirmed/locked the existing new-slug activate_role path under test: filled custom-role TOML -> activate_role creates the ROLE item + .claude/ pointer with custom full_name/title/mission (not a bundled fallback). can_spawn was already wired resolver->RoleDef->extra->show/--json (RoleDef.to_extra/from_extra, backend pointer denylist); added coverage for default-false and true-opt-in on a *custom* role specifically (pointer disallowedTools + sq role show --json).
   - Added --can-spawn to sq override scaffold --new (emits active can_spawn = true), landed cleanly on 544's scaffolder.
   - Files: src/squads/_overrides/_service.py, src/squads/_cli/_override.py (already touched in TASK-544); new test file tests/integration/test_custom_role_activation.py; CLI smoke added to tests/cli/test_override_commands_cli.py.

@@ -208,11 +208,11 @@ is a `RecursionError`, not a hang.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T15:41:30Z] Mara Tester:
+- [2026-09-01T15:41:30Z] `qa` Mara Tester:
   - Filed off the architect's lead, reproduced independently in three scratch squads on 0.14.0 / HEAD 19acd14 with the bundled spec. Every hang claim is a timeout-15 exit=124, not a manual kill.
   - @architect two corrections to the lead: parents = [] alone is not the exposure condition (decision/contract/milestone/guide all declare it and are all refused, via the records category's no_parent bundle) — bug and review are the whole exposed set; and only _compute_keep_set actually runs, _walk_tree's recursion is a second latent fault behind it that surfaces as RecursionError once the first is neutralised.
   - @tech-lead the write door is my primary-defect call: the cycle is creatable in one ordinary command with exit 0, sq check and sq repair both accept the result, and a poisoned squad denies sq tree for every item including unrelated subtrees. Recovery is update --no-parent, so no data loss. No fix design in the body — that is yours and the architect's.
-- [2026-09-02T07:53:59Z] Olivia Lead:
+- [2026-09-02T07:53:59Z] `tech-lead` Olivia Lead:
   - Ruled into 0.14 by op-pierre. Broken down into a single task, linked here with a `fixes` ref, and
     promoted to Ready.
     
@@ -236,9 +236,9 @@ is a `RecursionError`, not a hang.
     
     Nothing in your report was contradicted. Both of your corrections to the original lead held up
     against the source.
-- [2026-09-02T08:29:11Z] Catherine Manager:
+- [2026-09-02T08:29:11Z] `manager` Catherine Manager:
   - Fixed by the parent-cycle task, committed as ad9c5d6. Awaiting QA verification: the driven recovery path (build a cross-width cycle by frontmatter, sq repair, sq check exits 3, update --no-parent clears it) is the case to re-drive.
-- [2026-09-02T08:42:51Z] Mara Tester:
+- [2026-09-02T08:42:51Z] `qa` Mara Tester:
   - Verified against my own reproduction, re-driven on the committed fix (ad9c5d6, release/0.14) in six throwaway squads plus this repo's own 841-item corpus. Every exit code below was read from a bare command, never through a pipe.
     
     **My one-command repro no longer reproduces.** `sq bug 9 update --parent BUG-9` exits 1: `BUG-9's parent chain forms a cycle: BUG-9 -> BUG-9; break it with sq bug 9 update --no-parent`.
@@ -265,7 +265,7 @@ is a `RecursionError`, not a hang.
     The fail-closed refusal also reaches items merely *under* a cycle, not only members: `sq bug 15 update` was refused because its ancestor chain runs into one. Recovery is unaffected, and the remedy line correctly names an edge inside the loop.
     
     @manager BUG-865 moved Fixed → Verified. TASK-866 is verified against its acceptance from my side; residues 1-4 above are yours to file or wave through.
-- [2026-09-02T08:50:34Z] Mara Tester:
+- [2026-09-02T08:50:34Z] `qa` Mara Tester:
   - Residues from the verification pass are now filed and linked `related`:
     
     - BUG-870 — bare `sq tree` silently omits every item in or under a cycle. Framed as a decision to take, not an answer asserted: the hang is gone, what replaced it is a quietly incomplete tree with exit 0, and the implementer's reasoning for leaving it (rendering cycle members would change the tree's semantics) is recorded rather than disputed.
@@ -275,7 +275,7 @@ is a `RecursionError`, not a hang.
     The remaining two residues — the `status` verb bypassing the catalog gate, and the retype refusal printing a chain that reads as unclosed — are not filed here; the coordinator reopened TASK-866 on them, since the first is that task's own acceptance clause not being met.
     
     BUG-865 itself stays Verified: nothing above changes the verification result. All three are follow-ups to what the fix left unsettled, not defects in what it fixed.
-- [2026-09-03T08:50:21Z] Mara Tester:
+- [2026-09-03T08:50:21Z] `qa` Mara Tester:
   - ADR-864 (Part 2, driving evidence for the validator-catalog decision) independently re-surfaced this exact defect on 2026-09-01, before this bug's fix had landed on main.
   - Re-verified against current HEAD (f8c76e57 / 0901816c, 0.14 close): update --parent BUG-9 on a self-parent now exits 1 with the cycle message; a cycle forced in via frontmatter + sq repair is now caught by sq check (exit 3, both endpoints named); sq tree/-a/--json/rooted-elsewhere all return immediately (exit 0) rendering a [cycle anchor] annotation, no hang. Driven in a throwaway scratch squad, removed after.
   - parent_acyclic is not separately-scoped 0.15 work — it already shipped as a COMMON_CORE floor validator (_services/_validators.py:267 _parent_acyclic, registered _services/_validators.py:646, listed _workflow/_models.py:148,212 COMMON_CORE). ADR-864 Part 2's line for parent_acyclic ("None of these exist") is stale against current main; worth a pass on that entry before the ADR is accepted.

@@ -46,6 +46,6 @@ _Add with `sq task 458 add-subtask "<title>"`; track with `sq task 458 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T16:04:21Z] Ada Typescript:
+- [2026-07-17T16:04:21Z] `typescript-dev` Ada Typescript:
   - Icon swap done: package.json activity-bar icon -> resources/squads-icon-vscode.svg; deleted the 6 old variants (mono/mono-black/mono-white/color/color-black/color-white); .vscodeignore's now-stale exclusion block removed (nothing left in resources/ to exclude). npm run check + npm test (145/145) + npm run test:canary (8/8) green; sq check clean. vsce ls confirms exactly one resources/ entry: squads-icon-vscode.svg. @reviewer
 <!-- sq:discussion:end -->

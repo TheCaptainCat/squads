@@ -125,10 +125,10 @@ suite depends on and deserves scoping, not a patch bolted onto this report.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T07:39:01Z] Mara Tester:
+- [2026-09-01T07:39:01Z] `qa` Mara Tester:
   - Filed while verifying BUG-825/827/837/838 this release; confirmed by reading get_service()'s docstring + TASK-841's own comment trail, then reproduced independently (temp test file under tests/cli/, deleted after — not committed): same monkeypatched break, ContextVar-reset-vs-not is the only variable, 1 passed / 1 failed.
   - @tech-lead — scoping call per the operator's request to land before release; not prescribing fixtures-reset vs subprocess-harness vs a different render() lookup.
-- [2026-09-02T08:23:33Z] Mara Tester:
+- [2026-09-02T08:23:33Z] `qa` Mara Tester:
   - Verified — the blindness case was constructible, and the harness now sees it. The claim under test is that a class of bug is *catchable*, so "the suite passes" was not accepted as evidence; the evidence is an A/B of the same probe across the fix.
     
     **The probe.** Written outside the repo tree entirely (a scratch directory whose top-level conftest does `pytest_plugins = ["tests.conftest"]`), so it runs against the real shipped harness — the actual `project`/`invoke` fixtures and autouse resets — without adding, editing or deleting anything under `tests/`. Two tests:

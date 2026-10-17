@@ -107,12 +107,12 @@ scopes ref kind + service resolver: for role R, union skills_for_role(R) with sk
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T09:45:35Z] Elias Python:
+- [2026-07-20T09:45:35Z] `python-dev` Elias Python:
   - Files: _models/_item.py (VALID_REF_KINDS += scopes); _services/_base.py (resolved_skills_for_role resolver + _role_skills_map + refresh_managed wiring); _services/_maintenance.py (sync() computes role_skills once, persists extra.skills via _refresh_role_skills_extra, builds a role-scoped BackendContext for generate_role_entry); _backends/_base.py (BackendContext.role_skills + resolved_skills_for() fallback); _backends/_claude_code/_backend.py + _backends/_agents_md/_backend.py (generate_role_entry consumes ctx.resolved_skills_for instead of calling skills_for_role directly); agents_md/role_entry.md.j2 (renders the Skills list so the second-backend consistency is testable).
   - Resolver: skills_for_role(slug) unioned with backrefs(role.id) filtered to the scopes kind (ref_id_matches + split_ref), mapped to skill slugs, deduped system-first then lexical-scoped-tail. Carrier: BackendContext.role_skills: dict[slug, list[str]], with resolved_skills_for(slug) falling back to the pure skills_for_role when the map has no entry for that slug (bare/pre-resolver ctx sites, e.g. activate_role/add_dev) — no behaviour change with zero scope edges.
   - Gates: pyright + ruff check/format clean; tests/meta -q: 23 passed; targeted -k 'skill or scope or role or backend or sync': 274 passed; sq check clean (pre-existing 'managed files at 0.10.0' banner confirmed present before this task's changes via git stash). No ticket IDs in the diff.
   - @manager ready for review.
-- [2026-07-20T09:54:44Z] Elias Python:
+- [2026-07-20T09:54:44Z] `python-dev` Elias Python:
   - F1 fixed: _services/_base.py — split resolved_skills_for_role into a pure _resolve_role_skills(slug, role, db) core (no I/O) plus a thin standalone wrapper that loads the index once. _role_skills_map now loads the index once and builds every role's resolved list from that single db snapshot (mirrors _skill_paths's single-load shape) instead of calling resolved_skills_for_role per role — sync goes from 1+2N index parses to 2 total (one in _role_skills_map, one earlier in the ensure_scaffold pass). resolved_skills_for_role(slug) still works standalone (e.g. for the future link-hook path) with one load, not two.
   - Output unchanged: system-first, sorted scoped tail, kind-filtered — same tests pass unmodified.
   - Gates: pyright clean, ruff check/format clean, tests/meta -q: 23 passed, tests -k 'scope or role or backend or sync' -q: 231 passed, sq check clean.

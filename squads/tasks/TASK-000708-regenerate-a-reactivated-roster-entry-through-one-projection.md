@@ -158,7 +158,7 @@ Reactivation currently writes a pointer missing every skill the role holds throu
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-31T10:42:46Z] Elias Python:
+- [2026-07-31T10:42:46Z] `python-dev` Elias Python:
   - Extracted one helper, _project_roster_item(item, ctx), that owns the materialise-or-withdraw predicate + backend dispatch; both _project_roster_transition (base.py) and sync's roster sweep (maintenance.py) call it with a ctx whose role_skills came from one _role_skills_map() index read. Neither caller reconstructs the predicate or the context separately anymore.
   - F1 root cause confirmed: _project_roster_transition previously built ctx = self._ctx (empty role_skills), so ctx.resolved_skills_for() fell back to system-only skills, dropping every scopes-derived skill on reactivate. Fixed by resolving _role_skills_map() before the single-item projection call, same as sync already did.
   - Kept the managed-region recompile (refresh_managed/write_managed) as a separate call from the per-item helper, not folded into it: sync still recomputes/writes the region once for the whole sweep (not once per item), preserving the one-index-read-per-sync shape; the single-item transition path still ends with its own refresh_managed() call, unchanged.

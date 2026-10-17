@@ -91,7 +91,7 @@ _Add with `sq task 589 add-subtask "<title>"`; track with `sq task 589 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T12:35:29Z] Elias Python:
+- [2026-07-22T12:35:29Z] `python-dev` Elias Python:
   - Confirmed FEAT-570 owns _tui/_tree.py's 3-way records-root grouping; left it untouched (still 2-way roster/work via item_is_roster, correct as-is pending 570).
   - Reclassified every non-roster call site to the precise question: item_is_roster stays roster-vs-not everywhere (already precise); work_types() was universally the non-roster/creatable meaning at every genuine call site (sq create registration, retype/rename eligibility, playbook coverage, TUI search/filter), so renamed WorkflowSpec.work_types()/module wrapper -> non_roster_types() rather than adding an unused narrow is-work split (no site needed it).
   - sq check byte-identical; full suite green; is_meta literal + _meta_compat.py untouched.

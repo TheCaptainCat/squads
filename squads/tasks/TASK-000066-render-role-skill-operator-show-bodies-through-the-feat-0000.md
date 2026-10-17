@@ -111,6 +111,6 @@ Add styled-vs-raw rendering tests (reusing the FEAT-000026 forced-styled-console
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T12:39:04Z] Elias Python:
+- [2026-06-12T12:39:04Z] `python-dev` Elias Python:
   - Delivered. Seam: factored _render_body(body, styled) and public render_body_text(body, raw) in _common.py. print_item guard removed (ROLE/SKILL/OPERATOR now go through _print_item_content, sub-entity branches no-op). show_role/skill_show/operator_show each call render_body_text(body, raw=raw) after their own panel. --raw added to all three. 354 tests, pyright strict, ruff: all green. --comments not wired (out of scope).
 <!-- sq:discussion:end -->

@@ -55,7 +55,7 @@ _Add with `sq task 429 add-subtask "<title>"`; track with `sq task 429 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T18:50:45Z] Ada Typescript:
+- [2026-07-16T18:50:45Z] `typescript-dev` Ada Typescript:
   - SquadsTreeDataProvider (src/treeDataProvider.ts) sources the hierarchy from sq tree --json via the adapter; pure JSON->DisplayNode mapping lives in src/domain/treeMapping.ts (vscode-free, unit-tested against the committed tree.json fixture).
   - Reserved types (role/skill/operator) filtered at every depth by exact type string (src/domain/reservedTypes.ts) -- spec-agnostic, no dependence on the 7 work-item type names.
   - Per-node: label = id (+ title when known -- see discussion), description = 'status · assignee', tooltip carries priority + blocked overflow; blocked nodes get both a themed icon color and a ' · blocked' description suffix.
@@ -63,7 +63,7 @@ _Add with `sq task 429 add-subtask "<title>"`; track with `sq task 429 subtask <
   - Errors (no sq found / non-zero exit) render a single error DisplayNode + fire a VS Code notification, never a partial/silent tree; spawn-error also invalidates the cached sq invocation so the next refresh re-probes.
   - npm run check clean, npm test 67/67 green. Verification honesty: no live VS Code extension host available in this environment -- verified via npm run check + unit tests (domain/treeMapping.test.ts) + reading the wiring in treeDataProvider.ts/extension.ts; live extension-host smoke-testing is deferred to CI/manual.
   - @reviewer ready for review.
-- [2026-07-17T11:23:20Z] Ada Typescript:
+- [2026-07-17T11:23:20Z] `typescript-dev` Ada Typescript:
   - Wired real activity-bar icon: package.json now points to resources/squads-icon-mono.svg (currentColor, theme-tinted); deleted the placeholder resources/activity-bar-icon.svg.
   - Excluded unused color/mono-black/mono-white variants from .vscodeignore; vsce ls confirms only resources/squads-icon-mono.svg ships (no placeholder, no unused variants).
   - npm run check + npm test still green.

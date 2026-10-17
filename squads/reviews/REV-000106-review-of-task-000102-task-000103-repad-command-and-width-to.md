@@ -56,7 +56,7 @@ SUGGESTED FIX: compute missing_ids by sequence number, not full-ID string — mi
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-14T22:06:11Z] Paul Reviewer:
+- [2026-06-14T22:06:11Z] `reviewer` Paul Reviewer:
   - Verified. repair() now keys the missing-file comparison by sequence_id (previous_seq_to_id: dict[int,str], found_seqs: set[int]), mirroring _check_reconciliation. Reproduced the original symptom is gone: ran the regression test against a deliberately-reverted F1 (old previous_ids/found_ids string sets) and it FAILED with missing_ids=['BUG-0000004','FEAT-0000002','ROLE-0000001','TASK-0000003'] — the whole corpus; with the fix in place missing_ids == [].
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -75,7 +75,7 @@ SUGGESTED FIX: base = format_item_id(item_type.prefix, seq, new_padding); new_na
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-06-14T22:06:12Z] Paul Reviewer:
+- [2026-06-14T22:06:12Z] `reviewer` Paul Reviewer:
   - Verified. repad() builds the new filename via format_item_id(item_type.prefix, seq, new_padding) at _maintenance.py:260; the f'{seq:0{new_padding}d}' straggler is gone. Grep across src/ confirms the only :0Nd run is inside format_item_id itself (_item.py:26, the canonical formatter).
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -94,7 +94,7 @@ SUGGESTED FIX: extend the e2e test (or add one) that calls svc.repair() after re
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-06-14T22:06:12Z] Paul Reviewer:
+- [2026-06-14T22:06:12Z] `reviewer` Paul Reviewer:
   - Verified. test_repair_after_repad_no_spurious_missing (tests/test_service.py:1042) builds a feat/task/bug squad with a fixes-ref, repads to width 7, then calls repair() and asserts rr.missing_ids == []. Confirmed empirically it fails against the F1 bug and passes with the fix — it genuinely guards the broken path (check() is seq-keyed and stayed clean, which is what let F1 through originally).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -103,10 +103,10 @@ SUGGESTED FIX: extend the e2e test (or add one) that calls svc.repair() after re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-14T21:57:33Z] Paul Reviewer:
+- [2026-06-14T21:57:33Z] `reviewer` Paul Reviewer:
   - VERDICT: ChangesRequested. One medium regression (F1) blocks; two low findings (F2 convention, F3 test gap) ride along. The width-tolerant reading design is correct and well-centralised — seq_for_id, _id_matches((prefix,seq)), _propagate_padding, and the seq-keyed check reconciliation all hold up, cross-type false positives are guarded and tested (test_index.py:257), and Invariant 4 is intact (no inverted edges persisted; id_padding never serialises — confirmed in goldens + committed index). The F1/F3 fold-ins from REV-105 landed correctly (renumber threads db.padding; the repair padding guard collapsed to a single max()). The repad command, byte-untouched contents, and refuse-to-lower are all correct and tested.
   - WHAT BLOCKS: F1 — after repad, 'sq repair' reports EVERY item as a spurious missing-file warning, because repair()'s previous_ids (built from store.load() items, now carrying id_padding=new-width via _propagate_padding) are compared as full-ID strings against found_ids built from from_frontmatter (old-width). This is the one id-string-equality-across-widths site TASK-103 missed; fix is to compare by sequence_id like _check_reconciliation already does. sq check stays clean (seq-keyed), which is why the e2e test (F3) didn't catch it.
   - @python-dev — please fix F1 (medium, lands in TASK-103's _propagate_padding/repair seam), F2 (low, TASK-102: route repad's width through format_item_id), and F3 (low, TASK-103: extend the e2e test to assert repair().missing_ids == [] post-repad). All three are small. Gate is currently green (578 passed/1 skipped, pyright+ruff clean) but the F1 regression is latent behind output the e2e test doesn't assert on.
-- [2026-06-14T22:06:18Z] Paul Reviewer:
+- [2026-06-14T22:06:18Z] `reviewer` Paul Reviewer:
   - APPROVED. Focused verification pass complete: all three findings (F1 medium/blocking, F2 low, F3 test) verified and closed. Full gate green on the uncommitted working tree: 579 passed, 1 skipped; pyright 0 errors; ruff check + format clean. F1's original symptom empirically confirmed gone (regression test fails against a reverted fix, passes with it). No regressions introduced. TASK-102 and TASK-103 ready to merge.
 <!-- sq:discussion:end -->

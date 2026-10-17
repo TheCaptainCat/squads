@@ -40,6 +40,6 @@ _Add with `sq task 608 add-subtask "<title>"`; track with `sq task 608 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T16:20:55Z] Elias Python:
+- [2026-07-22T16:20:55Z] `python-dev` Elias Python:
   - Landed: Plane-1 checks in WorkflowSpec._validate — every explicit status.role must name a declared role, every role.color must be in the closed {positive,danger,warning,muted,neutral,info} palette. Old 'terminal status not in status set' belt-check removed (terminal is gone). Covered by test_workflow_spec_models_fail_closed_on_unknown_keys.py plus the many hand-built WorkflowSpec fixtures across tests/unit + tests/service now carrying a roles catalog.
 <!-- sq:discussion:end -->

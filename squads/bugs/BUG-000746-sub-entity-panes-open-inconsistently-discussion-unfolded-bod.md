@@ -30,12 +30,12 @@ Earlier in this release op-pierre saw the expanded panes and accepted them as sh
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-20T18:42:23Z] Pierre Chat:
+- [2026-08-20T18:42:23Z] `op-pierre` Pierre Chat:
   - On open the sub-entity body is folded but the discussions are not. Both should be.
-- [2026-08-20T18:50:26Z] Ada Typescript:
+- [2026-08-20T18:50:26Z] `typescript-dev` Ada Typescript:
   - Fixed: gave the discussion its own tracked fold id (subEntityDiscussionFoldId = `${local_id}:discussion`), not just dropped `open`.
   - Chose the tracked-identity route over the minimal drop: a minimal fix would still leave the two folds disagreeing across a same-item refresh (body remembers, discussion always re-collapses) — same defect class one step out. With its own key, distinct from the body's plain local_id, both folds now agree on first open and on refresh.
   - Files: clients/vscode/src/domain/previewDocument.ts (subEntityDiscussionFoldId, buildSubEntityDiscussionHtml, buildSubEntityHtml, buildSubEntitiesHtml), clients/vscode/src/itemPreviewManager.ts (prune set now includes each entity's discussion fold id), clients/vscode/test/previewDocument.test.ts (3 new/updated tests). Falsified: reverted the source only, watched the 3 new tests redden, restored, watched them go green (615/615).
-- [2026-08-20T19:27:02Z] Pierre Chat:
+- [2026-08-20T19:27:02Z] `op-pierre` Pierre Chat:
   - Checked in the dev host. Sub-entity panes open fully collapsed now, body and discussion agreeing. Approved.
 <!-- sq:discussion:end -->

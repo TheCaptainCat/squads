@@ -881,10 +881,10 @@ after the stamp. No item is passed over by it.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T09:17:00Z] Pierre Chat:
+- [2026-09-15T09:17:00Z] `op-pierre` Pierre Chat:
   - Accepted. The reconcile licence stands as ruled: vocabulary-blind, content-neutral, convergent,
     with sq repair unexempted and the licensed reconcile running as migrate up's own pre-pass.
-- [2026-10-09T19:36:36Z] Robert Architect:
+- [2026-10-09T19:36:36Z] `architect` Robert Architect:
   - 2026-10-09: amended in place, on the operator's direction recorded on TASK-954. Thirteen dated notes at the passages concerned and a closing **Amendments** section (A1 to A7). The diff against HEAD is additions only in the body; `related` refs to ADR-663 and ADR-76 added; status untouched.
     
     **Amendment, not a new decision.** Every ruling's headline survives: the licence, no exemption for `sq repair`, the pre-pass inside `migrate up`, the remedy rule. What moved is two stale premises, the reach of one ruling, and obligations derived from the record's own clauses. A superseding decision would restate the licence to change nothing in it, and a supersedes edge for clause-level corrections is what board notice 7 rules out.
@@ -907,9 +907,9 @@ after the stamp. No item is passed over by it.
     **Evidence.** Driven by me in scratch squads (dev build at 9a00ddb4; corpora made by the current package and hand-stamped 0.14, 0.11, 0.8 or 0.99): every index-state stop, the file the index lacks, a value ahead of the index, a hand-edited status, the three writing verbs behind, `repad` and `rename-status` ahead, both override refusals, malformed frontmatter against undecodable bytes, the ahead squad with an override conflict, the custom-type override with its two controls. Read-only over the eleven corpus fixtures: no `sequence_id` in `v0_1` or `v0_2`, and no fixture index refused by the cross-check under the bundled spec. Read: the gate, the `migrate` commands, `run_pending_migrations`, `repair`, `repad`, the rename services, the store, every runner module. Taken from the tech lead and not re-driven: the bypass-built service failing one layer down (I read the mechanism), an index that is JSON but fails the model, an entry whose file is gone.
     
     @manager for the operator's read before TASK-954 is promoted. What the subtasks must change is on TASK-954.
-- [2026-10-09T20:16:20Z] Pierre Chat:
+- [2026-10-09T20:16:20Z] `op-pierre` Pierre Chat:
   - 2026-10-09: the amendments of this date are confirmed, including the two that change what an adopter can do: A1 (only migrate up, help and chlog run on a squad whose schema differs from the package) and A4 (migrate up refuses rather than stamps past an item file it cannot index).
-- [2026-10-11T22:18:54Z] Robert Architect:
+- [2026-10-11T22:18:54Z] `architect` Robert Architect:
   - 2026-10-12: amended in place a second time, on REV-995 findings 7, 9 and 12. Five dated notes (at clause 1 of the licence, at the reconcile's obligations, under A2, under A4, under the 2026-10-09 obligations) and a closing section **Amendments — 2026-10-12** with A8 to A10. The diff is additions only in the body; status untouched.
     
     **The rule (A8).** A file is the squad's item only where the squad keeps items of that prefix. A location is a directory and a prefix, known from the previous index (the path each entry records) or declared by the run's resolved vocabulary. Nothing outside a location's directory is opened, indexed, reported, counted or written to, and the tree is no longer walked. The measure is the trailing `repair`: the reconcile's idea of the squad's files is `repair`'s, with the previous index standing in for what the vocabulary does not declare.
@@ -927,13 +927,13 @@ after the stamp. No item is passed over by it.
     **Evidence.** Nothing was driven for this ruling. My probe script ran in the repository instead of a scratch squad and was stopped; the coordinator repaired the board. Every claim is marked read (the routine, its call site, `repair`'s scan, alignment refusal and duplicate-id reader) or taken from REV-995, and the amendment names each row the developer still owes as proof: the no-index state beside a stray file, a file with another type's prefix inside a type's folder, the id-less file, a same-id copy under any name in a type's folder, and the two pipeline invariants.
     
     @manager for the operator's confirmation. What the code and tests must change is on TASK-954.
-- [2026-10-12T05:16:13Z] Pierre Chat:
+- [2026-10-12T05:16:13Z] `op-pierre` Pierre Chat:
   - 2026-10-12, on the amendments of this date:
     
     - A8: not confirmed as written. The routine stays strictly blind: its locations come from the previous index only, and no declared folder or prefix is handed to it. With no readable index it recognises every item-shaped file in the tree.
     - A9 follows A8 as corrected.
     - A10: confirmed. Two ids sharing one number stop the run, with the number, both ids and both paths named and the renumber by hand spelled out.
-- [2026-10-12T05:21:58Z] Robert Architect:
+- [2026-10-12T05:21:58Z] `architect` Robert Architect:
   - 2026-10-12: corrected in place to carry the operator's decision of this date. A8's second source (declared folder and prefix handed to the routine) is withdrawn; clause 1 of the licence stands as first written. Eight dated notes mark the sentences that no longer hold (two at the licence and the reconcile's obligations, one under A2, three in A8, one in A9, one at the obligations list) and a new section A11 states what replaces them. The original A8 and A9 text is left readable; A10 is untouched. Additions only in the body.
     
     **The rule now.** With a readable previous index, a location is the directory and file-name prefix of an entry's recorded path, and nothing else. With no readable index the tree is walked and every file with an item's name and a well-formed `id` is recognised.
@@ -951,7 +951,7 @@ after the stamp. No item is passed over by it.
     **Evidence.** All of A11 is read, none driven; the rows owed are listed at its end and on TASK-954.
     
     @manager for the operator. What flips in the built code and rows is on TASK-954.
-- [2026-10-12T06:23:28Z] Robert Architect:
+- [2026-10-12T06:23:28Z] `architect` Robert Architect:
   - 2026-10-12: one dated note added at A11, on REV-995 finding 17 (a type prefix the routine's name pattern does not match). Additions only in the body.
     
     **Ruled.** With an index the routine uses the spelling each entry records, so any prefix a squad actually used is recognised and no pattern is involved. With no index the tree walk keeps one shape, widened to letters, digits and underscores. The invariant of A11 does not rest on that shape: the check before the first runner lists files by each declared prefix exactly as declared, so an item the walk misses is refused before any runner and never stamped past.

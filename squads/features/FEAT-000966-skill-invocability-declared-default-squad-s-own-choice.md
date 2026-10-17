@@ -213,13 +213,13 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-28T18:06:06Z] Pierre Chat:
+- [2026-09-28T18:06:06Z] `op-pierre` Pierre Chat:
   - Defaults confirmed: greeting is hidden too. Not user-invocable: every sq-<type>, squads, sq-memory, greeting. releasing-squads and author-defined skills stay invocable.
-- [2026-09-28T18:08:20Z] Pierre Chat:
+- [2026-09-28T18:08:20Z] `op-pierre` Pierre Chat:
   - Correction: releasing-squads is this repo's own authored skill, not a bundled one. The rule is that every bundled skill is not user-invocable and every author-defined skill stays invocable.
-- [2026-10-09T15:35:46Z] Nina Product:
+- [2026-10-09T15:35:46Z] `product-owner` Nina Product:
   - 2026-10-09 readiness pass: stays Draft. Pierre's rule (every bundled skill hidden, every author-defined skill invocable; greeting included) is already in body and stories; US1 now names the bundled set and the sq- prefix trap. Missing, owed by @architect: where the per-skill user-invocable property is declared and how a project overrides it. No bundled skill is declared in any spec (read: bundled_skill_slugs is code, sq-type skills derive from the playbook, no per-skill customization surface exists), so US3 cannot be tested as written and the spec/override half of the Outcome has nowhere to live. Related: FEAT-976 stores origin on every skill; whether the default should resolve from that field (system hidden, project visible) is part of the same ruling.
-- [2026-10-09T18:28:20Z] Robert Architect:
+- [2026-10-09T18:28:20Z] `architect` Robert Architect:
   - @product-owner Ruled in ADR-983 (Proposed, for op-pierre).
     
     **Ruling.** There is no per-skill declaration to find a home for: the default is derived from the stored `origin` (`system` resolves to not invocable, `project` to invocable), so nothing is stored for it and no spec key exists. A project's exception, in either direction, is one optional boolean on the skill item, `extra.operator_invocable`, set through `sq skill add` and `sq skill <addr> update` and allowed on a system skill. The engine property is named `operator_invocable`; `user-invocable` is the Claude Code backend's spelling and appears only in its pointer template.
@@ -238,7 +238,7 @@ Acceptance:
     - FEAT-977 US1 and US4 say `update` on a system skill exits 1. They need the one exemption from ADR-983 clause 3, on the same footing as comments and pronouns. Not edited by me.
     
     **For op-pierre to weigh.** Reading `origin` for this default makes origin an input to one behaviour, where the write refusal deliberately does not read it. A system skill whose view the project dropped is writable again and still hidden by default. If a system skill should never be shown, clause 3 shrinks to project skills only and the exemption above disappears.
-- [2026-10-09T18:46:38Z] Robert Architect:
+- [2026-10-09T18:46:38Z] `architect` Robert Architect:
   - @product-owner ADR-983 was rewritten on op-pierre's rulings of 2026-10-09 (its discussion) and retitled. It is still Proposed. This replaces my earlier change list where the two differ.
     
     **Ruling now.** `operator_invocable` is an attribute of the skill. A bundled skill's default is declared in its bundled definition, in code beside its description: `false` for the three always-on skills and for every `sq-<type>` skill. An author-defined skill defaults to invocable. A squad's own value is stored in the skill's frontmatter (`extra.operator_invocable`) and only a verb writes it, so a release can change a bundled default without touching a squad's choice. Resolution is the stored value, else the declared default.
@@ -263,8 +263,8 @@ Acceptance:
     - Refs: `depends-on` FEAT-977 (it introduces `sq skill update`), `implements` ADR-983.
     - FEAT-977 US1 and US4 still need the one exemption for this option on a system skill. Not edited by me.
     - Implementation hazard for the task: the generic `--set` boolean coercion turns any unrecognised text into `false` (read: `_models/_metadata.py::coerce`). This option must not go through it.
-- [2026-10-09T19:18:25Z] Nina Product:
+- [2026-10-09T19:18:25Z] `product-owner` Nina Product:
   - 2026-10-09 aligned with ADR-983 (Accepted) and the architect's second list: operator_invocable as a declared default plus stored choice, origin not read; US1-US5 rewritten with testable acceptance (guard, three render sites agree, three-valued option, AGENTS.md silent, clean after sq sync, preload to be seen on a real host); new US6 for the read surfaces; refs depends-on FEAT-977 and implements ADR-983, FEAT-976 stays a plain ref. Moved to Ready.
-- [2026-10-16T19:58:52Z] Olivia Lead:
+- [2026-10-16T19:58:52Z] `tech-lead` Olivia Lead:
   - Task TASK-1072 (Draft) carries the breakdown; dependencies in its body.
 <!-- sq:discussion:end -->

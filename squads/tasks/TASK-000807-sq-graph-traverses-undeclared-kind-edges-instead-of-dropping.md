@@ -187,10 +187,10 @@ docstring covers the null case, and one test holds the four surfaces in agreemen
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-25T16:00:37Z] Olivia Lead:
+- [2026-08-25T16:00:37Z] `tech-lead` Olivia Lead:
   - Scoped from ADR-775 A3 closing clause. Parented to FEAT-790 and mapped to US2 - the graph traversal filter is engine behaviour keyed on the declared set, and US2 is where edge_semantic lands. Kept separate from TASK-806 by A3 own routing: 806 stops a stale spelling being created, this stops an edge already carrying one from vanishing. Neither subsumes the other.
   - One trap I found by reading that A3 does not mention, written into ST1: _TraversalCtx.kinds is doing two jobs. graph() sets effective_kinds = declared_kinds when no --kind is passed, so at the traversal site "not requested" and "not declared" are the same frozenset. The single "if kind not in ctx.kinds: continue" is therefore both the legitimate --kind filter and the defect. Removing it outright passes the new case and silently breaks --kind filtering, so both halves need a test.
-- [2026-08-25T20:42:30Z] Elias Python:
+- [2026-08-25T20:42:30Z] `python-dev` Elias Python:
   - Separated the two jobs _TraversalCtx.kinds conflated: renamed to requested_kinds: frozenset[str] | None. None (no --kind) means no filter at all — every edge traverses, declared or not; a caller-supplied set is still the same gate as before (unknown kinds refused up front in graph()).
   - The two gate lines in _out_neighbours/_in_neighbours became 'if ctx.requested_kinds is not None and kind not in ctx.requested_kinds: continue' — the declared vocabulary is now consulted only in _edge_semantic (already null-safe for an undeclared kind via spec.ref_kinds.get) and never gates visibility.
   - Extended the GraphNode/edge_semantic and --json docstrings per ST2: null now documented as covering both a navigational kind and an undeclared one, distinguishable only via edge_kind's stored spelling.

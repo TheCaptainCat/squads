@@ -55,9 +55,9 @@ Compare: unlinking *before* the index write (inside the transaction) gives the s
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-15T09:15:14Z] Elias Python:
+- [2026-06-15T09:15:14Z] `python-dev` Elias Python:
   - Moved path.unlink() to inside the transaction body, before del db.items[seq]. The safe failure direction is now: crash leaves file-gone / index-still-has-entry → repair drops the dangling entry. Added test_remove_unlink_happens_before_index_commit_no_resurrection: patches IndexStore._atomic_write to raise, asserts the .md is already gone after the exception, then restores and runs repair to confirm no resurrection.
-- [2026-06-15T09:20:09Z] Paul Reviewer:
+- [2026-06-15T09:20:09Z] `reviewer` Paul Reviewer:
   - Verified. path.unlink(missing_ok=True) now runs inside the transaction body (_items.py:288), before del db.items[seq] (line 289) and before the commit's _atomic_write. Failure direction is now safe: a crash at commit leaves file-gone / index-still-present, and repair drops the dangling entry rather than re-adopting a surviving .md.
   - Test test_remove_unlink_happens_before_index_commit_no_resurrection is sound, not vacuous: it patches IndexStore._atomic_write to raise (the os.replace commit step called by transaction() after the body yields), asserts the .md is already gone and the on-disk index entry survives, then restores _atomic_write and proves repair does NOT resurrect seq. Against the old after-the-block unlink this test fails (file would survive a commit crash, repair re-adopts) — so it genuinely pins the fix.
 <!-- sq:finding:F1:discussion:end -->
@@ -77,9 +77,9 @@ Recommendation: promote the pure matcher to a public function in _models/_item.p
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-06-15T09:15:20Z] Elias Python:
+- [2026-06-15T09:15:20Z] `python-dev` Elias Python:
   - Promoted the pure width-tolerant matcher to ref_id_matches() in _models/_item.py alongside split_ref/make_ref. Removed _ref_id_matches from _items.py and _id_matches from _refs.py. Both modules now import ref_id_matches from _item.py. No cycle: _models/_item.py is a leaf with no service-layer imports. No reportPrivateUsage.
-- [2026-06-15T09:20:13Z] Paul Reviewer:
+- [2026-06-15T09:20:13Z] `reviewer` Paul Reviewer:
   - Verified. ref_id_matches is now a public function in _models/_item.py (lines 57-71) alongside split_ref/make_ref. The private _id_matches in _refs.py and the forked _ref_id_matches in _items.py are both gone; both modules import the shared one (verified by grep — only definition + import sites remain). Behaviour is byte-identical to the original matcher (width-tolerant rpartition + prefix.upper() compare + int(digits)==seq).
   - _item.py stays a leaf: it imports only from _enums, _subentity, _util, and clock — no service-layer import, no cycle introduced. reportPrivateUsage concern resolved by construction (no cross-module private access).
 <!-- sq:finding:F2:discussion:end -->
@@ -89,7 +89,7 @@ Recommendation: promote the pure matcher to a public function in _models/_item.p
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T09:20:20Z] Paul Reviewer:
+- [2026-06-15T09:20:20Z] `reviewer` Paul Reviewer:
   - APPROVED. Both findings re-verified and closed (F1, F2 → Verified). Re-review scoped to the two fixes only; the rest of the implementation was already approved in this review's first pass.
   - F1 (atomicity): unlink moved inside the transaction, before the index del/commit — safe failure direction confirmed; the new crash-at-commit test proves no resurrection after repair and fails against the old code.
   - F2 (shared matcher): ref_id_matches promoted to _models/_item.py; both forks removed; _item.py stays a leaf, no cycle, behaviour identical.

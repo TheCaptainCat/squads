@@ -85,7 +85,7 @@ _Add with `sq task 631 add-subtask "<title>"`; track with `sq task 631 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T09:29:01Z] Elias Python:
+- [2026-07-23T09:29:01Z] `python-dev` Elias Python:
   - Added tests/meta/test_documented_commands_resolve_against_cli.py (behavior-named, no ticket id): extracts every sq ... invocation from docs/*.md (sh/bash fences + inline `sq ...` spans; plain-tagged fences stripped first so rendered-table/ASCII-diagram examples never leak into the scan; full-# comment lines skipped) and walks it against the live Typer command tree via typer.main.get_command -- no CliRunner invocation, no tmp squad, so it's pure fast introspection.
   - Address tokens (item numbers, sub-entity local ids, role/operator/skill slugs) are resolved structurally: a group with a required positional Argument on itself consumes the next token unconditionally (task/feature/.../story/subtask/finding shape); a group with no argument but a hidden _addr child routes an unmatched token through it (role/operator/skill shape). Each is applied exactly once per fresh entry into that group -- an earlier version double-consumed the address on the _addr path, which silently accepted sq role <n> update (not a real verb) as valid; fixed and now covered by that exact case going red before the doc was corrected.
   - Exemptions: <type>/<kind>/<command>/... placeholders (not <n>/<k>, which are real address slots) and elision markers (…, ..., *) mark a line as grammar/illustrative; a tiny 3-item allowlist covers the hypothetical incident/inc/postmortem custom-type worked examples docs/workflow.md and docs/overrides.md teach readers to declare (proven for real in tests/cli/test_custom_type_end_to_end.py).

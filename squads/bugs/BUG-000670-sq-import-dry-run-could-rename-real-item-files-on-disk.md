@@ -67,7 +67,7 @@ real apply path (`_apply_one`) calls but the shadow simulation path
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T15:32:15Z] Mara Tester:
+- [2026-07-27T15:32:15Z] `qa` Mara Tester:
   - Reproduced against 68a44ed^ in a scratch worktree: a dry-run update event with a title change renamed the real file on disk (index/frontmatter kept the stale title/path) and left the item unreadable until sq repair.
   - Confirmed fixed by 68a44ed (TASK-664): _sim_update/_sim_assign now call the now-pure _update_model (no I/O); only _update_core (the real apply path) performs the physical rename. No remaining reach found.
 <!-- sq:discussion:end -->

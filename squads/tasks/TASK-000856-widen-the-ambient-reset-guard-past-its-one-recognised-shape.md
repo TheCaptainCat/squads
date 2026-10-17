@@ -92,7 +92,7 @@ _Add with `sq task 856 add-subtask "<title>"`; track with `sq task 856 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T07:49:15Z] Elias Python:
+- [2026-09-02T07:49:15Z] `python-dev` Elias Python:
   - Widening landed in `tests/meta/test_ambient_render_state_reset_is_exhaustive.py` (plus a comment-only correction in `tests/conftest.py`). Four shapes now detected, each with its own plant test, each proven to fail against a reverted half:
     
     - **import alias** (`from contextvars import ContextVar as CV`) — new `_contextvar_aliases()` collects `as`-renamings of the `contextvars` import and keeps the plain spelling (which also covers the qualified `contextvars.ContextVar(...)` form). Revert (aliases pinned to `{"ContextVar"}`): 1 failed, 10 passed — only the alias plant.

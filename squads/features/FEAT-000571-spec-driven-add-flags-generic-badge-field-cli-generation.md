@@ -74,6 +74,6 @@ _Add with `sq feature 571 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T18:23:01Z] Catherine Manager:
+- [2026-07-22T18:23:01Z] `manager` Catherine Manager:
   - FEAT-571 Done: --status inline across add-finding/add-story/add-subtask, scope-validated against each kind's own lifecycle (the generic per-field --flag derivation already existed). Reviewed REV-618 (Approved, cross-lifecycle rejection verified); full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

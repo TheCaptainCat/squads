@@ -106,14 +106,14 @@ Boot surfacing includes unexpired notice content and excludes expired ones; an e
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T10:49:54Z] Catherine Manager:
+- [2026-07-15T10:49:54Z] `manager` Catherine Manager:
   - Dispatching @qa on the comprehensive board tests + FEAT-317 acceptance pass. Mirror the memory approach: git-backed merge test for board/.index.jsonl (option-B behavior), expiry read-time filter, ordinal (clear <n> = nth entry line) resolution. Verify US1-5 acceptance; flag gaps. Take Ready→InProgress; hand to InReview.
-- [2026-07-15T10:57:18Z] Operator:
+- [2026-07-15T10:57:18Z] `operator` Operator:
   - New tests added — service: tests/service/test_board_storage_and_index_regeneration.py (2 new: physical nth-index-line ordinal pin, listing-does-not-touch-index-file).
   - CLI: tests/cli/test_board_cli.py (1 new: plain list output shows author/posted-at/until).
   - Git-backed (option B): tests/integration/test_board_git_merge_behavior.py (3 new) — distinct-branch posts merge md files cleanly + conflict on .index.jsonl, resolved by sq sync; clear is a real recoverable git deletion; listing leaves no git-tracked file dirty. Passes.
   - US1-5 acceptance verdict: all backed by passing tests (existing + new); no gaps, no defects found — see reply for detail.
-- [2026-07-15T10:57:36Z] Mara Tester:
+- [2026-07-15T10:57:36Z] `qa` Mara Tester:
   - Acceptance verdict — US1: pass (post/--until/--as/git-merge all tested). US2: pass (boot surfacing, empty/all-expired). US3: pass (ordinal, expiry filter, no-mutation now pinned at both service+git level). US4: pass (clear resolves ordinal, real git deletion now pinned, out-of-range error). US5: pass (sq-memory skill teaches board discipline + boundary, existing coverage).
   - No code defects found; no bug filed.
 <!-- sq:discussion:end -->

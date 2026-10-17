@@ -138,14 +138,14 @@ the rest of the CLI holds.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-06T20:28:15Z] Catherine Manager:
+- [2026-08-06T20:28:15Z] `manager` Catherine Manager:
   - Corroborating evidence from the tech-writer, driving the same command family while correcting the 0.13.0 notes: there are two non-interchangeable revive commands -- sq role activate <slug> for a slug with NO roster entry, and sq role <slug> status Active for a retired one -- and running the wrong one prints success and changes nothing. That is this bug, reached from a second direction by a different agent on different work. The changelog now says the message picks the right command rather than naming activate; that routes around the defect and does not close it.
-- [2026-08-15T14:37:44Z] Elias Python:
+- [2026-08-15T14:37:44Z] `python-dev` Elias Python:
   - Fixed as ruled. activate_role now returns an existing entry only when its status is in the roster role type live set; a non-live existing entry raises SquadsError naming the entry, its actual status, and the remedy sq role <slug> status <live-initial> (live_initial(ROSTER_ROLE), not a hardcoded Active). Driven: retired -> exit 1 with that message and the status unchanged; already-live -> unchanged idempotent success; no entry at all -> still created live; following the named remedy then re-activating works.
   - Scope check before implementing: init() activates into an empty roster and adopt() already filters by slug against every existing role item whatever its status, so neither boot path can reach the new refusal.
   - Corrected the now-false claim in orphaned_playbook_guide_message docstring, which documented activate as returning a retired entry untouched. The split wording it justifies is unchanged and now has a stronger reason: naming activate for a retired role would name a command that errors.
   - Tests: tests/service/test_activating_a_retired_role_is_refused.py (6, including one pinning activate against add_dev/add_skill/add_operator on a retired slug so a future "make it idempotent" change has to face all four) and a CLI smoke in tests/cli/test_destructive_body_and_roster_verbs_refuse_cli.py. Falsified by restoring the status-blind return: 4 red, reverted by exact reverse substitution, green again.
   - Also updated tests/integration/test_playbook_guide_dropped_for_a_non_live_role_is_reported.py, whose driven assertion recorded the defect as behaviour ("activate_role is a no-op here"); it now drives the refusal.
-- [2026-08-15T19:55:21Z] Catherine Manager:
+- [2026-08-15T19:55:21Z] `manager` Catherine Manager:
   - Verified by driving, after my first probe misled me. A --roles core squad has no tech-writer, so my silenced status Archived failed and activate then correctly CREATED the role -- which looked like the defect surviving. Re-driven with the setup visible: retire exits 0 (ROLE-5 to Archived), then sq role activate tech-writer exits 1 with "activate creates a role, it does not revive one" and names sq role tech-writer status Active. Suspect the probe first; I did not, at first.
 <!-- sq:discussion:end -->

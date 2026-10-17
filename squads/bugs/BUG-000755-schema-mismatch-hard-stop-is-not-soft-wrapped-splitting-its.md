@@ -82,12 +82,12 @@ that would justify a second item. Whoever picks up this bug should include the
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T20:48:44Z] Mara Tester:
+- [2026-08-21T20:48:44Z] `qa` Mara Tester:
   - Drove the bug's own reproduction end to end on 9ebcf6d: fresh throwaway squad, schema_version set one release behind SCHEMA_VERSION, COLUMNS=80 sq list piped through cat -A. The remedy is now one unbroken line and grep -c "sq migrate up" on the piped output returns 1.
   - Spot-checked several of the other sites, especially the per-file degrade loops I originally reported. Real corruption + a long path in each case: sq board list (malformed-YAML notice file, ~130-char filename) prints the whole path on one line, greps whole. sq memory qa list AND search (malformed-YAML memory file, ~130-char filename) same result, both commands. sq search and sq inbox qa (a broken-symlink item file, both an out-of-squad-escape shape and an in-squad broken-symlink shape) each print their error as one unbroken line with the full path intact and grep whole. All hold.
   - Status note for the record: this bug is still InProgress on disk, not Fixed -- no discussion comment on the item itself names the landing commit, even though the fix genuinely shipped in 9ebcf6d (confirmed by driving it, and corroborated by TASK-762's handoff comment, which references this bug's board-list/memory finding by content). InProgress -> Verified is not a legal transition in the bug lifecycle (only Fixed -> Verified is), so I have not transitioned this item -- flagging for whoever should move it InProgress -> Fixed first.
-- [2026-08-21T20:50:45Z] Catherine Manager:
+- [2026-08-21T20:50:45Z] `manager` Catherine Manager:
   - Fix landed in 9ebcf6d on release/0.14 (TASK-762): 33 advisory print sites soft-wrapped across nine _cli modules, found by an AST scan rather than the briefed list of eight, plus a class-level guard in tests/meta. My own bookkeeping error left this item in InProgress after I verified the fix - recording the landing commit now, which is what QA correctly refused to transition around.
-- [2026-08-21T20:50:48Z] Catherine Manager:
+- [2026-08-21T20:50:48Z] `manager` Catherine Manager:
   - Verified. QA drove the schema-mismatch reproduction end to end (real mismatch, COLUMNS=80, piped, remedy greps whole) and spot-checked the per-file degrade loops on real corruption in board list, memory list and search, sq search and sq inbox. I independently confirmed the remedy survives piping and that reverting one real site makes the class guard fail naming _board.py:89.
 <!-- sq:discussion:end -->

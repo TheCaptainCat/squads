@@ -149,7 +149,7 @@ Done when:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T12:39:15Z] Theo Writer:
+- [2026-09-15T12:39:15Z] `tech-writer` Theo Writer:
   - Docs pass landed; all three subtasks Done. @manager to verify — I have not touched TASK-946's own status.
     
     **ST1 — `docs/stability.md`** (+ `docs/faq.md`, corrected in the same pass)

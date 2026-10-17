@@ -223,7 +223,7 @@ passes.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-02T12:15:29Z] Elias Python:
+- [2026-09-02T12:15:29Z] `python-dev` Elias Python:
   - Landed in one carrier: `_rendering/templates/workflow_static.md.j2`, a new "Duplicate numbers across trees" section placed immediately after the existing "Sequence gaps are sanctioned" paragraph — the nearest neighbour that already talks about sequence numbers, the counter high-water mark, `sq check` and `sq repair`.
     
     One edit reaches both homes the scope named: `workflow_static.md.j2` is included by `workflow.md.j2`, which is included by `agents/squads_skill.md.j2`. So the clause renders into the `squads` skill body, the AGENTS.md managed section and `sq workflow` alike. `claude/claude_section.md.j2` does *not* include the cheatsheet, so the CLAUDE.md managed section is untouched — which matches the "placement is a judgement, not a broadcast" instruction. The two pointer templates were not opened.
@@ -261,7 +261,7 @@ distinction between fixing a collision after a merge and shifting a range before
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-02T12:15:40Z] Elias Python:
+- [2026-09-02T12:15:40Z] `python-dev` Elias Python:
   - Confirmed the defect first — `sq repair --help` rendered `--renumber` with an empty description column, because `_cli/_main.py` declared it as `typer.Option(False, "--renumber")` with no `help=`.
     
     Help text now reads:
@@ -318,7 +318,7 @@ entry is load-bearing rather than decoration; and both directions are asserted.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-02T12:16:01Z] Elias Python:
+- [2026-09-02T12:16:01Z] `python-dev` Elias Python:
   - Guard: `tests/meta/test_every_cli_command_is_named_in_agent_guidance.py`, five assertions.
     
     **Derivation.** The live Typer table (52 entries) minus every alias the bundled spec declares (14) = 38. That is the same de-aliasing the `RESERVED_CLI_VERBS` lockstep guard performs, with one deliberate difference recorded in the docstring: that guard also subtracts each type's canonical *name*, because its subject is what a declared type may not collide with; this one keeps them, because `sq bug` and `sq role` are commands an agent is as entitled to find named as `sq check`. The derivation is repeated rather than imported — `tests/` has no `__init__.py` at its root and this suite has no `from tests....` precedent.
@@ -347,7 +347,7 @@ entry is load-bearing rather than decoration; and both directions are asserted.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:02:48Z] Olivia Lead:
+- [2026-09-02T10:02:48Z] `tech-lead` Olivia Lead:
   - Scoped from BUG-872 and dispatchable. The ruling asked for is made and is in the body:
     the guidance edit and the class guard both ship here, and the exemption the guard forces
     a judgement on is one documented entry, in the shape this repository already uses three
@@ -371,7 +371,7 @@ entry is load-bearing rather than decoration; and both directions are asserted.
     
     @python-dev ready for dispatch. @tech-writer for a read of the new clause before the
     goldens are refreshed.
-- [2026-09-02T12:17:18Z] Elias Python:
+- [2026-09-02T12:17:18Z] `python-dev` Elias Python:
   - All three subtasks done. Sequence ran as the acceptance specified: guard first (failed with exactly `['renumber']`), then the guidance (passed), then the exemption pulled (failed with exactly `['ui']`, restored).
     
     **Files.** `src/squads/_rendering/templates/workflow_static.md.j2` (+21, the new "Duplicate numbers across trees" section); `src/squads/_cli/_main.py` (the `--renumber` help string, plus the reformat it forces); `tests/meta/test_every_cli_command_is_named_in_agent_guidance.py` (new, the guard); three regenerated goldens — `workflow_cheatsheet.txt`, `workflow_cheatsheet_raw.txt`, `agents_md_section.txt`, +21 identical lines each, no other line moved.
@@ -385,7 +385,7 @@ entry is load-bearing rather than decoration; and both directions are asserted.
     **Nothing else in the brief proved wrong.** The de-alias trap was real and exactly as described (52 live, 14 aliases, 38 after), and a naive guard would indeed have flagged all fourteen. The `--renumber` flag really did render with an empty description. The zero-proof warning earned its keep on my own first draft: my known-positive anchor `@mention` used `\b@`, which can never match, so the anchor was silently unmatchable — precisely the failure mode the warning describes, found because the check was there.
     
     @reviewer for review. Ready apart from the manifest step.
-- [2026-09-02T12:30:21Z] Olivia Lead:
+- [2026-09-02T12:30:21Z] `tech-lead` Olivia Lead:
   - Ruling on the corpus caveat you flagged, and thank you for writing it into the docstring
     rather than around it — the finding is right, and it is the kind that is only ever found by
     whoever built the thing.

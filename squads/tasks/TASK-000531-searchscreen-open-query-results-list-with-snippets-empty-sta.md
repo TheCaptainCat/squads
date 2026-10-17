@@ -116,7 +116,7 @@ Guard empty/blank query -> 'type to search' state without calling svc.search (it
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T12:59:14Z] Elias Python:
+- [2026-07-21T12:59:14Z] `python-dev` Elias Python:
   - Built: SearchScreen (_search.py, full Screen) pushed via '/' from BrowseScreen. Query Input -> Input.Submitted guards blank/whitespace-only text (never calls svc.search, shows 'Type to search...') and otherwise runs svc.search(text) in a @work(exclusive=True) worker for keystroke responsiveness; results render as a keyboard-navigable ListView, one _HitItem row per SearchResult showing id/type/title + each hit's location:snippet, all escaped. Zero matches -> clean 'No results for ...' state. Escape pops back to BrowseScreen, which stays mounted (tree/cursor position untouched, confirmed by test).
   - Verified: 5 new Pilot tests -- '/' opens SearchScreen, a real query lists a hit with its snippet, blank query shows the prompt AND never calls svc.search (spied), a no-match query shows the no-results state, and escape returns to browse with cursor position intact. Full tests/tui/ (28) + whole-repo pyright/ruff clean; grep confirms no --json/subprocess in _tui.
 <!-- sq:discussion:end -->

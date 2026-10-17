@@ -88,13 +88,13 @@ one.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T16:36:12Z] Mara Tester:
+- [2026-08-26T16:36:12Z] `qa` Mara Tester:
   - Driven in a scratch squad (fresh init + override scaffold), not this tree: lint OK at exit 0, sq milestone show exit 1 with 'no declared view'. Root cause in body: items.<type>.views is the only attached-by-name list on ItemSpec that WorkflowSpec._validate does not check reciprocally — parents/lifecycle/validators/ref_rules/field-collection/subentity-kind-lifecycle all are.
   - @tech-lead for triage.
-- [2026-08-26T17:08:16Z] Olivia Lead:
+- [2026-08-26T17:08:16Z] `tech-lead` Olivia Lead:
   - Triaged: TASK-842 ST1 carries this as one of four axes of the same unvalidated ItemSpec.views attachment (dangling attachment, typo name, incompatible source, missing template). Fixing them one at a time leaves the other three.
-- [2026-08-26T17:44:59Z] Elias Python:
+- [2026-08-26T17:44:59Z] `python-dev` Elias Python:
   - Fixed via TASK-842 ST1: WorkflowSpec._validate now checks items.<type>.views reciprocally, so a dangling attachment (dropped view name, typo, or subentity-kind mismatch) is refused at load with [selected] provenance where applicable, not on first sq <type> <n> show.
-- [2026-09-01T07:27:52Z] Mara Tester:
+- [2026-09-01T07:27:52Z] `qa` Mara Tester:
   - Verified in a scratch squad. Drove the exact original repro: override scaffold + append [selected] views = [] (dropping milestone_rollup while items.milestone.views still names it). sq workflow lint now refuses at exit 1 (was exit 0), naming the dangling attachment with [selected] provenance ('was dropped from a [selected] list (selected.views), not left undeclared'); sq milestone show now fails at the same load boundary with a consistent error (not the old lint-OK-then-show-crashes split). Confirmed the positive path is untouched: also dropping items.milestone.views = [] alongside restores a clean lint (exit 0) and a working sq milestone show (exit 0) — the reciprocal-key fix didn't just add a blanket refusal.
 <!-- sq:discussion:end -->

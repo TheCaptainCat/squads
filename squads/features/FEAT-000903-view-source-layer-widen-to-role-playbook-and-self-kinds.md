@@ -159,14 +159,14 @@ Acceptance: ref/subtree --json matches sq tree --json / sq list --json's own sha
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-03T14:50:56Z] Catherine Manager:
+- [2026-09-03T14:50:56Z] `manager` Catherine Manager:
   - Breakdown parked: three consecutive server-side API overload failures killed the tech-lead agent before it wrote anything. No partial state -- no tasks exist. Moved back to Ready rather than left InProgress, since nothing is in flight and an InProgress feature with no tasks misreports the board. Re-dispatch when capacity returns.
-- [2026-09-03T15:08:13Z] Olivia Lead:
+- [2026-09-03T15:08:13Z] `tech-lead` Olivia Lead:
   - Broke this into two tasks, one per coherent surface: TASK-918 the three new resolvers (role/playbook/self) plus their applicability entries, WorkflowSpec settled/delivered, badges-as-filter, and the render-context plumbing (US1-US5); TASK-919 per-source --json (US6). Both Draft — promotion at dispatch is mine. TASK-919 refs TASK-918 depends-on: it needs the new resolvers to exist before it can dispatch --json to them.
   - One cut I made rather than the briefed default: resolve_records->resolve_source (the rename itself, plus the two spec-load exemptions it forces on _check_views/VIEW_BASE_FIELDS_BY_SOURCE for the fields-less new kinds) sits in TASK-918, not split out — it's mechanically inseparable from the applicability registry it feeds. --json stays its own task because it is a CLI-layer concern with its own reuse targets (sq tree --json, sq role show --json, the per-kind list command) that don't touch the resolver code at all.
   - Both task bodies carry FEAT-905's four lessons as acceptance, not boilerplate: the stranger-test narration sweep (sentence by sentence, plus a post-rewrite grep of removed wording) is acceptance criteria on each task, not an end-of-feature pass; every new test must be falsified (broken, red, restored, green, both directions reported); each task names a concrete agreement-pinning instance (TASK-918: the new playbook applicability predicate vs. _item_skill_definition_text's existing rich/thin lane check must never disagree; TASK-919: ref/subtree --json output must equal sq tree --json's own output for the same query, not merely resemble it); emptiness is tested as a success case per kind in both tasks, not asserted in prose.
   - sq check clean. @manager both ready for dispatch, TASK-918 then TASK-919.
-- [2026-09-04T07:58:07Z] Paul Reviewer:
+- [2026-09-04T07:58:07Z] `reviewer` Paul Reviewer:
   - Batch review of both tasks landed as REV-920 (addresses FEAT-903). Eleven findings: four high,
     one medium, three low, three info. Recommended verdict on the review: ChangesRequested — F1-F4
     want a ruling before this feature closes; F5-F11 do not need to block.
@@ -198,7 +198,7 @@ Acceptance: ref/subtree --json matches sq tree --json / sq list --json's own sha
     `_source_incompatibility` from `_check_item_views`) is blocked by the `_views` -> `_workflow`
     import direction, so where that check lives is your call rather than a mechanical edit.
     @architect F1 needs the ADR-vs-task-body conflict ruled.
-- [2026-09-04T08:59:05Z] Catherine Manager:
+- [2026-09-04T08:59:05Z] `manager` Catherine Manager:
   - Closed. The source grammar now spans role, playbook and self alongside ref, subtree and subentity, each with a type-decidable applicability predicate; --json serves each source in the shape it already had a serialiser for, with ref/subtree byte-equal to sq tree --json; and the three consumers the first pass missed are carried. REV-920 Approved with F1-F8 verified driven; F9-F11 are info and deferred to FEAT-904, which deletes the field grammar and resolve_view outright.
   - Two things worth carrying to FEAT-904 and FEAT-906. The loud half of ADR-880s failure model now contains exactly two things, both above the resolvers: resolve_sources applicability raise for the direct-question caller, and render_views ViewTemplateMissingError plus the engine-translated TemplateError. And _contains_raise parses a functions own body, so for role -- now a one-line delegation -- the structural test would pass unchanged if resolve_role_for_item were made to re-raise; the behavioural guards are what hold it. A future change to that seam gets read against the behavioural tests, not trusted to the structural one.
 <!-- sq:discussion:end -->

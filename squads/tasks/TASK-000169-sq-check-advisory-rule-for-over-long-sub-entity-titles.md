@@ -78,12 +78,12 @@ Emit each over-long title as an ADVISORY finding (not a structural error), forma
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-23T09:50:33Z] Elias Python:
+- [2026-06-23T09:50:33Z] `python-dev` Elias Python:
   - TASK-169 done. Implemented _check_subentity_title_lengths in MaintenanceMixin (_services/_maintenance.py): walks every item's subentities, emits warn-level CheckIssue for each title > TITLE_ADVISORY_MAX, reusing the shared constant from _interactions.py. Refactored inner loop to list.extend to satisfy PERF401; import ordering fixed by ruff --fix.
   - Gates: ruff check clean, ruff format clean, pyright 0 errors, 1025 passed / 1 skipped (54 new tests in test_title_advisory.py covering both TASK-168 and TASK-169 service + CLI paths).
   - Live corpus: 107 advisory issues reported, sq check exits 0. Threshold fires strictly above 120 — at/below is silent.
   - @manager TASK-169 complete. TASK-168 was approved (REV-172). TASK-170 (skill reinforcement) remains.
-- [2026-06-23T09:53:45Z] Paul Reviewer:
+- [2026-06-23T09:53:45Z] `reviewer` Paul Reviewer:
   - Reviewed under REV-174 — APPROVED, no findings.
   - Independently verified against ADR-167: reuses the shared TITLE_ADVISORY_MAX constant (no duplicated 120 literal); walks every sub-entity title across all items (strict > 120, silent at 120); emits warn-level only, so sq check stays exit 0 — confirmed the exit code gates solely on error count and does not flip; read-only (mutates nothing); copy is honest (no enforce/guarantee/secur/forbid).
   - The 107 count is real: I counted independently from the .md frontmatter (bypassing the rule) and also got 107, all unique keys, no double-counting, only sub-entity titles measured. REV-97 F5 = 781 chars by hand, matching the ADR worst case. Targeted suite (54 tests) passes. @manager

@@ -116,7 +116,7 @@ Resolution (after op-pierre criterion change, see finding comment): the bar for 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-12T13:18:12Z] Paul Reviewer:
+- [2026-06-12T13:18:12Z] `reviewer` Paul Reviewer:
   - History: first fix round added a tombstone -- a _REMOVED_VERBS ClassVar on AddressDispatchGroup, per-module dispatch subclasses, and a removed-command message pointing at sq list -t <type>. Then op-pierre changed the criterion on 2026-06-12: before 1.0 we owe nothing to the previous CLI -- no tombstones, no migration hints; the bar is only a clean, traceback-free error through the normal unknown-address path. The tombstone machinery was removed (the _RoleDispatchGroup/_SkillDispatchGroup subclasses collapsed back to cls=AddressDispatchGroup; _OperatorDispatchGroup kept only for _ADDR_VERBS=show|rm). Verified against the revised criterion.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -139,7 +139,7 @@ Resolution (verified): two-part fix in _common.py (see finding comment). (1) Mis
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-06-12T13:18:12Z] Paul Reviewer:
+- [2026-06-12T13:18:12Z] `reviewer` Paul Reviewer:
   - Resolution detail: the usage display-name rewrite was the key move -- _click_resolve_command now returns `<slug|id|n>` as the command name instead of the internal `_addr`, so no negative-path usage/error line leaks the construct. Paired with the missing-verb interception (exit 1 clean error before Click can emit `Missing command.`). Probed across lst/no-verb/wrong-verb/--help cases; _addr absent everywhere. Residual: the usage line still shows a redundant ADDR positional from the subgroup wiring -- noted as non-blocking, not the leak that gated.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -156,7 +156,7 @@ Resolution (verified): added `epilog=` to role_app, skill_app, and operator_app.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-06-12T13:18:13Z] Paul Reviewer:
+- [2026-06-12T13:18:13Z] `reviewer` Paul Reviewer:
   - Resolution detail: fixed via epilog= on role_app/skill_app/operator_app rather than unhiding the _addr subgroup -- keeps the internal name hidden while still teaching the full address grammar in --help. The N1 slug-shadowing caveat was folded into the same epilog, so one change closed both F3 and the N1 doc-note ask.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -270,26 +270,26 @@ Resolution: WontFix for this review -- explicitly out of scope as specified. Lef
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T12:47:21Z] Paul Reviewer:
+- [2026-06-12T12:47:21Z] `reviewer` Paul Reviewer:
   - @python-dev — opened against FEAT-64 / TASK-65. The grammar flip and styled rendering are solid; this is purely the negative-path UX. Three blocking items (F1-F3): removed-list commands must point at 'sq list -t <type>' instead of leaking '_addr / Missing command'; the internal '_addr' name must not appear in any user-facing usage/error line; and 'sq role --help' must teach show/regen/rm (currently only catalog/activate show). N1-N7 are non-blocking — judgment calls and small cleanups, your call. Re-request review once F1-F3 are addressed and the three test_*_list_removed tests assert message content.
-- [2026-06-12T12:59:30Z] Elias Python:
+- [2026-06-12T12:59:30Z] `python-dev` Elias Python:
   - F1 fixed. AddressDispatchGroup now has a _REMOVED_VERBS ClassVar that each app subclass populates. _click_resolve_command checks the token against _REMOVED_VERBS before attempting named-command lookup or _addr routing. Role: 'sq role list' exits 1 with 'has been removed. Use sq list -t role to list tracked roles, or sq role catalog for the bundled catalog.' Skill: points at sq list -t skill. Operator: points at sq list -t operator. sq role list --available also hits the tombstone cleanly (the token 'list' is intercepted before args are parsed). The three test_list_removed tests now assert exit_code==1, 'has been removed' in output, and the correct replacement hint.
-- [2026-06-12T12:59:38Z] Elias Python:
+- [2026-06-12T12:59:38Z] `python-dev` Elias Python:
   - F2 fixed. Two-part fix. (1) Missing-verb interception: when _click_resolve_command routes to _addr and no non-option arg follows the address token (and --help is not present), it now exits 1 immediately with 'missing verb after address <token>. Usage: sq role <slug|id|n> show|regen|rm' — no _addr leakage, no Click 'Missing command.' (2) Display name: the return tuple from _click_resolve_command now uses '<slug|id|n>' as the command name instead of '_addr'. This means sq role manager --help shows 'Usage: sq role <slug|id|n> [OPTIONS] ADDR COMMAND' and sq role shw manager shows 'No such command manager' under 'sq role <slug|id|n>' usage — _addr never appears in user-facing text. Probed: sq role lst (exit 1 clean error), sq role manager (exit 1 clean error), sq role manager --help (no _addr in output), sq role shw manager (no _addr in output).
-- [2026-06-12T12:59:46Z] Elias Python:
+- [2026-06-12T12:59:46Z] `python-dev` Elias Python:
   - F3 fixed. Added epilog= to role_app, skill_app, and operator_app. sq role --help now shows: 'Address a role: sq role <slug|id|n> show|regen|rm. Examples: sq role manager show  sq role 1 regen  sq role ROLE-1 rm. Note: a slug matching a group verb (catalog, activate) is unaddressable by slug; use the full ID or bare number instead.' Same pattern for skill (show|regen|rm, examples with slug/number/ID) and operator (show|rm). The N1 slug-shadowing note is also embedded in each epilog, folding N1 in naturally.
-- [2026-06-12T12:59:55Z] Elias Python:
+- [2026-06-12T12:59:55Z] `python-dev` Elias Python:
   - Non-blocking fixes taken: N1 (slug-shadowing note) folded into the F3 epilog on all three groups — one line each. N2 (resolver duplication) fixed: resolve_agent_addr now delegates slug lookup to svc._role_item / svc._skill_item / svc._operator_item via a per-type dispatch table, eliminating the inline db.items.values() loop. N3 (empty-body hint) fixed: render_body_text gained an empty_hint param; role/skill/operator show pass 'empty — run sq sync to regenerate the definition' instead of the inaccurate 'set it with body'. N4 (inline shape check) fixed: _role.py _resolve_addr now calls _is_full_id_shape(t) instead of reimplementing the rpartition check inline. N5 (stale comment) fixed: SKIL-000002 -> SKILL-000002 in test_skill_item_first_grammar. N6 (bracket fidelity) added: test_role_skill_body_bracket_fidelity checks that --raw output contains no backslash-escaped brackets on the role and skill body paths. N7 (sq dev consistency) skipped — out of scope as specified. All 355 tests pass, pyright strict clean, ruff check + format clean.
-- [2026-06-12T13:00:00Z] Elias Python:
+- [2026-06-12T13:00:00Z] `python-dev` Elias Python:
   - @reviewer — F1, F2, F3 all addressed; non-blocking N1-N6 done (N7 skipped per scope). Gates: 355 tests pass (+1 new), pyright strict clean, ruff clean. Please re-review.
-- [2026-06-12T13:01:46Z] Pierre Chat:
+- [2026-06-12T13:01:46Z] `op-pierre` Pierre Chat:
   - Criterion change on F1: before 1.0 we owe nothing to the previous CLI interface. No tombstones, no migration hints for removed commands — the bar is only a clean, traceback-free error through the normal unknown-address path. The tombstone machinery added for F1 must come out; F2/F3 stand as written (they concern the new surface).
-- [2026-06-12T13:06:48Z] Elias Python:
+- [2026-06-12T13:06:48Z] `python-dev` Elias Python:
   - Tombstone machinery removed per op-pierre's criterion change on 2026-06-12. Removed: _REMOVED_VERBS ClassVar and the tombstone check block from AddressDispatchGroup in _common.py; _RoleDispatchGroup and _SkillDispatchGroup subclasses (collapsed back to cls=AddressDispatchGroup); _REMOVED_VERBS from _OperatorDispatchGroup (subclass kept for _ADDR_VERBS='show|rm'). All three modules (_role.py, _skill.py, _operator.py) cleaned of the from typing import ClassVar that was only needed for _REMOVED_VERBS.
   - sq role list / sq skill list / sq operator list now fall through the normal address path: 'list' is treated as an address token, the missing-verb check fires (no verb follows), exit 1 with 'missing verb after address list. Usage: sq role/skill/operator slug|id|n show|regen|rm'. No _addr leak. Same for sq role list --available (--available is an option, so no non-option verb is present). sq role lst (typo) and sq role manager show behave identically to before.
   - Three test_list_removed tests retargeted: assert exit_code==1, 'list' in output, '_addr' not in output, 'Traceback' not in output. Migration-hint assertions dropped.
   - Gates: 355 tests pass (1 skipped, pre-existing), pyright strict 0 errors, ruff check+format clean. F2/F3/N1-N6 fixes from the previous round are unchanged. @reviewer — ready for re-verdict on F1.
-- [2026-06-12T13:10:37Z] Paul Reviewer:
+- [2026-06-12T13:10:37Z] `reviewer` Paul Reviewer:
   - APPROVED. Re-reviewed after the two fix rounds and op-pierre's 2026-06-12 criterion change (pre-1.0 nothing owed to the previous CLI; F1's bar is now only a clean traceback-free error through the normal unknown-address path). All three blocking findings resolved; all gates green.
   - F1 (revised criterion): PASS. The tombstone machinery is gone from source — no _REMOVED_VERBS ClassVar, no per-module dispatch subclasses for role/skill (both collapsed back to cls=AddressDispatchGroup); only _OperatorDispatchGroup survives, and solely to carry _ADDR_VERBS=show|rm. sq role/skill/operator list now fall through the normal address path: 'list' is taken as an address token, the missing-verb check fires, exit 1 with 'missing verb after address list. Usage: sq <type> slug|id|n show|regen|rm'. No _addr, no tombstone text, no migration hint, no traceback. 'list --available' behaves identically (--available is an option, so no non-option verb follows). The three test_*_list_removed tests now assert exit_code==1, 'list' in output, '_addr' absent, 'Traceback' absent — migration-hint assertions dropped.
   - F2 (no _addr leak): PASS. Probed sq role lst (exit 1 clean), sq role manager / no verb (exit 1 clean), sq role shw manager (exit 2, 'No such command manager' under 'sq role slug|id|n' usage), sq role manager --help, sq role manager regen --help. The internal _addr name appears in NO user-facing output — the display name slug|id|n is shown instead. (The usage line still carries a redundant ADDR positional from the address-subgroup wiring — that is the secondary 'spurious ADDR' remark from the original F2, not the _addr leak that blocked; the core bar is met.)
@@ -297,6 +297,6 @@ Resolution: WontFix for this review -- explicitly out of scope as specified. Lef
   - Non-blocking fixes from round 1 verified intact: N2 resolve_agent_addr delegates slug lookup to svc._role_item/_skill_item/_operator_item via a per-type dispatch table (no inline db.items.values() loop); N3 empty_hint param wired on all three show commands ('run sq sync to regenerate ...'); N4 _resolve_addr in _role.py reuses _is_full_id_shape; N5 SKIL->SKILL comment fixed; N6 test_role_skill_body_bracket_fidelity asserts no backslash-escaped brackets on the role/skill body path.
   - Gates (clean checkout): uv run pytest 355 passed / 1 skipped (pre-existing); uv run pyright 0 errors; uv run ruff check . + format --check clean; uv run sq check no issues. Positive surface re-confirmed live: catalog, slug/number/ID resolution for show/regen/rm, sq list -t role|skill|operator, wrong-type tokens give clean exit-1 errors with no traceback.
   - One non-blocking loose end found, OUT OF SCOPE for this REV but worth a follow-up: src/squads/_cli/_main.py:84 — the 'sq init' Next-steps banner still advertises 'sq role list', a command US3 removed. Cosmetic, not negative-path UX, does not block this approval. @python-dev your call whether to fold it into a cleanup or a tiny follow-up task.
-- [2026-06-12T13:18:41Z] Paul Reviewer:
+- [2026-06-12T13:18:41Z] `reviewer` Paul Reviewer:
   - Retrofit (structure only, no verdict change) -- requested by op-pierre. The F1-F3 blockers and N1-N7 observations that previously lived as prose in the item body are now tracked as finding sub-entities: F1-F3 (severity high/high/medium) Verified; F4-F10 carry N1-N7 (severity low) -- F4-F9 Verified, F10 (N7, sq dev consistency) WontFix as out of scope. F1/F2/F3 carry finding-scoped comments for their notable history (F1 tombstone added then removed per op-pierres pre-1.0 criterion; F2 usage display-name rewrite; F3 epilog approach folding in N1). The item body is now the review summary only -- scope, verdict history, acceptance status, and a pointer to the findings. Overall verdict unchanged: Approved.
 <!-- sq:discussion:end -->

@@ -56,10 +56,10 @@ author-defined skill to be useful at all.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T08:30:27Z] Pierre Chat:
+- [2026-07-20T08:30:27Z] `op-pierre` Pierre Chat:
   - Holding the 0.10.1 release until this is resolved and the release-process skill is ready — 0.10.1 ships with the custom-skill authoring + role-scoping fix and that skill, not before.
-- [2026-07-20T08:38:46Z] Pierre Chat:
+- [2026-07-20T08:38:46Z] `op-pierre` Pierre Chat:
   - Skipping the 0.10.1 patch: this work ships as 0.11.0 (new capability + schema bump). The held docs/concision draft folds into 0.11.0.
-- [2026-07-20T12:33:46Z] Catherine Manager:
+- [2026-07-20T12:33:46Z] `manager` Catherine Manager:
   - Resolved by FEAT-491 (custom skills: authored bodies + role scoping). Verified end-to-end by the dogfood: SKILL-508 'releasing-squads' authored with a persistent body and scoped to manager/devops/tech-writer, appearing in exactly those three role pointers and no others. Schema 0.11 + migration ship with it.
 <!-- sq:discussion:end -->

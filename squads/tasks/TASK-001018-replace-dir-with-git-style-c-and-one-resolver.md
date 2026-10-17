@@ -127,7 +127,7 @@ Falsify: make an empty value reset to the process directory, and make the helper
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-15T20:30:37Z] Elias Python:
+- [2026-10-15T20:30:37Z] `python-dev` Elias Python:
   - Driven: tests/unit/test_change_dir_effective_directory.py (15) + tests/cli/test_c_selects_where_sq_runs.py (12) pass. Falsified: empty value reset to the process dir -> 1 red; helper without resolve() -> 4 red; both restored -> 27 green.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -155,7 +155,7 @@ Thread the effective directory into `RequestContext.client_cwd` and every place 
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-10-15T20:33:38Z] Elias Python:
+- [2026-10-15T20:33:38Z] `python-dev` Elias Python:
   - Driven: tests/cli/test_c_threads_into_spec_lookups_and_file_arguments.py (27) green. Falsified, each restored to green: resolve_spec_for_ctx reading bound client_cwd -> 2 red; _pending_spec_error reading it -> 1 red; trusting a stale bound context (root-callback marker forced true) -> 1 red; _read_source_file bare Path -> 4 red; import reader bare Path -> 2 red. Note: -C is eager so it is parsed before --help; without that, sq -C X --help did not list X custom types.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -186,7 +186,7 @@ When this lands, comment on BUG-1008 with the commit and the test names and move
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-10-15T20:34:45Z] Elias Python:
+- [2026-10-15T20:34:45Z] `python-dev` Elias Python:
   - Driven: tests/cli/test_c_init_and_adopt_create_at_the_directory.py (8) green. Falsified, each restored to green: init root back to the process dir -> 5 red; only the [init.names] read back to the process dir -> 2 red; adopt root back to the process dir -> 1 red.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -231,7 +231,7 @@ Table over position x form x squad direction (current, behind, ahead): `--dir X 
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-10-15T20:36:57Z] Elias Python:
+- [2026-10-15T20:36:57Z] `python-dev` Elias Python:
   - Driven: tests/cli/test_dir_is_refused_naming_c.py (32), the gate table tests/cli/test_the_gate_lets_past_by_command_and_direction.py (rewritten for -C, layout helpers moved to tests/_gate_layouts.py) and the hoist unit rows green. Falsified, each restored to green: synthesised squad restored in resolve() -> 29 red across those two files (323 run); hidden --dir refusal dropped -> 24 red; trailing --dir not hoisted -> 3 red.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -272,7 +272,7 @@ Restore each and report the green run.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-10-15T20:41:55Z] Elias Python:
+- [2026-10-15T20:41:55Z] `python-dev` Elias Python:
   - Driven: tests/cli/test_c_runs_exactly_as_cd_into_the_folder_would.py (477 rows: 13 layouts x 3 targets x 4 commands x 3 directions, plus 9 gate rows) and tests/meta/test_the_process_directory_is_only_read_at_two_sites.py (4) green, 3 stable runs. Falsified, each restored to green: apply_gate resolving at the process dir -> 251 red (245 differential rows where cd is gate-refused + the 6 gate rows); root callback client_cwd back at the process dir -> 481 red across the differential and ST1 files; stray Path.cwd() in version_notice -> guard red. Guard known positive: scanning the pre-change tree (git archive HEAD) reports 6 reads, including _main.py:333 and _service.py:137.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -313,9 +313,9 @@ The dated notes on ADR-263, ADR-622 and ADR-534 are the architect's. Confirm eac
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T20:20:39Z] Catherine Manager:
+- [2026-10-15T20:20:39Z] `manager` Catherine Manager:
   - Dispatched to @python-dev for ST1-ST5 in the main tree; ST6 goes to @tech-writer after. Operator delegation of 2026-10-11 on MILE-934.
-- [2026-10-15T20:44:31Z] Elias Python:
+- [2026-10-15T20:44:31Z] `python-dev` Elias Python:
   - @manager ST1 to ST5 are done in the main tree, uncommitted. ST6 (docs) is open for @tech-writer.
     
     **What was driven.** Tests were run, and each subtask's new tests were reverted-then-restored (counts on each subtask). Final run: `tests/meta tests/cli tests/integration tests/unit tests/service` = 9732 passed, 11 skipped, 1 xfailed, 0 FAILED. Not run: the full suite with the slow tests, and `tests/tui`. pyright 0 errors, `ruff check` and `ruff format --check` clean, `sq check` clean. No stray folders in the repo root.
@@ -345,7 +345,7 @@ The dated notes on ADR-263, ADR-622 and ADR-534 are the architect's. Confirm eac
     9. Relative `--file` paths (bodies, comments, board, create, skill, memory) and the `sq import` event file are resolved against the `-C` directory; `-` still reads stdin, absolute paths unchanged.
     10. The schema gate sees the same configuration as `cd X && sq`: `-C` at the squad folder, the project root or a subfolder each refuse a behind squad (`Run sq migrate up to upgrade it`) and `sq -C <each> migrate up` migrates it.
     11. Source comments naming the old option are reworded in `_errors.py` and `_index/_store.py`. Contributor prose still to change in ST6: `CLAUDE.md:37` and `:102`, GUIDE-79, `clients/vscode/src/domain/squadDir.ts:131`, board notice 21.
-- [2026-10-15T20:50:07Z] Theo Writer:
+- [2026-10-15T20:50:07Z] `tech-writer` Theo Writer:
   - @manager ST6 done in the main tree, uncommitted: README.md, docs/README.md, docs/faq.md, docs/migration.md, docs/internals.md, docs/overrides.md, CHANGELOG.md, CLAUDE.md (outside the managed region), and the GUIDE-79 CLI paragraph.
     
     - **Driven** in a scratch squad under the session scratchpad with `uv run --project <repo> sq -C …`. The quoted messages come from that run: the root help line, `-C <path> does not exist` and `is not a directory` (exit 2), the `--dir` refusal both leading and trailing (exit 2), the not-initialised message with and without `-C` (exit 1), `-C <outside-tree squad folder>` not initialised while `-C <project>` works, `list -C` giving "No such option", `-C missing init` exit 2 creating nothing, `-C X adopt` creating at X, and a relative `create --file` read from the `-C` directory. The gate claim is taken from the differential tests in ST5, not driven again here.
@@ -355,7 +355,7 @@ The dated notes on ADR-263, ADR-622 and ADR-534 are the architect's. Confirm eac
     - **ADR notes (checked, not written)**: ADR-263, ADR-622 and ADR-534 each have a 2026-10-15 note saying what ADR-1009 section 7 asks, and each refs ADR-1009. No gap to raise with @architect.
     - **For you, not edited (TypeScript)**: `clients/vscode/src/domain/squadDir.ts:129-131` doc comment. Proposed: `Resolve the active squad directory for workspaceRoot, or undefined when no .squads.toml is found (mirrors _paths.py::resolve, the .squads.toml walk-up).` This drops the clause about the `--dir`-override and default-on-init branches, since neither exists any more.
     - **Board notice 21, draft for you to post**: "Run board operations on this repo's squad through the released tool, `~/.local/bin/sq`, never a bare `sq` (which resolves to the dev tree's `.venv/bin/sq`) and never `uv run sq`. The dev tree is mid-edit, so a board write through it runs unreleased code against the live corpus. Use the dev tree only to exercise a feature under development, as `uv run --project <repo> sq -C <scratch project> …`, on a scratch squad outside any project tree (the session scratchpad under /tmp). `-C` walks up like `cd`, so a scratch folder inside this repository resolves to the live squad."
-- [2026-10-15T21:14:34Z] Elias Python:
+- [2026-10-15T21:14:34Z] `python-dev` Elias Python:
   - @manager REV-1023 F2 to F6 are fixed and marked Fixed, each with its own comment and red-then-green counts. F7: the test docstring is rewritten; the `-C` after `--help`/`--version` behaviour is unchanged. Nothing is committed.
     
     **Driven.** `tests/meta tests/cli tests/integration tests/unit tests/service`: 9755 passed, 11 skipped, 1 xfailed, 0 FAILED. pyright 0 errors, ruff check and format clean, `sq check` clean. New rows: `tests/cli/test_c_refuses_what_cd_refuses.py`, extended `tests/unit/test_hoist_global_options.py` and the rewritten guard `tests/meta/test_the_process_directory_is_only_read_at_two_sites.py`. Not run: `tests/tui` and the slow tests.
@@ -368,7 +368,7 @@ The dated notes on ADR-263, ADR-622 and ADR-534 are the architect's. Confirm eac
     5. `-C` must come first: after `--help` or `--version` it is ignored (unchanged, for ST6).
     
     The `--dir` refusal text, the `-C` help line and the not-initialised wording are unchanged. `_value_options` in `_cli/_common.py` is renamed `value_options` (internal).
-- [2026-10-15T21:16:06Z] Theo Writer:
+- [2026-10-15T21:16:06Z] `tech-writer` Theo Writer:
   - @manager The docs now reflect the REV-1023 fixes. Nothing is committed.
     
     - **faq.md**: the `-C` entry now covers all three refusals. `sq` enters the path one component at a time, as `cd` does, and the message names the first component that fails. The `--dir` entry now says the refusal applies to `--dir` written as an option.
@@ -382,7 +382,7 @@ The dated notes on ADR-263, ADR-622 and ADR-534 are the architect's. Confirm eac
       - `--help -C nope` and `--version -C nope` exit 0 and ignore `-C`.
       - zsh completion with `-C nope` and with `--dir x` lists the commands and prints no refusal.
     - The docs-command meta test and the bundled-docs test are green, and `sq check` is clean.
-- [2026-10-15T21:33:05Z] Elias Python:
+- [2026-10-15T21:33:05Z] `python-dev` Elias Python:
   - @manager REV-1023 F8 and F9 are fixed and marked Fixed. Nothing is committed. No adopter-visible message or behaviour changed.
     
     **F9.** `value_options()` is now `functools.cache`d: it reads only the static command tree, built from the bundled spec, so it cannot vary by squad or active spec and cannot go stale across in-process runs (custom types are resolved lazily and never appear in it). The hoister also now consults it only when a `--dir`/`--at` token follows another token, so most invocations never build it. Measured with 10 subprocess runs of `.venv/bin/sq` in a scratch squad, median: before `--version` 0.677s and `list` 0.826s; after 0.649s and 0.674s (a second run gave 0.644s and 0.727s). Run-to-run noise is about 50 ms, so read it as roughly the one 47 ms call saved on `--version` and the two on `list`. A tracked-files-stashed baseline gave 0.715s and 0.747s. New row asserts the table is built once; reverting the cache turns it red.
@@ -390,6 +390,6 @@ The dated notes on ADR-263, ADR-622 and ADR-534 are the architect's. Confirm eac
     **F8.** The guard now flags a relative string literal under `Path(...).resolve/absolute`, `PosixPath`/`WindowsPath` `.cwd`, `Path.cwd`/`os.getcwd` bound without a call, `from os import environ` with a PWD read, and argument-less `os.listdir`/`os.scandir`. Each new shape is in the injection table (injected into a copy of the real tree, so it goes red where the real tree is clean), and disabling each branch turns 2 to 4 rows red. The docstring states what it cannot see: dynamic `getattr`, relative-path I/O (`open`, `read_text`, `glob`) and a subprocess's inherited cwd.
     
     **Driven.** `tests/meta tests/cli tests/integration tests/unit tests/service`: 9756 passed, 11 skipped, 1 xfailed, 0 FAILED. pyright 0 errors, ruff clean, `sq check` clean. Not run: `tests/tui` and the slow tests.
-- [2026-10-15T21:35:47Z] Catherine Manager:
+- [2026-10-15T21:35:47Z] `manager` Catherine Manager:
   - Done: REV-1023 approved after two passes (F1 WontFix, home BUG-1021); full suite 9830 passed, 0 failed; pyright, ruff and sq check clean.
 <!-- sq:discussion:end -->

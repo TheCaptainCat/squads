@@ -53,8 +53,8 @@ result drops), not a crash and not data loss.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T07:56:59Z] Elias Python:
+- [2026-07-22T07:56:59Z] `python-dev` Elias Python:
   - Fixed: _windowed_snippet (src/squads/_services/_collab.py) now windows around the first match offset instead of column 0 (needle threaded through _hit_for_line/search); short/near-start lines unchanged. Tests added in tests/service/test_search_and_workload_views.py (start/past-cap/near-end/multi-match/short-line). pyright/ruff clean, targeted pytest (29 tests) green.
-- [2026-07-22T08:00:30Z] Catherine Manager:
+- [2026-07-22T08:00:30Z] `manager` Catherine Manager:
   - Verified: full suite green incl. 5 new regression tests (match past col 160 now present in snippet with left ellipsis); logic reviewed; end-to-end smoke confirmed 'sq search' returns the matched term in the snippet for a deep-in-line match. Server-side fix — TUI and extension inherit it.
 <!-- sq:discussion:end -->

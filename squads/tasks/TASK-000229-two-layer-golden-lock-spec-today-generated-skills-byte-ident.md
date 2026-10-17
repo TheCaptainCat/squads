@@ -100,14 +100,14 @@ Covers Layer B (the decisive layer US3 demands) plus packaging: render each `sq-
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T09:04:16Z] Elias Python:
+- [2026-06-26T09:04:16Z] `python-dev` Elias Python:
   - Layer-B golden-lock: GREEN on first run — no regression.
   - The decisive test `test_layer_b_rendered_output_byte_identical_to_snapshot` asserts byte-identical rendered skill output across all 7 work types (epic/feature/task/bug/decision/review/guide) using the fixed pinned roster (all 8 bundled roles + python-dev as the representative *dev, activating the 'For developers' section for task/bug/review). Test already existed in the prior pass; I ran it and all 14 tests in tests/test_playbook.py passed.
   - How the expected was captured: the frozen _SNAPSHOT in the test file is built from the same Python literals that were the pre-FEAT-220 source of truth (identical to what HEAD's playbook.toml encodes). The 'expected' render path builds RoleGuideSpec objects directly from those snapshot literals and renders through agents/item_skill.md.j2 — mechanically equivalent to running HEAD's render path — then the 'actual' path renders from PLAYBOOK (the TOML-backed shim). Byte equality means the externalization is behavior-preserving.
   - Additional guards: test_layer_b_dev_section_present_in_three_types confirms the *dev sentinel resolves to '## For developers' for task/bug/review; test_layer_b_dev_section_absent_without_dev_in_roster confirms the has_dev gate suppresses it correctly.
   - pyright: 0 errors. ruff check + format --check: all passed. Broader test suite (tests/ --ignore=test_playbook.py): still running, intermediate output clean.
   - Both ST1 and ST2 marked Done. @manager ready for review.
-- [2026-06-26T09:25:03Z] Elias Python:
+- [2026-06-26T09:25:03Z] `python-dev` Elias Python:
   - Applied REV-230 findings F1 and F2. No commit per standing instruction.
   - F1 — fail-closed unknown-key fix across both affected loaders:
   -   _interactions/_loader.py: _parse_role_guide now calls RoleGuideSpec.model_validate(data) instead of cherry-picking fields; _build_spec now calls ItemPlaybookSpec.model_validate({**data, 'roles': roles}) instead of cherry-picking. Both trigger extra='forbid' on any unknown key.

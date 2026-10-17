@@ -45,8 +45,8 @@ Linux suite + pyright + ruff stay green locally; the objective gate is a green `
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-17T12:48:46Z] Elias Python:
+- [2026-06-17T12:48:46Z] `python-dev` Elias Python:
   - Fixed: .as_posix() at all four path-to-name sites, CRLF-normalized hashing in manifest runtime and generator, .gitattributes for LF enforcement, and typer.Abort/EOFError fallback in init prompt — all 839 tests green, pyright+ruff clean, manifest unchanged.
-- [2026-06-17T13:00:48Z] Catherine Manager:
+- [2026-06-17T13:00:48Z] `manager` Catherine Manager:
   - Verified: the Windows fix landed in 8d7b3c5 and PR #1 is fully green — test (windows-latest) passed in 5m20s (run 27690459775), alongside ubuntu, macos, and lint. All three root causes (os.sep override keys, CRLF template hashing, init non-TTY-EOF prompt abort) confirmed resolved on the actual Windows runner.
 <!-- sq:discussion:end -->

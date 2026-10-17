@@ -50,7 +50,7 @@ _Add with `sq task 634 add-subtask "<title>"`; track with `sq task 634 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T07:33:44Z] Elias Python:
+- [2026-07-24T07:33:44Z] `python-dev` Elias Python:
   - Landed: AgentBackend gets a new candidate_orphans(ctx, roster, skill_slugs) ABC method (implemented in both claude_code and agents_md backends) that enumerates on-disk agent-pointer/skill files and reports any whose slug matches no active role and no known skill (SKILL items + bundled/custom-type system skills) — WARN-only, read-only, never deletes/moves/rewrites. Service.candidate_orphans() resolves the roster/skill vocab and calls every active backend; init/adopt call it and surface results on InitResult/AdoptResult.warnings, printed by the CLI. A slug match is never flagged even if this exact run didn't literally rewrite that file (e.g. adopt only regenerates newly-activated roles) — matching a real role/skill is still squads-managed territory, not an orphan.
   - Tests: tests/integration/test_backend_scaffold_warnings.py (non-matching pointer flagged + untouched, slug-matched pointer overwritten, orphan skill dir, fresh init has no warnings, --no-claude skips the scan entirely, CLI smoke on adopt). Gates green, tests/meta green, sq check clean.
 <!-- sq:discussion:end -->

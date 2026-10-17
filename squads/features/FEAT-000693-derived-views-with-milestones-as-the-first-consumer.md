@@ -249,31 +249,31 @@ ever materializes the roll-up — it is rendered fresh from the current corpus o
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-29T13:53:44Z] Pierre Chat:
+- [2026-07-29T13:53:44Z] `op-pierre` Pierre Chat:
   - Scope calls: milestones only — no sprints and no estimation for now. Membership rides a `:targets` ref. The roll-up table (plus `--json` for other clients) must not be a special case: it belongs to a general mechanism, since squads is a generic engine.
   - Both features land in 0.14; 0.13 keeps its planned scope. ADR-49's closed ref-kind vocabulary needs challenging.
-- [2026-07-29T14:03:22Z] Pierre Chat:
+- [2026-07-29T14:03:22Z] `op-pierre` Pierre Chat:
   - The sink is not a free choice: sub-entity state lives in the parent's own frontmatter, so its summary projects the same file and may be materialized — a milestone's members live in other files, so its roll-up must stay computed.
-- [2026-07-29T14:06:44Z] Pierre Chat:
+- [2026-07-29T14:06:44Z] `op-pierre` Pierre Chat:
   - The projection must be as generic as possible — text, tables and other shapes, not a table renderer with extras bolted on.
-- [2026-07-29T14:22:16Z] Pierre Chat:
+- [2026-07-29T14:22:16Z] `op-pierre` Pierre Chat:
   - Parked for now. Commission the two decisions from @architect when 0.13 opens, so they are settled before the 0.14 build: the ref-kind vocabulary challenge (ADR-49's closed list versus adopter-declared types, which gates `targets`) and the derived-view mechanism itself — encoding the source-determined sink, the uniform data shape, and presentation-as-template.
-- [2026-07-29T14:31:15Z] Pierre Chat:
+- [2026-07-29T14:31:15Z] `op-pierre` Pierre Chat:
   - The two commissioned decisions (ref-kind vocabulary, derived-view mechanism) are 0.14 work — do not commission them at 0.13-open.
-- [2026-07-29T16:08:51Z] Pierre Chat:
+- [2026-07-29T16:08:51Z] `op-pierre` Pierre Chat:
   - Third consumer for this mechanism, and the one that tests its sink rule: a role's skills. The stored extra.skills cache is unnecessary — skills stay few (11 today against 671 items), so resolving the scopes edges on read costs nothing, while the cache costs a dedicated exemption in the frontmatter/index skew guard (PERMITTED_EXTRA_SKEW) plus a save-and-restore dance on every refresh. Drop it.
   - The role body's ## Skills section is then a view-only projection: its source is foreign (each skill's own scopes edges live in other items), so by this feature's own source-determined sink rule it must be computed, never materialized into the body. That makes it the first computed-sink consumer, where the sub-entity summary and head are both local-sink — between them they exercise both halves of the rule. The generated backend artifacts are unaffected: they are regenerable projections into another tool's config, not sq bodies.
-- [2026-07-29T16:11:09Z] Pierre Chat:
+- [2026-07-29T16:11:09Z] `op-pierre` Pierre Chat:
   - Nothing should be reading the item markdown directly except a human resolving a merge between branches. That sharpens the sink rule rather than weakening it: a materialized derived region is precisely what fouls a merge, since two branches re-render the same projection from different underlying state and git reports a conflict in content nobody authored — resolvable only by picking a rendering instead of a fact. A computed projection cannot conflict. Self-describing raw files are not a goal worth a body sink.
-- [2026-07-30T07:57:47Z] Pierre Chat:
+- [2026-07-30T07:57:47Z] `op-pierre` Pierre Chat:
   - Commission all three decisions in one architect pass when 0.14 opens — the ref-kind vocabulary, the derived-view mechanism, and the uniform bundled-spec override model — resolving their interactions inside a single design effort rather than across three sequenced ones.
-- [2026-08-24T18:02:27Z] Pierre Chat:
+- [2026-08-24T18:02:27Z] `op-pierre` Pierre Chat:
   - Scoped into 0.14, and coupled to FEAT-321: the MILE and PRD types share one schema bump and one migration runner, so the two features land in the same release.
-- [2026-08-24T20:15:56Z] Pierre Chat:
+- [2026-08-24T20:15:56Z] `op-pierre` Pierre Chat:
   - Adopter-authored presentation templates stay IN scope, as reauthored: the override surface already ships, so the marginal cost is near zero and shipping views bundled-only would shortchange adopters.
-- [2026-08-26T08:22:18Z] Pierre Chat:
+- [2026-08-26T08:22:18Z] `op-pierre` Pierre Chat:
   - 0.14 keeps the type work: milestones, contracts and the region retirement all stay in this release rather than moving to 0.15, so the shared migration runner and the single schema bump stand as ruled.
-- [2026-08-26T13:20:40Z] Nina Product:
+- [2026-08-26T13:20:40Z] `product-owner` Nina Product:
   - Refreshed against ADR-320/775/776/777/781, all now Accepted, ahead of the breakdown.
     
     - The `targets` ref kind is already declared and shipped (FEAT-790, Done) — US3 no longer
@@ -292,7 +292,7 @@ ever materializes the roll-up — it is rendered fresh from the current corpus o
     No reauthor needed — the mechanism design (source/projection/presentation, no sink,
     workflow-spec declaration, adopter-overridable templates, milestone as first consumer) was
     already correct and matches the accepted decisions as written.
-- [2026-08-26T13:40:36Z] Olivia Lead:
+- [2026-08-26T13:40:36Z] `tech-lead` Olivia Lead:
   - - Broke FEAT-693 into two tasks plus a docs task. TASK-830 is the mechanism (US1/US2): `[views]` as a keyed section of the workflow document, the projection engine and its uniform record shape, presentation as a bundled overridable template, and the `--json` contract with its `sq workflow views` catalog row. TASK-831 is the first consumer (US3/US4): the `MILE` type, its lifecycle, its target date, membership by `targets` refs and the roll-up view. TASK-833 is the adopter documentation, split out because the owner role genuinely differs and its file set is `docs/` plus `CHANGELOG.md` with nothing under `src/`.
     - Two things TASK-830 must NOT do, both stated in its body because they are the easy mistakes. There is no sink field and none to derive, so the refusal FEAT-693 originally asked for has nothing to assert — no test for it. And the sub-entity summary is not converted here: US1 asks only that the declaration be expressive enough to describe the shipped shape, so `ensure_summary`, `set_head` and `_refresh_head` are untouched and FEAT-694 keeps that work.
     - The milestone roll-up's grouping resolves from declared status **roles**, not status names. A milestone can hold members of several types on several lifecycles, so a literal `"Done"` would silently mis-group a bug, a decision or an adopter's custom type. Same discipline as the ref kind: `targets` is named in the view's source declaration and never as a Python literal, which the ref-kind meta scan enforces.

@@ -70,7 +70,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-06-30T11:44:39Z] Catherine Manager:
+- [2026-06-30T11:44:39Z] `manager` Catherine Manager:
   - Not a defect in this feature — custom-type create/show/transition CLI is FEAT-210 scope (spec-driven command registration). AC#1/US1 re-scoped accordingly; tracked by FEAT-210.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -95,7 +95,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-06-30T11:44:26Z] Catherine Manager:
+- [2026-06-30T11:44:26Z] `manager` Catherine Manager:
   - Fixed: vestigial F5 comment block and the no-op try/except re-wrap around validate_against_index_fail_closed removed from open_service.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -118,7 +118,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-06-30T11:44:41Z] Catherine Manager:
+- [2026-06-30T11:44:41Z] `manager` Catherine Manager:
   - Deferred to TASK-247 (Group B reportPrivateUsage cleanup) — the two _active_dir suppressions are swept there as one focused pass.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -143,7 +143,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-06-30T11:44:27Z] Catherine Manager:
+- [2026-06-30T11:44:27Z] `manager` Catherine Manager:
   - Fixed: docs/workflow.md lint sample output corrected to real linter output (TASK-245 doc-fix pass).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -167,7 +167,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-06-30T11:44:43Z] Catherine Manager:
+- [2026-06-30T11:44:43Z] `manager` Catherine Manager:
   - e2e create→list test deferred to FEAT-210 (the path it exercises is 210 scope). is_open() returning True for an unknown status accepted as intended (FEAT-208-consistent, more robust).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -176,7 +176,7 @@ _Add with `sq review 248 add-finding "…" --severity high`; track with `sq revi
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T09:13:25Z] Paul Reviewer:
+- [2026-06-30T09:13:25Z] `reviewer` Paul Reviewer:
   - VERDICT: APPROVE (Wave 2-4 deliverables). No blocking defects. All five findings are MEDIUM(traceability)/LOW/INFO — none require code changes for the FEAT-209 deliverables to be correct.
   - Gates re-run by me: pyright 0 errors/0 warnings; ruff check clean; ruff format --check clean (139 files); pytest tests/test_workflow_override.py + test_workflow_spec.py + test_docfiles.py = 96 passed; tests/test_override_commands.py + test_override_loader.py = 70 passed.
   - Focus-area verdicts: (1) AC#5 fail-closed wiring — CORRECT & robust: validate_against_index_fail_closed runs BEFORE use_spec(merged_spec), so an index-incompatible spec can never be installed; lint reaches the same checks via lint_workflow_spec (separate entry point) and never self-blocks through the hard-stop. Vestigial F5 comment + no-op re-wrap noted (F2, cleanup only). (2) sq check fallback — SOUND: lint probe + bundled-spec fallback on SquadsError lets other checks run; it cannot mask a real failure (the workflow error is captured as its own CheckIssue first, then other checks run against the bundled default, never a misleading override). (3) Override artifact — follows the templates/roles pattern with NO parallel mechanism; scaffold writes canonical .overrides/workflow.toml, refuses clobber without --force, and the scaffolded example round-trips to a no-op (all commented); drift is stamp-version-only by design and consistent with roles (acceptable for v1). (4) reportPrivateUsage — workflow accessors used everywhere; ZERO new spec reach-ins; the only two new suppressions are _common._active_dir, tracked by TASK-247 (F3). (5) Docs — accurate, .overrides/workflow.toml documented, no internal refs / external URLs, example round-trips; two cosmetic drifts (F4).

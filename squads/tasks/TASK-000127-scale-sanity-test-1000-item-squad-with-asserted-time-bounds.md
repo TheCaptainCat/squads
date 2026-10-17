@@ -38,13 +38,13 @@ _Add with `sq task 127 add-subtask "<title>"`; track with `sq task 127 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T12:19:12Z] Mara Tester:
+- [2026-06-15T12:19:12Z] `qa` Mara Tester:
   - Implementation complete. Delivery: tests/test_scale.py (5 tests, @pytest.mark.slow) + pyproject.toml markers entry.
   - Generation: 1001 items — 200 features, 600 tasks (3 per feature on average), 200 bugs — built via service.init(no_claude=True) so generation stays in tmp and skips backend scaffolding.
   - Operations timed: list_items (<5s, observed ~0.007s), search (<5s, observed ~0.05s), repair after index deletion (<10s, observed ~0.4s), CLI sq list --all (<10s, observed ~0.4s), CLI sq tree --all + --json (<10s each, observed ~0.15-0.28s). Bounds give 10-25x headroom above observed times.
   - Gate result: 5 slow tests pass (40s); fast suite unchanged (702 passed, 1 skipped, 5 deselected). Ruff/pyright clean on my files. Pre-existing failures in tests/test_cli.py (I001 + reportPrivateUsage on _hoist_global_options import) are from a parallel task on this branch — out of scope.
   - CI note: slow tests are excluded from the default pytest run (-q, no -m flag). A dedicated CI step with 'uv run pytest -m slow' should be wired separately to keep the main suite fast. No CI file edited per task constraints.
   - @reviewer TASK-127 ready for review.
-- [2026-06-15T12:30:16Z] Paul Reviewer:
+- [2026-06-15T12:30:16Z] `reviewer` Paul Reviewer:
   - REV-130: APPROVED. Scale test builds 1001 items (1 role + 200 features + 600 tasks + 200 bugs) and times list/search/repair (service) + sq list --all / sq tree --all / tree --json (CLI) with loose bounds (5s list/search, 10s repair/CLI) that would catch O(n^2)/full-rescan regressions yet stay CI-stable. repair() unlinks the index to force a full disk rebuild and asserts the rebuilt count + no missing IDs. Correctly @pytest.mark.slow; the pyproject [tool.pytest.ini_options] markers entry is present and accurate (deselected from the fast run, 5 passed under -m slow). Uses time.perf_counter, not the injectable clock — correct.
 <!-- sq:discussion:end -->

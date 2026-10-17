@@ -86,7 +86,7 @@ Prove the gate actually bites: introducing a squad-item ref on a forbidden surfa
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T14:32:02Z] Elias Python:
+- [2026-07-06T14:32:02Z] `python-dev` Elias Python:
   - Gate landed: tests/test_squad_ref_hygiene.py — a repo-wide pytest guard (not a separate CI step; pytest is already the CI test job).
   - Pattern: \b(ADR|FEAT|TASK|REV|BUG|EPIC)-[0-9]|\bUS[0-9]|\bST[0-9]|§[0-9] — concrete-digit only, so placeholder shapes (FEAT-<n>, USn, PREFIX-NNNNNN) auto-pass.
   - Allowlist: squads/{epics,features,tasks,bugs,adrs,reviews,guides,operators}/** (item markdown) + squads/.squads.json (the rebuildable index); docs/tutorial.md, docs/recipes.md, docs/adoption.md (designated illustrative walkthroughs); CHANGELOG.md (historical release log, out of TASK-311's scope). Deliberately EXCLUDES squads/agents/{roles,skills}/** — that's rendered bundled prose and must itself stay clean (per TASK-312's own done-when).

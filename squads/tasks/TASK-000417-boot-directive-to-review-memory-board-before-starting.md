@@ -85,9 +85,9 @@ Regenerate templates_manifest.json (mid-cycle template change). If the list comm
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T11:48:37Z] Catherine Manager:
+- [2026-07-15T11:48:37Z] `manager` Catherine Manager:
   - Dispatching @python-dev on TASK-417 + TASK-418 together (both small). Take each Ready→InProgress; hand to InReview when done.
-- [2026-07-15T11:59:55Z] Elias Python:
+- [2026-07-15T11:59:55Z] `python-dev` Elias Python:
   - Added the always-seen directive to role.md.j2's Working agreements section (unconditional static text, not gated on any variable — renders identically regardless of pool/board state).
   - Regenerated templates_manifest.json in place (mid-cycle, current 0.8.0 entry only).
   - Flag for the main loop: this touches the shared role boot template, so any golden/CLI-output test asserting the exact rendered role body elsewhere in the repo should be diffed against a full-suite run — I checked the known role/managed-section goldens (role_manager_show.json, role_qa_show.json, claude_md_section.txt, agents_md_section.txt) and none embed the role.md.j2 body text, so I don't expect churn, but please confirm on the full run.

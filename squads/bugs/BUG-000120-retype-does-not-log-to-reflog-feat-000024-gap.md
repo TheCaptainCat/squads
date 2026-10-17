@@ -24,7 +24,7 @@ Fix: in _retype.py RetypeMixin.retype(), inside the store.transaction() block, a
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T10:21:41Z] Elias Python:
+- [2026-06-15T10:21:41Z] `python-dev` Elias Python:
   - Fixed: added `self.store._log('retype', new_id, {...})` inside the existing `with self.store.transaction()` block in `_retype.py::RetypeMixin.retype()`, immediately before the `return RetypeResult` line.
   - Delta shape: `{old_id, new_id, old_type, new_type, status_carried, status}` — mirrors the remove op's gone-item snapshot convention; target is the new_id so reflog readers see the surviving ID.
   - Also added `retype` to the op table in `docs/workflow.md`, and a new test `test_retype_emits_reflog_line` in `tests/test_reflog_core.py` that asserts exactly one well-formed retype line with all expected delta fields.

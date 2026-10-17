@@ -103,13 +103,13 @@ Once a custom type is registered in the workflow spec, 'sq show INC-3', 'sq upda
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-01T09:42:41Z] Nina Product:
+- [2026-07-01T09:42:41Z] `product-owner` Nina Product:
   - Drafted for the record at the tail of EPIC-206 (after FEAT-210/211/212), unscheduled.
   - Intent: retire type-first CLI grammar in favor of global verb-first dispatch keyed on the ID prefix. Captures the rationale, blast radius, and the open back-compat question so the context travels with the work.
   - ADRs not authored here — Robert Architect will draft them (grammar target, supersession of FEAT-013 stability freeze, back-compat/deprecation strategy) when op-pierre greenlights scheduling.
   - @manager: this item is in Draft, unscheduled. No tasks, no ADRs, no devs yet — per op-pierre.
-- [2026-07-02T13:07:21Z] Catherine Manager:
+- [2026-07-02T13:07:21Z] `manager` Catherine Manager:
   - Re-parented from EPIC-206 to EPIC-38 (CLI frontend) per op-pierre: verb-first addressing is a CLI-grammar refactor, a different axis from EPIC-206's config-driven-workflow mission (which is now fully delivered). Same scope-line reasoning as the FEAT-212→EPIC-280 split (ADR-274). Still refs FEAT-013 (grammar stability contract) + REV-265 (custom-type dispatch).
-- [2026-07-15T13:45:52Z] Pierre Chat:
+- [2026-07-15T13:45:52Z] `op-pierre` Pierre Chat:
   - Cancelling. The high-value verb-first win — sq show <ID>, looking up any item by ID regardless of type — already exists additively alongside type-first, so the ergonomic gap is already closed. Type-first is good UX and gives per-type help scoping; superseding it would break the FEAT-13 grammar-stability contract, trigger a large docs/skill sweep, and relocate complexity into dispatch-time per-type help (the BUG-371 class) rather than remove it — too much disruption for a narrow, already-covered gain. If more verb-first convenience is ever wanted, add the mutating verbs (sq update/comment <ID>) additively like sq show, with no supersession — noted here, not scheduled.
 <!-- sq:discussion:end -->

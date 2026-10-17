@@ -43,6 +43,6 @@ _Add with `sq task 607 add-subtask "<title>"`; track with `sq task 607 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T16:20:51Z] Elias Python:
+- [2026-07-22T16:20:51Z] `python-dev` Elias Python:
   - Landed: StatusSpec.terminal removed; is_open/terminal_set/hidden_by_default all derive from WorkflowSpec.role_for(status) (fallback to the bundled 'pending' role when a status omits role). RETIRED_STATUS_ROLES + the records category-branch deleted; hidden_by_default is now a pure role.hidden read (item_type param kept for signature stability, unused). Reachable-terminal lint renamed to reachable-settled, message text updated. TERMINAL frozenset export unchanged (still derives from terminal_set()).
 <!-- sq:discussion:end -->

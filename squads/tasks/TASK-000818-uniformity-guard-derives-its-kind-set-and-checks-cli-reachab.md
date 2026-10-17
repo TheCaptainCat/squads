@@ -172,7 +172,7 @@ true, so the comment has to stop saying it.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T08:50:59Z] Elias Python:
+- [2026-08-26T08:50:59Z] `python-dev` Elias Python:
   - Kind set is now derived at run time from scan_overrides (test_the_kind_set_is_derived_from_scan_overrides): places one shadowing override of every kind, then diffs {entry.kind} against set(_KIND_FIXTURES) both ways, naming which side is stale.
   - CLI reachability is the new 5th element in _uniformity_gaps, driven per kind via the invoke fixture through sq override scaffold/diff/update with each kind's own argv form (_KindFixture.cli_argv). Checks exit 0 AND the resolved kind: scaffold via the scanned entry's .kind, diff via the printed '(kind: X)' line, update via the on-disk stamp actually advancing -- not exit code alone.
   - Falsified both: (1) added a throwaway 6th kind to scan_overrides alone -- the derivation test went red naming it, _KIND_FIXTURES untouched; (2) reverted the three 'roles' CLI elif branches in _cli/_override.py, ran the suite -- failed with: override kind wiring gaps (kind -> missing part): {'roles': ["CLI reachability (scaffold exited 1: 'error: no bundled template ...roles... )")]}. Restored both files, re-ran clean (diff confirmed byte-identical).

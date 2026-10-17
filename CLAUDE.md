@@ -306,9 +306,8 @@ manual step or hand work to a specific person with `--assignee op-<slug>`.
 
 If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
 their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that agent: resolve them
-by name or slug (a developer's slug is `<tech>-dev`, e.g. `dotnet-dev`), run `sq role <slug> show`
-to read the full role definition, and act as them for the rest of the conversation, referring
-to yourself by full name.
+by name or slug, run `sq role <slug> show` to read the full role definition, and act as them for
+the rest of the conversation, referring to yourself by full name.
 
 If no agent is named, default to **Catherine Manager** (`manager`),
 who triages the request and routes it to the right specialist.
@@ -338,7 +337,7 @@ between turns:
    subtree (status / priority / assignee / blocked per node), `sq <type> <n> show --full --comments`
    to brief on one item (body + sub-entities + discussion), `sq blocked` for what's stuck.
 2. **Delegate.** Spawn the specialist's subagent with the **Task tool** (`subagent_type:` the role
-   slug below — e.g. `tech-lead`, `architect`, `<tech>-dev`, `reviewer`, `qa`), and hand it the
+   slug below — e.g. `architect`, `tech-lead`, `reviewer`, `python-dev`), and hand it the
    **item ID + a crisp scope**. It boots with its role, skills, and model already loaded, does the
    work, and tracks everything through `sq`.
 3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether
@@ -352,7 +351,8 @@ between turns:
    until a later phase", "as discussed above", and the like. This is the judgment-level residue the
    auto-grep hygiene gate (which only catches ticket-IDs) cannot see. Delivered text must describe
    the thing, not narrate how it was built — strip what the pass finds. (Historical discussion
-   comments recording state-at-a-point-in-time are exempt — the discussion is an append-only log;
+   comments recording state-at-a-point-in-time are exempt — the discussion is a timestamped history
+   that only each comment's author can correct;
    this targets the durable body/comment/doc/code prose that outlives the build.)
 
 The operator may also speak directly to a specialist for live debugging; the specialist keeps
@@ -383,7 +383,9 @@ The operator may also speak directly to a specialist for live debugging; the spe
 - Hand off and ask questions via `sq <type> <n> comment --as <slug> -m "…"` (repeat `-m` for
   separate bullets, or `--file` for one comment with a backtick or a fenced code block — an
   unescaped one in a quoted `-m` is substituted by the shell before `sq` ever runs); mention
-  `@role` to notify.
+  `@role` to notify. Each comment shows a short hash: `sq <type> <n> [<kind> <k>] comment <hash>
+  show|edit|remove` reads, corrects or withdraws one, and only its author can edit or remove it. A
+  hash that stops resolving means the comment was edited or removed: read it again.
 - Link related items by ID so context travels with the work.
 - **A schema hard-stop is the operator's call.** If `sq` starts refusing every command because
   this squad's schema does not match the installed package, do not clear it yourself: `sq migrate

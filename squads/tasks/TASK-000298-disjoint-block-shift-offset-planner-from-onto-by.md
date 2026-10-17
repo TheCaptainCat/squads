@@ -96,6 +96,6 @@ Done when the padded-disk / unpadded-content seam holds across the shift: rename
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T09:55:27Z] Elias Python:
+- [2026-07-06T09:55:27Z] `python-dev` Elias Python:
   - REV-302 F1 addressed (same scrub as TASK-297/299) and F2 addressed: strengthened the padded-filename assertion to check the digit-run width equals db.padding (was just .isdigit()), and added test_renumber_rewrites_an_unshifted_items_ref_to_a_shifted_item covering the reverse referential-intent direction.
 <!-- sq:discussion:end -->

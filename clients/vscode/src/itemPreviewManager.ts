@@ -96,7 +96,12 @@ import {
   UPDATE_CONTENT_COMMAND,
   type UpdateContentMessage,
 } from './domain/previewMessages';
-import { buildPronounsMap, NO_PRONOUNS, type PronounsContext } from './domain/pronouns';
+import {
+  buildPronounsMap,
+  headingPronouns,
+  NO_PRONOUNS,
+  type PronounsContext,
+} from './domain/pronouns';
 import { buildRoleDirectory, NO_ROLE_DIRECTORY, type RoleDirectory } from './domain/roleDirectory';
 import type { ProcessRunner } from './processRunner';
 import {
@@ -105,6 +110,7 @@ import {
   getGraph,
   getList,
   getMemoryShow,
+  getOperatorIdentities,
   getRaw,
   getRoleIdentities,
   getShowJson,
@@ -117,6 +123,7 @@ import {
 import type {
   SqGraphNode,
   SqListItem,
+  SqRosterIdentity,
   SqShowJson,
   SqSubEntityKindCatalogEntry,
   SqTreeNode,
@@ -168,6 +175,11 @@ function roleDirectoryFrom(
   return outcome.kind === 'success'
     ? buildRoleDirectory(outcome.data, pronouns)
     : NO_ROLE_DIRECTORY;
+}
+
+/** A roster fetch's rows, or none when it failed (or an older `sq` lacks the verb). */
+function identityRowsOf(outcome: SqOutcome<SqRosterIdentity[]>): readonly SqRosterIdentity[] {
+  return outcome.kind === 'success' ? outcome.data : [];
 }
 
 /** Hover text for every id the prose may link, from one batched `sq list --json --all`. Same
@@ -549,6 +561,7 @@ export class ItemPreviewManager {
         typeCatalog,
         kindCatalog,
         roleRows,
+        operatorRows,
       ] = await Promise.all([
         getRaw(this.runner, invocation, this.workspaceRoot, id),
         getTree(this.runner, invocation, this.workspaceRoot, id),
@@ -559,6 +572,7 @@ export class ItemPreviewManager {
         getTypeCatalog(this.runner, invocation, this.workspaceRoot),
         getSubentityKindsCatalog(this.runner, invocation, this.workspaceRoot),
         getRoleIdentities(this.runner, invocation, this.workspaceRoot),
+        getOperatorIdentities(this.runner, invocation, this.workspaceRoot),
       ]);
       if (dossier.kind !== 'success') {
         if (dossier.kind === 'spawn-error') {
@@ -569,13 +583,28 @@ export class ItemPreviewManager {
       // Degrades via `roleDirectoryFrom` rather than a second notification — same treatment as
       // the tree/graph/sub-entities/discussion fetches below, none of which are the actionable
       // failure.
+      const showPronouns = vscode.workspace
+        .getConfiguration('squads')
+        .get<boolean>('showPronouns', true);
       const roles = roleDirectoryFrom(roleList, {
         pronouns: roleRows.kind === 'success' ? buildPronounsMap(roleRows.data) : NO_PRONOUNS,
-        enabled: vscode.workspace.getConfiguration('squads').get<boolean>('showPronouns', true),
+        enabled: showPronouns,
       });
+      const headerPronouns = headingPronouns(
+        id,
+        [...identityRowsOf(roleRows), ...identityRowsOf(operatorRows)],
+        showPronouns,
+      );
       const ids = itemIdMatcherFrom(typeCatalog);
       const items = itemDirectoryFrom(itemList);
-      ({ titleText, headerHtml, bodyHtml } = renderOutcomeHtml(id, dossier, roles, ids, items));
+      ({ titleText, headerHtml, bodyHtml } = renderOutcomeHtml(
+        id,
+        dossier,
+        roles,
+        ids,
+        items,
+        headerPronouns,
+      ));
       graphsHtml = buildGraphsHtml(
         toGraphOutcome<readonly SqTreeNode[]>(tree, buildSubtreeMermaid),
         toGraphOutcome<SqGraphNode>(graph, buildRefGraphMermaid),

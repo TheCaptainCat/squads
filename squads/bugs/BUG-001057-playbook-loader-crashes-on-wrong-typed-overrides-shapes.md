@@ -31,10 +31,10 @@ Note: on this build `statuses = 3` in `.overrides/workflow.toml` also crashes `s
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T18:08:22Z] Elias Python:
+- [2026-10-16T18:08:22Z] `python-dev` Elias Python:
   - Fixed in the commit "Rejected wrong-typed playbook and workflow override shapes without a traceback". Playbook build now shape-checks types, each entry and its roles; the workflow drift check skips non-table sections. Probing also found roles = 3 (playbook) and items/collections/lifecycles = 3 (workflow) crashing; all fixed. Table of 13 shapes; falsification 11 of 13 fail on the old loaders (2 were already clean controls).
-- [2026-10-16T18:23:29Z] Elias Python:
+- [2026-10-16T18:23:29Z] `python-dev` Elias Python:
   - Commit 501e42d7 on branch worktree-agent-a2f892de06784925e.
-- [2026-10-16T19:08:35Z] Catherine Manager:
+- [2026-10-16T19:08:35Z] `manager` Catherine Manager:
   - Verified: fix approved on REV-1067 and merged into release/0.16 at 977730ec; full suite 11471 passed, 0 failed.
 <!-- sq:discussion:end -->

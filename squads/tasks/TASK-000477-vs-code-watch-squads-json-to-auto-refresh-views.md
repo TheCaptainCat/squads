@@ -44,7 +44,7 @@ _Add with `sq task 477 add-subtask "<title>"`; track with `sq task 477 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T20:46:54Z] Ada Typescript:
+- [2026-07-18T20:46:54Z] `typescript-dev` Ada Typescript:
   - Implemented: domain/squadDir.ts (pure, client-side .squads.toml walk-up mirroring _paths.py::find_config/resolve — no core change needed) + createNodeSquadDirEnvironment (nodeEnvironment.ts) + squadWatcher.ts (vscode FileSystemWatcher on <squad-dir>/.squads.json, 150ms debounce coalescing create+change, no-op when workspace folder isn't file: scheme or no .squads.toml found).
   - extension.ts wires it to refresh treeDataProvider + metaTreeDataProvider + all open item-preview panels (ItemPreviewManager now tracks every open panel -> item id in openPanels, refreshOpenPreviews() re-renders all of them, not just the reused one).
   - TS gate: tsc/eslint/prettier clean, vitest 207/207 (12 new squadDir.test.ts cases), canary 10/10.

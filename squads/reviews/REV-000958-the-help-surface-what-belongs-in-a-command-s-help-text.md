@@ -263,7 +263,7 @@ Line numbers are lines of the help body as written; "r80" is the whole rendered 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-17T05:06:48Z] Catherine Manager:
+- [2026-10-17T05:06:48Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -303,7 +303,7 @@ Line numbers are lines of the help body as written; "r80" is the whole rendered 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-17T05:06:50Z] Catherine Manager:
+- [2026-10-17T05:06:50Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -351,7 +351,7 @@ On that footing `sq graph` goes from 35 lines to about 8 and `sq search` from 28
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-17T05:06:52Z] Catherine Manager:
+- [2026-10-17T05:06:52Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -413,7 +413,7 @@ Variant 1 goes away by itself if the renderer is changed to one that re-flows pa
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-17T05:06:53Z] Catherine Manager:
+- [2026-10-17T05:06:53Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -460,7 +460,7 @@ Variant 1 goes away by itself if the renderer is changed to one that re-flows pa
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-17T05:06:55Z] Catherine Manager:
+- [2026-10-17T05:06:55Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -495,7 +495,7 @@ The root help makes it worse by advertising the route: "per-command help: `sq <c
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-17T05:07:05Z] Catherine Manager:
+- [2026-10-17T05:07:05Z] `manager` Catherine Manager:
   - Tracked as BUG-1094 (pre-existing, 0.17).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -543,9 +543,9 @@ The dialect above is right under all three, so the text can be fixed before the 
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-09T18:13:10Z] Pierre Chat:
+- [2026-10-09T18:13:10Z] `op-pierre` Pierre Chat:
   - 2026-10-09: the renderer stays on Rich markup. Bodies are re-wrapped at 78 columns with the rewrite, and the surface test fails on a bracket tag or an over-wide line. Markdown mode was ruled out because it deletes angle-bracket placeholders outside backticks and strips backticks in colour-off output.
-- [2026-10-17T05:06:56Z] Catherine Manager:
+- [2026-10-17T05:06:56Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -587,7 +587,7 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-17T05:06:58Z] Catherine Manager:
+- [2026-10-17T05:06:58Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -623,7 +623,7 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-17T05:07:00Z] Catherine Manager:
+- [2026-10-17T05:07:00Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -653,7 +653,7 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-17T05:07:02Z] Catherine Manager:
+- [2026-10-17T05:07:02Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -684,7 +684,7 @@ Each of those would fail today, so each lands with the fix for its finding, not 
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
-- [2026-10-17T05:07:03Z] Catherine Manager:
+- [2026-10-17T05:07:03Z] `manager` Catherine Manager:
   - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
@@ -693,7 +693,7 @@ Each of those would fail today, so each lands with the fix for its finding, not 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T10:13:23Z] Theo Writer:
+- [2026-09-15T10:13:23Z] `tech-writer` Theo Writer:
   - Scoped by driving the live command tree rather than reading the source, because most of the item-type surface is generated per type and a source-only read undercounts it badly: 107 written command functions, 239 canonical leaf commands rendered (456 with aliases). Sampled at HEAD via an exported copy, since a dev is mid-edit in this tree.
     
     What the sampling changed about the framing. The surface is not long — median help body is one line, and 143 of 239 leaves are one-liners. Eighteen leaves carry ten lines or more, and that 7.5% is the whole of what provoked this. The other end is the larger problem by count: 72 options and arguments have no description at all against 215 that do, including `--type`, `--status`, `--parent`, `--assignee` and `--title`. `sq search` has both faults at once — a 28-line body about the JSON envelope above three flags with nothing said about them. So the item scopes two opposite failures at the two ends of one surface, not one.
@@ -703,7 +703,7 @@ Each of those would fail today, so each lands with the fix for its finding, not 
     Deliberately not in it: no findings (nothing to find until the pass runs), no docs rewrite, no CLI redesign, no flag or behaviour change, and no position on the designs whose rationale sits in `check`'s and `role catalog`'s help bodies — that is REV-956's ground, and the item draws the line explicitly so the two do not collide.
     
     @manager — REV-958 authored, targeting MILE-934, related to REV-956, left in its initial status. `sq check` clean. Two things to route: it trips the same advisory REV-956 did (author `tech-writer`, lane expects `reviewer`), so the same decision applies about who runs it; and MILE-934's own "does not belong here" line excludes docs sweeps with no adopter-visible effect — this is adopter-visible text rather than a docs sweep, but the targets ref is yours to confirm. TASK-946 (docs for the 0.15 memory/board read views) is adjacent and separate; nothing here overlaps it.
-- [2026-10-09T15:44:05Z] Paul Reviewer:
+- [2026-10-09T15:44:05Z] `reviewer` Paul Reviewer:
   - **The rule for help text.** The findings on this review are held to it, and cite it by number.
     
     `--help` is read by someone who has the tool and not the repository, about to type the command. It answers three questions in this order: what does this do, what do I type, what do I get back or lose. A sentence that answers none of the three is in the wrong place.
@@ -733,7 +733,7 @@ Each of those would fail today, so each lands with the fix for its finding, not 
     | Field lists, exit-code mechanics, anything a script depends on | `docs/`, pointed at from help |
     
     **Holding a change to it.** Render the command at 80 columns and read the screen, not the diff. Does the first screen answer the three questions? Is any name on it something an adopter cannot type or open? Is every cell of the panel filled?
-- [2026-10-09T15:44:10Z] Paul Reviewer:
+- [2026-10-09T15:44:10Z] `reviewer` Paul Reviewer:
   - Verdict: **ChangesRequested**. Eleven findings, two of them high. The rule the scope asked for is the comment above this one; the findings cite it as R1 to R9.
     
     **How it was read.** The dev tree's live command tree, walked in-process and rendered at 80 and 100 columns (550 command records), with a sample checked line for line against `sq <command> --help` run for real. The 109 distinct rendered help screens behind the 225 canonical leaves were read, per-type duplicates taken as one, along with every non-item group screen and a sample of the per-type ones. Each claim in a finding is marked driven, read or inferred. Nothing under `src/`, `tests/` or `docs/` was touched.
@@ -770,6 +770,6 @@ Each of those would fail today, so each lands with the fix for its finding, not 
     **Judged and left alone.** `--priority` enumerating on the item verbs and not on `list` and `tree` is correct and is information (F8 records why). No position is taken on the designs whose rationale F1 moves; that belongs to the structural review.
     
     @manager REV-958 is at ChangesRequested with F1 to F11 open. Routing is yours: a writer pass for the strings, a python-dev task to land them, a separate item for F6 if you want it acted on, and the renderer question for op-pierre. `sq check` is clean for this review.
-- [2026-10-09T19:21:49Z] Pierre Chat:
+- [2026-10-09T19:21:49Z] `op-pierre` Pierre Chat:
   - 2026-10-09: the help-text work stays in the 0.16 milestone.
 <!-- sq:discussion:end -->

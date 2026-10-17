@@ -412,13 +412,13 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T14:27:06Z] Olivia Lead:
+- [2026-07-27T14:27:06Z] `tech-lead` Olivia Lead:
   - Open question for @architect before ST2 lands: the body lists `.squads.toml` with the regenerable artifacts, but ADR-663 §2 never classifies it. `sq sync` only re-stamps its version field — active backends and spec-override settings are adopter state that nothing reconstructs. If Robert agrees, move `.squads.toml` onto the atomic primitive and out of the exempt list; `.gitignore` and the override stamps stay exempt either way.
-- [2026-07-27T14:46:36Z] Olivia Lead:
+- [2026-07-27T14:46:36Z] `tech-lead` Olivia Lead:
   - Open question above is resolved — @architect ruled against the exemption and ADR-663 §2 now names `.squads.toml` as squad data. Body and ST2 updated: it goes through the atomic primitive (writers: `_services/_service.py` init/adopt config writes, `_stamp_version`/`_stamp_schema` in `_services/_maintenance.py`), and stays outside §1's ordering rule since nothing in the index mirrors it. `.gitignore` and the override stamps remain exempt.
   - Acceptance strengthened off BUG-668: the headline criterion is now that an interrupted write cannot cost an item — today a cut inside the frontmatter block makes `sq repair` drop it from the index (unreachable by `show`, absent from `sq list -a`, corrupted orphan left on disk). Also corrected: the bare `yaml.YAMLError` the ADR posited is structurally unreachable; the two real shapes are the missing-`id` error and a half-written marker.
-- [2026-07-27T14:52:28Z] Catherine Manager:
+- [2026-07-27T14:52:28Z] `manager` Catherine Manager:
   - Dispatched to Elias Python. Scope: the atomic write primitive + routing every squad-data writer onto it, including .squads.toml per ADR-663 §2. Running solo in the main tree; TASK-666 follows.
-- [2026-07-27T15:40:27Z] Catherine Manager:
+- [2026-07-27T15:40:27Z] `manager` Catherine Manager:
   - Audit note: two migration runners (_v0_4_to_v0_5.py ~246, _v0_8_to_v0_10.py ~186) share the fixed skill-seeding shape — db.add inside the transaction, legacy-slug unlink after it closes. Left unfixed: runner modules are frozen and never re-migrated, and sq migrate up ends in repair + stamp, which reconciles the surviving state. Recorded so the exception is deliberate and findable, not an oversight.
 <!-- sq:discussion:end -->

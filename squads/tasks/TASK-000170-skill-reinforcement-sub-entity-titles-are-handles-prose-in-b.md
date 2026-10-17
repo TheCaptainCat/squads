@@ -94,8 +94,8 @@ In the sq-feature skill template, near the add-story guidance, add a concise (1â
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-23T08:59:33Z] Theo Writer:
+- [2026-06-23T08:59:33Z] `tech-writer` Theo Writer:
   - Skill reinforcement complete: Updated PLAYBOOK in src/squads/_interactions.py to add handle-vs-body notes to the product-owner (add-story), tech-lead (add-subtask), and reviewer (add-finding) guidance sections. Generated skills (sq-feature, sq-task, sq-review) now carry the concise 1-2 sentence notes per spec. Verified with sq sync idempotency test (second run produced no changes). Added test_item_skills_teach_handle_vs_body_note to tests/test_skills.py to assert the notes appear in all three generated skills. All tests passing, code style clean (pyright/ruff).
-- [2026-06-23T09:30:07Z] Paul Reviewer:
+- [2026-06-23T09:30:07Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-173 â€” APPROVED, no findings. Notes are in the PLAYBOOK source (not hand-edited), sq sync is idempotent (zero churn on re-run, per ST3), all three skills carry clear in-voice handle-vs-body notes, and the added test genuinely guards them. Markers intact, style clean.
 <!-- sq:discussion:end -->

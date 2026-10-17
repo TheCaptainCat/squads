@@ -140,7 +140,7 @@ Don't let sync() stamp squads_version when _backfill_roster_body_tags reported s
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-08T14:28:35Z] Elias Python:
+- [2026-09-08T14:28:35Z] `python-dev` Elias Python:
   - Withheld the squads_version stamp when _backfill_roster_body_tags reports a skip (sync(), backfill_skipped guard) instead of adding a check finding — chose retry per the task's own preference; a second sync retries and re-reports the same skip until fixed. Driven + falsified (both directions).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -155,7 +155,7 @@ Move the tolerant version_tuple down out of _cli/_common.py (e.g. beside schema_
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-08T14:28:36Z] Elias Python:
+- [2026-09-08T14:28:36Z] `python-dev` Elias Python:
   - Swapped schema_tuple for the tolerant version_tuple (reused from squads._util, already the dependency-free home _overrides uses — no move needed) on the squads_version/__version__ drift comparison. Audited the rest of the sync/migrate path for the same bare-exception shape: nothing else found (all other raises in _maintenance.py/_migrate.py are SquadsError; the other schema_tuple calls compare schema_version, which is hand-authored dotted-int and never carries a prerelease suffix). Driven with squads_version = '0.14.0rc1' + falsified.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -170,7 +170,7 @@ _cli/_migrate.py's up command reads only run.repair.strip_notice(); add a loop o
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-08T14:28:41Z] Elias Python:
+- [2026-09-08T14:28:41Z] `python-dev` Elias Python:
   - sq migrate up now loops over run.repair.skipped with the identical wording sq repair prints, right after the existing strip_notice() print. Exit code unchanged (0) — the task scoped that decision out. Driven through the real CLI on a copy of the v0_11 corpus fixture with a marker-shaped skill body; bare exit code confirmed via uv run sq migrate up (no pipe). Falsified.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -179,7 +179,7 @@ _cli/_migrate.py's up command reads only run.repair.strip_notice(); add a loop o
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-08T14:29:02Z] Elias Python:
+- [2026-09-08T14:29:02Z] `python-dev` Elias Python:
   - Handoff — F13/F14/F15, all in `_services/_maintenance.py` and `_cli/_migrate.py`.
     
     **F13 (visibility + retry).** `sync()` now withholds `_stamp_version` when its own
@@ -231,7 +231,7 @@ _cli/_migrate.py's up command reads only run.repair.strip_notice(); add a loop o
     `tests/cli/test_migrate_up_reports_repair_skips.py`.
     
     @tech-lead ready for review.
-- [2026-09-08T14:35:41Z] Elias Python:
+- [2026-09-08T14:35:41Z] `python-dev` Elias Python:
   - F15 follow-up, per coordinator: `sq migrate up` now exits 1 on the same condition `sq repair`
     does (`_cli/_main.py`: `if result.unreadable or result.skipped`), mirrored as
     `if run.repair and (run.repair.unreadable or run.repair.skipped): raise typer.Exit(1)` at the

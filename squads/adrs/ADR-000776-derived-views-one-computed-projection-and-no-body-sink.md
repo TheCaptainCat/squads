@@ -1204,25 +1204,25 @@ sentence. Both are narrowly true of their `sq:*` example and misleading about th
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T09:30:44Z] Robert Architect:
+- [2026-08-22T09:30:44Z] `architect` Robert Architect:
   - The body sink does not survive, and the driven evidence is stronger than the argument for it. Four computed renderings of the sub-entity projection already ship and none reads either materialised region; sq task N show --full never prints the :head text at all. The head is not local-source either — it resolves the assignee name from the ROLE item and the story label from the parent feature, and both go stale on a rename with sq sync not healing them.
   - Driven merge: two branches conflict in both the frontmatter subentities list and the :summary table of the same file. Resolve the frontmatter correctly, leave the table at one branch rendering, and sq repair + sq check pass with exit 0 while sq show prints two rows and the file prints one. No verb re-derives the region.
   - So the sink rule is not source locality — it is whether a shipped verb regenerates the region. Two sinks: display (computed) and document (a region of a wholly generated document, enumerated in engine code — role/skill bodies, backend artifacts). sink stops being a declared field, so the refusal FEAT-693 asked for becomes an unrepresentable state instead.
   - One departure from your stated conclusion, flagged for your ruling: a role ## Skills section stays materialised. The backend pointer tells the agent to load @squads/agents/roles/ROLE-....md, so role and skill item markdown IS read directly, by an agent, not only by a human resolving a merge — a computed view never reaches that reader. The stored extra.skills cache still goes, which narrows PERMITTED_EXTRA_SKEW and needs the literal-membership pin in tests/unit/test_role_def_extra_keys.py edited in the same change.
   - FEAT-694 needs reauthoring rather than implementing: its subject inverts to retiring the two regions, byte-identical output cannot be its bar, and a migration IS owed. @product-owner for awareness once this is ruled on; @op-pierre @manager the call is yours.
-- [2026-08-22T09:38:26Z] Pierre Chat:
+- [2026-08-22T09:38:26Z] `op-pierre` Pierre Chat:
   - Direction that changes this decision: no materialized claude file may reference a local file path. The generated pointers currently instruct the agent with an @-reference to squads/agents/roles/ROLE-N.md and the skill equivalent; that breaks under remote mode, where there is no local squad directory. Pointers must instead display the sq commands an agent runs at startup, which work the same locally and against a server.
   - This overrules the architect departure on the third consumer. The case for keeping a role ## Skills section materialized was that the pointer makes an agent read the role markdown directly - that reference is itself being removed, so the premise is gone and the section is computed, as originally concluded. Reconsider whether a materialized sink has any consumer left at all once no generated file points at item markdown.
-- [2026-08-22T09:48:01Z] Robert Architect:
+- [2026-08-22T09:48:01Z] `architect` Robert Architect:
   - Amended in place rather than annotated: the decision is Proposed, and sections 1, 4 and 5 asserted a document sink and a departure the direction overrules, so leaving them would have left the decision stating the reverse of the ruling.
   - The collapse is real, and I tested it rather than assuming. Section 4 now enumerates every non-human reader of item markdown: the index rebuild and per-item reads (frontmatter, never a derived region), show and the sub-entity panes (authored prose), sq search (the one survivor, _services/_collab.py:436-441), migration runners (the mechanism that removes a region), the body regenerators (writers), the VS Code client (reads .squads.toml only, everything else is sq --json — driven), and the agent host @ resolver. The @ resolver was the ONLY non-human reader that consumed a derived region as its content, and the direction deletes it. So there is one behaviour and no exception list.
   - One correction to how the collapse was framed: the reader is not deleted so much as moved behind sq. Once the pointer names sq role <slug> show, sq is in the delivery path, which is what makes computing possible for that reader at all. And the computed home already exists — the show card is already computed and already carries a creates: row (_cli/_role.py:324-345), so the skills list is one more row beside it and role.md.j2:18-25 is deleted.
   - Materialisation itself does not vanish, and section 4 says so rather than over-reading the rule: the backend pointers and the compiled managed regions are materialised projections read by a non-human with no sq in the loop, they must stay that way because a host reads files and cannot run commands, and they are write-only and never read back (tests/meta/test_a_backend_never_reads_back_its_own_generated_output.py). They are governed by invariants 5/6/7 and the ABC, never by a view sink.
-- [2026-09-01T08:00:03Z] Pierre Chat:
+- [2026-09-01T08:00:03Z] `op-pierre` Pierre Chat:
   - Direction, general rather than case by case: existing files should be shrunk of all duplicated data. The markdown files are the storage; the only read surface is the CLI; and views are the way to present derived content. Anything materialised into a file that the CLI can compute is duplication and comes out.
-- [2026-09-01T08:01:03Z] Pierre Chat:
+- [2026-09-01T08:01:03Z] `op-pierre` Pierre Chat:
   - This lands in 0.14, not later: the shrink rides the same migration runner and the same schema bump as the region retirement.
-- [2026-09-01T08:13:44Z] Robert Architect:
+- [2026-09-01T08:13:44Z] `architect` Robert Architect:
   - Amended in place (2026-09-01 note, second one): the shrink rule applied, scoped, and the views fork ruled.
     - In class, exhaustively: the whole `sq:body` region of every role item, and of every SYSTEM skill item; plus the role `extra` mirror keys (title/mission/responsibilities/agreements/color/can_spawn/description/skills, and model for a non-dev role). Out: a CUSTOM (authored) skill body — `releasing-squads` is one in this corpus, 10.1 KB. 22 of our 23 files are in class; a migration keyed on folder/type/`sq-` prefix destroys the 23rd. Key on `is_system_skill(slug, spec)`, which already ships and which `set_body` already uses to refuse exactly these writes.
     - `title`/`description` STAY — uniform-record fields read by surfaces that cannot resolve a role catalog. The duplication inside that pair is `item.title` vs `extra.full_name`: keep the top-level field, drop the extra copy.
@@ -1230,7 +1230,7 @@ sentence. Both are narrowly true of their `sq:*` example and misleading about th
     - Driven, and worse than drift: `sq role qa set-default` is silently reverted by the next `sq sync`, `sq check` exit 0 on both sides — `is_default` is operator-settable AND a catalog mirror key.
     - Three couplings the breakdown needs before the build: `_without_permitted_extra_skew` identifies a role by `extra.mission` (the key we remove); `sq check`'s pointer-currency expectation is built from `RoleDef.from_extra` (the mirror we remove — ADR-781 §2c goes void unless it moves to the resolver); `PERMITTED_EXTRA_SKEW`'s literal test pin.
     - Marker safety holds: the only out-of-region content in a role file is frontmatter and a static `## Discussion` heading; the body is one region already rewritten wholesale every sync. @tech-lead this is the scope for the FEAT-694 breakdown.
-- [2026-09-01T08:55:17Z] Robert Architect:
+- [2026-09-01T08:55:17Z] `architect` Robert Architect:
   - Amended in place, third 2026-09-01 note: the roll-up ships no bundled view either. Tracked, per the audit rule:
     
     - **Added** amendment note §§1-6. §1-2 are the driving (scratch squad at 0.14.0); §3 the ruling; §4 the further narrowing of §6; §5 the reconciliation with the 2026-08-26 refusal; §6 `milestone_rollup` and the discriminator.
@@ -1238,7 +1238,7 @@ sentence. Both are narrowly true of their `sq:*` example and misleading about th
     - **§5 is unchanged.** Its verdict on the roll-up ("computed") was always right; what changes is that nothing new has to be built to meet it.
     - **The 2026-08-26 refusal is unchanged and unweakened** — §5 of the new note records why neither rescue (degrade-instead-of-refuse, prune-bundled-instead-of-refuse) survives it, so neither is re-proposed cheaply.
     - **Nothing is superseded** and no ref changes: this is a clause-level narrowing inside the same decision.
-- [2026-09-01T10:41:16Z] Robert Architect:
+- [2026-09-01T10:41:16Z] `architect` Robert Architect:
   - Amended in place, fourth 2026-09-01 note: the corpus strip is a repair-side sweep, not a schema step. Tracked per the audit rule:
     
     - **Added** amendment §§1-7. §1 the driving and the stranded population, §2 the ruling, §3 the rule governing what the sweep may remove, §4 the four refused vehicles, §5 the accepted failure mode, §6 adopter safety, §7 the downstream narrowings.

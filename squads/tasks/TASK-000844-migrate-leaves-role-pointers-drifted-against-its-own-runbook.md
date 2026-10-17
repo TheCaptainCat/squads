@@ -162,7 +162,7 @@ affects.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T17:20:27Z] Elias Python:
+- [2026-08-26T17:20:27Z] `python-dev` Elias Python:
   - Resolved toward MANUAL, not the runner: replaced 'No action is required' with a 'run sq sync next' step naming the affected roles (architect, product-owner, tech-lead, every <tech>-dev) and the pre-fix sq check warning. Did not add a generate_role_entry pass to _regenerate_surface.
   - Why: doing the regen correctly needs each role's full resolved preload set including any adopter scoped-skill ref edges, which means reading corpus ref data and freezing local copies of split_ref/ref_id_matches (forbidden _models wire-encoding primitives) -- real scope growth for a runner meant to stay light, and a naive regen (empty role_skills, falling back to the pure skills_for_role) would silently drop an adopter's custom-scoped skills from an affected role's pointer, a worse defect than the one being fixed. The runner's own docstring reasoning (pointer convergence is an ongoing sq sync responsibility) holds up under that weighing; added one sentence there tying it explicitly to MANUAL so the two no longer read independently.
   - Confirmed the drift extends beyond the review's three roles to a <tech>-dev role's pointer too: constructed cleanly by adding the dev role to both comparison squads before either diverges (not mid-probe) -- python-dev's pointer gains sq-contract via the *dev sentinel and drifts exactly like the other three.

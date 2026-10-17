@@ -45,6 +45,6 @@ _Add with `sq review 498 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T09:24:34Z] Paul Reviewer:
+- [2026-07-20T09:24:34Z] `reviewer` Paul Reviewer:
   - @manager APPROVE — 0 findings. Independent review of the TASK-493 working tree (set_body guard, is_system_skill, sq skill body verb + show label, tests/golden). Guard relaxation is correct and fail-safe; scope clean (no 494/495/496 leakage); pyright/ruff clean; service + CLI tests present, persistence test genuinely proves body survives sync/regen/repair. REV-498 Approved.
 <!-- sq:discussion:end -->

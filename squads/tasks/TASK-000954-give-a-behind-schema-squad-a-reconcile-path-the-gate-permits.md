@@ -329,7 +329,7 @@ three verbs are refused there. No runner imports `skew_message`.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-10-15T18:21:27Z] Elias Python:
+- [2026-10-15T18:21:27Z] `python-dev` Elias Python:
   - Inventory of remedies reachable from `sq migrate up` on a squad left behind (read from the code; each row is pinned by a refusal row in `tests/integration/test_a_refused_migrate_up_names_only_commands_the_gate_permits.py` or by the meta guard).
     
     | Site | Fires when | Permitted? | Resolution |
@@ -858,7 +858,7 @@ The two newest runners also resolve the spec and the playbook a second time each
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-15T09:00:25Z] Robert Architect:
+- [2026-09-15T09:00:25Z] `architect` Robert Architect:
   - Ruled in ADR-955 (refs this task). The answer is a rule about operations, not an exemption list.
     
     **The reconcile licence.** Behind the schema gate an operation may run only if it is (1) vocabulary-blind — no spec-resolved type/status/prefix/folder/ref-kind/view/badge value decides its behaviour; (2) content-neutral — it writes no body and no frontmatter value, only derived state (the index), stamped at the *corpus's* schema, not the installed one; (3) convergent — it leaves the squad no further from a successful `sq migrate up`. Anything failing (1) or (2) is a migration step and belongs in a versioned runner. That is what the next migration inherits.
@@ -876,9 +876,9 @@ The two newest runners also resolve the spec and the playbook a second time each
     Left open in the ADR: no deliberate verb for a licensed reconcile; a runner whose own refusal is the wall is not fixed by this; whether the licence should also govern reads.
     
     @manager ADR-955 is in its initial status for op-pierre. ST2/ST3 land against the licence, not against a chosen command.
-- [2026-09-29T13:24:12Z] Pierre Chat:
+- [2026-09-29T13:24:12Z] `op-pierre` Pierre Chat:
   - Not high priority.
-- [2026-10-09T19:01:09Z] Olivia Lead:
+- [2026-10-09T19:01:09Z] `tech-lead` Olivia Lead:
   - 2026-10-09: redrafted against ADR-955 as Accepted and the code at `f0c6295b`. Body and ST1 to ST3 rewritten, ST4 and ST5 added, summary updated, `implements` ref to ADR-955 added. Left in Draft and unassigned; no developer briefed.
     
     **Driven at that commit** (scratch squads stamped `0.14`, the repo's own build; every row is in the body's reproduction table): missing index, corrupt index and a stale index entry with an undeclared status each loop between `sq migrate up` ("run `sq repair`") and `sq repair` ("run `sq migrate up`"); a file the index lacks is skipped while the run exits 0; a hand-edited status lets the runners write and then stops at the trailing repair; an override conflict stops `migrate up` with a message naming `sq workflow lint`; `sq migrate repad` and `rename-status` run and write on a behind squad and on one stamped `0.99`. `rename-type` was read, not driven. A service built the way the bypass accessor builds it fails the same override squad one layer down, in the runner's own transaction.
@@ -897,9 +897,9 @@ The two newest runners also resolve the spec and the playbook a second time each
     4. ST1 scopes the static runner guard to `raise` literals and carries the rule as a behavioural invariant over failing `migrate up` runs.
     
     @manager for the operator's read. Points 1 and 2 touch the decision itself, so they may want the architect's amendment rather than a yes on this task.
-- [2026-10-09T19:14:12Z] Pierre Chat:
+- [2026-10-09T19:14:12Z] `op-pierre` Pierre Chat:
   - 2026-10-09: the points where this draft goes past ADR-955 (the narrower gate exemption, the pre-runner vocabulary check and skipped fallback) and the stale premises it found go to the architect as an amendment to ADR-955. The task follows the amended decision; no developer starts on it before that.
-- [2026-10-09T19:36:38Z] Robert Architect:
+- [2026-10-09T19:36:38Z] `architect` Robert Architect:
   - 2026-10-09: ADR-955 is amended in place (A1 to A7 under **Amendments**). Your four calls are confirmed with the changes below; nothing in the task body is edited by me. @tech-lead
     
     **ST5, the gate (A1).** Confirmed: `up`, `help`, `chlog`. Two changes.
@@ -928,9 +928,9 @@ The two newest runners also resolve the spec and the playbook a second time each
     **Docs handoff, for the tech writer.** `docs/migration.md`: the sentence that `sq migrate *` are the only commands exempt and always run on an out-of-date squad; the order to follow when the three verbs are wanted on an old squad (migrate first; restore a dropped declaration, migrate, rename, drop it again); the new `migrate up` refusals and their remedies; the reconcile line. The table there already lists exactly `up`, `help` and `chlog`.
     
     **Read, not driven, not ruled.** The 0.1 to 0.2, 0.2 to 0.3, 0.5 to 0.7 and 0.7 to 0.8 runners walk frozen bundled folders and prefixes, so a custom type's files on a squad stamped 0.5 are not visited by the 0.5 to 0.7 unpadding. Same family as A4, outside this task unless you take it. And a suggestion only: carry the reconcile's result on the `migrate` reflog line, since an entry dropped as missing is otherwise recorded nowhere.
-- [2026-10-09T19:37:29Z] Robert Architect:
+- [2026-10-09T19:37:29Z] `architect` Robert Architect:
   - 2026-10-09: @manager ADR-955 is amended in place. Its discussion carries what changed and four points for op-pierre to weigh before this task is promoted: the narrower gate exemption (adopter-visible), the refusal on an unreadable item file instead of stamping past it, a custom-type migration defect that needs a home, and a reciprocal note owed on ADR-663. Posted here as well because an inbox lists open items only and ADR-955 is Accepted.
-- [2026-10-09T20:28:12Z] Olivia Lead:
+- [2026-10-09T20:28:12Z] `tech-lead` Olivia Lead:
   - 2026-10-09: brought into line with ADR-955 as amended (A1 to A7) and confirmed by op-pierre, working from the architect's list above. Body and ST1 to ST5 rewritten, ST6 added, summary updated. Still Draft and unassigned; no developer briefed. Code read at `d07b0e50` (no source change since the first draft).
     
     **Per subtask**
@@ -954,9 +954,9 @@ The two newest runners also resolve the spec and the playbook a second time each
     **One thing to weigh, not blocking.** With the squad directory at the project root, another tool's file whose name and `id` both have the item shape (an `ADR-0007-x.md` carrying `id: ADR-0007`) is an item by the A2 rule and, lacking squads' fields, stops `sq migrate up` under A4, where "take it out of the squad directory" is not available. ST2 pins that as its own row so it is one line to change.
     
     Build order: ST6, ST2, ST4, ST5, ST1, ST3. @manager
-- [2026-10-11T20:16:02Z] Catherine Manager:
+- [2026-10-11T20:16:02Z] `manager` Catherine Manager:
   - Promoted to Ready and dispatched on the operator's go of 2026-10-11. Built in two passes by one developer: the first subtask in the build order (every runner's index opened under the run's vocabulary, which fixes BUG-988) is built and reviewed alone, then the rest.
-- [2026-10-11T20:26:25Z] Elias Python:
+- [2026-10-11T20:26:25Z] `python-dev` Elias Python:
   - @manager ST6 built and set Done; uncommitted in the working tree for review.
     
     Design: new frozen `MigrationContext(paths, spec, playbook)` in `_migrations/_context.py`. `run_pending_migrations` builds it once from self.paths/self.spec/self.playbook and passes it to every `Migration.run`. `_wrap_sync` unwraps `ctx.paths` for the file-walking runners (their `migrate(paths)` and direct tests are unchanged). The four index-opening runners (0.4-0.5, 0.8-0.10, 0.11-0.14, 0.14-0.15) now take the context; every IndexStore they build passes `spec=ctx.spec` (0.11-0.14 passes the spec down to `_live_roster` and the seeding loop). `_active_spec`/`_active_playbook` are gone from both newest runners.
@@ -967,9 +967,9 @@ The two newest runners also resolve the spec and the playbook a second time each
     Subtask vs code: (1) the shipped corpus 0.8 and 0.11 fixtures never reach the 0.4-0.5 or 0.8-0.10 allocation (no legacy skill file), so I added fresh-built squads stamped 0.4 and 0.8 to the table. (2) `_meta_compat.py` (frozen legacy reader used by the 0.1-0.2 and 0.2-0.3 walkers) calls `bundled_spec()`; the guard exempts it from the resolver half by name, since it is a helper not a runner. (3) `test_milestone_roll_up_tag_migration._downgraded` built a Service on the bundled spec and relied on the runner re-resolving the override; it now opens the Service under the override, as the CLI does.
     
     Adopter-visible: a squad stamped before 0.14 whose valid override declares its own type, status, sub-entity status or badge code now migrates with `sq migrate up` instead of being refused; no output byte changes for a squad that migrates today. Gates: pyright, ruff check, ruff format clean. Not run: the whole suite (yours).
-- [2026-10-11T20:58:24Z] Catherine Manager:
+- [2026-10-11T20:58:24Z] `manager` Catherine Manager:
   - From REV-995 F5, for ST3's table: add a row for a run that stops part-way on a squad stamped before 0.7 with any override, then is re-run. Today the seeding transaction writes the old index back with unresolved ids and every re-run is refused with a false cause; after ST2 and ST4 the re-run must complete.
-- [2026-10-11T21:04:05Z] Elias Python:
+- [2026-10-11T21:04:05Z] `python-dev` Elias Python:
   - @manager REV-995 findings F1 to F4 closed; tests and text only, no behaviour change; uncommitted.
     
     F1: the once-test now builds its Service under a workflow override and a playbook override and asserts the spec and playbook are not the bundled singletons before checking the context carries them. The table gains a built-0.11 source and the type-and-playbook family now declares a playbook entry whose role authors the squad's own type, then asserts the compiled CLAUDE.md line "authors **incidents**" for the built squads (stamped 0.4, 0.8, 0.11; the aged corpora register a different role, so the line is not produced there). Falsified as the reviewer did (bundled playbook in the context in run_pending_migrations): 7 red, the once-test and the type-and-playbook row at built-0.4, built-0.8 and built-0.11 in both the service and the CLI driver. Restored.
@@ -977,7 +977,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     F3: the hash file is replaced by reviewed copies of every file the run adds or changes, as text, under tests/goldens/migrated_corpus/<corpus>/ with a REMOVED.txt per corpus. A mismatch prints a unified diff. Regenerate with UPDATE_GOLDENS=1 (the repo's existing switch). Docstring states it covers squads without overrides only. The copies were recorded from the current tree, which had already matched the earlier digests captured on the unchanged code.
     F4: CLAUDE.md line 169 (one line, outside the generated region) and the 0.5 to 0.7 docstring now state the two runner shapes.
     Also: first falsification count is 42 red, not 41. tests/_helpers.py imports are now under TYPE_CHECKING with the runtime ones local, matching the file's convention.
-- [2026-10-11T21:36:29Z] Elias Python:
+- [2026-10-11T21:36:29Z] `python-dev` Elias Python:
   - @manager F6 closed and ST2 built and set Done; uncommitted in the working tree.
     
     F6: a file several corpora write identically is stored once under tests/goldens/migrated_corpus/_shared and named in each corpus's SHARED.txt; a corpus keeps its own copy only of what differs (319 files down to 88). A mismatch prints a unified diff; UPDATE_GOLDENS=1 regenerates through one test. The reconstructed expectation equals the old goldens for all eleven corpora. Proof: one written field changed (author of the seeded skills in the 0.11 to 0.14 runner) turned 9 corpora red; one rendered line changed (a heading in the CLAUDE.md template) turned the same 9 red with the diff shown.
@@ -990,7 +990,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     Body vs code: the subtask puts the walk "under the squad directory" and says unreadable files are reported; a refused read is only reachable as a name-shaped directory under test, handled as above. An item lacking created_at/updated_at and any previous entry gets the loader's invented now, as repair does. A file whose id number disagrees with its sequence_id is reported unindexable.
     Adopter-visible: sq migrate up on a behind squad no longer stops on a missing, corrupt or stale index and no longer skips a file the index did not know; it prints "index reconciled with the files: indexed ...; dropped ..." when it changed anything; it refuses (exit 1, nothing migrated, schema unchanged) when an item file cannot be read, parsed or identified, or two files claim one id, naming each file and cause; the migrate reflog line has a reconcile key; with the squad directory at the project root, another tool's file whose name and id both look like an item and lacks squads fields now blocks the run.
     Not covered: no scratch-squad drive of a real aged project beyond the corpora; remedies elsewhere (ST1) and the gate (ST5) untouched. ruff check . also reports a long line in .claude/worktrees/agent-a240571530eba5b43 (another agent's worktree, not mine); src and tests are clean.
-- [2026-10-11T21:42:51Z] Elias Python:
+- [2026-10-11T21:42:51Z] `python-dev` Elias Python:
   - @manager the three ST2 suite failures are fixed (tests only; no source change).
     
     1. tests/cli/test_repair_corridor_message_and_exit_parity.py, migrate-up unreadable row: pinned that migrate up reuses repair's "carried forward as-is; fix the file" sentence. It now asserts the file is named, exit 1 (the parity that still holds with repair), "no migration has run" present and the repair sentence absent; the module docstring says migrate up shares the exit code but refuses before migrating, so its wording is its own. The repair, sync and adopt rows still pin the shared wording.
@@ -998,7 +998,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     3. tests/service/test_type_invalid_frontmatter_load_boundary.py: the stand-in _boom now accepts **kwargs; the new keyword only keeps ref_kinds in the verbatim constructor path, so which errors from_frontmatter relabels is unchanged and the test again proves a KeyError escapes.
     Skip-and-carry-on pinned elsewhere: the full wide run found only these tests plus the two service milestone tests and the bare-subprocess test I rewrote earlier; no other test pinned it. The behaviour is gone for unreadable, undecodable and unparseable item files (all refuse); a file that is simply gone is dropped and named; a runner skip on an item it can read but cannot act on (moved tag, no body region) is unchanged.
     Wide run: every test file mentioning migrate up, run_pending_migrations, carried forward, skipped, from_frontmatter or unreadable, plus tests/meta, tests/integration, tests/cli, tests/service in one run: 4352 passed, 14 skipped, 0 FAILED. Gates (ruff with --exclude .claude/worktrees): pyright 0 errors, ruff check passed, ruff format clean.
-- [2026-10-11T22:11:52Z] Elias Python:
+- [2026-10-11T22:11:52Z] `python-dev` Elias Python:
   - @manager F8, F10, F11 and the code and tests of F13 are fixed; F7, F9, F12 untouched (walk, recognition and clash handling unchanged, their table rows kept). Uncommitted.
     
     F8: floors now move only for an item accepted by the routine (note() moved from reject/read into settle for the single accepted claimant). Rows: a table of four rejected shapes with huge file-name numbers (no type, malformed YAML, undecodable, id claimed twice) leaves counter and padding unchanged; a service-level and a CLI refused-then-fixed equivalence (the ADR-20240115 record from the finding: refused leaves 11/6, after the remedy the squad ends 11/6, equal to a first run on the fixed squad). Falsified (note() back in reject): 6 red - the CLI refused-run floor test, the CLI refused-then-fixed test, 3 of the 4 table rows, the service refused-then-fixed test.
@@ -1007,7 +1007,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     F13: the two skip texts (_cli/_migrate.py, 0.14 to 0.15 manual) no longer mention a missing file; the bare-subprocess docstring is corrected; the runner-skips-every-item case is back (one milestone with no body region, one with a moved tag: both skipped, zero changed, stamp 0.15) beside the missing-file test. docs/ lines remain for the writer.
     UPDATE_GOLDENS: the comparison rows are skipped while it is set, so only the regeneration test touches the folder.
     Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter or unreadable, plus tests/meta, integration, cli, service): 4398 passed, 14 skipped, 0 FAILED. Gates: pyright 0 errors, ruff check passed, ruff format clean (excluding .claude/worktrees). No disagreement with the findings.
-- [2026-10-11T22:19:04Z] Robert Architect:
+- [2026-10-11T22:19:04Z] `architect` Robert Architect:
   - 2026-10-12: ADR-955 rules on REV-995 findings 7, 9 and 12 (A8 to A10, under **Amendments — 2026-10-12**). What ST2 changes, for @tech-lead and @python-dev. Nothing below was driven by me; each expected outcome is from the ruling and is yours to prove.
     
     **Code, `_index/_reconcile.py` and its call site**
@@ -1043,7 +1043,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     **ST4, the check before the first runner**: add the row the reviewer asked for, which can now only come from the previous index: an entry whose recorded path is outside its type's declared folder, on a squad with no override. Refused before any runner, saying where the file is and where its type's items live, blaming no override.
     
     @manager ADR-955's discussion carries the two points for op-pierre's confirmation (the declared locations handed to the reconcile, and the refusal on a shared number); repeated here because an inbox lists open items only.
-- [2026-10-12T04:49:42Z] Elias Python:
+- [2026-10-12T04:49:42Z] `python-dev` Elias Python:
   - @manager third pass on ST2 (ADR-955 A8, A9, A10) built; F7, F9, F12 marked Fixed. Uncommitted.
     
     Module (_index/_reconcile.py): the tree is no longer walked. Locations = (directory, prefix) pairs from the previous index (directory and file-name prefix of each entry's recorded path, not entry.prefix) plus the declared pairs; only those directories are listed (not recursively), and only names with exactly that prefix are candidates. Everything outside is never opened, indexed, counted towards the counter or padding, or reported. The "no id, reported only if an entry stands" branch is gone: any candidate that cannot become an entry is rejected. Other markdown files in a location's directory (any name, any prefix) are opened only to read an id and join a duplicate group; unreadable or id-less ones are left alone. settle separates one id in two files ("is also claimed by") from one number under two ids (cause names the number, both ids, both paths, "the index holds one item per number"; Unindexable.shared_number). ReconcileResult carries the counter. Call site (_maintenance.run_pending_migrations): passes declared=[(folder, prefix)] from self.spec.items; the refusal remedy now reads "correct each file, or, when it is not one of the squad's items, move it out of the folder it sits in", and for a shared number adds the by-hand renumber (counter+1 printed; file name, id, sequence_id, references; the stamped release can also renumber; no command printed).
@@ -1061,7 +1061,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     Nothing in the amendment failed when driven; ST4's out-of-folder-entry row is not built.
     Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter or unreadable, plus tests/meta, integration, cli, service): 4455 passed, 14 skipped, 0 FAILED. Gates: pyright 0 errors, ruff check passed, ruff format clean (excluding .claude/worktrees). After the interruption I re-ran the reconcile files and tests/meta: 495 passed.
     Adopter sees differently: only the folders the squad keeps items in (from its index and its declared types) are read; an archive folder, a backup copy, a nested fixture tree or another tool's records at a project-root squad are ignored and never block the run, and an item moved by hand out of its folder is dropped from the index and named; a file named for an item in an item folder that cannot be read, parsed or identified stops the run (with or without an earlier entry), remedy: correct it or move it out of that folder; one id in two files in an item folder (any file name) stops the run; two ids sharing a number stop the run with the number, ids and paths named and a by-hand renumber spelled out.
-- [2026-10-12T05:22:01Z] Robert Architect:
+- [2026-10-12T05:22:01Z] `architect` Robert Architect:
   - 2026-10-12: ADR-955 A11 withdraws A8's second source on the operator's decision. The routine stays blind. What changes in what is built, for @python-dev and @tech-lead. A9's rules at a location, A10 and every with-index row stand as built.
     
     **Code, `_index/_reconcile.py` and the call site**
@@ -1092,7 +1092,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     - Both questions pass over the eleven corpus fixtures.
     
     @manager ADR-955's discussion carries the cost of the decision in the no-index state and one point for op-pierre to reconsider; repeated here because an inbox lists open items only.
-- [2026-10-12T05:39:36Z] Elias Python:
+- [2026-10-12T05:39:36Z] `python-dev` Elias Python:
   - @manager A11 and ST4 built; ST4 set Done; F7, F9, F12 stay Fixed (a comment on each names the rule). Uncommitted.
     
     Reconcile (_index/_reconcile.py): the declared pairs are gone from _locations(), the signature and the call site. New plan_reconcile() builds the index without writing and returns (db, result); reconcile_index() is plan + write, for the tests. With a readable index a location is an entry's directory and file-name prefix, nothing else. With none the tree is walked (dot-directories skipped) and every item-named file is a candidate: a well-formed id makes an entry, a file that parses without one is passed over, an unreadable/unparseable one is rejected, a shared id is rejected wherever it sits; the any-name copy check stays a with-index rule. ReconcileResult.had_index says which state. A prefixless (pre-0.7) entry that is carried is given its prefix from its recorded name, so a written index no longer holds UNRESOLVED ids.
@@ -1106,7 +1106,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     Falsified (red): routine no longer walks with no index 31; always walks 58; index kept on a no-index refusal 8 (stray refusal rows); question one removed 7; question two removed 4; vocabulary check removed 8 (undeclared status/type/sub-entity status, badge); migrate_up back on get_service() 8 (stale-entry, non-loading overrides, the pre-0.7 row, remedies); bundled fallback let through 2 (non-loading override rows).
     Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter, unreadable, bypass, plus tests/meta, integration, cli, service, unit): 7052 passed, 14 skipped, 0 FAILED. Gates: pyright 0, ruff check passed, ruff format clean (excluding .claude/worktrees). sq check clean.
     Adopter sees differently: with no readable index the whole tree under the squad directory is read for item-named files, and a stray (archived item, backup copy, another tool's record, an unreadable look-alike) stops the run before anything is written, leaving the squad exactly as found, with the remedy to restore the index or move the file out of the squad directory; with an index, an indexed file where no type lives, or a file named for an item where a type lives with no entry, stops the run (remedy: move it, or have the stamped release rebuild the index); a corpus that does not fit the vocabulary the squad declares (undeclared type/status/sub-entity status, re-prefixed or re-foldered type, shrunk badge collection) is refused before any item file is written, with the items and the override named; an override or playbook override that does not load stops sq migrate up with the file and cause and without the old sq workflow lint advice, and sq migrate up no longer falls back to the bundled vocabulary; an index written before ids were stored no longer ends up with UNRESOLVED ids.
-- [2026-10-12T06:23:33Z] Robert Architect:
+- [2026-10-12T06:23:33Z] `architect` Robert Architect:
   - 2026-10-12: ruling on REV-995 finding 17, recorded as a dated note in ADR-955 at A11. For @python-dev. Read, not driven; every row below is yours to prove.
     
     **The prefix grammar as the code has it.** There is none in the spec: `ItemSpec.prefix` is a bare `str`, and load checks it for uniqueness only. Three other readers each have their own idea: `prefix_from_id` (everything before the last hyphen), `_NAME_NUMBER` in `_duplicate_ids.py` (anything, then the first hyphen-digits), and `repair`'s scan (a glob on the declared prefix, literally). The reconcile's `_PREFIX` is a fourth and the narrowest.
@@ -1132,7 +1132,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     - The eleven corpus fixtures and the hyphenated-prefix rows unchanged.
     
     @manager ADR-955's discussion has two points for op-pierre from this ruling: the wider walk shape, and the spec having no prefix grammar at all.
-- [2026-10-12T06:34:36Z] Elias Python:
+- [2026-10-12T06:34:36Z] `python-dev` Elias Python:
   - @manager F14 to F18 built, including the architect's ruling on F17; all five marked Fixed. Uncommitted.
     
     F14: new release_reading_schema(schema) in _migrations/_registry.py (the migration that introduced the schema, else the first release past it). The three refusals (no index, unindexed file, renumber note) now say "a squads release that reads schema vX (vY is one)"; squads_version is out of them. Rows: one per stamped schema 0.3, 0.4, 0.5, 0.7, 0.8, 0.10, 0.11, 0.14 asserting the named release is one whose migration has to_schema equal to the squad's schema, and that the fixture's last-sync 0.7.0 is not named. Red on revert: 7.
@@ -1143,7 +1143,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     Empty index: I left the routine alone (an index that parses is readable; changing it would change A11). The second question now says, when the index holds no items, that removing the index file lets the run read the tree instead (row). Say if you want the routine to treat it as no index.
     Wide run (every file mentioning migrate up, run_pending_migrations, reconcile, carried forward, skipped, from_frontmatter, unreadable, bypass, plus tests/meta, integration, cli, service, unit): 7082 passed, 14 skipped, 0 FAILED. Gates: pyright 0, ruff check passed, ruff format clean (excluding .claude/worktrees). sq check clean.
     No disagreement with the findings.
-- [2026-10-15T18:22:18Z] Elias Python:
+- [2026-10-15T18:22:18Z] `python-dev` Elias Python:
   - @manager ST1 and ST3 are Done and F5 is Fixed. Nothing is committed. `sq check` is clean. Pyright, `ruff check .` (source and tests) and `ruff format --check` on source and tests are clean; the one file ruff format flags in the repository is a copy under `.claude/worktrees/`, not mine.
     
     **ST1.** The earlier session had finished most of it, so I kept it. That covers the `rerun` keyword on `repair()`, `IndexFullError` with its composed refusal, the closing line, the docstrings, the gate grants and the four test files. What I added:
@@ -1210,13 +1210,13 @@ The two newest runners also resolve the spec and the playbook a second time each
     Docstrings and module docs in `_store.py` and `_v0_14_to_v0_15.py` were corrected and are not adopter-facing.
     
     @python-dev note for the reviewer: new behaviour is in `_maintenance.run_pending_migrations`, `_cli/_migrate.py` and `_cli/_common.py`. ST1 and ST3 tests are the four files from the earlier session plus the new module.
-- [2026-10-15T18:27:52Z] Theo Writer:
+- [2026-10-15T18:27:52Z] `tech-writer` Theo Writer:
   - @manager REV-995 F13 documentation half is done, and F13 is marked Fixed (the reviewer had already confirmed the code and test half). Files changed, not committed: docs/migration.md, docs/workflow.md, docs/stability.md, CHANGELOG.md (two entries under 0.16.0 Changed).
     
     Driven with the working tree's `sq` in a scratch squad stamped 0.14: the gate refuses `repad` and `rename-status`; `help` runs; a deleted milestone file gives `index reconciled with the files: dropped MILE-22 (no file backs it)` and the run completes; an undecodable task and a hand-edited `status: Bogus` each give exit 1 with the schema left at 0.14; with no index the run walks and completes; stamped ahead, `migrate up` gets the gate's "Upgrade the squads package"; a current squad gives "nothing to migrate". Read, not driven: the shared-number renumber text, the override and playbook load refusals, the index-full refusal, and the "still at schema" ending.
     
     What's left (optional, not adopter-facing): the module docstring of `_v0_14_to_v0_15.py` (around lines 113-116, plus the comments at 323 and 338) still lists "a missing indexed file" as a skip the runner makes. The reconcile now drops that entry first. The reviewer's note that CLAUDE.md's module list leaves out `_index/_reconcile.py` and `_services/_corpus_fit.py` is still open too, and CLAUDE.md is outside my scope.
-- [2026-10-15T18:42:56Z] Elias Python:
+- [2026-10-15T18:42:56Z] `python-dev` Elias Python:
   - @manager F19 to F23 and both leftovers are fixed. Nothing is committed. Pyright, ruff check and format are clean. `tests/meta tests/integration tests/cli tests/unit tests/service` gave 7303 passed, 9 skipped; the full suite was not run.
     
     **Correction to my earlier handoff.** I wrote that the store-load refusals were unreachable after the reconcile and the pre-runner check. That was inferred from the shapes I tried, and F19 showed it false for hand-edited badge codes.
@@ -1243,7 +1243,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     1. The "squads X detected … Run `sq sync`" notice is gone while the squad's schema differs from the package's.
     2. New refusal before any runner: "no migration has run: these stored badge codes are not declared by their collection:" followed by one line per item or sub-entity ("<id> field 'priority' has code 'x', which the 'priority' collection does not declare"), then "correct the named frontmatter values by hand, then re-run `sq migrate up`. The schema is unchanged."
     3. Behaviour: `--dir` on a project-root squad now meets the gate, so `repair`, `list` and `migrate repad` are refused there as on a nested squad. An argument that only spells `-h` or `--help` no longer bypasses the gate.
-- [2026-10-15T18:45:41Z] Theo Writer:
+- [2026-10-15T18:45:41Z] `tech-writer` Theo Writer:
   - @manager The three adopter-visible changes from the latest python-dev handoff are now documented. Nothing is committed.
     
     - docs/migration.md: the version notice is not shown while the schema differs from the package's (in the TL;DR follow-up paragraph and the stamping section). The out-of-date-squad section now says `--help` counts only as an option of its own (not after `--`, not as an option's value), that `-h` is not a help option, and that the gate covers `--dir` on a project-root squad. "Before the first runner" gains the undeclared-badge-code refusal.
@@ -1257,7 +1257,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     - `--dir` from another folder on a `squad_dir = "."` squad stamped 0.14 refuses `list` and `repair`.
     
     Read, not driven: the 0.15.0 `-h`/`--help` and `--dir` behaviour I describe as "before" (from the `v0.15.0` source).
-- [2026-10-15T18:57:24Z] Elias Python:
+- [2026-10-15T18:57:24Z] `python-dev` Elias Python:
   - @manager F23, F24, F25 and the F21 residual are fixed. Nothing is committed. Pyright, ruff check and format are clean. `tests/meta tests/integration tests/cli tests/unit tests/service`: 7387 passed, 9 skipped. The full suite was not run.
     
     **F23.** `resolve()` in `src/squads/_paths.py` now walks up from the `--dir` folder to the first `.squads.toml` and accepts it only if its `squad_dir` resolves to that folder, so `"."`, `"./"`, `"work/squad"`, a renamed folder and a symlinked folder all work. If the configured squad folder is a different one, it raises "<folder> is not the squad folder of the squad configured at <file>…". It never synthesises a default config while an initialised squad is on the path.
@@ -1278,7 +1278,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     2. `--dir` at a project root, or on a `"./"`, multi-level or symlinked squad folder, now meets the gate.
     3. The stored-badge-code refusal names the file; a list or mapping value is refused cleanly instead of crashing `sq migrate up` with a TypeError.
     4. `sq … -m -m --help` is now help.
-- [2026-10-15T18:59:46Z] Theo Writer:
+- [2026-10-15T18:59:46Z] `tech-writer` Theo Writer:
   - @manager The four changes from the latest python-dev handoff are reflected. Nothing is committed, and `sq check` is clean.
     
     - **New `--dir` error.** docs/faq.md has a new error entry that names the folder to pass. The changelog `--dir` Fixed entry quotes the message.
@@ -1287,7 +1287,7 @@ The two newest runners also resolve the spec and the playbook a second time each
     - **`-m -m --help`.** Folded into the migration.md `--help` sentence.
     
     Driven: the new error, for `--dir` on a nested squad's project root and on a type folder. Symlinked `--dir`: the command runs at the current schema and is refused when the squad is behind. `-m -m --help` prints usage. Read only: `"./"` and multi-level `squad_dir`.
-- [2026-10-15T19:11:26Z] Elias Python:
+- [2026-10-15T19:11:26Z] `python-dev` Elias Python:
   - @manager F26 and the docstring half of F27 are fixed. Nothing is committed. `sq check` is clean. Pyright, ruff check and format are clean. `tests/meta tests/integration tests/cli tests/unit tests/service`: 7411 passed, 9 skipped (the run came before a final docstring re-wrap in `_paths.py`; only ruff was re-run after it). The full suite was not run.
     
     **F26.** In `src/squads/_paths.py`, `--dir` on a folder with no `.squads.toml` above it now checks whether the folder holds squad data (a `.squads.json`, or an `PREFIX-N-slug.md` item file one folder down). If it does, `resolve()` refuses: "<folder> holds squad data but no .squads.toml above it names it as its squad folder (a squad_dir outside its project tree is not found from here); run from the project directory instead". A folder holding none still gets the default config, so a made-up current stamp is never given to a populated folder. I chose to refuse rather than read the index's stored stamp, because the owning config is unreachable and the project directory is the right place to run from.
@@ -1297,10 +1297,10 @@ The two newest runners also resolve the spec and the playbook a second time each
     **F27 (docstring half).** The `require_init` parameter had no caller, so I removed it and the dead default-config branch of the walk-up. `resolve()` now always raises `NotInitializedError` when no config is found. The docstring is rewritten to say what `--dir` and the walk-up actually do. Vulture reports nothing in `_paths.py` from this change. I did not touch `sq init` ignoring `--dir`; that goes to QA as a bug.
     
     **Adopter-visible change:** `--dir <folder>` on a squad folder that lies outside its project tree now fails with the message above instead of running unchecked.
-- [2026-10-15T19:12:19Z] Theo Writer:
+- [2026-10-15T19:12:19Z] `tech-writer` Theo Writer:
   - @manager The out-of-tree `--dir` refusal is documented. It has an entry in docs/faq.md beside the other `--dir` error, and one sentence in the existing 0.16.0 `--dir` Fixed entry. There are no new sections and nothing is committed.
     
     I drove it in a scratch squad initialised with `squad_dir = "../shared"`. `sq list` from the project directory exits 0. `sq --dir <shared> list` from outside the project exits 1 with the "holds squad data but no .squads.toml above it names it" message. I did not drive the absolute-path `squad_dir` case; I read it from `resolve()`.
-- [2026-10-15T19:19:49Z] Catherine Manager:
+- [2026-10-15T19:19:49Z] `manager` Catherine Manager:
   - Done: REV-995 approved after eight passes (F28 WontFix, home ADR-1009); full suite 7485 passed, 0 failed; pyright, ruff and sq check clean. Accepted under the operator delegation of 2026-10-11 on MILE-934.
 <!-- sq:discussion:end -->

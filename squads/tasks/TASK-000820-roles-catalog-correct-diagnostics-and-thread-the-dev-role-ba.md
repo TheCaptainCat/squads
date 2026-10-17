@@ -241,7 +241,7 @@ not just that each matches a literal.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-26T08:36:02Z] Elias Python:
+- [2026-08-26T08:36:02Z] `python-dev` Elias Python:
   - ST1 (F3): threaded origin through _build_catalog/_validate/_check_bundles in _roles/_loader.py. A [selected] deselect now refuses naming .overrides/roles.toml by path ("role catalog invalid after merge"), never the bundled document, plus a hint naming [selected].roles and the remedy. The bundled-only path is unchanged ("Invalid bundled role catalog"). Driven both legs on a scratch squad.
   - ST2 (F7): _roles_catalog_stamp_finding_gated now emits `sq override update roles` / `sq override diff roles`, matching sibling kinds. Deleted the stale docstring paragraph; grepped _roles/ and _overrides/_service.py for the same claim shape ("no dedicated", "mis-route", "left to the task") — no other instance. The :1290-1293 citation the reviewer couldn't confirm is unrelated (check_override_issues docstring, accurate).
   - ST3 (F6): dev_base_for_slug(slug, squad_dir=None) now resolves load_role_catalog(squad_dir).dev via dev_role_from_pool when given a squad, matching resolve_dev_role. Threaded to all three call sites (_cli/_role.py:265, _overrides/_service.py's _shadowed_bundled_role_toml + _check_role_override_resolves, and _role_override_shadows_bundled's new squad_dir param). Driven: preview and sq dev add now agree on [dev].model for an un-added slug.

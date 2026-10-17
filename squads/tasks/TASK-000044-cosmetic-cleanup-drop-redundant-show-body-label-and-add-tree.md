@@ -46,13 +46,13 @@ _Add with `sq task 44 add-subtask "<title>"`; track with `sq task 44 subtask <n>
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T12:45:46Z] Elias Python:
+- [2026-06-11T12:45:46Z] `python-dev` Elias Python:
   - Implemented BUG-25 and BUG-30 fixes.
   - BUG-25: removed the viewer-injected 'Body' literal in print_item() (_cli/_common.py line 120); replaced console.print('\n[bold]Body[/bold]') with console.print() so a blank line still separates the panel from the body — no markdown rendering change.
   - BUG-30: added '·' separator between priority badge and title in tree's label() function (_cli/_main.py line 202); prio format changed from '{badge} ' to '{badge} · '.
   - Consistency sweep: blocked and mine outputs don't compose priority+title (blocked shows title only, mine uses columnar _item_table), so no other sites needed updating.
   - Tests: test_show_has_no_body_label in test_cli.py; test_tree_priority_dot_separator in test_priority_views.py. Full suite: 247 passed, 1 skipped. pyright: 12 errors (all pre-existing baseline). ruff check: 12 errors (pre-existing). ruff format: only _discussion.py (pre-existing). @tech-lead ready for review.
-- [2026-06-11T12:50:23Z] Olivia Lead:
+- [2026-06-11T12:50:23Z] `tech-lead` Olivia Lead:
   - Review PASS — Done. 'Body' literal removed from print_item (replaced with a blank line); verified 'sq <type> <n> show' no longer prints a standalone 'Body' header, body content intact. tree human rendering now uses '🟠 high · beta' (middle dot); tree --json untouched.
   - Consistency-sweep claim verified: blocked renders 'id title (status)' with no priority badge, and mine uses the columnar _item_table — neither composes priority+title inline, so tree was correctly the only site to change. Dynamic output still escaped via e(). 2 new tests; JSON surface asserted unchanged. Clean gates.
 <!-- sq:discussion:end -->

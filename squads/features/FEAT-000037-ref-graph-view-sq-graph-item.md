@@ -151,22 +151,22 @@ As a user wanting the big picture, I want a dot/mermaid export, so that the full
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-23T14:05:00Z] Olivia Lead:
+- [2026-06-23T14:05:00Z] `tech-lead` Olivia Lead:
   - Broke this down into TASK-182 (Ready). One task, one subtask per story: ST1/US1 = depth-bounded BFS traversal in the service layer (RefsMixin.graph -> GraphNode), reusing the existing blocked() depends-on/blocks equivalence, with seen-marker cycle handling and closed-hidden-by-default; ST2/US2 = --kind (repeatable) + --direction out|in|both filters threaded through the one service method; ST3/US3 = --format dot|mermaid export of the same traversed graph.
   - Key constraint: the traversal is ONE service-layer implementation (in _services/_refs.py) so the TUI/web can reuse it later; the CLI graph command in _cli/_main.py is a thin Rich/JSON/export edge mirroring how tree is built. JSON shape is specified in the task body and must be golden-tested (FEAT-15); normalization must be proven with mixed-authorship fixtures. @python-dev please pick up TASK-182 — full module-by-module plan and acceptance mapping are in the task body.
-- [2026-06-23T16:01:09Z] Catherine Manager:
+- [2026-06-23T16:01:09Z] `manager` Catherine Manager:
   - First implementation attempt (TASK-182) reverted and restarted. Recording the requirement clarification for the record: the depends-on/blocks normalization in Scope/Acceptance is mandatory — both spellings must render as ONE uniform dependency arrow (FEAT-35 equivalence), not as distinct literal kinds. This was the gap that triggered the restart. Everything else in the first pass (BFS depth bound, kind/direction filters, cycle (seen) handling, closed-hiding, --json, dot/mermaid export) was sound and can be rebuilt the same way.
-- [2026-06-23T16:35:45Z] Pierre Chat:
+- [2026-06-23T16:35:45Z] `op-pierre` Pierre Chat:
   - Tested the first pass briefly and didn't like the raw 'in/out' direction wording for dependency edges. Proposal: present the dependency relationship as a two-way binding with human labels instead — my starting suggestion is 'depends on' (this item depends on the other) and 'depended by' (the other depends on this one). This is also the normalization: a depends-on edge and a blocks edge are the same dependency, just authored from opposite ends, so they should read with this one pair of labels.
   - For symmetric refs like 'relates', keep in/out — both sides read identically so it doesn't matter.
   - English isn't my native language, so the product owner should feel free to propose better wording than 'depends on / depended by' — I care about the two-way-binding behaviour, not the exact words.
-- [2026-06-23T16:37:16Z] Nina Product:
+- [2026-06-23T16:37:16Z] `product-owner` Nina Product:
   - Wording decision — dependency edge labels for sq graph.
   - Pierre flagged 'in/out' as too raw for dependency edges and asked for human-readable two-way-binding labels. My proposal (and the new canonical wording in the Acceptance criteria): **'depends on'** for the dependent end and **'required by'** for the blocking end. Rationale: 'depends on' matches the kind name and is unambiguous; 'required by' is standard English used across package managers (apt, npm, conda) and reads naturally in a tree branch — it is shorter and more idiomatic than Pierre's draft 'depended by'.
   - Normalization: 'depends-on' and 'blocks' are two spellings of the same dependency (FEAT-35). Both collapse to this one label pair — 'depends on' / 'required by' — regardless of which item authored the edge. The raw kind strings never appear as branch labels in tree output.
   - Symmetric kinds ('related', 'duplicates', 'implements', 'fixes', 'addresses', 'supersedes'): the edge label is the kind name itself. No 'in/out' raw direction labels for any kind.
   - @op-pierre — please confirm this label pair works for you. If you prefer different words the Acceptance criteria are easy to update before the build restarts.
   - @tech-lead and @python-dev — Acceptance criteria on FEAT-37 have changed. The key testable requirement is: a blocks edge and a depends-on edge between the same two items must render with the same label pair ('depends on' / 'required by'), verified with mixed-authorship fixtures. The raw kind strings must never appear as branch labels.
-- [2026-06-23T16:45:14Z] Pierre Chat:
+- [2026-06-23T16:45:14Z] `op-pierre` Pierre Chat:
   - Confirmed — happy with both: 'depends on' / 'required by' for the dependency two-way binding, and dropping 'in/out' entirely (symmetric kinds shown by their kind name). Thanks Nina, the wording is better than mine. Good to implement.
 <!-- sq:discussion:end -->

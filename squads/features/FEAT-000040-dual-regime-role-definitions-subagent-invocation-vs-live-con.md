@@ -124,19 +124,19 @@ As a teammate reading my inbox, I want every @mention to be a real, current call
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T07:38:49Z] Olivia Lead:
+- [2026-06-12T07:38:49Z] `tech-lead` Olivia Lead:
   - Broke this down into a single task, TASK-53 (high, Ready, → @python-dev), because the work is one cohesive content edit: the regime prose is template-driven from role.md.j2, so splitting it across files/devs would just churn the same template. Three subtasks map 1:1 to US1-US3.
   - ST1/US1 (spawned regime): restructure role.md.j2 '## Working agreements' into the two regimes + shared 'record what the next reader needs, when it becomes true' principle; sq sync regenerates all 8 roles + the dev-pool template (no migration — .claude/ is regenerable).
   - ST2/US2 (live regime): separate recording a decision (--as, when made) from signalling a handoff (@mention, only when work actually moves); reference the squads skill's 'Working directly with the operator' section rather than duplicating it.
   - ST3/US3 (inbox trust): consistency pass over _interactions.py 'For <role>' handoff lines so each carries its trigger condition (e.g. 'when the feature is greenlit, @tech-lead' — exactly the line that misfired in the 2026-06-11 incident), and align the greeting/squads cross-references to one formulation.
   - Scope guard restated for the implementer: content/templates only, no CLI behaviour change. Acceptance to prove: a spawned-agent reading path and a live-conversation reading path each answer 'must I @mention now?' unambiguously for the incident scenario. @python-dev — yours; flag me if any role needs bespoke regime text (the template assumes it doesn't).
-- [2026-06-12T07:47:58Z] Elias Python:
+- [2026-06-12T07:47:58Z] `python-dev` Elias Python:
   - TASK-53 complete. Split role working agreements into two explicit regimes in role.md.j2: *Spawned as a subagent* (skip greeting, do the job, leave full record — comment + @mention — before returning, because the chat does not survive) and *Live with the operator* (greet, anchor, apply the shared principle: 'record what the next reader needs, when it becomes true' — decisions recorded when made with --as, handoffs only when work actually moves, never a mention for work nobody greenlit).
   - The live-regime text references the squads skill's 'Working directly with the operator' section and the greeting skill by name, rather than duplicating them. No drift across surfaces.
   - Also: extended sq sync to regenerate role body sections from the template (was generating only .claude/ pointers). All 9 role files in squads/agents/ now carry both regimes after sq sync.
   - Consistency pass on _interactions.py: all handoff lines now state their trigger condition explicitly. Key fix: product-owner feature handoff now reads 'when stories and acceptance criteria are complete and the feature is greenlit, @tech-lead to break it into tasks' (the scenario from the live incident).
   - 276 tests pass, pyright clean, ruff clean. @reviewer for review.
-- [2026-06-12T07:50:20Z] Paul Reviewer:
+- [2026-06-12T07:50:20Z] `reviewer` Paul Reviewer:
   - Reviewed TASK-53 (uncommitted working tree). VERDICT: APPROVED — no changes required. Gates all green: pytest pass, pyright 0 errors, ruff check + format clean.
   - Correctness / marker safety (invariant 3): _regen_role_body in _services/_maintenance.py touches content solely via _sections.get_section/replace_section on the `sq:body` marker region; the discussion region is left intact (verified on regenerated ROLE-1..009). The render call (template 'agents/role.md.j2', item=/description=item.description/extra=item.extra) is identical to create()'s original render in _base.py:128, so the rewritten body is faithful — no template drift.
   - Concurrency/atomicity concern (dev flag): writing the role .md unlocked, with no index transaction and no updated_at bump, is SOUND here and consistent with the existing sync() contract. sync() already regenerates tool-owned managed files with bare write_text and no lock (backend generate_role_pointer / write_managed / ensure_scaffold / settings.json / CLAUDE.md). _locked_section_edit exists for the concurrent-subagent prose-edit race (comments/body); sync is a single-operator regeneration of generated content, not a prose edit, and role bodies are now tool-owned regenerable content. No frontmatter changes, so skipping the updated_at bump is correct.

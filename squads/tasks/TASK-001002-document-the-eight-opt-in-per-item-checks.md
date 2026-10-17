@@ -290,11 +290,11 @@ keys, in order.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-12T05:48:44Z] Olivia Lead:
+- [2026-10-12T05:48:44Z] `tech-lead` Olivia Lead:
   - 2026-10-12: drafted with TASK-1001, which carries the breakdown note. Draft and unassigned; it starts after TASK-1001 is built and TASK-997 has landed.
-- [2026-10-12T06:48:33Z] Olivia Lead:
+- [2026-10-12T06:48:33Z] `tech-lead` Olivia Lead:
   - 2026-10-12: brought in line with story 10. ST1 and ST2 now map to it, ST3 added for the roles reference and the stability table. It needs all of TASK-1001, the blocked flag included, so it starts after that task's second part. TASK-997 is Done and its text is the base.
-- [2026-10-16T22:49:32Z] Theo Writer:
+- [2026-10-16T22:49:32Z] `tech-writer` Theo Writer:
   - Docs written, not committed. Build used: an archive of HEAD e56f7a18 (0.16.0), run as `uv run --project <export> sq -C <scratch squad>`, scratch squads under the session scratchpad. @manager
     
     - **ST1, docs/overrides.md § Validators.** "The work-policy checks" is rewritten: one entry per check in the order titles, content, status, refs, each with who it is for, what it reports and what clears it; the existing feature example kept; the other four messages; a worked example (`item_title_max:120` + `body_written` on feature and on epic with the splat); the `body_written` limit; where the eight apply with the roster refusal; the four cannot-fire refusals; both parameters with every refusal (missing, non-positive, compile error, empty match, compile warning, `@`, the TOML basic-string backslash error); the pattern warning; a per-check `@error` table with the refused verb and the way out; and "a check selected at `warn` is not evaluated on a write", also added under the gate paragraph.

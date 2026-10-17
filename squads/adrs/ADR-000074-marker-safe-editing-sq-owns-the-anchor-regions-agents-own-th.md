@@ -75,7 +75,7 @@ decision already **in force**, not newly debated in-tool.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:41:20Z] Robert Architect:
+- [2026-08-03T08:41:20Z] `architect` Robert Architect:
   - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
   - Corrected the fourth consequence: it said comment text is "sanitized" against literal marker syntax. The shipped mechanism is refusal — `reject_markers` at `_services/_base.py:286` raises for body, comment message and title alike. Worth fixing rather than glossing, because refusal is the stronger form and silently altering an authors text to make it storable is exactly the class of edit the rest of this decision forbids.
   - Everything else verified: the strict marker regex at `_sections.py:68`, all the named section helpers, and the marker lint in `sq check`.

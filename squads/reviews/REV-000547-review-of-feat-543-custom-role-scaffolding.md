@@ -74,6 +74,6 @@ Failure scenario: someone hardens (or later regresses) slug validation and no te
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T21:26:45Z] Catherine Manager:
+- [2026-07-21T21:26:45Z] `manager` Catherine Manager:
   - F1/F2 fixed by a shared _validate_role_slug guard in _overrides/_service.py, called by both scaffold_new_role and scaffold_role (rejects empty/whitespace, path separators, '..', leading dot; is_relative_to backstop → clean SquadsError). Verified live: --new '/tmp/...', '../../pwned', '' all exit 1 with nothing written outside .overrides/roles/. Full suite green (pyright 0/0, ruff, format, pytest all pass). Left Fixed for QA to verify.
 <!-- sq:discussion:end -->

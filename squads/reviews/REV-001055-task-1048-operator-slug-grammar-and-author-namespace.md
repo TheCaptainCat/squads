@@ -110,9 +110,9 @@ Meanwhile `resolve_slug_or_raise` reads `operators()`, which falls back to `it.s
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T12:03:01Z] Elias Python:
+- [2026-10-16T12:03:01Z] `python-dev` Elias Python:
   - Fixed. Every operator path now goes through _create_model: it stores slug and full_name and refuses a duplicate slug (importer, batch and operator add alike). roster_item and roster_slug_breaches use the stored slug or the entry's own slug, as operators() and the migration do. Tests build importer-shaped and 0.15-shaped entries (no stored slug), including op-untitled twice. Falsified 4 mutants, all red: duplicate guard off (6 red), breach fallback off (1), roster_item fallback off (1), importer storing slug/full_name off (1).
-- [2026-10-16T12:10:20Z] Paul Reviewer:
+- [2026-10-16T12:10:20Z] `reviewer` Paul Reviewer:
   - Verified 2026-10-16: add-then-import and import-then-add of a shared first name are both refused with nothing written; two imported op-untitled refused; imported operators now store slug and full_name; legacy-shaped entries (no stored slug) are reported by sq check. On one 0.15 roster with 8 breaches, the migration refusal and the dev sq check name the same 8 entries (the check adds only the A7 verb role, which the migration must not refuse).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -140,9 +140,9 @@ The 0.16 MANUAL text does say "unless you pass a compliant `--slug`", but the `s
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T12:03:03Z] Elias Python:
+- [2026-10-16T12:03:03Z] `python-dev` Elias Python:
   - Fixed. The check remedy re-adds with --slug <compliant slug>; an entry that breaks no rule of its own is told to replace the holders that do; a retired operator gets a final status step to retire it again. Falsified 3 mutants: --slug dropped (1 red), pointing at the culprit off (1), status step off (1).
-- [2026-10-16T12:10:22Z] Paul Reviewer:
+- [2026-10-16T12:10:22Z] `reviewer` Paul Reviewer:
   - Verified: the remedy carries --slug <compliant slug>; the holder that breaks no rule points at the culprit; a retired entry gets the status step. Followed word for word on a scratch squad, check ends clean. Wording nit filed as F9.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -168,9 +168,9 @@ ST1 and the handoff describe the exemption as "a skill item's own author", meani
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T12:03:05Z] Elias Python:
+- [2026-10-16T12:03:05Z] `python-dev` Elias Python:
   - Fixed. The skill author exemption applies only when the author is the skill's own slug; a table row covers a skill authored by an unregistered slug. Falsified 1 mutant: exemption widened back (1 red).
-- [2026-10-16T12:10:23Z] Paul Reviewer:
+- [2026-10-16T12:10:23Z] `reviewer` Paul Reviewer:
   - Verified on scratch d: SKILL-21 authored by purged qa is reported again; self-authored bundled skills are not.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -190,9 +190,9 @@ Both strings are new. ST5 will quote them in the docs, so settle them first.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T12:03:08Z] Elias Python:
+- [2026-10-16T12:03:08Z] `python-dev` Elias Python:
   - Fixed. The operator refusal says 'must be op- followed by lowercase letters, digits and hyphens' when the prefix is present and 'must start with op- and be ...' when it is not; the system-slug refusal reads 'cannot act as ...'. Falsified 2 mutants: one message for both (6 red), old board wording (2 red, a test now pins it).
-- [2026-10-16T12:10:24Z] Paul Reviewer:
+- [2026-10-16T12:10:24Z] `reviewer` Paul Reviewer:
   - Verified: op-, op--x, op-é now read "must be 'op-' followed by …"; unprefixed shapes keep "must start with 'op-'"; board post says "cannot act as".
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -213,9 +213,9 @@ This is not a code defect. But the ADR text and the subtask acceptance now promi
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T11:53:33Z] Robert Architect:
+- [2026-10-16T11:53:33Z] `architect` Robert Architect:
   - - Fixed by the dated note under ADR-979 A3 (2026-10-16): `roster_slug_valid` is squad-global, always on at a fixed `error`, not selectable. ST2's acceptance correction is asked of @tech-lead on TASK-1048.
-- [2026-10-16T12:10:25Z] Paul Reviewer:
+- [2026-10-16T12:10:25Z] `reviewer` Paul Reviewer:
   - Verified: the dated note under A3 is in ADR-979. The ST2 acceptance line ("selectable and severity-overridable") is still in TASK-1048 pending the tech lead.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -234,9 +234,9 @@ Driven: the real refusal leaves every file outside `.git` byte-identical (sha256
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T12:03:10Z] Elias Python:
+- [2026-10-16T12:03:10Z] `python-dev` Elias Python:
   - Fixed. The migration refusal test hashes the whole tree with squad_tree. The run rebuilds .squads.json from the files before its first step, so the test asserts every other file identical to the original and the whole tree stable across a second refused run. Falsification not applicable beyond the existing 7 mutants of that table, still red.
-- [2026-10-16T12:10:26Z] Paul Reviewer:
+- [2026-10-16T12:10:26Z] `reviewer` Paul Reviewer:
   - Verified by reading: the refusal test now hashes with squad_tree; a full-tree sha256 on a driven 0.15 refusal is identical apart from the empty lock file.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -255,11 +255,11 @@ This is outside TASK-1048 and was not introduced by it. I file it so that it get
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T11:53:34Z] Robert Architect:
+- [2026-10-16T11:53:34Z] `architect` Robert Architect:
   - - Proposed as ADR-979 A7 (2026-10-16): roles and skills refuse a verb of their `sq` group as a slug, at activation or creation, and `roster_slug_valid` reports one already held. Stays Open until op-pierre confirms A7.
-- [2026-10-16T12:03:12Z] Elias Python:
+- [2026-10-16T12:03:12Z] `python-dev` Elias Python:
   - Fixed (ADR-979 A7). The roster creation seam refuses a role slug equal to a sq role group verb (activate, catalog, list) and a skill slug equal to the sq skill verb (add), on the project role file, catalog entry, importer and skill add paths, writing nothing. The verb sets are constants pinned to the live registered commands by a new meta test (the models sit below the CLI, as with the reserved top-level verbs). roster_slug_valid reports an existing holder with a remedy; the migration does not refuse (a test proves it). Falsified 5 mutants, all red: seam off (11), skill group dropped (3), verb sets crossed (3), check reporting off (4), migration made to refuse (1).
-- [2026-10-16T12:10:27Z] Paul Reviewer:
+- [2026-10-16T12:10:27Z] `reviewer` Paul Reviewer:
   - Verified: list, catalog, activate are refused on the per-slug override, the roles.toml catalog document, the importer (role and skill, explicit and derived), and skill add (add, Add), with nothing written. Leaf verbs stay addressable (role show via sq role show show, skill link-role). Dev roles unaffected (list-dev). The meta test goes red on a dropped or an extra verb (falsified in-process). Mechanism vs ADR wording filed as F8.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -282,7 +282,7 @@ The guard is sound. The ADR text describes a mechanism the code does not have, a
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T12:12:18Z] Robert Architect:
+- [2026-10-16T12:12:18Z] `architect` Robert Architect:
   - Fixed in ADR-979: dated note (2026-10-16) under A7 records that the verb set is held as ROLE_GROUP_VERBS / SKILL_GROUP_VERBS below the CLI (same arrangement as RESERVED_CLI_VERBS), pinned by equality to the live command table in tests/meta/test_roster_group_verbs_match_the_live_command_table.py, so drift in either direction fails CI; no released build can differ from a runtime read. The obligations line now says "held in step with the registered commands (A7 note)".
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -301,7 +301,7 @@ With one culprit, the verb should be "breaks" and the pronoun "its own". The tex
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-16T12:16:09Z] Elias Python:
+- [2026-10-16T12:16:09Z] `python-dev` Elias Python:
   - Fixed. The shared-slug remedy now agrees with the count: "replace OP-98, which breaks a rule of its own" for one holder, "replace OP-1, OP-2, which break a rule of their own" for several. Falsified 1 mutant: the singular branch off (1 red; the multi-holder table row and the single-holder row both pin the wording).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -327,7 +327,7 @@ The refusal already happens on 0.15.0, so this is not a regression. Nothing trac
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-16T12:16:11Z] Elias Python:
+- [2026-10-16T12:16:11Z] `python-dev` Elias Python:
   - Fixed, both ways. (a) registered_slugs, _is_participant and _author_of use the same stored-slug fallback as roster_item and the breach check (an operator's display name falls back to its title). (b) The 0.16 step has a second contribution, operator-identity, that fills in slug and full_name for operators lacking them: frontmatter of those operators only, planned with the rest and refused with them, reported as "N operator(s) given a stored slug or full name". Tables: operator shapes (importer shape, slug missing, name missing, complete) with body and complete-file bytes unchanged; participant for every reader after the run; beside the other files in one run; nothing written when another part refuses; POSTCONDITIONS row. Falsified 7 mutants, all red: is_participant fallback off (1), author name fallback off (1), registered fallback off (1), backfill write off (4), slug-only fill (2), complete operators rewritten (1), plus the F9 mutant above.
     Dry run on a fresh copy of this repo's squad (dev build, exit 0): 0 operators given a stored slug or full name (op-pierre has both); 4105 headers rewritten in 900 files; every changed md line is a header line (4105 out, 4105 in); sq check on the copy clean.
 <!-- sq:finding:F10:discussion:end -->
@@ -337,13 +337,13 @@ The refusal already happens on 0.15.0, so this is not a regression. Nothing trac
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:50:20Z] Paul Reviewer:
+- [2026-10-16T11:50:20Z] `reviewer` Paul Reviewer:
   - Verdict ChangesRequested: F1 (high) and F2 (medium) are open. The A1 grammar, the --as squads refusal on every writer and the migration atomicity held on every shape driven; the hole is that importer-created operators store no extra.slug, so the duplicate guard and roster_slug_valid cannot see them, while the migration can.
   - @python-dev F1 to F4 and F6 are yours. F1 needs an importer-shaped row in the breach and duplicate tables.
   - @architect F5: A3 says "on by default"; the rule is always on like the other squad-global rules. A dated note on A3 (and the ST2 acceptance) or a decision to make squad-global rules selectable. F7 is a candidate ADR-979 follow-up (reserving sq role verbs as role slugs), outside TASK-1048.
-- [2026-10-16T12:10:36Z] Paul Reviewer:
+- [2026-10-16T12:10:36Z] `reviewer` Paul Reviewer:
   - Re-review 2026-10-16: F1-F7 verified against the original repros (scratch a/b/d/m rebuilt fresh) and the A7 entry paths; targeted -n0 run of the eight touched test files: 193 passed. Moved back to InReview. No medium-or-worse finding open; three new lows (F8 ADR wording for the A7 verb set, F9 remedy grammar, F10 operator with no stored slug is not a participant). Recommendation: Approve once F8-F10 have a disposition; none blocks.
   - @python-dev F9 and F10. @architect F8 (a dated note on A7). @tech-lead the ST2 acceptance still says selectable (F5).
-- [2026-10-16T12:19:55Z] Catherine Manager:
+- [2026-10-16T12:19:55Z] `manager` Catherine Manager:
   - Approved on the reviewer's recommendation: F1–F10 Fixed and re-verified against the original repros. Full suite on the merged tree 10,643 passed, 0 failed; pyright and ruff clean.
 <!-- sq:discussion:end -->

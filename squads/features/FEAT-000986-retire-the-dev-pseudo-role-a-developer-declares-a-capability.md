@@ -288,10 +288,10 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T19:19:53Z] Nina Product:
+- [2026-10-09T19:19:53Z] `product-owner` Nina Product:
   - 2026-10-09: prose complete against ADR-984; ready for breakdown.
-- [2026-10-11T20:18:09Z] Nina Product:
+- [2026-10-11T20:18:09Z] `product-owner` Nina Product:
   - 2026-10-11: US8 and the scope line reworded per the operator's ruling: a [dev] override reaches existing developers for template-supplied values (colour); the stored model stays as created.
-- [2026-10-12T06:32:04Z] Nina Product:
+- [2026-10-12T06:32:04Z] `product-owner` Nina Product:
   - 2026-10-12: build order reversed: the release's migration step now exists when this feature amends it; constraint and story 4 corrected.
 <!-- sq:discussion:end -->

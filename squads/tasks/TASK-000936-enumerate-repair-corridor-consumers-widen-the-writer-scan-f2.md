@@ -260,7 +260,7 @@ The gate-check test proves a spec.views mention exists in a gated site's source,
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-10T08:53:54Z] Elias Python:
+- [2026-09-10T08:53:54Z] `python-dev` Elias Python:
   - Round four done, all falsified both directions.
     
     **ST1 (F23).** Enumeration is `tests/meta/test_repair_corridor_consumer_sites_are_exhaustively_classified.py` — AST scan for attribute reads shaped `.repair`/`.skipped`/`.unreadable`/`.backfill_skipped`/`strip_notice(` across `_cli/`, grouped per (file, function). Discovers **five** sites, not the hand-listed four: `repair`, `migrate_up`, `sync`, `adopt`, and a fifth the list never named — `renumber`, which only matches because it shares the `strip_notice()` method name with a different, channel-less result type (`RenumberResult`). Classified `not-a-reporting-site` with that reasoning. Falsified: deleting `renumber`'s classification entry reddens the exhaustiveness test; restored, green.
@@ -282,7 +282,7 @@ The gate-check test proves a spec.views mention exists in a gated site's source,
     **Scope:** did not touch `_cli/_migrate.py`, `_cli/_common.py`, or `_overrides/_manifest.py` — F22/F24 untouched, confirmed by grep.
     
     Files: `src/squads/_cli/_main.py`, `tests/cli/test_repair_corridor_message_and_exit_parity.py`, `tests/meta/test_view_tag_writer_sites_are_exhaustively_classified.py`, `tests/meta/test_repair_corridor_consumer_sites_are_exhaustively_classified.py` (new).
-- [2026-09-10T09:25:29Z] Elias Python:
+- [2026-09-10T09:25:29Z] `python-dev` Elias Python:
   - Fifth-round closure done (F26 + corridor widening + rename), all falsified both directions. No production code touched — this round is entirely test/gate infrastructure plus a pytest marker registration.
     
     **Closure 1 (F26).** Inverted the citation: behavioural tests now self-declare via `@pytest.mark.gate_for("<relpath>::<function>")` (registered in pyproject.toml's `markers`), applied to the three real gated tests. The meta module builds its map by scanning `tests/` for the marker via AST rather than reading a hand-maintained dict; `GATED_BEHAVIOURAL_TESTS` and `_cited_test_exists` are gone.

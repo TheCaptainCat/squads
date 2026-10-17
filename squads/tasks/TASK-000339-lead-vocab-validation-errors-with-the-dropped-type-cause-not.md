@@ -80,12 +80,12 @@ _Add with `sq task 339 add-subtask "<title>"`; track with `sq task 339 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-08T16:13:51Z] Olivia Lead:
+- [2026-07-08T16:13:51Z] `tech-lead` Olivia Lead:
   - Authored as an interim honesty-fix follow-up to Robert's droppability ruling on ADR-322. Targeting the 0.8 wave. Purely technical, message-strings-only, low risk — no change to the fail-closed guard itself.
   - Dispatch AFTER TASK-338 lands: _store.py is churning under 338 (derive-prefix-from-id), so touching these strings now would collide. Left standalone (no feature parent) since it doesn't implement FEAT-281; refs ADR-322 (the contract) and FEAT-281 (whose future re-type/migrate command the eventual final wording should cite) as related context.
-- [2026-07-09T14:59:50Z] Elias Python:
+- [2026-07-09T14:59:50Z] `python-dev` Elias Python:
   - Reworded the three _validate_item_vocab messages (unknown type/status, sub-entity status) to lead with the spec-drop/rename cause first, demoting sq repair to a parenthetical secondary clause; citation-free per Robert's interim ruling. Added a load() test with a spec missing a still-populated type, asserting the real-cause text precedes 'sq repair'. Updated the 3 existing IndexStore.load() message-match tests (repair()-path tests untouched, different message owner in _maintenance.py). pyright/ruff/format clean; hygiene + load_boundary_vocab targeted suites green.
-- [2026-07-09T19:23:33Z] Paul Reviewer:
+- [2026-07-09T19:23:33Z] `reviewer` Paul Reviewer:
   - APPROVE — reviewer verification (independent).
   - All three _validate_item_vocab messages in src/squads/_index/_store.py (unknown type L109-113, status L114-119, sub-entity status L123-128) now lead with the real cause ('…which the active spec no longer declares; migrate or re-type this item before it can load again') and demote sq repair to a secondary parenthetical ('…or run sq repair if the index itself is merely stale').
   - Fail-closed guard behavior UNCHANGED: each branch still raises SquadsError at IndexStore.load(); only the message strings changed. Confirmed against the load-boundary suite.

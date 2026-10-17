@@ -64,7 +64,7 @@ Padding stored in index; all ID formatting derives from it; allocate_id raises i
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-14T21:13:15Z] Elias Python:
+- [2026-06-14T21:13:15Z] `python-dev` Elias Python:
   - Implementation complete. All 554 tests pass; pyright and ruff are clean.
   - **Formatter seam chosen**: Added `format_item_id(prefix, sequence_id, padding)` as a module-level helper in `_models/_item.py`. `SquadsDB.format_id(item_type, seq)` wraps it using `self.padding`. `Item.id` uses an `id_padding` field (pydantic `Field(exclude=True)`) defaulting to 6, threaded in from `db.padding` by the service layer at item-construction time. Items loaded from disk via `from_frontmatter` retain the default (6), which is correct for TASK-101 scope; TASK-103 handles width-tolerant equality.
   - **Files changed**: `src/squads/_models/_item.py` (DEFAULT_ID_PADDING, format_item_id, id_padding field), `src/squads/_models/_index.py` (padding field, format_id, allocate_id exhaustion guard), `src/squads/_services/_base.py` (thread id_padding=db.padding at Item construction), `src/squads/_services/_maintenance.py` (repair carries padding with max(floor, max_filename_width), _renumber_plan uses format_item_id), `src/squads/_cli/_common.py` (3 error messages use format_item_id instead of :06d).
@@ -72,7 +72,7 @@ Padding stored in index; all ID formatting derives from it; allocate_id raises i
   - **Note for TASK-102 (repad command)**: the seam is clean. `SquadsDB.padding` is the single source of truth; updating it in a transaction and renaming all item files is all that's needed. `format_id` produces IDs at the new width once padding is bumped. Nothing in the current implementation needs to change for repad.
   - **Note for TASK-103 (width-tolerant equality)**: `from_frontmatter` items use default padding (6), so after a repad the `item.id` from a loaded item will be at width 6 even if the frontmatter id is width 7. TASK-103 should focus on `split_ref`/resolver normalisation (strip leading zeros to compare sequence numbers) not on `Item.id` equality. The `number_for_id` helper in `_paths.py` already does `rsplit + int()` which is inherently width-tolerant.
   - @reviewer please review the formatter seam in _item.py and _index.py and the repair padding logic in _maintenance.py.
-- [2026-06-14T21:19:07Z] Paul Reviewer:
+- [2026-06-14T21:19:07Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-105 → Approved (ready to merge). Gate re-run clean: 554 passed/1 skipped, pyright 0 errors, ruff check + format clean.
   - Three LOW findings (non-blocking): F1 _renumber_plan formats at default width-6 ignoring db.padding (_maintenance.py:246); F2 the filename-recompute arm of repair's max(floor, filename-width) is untested; F3 dead guard in the padding computation (_maintenance.py:204-208). Recommend folding F1/F2 into TASK-102/103 rather than reopening this foundation. @manager for the merge call.
 <!-- sq:discussion:end -->

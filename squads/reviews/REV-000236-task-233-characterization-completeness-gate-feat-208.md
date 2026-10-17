@@ -156,12 +156,12 @@ Under TASK-235 str-typing, `'role' in {ItemType.ROLE, ...}` is False — roles/s
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T10:22:38Z] Mara Tester:
+- [2026-06-26T10:22:38Z] `qa` Mara Tester:
   - QA completeness assessment complete. 21 direct identity checks inventoried, all mapped to either characterization tests or pre-existing coverage. 39/39 characterization tests pass (2.20 s).
   - Two gaps found — GAP-1 (medium, F1): operator self-author bypass at _base.py:460 not pinned in spine tests. GAP-2 (low, F2): workload role/skill exclusion not characterized.
   - Verdict: GAPS-FOUND. Recommend adding one test for GAP-1 before TASK-234 proceeds. GAP-2 has implicit safety net in golden tests. @tech-lead please review F1 and decide whether the implicit coverage in test_operators.py is sufficient or whether an explicit characterization pin is required before TASK-234 starts.
-- [2026-06-26T10:25:59Z] Mara Tester:
+- [2026-06-26T10:25:59Z] `qa` Mara Tester:
   - GATE PASSED. The two gaps are closed: test_operator_may_self_author_bootstrap (pins the operator leg of the  self-author check) and test_workload_excludes_role_and_skill_items (pins ) added + verified green. Characterization is now complete at 41 tests covering all 21 identity checks + the membership-check dependencies. Note for TASK-234: the two  membership checks must be reified onto is_meta alongside the is/== checks (the reification inventory must include them). Safe to proceed to reification.
-- [2026-06-26T10:26:17Z] Mara Tester:
+- [2026-06-26T10:26:17Z] `qa` Mara Tester:
   - GATE PASSED (clean repost). Both gaps closed: test_operator_may_self_author_bootstrap pins the operator leg of the meta-type self-author membership check, and test_workload_excludes_role_and_skill_items pins the _NON_WORK_TYPES membership check; both verified green. Characterization now complete at 41 tests. Carry-forward for TASK-234: the two "in (...)" membership checks must be reified onto is_meta alongside the is/== identity checks. Safe to proceed to reification.
 <!-- sq:discussion:end -->

@@ -43,7 +43,7 @@ _Add with `sq task 484 add-subtask "<title>"`; track with `sq task 484 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T21:19:45Z] Ada Typescript:
+- [2026-07-18T21:19:45Z] `typescript-dev` Ada Typescript:
   - Implemented: tree/roster items whose status carries the spec-declared 'active' role now render green, joined through sq workflow statuses --json (new domain/statusRole.ts: buildStatusRoleMap + isActiveRole) — zero hardcoded status names.
   - New DisplayNode.active flag threaded through treeMapping/listView/metaView (same pattern as .closed). Extracted the precedence decision (blocked > closed > active > none) into a pure, unit-tested domain/displayNode.ts::emphasisForNode so treeItemRendering.ts's vscode-facing iconForNode is just a presentation lookup (charts.green for active) — this made the disjoint-with-dimming claim directly testable without a VS Code host.
   - Statuses catalog fetched once per refresh alongside the existing type/collections catalogs (treeDataProvider.ts + metaTreeDataProvider.ts), graceful fallback to no-highlight on fetch failure. Gates: tsc/eslint/prettier clean, npm test 250/250 (16 files, +19 from this task), canary 14/14.

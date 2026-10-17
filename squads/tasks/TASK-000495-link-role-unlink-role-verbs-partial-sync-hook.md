@@ -111,13 +111,13 @@ link/unlink recompute the resolver and rewrite only the affected role(s)' pointe
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T10:10:38Z] Elias Python:
+- [2026-07-20T10:10:38Z] `python-dev` Elias Python:
   - @manager Implemented: sq skill <n> link-role/unlink-role (src/squads/_cli/_skill.py), Service.link_role/unlink_role (src/squads/_services/_refs.py, reusing add_ref for link + kind-scoped edge removal for unlink), and the partial-sync hook _resync_role_skills (src/squads/_services/_base.py, alongside the moved _refresh_role_skills_extra/_regen_role_body helpers).
   - Behavior: both verbs resolve the role by slug/id/number (resolve_agent_addr), write/remove the ROLE-n:scopes edge, then rewrite only that role's pointer + body ## Skills + extra.skills cache — other roles untouched. Idempotent: re-linking/-unlinking is a clean no-op. Linking/unlinking a non-role or non-existent role errors clearly.
   - Fixed a latent bug found along the way: _refresh_role_skills_extra's early-return compared against the index-cached extra.skills (which this call never updates, only the .md frontmatter does) — a second resync that reverted to the original skill set (e.g. link then unlink) would wrongly no-op and leave the .md file stale. Removed the stale comparison; now always writes when a resolved list exists.
   - Gates: pyright + ruff clean; tests/meta guard clean; targeted tests (skill/scope/role/link/sync/backend) 259 passed; sq check clean. New tests: tests/cli/test_skill_role_scoping_verbs.py, tests/service/test_skill_role_scope_link_unlink_hook.py (incl. dedicated-verb-vs-raw-ref-add parity, only-affected-role isolation, idempotency, non-role rejection).
   - ST1 + ST2 -> Done.
-- [2026-07-20T10:17:14Z] Mara Tester:
+- [2026-07-20T10:17:14Z] `qa` Mara Tester:
   - @manager QA verified end-to-end role-scoping in a throwaway squad (not this repo's board). All PASS:
   - US3 (scope to role): link-role manager on a fresh custom skill immediately added it to manager's pointer skills: + body ## Skills; tech-lead untouched. Multi-role (manager+devops+tech-writer) worked simultaneously; other roles stayed clean.
   - US4 (partial resync, no manual sync needed): effect visible immediately after link-role/unlink-role, before any sq sync. Only the affected role's pointer+body+extra[skills] cache changed — byte-diffed tech-lead pointer/body as IDENTICAL before vs after.
@@ -126,6 +126,6 @@ link/unlink recompute the resolver and rewrite only the affected role(s)' pointe
   - Full-sync consistency + system skills: after sq sync every role still carries its always-on system skills (squads/greeting/sq-memory + its sq-<type> set) untouched, plus the scoped custom skill only on the linked role(s). sq check clean. Cross-backend: also verified with agents_md active — .agents_md/roles/manager.md picked up the scoped skill immediately, other roles' agents_md files untouched.
   - Guards: link-role to a nonexistent slug/ROLE-id/non-role target -> clear error, exit 1 in all three cases. Re-link/re-unlink are idempotent no-ops (exit 0, no duplication, no error on unlinking an already-unlinked role). Deleting a scoped role (--purge) leaves a dangling ref that sq check flags ('warn SKILL-19: dangling ref ROLE-8'), matching acceptance.
   - No defects found — no bug filed.
-- [2026-07-20T10:22:19Z] Elias Python:
+- [2026-07-20T10:22:19Z] `python-dev` Elias Python:
   - @manager F1 (REV-501) addressed with regression tests; see REV-501 comment for details. TASK-495 stays InReview.
 <!-- sq:discussion:end -->

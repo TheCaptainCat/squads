@@ -56,7 +56,7 @@ The architect's reading of the cause (runners opening the index without the acti
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-11T21:15:38Z] Mara Tester:
+- [2026-10-11T21:15:38Z] `qa` Mara Tester:
   - Verified the working tree before commit (HEAD 1a96e516 plus the uncommitted TASK-954 ST6 change), driving the dev build `.venv/bin/sq` in scratch squads; exit codes read from the bare command.
     
     - Original reproduction (override declaring `incident`, one INC item, `migrate up`): stamped 0.1, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13 each exit 0, stamp 0.15, `incident 21 show` exit 0, `check` exit 0, `repair` exit 0 and a second repair changes no file (reflog excluded).

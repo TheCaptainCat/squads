@@ -329,9 +329,9 @@ work on a surface this decision scoped out, and belong to their own item.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-21T12:53:46Z] Catherine Manager:
+- [2026-08-21T12:53:46Z] `manager` Catherine Manager:
   - Verified the two load-bearing claims before accepting: _cli/_common.py:966 is the only anyio.run in the tree, and sq ui is a sync command holding one Service for the session (_cli/_ui.py), so it never crosses the bridge and keeps current behaviour. The invariant-8 argument for transaction() bypassing the scope is sound: the transaction db is the object _atomic_write commits.
-- [2026-08-21T17:20:56Z] Robert Architect:
+- [2026-08-21T17:20:56Z] `architect` Robert Architect:
   - Amended in place (A1-A4 in the body) after the implementation on 9bd3560; the original text is unedited apart from one inline pointer in section 5, since it records what was decided.
   - A1: the scope anchor is the Click root context, not the anyio.run boundary — section 2 premise was true per Click command, false per user-facing invocation (sq <type> <n> <verb> crosses the bridge twice). A2: "one invocation, one index state" is KEPT as a guarantee and is not yet met (2 index reads for the addressed-item form, 3-5 whole-index parses with a workflow override); memoizing the Service on the same Click-root anchor closes it and makes the cross-call sharing observable.
   - A3: section 5 was factually wrong — list_items returns snapshot aliases (driven: 9/9 identity-aliases) and _refresh_catalog_extra grafts a pre-transaction object via db.add. The implementation is nonetheless safe, for a different reason: ensure_no_skew gates the graft on the whole non-excluded key space (driven both via updated_at and directly on status with the clock frozen equal), and the excluded set IS RoleDef.extra_keys() plus skills, which is the same set the graft has just reasserted from the resolved definition. Not introduced here — byte-identical at ea891a6, and the sequence behaves identically with no scope bound.

@@ -46,11 +46,11 @@ This ADR does not create EPIC-000213 or re-parent FEAT-212 — that is a product
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-02T09:23:34Z] Catherine Manager:
+- [2026-07-02T09:23:34Z] `manager` Catherine Manager:
   - Accepted per op-pierre: proceed with the FULL split — FEAT-212 moves to a new EPIC-213 and its two halves become separate features (custom sub-entity kinds; vocabulary rename migrations). depends-on FEAT-210/211 edges preserved. product-owner to action the re-parent.
-- [2026-07-02T09:28:25Z] Catherine Manager:
+- [2026-07-02T09:28:25Z] `manager` Catherine Manager:
   - Executed: the new epic is EPIC-280 (the ADR's 'EPIC-213' was illustrative; 213 was already claimed by BUG-213 via the global counter). Split done — FEAT-212 re-scoped to custom sub-entity kinds under EPIC-280; FEAT-281 created for vocabulary rename migrations. depends-on FEAT-210/211 preserved.
-- [2026-08-03T08:51:21Z] Robert Architect:
+- [2026-08-03T08:51:21Z] `architect` Robert Architect:
   - One scoping detail corrected: the `subentity_plural` accessor landed as `WorkflowSpec.subentity_plural(kind)`, not on the ADR-266 resolver this decision pointed at — `_models/_vocab.py` explicitly declined to host it, and rightly, since a kinds plural is spec data the spec object can answer directly. `_SUBENTITY_PLURAL` is gone as required, and the kind schema itself was specified by ADR-348, which this decision only scoped.
   - Worth recording that the scoping executed exactly as the DISCUSSION records rather than the body: EPIC-280 with FEAT-212 re-parented under it and FEAT-281 beside it, and the bodys "recommended EPIC-000213" was corrected in a comment because 213 was already claimed via the global counter. A live demonstration of why the discussion has to be read alongside the body.
 <!-- sq:discussion:end -->

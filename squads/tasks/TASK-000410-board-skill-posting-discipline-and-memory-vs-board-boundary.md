@@ -57,8 +57,8 @@ A managed skill documents: keep notices short and prescriptive; set `--until`; c
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T10:44:15Z] Catherine Manager:
+- [2026-07-15T10:44:15Z] `manager` Catherine Manager:
   - Dispatching @python-dev on the board guiding skill. Per FEAT-317 US5 you may make it its own sq-board skill OR fold into the existing sq-memory skill — your call; keep it coherent and don't duplicate the memory-vs-board boundary (state it once). Take Ready→InProgress; hand to InReview.
-- [2026-07-15T10:48:19Z] Elias Python:
+- [2026-07-15T10:48:19Z] `python-dev` Elias Python:
   - Folded board guidance into sq-memory (option b) rather than a dedicated sq-board skill — minimal churn, no new bundled-skill wiring, and the SKILL_DESCRIPTIONS text already anticipated a shared 'memory-vs-board boundary' skill. Added a board section (short/prescriptive, --until, clear-when-stale, command surface) after the existing boundary section, referencing it rather than restating it. Regenerated templates_manifest.json (mid-cycle, in-place) and ran sq sync to refresh the dogfood repo's own sq-memory skill files. Gates: pyright/ruff/format clean, tests/meta clean, targeted tests green, sq check clean.
 <!-- sq:discussion:end -->

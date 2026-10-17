@@ -39,6 +39,6 @@ Refuse `model` in the import on any non-developer role (bundled or project-defin
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T18:06:39Z] Pierre Chat:
+- [2026-10-16T18:06:39Z] `op-pierre` Pierre Chat:
   - 2026-10-16: every role needs its model, not only developers. The fix is not to refuse a model on a non-developer role: a model set on any role must take effect.
 <!-- sq:discussion:end -->

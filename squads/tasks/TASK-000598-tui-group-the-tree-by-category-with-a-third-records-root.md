@@ -45,7 +45,7 @@ _Add with `sq task 598 add-subtask "<title>"`; track with `sq task 598 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T17:26:28Z] Elias Python:
+- [2026-07-22T17:26:28Z] `python-dev` Elias Python:
   - Replaced the Work/Roster two-way split in _tui/_tree.py::populate_tree with a fixed-order three-root split (Work/Records/Roster), each root always present via spec.items[type].category (no re-derived list). Rides ADR-604: row status text is now coloured by spec.role_for(status).color, mapped through a local TUI-owned intent->Rich-style dict (positive=green, danger=red, warning=yellow, info=cyan, muted=bright_black, neutral=no override), plus spec.hidden_by_default(type,status) dims the whole row like path_only ancestors already did.
   - Tests: tests/tui/test_browse_screen.py (3-root split + empty-Records-root render), tests/tui/test_status_role_colour.py (colour mapping + hidden dimming), tests/tui/test_bracket_content_renders_safely.py comment tweak.
   - How to see it: uv run sq ui in a squad with a decision/guide item — tree now shows Work / Records / Roster roots; a decision node sits under Records; InProgress rows render green, Blocked rows red, Done rows dimmed.

@@ -34,8 +34,8 @@ Reproduced on release/0.16 HEAD (clean git archive export, scratch squad). The a
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T21:50:24Z] Elias Python:
+- [2026-10-16T21:50:24Z] `python-dev` Elias Python:
   - Fixed in c520f5a3: the [selected] menu now excludes squad (WORKFLOW_SELECTABLE_SECTIONS); the squad refusal is unchanged. Test row added; reverting the constant turns it red.
-- [2026-10-16T22:48:13Z] Catherine Manager:
+- [2026-10-16T22:48:13Z] `manager` Catherine Manager:
   - Verified on REV-1083; merged at e56f7a18.
 <!-- sq:discussion:end -->

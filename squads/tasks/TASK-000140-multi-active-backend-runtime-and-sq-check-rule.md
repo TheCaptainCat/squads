@@ -101,7 +101,7 @@ sq check rule: each active backend's files present & current, empty active_backe
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-16T12:27:52Z] Elias Python:
+- [2026-06-16T12:27:52Z] `python-dev` Elias Python:
   - Implemented TASK-140 (config model + multi-active runtime + check) per ADR-141.
   - Config model (_models/_config.py): replaced default_backend: NonEmpty with active_backends: list[str] = ['claude_code']. Dedup-on-read via @field_validator (first-occurrence order, ADR-141 §2). from_toml_dict translates legacy default_backend→active_backends for back-compat with pre-migration TOML.
   - Runtime fan-out (_services/_base.py): _backend() replaced by _backends() returning list[AgentBackend]. scaffold_backend(), refresh_managed(), activate_role/add_dev/add_skill (roster), regen/remove_item (items), and sync() (maintenance) all fan out over all active backends. Empty list = no-op (sq-only squad).
@@ -111,11 +111,11 @@ sq check rule: each active backend's files present & current, empty active_backe
   - Tests updated: test_backend_conformance.py (active_backends=[...]), test_backend_agents_md.py (backend=[...] list form), test_agent_naming.py (active_backends), test_backend_claude.py (_backend()→_backends()), test_cli.py (schema 0.3→0.4 string literals), test_reflog_core/read.py (v='0.4').
   - Full gate: 808 passed, 1 skipped. Pyright 0 errors. Ruff + format clean.
   - @reviewer ready for review. @qa please run test_backend_conformance (multi-backend), test_migration_corpus (v0_3→v0_4 non-vacuous), and test_cli (backend=none sentinel, multi-active).
-- [2026-06-16T12:32:10Z] Elias Python:
+- [2026-06-16T12:32:10Z] `python-dev` Elias Python:
   - TASK-140 final state: added 13 new tests in tests/test_multi_active_backends.py covering US1 (multi-active: both CLAUDE.md + AGENTS.md written), US2 (empty=[]: no scaffold, check clean; deactivated files not flagged), dedup semantics (collapse + first-occurrence order), --backend none sentinel (→[], case-insensitive, error if combined with real backend), and CLI output. Gate: 821 passed, 1 skipped. @reviewer @qa ready.
-- [2026-06-16T12:42:41Z] Elias Python:
+- [2026-06-16T12:42:41Z] `python-dev` Elias Python:
   - Reverted the 0.4 schema bump and its migration per op-pierre directive: active_backends is now part of the 0.3 schema shape, no migration needed. Removed _v0_3_to_v0_4.py, its registry entry, and the v0_4 corpus fixture. Re-stamped .squads.toml and squads/.squads.json from 0.4 back to 0.3. The transparent back-compat read of legacy default_backend stays (handles pre-0.3 TOML files without any migration). All 819 tests pass, pyright + ruff clean, sq check is green on the repo squad at 0.3. @reviewer @qa
-- [2026-06-16T12:54:18Z] Mara Tester:
+- [2026-06-16T12:54:18Z] `qa` Mara Tester:
   - QA verification pass — all acceptance criteria met (2026-06-16).
     
     **US1 (multi-active):** `sq init --backend claude_code --backend agents_md` generates both CLAUDE.md and AGENTS.md; `.squads.toml` writes `active_backends = ["claude_code", "agents_md"]` (no `default_backend`). After adding an operator, `sq sync` refreshes both files. `sq check` passes clean.
@@ -135,7 +135,7 @@ sq check rule: each active backend's files present & current, empty active_backe
     **No 0.4:** SCHEMA_VERSION is 0.3 throughout.
     
     **Full suite:** 819 passed, 1 skipped.
-- [2026-06-16T12:59:25Z] Paul Reviewer:
+- [2026-06-16T12:59:25Z] `reviewer` Paul Reviewer:
   - REV-144: APPROVED. Independent review of FEAT-138 multi-active backends complete.
   - Gate green: 819 passed / 1 skipped, pyright clean, ruff check + format clean. Repo squad at 0.3, sq check green; imports acyclic; Invariants 1 (nothing new in .squads.json) & 6 (no .claude/ reach-around) hold.
   - (a) Confirmed NO 0.4/migration residue in code — SCHEMA_VERSION=0.3, no _v0_3_to_v0_4 runner, registry stops at 0.3, no v0_4 corpus, _CORPUS_CASES ends at 0.3. (b) Confirmed managed_paths lists only guaranteed-written files: claude_code=[CLAUDE.md, .claude/settings.json], agents_md=[AGENTS.md]; read-only, conformance-covered for both.

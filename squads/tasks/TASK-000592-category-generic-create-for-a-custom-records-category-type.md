@@ -37,7 +37,7 @@ _Add with `sq task 592 add-subtask "<title>"`; track with `sq task 592 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T17:07:38Z] Elias Python:
+- [2026-07-22T17:07:38Z] `python-dev` Elias Python:
   - Already fully generic — no code change. Confirmed: `sq create <records-type>` already reaches `_CREATABLE`/dynamic `_CustomCreateGroup` path via `spec.non_roster_types()`; `no_parent` fires through the single `ValidatorEngine.gate()` call in `_services/_base.py::create` (no second hardcoded check found). Bundled create output byte-identical (targeted create/list/decision-guide tests green). guide's --tech/--tag stays field-based, untouched.
   - Coverage: existing tests/service/test_records_epic_no_parent_enforcement.py already proves decision/guide no_parent at create+link; TASK-594's new override-spec test (tests/integration/test_custom_records_category_type_end_to_end.py) is the definitive zero-code-change proof for a brand-new records type.
   - Gates: pyright/ruff clean; targeted pytest green; sq check clean.

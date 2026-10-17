@@ -55,10 +55,10 @@ Actual: the hinted command exits 2 with "No such command" for every kind. An age
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T17:55:00Z] Elias Python:
+- [2026-10-16T17:55:00Z] `python-dev` Elias Python:
   - Fixed in f47c926a: the hint is built service-side beside the title advisory as sq <type> <n> <kind> <k> body. Table test over story, subtask, finding runs the hinted command; falsification 3 of 3 fail on the old line.
-- [2026-10-16T18:23:27Z] Elias Python:
+- [2026-10-16T18:23:27Z] `python-dev` Elias Python:
   - Commit f47c926a on branch worktree-agent-a2f892de06784925e.
-- [2026-10-16T19:08:33Z] Catherine Manager:
+- [2026-10-16T19:08:33Z] `manager` Catherine Manager:
   - Verified: fix approved on REV-1067 and merged into release/0.16 at 977730ec; full suite 11471 passed, 0 failed.
 <!-- sq:discussion:end -->

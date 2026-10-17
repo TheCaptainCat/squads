@@ -69,7 +69,7 @@ Done when: the feature product-owner 'Watch for' list gains the DoD line 'a stor
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-06T11:44:59Z] Elias Python:
+- [2026-07-06T11:44:59Z] `python-dev` Elias Python:
   - Split the add-story 'Do' bullet in src/squads/_interactions/playbook.toml [[types.feature.roles]] (product-owner): the body-writing guidance is now its own ordered bullet ('write each story's body ... the acceptance criteria live there, not in the title'), separate from the add-story bullet (title/persona-phrase only).
   - Added the Watch-for DoD line: 'a story is not done until its body carries acceptance criteria — an unwritten placeholder body is a defect even if the title reads fine.'
   - Ran uv run sq sync: regenerated squads/agents/skills/SKILL-000196-sq-feature.md — diff shows exactly the new Do step + Watch-for line, nothing else.

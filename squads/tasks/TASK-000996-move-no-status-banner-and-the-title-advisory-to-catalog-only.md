@@ -675,7 +675,7 @@ Gates and working rules: the task body.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-11T21:16:05Z] Olivia Lead:
+- [2026-10-11T21:16:05Z] `tech-lead` Olivia Lead:
   - 2026-10-11: breakdown of FEAT-899 drafted, nothing promoted and no developer briefed. @manager
     
     - TASK-996 (python-dev) covers stories 1 to 3: ST1 story 1, ST2 and ST3 story 2, ST4 story 3. TASK-997 (tech-writer) covers story 4 and depends on this task.
@@ -683,9 +683,9 @@ Gates and working rules: the task body.
     - No bundled byte changes, so no manifest-freshness check is expected red.
     - Three calls made in the drafting that the operator or the architect may want to overrule: the 0.16 migration step gets no contribution and no manual text from this feature (story 4 says no migration is needed); a type hosting a kind may still satisfy the sub-entity clause by naming `subentity_title_max` alone, because that loads today; a `tests/meta` test reads this repository's own override file.
     - For FEAT-901: an entry naming a validator the released tool does not know stops every command on this board (driven with `item_title_max:120`), so its selections join the file at release preparation, not with the feature.
-- [2026-10-11T21:17:38Z] Catherine Manager:
+- [2026-10-11T21:17:38Z] `manager` Catherine Manager:
   - Promoted and dispatched under the operator's delegation of 2026-10-11 (the manager drives the build in the approved order; the validator features run in a second worktree). Three drafting questions go ahead on the tech lead's drafted answers and are raised with the operator: no contribution to the migration runner, a hosting type may still name the title check alone, and a tests/meta guard reads this repository's own override.
-- [2026-10-11T21:41:06Z] Elias Python:
+- [2026-10-11T21:41:06Z] `python-dev` Elias Python:
   - - Built ST1 to ST4 in the worktree .claude/worktrees/agent-a240571530eba5b43 (branch worktree-agent-a240571530eba5b43, four commits on release/0.16, nothing pushed). Ready for review. @manager
     - ST1: `no_status_banner` left COMMON_CORE and joined UNGUARDED_VALIDATOR_NAMES. ST2: `WorkflowSpec.item_subentity_title_max` returns `int | None` (None when the type's effective set lacks the member); `sq check` and `_add_block_core` both ask it. ST3: `subentity_title_max` left the work bundle and joined UNGUARDED_VALIDATOR_NAMES; the sub-entity clause's guarded set is derived from SUBENTITY_VALIDATOR_NAMES and the bundles (`_BUNDLED_SUBENTITY_VALIDATOR_NAMES`); the four-name set and the clause message are unchanged. ST4: `squads/.overrides/workflow.toml` written with the exact text of the subtask (stamp 0.15.0; `git diff v0.15.0 -- src/squads/_specs/workflow.toml` is empty).
     - No bundled byte, template, scaffold text, SCHEMA_VERSION, version or manifest changed. tests/meta green.
@@ -696,20 +696,20 @@ Gates and working rules: the task body.
     - Adopter-visible, for TASK-997: `no_status_banner` no longer runs on any type unless the type's validators list names it (was every type); `subentity_title_max` no longer runs on epic, feature, task, bug, review unless named (was the work bundle); `add-<kind>` prints its title advisory only on a type that names `subentity_title_max`, at that type's number. Restore with `"no_status_banner"` and `"subentity_title_max"` (or `"subentity_title_max:80"`) in `[items.<type>] validators`; a type that ships a list (epic, skill) opens it with `"$(*items.<type>.validators)"`. No message text, default level (warn) or default number (120) changed.
     - Proposed sentence for the hand-written sq check gate section of CLAUDE.md: the status-banner rule and the over-long sub-entity title rule are this project's own selections in squads/.overrides/workflow.toml, not defaults of the tool.
     - Not covered: no full-suite run (the manager runs it); a wider targeted sweep over unit, meta, service, cli and integration was run once while finding the rewrites; tests/tui not run.
-- [2026-10-11T21:45:49Z] Elias Python:
+- [2026-10-11T21:45:49Z] `python-dev` Elias Python:
   - - Rebased onto the right base by merge: release/0.16 merged into the worktree branch as ca990517 (a merge commit, my four commits untouched, no conflict). @manager
     - `_subentities.py`: the release side changed two other hunks (the duplicate-id refusal calls in the remove and block-write paths); mine is the advisory block in `_add_block_core`. Git merged them without conflict and I kept both.
     - No test went red against the new base: the wide selection (tests/unit, tests/meta, tests/service, tests/cli, tests/integration) is 6767 passed, 8 skipped, 0 FAILED. tests/tui not run.
     - Re-captured comparison: the whole-squad "before" list was re-run on an untouched archive of release/0.16 (no override, bundled spec) and equals the recorded list exactly (1 passed).
     - Stamp check: `git diff --stat v0.15.0..HEAD -- src/squads/_specs/ src/squads/_rendering/templates` is empty, so the 0.15.0 base stamp stays true. `git diff --stat release/0.16..HEAD -- squads/` lists only squads/.overrides/workflow.toml, which is byte-identical to the subtask text.
     - Gates on the merged tree: pyright 0 errors, ruff check clean, ruff format --check 710 files already formatted.
-- [2026-10-11T22:23:29Z] Elias Python:
+- [2026-10-11T22:23:29Z] `python-dev` Elias Python:
   - - Review findings F1 to F5 of REV-998 fixed in tests only, commit d7bad7bf on the worktree branch; no src/ change. All five findings are marked Fixed with a comment. @manager
     - F1: the stamp assertion is gone. F2: the whole-squad test (renamed to test_a_squad_selecting_both_checks_reports_each_offender_once_at_warn.py) filters the report to the two members' findings; a review banner item was added to the fixture (REV-36, appended so no id moved). F3: the repository-override guard compares (name, parameter, level) with a level column. F4: the other-type row also drives the unselecting type. F5: docstrings corrected, unused TITLE_MESSAGE and the redundant COMMON_CORE assert removed.
     - Falsifications: F3, epic list with no splat and no_parent@warn, title at @error, and no_status_banner@error on review: red were the merged-spec table rows for epic and review, the containment row for epic, and the whole-squad test. F4, resolver leaking another type's number: red were the three other-type rows (feature, task, review); a constant-80 leak also reddens the unselected rows. F1 and F2 on a scratch copy at version 0.16.0 with parent_present@warn added to task: both tests green (39 passed); removing no_status_banner from review, removing the title entry from task, or changing a title number each turn the comparison and/or the table red.
     - Wide selection: 6767 passed, 8 skipped, 0 FAILED. pyright 0 errors, ruff check clean, ruff format --check 710 files unchanged.
-- [2026-10-12T05:21:31Z] Catherine Manager:
+- [2026-10-12T05:21:31Z] `manager` Catherine Manager:
   - Merged into release/0.16 at 4b23b04c by fast-forward after REV-998 was Approved. Gates on the merged tree: full suite 7032 passed, 14 skipped; pyright, ruff check and ruff format clean. The live board loads the new override under the released tool: check clean, lint clean, override current. QA verifies stories 1 to 3 next.
-- [2026-10-12T05:33:32Z] Catherine Manager:
+- [2026-10-12T05:33:32Z] `manager` Catherine Manager:
   - Closing under the operator's standing delegation for reviewed, verified, non-visual work: REV-998 Approved at 4b23b04c, QA verified stories 1 to 3 of FEAT-899 against the merged build and the released tool, and the gates are green on the merged tree (7032 passed, 14 skipped; pyright and ruff clean).
 <!-- sq:discussion:end -->

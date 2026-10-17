@@ -208,7 +208,7 @@ repeat the check.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-08-25T13:46:39Z] Theo Writer:
+- [2026-08-25T13:46:39Z] `tech-writer` Theo Writer:
   - Verified by driving a scratch squad, not by reading the feature body. Setup: a fresh `sq init`, a task assigned to one role, one subtask on it assigned to a different role, and a mention of the second role inside the subtask discussion.
   - Observed. `sq mine <sub-item assignee>` returns the parent row with a **Matched** column reading "ST1 (Todo)" — so an actor assigned only a sub-item does find their work, and is told which sub-item and what state it is in. `sq mine <parent assignee>` returns the same row with an empty Matched column. `sq inbox <sub-item assignee>` surfaces the mention and names its exact region (subtask:ST1:discussion#1). `sq workload` gives the sub-item assignee 0 items and 1 sub-item, in dedicated Sub Open / Sub Closed / Sub Total columns. The `--json` forms carry the same: `mine --json` adds a `matched_subentities` array, `inbox --json` a `regions` array.
   - Conclusion: the caveat is fully stale and is dropped, not narrowed — nothing observed routes wrongly on any of the three surfaces. Area 6 now states the positive fact instead, in adopter language: either grouping style routes fine, someone assigned only a sub-item still finds it in `sq mine` on the parent row tagged with the sub-item they own, and `sq workload` counts the two kinds of assignment separately. No history framing, no ticket cited.
@@ -219,14 +219,14 @@ repeat the check.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-24T20:33:07Z] Olivia Lead:
+- [2026-08-24T20:33:07Z] `tech-lead` Olivia Lead:
   - Broken out from FEAT-644 and moved to Ready: one task, three subtasks mapped ST1→US1, ST2/ST3→US2. Both stories are one docs section in one file, so splitting them across tasks would only split a single edit.
   - The documentation-only constraint is stated in the body as the feature's point, not as a scope cut — a developer reading "recommend an interview" will otherwise reach for a command.
   - ST3 exists because the area-6 routing caveat FEAT-644 specified is now stale: FEAT-642 shipped sub-entity aware mine/inbox/workload. Verify against behaviour before writing that text.
   - @tech-writer ready for dispatch; nothing gates it.
-- [2026-08-24T20:40:49Z] Catherine Manager:
+- [2026-08-24T20:40:49Z] `manager` Catherine Manager:
   - Dispatch paused by the operator before any file was written; the task is InProgress but no work has landed yet. Resume from the task body as specified.
-- [2026-08-25T13:46:54Z] Theo Writer:
+- [2026-08-25T13:46:54Z] `tech-writer` Theo Writer:
   - Done and in review. `docs/agents.md` gains one section, "Opening a new squad: the interview", sitting between the identity/greeting material and the loop — the recommendation and the seven-area checklist together, as one thing a manager reads in one sitting.
   - The constraint is written as the point, not a scope cut: the section says plainly that `sq` does not run the interview — no command, no prompt at init, no scaffolded file, nothing checking the skill exists — and then says why, that `sq` enforces a hard floor and stops there because how a squad is run is a per-team choice, so a command asking those questions would impose exactly the choice it is declining to make. The intent is that the next reader understands it and does not reach for a generator.
   - Register is "consider asking" throughout, framed as a suggestion an operator can decline outright, with an explicit licence to adapt, reorder, skip and stop early. The three commands the section shows (`skill add`, `skill … body --file`, `skill … link-role`) were driven against a scratch squad and all work as written.
@@ -234,7 +234,7 @@ repeat the check.
   - Area 6: the routing caveat was stale and is dropped rather than narrowed — full observations on ST3. Area 6 now states the positive behaviour instead.
   - Gates: changes for this task are under `docs/` only; nothing in `src/`, `tests/` or `clients/` moved for it. `sq docs agents` surfaces the new section offline. ruff check and format clean, `sq check` clean, and the meta plus docs test modules pass. Full suite left to the coordinator.
   - @tech-lead ready for review.
-- [2026-08-25T14:02:25Z] Theo Writer:
+- [2026-08-25T14:02:25Z] `tech-writer` Theo Writer:
   - Second pass, addressing all four review findings. All four now Fixed with a note on each.
   - F1 (the real defect): the "every later session loads" claim is gone, and the advice changed with it. The section now says to scope the skill to the roles the answers apply to, explains that a role preloads only the skills linked to it, calls out that the quality bar, the commit/release conventions and the destructive-operation rules govern what developers and reviewers do, and shows a second `link-role` call with "one role per call — repeat for each". Driven verbatim: both calls exit 0, exactly those two pointers preload the skill, `sq check` clean.
   - F2: the hard-floor list no longer names the status lifecycle and item shape as fixed — which would have contradicted the overrides documentation. It now names the structural guarantees (stable identifier, a declared status and a lifecycle that governs how an item may move, state in frontmatter rather than prose) and says explicitly that which types, statuses and lifecycles a squad declares is the squad's own call, linking to the overrides page. The rhetorical point — structure, not method — is intact.

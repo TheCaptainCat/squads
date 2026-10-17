@@ -167,7 +167,7 @@ changelog prose is the tech-writer's to author, not a dev's or mine.
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-02T12:54:35Z] Theo Writer:
+- [2026-09-02T12:54:35Z] `tech-writer` Theo Writer:
   - Fixed. Both texts rewritten from the code and from my own drives, not from the reported summary — every claim below is one I ran.
     
     **What I established before writing.** On the frozen `v0_11` fixture, `sq migrate up` rewrites **six item files** (`FEAT-2`, `TASK-3`, `REV-6`, `ROLE-1`, `SKILL-7`, `SKILL-8`) plus the managed `CLAUDE.md` region, and the role file loses `extra.full_name` and its whole body. Confirms the finding.
@@ -189,7 +189,7 @@ changelog prose is the tech-writer's to author, not a dev's or mine.
     **Also corrected: the `### Migration` paragraph.** "No existing item is rewritten and no frontmatter shape changed" was true of the runner and false of `sq migrate up`, which is the command its own heading tells the adopter to run. It now separates the two — the runner's writes are still described as paths that did not exist, and the rebuild that follows is stated as rewriting existing items.
     
     Verified after the edit: `sq migrate chlog v0.7.0..v0.14.0` renders the new section correctly on the fixture.
-- [2026-09-02T13:12:07Z] Theo Writer:
+- [2026-09-02T13:12:07Z] `tech-writer` Theo Writer:
   - **Correcting my own comment above.** The build moved under it — `98ca0638` removed the skill half of the sweep and gave `sq migrate up` the strip notice — so two things I wrote an hour ago are no longer true, and both texts have been rewritten again against the code as it now stands. Re-driven from scratch on the current tree rather than adjusted:
     
     **What the sweep does now**, `sq migrate up` on the frozen `v0_11` fixture: **four** item files rewritten (`FEAT-2`, `TASK-3`, `REV-6`, `ROLE-1`), not six. `SKILL-7` and `SKILL-8` are byte-identical — `_sweep_empties_body` returns `item.type == ROSTER_ROLE` and nothing else. Both greeting's stored body and its text remain on disk, and `sq search "Detect and greet"` still matches it, while the role's mission no longer matches anything. `sq skill greeting show` renders the template definition regardless of what is stored, so the leftover bytes are inert.
@@ -262,7 +262,7 @@ population that has no other announcement.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-02T12:53:46Z] Elias Python:
+- [2026-09-02T12:53:46Z] `python-dev` Elias Python:
   - Fixed. `run_pending_migrations` now returns a `MigrationRun` (`applied` + the rebuild's own `RepairResult`, `None` exactly when nothing applied) instead of discarding it, and `sq migrate up` prints the notice after "index rebuilt".
     
     The sentence has one constructor — `RepairResult.strip_notice()` — so `sq repair` and `sq migrate up` cannot drift into different wording, and neither can quietly lose it again.
@@ -278,10 +278,10 @@ population that has no other announcement.
     Test `test_migrate_up_announces_the_content_it_rewrote` asserts against a real rewrite (the fixture's own bytes before/after), not the string alone, so it also reddens if a run announced a strip it did not perform. Falsified: dropping the print reddens it.
     
     **On `sq repair --json`, since you asked rather than assumed: yes, it should exist, and not in this fix.** The reflog being the only machine-readable surface for `stripped`/`canonicalized` is a real gap and your blast-radius argument is right. But adding `--json` is a new output contract — a documented shape, `--json` parity expectations against the other verbs, and adopter-facing docs — which is a decision and a ticket, not a line I slip into a review fix. Not tracked yet; it wants a bug or a follow-up task, and I have not created one.
-- [2026-09-02T13:14:34Z] Catherine Manager:
+- [2026-09-02T13:14:34Z] `manager` Catherine Manager:
   - Reopened: the fix covered sq migrate up, but the writer drove all four routes and two still say nothing. sq adopt performs the whole sweep and prints nothing, recording it only in the reflog — and that is the population docs/adoption.md addresses, so a first adopt over an existing folder of squads-native markdown rewrites it silently. sq renumber reaches the same sweep through _rebuild_index_from_disk and records nothing about it at all.
   - This widens the finding rather than duplicating it: the missing announcement is on two more commands, and renumber has no surface at all. The ruling this release was accepted on was announced-not-prevented; two of four doors do not announce.
-- [2026-09-02T15:22:22Z] Elias Python:
+- [2026-09-02T15:22:22Z] `python-dev` Elias Python:
   - Fixed, on the two routes that were still silent. `sq adopt` and `sq renumber` now print the same sentence `repair` and `migrate up` print, and `renumber` records the strip in its reflog line as well.
     
     No new wording: `strip_notice()` moved from a method on `RepairResult` to a module-level constructor in `_services/_results.py` that both result types delegate to, so there is still exactly one place the sentence exists. `AdoptResult` now carries the whole `RepairResult` of its import sweep (its `imported` count became a property of it, rather than a second stored number), and `RenumberResult` carries the `stripped` list its shared rebuild produced.
@@ -301,7 +301,7 @@ population that has no other announcement.
     - `docs/adoption.md` describes the population `adopt` serves and now says less than the command does. Adopter docs are the writer's artifact, not mine. @tech-writer for that.
     
     `sq repair --json` remains untracked, as noted when this was first fixed.
-- [2026-09-02T15:34:20Z] Theo Writer:
+- [2026-09-02T15:34:20Z] `tech-writer` Theo Writer:
   - Writer half done. The adopter text said only `sq repair` and `sq migrate up` announce the strip — true when written, false since all four routes gained the shared notice. Corrected in six places, each verified by driving the route rather than reading the constructor:
     
     - `docs/adoption.md` — "Not every route announces it" replaced with what the four now do; the clean-tree/`git diff` advice kept, re-argued from the notice being a count and the reflog a list of ids rather than from silence.
@@ -371,7 +371,7 @@ what the template would render. Any of them is a decision, not a dev's choice, p
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-02T12:53:26Z] Elias Python:
+- [2026-09-02T12:53:26Z] `python-dev` Elias Python:
   - Fixed — but by containment, not by a better discriminator, and the finding is broader than stated.
     
     **The corpus cannot tell.** At the moment of the sweep nothing on a skill item records which writer produced its body. `is_system_skill` is the right classifier and stays exactly where it is (including in `set_body`'s refusal), but it is a function of *today's* vocabulary in **both** halves, and the body was written under an earlier one:
@@ -440,7 +440,7 @@ the sweep where the destruction risk lives.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-02T12:54:10Z] Elias Python:
+- [2026-09-02T12:54:10Z] `python-dev` Elias Python:
   - Fixed. The test now snapshots each system skill's pre-migration `sq:body` region and asserts against that snapshot; a fixture storing no skill body at all skips with a reason instead of passing quietly. Its subject flipped with F3 — the body must now come out **unchanged** rather than empty — but the vacuity was orthogonal to which way the assertion points, and the precondition is what fixes it either way.
     
     Confirmed with the mechanism switched back on: exactly 5 params redden (`v0_5`, `v0_7`, `v0_8`, `v0_10`, `v0_11`), and `v0_1`–`v0_4` skip. Ten parameters that read as ten proofs are now five proofs and four honest declarations.
@@ -497,7 +497,7 @@ Correct the sentence in the amendment to cite `reject_markers`, and correct
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-02T12:53:46Z] Theo Writer:
+- [2026-09-02T12:53:46Z] `tech-writer` Theo Writer:
   - Read and confirmed, and it is not mine to fix — the decision record is the architect's. Routing it rather than touching it.
     
     I re-drove the two probes independently, on a string built at runtime rather than typed into a body: `find_markers` on a backtick-wrapped, well-formed `summary` tag returns that tag; on the `*` form it returns nothing. So the amendment's stated mechanism ("prose naming a tag inside backticks is not matched") is false as written, exactly as reported — the backticks are outside `MARKER_RE` and do nothing, and the `*` is what fails the `[\w:-]` class. The conclusion holds through `reject_markers`, which is the guard that actually refuses a well-formed marker on every write path.
@@ -511,7 +511,7 @@ Correct the sentence in the amendment to cite `reject_markers`, and correct
     That is false too. Driven on a fresh squad: I deleted the whole `body` marker pair from a bundled role's file and from a template-owned skill's file, then ran both `show` commands. Both rendered their definition in full, and `sq check` reported no issues. Neither path branches on the region at all — `sq role <slug> show` keys on the item's existence (its own comment says so), `sq skill <slug> show` keys on `is_system_skill`, and the phrase "no item for this slug" appears nowhere in the codebase except in the two docstrings asserting it. It reads in `_strip_retired_regions` and `_sweep_empties_body`, and it had been copied into the release note, which is where I found it.
     
     Emptying is still the right behaviour; the recorded reason for it is not a fact. I have dropped the claim from both adopter texts rather than restating it — they now say only that the marker pair stays and the contents go, which is what I could verify. The two docstrings still carry it.
-- [2026-09-02T13:13:52Z] Robert Architect:
+- [2026-09-02T13:13:52Z] `architect` Robert Architect:
   - **Ruling: the finding is correct, and the record — not the conclusion — was wrong. Marking Fixed.**
     
     I re-drove it before ruling, with a control, because a null result from a marker search is exactly
@@ -549,7 +549,7 @@ Correct the sentence in the amendment to cite `reject_markers`, and correct
     
     @reviewer both are outside my remit on this run; neither blocks the finding, whose stated defect
     was the record.
-- [2026-09-02T13:35:14Z] Theo Writer:
+- [2026-09-02T13:35:14Z] `tech-writer` Theo Writer:
   - Both stated reasons corrected in code, per the architect's ruling, and re-driven with a control before writing rather than taken from the ruling.
     
     **`_sections.find_markers`' docstring.** My own control, on strings built at runtime so no literal marker sits in the probe:
@@ -629,7 +629,7 @@ artefact the next person will read before adding a name to it.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-02T12:54:20Z] Elias Python:
+- [2026-09-02T12:54:20Z] `python-dev` Elias Python:
   - Fixed, with one correction to the finding.
     
     **The count is nine** — verified against the code, not the prose: `agreements, can_spawn, color, description, full_name, mission, responsibilities, skills, title`. I removed the numeral from `_retired_role_extra_keys` rather than changing eight to nine: a count in a consuming docstring is a second declaration of a set's size that nothing keeps in step with it, which is how this defect arose. The sentence now names the set and says why it is not restated as a count.
@@ -675,7 +675,7 @@ repo process; it wants the tech-writer, not a dev.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-02T12:55:02Z] Theo Writer:
+- [2026-09-02T12:55:02Z] `tech-writer` Theo Writer:
   - Fixed across the four files, plus two places in the same files the finding did not list but which carry the same false framing.
     
     **`docs/adoption.md`** — a new **What `sq repair` writes** section under Validate spells out what the rebuild removes, what a role keeps, and that a custom skill's body and every non-role frontmatter field are untouched. Three call sites now link it:
@@ -693,7 +693,7 @@ repo process; it wants the tech-writer, not a dev.
     Everything asserted is driven: the routes, the reflog fields (`stripped` carries item ids, not paths), the fresh-squad no-op (a `sq repair` on a squad created on this version leaves every `.md` byte-identical), and the second-run no-op.
     
     **Two instances of the same defect I did not touch**, because they are outside this finding and I would rather flag than widen the diff: `README.md:338` describes `sq repair` as "rebuild the index from frontmatter", `README.md:419-420` gives the merge recipe with no clean-tree advice, and `PYPI.md:62` says "`sq repair` reconstructs it from the files". Same claim, same release, two more adopter-facing files. @tech-lead worth a call on whether they ride this fix.
-- [2026-09-02T13:12:22Z] Theo Writer:
+- [2026-09-02T13:12:22Z] `tech-writer` Theo Writer:
   - **Correcting my comment above**, for the same reason as F1's: `98ca0638` landed while I was writing, and two claims in the doc text went false with it.
     
     - Every mention of a template-owned skill's body being emptied is **removed** from `docs/adoption.md`, `docs/faq.md` and `docs/internals.md`. All three now say no skill body is touched — authored or template-owned — and `internals.md` records why: the classification is a function of today's vocabulary while the stored body was written under an earlier one, so the two are indistinguishable on disk.
@@ -702,7 +702,7 @@ repo process; it wants the tech-writer, not a dev.
     `docs/workflow.md` needed no second pass — its two edits are about the reflog's `repair` op and its `delta` fields, both still accurate.
     
     The `README.md`/`PYPI.md` instances I flagged above are unchanged and still stand for a scope call.
-- [2026-09-02T13:36:13Z] Theo Writer:
+- [2026-09-02T13:36:13Z] `tech-writer` Theo Writer:
   - Widened to the three instances outside this finding, on the coordinator's scope call.
     
     Each verified against the code as it stands before writing, not carried from the earlier pass — I re-drove `sq repair` and `sq repair --renumber` from a clean export of `HEAD`'s `src` rather than the working tree, since three lanes are live in it. Both strip four item files on the `v0_11` corpus and both print `stripped retired regions from 4 item files — review the diff`.
@@ -721,7 +721,7 @@ repo process; it wants the tech-writer, not a dev.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T12:26:38Z] Paul Reviewer:
+- [2026-09-02T12:26:38Z] `reviewer` Paul Reviewer:
   - Reviewed at **b37cdc9d** on `release/0.14`. Findings on their own discussions: F1 high, F2/F3/F4 medium, F5/F6/F7 low.
     
     **Recommended verdict: ship, once F1 is fixed.** The mechanism is sound and I proved it rather than read it — my independent `sq repair` over the corpus at `1cf1d30` reproduces the committed 654-file diff exactly, three files apart (`.squads.json` plus the two task files carrying the manager's concurrent board writes). Second run is byte-identical; a never-carried squad writes no file at all (proven by mtime, not by byte-compare); `repair --renumber` matches plain `repair`; the discriminators are the correct ones and all five falsification drills redden the tests they should. `releasing-squads` survived at 10118 bytes. Nothing authored was lost in this repository — I checked every one of the 632 + 436 pre-strip files for a retired region sitting inside a `:body`/`:discussion` region and found none.
@@ -739,7 +739,7 @@ repo process; it wants the tech-writer, not a dev.
     @tech-writer F1 and F7 are yours — the CHANGELOG entry and the `MANUAL` section both claim the role half does not happen, and `docs/` still calls `sq repair` an index-only job.
     @architect F3 and F5 want your ruling rather than a fix: F3 is a deletion path the live-spec discriminator opens in the direction its own reasoning does not consider, and F5 is a sentence in ADR-776's fourth amendment whose stated mechanism is wrong even though its conclusion holds.
     @tech-lead F2, F4 and F6 are ordinary follow-up work.
-- [2026-09-02T12:54:50Z] Elias Python:
+- [2026-09-02T12:54:50Z] `python-dev` Elias Python:
   - F3, F2, F4, F6 fixed; details on each finding's own discussion. Nothing committed. F1, F5, F7 untouched.
     
     **F3 changed delivered behaviour, so it needs a decision to stand.** The sweep no longer empties any skill body — only role bodies and the retired marker regions. The reason is on F3: template-ownership moves with the **release** as well as with a project override, and I drove the release direction end to end on 0.12.1 → 0.14 with no override in sight, so no slug-membership test is safe. Being *derived* is not enough to delete something; the sweep also has to prove nothing authored it, and only the role half can.
@@ -760,7 +760,7 @@ repo process; it wants the tech-writer, not a dev.
     `pyright` 0 errors, `ruff check` clean, `ruff format --check` clean, `sq check` clean.
     
     Every fix falsified: restoring the skill half of the sweep reddens both new F3 tests and 5 of the 10 corpus params; removing the `migrate up` print reddens the F2 test.
-- [2026-09-02T12:56:58Z] Theo Writer:
+- [2026-09-02T12:56:58Z] `tech-writer` Theo Writer:
   - F1 and F7 fixed; F5 read, confirmed and routed to @architect unmarked. Detail on each finding's own discussion.
     
     **F1 (the blocker).** `CHANGELOG.md`'s 0.14.0 `### Changed` entry, its `### Migration` paragraph, and `_v0_11_to_v0_14.MANUAL` are rewritten. No other line of that runner is touched. The texts now state the role half — role bodies emptied, and the nine mirrored `extra` keys removed plus `model` on a non-developer role — and state what survives: `slug` and the default-role designation on every role, `model`/`is_dev`/`tech` on a developer one. The internal "two regions / all three" contradiction and the "every item body, and every frontmatter field" clause are gone from both.
@@ -778,7 +778,7 @@ repo process; it wants the tech-writer, not a dev.
     **Gates.** The tree is shared with an in-flight dev on the code findings, so a full-suite run here measures their working state, not mine: my first run reddened five `test_override_manifest_and_stamp_freshness` tests that pass on re-run, and `ruff` reported an F401 in `_services/_maintenance.py` I did not write. I re-ran the gates in an isolated worktree at `cbc7cbac` carrying only my six files: **4539 passed, 8 skipped, 0 failed**; `pyright` 0 errors; `ruff check` and `ruff format --check` clean. `sq check` clean. The doc-drift guards pass — no guard forced a change to `src/`. Nothing committed or pushed.
     
     @reviewer F1 and F7 are ready for your re-read. @architect F5 is yours, with the second false-reason above folded into its discussion.
-- [2026-09-02T13:12:40Z] Theo Writer:
+- [2026-09-02T13:12:40Z] `tech-writer` Theo Writer:
   - **Second pass, correcting my comment above.** `98ca0638` (skill half of the sweep removed, `sq migrate up` given the strip notice) landed while I was writing the first version, so both adopter texts were describing a build that had just stopped existing — the same defect as F1, one layer down. Both are rewritten against the code as it stands now, and every claim re-driven rather than adjusted. Corrections are on F1's and F7's own discussions; the two that matter here:
     
     - **No skill body is swept any more.** `_sweep_empties_body` is `item.type == ROSTER_ROLE` and nothing else. Driven on the `v0_11` fixture: `sq migrate up` rewrites **four** item files, not six, and both `SKILL` files are byte-identical. Every clause claiming a template-owned skill body is emptied is removed from the CHANGELOG entry, the `MANUAL` runbook and three of the four docs — removed, not softened.
@@ -791,7 +791,7 @@ repo process; it wants the tech-writer, not a dev.
     `pyright` reports **3 errors, all in files I did not touch** and all in the concurrent lane's in-flight work — `tests/tui/test_status_role_colour.py` (modified in the working tree, two `reportCallIssue`) and `tests/cli/test_an_empty_parent_value_is_refused_on_every_create_door.py` (untracked, one `reportMissingTypeArgument`). My six files are `CHANGELOG.md`, four docs and one string literal, none of which pyright reads as typed code. @python-dev flagging rather than fixing, since it is your lane.
     
     Nothing committed or pushed. @reviewer both texts are ready for a re-read against the current build.
-- [2026-09-02T13:45:11Z] Theo Writer:
+- [2026-09-02T13:45:11Z] `tech-writer` Theo Writer:
   - Third pass done: the three adopter-facing instances outside F7, and the four false-reason docstrings/conventions lines. Detail on F5's and F7's own discussions; the cross-cutting parts here.
     
     **What changed**, five files: `README.md` (the `sq repair` maintenance bullet, and the Git-notes merge recipe), `PYPI.md` (the rebuildable-index paragraph), `src/squads/_sections.py` (`find_markers`' docstring), `src/squads/_services/_maintenance.py` (`_strip_retired_regions` and `_sweep_empties_body`), and `CLAUDE.md`'s marker-regex convention line.
@@ -813,7 +813,7 @@ repo process; it wants the tech-writer, not a dev.
     Nothing committed or pushed. The orphaned-role failure is untouched, as instructed.
     
     @reviewer the adopter surface is now consistent across `CHANGELOG.md`, the `MANUAL` runbook, four `docs/` pages, `README.md` and `PYPI.md`. @architect the two `_maintenance.py` docstrings and `find_markers` now carry your ruling; `_create_core`'s own comment already stated the honest reason and I left it alone, since `_services/_base.py` is in an active lane.
-- [2026-09-02T15:26:26Z] Catherine Manager:
+- [2026-09-02T15:26:26Z] `manager` Catherine Manager:
   - Approved. All seven findings Fixed. F1 and F7 were the release blockers — announcements that denied the role half of what the sweep does — and both were rewritten against the code as it stood at the time of writing, not against the ticket. F3 was the one that mattered most: authored skill bodies were destroyable on a plain upgrade because contract and milestone became bundled types in this release, and the remedy was to stop sweeping skill bodies at all rather than ship a cleverer discriminator.
   - F2 needed reopening after its first fix covered only sq migrate up. Driving all four routes found sq adopt silent on the console and sq renumber recording nothing anywhere — the ruling this release was accepted on was announced-not-prevented, and half the doors did not announce.
 <!-- sq:discussion:end -->

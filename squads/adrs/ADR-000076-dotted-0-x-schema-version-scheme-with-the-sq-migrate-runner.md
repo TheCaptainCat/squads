@@ -72,7 +72,7 @@ decision already **in force**, not newly debated in-tool.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:41:16Z] Robert Architect:
+- [2026-08-03T08:41:16Z] `architect` Robert Architect:
   - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
   - Verified in force, nothing else owed: `SCHEMA_VERSION` plus `schema_tuple` in `_models/_schema.py`, the ordered per-release runners, and `sq migrate up|help|chlog` all present (with `repad`/`rename-type`/`rename-status` added since, all additive). The post-1.0 question this decision deferred was answered by ADR-149 — a refinement, not a reversal.
 <!-- sq:discussion:end -->

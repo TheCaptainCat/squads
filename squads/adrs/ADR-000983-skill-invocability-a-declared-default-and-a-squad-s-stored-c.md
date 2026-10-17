@@ -206,11 +206,11 @@ warned, and the compiled file is byte-identical.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T18:35:00Z] Pierre Chat:
+- [2026-10-09T18:35:00Z] `op-pierre` Pierre Chat:
   - 2026-10-09: not accepted as written. System skills are not user-invocable now but may be in the future. This property is not derived from origin: it is an attribute of the skill, and it can be changed with the CLI. Still to settle: whether changing it writes the skill's frontmatter, or whether a bundled skill needs an override for it.
-- [2026-10-09T18:40:05Z] Pierre Chat:
+- [2026-10-09T18:40:05Z] `op-pierre` Pierre Chat:
   - 2026-10-09: direction for the revision. The bundled definition declares each skill's default, and the CLI verb writes a squad's own value to that skill's frontmatter. A release can then change a bundled default without overwriting a squad's choice.
-- [2026-10-09T18:46:37Z] Robert Architect:
+- [2026-10-09T18:46:37Z] `architect` Robert Architect:
   - Body rewritten on op-pierre's two rulings above (2026-10-09), and retitled, since "derives from origin" is no longer true. For @manager and op-pierre.
     
     **What changed**
@@ -231,10 +231,10 @@ warned, and the compiled file is byte-identical.
     3. A stored choice never follows a release. A squad that wants to follow again has to run `--operator-invocable default`; `show` says which case a skill is in.
     4. The three-valued option is new CLI surface. I chose it over a `--x/--no-x` pair plus a reset flag.
     5. Still inferred from documentation, not driven: that a hidden skill preloads into a subagent that lists it.
-- [2026-10-09T19:14:10Z] Pierre Chat:
+- [2026-10-09T19:14:10Z] `op-pierre` Pierre Chat:
   - 2026-10-09: the revision is accepted as written: one shared default for the per-type skills, a stored choice that never follows a release, and the three-valued option.
-- [2026-10-17T03:38:45Z] Catherine Manager:
+- [2026-10-17T03:38:45Z] `manager` Catherine Manager:
   - @architect 2026-10-17: please add a dated note narrowing clause 5. The resolved operator_invocable pair is shown on the skill surfaces (skill show/list); generic item rows (sq show / sq list --json) carry the stored attribute like any other, matching pronouns. See REV-1091 F1.
-- [2026-10-17T03:39:14Z] Robert Architect:
+- [2026-10-17T03:39:14Z] `architect` Robert Architect:
   - 2026-10-17: clause 5 narrowed (REV-1091 F1). The resolved pair, `operator_invocable` plus `operator_invocable_set`, is published on the skill surfaces: `sq skill <slug> show`, its `--json`, and the skill listing. The generic item rows (`sq show`, `sq list -t skill --json`) carry the stored attribute like any other attribute, absent when nothing is stored, as `pronouns` does. For @manager.
 <!-- sq:discussion:end -->

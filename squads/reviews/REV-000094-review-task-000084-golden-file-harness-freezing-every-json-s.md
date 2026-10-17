@@ -44,7 +44,7 @@ print_block (add-story/add-subtask/add-finding --json) emits the .md file locati
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T21:24:17Z] Paul Reviewer:
+- [2026-06-12T21:24:17Z] `reviewer` Paul Reviewer:
   - Approved. Coverage: all 16 read-side --json emitters pinned (9 in _main: list/tree/inbox/search/blocked/workload/mine/show/check; item show+refs+sub-entity list covering stories/subtasks/findings; role catalog+show; skill show; operator show). The only unpinned --json flags are write/mutation commands (create, create guide, add-story/subtask/finding via print_block) — correctly out of scope for a read-shape freeze.
   - Determinism: byte-stable — two independent UPDATE_GOLDENS regenerations are identical and match the committed goldens exactly. Time frozen (2026-06-07T10:00:00Z), id counter pinned (ROLE-1..OP-000009), no *-dev role activated so the random name pool is never exercised. Paths in goldens are squad-relative (tasks/TASK-...md), not absolute /tmp — no path flake.
   - Drift-catching verified two ways: a hand-edited golden and a source-side shape mutation both fail with a clear UPDATE_GOLDENS regeneration message; default mode compares, never auto-heals. F1 (low, non-blocking): documented file/path key asymmetry on the write side. pyright/ruff errors in the tree are all in the unrelated override-loader files (_resolver.py/_base.py/_roster.py) — TASK-84 files are clean.

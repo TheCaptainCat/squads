@@ -48,8 +48,8 @@ rendered preview) first, then the first mutation increment.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T13:37:42Z] Pierre Chat:
+- [2026-07-16T13:37:42Z] `op-pierre` Pierre Chat:
   - Greenlit for 0.10: ship FEAT-100 (read-only browse) only; mutations deferred. New typescript-dev role (Ada) will build it. Architect to record a cross-language client ADR before tasks are cut.
-- [2026-07-19T19:33:00Z] Catherine Manager:
+- [2026-07-19T19:33:00Z] `manager` Catherine Manager:
   - Closed: both features (FEAT-449, FEAT-471) and all child tasks Done; the VS Code extension alignment work is complete. Tidying the board ahead of the 0.10 cut.
 <!-- sq:discussion:end -->

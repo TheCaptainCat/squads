@@ -64,7 +64,7 @@ _Add with `sq task 428 add-subtask "<title>"`; track with `sq task 428 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T18:18:17Z] Ada Typescript:
+- [2026-07-16T18:18:17Z] `typescript-dev` Ada Typescript:
   - Foundation stood up at clients/vscode/: package.json (VS Code manifest incl. squads.sqPath/squads.command config contributions + a check = typecheck && lint && format:check gate), tsconfig.json (strict + all 8 requested strict-plus flags), eslint.config.mjs (typescript-eslint strictTypeChecked+stylisticTypeChecked, type-aware, complexity<=12/max-params<=8, simple-import-sort), .prettierrc.json, own package-lock.json, src/ + test/.
   - Discovery module (src/discovery.ts): resolveSqInvocation implements the ADR-427 #2 order exactly (config-sq-path > config-command > venv > uv+project > poetry+project > bare-path), pure/injectable (DiscoveryEnvironment DI, no vscode/node:fs coupling so it's unit-testable with no host); SqDiscovery caches + invalidate() re-probes on failure; describeTriedOrder for the 'none found' notification text. Real fs/PATH-backed env lives in src/nodeEnvironment.ts, wired from src/extension.ts (minimal activate/deactivate only -- no tree/preview, that's US1-3).
   - Adapter (src/sqAdapter.ts + src/processRunner.ts): shells out via the resolved invocation, maps exit codes 2/3/1+other to usage-error/check-error/runtime-error (schema-skew surfaced verbatim, no special-casing), plus parse-error/spawn-error for malformed JSON or a vanished binary -- every path returns a typed outcome, nothing throws. getTree/getList cover the two in-scope surfaces (sq show --raw fixture deferred to TASK-434/430 per the task note).
@@ -73,7 +73,7 @@ _Add with `sq task 428 add-subtask "<title>"`; track with `sq task 428 subtask <
   - Python side: added clients to [tool.ruff] extend-exclude and [tool.pyright] exclude in pyproject.toml (only that change). Verified: uv run ruff check . / ruff format --check . / pyright all still clean; sq check clean.
   - Note for reviewer: uv run pytest currently shows 2 unrelated failures in tests/meta/test_source_and_new_test_tree_have_no_stray_ticket_references.py from tests/cli/test_show_raw_markdown_golden.py -- that file + the TASK-434 md are uncommitted concurrent work (US2 core prerequisite), not touched by me; flagging so it isn't mistaken for something this task broke.
   - @reviewer ready for review.
-- [2026-07-16T18:32:15Z] Ada Typescript:
+- [2026-07-16T18:32:15Z] `typescript-dev` Ada Typescript:
   - REV-436 changes-requested addressed, all 4 findings marked Fixed:
   - F1 (medium): stripped ticket/ADR-ID citations from clients/vscode production source + README (src/extension.ts, src/discovery.ts x2, src/sqAdapter.ts, eslint.config.mjs, README.md) -- reworded to describe the design directly, no ID pointers. Left the EPIC-99/FEAT-100 fixture-assertion literals in test/sqAdapter.test.ts untouched (reviewer's explicit carve-out).
   - F2: added test/hygiene.test.ts -- a forward guard scanning src/** + eslint.config.mjs/tsconfig.json/package.json/vitest.config.ts/.prettierrc.json/README.md for ADR|FEAT|TASK|REV|BUG|EPIC-N / USn / STn tokens, zero-tolerance, with test/** (fixtures + assertions) carved out -- mirrors the core's tests/meta gate inside the TS lane.

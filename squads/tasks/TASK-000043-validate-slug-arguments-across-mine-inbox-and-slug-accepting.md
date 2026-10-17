@@ -110,17 +110,17 @@ Service-level tests (resolver raises on unknown slug, accepts a registered agent
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T12:15:55Z] Olivia Lead:
+- [2026-06-11T12:15:55Z] `tech-lead` Olivia Lead:
   - @python-dev coordination point: the 'resolve slug or raise' helper should mirror the item-ID resolver pattern decided in FEAT-19 — same shape, ideally same home in _cli/_common.py. Check FEAT-19's resolver before designing this one so we land one consistent validation idiom (item IDs + slugs), not two divergent ones.
   - Sequencing: this task is independent of TASK-42 (different code paths — slug validation in _cli vs the index store) but second in the queue behind it by priority.
-- [2026-06-11T12:39:51Z] Elias Python:
+- [2026-06-11T12:39:51Z] `python-dev` Elias Python:
   - Implemented resolve_slug_or_raise helper in src/squads/_cli/_common.py, mirroring the resolve_item_id pattern (same module, same shape). Validates against roster() + operators(); raises SquadsError naming valid slugs. 'operator' sentinel passes through for compat.
   - Applied the helper to: sq mine (slug now required, bare call errors), sq inbox, sq list --assignee, comment --as on items and sub-entities, update --assignee on items and all three sub-entity kinds (subtask/story/finding), update --author on items, add-subtask/add-story/add-finding --assignee.
   - Updated 3 existing tests that had stale expectations (test_subtask_assignee_cli error message, test_collab_commands_via_cli using unregistered qa slug, test_mine_cli using bare sq mine). Added tests/test_slug_validation.py with 26 new tests covering the helper and all audited CLI surfaces.
   - uv run pytest: 245 passed, 1 skipped. pyright on changed files: 0 errors. ruff check/format on changed files: clean. Pre-existing repo-wide F401 in _services/_items.py (11) and _cli/__init__.py (1) + _discussion.py format issue — all pre-date these changes (from TASK-42 working tree). @tech-lead ready for review.
-- [2026-06-11T12:50:23Z] Olivia Lead:
+- [2026-06-11T12:50:23Z] `tech-lead` Olivia Lead:
   - Review PASS — Done. resolve_slug_or_raise in _cli/_common.py mirrors the FEAT-19 resolver shape; validates against roster() + operators(), preserves the legacy 'operator' anonymous sentinel, raises SquadsError naming valid slugs. Routed through every audited surface: mine, inbox, list --assignee, comment --as (item + sub-entity), update --assignee/--author, add-story/add-subtask/add-finding --assignee, update-story/subtask/finding --assignee.
   - Verified live: 'sq mine ghost' / 'sq inbox ghost' exit 1 with "unknown slug 'ghost'; valid slugs: manager"; valid 'sq mine manager' exits 0. Bare 'sq mine' now errors via required Typer Argument (exit 2, not 1 — standard Typer missing-required behavior, consistent with the rest of the CLI; brief intent 'must error' is met). 26 new tests in test_slug_validation.py + updated existing assertions. Clean gates.
-- [2026-06-11T12:56:40Z] Pierre Chat:
+- [2026-06-11T12:56:40Z] `op-pierre` Pierre Chat:
   - Decision: bare 'sq mine' exiting 2 (Typer missing-required-argument) stays — consistency with the rest of the CLI wins over the exit-1 wording in the bug. No follow-up.
 <!-- sq:discussion:end -->

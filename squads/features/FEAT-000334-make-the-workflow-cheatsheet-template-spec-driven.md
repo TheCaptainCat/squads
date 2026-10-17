@@ -190,11 +190,11 @@ Acceptance: this story is verified by a human/tech-writer read-through of the re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-08T15:07:55Z] Nina Product:
+- [2026-07-08T15:07:55Z] `product-owner` Nina Product:
   - Scoped from op-pierre's request: workflow.md.j2's 'Team workflow' section hardcodes feature/task/story/subtask names and if-branches instead of describing the loaded _interactions playbook + roster generically.
   - Framed the crux design question as US2: the cheatsheet must stay a concise cross-type overview (summarized playbook data), distinct in altitude from the sq-<type> skills (full per-type playbook detail) — not a second copy of the same content.
   - depends-on FEAT-326 (generic type/status engine) — a fully generic cheatsheet is only clean once types/statuses are spec-driven; relates-to EPIC-325.
   - Left Draft/backlog, not dispatched. @tech-lead to break into tasks once FEAT-326 lands; will need a dev for the generic render and @tech-writer for format/voice sign-off (see US3).
-- [2026-07-10T04:43:45Z] Catherine Manager:
+- [2026-07-10T04:43:45Z] `manager` Catherine Manager:
   - FEAT-334 complete: the workflow cheatsheet is spec-driven (TASK-363) and verified across all three user stories (TASK-364). Generic per-type map, crash-safe on dropped/renamed types, reflects custom vocab, corrected a pre-existing lifecycle-sharing factual error.
 <!-- sq:discussion:end -->

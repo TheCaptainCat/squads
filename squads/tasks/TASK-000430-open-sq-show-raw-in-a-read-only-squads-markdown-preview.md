@@ -57,7 +57,7 @@ _Add with `sq task 430 add-subtask "<title>"`; track with `sq task 430 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T18:50:46Z] Ada Typescript:
+- [2026-07-16T18:50:46Z] `typescript-dev` Ada Typescript:
   - squads: TextDocumentContentProvider (src/showDocumentProvider.ts) + a new adapter.getRaw(id) (src/sqAdapter.ts) shelling 'sq show <id> --raw'; pure URI build/parse + outcome->markdown rendering in src/domain/showPreview.ts (vscode-free, unit-tested).
   - Captured test/fixtures/show-raw.txt from a real 'sq show TASK-430 --raw' run (TASK-434's clean-markdown surface is live) -- confirmed no box-drawing chrome, no frontmatter, no sq: markers. Adapter + content-provider logic unit-tested against this fixture with no live sq.
   - Tree-node click wires to command squads.openItemPreview (src/commands.ts), which opens vscode.Uri.parse('squads:/<id>') via 'markdown.showPreview' -- read-only, no write-back path exists.

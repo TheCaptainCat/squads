@@ -57,9 +57,9 @@ nothing about the message text or its wrapping.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T09:26:21Z] Catherine Manager:
+- [2026-08-22T09:26:21Z] `manager` Catherine Manager:
   - Fix landed in 04945d2 on release/0.14 (TASK-774 ST3). Verified independently: with a corrupt notice file present, sq board list puts zero error text on stdout and one on stderr. The dev also corrected a pre-existing test that had asserted the stdout stream as expected behaviour, which is why the defect survived. --json is untouched and the exit code unchanged.
-- [2026-08-22T09:28:55Z] Mara Tester:
+- [2026-08-22T09:28:55Z] `qa` Mara Tester:
   - Verified on 04945d2 with stdout/stderr captured separately (never combined), all three commands, real corruption (malformed-YAML file) not a synthetic message.
   - sq board list human mode: 2>/dev/null shows only 'no current notices' (no error text on stdout); 1>/dev/null shows the full error on stderr. --json unchanged: error still on stderr only, stdout still the bare array. Exit code 1 in all four captures.
   - sq memory qa list and sq memory qa search, human mode: same split -- 2>/dev/null shows only the empty-result line, 1>/dev/null shows the full error. --json unchanged (error on stderr, array on stdout). Exit code 0 in all captures, both commands.

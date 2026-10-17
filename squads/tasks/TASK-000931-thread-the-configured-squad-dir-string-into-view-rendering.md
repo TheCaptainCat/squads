@@ -120,7 +120,7 @@ Replace _squad_dir_display's Path.name derivation with the configured string thr
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-08T14:09:04Z] Elias Python:
+- [2026-09-08T14:09:04Z] `python-dev` Elias Python:
   - Threaded config.squad_dir (str) alongside the resolved Path: render_source_view/render_resolved_source/_render_resolved_source_or_raise now take squad_dir_display: str|None (never derive .name); expand_view_tags gained a 5th param squad_dir_display, kept squad_dir: Path|None for _resolve_role_source. Deleted _squad_dir_display. Service callers pass self.paths.config.squad_dir for display, self.paths.squad_dir stays for role resolution (_services/_items.py::read_body, _services/_views.py::render_view).
   - Driven on a nested squad_dir (sq init --squad-dir docs/squad, real CLI in a scratch dir, not the test harness): sq skill squads show --raw -> 'docs/squad/', sq skill sq-memory show --raw -> 'docs/squad/', CLAUDE.md -> 'docs/squad/' — all three agree. Before the fix (verified by reverting _views.py alone): skill text read 'squad/' against CLAUDE.md's 'docs/squad/'.
   - Absolute path still doesn't leak: grepped all three rendered surfaces for the scratch squad's absolute path — 0 hits each. New pinning tests assert this too (str(paths.squad_dir) not in body/claude_md).

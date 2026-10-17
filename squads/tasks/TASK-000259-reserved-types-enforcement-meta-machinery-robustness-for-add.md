@@ -68,7 +68,7 @@ _Add with `sq task 259 add-subtask "<title>"`; track with `sq task 259 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-30T12:34:54Z] Elias Python:
+- [2026-06-30T12:34:54Z] `python-dev` Elias Python:
   - Done. Confirmed RESERVED_TYPES invariant is already fail-closed in WorkflowSpec._validate (§5-6a/b): dropping any ItemType member or any floor-status raises SquadsError at spec-load. Tested parametrically across all ItemType members and 12 floor statuses.
   - work_types() correctly excludes all meta-types (role/skill/operator) and includes custom non-meta types; also excludes custom types declared with is_meta=True. Reserved prefix/folder uniqueness (§5-5): shadowing 'TASK' or 'tasks/' by a custom type raises SquadsError.
   - Graceful degradation confirmed: skills_for_role() and _interactions.py yield empty sequences (no KeyError) for custom work types absent from PLAYBOOK. sq workflow lint surfaces missing-reserved-type errors.

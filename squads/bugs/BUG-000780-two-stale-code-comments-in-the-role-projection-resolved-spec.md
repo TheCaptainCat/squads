@@ -99,11 +99,11 @@ than naming the wrong exception.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-22T10:26:10Z] Mara Tester:
+- [2026-08-22T10:26:10Z] `qa` Mara Tester:
   - Verified on c6a03b2. git diff for every file this commit touches: the _RECONCILED_EXTRA_KEYS comment hunk in _catalog.py and the resolved_spec docstring hunk in _service.py are pure comment/docstring edits -- no line outside a #: comment or a triple-quoted docstring changed in either hunk (checked against the same commit's unrelated __post_init__ code addition in the same file, which is BUG-778's, to confirm the two are cleanly separable hunks). Both test-docstring hunks in tests/cli/test_workflow_cross_check_once_per_invocation.py are likewise docstring-only -- no assertion or test body line changed. tests/unit/test_role_def_extra_keys.py itself is untouched by this commit (git show c6a03b2 -- that path is empty), confirming it already held the correct wording and only the code comment needed correcting to match it.
   - Same claim confirmed on both sides: _catalog.py's comment now reads '...exactly when it was never written to markdown outside a transaction... since description itself was, from inside one'; test_role_def_extra_keys.py already said '...no legacy corpus that ever wrote extra.description outside a transaction'. Same rule, same wording basis, on both sides -- the point of the finding.
   - Same for the resolved_spec docstrings: _service.py's open_service and both test docstrings in test_workflow_cross_check_once_per_invocation.py now agree that sq ui and the bypass path's first step both reach get_service() and so already supply resolved_spec, and that only a direct open_service() call (chiefly a test) leaves it None -- the same, corrected enumeration in all three places.
   - Holds fully. Status note: InProgress on disk, not Fixed -- not transitioning (the CLI's own guard refuses InProgress -> Verified without --force). Flagging for whoever should move it to Fixed first.
-- [2026-08-22T10:33:06Z] Catherine Manager:
+- [2026-08-22T10:33:06Z] `manager` Catherine Manager:
   - Fix landed in c6a03b2 on release/0.14 (TASK-782), shipping in 0.13.1. Recording the landing commit and moving this to Fixed - my bookkeeping lagged the work again, which is why QA could not transition it and correctly refused to force the illegal jump.
 <!-- sq:discussion:end -->

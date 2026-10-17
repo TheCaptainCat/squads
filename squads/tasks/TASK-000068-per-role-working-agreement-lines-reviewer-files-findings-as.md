@@ -32,7 +32,7 @@ _Add with `sq task 68 add-subtask "<title>"`; track with `sq task 68 subtask <n>
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T13:37:48Z] Elias Python:
+- [2026-06-12T13:37:48Z] `python-dev` Elias Python:
   - Implemented per-role working-agreement lines (TASK-68). Four files changed.
   - ExtraKey.AGREEMENTS added to src/squads/_models/_extras.py.
   - RoleDef gained an optional agreements tuple in src/squads/_roles/_catalog.py; to_extra/from_extra carry it through. Reviewer populated with the findings-as-sub-entities line from the task body; all other roles default to empty.

@@ -93,10 +93,10 @@ Covers basic SKILL ref support so sq <type> <n> ref add SKILL-… --kind related
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T20:15:33Z] Elias Python:
+- [2026-06-24T20:15:33Z] `python-dev` Elias Python:
   - Implementation complete. sq skill <n> show was already wired in _skill.py. Added sq skill <n> refs, sq skill <n> ref add, sq skill <n> ref rm commands to the _addr sub-group in _cli/_skill.py. Also added DEFAULT_KIND/split_ref imports.
   - Ref support: resolve_item_id_any() handles SKILL prefix generically (no special-casing needed — it resolves by sequence number and validates the type prefix). sq task/feature ref add SKILL-… stores forward edge on the source item. Backrefs are computed by SquadsDB.backrefs() inversion (invariant 4 — forward edges only). sq skill <n> refs --in shows computed backrefs.
   - Tests: 5 tests in tests/test_skill_migration.py: sq_skill_show_renders_skill, sq_skill_show_json, ref_add_skill_from_task, ref_backref_appears_on_skill, ref_round_trip_from_feature. All use invoke fixture for async-safe CLI invocation.
-- [2026-06-24T20:15:39Z] Elias Python:
+- [2026-06-24T20:15:39Z] `python-dev` Elias Python:
   - @manager TASK-189 and TASK-190 (second increment of FEAT-178) are ready for review. Both remain InProgress per instructions. Key files: src/squads/_migrations/_v0_4_to_v0_5.py (new migration runner), src/squads/_migrations/_registry.py (entry 0.4→0.5), src/squads/_models/_schema.py (SCHEMA_VERSION=0.5), src/squads/_cli/_skill.py (refs+ref add+ref rm commands), tests/test_skill_migration.py (11 new tests). Pyright clean, ruff clean, full suite green.
 <!-- sq:discussion:end -->

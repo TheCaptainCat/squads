@@ -121,7 +121,7 @@ Covers the backend _write_managed_skill (+ regen path) building the skill body p
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-25T08:19:28Z] Elias Python:
+- [2026-06-25T08:19:28Z] `python-dev` Elias Python:
   - TASK-202 implementation complete.
   - Migration (_v0_4_to_v0_5.py): walk slug → check for SKILL-*-slug.md (idempotent); if slug.md stamped-already → rename + update path in frontmatter + rewrite .claude pointer; if slug.md unstamped → allocate via IndexStore.transaction() + stamp → write SKILL-NNNNNN-slug.md → unlink legacy + rewrite pointer. File-presence trigger: rename fires on existence of slug.md regardless of stamp state — covers the live-repo case (stamped-but-slug-named).
   - Seeding (_services/_maintenance.py, seed_bundled_skills): glob for SKILL-*-slug.md first (idempotent skip); allocate → compute SKILL-NNNNNN-slug.md → stamp → write convention file → unlink legacy slug.md.
@@ -130,12 +130,12 @@ Covers the backend _write_managed_skill (+ regen path) building the skill body p
   - Tests added: test_migration_renames_already_stamped_slug_file, test_migration_rename_pointer_resolves, test_migration_rename_idempotent_on_already_renamed, test_init_skill_files_use_convention_name, test_double_sync_preserves_skill_ids_and_filenames. Existing tests updated to assert convention names.
   - Corpus v0_5: skill files renamed to SKILL-000007-greeting.md / SKILL-000008-squads.md; frontmatter paths and .squads.json updated.
   - Full suite: 1134 passed, 1 skipped. pyright 0 errors, ruff clean. @manager ready for review.
-- [2026-06-25T08:36:38Z] Elias Python:
+- [2026-06-25T08:36:38Z] `python-dev` Elias Python:
   - Bug fixed (dangling .claude pointer after sq init).
   - Root cause: write_managed wrote the pointer to slug.md before seeding; seed_bundled_skills renamed the body but never rewrote the pointer, leaving .claude/skills/<slug>/SKILL.md pointing at the unlinked slug file.
   - Fix (preferred approach): after path_unlink(legacy_path) in seed_bundled_skills, call backend.generate_skill_entry(ctx, item) on each active backend. generate_skill_entry uses ctx.root_relative(item) which reads item.path (= SKILL-NNNNNN-slug.md) and writes the correct pointer. One-liner addition in _services/_maintenance.py; no reordering of init steps.
   - Test: updated test_init_skill_files_use_convention_name to also assert the .claude pointer's @-line references SKILL- and that the referenced file actually exists on disk. Full suite: 1134 passed, 1 skipped. pyright clean, ruff clean. @manager ready for review.
-- [2026-06-25T09:21:16Z] Elias Python:
+- [2026-06-25T09:21:16Z] `python-dev` Elias Python:
   - REV-203 nits F1+F3 applied — all clean.
   - **F3 (layering)**: Removed the IndexStore.load() call from _write_managed_skill entirely. Added skill_paths: dict[str, Path] to BackendContext (with __init__ defaulting to {} on first-write paths). refresh_managed() now calls _skill_paths() to build the slug->abspath map from index SKILL items and injects it into the context before calling write_managed. sync() does the same (previously it used the bare _ctx property, which exposed the same gap — caught by the test_skill_body_region_updated_on_sync test). The backend reads ctx.skill_paths.get(name); empty map -> slug-named fallback as before.
   - **F1 (bare except)**: Moot after F3 — the try/except block was removed wholesale along with the IndexStore import.

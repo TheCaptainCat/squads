@@ -134,7 +134,7 @@ That is the shape that catches an input nobody thought of, which is what this ax
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-08-03T12:41:08Z] Elias Python:
+- [2026-08-03T12:41:08Z] `python-dev` Elias Python:
   - Fixed. Crossed sub-entity kind x status: parametrized _KIND_MATRIX (subtask/Todo/Done, story/Todo/Done, finding/Fixed/Verified, finding/Fixed/WontFix) against the existing 10-row visibility shape via stacked pytest.mark.parametrize -- 40 rows total in tests/service/test_subentity_aware_assignment_views.py.
   - finding/WontFix added beyond the ask: different role object (retired vs done) at the same settled+hidden values, since the axis this release keeps getting bitten on is a role assumption, not a status literal.
   - Falsified: hardcoding sub_open to a Todo-literal check breaks exactly the 7 new finding-kind rows (Fixed treated as closed) while leaving all subtask/story rows green, proving the extension catches the class of bug described. Reverted after confirming.
@@ -176,7 +176,7 @@ both surfaces agree on one predicate and say which.
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-08-03T12:43:43Z] Elias Python:
+- [2026-08-03T12:43:43Z] `python-dev` Elias Python:
   - WontFix -- resolved as a legitimate, deliberate difference, traced through history rather than asserted.
   - mine originally read is_open (matching workload); commit f96db8d switched it to hidden_by_default deliberately, with a test (test_a_terminal_records_category_item_still_shows_by_default) asserting an Accepted decision must still show in mine's default queue like sq list/tree, not hide under the closed-work rule. That predecessor test is exactly the in_force crossing you flagged -- it's already live on decision/guide items today, just never on a sub-entity lifecycle.
   - Decision: mine intentionally mirrors sq list/tree (filters on hidden -- 'is this in my default view'); workload intentionally is a census (filters on settled -- 'is this still active work'). Both questions are real and the bundled catalog already documents settled/hidden as separate axes (test_category_aware_default_visibility.py). Applying is_open at sub-entity granularity in mine would silently reverse f96db8d's ruling for records-category items too, which is out of scope for this review.
@@ -226,7 +226,7 @@ punctuation two functions later, removes the coupling entirely.
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-08-03T12:48:26Z] Elias Python:
+- [2026-08-03T12:48:26Z] `python-dev` Elias Python:
   - Fixed, the cheap parts. Added a pinned test (test_inbox_json_lines_and_regions_stay_index_aligned) asserting len(lines)==len(regions) on the fixture's existing multi-hit item, and one array can't desync without failing a test now.
   - Fixed the brittle discriminator too: _Region gained an explicit is_subentity bool set at construction (true only for regions added in the sub-entity loop), and inbox now reads that instead of testing hit.region for a colon -- no longer relying on the accident that no item-level region name contains one.
   - Corrected the false vocabulary claim: InboxLine's docstring and the inbox() docstring both said region 'reuses the same locator vocabulary search publishes' unqualified; reworded to state plainly that every item-level region search distinguishes collapses to null here, sub-entity-vs-item being the only distinction this surface makes.
@@ -266,7 +266,7 @@ local id it names. The first is the smaller change and removes duplicate hits as
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-08-03T12:48:30Z] Elias Python:
+- [2026-08-03T12:48:30Z] `python-dev` Elias Python:
   - Fixed. inbox() now skips the frontmatter block (starts its scan after _frontmatter_end_line, matching search's own behaviour) and skips any line classified into the :summary roll-up region -- both are sq-managed, never authored, so a mention there is never a real call-to-action and was only ever a duplicate of the sub-entity's own heading hit.
   - Took your first candidate fix (suppress derived-text hits), not the second (resolve the summary row back to its sub-entity) -- it's the smaller change and removes the duplicate as a side effect, exactly as you called out.
   - Falsified: reverting the fix reproduces your exact repro -- a story titled '@reviewer in the title' yields 3 hits (2 mis-attributed null, 1 duplicate) pre-fix, 1 correctly-attributed hit post-fix. New test: test_inbox_a_mention_in_a_sub_entitys_title_reports_once_at_its_own_region.
@@ -304,28 +304,28 @@ adopter terms — no item ids, no build-process references.
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-08-03T12:38:28Z] Catherine Manager:
+- [2026-08-03T12:38:28Z] `manager` Catherine Manager:
   - Reassigned to the tech-writer. The changelog entry and the recipes correction are adopter-facing prose, not dev work; the dev reports what changed behaviourally and the writer owns the wording.
-- [2026-08-03T12:53:03Z] Elias Python:
+- [2026-08-03T12:53:03Z] `python-dev` Elias Python:
   - Investigated only; scope corrected by the coordinator -- CHANGELOG.md and docs/recipes.md are not mine to write, routing what I found to the tech-writer.
   - docs/recipes.md:91 'sq mine dotnet-dev   # open items assigned to a role' is now incomplete: mine also surfaces an item whose sub-entity (story/subtask/finding) is assigned to the slug even when the item itself isn't, additively naming the matched sub-entities. Confirmed against the current CLI docstring: 'Items assigned to a role slug, directly or via one of their sub-entities.'
   - docs/recipes.md:92 'sq workload  # open/closed/total per assignee' is now incomplete: workload additionally reports each assignee's sub-entity_open/closed/total, separate additive columns never folded into the item counts. Confirmed against the current CLI docstring: 'plus each assignee's separate sub-entity assignment counts.'
   - Adopter-visible surface also undocumented anywhere in docs/: matched_subentities (mine --json), subentity_open/_closed/_total (workload --json), inbox --json's regions key, the per-sub-entity discussion array on show --json, and sq <type> <n> <kind> <k> show --json as a verb in its own right.
   - CHANGELOG entry still owed for the release regardless of this finding's disposition -- also not mine to write per the same routing.
-- [2026-08-03T13:07:36Z] Theo Writer:
+- [2026-08-03T13:07:36Z] `tech-writer` Theo Writer:
   - Both halves done, driven against the shipped CLI in a throwaway squad rather than taken from the dev report.
   - docs/recipes.md: corrected both lines. `sq mine` now reads "a role open work: items assigned to it, plus items where one of its sub-entities is assigned to it"; `sq workload` names the item counts and sub-entity counts as side-by-side columns. Added three short paragraphs after the block covering the Matched column and matched_subentities, inbox region locators and the regions key, the per-match open/closed rule (verified: a closed item shows while your open sub-entity is on it; your closed sub-entity on an open item needs --all), and why the workload sub-entity columns are never folded into the item totals.
   - docs/stability.md: the Tier-3 read-command list named the sub-entity *list* commands only, so the new single-sub-entity `show --json` would have read as outside the frozen surface. Added it, noting it emits the same object the parent show --json nests under subentities (body/badges/discussion included) — checked the two shapes key-for-key, they match.
   - CHANGELOG: one **Changed** entry for the three read surfaces (with the per-match visibility rule as its second paragraph) and one **Added** entry for the sub-entity discussion array plus the new single-sub-entity --json verb.
-- [2026-08-03T13:16:40Z] Theo Writer:
+- [2026-08-03T13:16:40Z] `tech-writer` Theo Writer:
   - Follow-up, both approved by the coordinator after the first pass: README.md:305-307 corrected the same way recipes.md was, and the stale internals.md section-8 heading fixed with its inbound roles.md anchor.
   - README carried a third error the finding did not name: `sq mine [ROLE]` documented ROLE as optional "(default: the squad's default role)". It is required — a bare `sq mine` is a usage error, exit 2 — and it was required before this release too, so that is a long-standing doc error, not a 0.13 regression. No changelog entry owed; corrected in place. Also added the missing `--json` to `sq inbox`.
   - internals.md section 8 was stale twice over: `_interactions.py` is now the `_interactions/` package, and the bundled playbook data moved to `_specs/playbook.toml`. Rather than re-encode module paths in the heading (which is what rotted, and what the roles.md anchor was pinned to), the heading is now path-free — `## 8. Roles and the playbook` — with the paths stated accurately in the body plus a line noting both documents are project-overridable. roles.md updated to the new short anchor in the same pass; grep confirms it is the only inbound link and no reference to the old anchor survives. Verified every asserted fact at the source (both loaders read `squads._specs`, `DEV = "*dev"`, `PLAYBOOK` is a shim over the loaded `PlaybookSpec`).
-- [2026-08-03T13:27:25Z] Theo Writer:
+- [2026-08-03T13:27:25Z] `tech-writer` Theo Writer:
   - Third pass, on the coordinator's widening of the stale-path class. Existence-checked every backticked path-shaped token in CLAUDE.md, README.md and all of docs/ against the tree with a script, then read each survivor in context rather than trusting the match.
   - docs/internals.md — section 6 heading is now path-free (`## 6. Types, statuses, and workflows`) with a new lead paragraph written from the tree, not translated: vocabulary is package-data TOML under `_specs/`, parsed by `_workflow/_loader.py` into `_workflow/_models.py`; no type/status enum and no built-in prefix→folder table; `_models/_vocab.py` resolves prefix/labels while folder resolution goes through `SquadPaths.folder_for`/`squad_relative`. Corrected the false "`Status` is one enum of all values" bullet to what is there (declared status names, each a `StatusSpec` naming a status role that carries settled/hidden/live/colour; lifecycles are separately-named machines bound by name and shareable), and noted `TERMINAL`/`is_open`/`hidden_by_default` are role-derived, never stored. The sub-entity heading is path-free too, plus a line that the three type→kind pairings are bundled defaults, not law.
   - CLAUDE.md — all edits at lines 32/46/75/83, well outside the squads:start/end region at 225-337; no marker line touched. `_enums` bullet replaced by `_vocab` in the same slot (see the layering note below), `_workflow.py`→`_workflow/`, `_interactions.py`→`_interactions/`, and `_discussion.py` promoted out of the `_services/` bullet to its own top-level entry. Prose, ordering and density left alone.
-- [2026-08-03T13:27:41Z] Theo Writer:
+- [2026-08-03T13:27:41Z] `tech-writer` Theo Writer:
   - Three MORE false claims in the same CLAUDE.md map, found by the widened check and fixed. (1) `_status_badge` exists nowhere in the tree — not in src/, not in clients/; the real resolvers are in `_badges.py` (`status_badge`/`badge_render`/`resolve_collection`/`field_label`), a module the map never named. (2) `allocate_id` was attributed to `_index/_store.py`; it is `SquadsDB.allocate_id` at `_models/_index.py:85` — same misfiling as `_discussion.py`. Invariant 2 further down ("allocate only inside `IndexStore.transaction()`") stays true, since that is about the call site, so I kept both facts. (3) The `_services/` mixin list named six mixins and read as complete; `Service` composes eleven. Listed all eleven in MRO order and named the four non-mixin helpers alongside.
   - Responsibilities rot with no path change, the thing a path check cannot see: `_workflow/__init__` exposes `TERMINAL`/`is_open`/`WORKFLOWS`/`ALLOWED_PARENTS` as views over the BUNDLED spec, loaded once at import and explicitly not override-aware — the capabilities live as methods on `WorkflowSpec` and the active spec is threaded (`Service.spec`, `_cli._common.get_active_spec()`). CLAUDE.md and internals.md both presented those constants as the workflow layer with no such caveat, which in the release whose headline is overrides is the trap most likely to cost someone a bug. Flagged in both files.
   - Answering the coordinator's two open questions. (a) `_vocab.py` belongs in the `_models/` slot and that placement is deliberate, not incidental: its own docstring says the resolver lives in `_models` so model- and service-layer code can both import it without a cycle, and I confirmed no module under `_models/` imports `_workflow` at all. The SPEC MODELS are the opposite case — `WorkflowSpec` and friends stay in `_workflow/_models.py`, and that separation is what keeps the import graph acyclic, so they get their own bullet rather than joining `_models/`. The top-of-file layering diagram is not falsified by any of this. (b) Not "nothing else": `_specs/`, `_overrides/` and `_specmerge.py` — the entire subsystem that replaced the enums — appeared NOWHERE in CLAUDE.md, in the map or outside it. The dead `_enums` path was the visible half of exactly that. Added a `_specs/` bullet covering all three. Still absent from the map and left for a ruling, since naming them is a judgement about the map's intended scope rather than a correction: `_board/`, `_memory/`, `_context.py`, `_actor.py`, `_badges.py` (now named in passing), `_aio.py`, `_docfiles.py`, `_util.py`, `_tui/`.
@@ -362,7 +362,7 @@ is authoritative. Worth one line in whichever doc describes the columns.
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-08-03T12:52:38Z] Elias Python:
+- [2026-08-03T12:52:38Z] `python-dev` Elias Python:
   - WontFix -- agreeing with your own analysis, not overriding it. Folding parent state into workload's sub-entity columns would change what they mean relative to the item columns beside them (which also don't consult a sub-entity's children); mine's per-reason rule is a queue-visibility decision, workload is a census, and the two commands answer different questions by design (see F2).
   - Recorded the reasoning in workload's own docstring in src/squads/_services/_roster.py (why sub-entity counts don't fold in parent status, and that this is exactly why sq mine and sq workload can disagree for the same slug) so a reader lands on it from the code. The one-line adopter-doc note you asked for is the tech-writer's to place -- routed with this finding as input, not written by me.
 <!-- sq:finding:F6:discussion:end -->
@@ -397,7 +397,7 @@ it from `workload` and say why roster items cannot carry an assignee.
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-08-03T12:50:41Z] Elias Python:
+- [2026-08-03T12:50:41Z] `python-dev` Elias Python:
   - Fixed. mine now opens with the same 'if self.spec.item_is_roster(it.type): continue' guard workload already has, so the two adjacent functions agree on the same question rather than one stating the exclusion and the other omitting it.
   - Confirmed reachable at the service layer even though no CLI verb exposes it: svc.create('role', ..., assignee='manager') succeeds today (create() has no roster-vs-assignee guard), so this was latent-but-real, not purely hypothetical.
   - Falsified: new test test_mine_excludes_a_roster_category_item_matching_workloads_own_guard fails without the guard (a role item with assignee set surfaces in mine) and passes with it.
@@ -448,29 +448,29 @@ service and CLI layers, since the disagreement is the property that broke.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T11:10:02Z] Paul Reviewer:
+- [2026-08-03T11:10:02Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested — narrowly, and on acceptance rather than correctness. I found no behavioural defect. Every one of the five surfaces does what FEAT-642 ruled, driven end to end, including the crossing flagged as the risk: a Fixed finding under an Approved review shows, a Verified-only one under an open review does not.
   - The visibility matrix is a genuine cross-product over assignment x status (sub-only 4/4, both-assigned 4/4, item-only 2/4 with the sub-status axis degenerate). What it never crosses is kind x status — F1. Fixed/Verified/WontFix/Blocked/Cancelled and the story/finding kinds are unpinned, which is the axis this release has been bitten on twice.
   - Blocking: F1 (extend the table to a kind x status product) and F5 (no CHANGELOG entry and no docs update, both explicit task constraints; docs/recipes.md lines 91-92 are now factually wrong). F2 needs a ruling, not a patch — mine reads open as not-hidden while workload reads it as not-settled, and the bundled in_force role has those two disagreeing.
   - F3/F4 are inbox --json attribution quality: parallel index-aligned arrays with no stated invariant, and sub-entity-derived lines reported as item-level. Neither blocks. @python-dev for F1/F3/F4/F5, @tech-lead for the F2 and F6 rulings.
-- [2026-08-03T13:18:47Z] Paul Reviewer:
+- [2026-08-03T13:18:47Z] `reviewer` Paul Reviewer:
   - Delta pass at 12540ce. Verdict: still ChangesRequested, on one new medium finding — the code half regressed where it was fixed.
   - F1 holds, and I falsified it rather than reading it. The matrix is now 10 shapes x 4 kind rows, with finding running twice (Verified for the done role, WontFix for retired) and Fixed as the open status. Ran the 40 rows against three deliberately broken predicates in a scratch harness: baseline 0 fail; Fixed-treated-as-settled — the exact inversion flagged as the risk — 6 rows fail and ONLY the finding rows, so the new kind axis is what catches it and the old 10-row matrix would have passed it; judging the row on the item status alone 12 rows fail. So the new crossings genuinely discriminate.
   - On F2: WontFix accepted, and the reasoning holds — I checked it rather than taking it. Driven: sq list without -a shows an Accepted decision, sq mine manager shows it, sq workload counts it closed=1 open=0. So mine matches sq list and workload is a census, and each is right for the question it answers. 590da42 confirms hidden_by_default arrived with ADR-604 dropping the is_open concept, so it is a deliberate alignment and not drift. My framing as a latent inconsistency was wrong. The in_force pin test also discriminates: unifying the predicates onto is_open makes mine stop showing the Accepted decision, so the pin fails. The residual is the one the docstring names itself — adopter-facing docs, i.e. F5 territory, not a code gap.
   - Blocking F8 (medium): the frontmatter skip removed the only copy of an @mention that lives in an item own title or description, while extract_mentions still admits the item — so the inbox emits an EMPTY hit (lines [], regions []). Driven both ways; the --desc case prints the item with no indication of why it is there at all. sq search still finds the same text, so the two surfaces now disagree. The summary skip is right and its new test is right, because a sub-entity title also occurs in its own heading region; an item own title has no second occurrence. Note test_inbox_json_lines_and_regions_stay_index_aligned already asserts > 0 and would catch this if the golden fixture had such an item.
   - F3 (alignment invariant pinned, vocabulary claim corrected), F4 (is_subentity flag replacing the colon test), F7 (roster guard) all verified. @python-dev for F8; F5 stays with the writer.
-- [2026-08-03T14:00:16Z] Elias Python:
+- [2026-08-03T14:00:16Z] `python-dev` Elias Python:
   - F8 fixed. Two halves: the item own authored frontmatter fields (title, description, labels) are surfaced explicitly as item-level lines the way `search` does, and the admission gate is now the emit (`if not matched: continue`) so the gate can never again be wider than the scan. The `:summary` skip and its test are untouched — your read of the asymmetry is what the fix is built on.
   - Added the frontmatter-only-mention item to the golden fixture as you suggested, appended last so no id shifts. Driven both ways: `test_inbox_json_lines_and_regions_stay_index_aligned` fails with `assert 0 > 0` against the unfixed code and passes against the fixed one. Four goldens regenerated (inbox_manager, list, tree, workload) — additive except workload unassigned 6 -> 7.
   - The residual case the emit-gate creates (an `@` token inside sq-managed `extra`) leaves the item out rather than listing it empty; pinned by its own test so the choice is deliberate, not incidental.
   - Tests: tests/service/test_inbox_never_reports_an_empty_hit.py (10, incl. a no-hit-has-zero-lines invariant over every mention placement at once) and tests/cli/test_inbox_surfaces_frontmatter_only_mentions_cli.py (4). Both halves falsified independently: dropping the authored lines reddens 7, dropping the gate reddens the metadata test. @reviewer
-- [2026-08-03T14:17:48Z] Elias Python:
+- [2026-08-03T14:17:48Z] `python-dev` Elias Python:
   - Adopter-visible, for routing: `sq inbox` now reports a mention living only in an item title/description/label, so both the human render and the `--json` `lines`/`regions` arrays carry entries that were previously empty; and an item whose only mention is in sq-managed metadata is no longer listed. Not mine to document.
-- [2026-08-03T14:34:36Z] Paul Reviewer:
+- [2026-08-03T14:34:36Z] `reviewer` Paul Reviewer:
   - Third pass at e59c10b. F8 holds. Driven: an @mention only in a title now surfaces as one line with region null, and only in --desc likewise — no empty hit on either. The lines/regions arrays stay aligned and non-empty.
   - On the extra-only behaviour removal: I accept it, and it is not a finding. extra is sq-managed overflow (role metadata, skill paths, dev fields), never authored prose, so reaching it needs a hand-edit of an sq-managed field that this project own rules forbid. Driven: a mention planted in extra gives "nothing for @devops" at exit 0, and sq search agrees — "no matches" — so the two surfaces now say the same thing about the same text, which they did not before. What was removed was a hit with no content, not a hit. Surfacing raw extra values as inbox lines would leak machine metadata into a call-to-action feed, which is worse.
   - Nothing else on this review changed and nothing new found. F5 remains with the writer. Recommended: Approved.
-- [2026-08-03T14:36:56Z] Catherine Manager:
+- [2026-08-03T14:36:56Z] `manager` Catherine Manager:
   - Approved as second party. Zero findings left open: F1/F3/F4/F7 Fixed, F2 and F6 WontFix with reasoning that engages the evidence, F5 delivered by the writer, F8 fixed and verified. The reviewer re-drove every disposition on the current tree across two delta passes and found nothing new here on the third.
   - Noting one disposition reversal in the reviewer favour: F2 was originally framed as a latent inconsistency between mine and workload, and the reviewer withdrew that framing after driving it -- mine matches sq list, workload is a census, each is right for its own question, and a pin test discriminates.
 <!-- sq:discussion:end -->

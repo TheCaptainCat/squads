@@ -179,6 +179,10 @@ details.sq-graph .sq-graph-empty {
 .sq-nav-toolbar-spacer {
   height: 2.75rem;
 }
+.sq-pronouns {
+  font-weight: normal;
+  color: var(--vscode-descriptionForeground);
+}
 .sq-nav-title {
   font-weight: 600;
   overflow: hidden;
@@ -470,13 +474,15 @@ export interface DossierHtml {
  * the accompanying VS Code notification. `roles`, when given, resolves `@<slug>` mentions in the
  * dossier body (see `domain/roleDirectory.ts`); `ids` is the squad's declared-prefix id grammar
  * (`domain/itemIdPattern.ts`) and `items` the hover text each linked id carries
- * (`domain/itemDirectory.ts`), both threaded through to every markdown render below. */
+ * (`domain/itemDirectory.ts`), both threaded through to every markdown render below. `pronouns`,
+ * when given, is shown dimmed after the heading. */
 export function renderOutcomeHtml(
   id: string,
   outcome: SqOutcome<string>,
   roles?: RoleDirectory,
   ids?: ItemIdMatcher,
   items?: ItemDirectory,
+  pronouns?: string,
 ): DossierHtml {
   if (outcome.kind !== 'success') {
     return {
@@ -496,9 +502,21 @@ export function renderOutcomeHtml(
   const titleText = extractTitleLine(header);
   return {
     titleText: titleText === '' ? id : titleText,
-    headerHtml: renderMarkdownToHtml(header, id, false, undefined, ids, items),
+    headerHtml: appendPronounsToHeading(
+      renderMarkdownToHtml(header, id, false, undefined, ids, items),
+      pronouns,
+    ),
     bodyHtml: renderMarkdownToHtml(body, id, false, roles, ids, items),
   };
+}
+
+/** Puts a de-emphasised `(pronouns)` after the heading's name; unchanged when none are given. */
+function appendPronounsToHeading(headerHtml: string, pronouns: string | undefined): string {
+  if (pronouns === undefined || pronouns === '') {
+    return headerHtml;
+  }
+  const span = ` <span class="sq-pronouns">(${escapeHtml(pronouns)})</span>`;
+  return headerHtml.replace('</h1>', () => `${span}</h1>`);
 }
 
 /** Renders an `sq workflow --raw` outcome to the HTML fragment shown in the workflow-cheatsheet

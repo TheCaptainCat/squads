@@ -214,7 +214,7 @@ Preserve, exactly:
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-01T12:26:04Z] Elias Python:
+- [2026-09-01T12:26:04Z] `python-dev` Elias Python:
   - Added `ServiceCore.skill_definition_text(slug)` (`src/squads/_services/_base.py`), the sibling of `role_definition_text`, plus the module-level `_item_skill_role_sections` helper and the private `_item_skill_definition_text` per-type half. All five renders moved off the Claude backend: `squads`, `greeting`, `sq-memory` (from `write_managed`) and the rich/thin `sq-<type>` pair (from `_write_item_skills`).
     
     Keyed on `is_system_skill(slug, spec)` and nothing else: a non-system slug raises rather than rendering. Preserved intact — the rich/thin split decided by the ACTIVE merged playbook (`self.playbook.types.get(item_type)`, not the bundled singleton), the "type absent from the active spec produces no definition" guard (the type lookup resolves to `None` and the method returns `""`, so no stale definition under a dropped or renamed type's old name), and the roster-dependent `has_dev` gate on the shared `developers` section.
@@ -257,7 +257,7 @@ verb can refill what this stops writing.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-01T12:49:41Z] Elias Python:
+- [2026-09-01T12:49:41Z] `python-dev` Elias Python:
   - `_write_managed_skill` (`src/squads/_backends/_claude_code/_backend.py`) lost its `body` parameter and its `Artifact(..., "skill_body", ...)` return. `write_managed`'s three bundled renders collapsed into one loop over `SQUADS_SKILL`/`GREETING_SKILL`/`MEMORY_SKILL` (slug + description only), and `_write_item_skills` lost both `render` calls, the section-building loop, the `by_slug`/`has_dev` computation and its now-unused `roster` parameter — what survives there is the enumeration: which per-type skills a squad materialises, and the `if item_type not in spec.items: continue` guard that keeps a dropped or renamed type from producing one under its old name.
     
     The file write did NOT go, and could not: both seeders (`seed_bundled_skills`, `seed_custom_skills`) and the 0.11→0.14 runner's `_seed_new_type_skills` stamp the `SKILL` id onto the slug-named file `write_managed` creates, so removing the file write would mean a fresh `sq init` seeds no skill items at all. What it writes now is the file's shape only: a well-formed, EMPTY `sq:body` region, and only when the file is missing or has no region. A file that already carries a region is left byte-untouched whatever it holds — so nothing already on disk is rewritten (the corpus strip stays TASK-849's), and a second sync is a byte-for-byte no-op on every skill file and every pointer.
@@ -296,7 +296,7 @@ does not carry the body today and does not gain it here.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-01T12:49:42Z] Elias Python:
+- [2026-09-01T12:49:42Z] `python-dev` Elias Python:
   - `sq skill <slug> show` (`src/squads/_cli/_skill.py`) now branches on `system` — the value the command already computed at the `kind:` row from `is_system_skill(slug, svc.spec)` — and on nothing else. System renders through `svc.skill_definition_text(slug)`; custom keeps `svc.read_body(it.id)`. The panel, `--raw` and the piped/non-TTY path are unchanged: the string still goes through `render_body_text`, only its origin moved.
     
     Both empty hints were wrong and are replaced rather than reused. The old one ("run `sq sync` to regenerate the skill definition") named a command that no longer has that effect for a system skill, and never had it for a custom one. A system skill's empty answer now means exactly one thing — the item type it described is no longer declared — and the hint says that; a custom skill's empty body points at `sq skill <slug> body`.
@@ -339,7 +339,7 @@ restore `is_system_skill`, watch them go green — and report both.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-01T12:50:04Z] Elias Python:
+- [2026-09-01T12:50:04Z] `python-dev` Elias Python:
   - New file `tests/service/test_an_authored_skill_body_survives_the_system_skill_shrink.py` (7 tests). One squad, one skills folder, four shapes side by side: the bundled system skills, an adopter-declared type's THIN system skill (`sq-incident`, no playbook entry), an ordinary custom skill, and a custom skill deliberately slugged `sq-onboarding`. Both custom skills carry authored bodies.
     
     Asserted, not inspected: both custom slugs classify custom and both system ones classify system; an authored body is byte-identical across one sync and across two; the `sq-`-prefixed custom skill's WHOLE FILE is byte-identical across a sync (wider than the region — the shape a prefix-keyed change rewrites); `sq skill <slug> body` still admits a write to a custom skill and it survives the next sync; the declared type's thin skill refuses a body write; the resolver refuses a custom slug; and `show` prints the authored text for one and the rendered text for the other in the same run, against the same squad.
@@ -359,11 +359,11 @@ restore `is_system_skill`, watch them go green — and report both.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T12:54:19Z] Catherine Manager:
+- [2026-09-01T12:54:19Z] `manager` Catherine Manager:
   - Verified the fixture correction independently. The old dropped-type test called refresh_managed on a spec with bug removed, then read the skill file — but refresh_managed skips a dropped type, so it was reading the file the fixture's own init had written with the full bundled spec. It asserted a frozen-playbook fallback that never existed and passed on a leftover artifact. Rewriting it to the resolver is a correction, not a weakening.
   - Both refusal messages were false and are now true: they named sq sync as the regenerator of a system skill body, which stopped being the case in this task.
   - Docs staleness he flagged (docs/internals.md:58 and :290, docs/backends.md:130, docs/stability.md:516) is adopter-facing prose and goes to the writer with TASK-855, not into this task.
-- [2026-09-02T09:08:10Z] Catherine Manager:
+- [2026-09-02T09:08:10Z] `manager` Catherine Manager:
   - Accepted InReview->Done on my own verification rather than an independent review, and recording why: this task blocks the corpus strip, and the strip's dedicated review cannot both cover this and be gated by it.
   - What I actually verified: read the full diff, ran the authoritative suite (green at each landing), confirmed the managed-file byte-identity evidence, and drove the degradation cases. The strip's review will still see this code as the ground it stands on.
 <!-- sq:discussion:end -->

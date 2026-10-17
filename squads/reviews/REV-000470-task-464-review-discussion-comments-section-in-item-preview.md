@@ -53,6 +53,6 @@ _Add with `sq review 470 add-finding "…" --severity medium`; track with `sq re
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T16:34:04Z] Paul Reviewer:
+- [2026-07-17T16:34:04Z] `reviewer` Paul Reviewer:
   - Recommended verdict: APPROVE. TASK-464 is clean — no findings. Comment bodies (untrusted) are fully escaped through the existing dossier renderer, no injection path; CSP unchanged (default-src none, nonce-only style/script); empty->no section, failed fetch->inline message (no second notification), workflow panel->no discussion; discussion fetched in the existing Promise.all. REV-469 F1 fix routes distinctTypes/distinctTypesInTree through sortTypesByOrder (same comparator, no behavior change; now live, not a dead export). Gates: npm run check clean, npm test 176/176, test:canary 10/10. Leaving status for the approver — not self-approving.
 <!-- sq:discussion:end -->

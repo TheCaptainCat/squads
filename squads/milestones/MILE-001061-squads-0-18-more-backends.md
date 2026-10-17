@@ -44,20 +44,20 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T13:39:13Z] Pierre Chat:
+- [2026-10-16T13:39:13Z] `op-pierre` Pierre Chat:
   - - 2026-10-16: open a squads 0.19 release aimed at adding more agent backends (Codex, Cursor and others).
     - A role's configured model must become a key-value map with one model per backend, because model names are backend-specific: "opus" and "sonnet" do not exist at OpenAI.
-- [2026-10-16T13:39:14Z] Nina Product:
+- [2026-10-16T13:39:14Z] `product-owner` Nina Product:
   - - Related items found (search: codex, cursor, backend, model). Nothing is linked by a targets ref yet.
     - Should target this milestone (once ruled on): EPIC-136 (Agent backends, management and ecosystem; it names Cursor and Windsurf backends as features under it, so it is the natural home; as an epic it frames rather than targets, so its new-backend features would carry the targets refs) and FEAT-137 (Manage backends on an existing squad; the add/switch/list surface, Draft; re-read its scope first, since it predates the roster work).
     - Context, not targets: ADR-75 (pluggable backends), ADR-133 (de-Claude-ify the ABC), ADR-697 (roster status projects through the ABC), ADR-781 and FEAT-792 (pointers name commands; Codex, Copilot and Cursor planned; Done), TASK-803 (per-host backend questions; Done; its `_VALID_MODELS` and `model_drop_warning` is the Claude-only model validation the map replaces), FEAT-16 and TASK-132 (the agents_md backend; Done).
     - No existing item covers a Codex or Cursor backend or a per-backend model map. Needed, not yet written: an ADR for the map (shape, default, migration; architect), then a feature per new backend.
     - No depends-on ref to MILE-868: backends need neither the daemon nor the frontend, and a ref would make a 0.18 slip block this release. The ordering is by release only.
-- [2026-10-16T13:39:48Z] Pierre Chat:
+- [2026-10-16T13:39:48Z] `op-pierre` Pierre Chat:
   - - 2026-10-16: swap the release numbers, because supported backends take priority. This milestone is squads 0.18 - more backends; the web frontend (MILE-868) becomes squads 0.19. This supersedes the 0.19 numbering in the comments above.
     - This milestone does not depend on MILE-868, and MILE-868 keeps its depends-on to MILE-1051 (0.17) only.
-- [2026-10-16T13:39:49Z] Nina Product:
+- [2026-10-16T13:39:49Z] `product-owner` Nina Product:
   - MILE-868 retitled to 0.19. No depends-on from MILE-868 to this milestone: the frontend consumes the daemon API and needs nothing from the backends work. The earlier note about a 0.18 slip is moot; the ordering is by release only.
-- [2026-10-16T13:42:10Z] Pierre Chat:
+- [2026-10-16T13:42:10Z] `op-pierre` Pierre Chat:
   - 2026-10-16: GitHub Copilot is one of the target backends, alongside Codex and Cursor.
 <!-- sq:discussion:end -->

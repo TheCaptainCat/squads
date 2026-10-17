@@ -102,11 +102,11 @@ Covers the leaf-no-spawn boundary (FEAT-122 Slice A, fixes BUG-152) across three
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-21T21:47:28Z] Olivia Lead:
+- [2026-06-21T21:47:28Z] `tech-lead` Olivia Lead:
   - @python-dev — Slice A of FEAT-122 (US2), fixes BUG-152. Per ADR-155 the spawn boundary lives at the Claude Code backend, bound to the agent type at launch — NOT an sq-runtime check.
   - Three seams: (1) add can_spawn: bool (default False) to RoleDef in _roles/_catalog.py — True only for manager + tech-lead, False for all others including dev_role(); (2) pass can_spawn into generate_role_entry's render in _backends/_claude_code/_backend.py and add {% if not can_spawn %}disallowedTools: Agent{% endif %} to pointer_agent.md.j2 (denying Agent also covers the legacy Task alias; no tools: allowlist); (3) surface the bit via sq role <slug> show.
   - Acceptance: leaf role's rendered .claude/agents/<slug>.md denies Agent; manager/tech-lead retain it; backend test parses the frontmatter as YAML for both cases; can_spawn shown in sq role show; pyright + ruff clean; full pytest green. Out of scope: Slice B / lane enforcement (gated on FEAT-125) and settings.json deny rules.
-- [2026-06-21T22:03:15Z] Elias Python:
+- [2026-06-21T22:03:15Z] `python-dev` Elias Python:
   - Implemented TASK-156 (Slice A / US2 / BUG-152 fix). All gates green.
   - **Files changed:**
   - - `src/squads/_roles/_catalog.py` — added `can_spawn: bool` field to `RoleDef` (default `False`); set `can_spawn=True` on `manager` and `tech-lead` only; updated `to_extra`/`from_extra` to round-trip the field.
@@ -122,12 +122,12 @@ Covers the leaf-no-spawn boundary (FEAT-122 Slice A, fixes BUG-152) across three
   - - `uv run ruff check . && uv run ruff format --check .`: All checks passed
   - - `uv run pytest`: 862 passed, 1 skipped
   - @reviewer — ready for review. Three seams: RoleDef.can_spawn bit, backend+template denylist, and sq role show surfacing. All acceptance criteria met.
-- [2026-06-21T22:21:02Z] Paul Reviewer:
+- [2026-06-21T22:21:02Z] `reviewer` Paul Reviewer:
   - Reviewed and **approved** (REV-157). Slice A of FEAT-122 (US2), fixes BUG-152, conforms to ADR-155.
   - Verified independently: catalog logic (can_spawn True only for manager + tech-lead; False for all 6 other bundled roles and all dev_role() techs), rendered .claude/agents/*.md frontmatter parsed as YAML (leaves deny Agent, spawners don't, no whitespace breakage), to_extra/from_extra round-trip, and can_spawn surfaced in both sq role show text and --json. Gates re-run clean: pyright 0 errors, ruff check + format clean, pytest 862 passed / 1 skipped.
   - One non-blocking note in REV-157: the --json activated-item/index path is verified manually but not unit-tested (optional follow-up).
   - Ready for QA. @qa
-- [2026-06-21T22:27:47Z] Mara Tester:
+- [2026-06-21T22:27:47Z] `qa` Mara Tester:
   - Verified. TASK-156 meets all Slice A acceptance criteria.
   - **Suite:** 862 passed, 1 skipped. test_can_spawn.py 19/19 green.
   - **Render check (sq init --roles all):** All 8 .claude/agents/*.md parse as valid YAML. Leaves (architect, devops, qa, reviewer, product-owner, tech-writer) carry disallowedTools: Agent. Orchestrators (manager, tech-lead) do not.

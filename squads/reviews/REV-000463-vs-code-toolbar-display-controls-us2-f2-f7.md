@@ -67,7 +67,7 @@ Low / arguably-correct: filtering to a type whose items are all hidden would sho
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:29:12Z] Paul Reviewer:
+- [2026-07-17T15:29:12Z] `reviewer` Paul Reviewer:
   - Per-F verification (all pass):
   - F2 — shared `compareIds` (`Intl.Collator({numeric:true})`) in domain/idOrder.ts is used at both id-sort sites (sortedLeaves, for grouped-bucket leaves and ungrouped leaves). No plain `localeCompare`/`<` on ids remains; the two surviving localeCompare calls sort type *names* (distinctTypes, sortedTypeEntries), which is correct. Test proves REV-48 < REV-447.
   - F3/F4 — group-by-type and show-closed are view/title navigation icons using the native `toggled` context-key pattern (not quick-picks). Context keys (squads.groupByType/squads.showClosed) match between package.json and commands.ts, are seeded on register, and updated on each toggle. show-closed threads `--all` into BOTH fetches: getTree(includeClosed) and getList(allArgs); confirmed `sq tree --all` and `sq list --all` exist.
@@ -75,7 +75,7 @@ Low / arguably-correct: filtering to a type whose items are all hidden would sho
   - F6 — createTreeView('squadsTree', { treeDataProvider, showCollapseAll: true }) cleanly replaces registerTreeDataProvider; disposable pushed to subscriptions.
   - F7 — closed items dimmed via ThemeColor('disabledForeground') in iconForNode, mirroring the blocked-icon mechanism; driven by DisplayNode.closed = !is_open set in both treeMapping (tree) and listView (flat). Group/error nodes are closed:false. Priority blocked > closed > normal is reasonable.
   - package.json: no orphan command contributions — filterByState/groupBy dropped from both commands[] and menus; all 5 contributed commands are registered.
-- [2026-07-17T15:29:22Z] Paul Reviewer:
+- [2026-07-17T15:29:22Z] `reviewer` Paul Reviewer:
   - Judgment call — removal of squads.filterByState (All/Open/Closed quick-pick): I agree it's redundant; keep it removed. With F5 dropping state-grouping and F4+F7 adding the show-closed toggle plus dimming, the states collapse cleanly: toggle-off = open-only (old 'Open'), toggle-on = all-with-closed-dimmed (old 'All' + at-a-glance distinction). The only state the toggle can't reproduce is 'closed-only', a marginal case that would re-introduce a second overlapping open/closed control and muddy exactly the UX Pierre asked to simplify. A closed-only view, if ever wanted, belongs as a future enhancement, not a blocker.
   - Test caveat (acceptable): the view/title toggled wiring and the dimmed-icon render are vscode-native, coverable only via extension-host smoke / manual eyeballing — no unit coverage possible. Domain logic (comparator, closed-field derivation, groupByType boolean, filter shape) is unit-tested and meaningful.
   - Recommended verdict: APPROVE. Gates green: npm run check exit 0, npm test 125/125, npm run test:canary 8/8. Two low observations (F1/F2) are non-blocking notes for the approver, no fix required. Leaving review status for the approver (main loop); not touching TASK-454 status.

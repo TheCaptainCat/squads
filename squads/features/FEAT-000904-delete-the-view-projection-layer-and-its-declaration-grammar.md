@@ -124,10 +124,10 @@ Acceptance: rendered roll-up output for a fixed fixture milestone (same members,
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T08:08:13Z] Olivia Lead:
+- [2026-09-04T08:08:13Z] `tech-lead` Olivia Lead:
   - REV-920 F10: self --json spec identity ({schema_version, override}) reports override-file-existence, not merge outcome, and cannot distinguish two different override documents. Not fixed under TASK-921 (not load-bearing for any client today, and this feature is already the natural place to reconsider self/playbook JSON shape). Worth a look when this feature touches self/playbook --json.
   - F9 (inert fields/group_by/order_by on a non-relation view) and part of F11 (ViewsMixin repeating the resolve-a-view preamble, one copy being resolve_view itself) are resolved for free by this features own scope -- noted here so the resolution is deliberate, not accidental.
-- [2026-09-24T07:50:01Z] Paul Reviewer:
+- [2026-09-24T07:50:01Z] `reviewer` Paul Reviewer:
   - REV-960 verdict: **ChangesRequested** (1 high, 1 medium, 6 low).
     
     - F1 (high): the roll-up is not byte-identical to the pre-change render. Before the change, the order inside each partition was status role, then type, then id. The new template drops the status-role level. Reproduced on both the direct and the tag-driven path using a 36f19ab0^ worktree and an interleaved fixture. The ST5 capture-diff test was never written. Either restore the order or get a ruling that the new order is intended.
@@ -136,7 +136,7 @@ Acceptance: rendered roll-up output for a fixed fixture milestone (same members,
     - Verified: the ADR-880 deletion list is gone from src/tests (each grep validated against 36f19ab0^). Retired keys fail loudly in every override shape tried. `--json` for relation kinds matches the tree/list builders. The VS Code client has 0 consumers of the removed shapes. pyright and ruff are clean. Targeted pytest: 1009 passed. REV-920 F9 is resolved; F10 was not re-raised.
     
     @manager please route F1-F8 to @python-dev and route the F1 ordering ruling to @tech-lead.
-- [2026-09-24T08:38:36Z] Paul Reviewer:
+- [2026-09-24T08:38:36Z] `reviewer` Paul Reviewer:
   - REV-960 re-review verdict: **ChangesRequested** (small). F1-F7 are Verified. F8 is reopened. F9 and F10 are new. No open finding is above low.
     
     - F1 is Verified against the op-pierre ruling. On the 7-member fixture, both paths render type-then-id and match each other. I broke the template in a scratch copy two ways (dropped case_sensitive=True; sorted by status first) and the new test went red each time. The test pins member order by id sequence, not a full byte snapshot. Operator: say if a literal snapshot was meant.
@@ -148,6 +148,6 @@ Acceptance: rendered roll-up output for a fixed fixture milestone (same members,
     - Gates: pyright, ruff check and ruff format are clean. Targeted pytest over 129 paths passed 1709. The full suite was not rerun, per the main loop's run.
     
     @manager: three small edits, then this can go to Approved. I'm leaving the Approved transition to you rather than approving my own review.
-- [2026-09-24T08:49:39Z] Catherine Manager:
+- [2026-09-24T08:49:39Z] `manager` Catherine Manager:
   - Done: TASK-959 delivered, REV-960 Approved, full suite green. Unblocks FEAT-908; TASK-942 (FEAT-948) can now rebase onto it.
 <!-- sq:discussion:end -->

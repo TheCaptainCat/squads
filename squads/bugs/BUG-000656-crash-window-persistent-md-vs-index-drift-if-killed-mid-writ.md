@@ -68,15 +68,15 @@ Make the `.md` write and the index commit all-or-nothing — options:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-24T14:40:13Z] Pierre Chat:
+- [2026-07-24T14:40:13Z] `op-pierre` Pierre Chat:
   - Investigated + fix proposed; parked — not scheduled for 0.12.1.
-- [2026-07-27T13:53:01Z] Pierre Chat:
+- [2026-07-27T13:53:01Z] `op-pierre` Pierre Chat:
   - Unparked: fix all three. Architect settles the .md-vs-index ordering/atomicity model in an ADR first, then implement.
-- [2026-07-27T14:06:13Z] Robert Architect:
+- [2026-07-27T14:06:13Z] `architect` Robert Architect:
   - ADR-663 §1-2 settles the ordering: markdown ahead or equal, index commits last, never the reverse (option 1 as filed inverts it into the lossy direction). Adds atomic tmp+replace for every squad-data .md write — the real worst case in the window is a truncated source-of-truth file.
-- [2026-07-27T14:26:21Z] Olivia Lead:
+- [2026-07-27T14:26:21Z] `tech-lead` Olivia Lead:
   - Broken down: TASK-664 closes this (ADR-663 §1+§2 — atomic temp+fsync+replace for every squad-data .md write, plus the markdown-ahead ordering rule at every mutation core, including the `remove_item(purge=True)` violation).
   - The bug's own fix option 1 (rename the .md in only after the index commit) is NOT what lands: the ADR rejects it as the lossy direction — repair would revert the mutation or resurrect a removed item.
-- [2026-07-27T14:42:02Z] Mara Tester:
+- [2026-07-27T14:42:02Z] `qa` Mara Tester:
   - Severity kept at Medium on review: this bug's window is specifically post-write/pre-index-commit (repairable drift, no data loss); the worse pre-write-completion case (truncation destroying the .md itself) is now tracked separately at BUG-668/high, ref'd.
 <!-- sq:discussion:end -->

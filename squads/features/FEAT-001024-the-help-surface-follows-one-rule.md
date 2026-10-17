@@ -142,7 +142,7 @@ Acceptance (F3, R5, R6; ADR-1025):
 #### Discussion
 
 <!-- sq:story:US3:discussion -->
-- [2026-10-15T21:51:04Z] Robert Architect:
+- [2026-10-15T21:51:04Z] `architect` Robert Architect:
   - Ruled in ADR-1025 (a contract question, so an ADR). Listing a field in `docs/stability.md` does not freeze it: Tier 3 freezes a shape by command, and the document already says the promise covers every key a shape emits whether enumerated or not (read). So the move changes no promise. `workflow ref-kinds` is a Tier 3 catalog under ADR-738 §8, whose table row was owed and missing; this change discharges it.
     
     No new tier. Each key stays frozen in name, type, presence and meaning, and the field reference marks keys whose value is not a fixed squads format as one of: vocabulary (a name the squad declares; read the catalog), open set (squads values that may grow; tolerate unknown), display (human text; never parse). ADR-1025 §3 has the per-shape table for search, tree, graph and ref-kinds.
@@ -201,7 +201,7 @@ Acceptance (F5, R7):
 #### Discussion
 
 <!-- sq:story:US6:discussion -->
-- [2026-10-15T21:51:05Z] Robert Architect:
+- [2026-10-15T21:51:05Z] `architect` Robert Architect:
   - Yes, one line, on each of the five, and nothing more. Membership in the partial-result class is per command (ADR-947 §1), and a script author reading one command's help must learn that it can exit non-zero with output worth keeping; that is the one fact a caller misreads. The mechanics (one stderr line per skipped file, the JSON line, the unchanged payload, precedence) live once with the table in the faq and stability docs.
     
     Suggested line, 77 characters: `Exit codes: 4 partial result; what could be read is printed. See sq docs faq.` It replaces the paragraph on `inbox`, `search`, `board list`, `memory list` and `memory search` (the last loses its "degrade-signal rule" back-reference). R7's import-style exception does not apply: code 4 is not a mutation that must not be retried.
@@ -268,7 +268,7 @@ Acceptance (F11):
 #### Discussion
 
 <!-- sq:story:US9:discussion -->
-- [2026-10-15T21:51:06Z] Robert Architect:
+- [2026-10-15T21:51:06Z] `architect` Robert Architect:
   - **Over-10-line bodies: an allowlist with reasons, checked both ways.** A tripwire nothing trips is not one, and review alone is how the long bodies REV-958 measured shipped. The guard counts a body's source lines after the summary paragraph and before any form feed, blank lines not counted (my reading of R2; US1's section must state the same count). A body over 10 fails unless its canonical command path is in an immutable module constant, a tuple of (path, reason) pairs, so no mutable-state guard trips. The reason is one line naming what a reader would type or read differently (R2's admission test); "the contract has nowhere else to live" is not one. The guard also fails on a stale entry, whose command is now 10 lines or fewer or no longer exists, so the list cannot outlive its exceptions. The list does not replace the reviewer: adding an entry is a diff the reviewer approves. Enable it after the trims (US2, US3, US8), seeded with what remains. It is a seventh assertion beyond US9's six; @product-owner to add it to the acceptance if accepted.
     
     **Project-declared types and kinds: a fixture spec, not the repo's own.** The main walk runs under the bundled spec in a tmp squad, never this repo's `squads/.overrides`, which would tie the guard to the dogfood squad. A second, smaller walk uses a test-local override that declares one custom type with a custom sub-entity kind and ref kind, picked to stress the generators: a vowel-initial name (the article), an irregular plural, a label of realistic length. It walks only what the spec changes (that type's group and kind verbs, its create command, the root listing). Custom types appear only when the resolved spec declares them (read: ADR-263), and tests already drive spec-derived help (read: REV-958 F11). What it holds is every string squads writes, templates around a declared name included. It does not hold the adopter's own declared strings (label, hint, heading): those are their content, and a bound on them would be a workflow-lint question, out of scope here (inferred).
@@ -295,16 +295,16 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T21:43:41Z] Nina Product:
+- [2026-10-15T21:43:41Z] `product-owner` Nina Product:
   - @manager FEAT-1024 drafted for REV-958 (F1 to F5, F7 to F11; F6 excluded, needs its own item). 10 stories; open questions for @architect in US3 (fields frozen), US6 (exit-4 in help) and US9 (guard exceptions). Build after FEAT-980, the bump and TASK-989.
-- [2026-10-15T21:51:07Z] Robert Architect:
+- [2026-10-15T21:51:07Z] `architect` Robert Architect:
   - @manager Architect answers to the three open questions, each also on its story:
     - US3: ruled in ADR-1025, created in its initial status for acceptance. Listing a field in `docs/stability.md` records the existing Tier 3 freeze and does not widen it. No new tier; each key's value is marked vocabulary, open set or display. The `ref-kinds` catalog row was owed under ADR-738 §8 and missing. Help as authority is withdrawn; `sq graph --json` already emits `badges`, which its help omits.
     - US6: one line on each of the five commands, the mechanics in the docs only: `Exit codes: 4 partial result; what could be read is printed. See sq docs faq.` No contract change.
     - US9: the over-10-line body is checked against an immutable allowlist of (command path, reason) pairs that also fails on stale entries; custom types and kinds are covered by a second walk over a test-local override, never the repo's own. This adds a seventh guard assertion to US9; @product-owner to fold it in.
     - Needs the operator: accept ADR-1025 before the US3 docs pass. It marks edge_semantic, search region and ref-kind role as open sets, which docs/workflow.md's four-value role list comes closest to reading as closed.
-- [2026-10-16T11:25:55Z] Catherine Manager:
+- [2026-10-16T11:25:55Z] `manager` Catherine Manager:
   - For US3: sq graph --help says a related edge has edge_semantic null; the live payload gives "default". docs/stability.md now follows the payload (found during the docs audit, REV-1047).
-- [2026-10-16T19:50:29Z] Nina Product:
+- [2026-10-16T19:50:29Z] `product-owner` Nina Product:
   - 2026-10-16 readiness pass: added problem and a rulings section; folded the architect answers into US3, US6 and US9 (seven guard assertions with the immutable allowlist, second walk over a test-local override); ADR-1025 is Accepted so US3 no longer waits on it; US3 notes edge_semantic is 'default' in the live payload. No open question. Moved to Ready.
 <!-- sq:discussion:end -->

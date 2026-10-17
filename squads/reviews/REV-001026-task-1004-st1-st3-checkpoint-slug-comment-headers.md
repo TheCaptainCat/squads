@@ -100,7 +100,7 @@ Driven on a scratch squad with the dev build:
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-15T22:18:55Z] Elias Python:
+- [2026-10-15T22:18:55Z] `python-dev` Elias Python:
   - Fixed: format_comment splits messages with splitlines() as the readers do. Table: every splitlines separator x six writers (item and subtask, -m and --file, importer on item and subtask) in tests/cli/test_a_line_separator_in_a_message_cannot_forge_a_header_cli.py. Falsified by putting split of newline back: 52 red.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -125,7 +125,7 @@ Driven on a scratch squad with the dev build:
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-15T22:18:56Z] Elias Python:
+- [2026-10-15T22:18:56Z] `python-dev` Elias Python:
   - Fixed: _create_model requires the slug grammar for every roster type before the reserved check, and the reserved check lowercases. Rows Squads, OP-anna, has space for role creation and an operator add --slug row. Falsified: grammar check removed 10 red, lowercasing removed 1 red.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -151,11 +151,11 @@ Consequences, driven on a scratch squad:
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-15T22:17:50Z] Robert Architect:
+- [2026-10-15T22:17:50Z] `architect` Robert Architect:
   - Ruled as an ADR-979 amendment dated 2026-10-16 (A1 to A5): operator slugs must start with op- and be in the grammar; the 0.16 planning pass refuses a breaching entry rather than reporting it. Awaiting op-pierre confirmation; the finding stays Open until the fix lands.
-- [2026-10-16T11:19:09Z] Olivia Lead:
+- [2026-10-16T11:19:09Z] `tech-lead` Olivia Lead:
   - Home: TASK-1048 (A1 to A5, confirmed 2026-10-16). The finding stays Open until it lands.
-- [2026-10-16T12:19:57Z] Catherine Manager:
+- [2026-10-16T12:19:57Z] `manager` Catherine Manager:
   - Closed by TASK-1048 (ADR-979 A1–A7), commits e9aa76cd and bc25f720.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -177,7 +177,7 @@ The reserved display name `Operator` is a literal in `_services/_base.py:1278` (
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-15T22:18:57Z] Elias Python:
+- [2026-10-15T22:18:57Z] `python-dev` Elias Python:
   - Fixed: ANONYMOUS_SLUG and ANONYMOUS_NAME live in _models/_participants.py; resolve_slug_or_raise, the two comment defaults and _author_of read them.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -196,7 +196,7 @@ The dev reported `ghost` as unchanged behaviour (inferred in the hand-back). Tha
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-15T22:18:58Z] Elias Python:
+- [2026-10-15T22:18:58Z] `python-dev` Elias Python:
   - Fixed: the importer refuses squads and operator as a comment actor (line-numbered issue, nothing written); unregistered grammatical actors like ghost still import. Falsified: 2 red.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -213,7 +213,7 @@ The dev reported `ghost` as unchanged behaviour (inferred in the hand-back). Tha
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-15T22:18:59Z] Elias Python:
+- [2026-10-15T22:18:59Z] `python-dev` Elias Python:
   - Fixed: unset (importer and update path) validates keys with the same require_settable as set, so an unknown key or a slug is refused with the valid list. Falsified: 12 red. This replaces the earlier slug-only unset guard.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -222,7 +222,7 @@ The dev reported `ghost` as unchanged behaviour (inferred in the hand-back). Tha
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T22:12:26Z] Paul Reviewer:
+- [2026-10-15T22:12:26Z] `reviewer` Paul Reviewer:
   - Checkpoint verdict: Approved for ST4 to ST7 to build on. The grammar, the Comment shape and the shared parser hold under the shapes attacked (driven), and every finding is local to a writer or a creation seam.
   - Six findings. F1 (high, driven): a \r,   or \x0b in a -m message, or in an importer message, forges a second header with any slug and timestamp. Fix it in format_comment before the end-of-task review. F2 (medium, driven): role creation skips the slug grammar, so Squads and OP-anna activate. F3 (medium, driven): the open point is a defect. operator add --slug takes squads, operator and a live role slug (qa), and sq check stays clean. It needs an ADR-979 amendment; the proposal is that an operator slug must start with op-. F4 to F6 are low and info.
   - @manager route F1, F2 and F4 to @python-dev with the ST4 to ST7 work, and F3 to @architect for a ruling before ST5. F5 and F6 need a decision, not necessarily a fix.

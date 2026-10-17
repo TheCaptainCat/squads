@@ -197,15 +197,15 @@ new type appears cleanly.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-29T09:37:07Z] Pierre Chat:
+- [2026-07-29T09:37:07Z] `op-pierre` Pierre Chat:
   - Scheduled for 0.13.
-- [2026-07-30T07:57:46Z] Pierre Chat:
+- [2026-07-30T07:57:46Z] `op-pierre` Pierre Chat:
   - Last in 0.13, after FEAT-691, FEAT-642 and FEAT-644 — it is the largest of the three and takes whatever runway remains.
-- [2026-08-03T07:49:32Z] Pierre Chat:
+- [2026-08-03T07:49:32Z] `op-pierre` Pierre Chat:
   - Out of 0.13. The release is already substantial — the spec-driven customization epic grew a thirty-finding consumer sweep on top of its four features. A new item type is additive scope with no dependency forcing it into this release, so it moves out rather than extending the cut.
-- [2026-08-24T18:02:26Z] Pierre Chat:
+- [2026-08-24T18:02:26Z] `op-pierre` Pierre Chat:
   - Scoped into 0.14, and coupled to FEAT-693: both new item types share one schema bump and one migration runner, so the two features land in the same release.
-- [2026-08-26T13:20:41Z] Nina Product:
+- [2026-08-26T13:20:41Z] `product-owner` Nina Product:
   - Refreshed against ADR-320 (now Accepted, carrying the operator's four rulings) ahead of the
     breakdown.
     
@@ -229,11 +229,11 @@ new type appears cleanly.
     No reauthor needed — the type's shape (records category, no sub-entities, Draft → Active →
     Superseded lifecycle, forward `implements` ref) was already correct and matches ADR-320 as
     accepted.
-- [2026-08-26T13:40:35Z] Olivia Lead:
+- [2026-08-26T13:40:35Z] `tech-lead` Olivia Lead:
   - - Broke FEAT-321 into one task, TASK-832 — the type declaration, its lifecycle, the item template, the two edges, the advisory check and the generated `sq-contract` surface are one coherent surface with one owner, so they are five subtasks rather than five tasks. US5 is deliberately absent: the folder creation and schema bump on an existing squad belong to TASK-813, the release's one shared runner, and authoring a second is what was ruled against.
     - Named the validator ADR-320 §C left unnamed: `ref_rule_target_present`, selected as `validators = ["ref_rule_target_present:contract"]` on `[items.feature]`, with the param naming the target item **type** and the kind read from the declaring type's own `ref_rules`. Chosen against the catalog's convention, not invented — the fourteen existing entries name subject-plus-condition (`parent_present`, `agent_registered`, `subentity_body_written`), and where the subject is spec-resolved they name it generically (`subentity_title_max` says `subentity`, not `story`). A `contract_*` name would bake a bundled type into the closed catalog of a project whose direction is that only role/skill/operator are reserved.
     - One thing I did NOT settle, raised in ST4 rather than invented. §C says the finding fires at `InReview` **or** `Done`. Those cannot be separated through declared vocabulary: `InReview` declares `role = "active"` — the same role as `InProgress`, `ChangesRequested` and `Active` — while `Done` declares `role = "done"` (verified in the bundled spec). I specified building against the `done` role, mirroring `_supersedes_incoming`, which compares `ctx.spec.status_role(...)` against a role and never a status spelling. Binding to `active` instead would warn on every feature merely in progress. @architect either §C narrows to the settled role, or a status role distinguishing "under review" from "in progress" is introduced — nothing else in the task turns on which.
     - A consequence worth knowing before this lands, and the dev is told to measure it rather than soften it: this repo holds dozens of `Done` features with no contract edge, because the type does not exist yet. Every one of them will produce a warn finding the day the validator ships. ST4 requires the count measured on our own corpus and reported, and forbids a suppression or grandfather clause — the honest options are seeding this repo's own contracts or accepting the number, and that is @op-pierre's call with a real figure in hand.
-- [2026-09-01T07:37:20Z] Catherine Manager:
+- [2026-09-01T07:37:20Z] `manager` Catherine Manager:
   - US5 was delivered by the shared migration runner, which is parented under the derived-views feature because that is where the runner lives; the runner creates both new type folders and cannot be closed by delivering one half.
 <!-- sq:discussion:end -->

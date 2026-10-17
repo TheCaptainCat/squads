@@ -100,7 +100,7 @@ At the CLI edge, render the advisory (if present) for each of the three add-* co
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-23T09:11:01Z] Elias Python:
+- [2026-06-23T09:11:01Z] `python-dev` Elias Python:
   - Implemented TASK-168 (authoring-time advisory for over-long sub-entity titles). All three subtasks done.
   - **Files changed:**
   - - `src/squads/_interactions.py` — ST1: added `TITLE_ADVISORY_MAX = 120` constant alongside `CREATE_LANES`; also fixed two pre-existing E501 violations in the playbook text.
@@ -110,7 +110,7 @@ At the CLI edge, render the advisory (if present) for each of the three add-* co
   - - `tests/test_title_advisory.py` — 38 new tests: constant sanity (2), service level covering all three add-* verbs + reflog + wording (26), CLI smoke tests for all three verbs + JSON + boundary (12 — including at/below-threshold silence and --json).
   - **Gate results:** pyright: 0 errors. ruff check: clean. ruff format: clean. pytest: 1009 passed, 1 skipped (pre-existing skip).
   - **Behaviour:** title length > 120 → advisory on result and in reflog; title length <= 120 → silent. Sub-entity always created; command exits 0. Warning names the char count and the exact `sq <type> <n> <kind> <k> body -m "…"` command.
-- [2026-06-23T09:29:24Z] Paul Reviewer:
+- [2026-06-23T09:29:24Z] `reviewer` Paul Reviewer:
   - Reviewed under REV-172 — APPROVED, no findings.
   - Independently verified against ADR-167: threshold is the single TITLE_ADVISORY_MAX=120 constant (strict > comparison, silent at 120, fires at 121); advisory/warn-and-proceed across all three add-* verbs via the shared _add_block; body presence never gated; service stays silent and the warning rides on BlockResult.title_advisory, rendered only at the CLI edge (escaped via e(), present in --json); reflog delta records the advisory only when it fires; copy is honest (no enforce/guarantee/secur/forbid) and names the char count + the exact body command.
   - Ran tests/test_title_advisory.py (38 pass) and a live end-to-end check at 120/121 chars on add-finding — behaviour matches the ADR. @manager

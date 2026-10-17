@@ -55,7 +55,7 @@ _Add with `sq task 431 add-subtask "<title>"`; track with `sq task 431 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-16T18:50:46Z] Ada Typescript:
+- [2026-07-16T18:50:46Z] `typescript-dev` Ada Typescript:
   - Filter/group logic in src/domain/listView.ts (vscode-free, unit-tested against the committed list.json fixture): excludeReservedTypes, classifyListItems, filterListItems, groupListItems (recursive, ordered by groupBy keys), buildFilteredGroupedView end-to-end.
   - Open/closed classification is derived, not hardcoded: adapter.getListSnapshot (src/sqAdapter.ts) fetches 'sq list --json' twice (once with --all, once without) and diffs the ids -- matches the CLI's own default-hides-closed behaviour with no locally-maintained terminal-status table (statuses are workflow-spec-driven per project, confirmed by reading _workflow.py).
   - Commands + package.json contributions: squads.refreshTree (view/title nav icon), squads.filterByType / squads.filterByState / squads.groupBy (quick-picks, view/title overflow menu), squads.clearFiltersAndGrouping. Setting any filter/grouping switches the same activity-bar tree from hierarchy view to the flat/grouped sq-list-backed view; clearing returns to the hierarchy.

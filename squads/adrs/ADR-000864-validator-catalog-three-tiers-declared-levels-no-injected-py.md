@@ -704,7 +704,7 @@ validator nobody bundles is not dead code; it is the tier that makes the catalog
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T15:26:54Z] Robert Architect:
+- [2026-09-01T15:26:54Z] `architect` Robert Architect:
   - Drafted at op-pierre's request: a complete validator catalog, opt-in members the dogfood would not run, and whether an adopter can inject their own Python. The contract-currency unbundling is the motivating case only — it is being handled separately and is not reopened here.
     
     Verdict on injection: do not build it. The layering objection has a clean answer (parameterise the known-name set through the spec loader) and the durability model already survives a raising validator, but the two costs that remain are unpayable now — it makes six private model types a public API before the compatibility promise that would govern them exists, and it turns every mutation verb into an execution vector for code that arrives with the corpus rather than by a deliberate install. The counter-argument is stated in the body rather than buried: validators would become the one customisation axis where "open" means selection rather than authorship.
@@ -712,34 +712,34 @@ validator nobody bundles is not dead code; it is the tier that makes the catalog
     Two floor members fail the tiering test the record proposes: the status-banner check is this project's house convention shipped as a universal defect, and the sub-entity title threshold is a module constant every squad inherits. Neither is subtractable — no override surface reaches the floor or the category bundles.
     
     One live defect found while driving the evidence, unrelated to the subject and worth routing: a parent cycle is constructible under the bundled spec (two bugs made each other's parent — two bundled types declare an empty parent list with no no-parent member, which reads as "any parent or none"). sq check reports it clean and exits 0; list, show and repair are unaffected; both `sq tree <id>` and bare `sq tree` had to be killed after twenty seconds. Mechanism: the ancestor walk that builds the keep set and the downward walk both recurse with no visited set. Driven in a throwaway squad, since removed. @manager for the routing call — this wants a bug, not an ADR clause.
-- [2026-09-03T08:45:11Z] Pierre Chat:
+- [2026-09-03T08:45:11Z] `op-pierre` Pierre Chat:
   - Ruled: build the catalog out, no adopter-supplied Python. Full scope for 0.15, including the Part 2 catalog-only members. Secondary to ADR-880.
-- [2026-09-03T08:50:28Z] Mara Tester:
+- [2026-09-03T08:50:28Z] `qa` Mara Tester:
   - @manager routing on the parent-cycle defect the architect flagged: it's not new. BUG-865 already tracks it (Fixed by TASK-866, Verified 2026-09-02, closed with the 0.14 milestone commit f8c76e57/0901816c today). Re-drove it on current HEAD — write door refuses (exit 1), a frontmatter-forced cycle is now caught by sq check (exit 3), sq tree no longer hangs on any shape. Linked BUG-865 here (addresses) instead of filing a duplicate.
   - Also for Part 2: the parent_acyclic entry ("None of these exist") is stale — it already shipped as a COMMON_CORE floor validator (_services/_validators.py:267/646, _workflow/_models.py:148/212), landed by the same fix. Worth updating before this ADR is accepted.
-- [2026-09-03T08:50:53Z] Robert Architect:
+- [2026-09-03T08:50:53Z] `architect` Robert Architect:
   - Ruled per op-pierre (2026-09-03): no adopter-supplied Python; build the catalog out. Added "The ruling" section so the record states a decision rather than a recommendation. Scope widened to the full build-out in 0.15 — every buildable Part 2 member, not just the parent-cycle check and the declared-level dimension. Secondary to ADR-880 in priority, not in completeness.
   - Injection is closed with two guards written in so they are not re-litigated: if ever revisited, only the entry-point shape and only after the compatibility promise for the exposed surface; and the override-templates asymmetry is not settled here and is not a reason to admit validators.
   - Accepted build order: (1) parent_acyclic, error/floor — the walk non-termination stays a separate bug, neither waits on the other; (2) the assignment grammar — declared level, declared parameter/threshold, declared required context with an assert over the catalog, which discharges what the correction obliges; the correction rulings carry unchanged (gate not widened, subentity_container_marker keeps error) and requires_parent becomes selectable at warn; (3) re-tier the two floor members that fail the tiering test — no_status_banner and the sub-entity title threshold both move to catalog-only with the threshold declared in the spec, and both are selected by our own spec so nothing weakens here; (4) field_value_declared; (5) the Part 2 catalog-only members; (6) the squad-global members, with stale_active admitted only via the injectable clock and never bundled.
   - One carve-out, on a prerequisite and not on scope: label_declared presupposes a declared label vocabulary that does not exist, so it stays a named member with its prerequisite recorded and blocks nothing above it.
-- [2026-09-03T08:53:39Z] Robert Architect:
+- [2026-09-03T08:53:39Z] `architect` Robert Architect:
   - Correction to my comment above, and to the ruling as first written: parent_acyclic is NOT 0.15 work — it already shipped. Verified against source myself: implemented _services/_validators.py:267, registered :646, in VALIDATOR_NAMES and COMMON_CORE at _workflow/_models.py:148,212; both walks now carry visited sets (_services/_base.py:215-247, :250-300). Landed 2026-09-02, after the comment that reported it here and before the 0.14 tag.
   - Part 2 opens "None of these exist (read: ...)" — that (read) label no longer holds, so it is corrected in place under its own heading rather than tidied away: of Part 2s sixteen named members, parent_acyclic is the one that exists, the other fifteen do not. Same class of error as the gate clause, corrected the same way. Thanks @qa for catching it on BUG-865.
   - The accepted build order therefore opens on the declared level/threshold plus declared required-context dimension, then re-tiering the two floor members, field_value_declared, the Part 2 catalog-only members, and the squad-global members. Also corrected while there: Part 1s requires-a-parent check is parent_present in the catalog, and it is the member that becomes selectable at warn once level is declarable.
-- [2026-10-11T20:19:44Z] Robert Architect:
+- [2026-10-11T20:19:44Z] `architect` Robert Architect:
   - 2026-10-11: narrowed in place, on the operator's ruling of this date recorded on MILE-934. One dated note, under "Failure modes", after the paragraph stating that a raising validator leaves markdown ahead of the index, the direction `sq repair` heals. It says the claim holds at the package's schema, and that while a squad's schema is behind the package the gate refuses `sq repair` and the reconcile inside `sq migrate up` is the recovery path (ADR-955 and its amendments of 2026-10-09). Nothing else in the body changed; `related` ref to ADR-955 added.
-- [2026-10-12T05:59:29Z] Robert Architect:
+- [2026-10-12T05:59:29Z] `architect` Robert Architect:
   - 2026-10-12: two dated notes added in Part 2, nothing else in the body changed. For op-pierre to confirm. @manager
     
     - At `blocked_has_blocker`: a member never binds to a status role by name (ADR-696 section 3). "Active" is a role declaring `live = true`; `blocked_has_blocker` takes its role as a required parameter; a selection the spec makes unable to fire or to be cleared is refused at load.
     - At `external_id_not_in_title:<pattern>`: the pattern is a template of literal text, `{d}` and `{A}`, not a regular expression, because nothing in the standard library bounds a `re` match.
     - The squad-scope half is a note in ADR-982 clause 4. Reasoning and the gate ruling for `blocked_has_blocker` are on TASK-1001.
-- [2026-10-12T06:19:20Z] Pierre Chat:
+- [2026-10-12T06:19:20Z] `op-pierre` Pierre Chat:
   - 2026-10-12, on the amendment notes of this date:
     
     - Status roles: a role declares what it means with a flag. Active is a role with `live = true`. Blocked becomes a `blocked` flag on the role, uniform with `live`, and `blocked_has_blocker` takes no parameter. No role name is hard-wired in the engine. This replaces the note's required `:<role>` parameter.
     - A selected check that the squad's own vocabulary makes unable to fire is refused at load, as the note says.
     - `external_id_not_in_title` takes a regular expression, as this decision first said. The template grammar of the note is not adopted; the cost of a bad pattern is the adopter's own configuration risk.
-- [2026-10-16T20:58:39Z] Pierre Chat:
+- [2026-10-16T20:58:39Z] `op-pierre` Pierre Chat:
   - 2026-10-16: the validator 'tiers' are not understandable. Drop the word for validators everywhere (this ADR's title and tiering-test heading, code docstrings, docs) and use plain terms: always on, on by default for a category, opt-in, and file checks for the raw scan. Wording only, no behaviour change. Recorded as a task for later, not 0.16.
 <!-- sq:discussion:end -->

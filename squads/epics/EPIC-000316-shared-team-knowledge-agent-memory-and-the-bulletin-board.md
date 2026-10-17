@@ -31,6 +31,6 @@ decision for the shared mechanics.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-14T12:11:28Z] Catherine Manager:
+- [2026-09-14T12:11:28Z] `manager` Catherine Manager:
   - Reopened Done→InProgress: FEAT-690 (memory/board oversight views in the extension and sq ui) is active scope in 0.15 and sits under this epic. A parent must not trail its child.
 <!-- sq:discussion:end -->

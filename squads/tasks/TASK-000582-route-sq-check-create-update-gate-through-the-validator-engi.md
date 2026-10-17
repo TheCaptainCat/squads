@@ -76,7 +76,7 @@ _Add with `sq task 582 add-subtask "<title>"`; track with `sq task 582 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T11:14:02Z] Elias Python:
+- [2026-07-22T11:14:02Z] `python-dev` Elias Python:
   - Wired COMMON_CORE + records/work/roster CATEGORY_BUNDLES (no_parent withheld); engine is now sole source for sq check + create/update/link gate; retired _check_reconciliation/_check_items(status/parent/ref/agent)/_check_subtask_stories/_check_subentity_status/_check_decisions/_check_unwritten_subentity_bodies/_check_status_banners/_check_backends/_check_subentity_title_lengths (drift-only residue kept in _check_items).
   - gate() only aborts on error-level issues (warn never blocks, matching sq check's own exit-code semantics); kept _check_author/_check_assignee (participant, skill-excluded, self-author bootstrap) SEPARATE from the catalog's agent_registered (warn, roster-inclusive) — folding them together would silently start accepting a skill as author at create/update, a real regression, not a message-text nuance. _check_parent shrunk to existence-only (ItemNotFoundError preserved), type-eligibility now parent_in/no_parent via gate().
   - Added the deterministic sort at the sq check report boundary (_cli/_main.py::_check_issue_sort_key): no-item/squad-global leading block, then by sequence, error<warn, then message; applies to console+--json, not gate(). No existing golden needed re-sorting (tests/goldens/check_squad.json's order already matched); added dedicated sort-order tests.

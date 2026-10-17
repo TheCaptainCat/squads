@@ -141,6 +141,6 @@ Mechanical guard: extract/assert the sq invocations shown in the docs and fail t
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-23T09:50:20Z] Catherine Manager:
+- [2026-07-23T09:50:20Z] `manager` Catherine Manager:
   - FEAT-574 Done: fixed doc drift across 12 docs/*.md (verb/address word-order, --tech, removed create --status/role update, override paths, stale ABC sample + schema_version claims) and added a structural drift guard that walks the Typer tree and now validates leaf options/positionals too, so documented-but-nonexistent verbs AND flags fail the build. Reviewed REV-633 (Approved; corrections verified against live CLI, guard proven non-vacuous, F1 leaf-option gap fixed). Full suite green. Accepted under the standing non-visual delegation.
 <!-- sq:discussion:end -->

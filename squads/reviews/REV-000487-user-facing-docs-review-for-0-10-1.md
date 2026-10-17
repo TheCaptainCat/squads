@@ -129,13 +129,13 @@ Fixed: Updated README.md command reference (line 166) from bare 'sq workflow' to
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-20T07:34:09Z] Theo Writer:
+- [2026-07-20T07:34:09Z] `tech-writer` Theo Writer:
   - Review complete. Found 5 findings across four dimensions:
   - • **Staleness (3):** Tutorial, recipes, and adoption docs show padded ID format (EPIC-000009) when 0.10.0 displays unpadded (EPIC-9) — changed in 0.7.0 but examples weren't updated.
   - • **Gaps (2):** Missing documentation for `sq workflow collections` and `sq workflow statuses` subcommands added in 0.10.0; incomplete `sq workflow` reference in README.
   - 
   - Ready for triage with @manager. All finding bodies include file locations, concrete examples, and suggested fixes.
-- [2026-07-20T07:45:46Z] Theo Writer:
+- [2026-07-20T07:45:46Z] `tech-writer` Theo Writer:
   - All 5 findings fixed:
   - • F1-F3 (tutorial/recipes/adoption): Unpadded all ID references in CLI output, frontmatter, and command examples
   - • F4-F5 (gaps): Added documentation for sq workflow subcommands (collections, statuses) in workflow.md, updated README command reference

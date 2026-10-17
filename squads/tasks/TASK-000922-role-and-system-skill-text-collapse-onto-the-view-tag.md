@@ -171,7 +171,7 @@ New [views.role_definition] (role source) + templates/views/role_definition.md.j
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-04T10:06:49Z] Elias Python:
+- [2026-09-04T10:06:49Z] `python-dev` Elias Python:
   - templates/views/role_definition.md.j2 carries the prose; [views.role_definition] (kind=role, no fields since role/playbook/self skip the field grammar) declared in workflow.toml; agents/role.md.j2 trimmed to frame + seeded tag.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
@@ -186,7 +186,7 @@ _create_core seeds the tag instead of blanking to empty. Delete _cli/_role.py's 
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-04T10:07:42Z] Elias Python:
+- [2026-09-04T10:07:42Z] `python-dev` Elias Python:
   - Deleted ServiceCore.role_definition_text and _cli/_role.py's it-is-not-None branch; show_role now does render_body_text(await svc.read_body(it.id), raw=raw). A defensible behavior improvement noted in the comment: since resolve_role_for_item degrades a broken override rather than raising, the definition now renders even on the one path (broken project override) where the old code showed nothing.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
@@ -201,7 +201,7 @@ Generalize _sweep_empties_body so sq repair normalizes a role's sq:body to carry
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-04T10:07:44Z] Elias Python:
+- [2026-09-04T10:07:44Z] `python-dev` Elias Python:
   - Generalised _sweep_empties_body -> _repair_body_tag (returns (view_name, unconditional)) + _converge_body_tag (the mutation). Role: unconditional convergence (matches old unconditional-blank semantics). Proven driven: manually blanked a role body on a live squad, sq repair converged it back to the tag, sq role show rendered correctly again; automated in tests/service/test_repair_strips_only_retired_regions.py (renamed test + the frozen-list guard) and tests/unit/test_repair_body_tag_convergence_pure_function.py.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -216,7 +216,7 @@ Generalize _sweep_empties_body so sq repair normalizes a role's sq:body to carry
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-04T10:07:54Z] Elias Python:
+- [2026-09-04T10:07:54Z] `python-dev` Elias Python:
   - [views.squads_skill] (playbook, name unset), [views.greeting_skill]/[views.memory_skill] (self) declared. Widened render_source_view to pass squad_dir for all 6 kinds (removed the now-unused kind param). Added PlaybookSource.playbook (the whole active/merged PlaybookSpec, not just the type's own lane) -- needed because squads_skill's embedded workflow cheatsheet loops every type's authoring lane, which one lane can't answer; this is a finding beyond the task body's own framing, documented on the dataclass.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
@@ -231,7 +231,7 @@ _write_managed_skill's empty_body seeds the right tag per system slug on first w
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-04T10:07:55Z] Elias Python:
+- [2026-09-04T10:07:55Z] `python-dev` Elias Python:
   - _write_managed_skill gained body_tag: str | None=None (per-type skills keep None/empty; the 3 system skills pass their view name). skill_definition_text's 3 named branches replaced with a call into views.resolve_source/render_resolved_source directly (NOT via self.read_body -- ServiceCore can't see ItemsMixin's methods, sibling mixin, confirmed by pyright). Falls back to a throwaway unpersisted Item when no real item is indexed yet, preserving the method's long-standing item-independent purity many existing tests rely on (a real regression I hit and fixed -- see handoff). Proven byte-equivalent to read_body in test_a_system_skills_definition_is_never_stored_in_its_file.py.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
@@ -246,7 +246,7 @@ Extend the repair sweep (or a sibling corpus walk in the same sq repair pass) to
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-09-04T10:08:01Z] Elias Python:
+- [2026-09-04T10:08:01Z] `python-dev` Elias Python:
   - Same _repair_body_tag/_converge_body_tag mechanism (SYSTEM_SKILL_VIEW_NAMES, shared with _write_managed_skill, declared once in _interactions). Skill license is narrower: insert-only when the region is genuinely empty; anything else raises AssertionError (falsified directly in test_repair_body_tag_convergence_pure_function.py). Driven end-to-end on a live squad alongside ST3's role case.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
@@ -261,7 +261,7 @@ Prove every consumer named in this task's Acceptance #1 unaffected or correctly 
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-09-04T10:08:03Z] Elias Python:
+- [2026-09-04T10:08:03Z] `python-dev` Elias Python:
   - Consumer enumeration, generated-artefact diff and falsification evidence are in the handoff comment on TASK-922 itself (too long for a subtask comment).
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
@@ -270,7 +270,7 @@ Prove every consumer named in this task's Acceptance #1 unaffected or correctly 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T10:09:22Z] Elias Python:
+- [2026-09-04T10:09:22Z] `python-dev` Elias Python:
   - Handoff — TASK-922 implemented, all 7 subtasks Done. Detail per-subtask is on each ST's own comment; this is the cross-cutting record.
     
     **What landed (US1/US2).** `[views.role_definition]` (role, no name), `[views.squads_skill]` (playbook, name unset), `[views.greeting_skill]`/`[views.memory_skill]` (self) declared in workflow.toml. `templates/views/role_definition.md.j2`/`squads_skill.md.j2`/`greeting_skill.md.j2`/`memory_skill.md.j2` carry the moved prose against `source`/`item`/`spec`/`squad_dir`. `agents/role.md.j2` trimmed to frame + seeded tag; the three `agents/*_skill.md.j2` templates deleted. `_create_core`'s role branch and `_write_managed_skill` (new `body_tag` param, per-type skills untouched) both seed the tag instead of blanking. `ServiceCore.role_definition_text` deleted outright; `_cli/_role.py`'s hardcoded branch replaced with `await svc.read_body(it.id)`. `skill_definition_text`'s three named branches (GREETING/MEMORY/SQUADS) replaced with a call into `views.resolve_source`/`render_resolved_source` directly — **not** through `self.read_body`, because `ServiceCore` cannot see `ItemsMixin`'s methods (sibling mixin; pyright caught this immediately, `reportAttributeAccessIssue`). `skill_definition_text`/`_item_skill_definition_text`/`_cli/_skill.py`'s `if system:` branch left standing per the sequencing constraint, for TASK-923.
@@ -322,7 +322,7 @@ Prove every consumer named in this task's Acceptance #1 unaffected or correctly 
     **Finding — beyond the task body's own framing, resolved rather than left as a gap.** `squads_skill.md.j2`'s embedded workflow cheatsheet (`{% include "workflow.md.j2" %}`) needs the *whole* active/merged `PlaybookSpec` to loop every declared type's own authoring lane — `PlaybookSource.lane` (one type's own entry) can't answer that. Added a `playbook: PlaybookSpec` field to `PlaybookSource`, populated in `_resolve_playbook_source` (already had `playbook` in hand). Falsified directly (see above) and covered by `test_a_playbook_source_carries_the_whole_active_playbook_not_only_its_own_lane`. `_playbook_json_payload` (FEAT-903/TASK-919, already shipped) is untouched — it builds its dict by hand and never reads the new field, so nothing leaks into `--json`.
     
     `sq check` clean. Nothing outside TASK-922 transitioned. @tech-lead this is ready for review; TASK-923 stays blocked on it per the sequencing constraint until you say otherwise.
-- [2026-09-04T10:32:22Z] Elias Python:
+- [2026-09-04T10:32:22Z] `python-dev` Elias Python:
   - Root cause fixed: `_converge_body_tag` (`_services/_maintenance.py`) asserted "empty or already-tagged" as the only reachable shapes for a role/system-skill `sq:body`, true only for current write paths. Migrating corpora (0.1-0.11 fixtures) carry a third shape: plain-prose rendered by a pre-tag-mechanism release, before `set_body` refused these bodies at all. Licence stated in `_converge_body_tag`'s docstring: `set_body` refuses both bodies unconditionally today, so nothing there is authored — a stored region is either empty, the tag, or a superseded rendering of the same class 0.14's retired-region sweep already established may be stripped (narrower than the milestone precedent, which protects still-authorable prose).
     
     Unified the role/system-skill licence into one function (dropped the `unconditional` bool split — both now get the same treatment). Stays loud: content is admitted only if it's empty or contains no marker-shaped bytes of its own (`sections.find_markers`); anything marker-shaped still raises `AssertionError` rather than being guessed at — falsified via `test_marker_shaped_content_is_not_silently_overwritten` (both directions: red without the check, green with it).
@@ -336,9 +336,9 @@ Prove every consumer named in this task's Acceptance #1 unaffected or correctly 
     ADR-880's unpaired-tag invariant untouched; `test_a_role_body_converges_onto_the_placement_tag_and_keeps_its_markers` still green.
     
     Gates: `pyright` / `ruff check` / `ruff format --check` all clean. `uv run --all-extras pytest tests/integration` → 704 passed, 6 skipped. `uv run --all-extras pytest tests/meta` → 279 passed. Targeted: `tests/unit/test_self_source_resolver.py tests/unit/test_repair_body_tag_convergence_pure_function.py tests/service/test_repair_strips_only_retired_regions.py` → all green (combined run: 1009 passed, 6 skipped). `sq check` clean. Did not run the full suite.
-- [2026-09-04T10:32:25Z] Elias Python:
+- [2026-09-04T10:32:25Z] `python-dev` Elias Python:
   - Files touched: src/squads/_services/_maintenance.py, tests/integration/test_migration_corpus.py, tests/unit/test_repair_body_tag_convergence_pure_function.py, tests/unit/test_self_source_resolver.py. Task status/parent untouched, per brief.
-- [2026-09-04T10:34:48Z] Catherine Manager:
+- [2026-09-04T10:34:48Z] `manager` Catherine Manager:
   - Full suite green as the authoritative gate: 4842 passed, 12 skipped, exit 0. Two rounds were needed: the first handback passed pyright, ruff, targeted tests and tests/meta while the full suite failed 34 times, all from the migration corpora -- the targeted selection did not include tests/integration. That is a brief defect, not a dev one; tests/integration is now mandatory in the brief alongside tests/meta.
   - Verified the changed migration assertions rather than accepting them: they are stronger, not bent to pass. The old test asserted a post-migration role body was empty; the new one asserts it equals the tag exactly. The renamed test now covers both convergence and byte-identical survival, and carries a non-vacuity guard so the loop cannot pass by finding nothing to check. The convergence admits legacy content by shape -- no marker-shaped bytes -- and still raises on anything outside that set, so the caught failure was not traded for an uncaught one.
 <!-- sq:discussion:end -->

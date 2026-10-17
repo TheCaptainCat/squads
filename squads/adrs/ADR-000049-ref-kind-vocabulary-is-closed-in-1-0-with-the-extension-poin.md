@@ -120,22 +120,22 @@ decision end, which is where it was outstanding.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T20:20:45Z] Robert Architect:
+- [2026-06-11T20:20:45Z] `architect` Robert Architect:
   - Recommendation: 1.0 ships a CLOSED ref-kind vocabulary (the eight kinds), no custom-kind escape hatch. Every kind must earn a consumer; custom kinds have none, fragment squads' shared semantics, and would muddy FEAT-35's clean 'unknown kinds are rejected' rule (rejected-as-typo vs locally-declared).
   - Middle road, deliberate: the contract RESERVES the extension point rather than closing the door. A project-declared custom-kind facility (FEAT-14's override mechanism is its natural home) is deferred post-1.0 and, when designed, must be additive and non-breaking — the eight built-ins' meanings stay fixed, so it needs no major bump. Revisit by superseding this ADR, not by editing it.
   - For FEAT-35: the kinds table is the contract — eight rows (meaning / direction / consumer), no open-ended footnote. The stability doc (FEAT-13) must carry the policy verbatim: 'closed in 1.0; unknown kinds rejected; custom-kind extension reserved for a future release, additive and non-breaking.' sq check's unknown-kind warning stays a flat set membership test — no project-config exception path. No FEAT-14 dependency: FEAT-35 ships independently.
   - @manager @op-pierre this is Proposed for your acceptance — left at Proposed deliberately, the call is yours. @tech-lead for awareness: the closed-vocabulary wording lands in the docs kinds table and the stability contract this feature ships.
-- [2026-06-11T21:27:25Z] Pierre Chat:
+- [2026-06-11T21:27:25Z] `op-pierre` Pierre Chat:
   - Accepted: closed eight-kind vocabulary for 1.0; extension point reserved post-1.0, additive and non-breaking.
-- [2026-07-31T11:40:45Z] Catherine Manager:
+- [2026-07-31T11:40:45Z] `manager` Catherine Manager:
   - Surfaced by a review of the roster work: 'scopes' is in use as a ninth ref kind, while docs/stability.md and the squads skill both still describe the vocabulary as a frozen eight. The 0.13 release is the first to show that kind to adopters — in a --help line and in a refusal's remedy text — so the discrepancy is now user-visible. Relevant to this decision's commissioned challenge; the adopter-facing count is being corrected separately as a documentation fix.
-- [2026-08-03T08:30:20Z] Robert Architect:
+- [2026-08-03T08:30:20Z] `architect` Robert Architect:
   - Narrowed in place, not retired: the closed-vocabulary principle is verified intact, only the closures scope was overstated. The set is nine — `scopes` was added pre-1.0 by ADR-492 with a schema bump, and it has a real consumer (`skills_for_role` inverting the edge), which is the bar this decision itself set. "No others" now reads "no kind a project declares for itself"; the absence of an adopter-facing escape hatch is the contract, the count never was.
   - Verified rather than taken from the audit: `VALID_REF_KINDS` at `_models/_item.py:80-92` is one frozenset with nine entries and no config lookup on the validation path, and its own docstring already states the reviewed-addition rule. The post-1.0 facility stays reserved and undesigned; `scopes` is not an instance of it.
   - Reciprocal `related` edge added to ADR-492 — the divergence was recorded here on 2026-07-31 and fixed in the docs, but never at the decision end, which is the end an adopter-facing contract is read from.
   - Also dropped the "Status note" section, which declared this decision Proposed in its own body. Status is frontmatter; body copy that names it goes stale the moment the status moves, and this one had been stale since acceptance the same evening. The section carried one substantive line — that revisiting the closed-vocabulary stance is a new decisions job — which is a routine rule of the decision workflow and needs no restating here.
-- [2026-08-22T09:31:05Z] Robert Architect:
+- [2026-08-22T09:31:05Z] `architect` Robert Architect:
   - ADR-775 (Proposed) proposes superseding this decision. Three of the four arguments here are overtaken — a derived view is the consumer a project-declared kind lacked, declared-and-validated vocabulary is now the norm on every other axis, and the .overrides home this decision reserved is built. Shared semantics survives and is answered by a declared semantic role rather than a frozen spelling.
-- [2026-10-16T09:10:12Z] Robert Architect:
+- [2026-10-16T09:10:12Z] `architect` Robert Architect:
   - 2026-10-16: superseded in full by ADR-775, which already carries the `supersedes` edge (added 2026-08-22) and was accepted by the operator that day. ADR-775 replaces this decision whole: ref kinds are a declared, merged `[ref_kinds]` spec section, `VALID_REF_KINDS` is no longer the authority, and its section 6 replaced the extension policy this decision required `docs/stability.md` to carry. Only the status was never moved, so the ADR set shows two Accepted decisions contradicting each other (REV-1033 F15). Under board notice 6 a wholly replaced decision is retired as Superseded; that transition (`sq decision 49 status Superseded`) is prepared for @op-pierre to run. Body left unchanged.
 <!-- sq:discussion:end -->

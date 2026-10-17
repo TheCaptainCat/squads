@@ -308,9 +308,9 @@ stated precondition for the spec becoming adopter-editable.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-26T09:27:27Z] Catherine Manager:
+- [2026-06-26T09:27:27Z] `manager` Catherine Manager:
   - Follow-up (non-blocking, from REV-230): the WorkflowSpec models lack extra='forbid', so unknown TOML keys are silently ignored rather than failing closed. Acceptable for the bundled default (golden-locked, enums-intact), but must be added before the workflow TOML becomes user-editable (FEAT-209/210). Tracked on FEAT-209.
-- [2026-08-03T08:31:46Z] Robert Architect:
+- [2026-08-03T08:31:46Z] `architect` Robert Architect:
   - Amended in place; nothing retired. The core ruling is verified in force — one loaded, validated `WorkflowSpec` from a bundled TOML via `importlib.resources` + `tomllib`, consumed through free-function shims, fail-closed, golden-locked — and ADR-249 executed its threading half rather than replacing it. This decision is the pattern every later spec decision cites, so its stale surface misleads more readers than any other; that is why it got the heaviest note.
   - Corrected field for field in section 1, against the tree rather than the audits summary: `types:` is `items: dict[str, ItemSpec]`, `machines:` is `lifecycles: dict[str, Lifecycle]`, `TypeSpec` is `ItemSpec` (`_workflow/_models.py:330,1090-1092`), sub-entity machines resolve through `subentity_kinds: dict[str, SubentityKindSpec]`, and `StatusSpec` is `{badge, role}` at `:445-458` with no `terminal` field at all. The boolean this section introduced is the one ADR-696/604 generalised into a declared status role — worth naming as the lineage, not just a rename.
   - Section 2s path corrected to `src/squads/_specs/workflow.toml`. The `_workflow/` package promotion decided here did happen; the spec files later moved out to their own directory beside `roles.toml` and `playbook.toml`, and the package-data mechanism is untouched.

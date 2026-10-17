@@ -62,6 +62,6 @@ _Add with `sq feature 572 add-story "As a <role>, I want … so that …"`; trac
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T11:53:52Z] Catherine Manager:
+- [2026-07-22T11:53:52Z] `manager` Catherine Manager:
   - Done: 5 parented ADRs (129/155/158/516/527) re-homed parent→related refs; no parent remains, no duplicate refs, sq check clean. Pure board-data migration (non-visual, self-verified) — accepted per the reviewed-non-visual delegation. Unblocks TASK-584 (records/epic no_parent enforcement).
 <!-- sq:discussion:end -->

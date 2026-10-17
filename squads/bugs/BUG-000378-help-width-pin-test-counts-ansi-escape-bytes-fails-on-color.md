@@ -31,8 +31,8 @@ tests; also consolidated the pre-existing local ANSI-stripping regex in
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T21:35:16Z] Mara Tester:
+- [2026-07-15T21:35:16Z] `qa` Mara Tester:
   - Fixed: added strip_ansi() to tests/_helpers.py; used it in tests/cli/test_help_text_width_is_pinned.py; consolidated the duplicate regex in tests/integration/test_renumber_cli.py to use it too.
-- [2026-07-19T19:05:21Z] Mara Tester:
+- [2026-07-19T19:05:21Z] `qa` Mara Tester:
   - strip_ansi() present in tests/_helpers.py, used in both test_help_text_width_is_pinned.py and test_renumber_cli.py; both files pass (6 passed).
 <!-- sq:discussion:end -->

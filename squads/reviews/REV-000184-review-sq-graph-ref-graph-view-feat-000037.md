@@ -104,7 +104,7 @@ Observation, not a defect. In dot/mermaid export the edge arrow points parent->c
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-24T11:57:37Z] Paul Reviewer:
+- [2026-06-24T11:57:37Z] `reviewer` Paul Reviewer:
   - VERDICT: ChangesRequested. The traversal logic is genuinely solid — the depends-on/blocks normalization (the critical requirement) is correct and symmetric, verified by hand with mixed-authorship fixtures rooted at BOTH ends: a 'blocks' edge and a 'depends-on' edge between the same two items render the identical label pair ('depends on' / 'required by'), cycles terminate with (seen), closed items hide without --all, filters behave, the service holds the single reusable implementation and the CLI is a thin edge, and --json is now ANSI-free via print_json_clean. Pyright/ruff/format clean; graph tests green.
   - But there is ONE blocking defect (F1, high): the default Rich tree — the primary human output — crashes with a traceback on ANY node that carries a priority, because GraphNode.priority is a value-string and the CLI passes it straight to priority_badge(priority: Priority). The '# type: ignore[arg-type]' at _main.py:522 and :606 suppressed the very pyright error that would have flagged it. The tests all use priority=None so they never exercised it. Acceptance criterion 1 explicitly requires priority badges, so this fails acceptance, not just an edge case. Fix is small: priority_badge(Priority(child.priority)) and remove the ignore; add a priority'd-node graph test.
   - F2/F3/F4 are low/info (dead dangling-ref stub, dot backslash escaping, export arrow direction is traversal-oriented) — not blocking. @python-dev please fix F1 and add the regression test; @manager holding at ChangesRequested until then.

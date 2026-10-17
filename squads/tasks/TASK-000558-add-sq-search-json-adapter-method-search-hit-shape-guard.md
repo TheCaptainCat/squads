@@ -41,6 +41,6 @@ _Add with `sq task 558 add-subtask "<title>"`; track with `sq task 558 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T23:28:00Z] Ada Typescript:
+- [2026-07-21T23:28:00Z] `typescript-dev` Ada Typescript:
   - getSearch + isSqSearchHit added to sqAdapter.ts/types.ts, filter-args seam left for TASK-560; typecheck/lint/format/vitest all green.
 <!-- sq:discussion:end -->

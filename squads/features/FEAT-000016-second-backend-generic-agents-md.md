@@ -90,7 +90,7 @@ As a future backend implementer, I want a backend conformance test suite, so tha
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-15T13:55:10Z] Mara Tester:
+- [2026-06-15T13:55:10Z] `qa` Mara Tester:
   - QA verification against acceptance criteria:
   - PASS: sq init/sq sync can target agents_md backend and produce a valid AGENTS.md. Backend selection via --backend flag and default_backend in .squads.toml both work.
   - PASS: Both backends pass the shared conformance suite (70 tests, 35 per backend). ABC is honest — agents_md implementation required zero changes to _base.py (ADR-133 applied correctly).

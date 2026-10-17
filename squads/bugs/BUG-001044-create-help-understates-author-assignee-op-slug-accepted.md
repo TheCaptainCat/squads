@@ -34,8 +34,8 @@ Found while auditing the docs (REV-1036).
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T12:35:08Z] Catherine Manager:
+- [2026-10-16T12:35:08Z] `manager` Catherine Manager:
   - Also: sq operator add --help does not state the op- slug grammar (found while documenting TASK-1048).
-- [2026-10-17T05:06:17Z] Mara Tester:
+- [2026-10-17T05:06:17Z] `qa` Mara Tester:
   - Verified on release/0.16 HEAD 3c99dcc8 (clean export): create bug --help now reads "--author Author: a registered role slug or op-<slug>" and "--assignee Role or operator slug to assign"; bug update --assignee carries the same text. Remaining: operator add --help does not spell the op- grammar beyond "op-<first name>" for --slug (minor, not blocking).
 <!-- sq:discussion:end -->

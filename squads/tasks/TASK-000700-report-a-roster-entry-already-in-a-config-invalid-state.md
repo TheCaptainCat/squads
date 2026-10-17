@@ -222,13 +222,13 @@ Falsify each clause: break it, watch its test go red, restore it, watch it go gr
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-30T10:09:06Z] Olivia Lead:
+- [2026-07-30T10:09:06Z] `tech-lead` Olivia Lead:
   - ADR-696 was amended after this task was cut, and the amendment changes vocabulary this body names. Body left as written; read this comment alongside it. TASK-703 carries the reshape and blocks this task.
   - Liveness is no longer `role_statuses(item_type, "active")` — the two places this body says that (the overview and ST-level restatement) should be read as the offered-statuses predicate on the spec. The materialisation axis is now an `offered` boolean on the status-role object, defaulting false; it is not keyed off the role name `active`, and no role-name-keyed status accessor survives TASK-703.
   - Where this body says "live role" / "live status" (C1's last-live-role clause, C2's default-role clause, C3's live-role preload set), read "offered". The clauses themselves are unchanged in substance — C1 still counts entries of the role type that are on offer, C2 still asks whether the default designation sits on one, C3 still asks whether an unoffered skill is named by an offered role's resolved preloads.
   - One knock-on worth knowing before implementing: R1 relaxes to "at least one offered status", so a project may declare several. "This entry is on offer" no longer implies a single status, which means C1's cardinality check must count entries whose status is in the offered set rather than comparing against one status name.
   - @python-dev do not start this until TASK-703 lands; the accessors this body names will not exist.
-- [2026-07-30T12:56:57Z] Elias Python:
+- [2026-07-30T12:56:57Z] `python-dev` Elias Python:
   - Implemented: squads/_services/_config_integrity.py (pure C1/C2/C3 predicates, filtering offered roles/skills from the index snapshot directly, no Service.roster() call) + a new roster_config_integrity squad-global validator wired into _workflow/_models.py's VALIDATOR names and _services/_validators.py's SQUAD_GLOBAL_CATALOG.
   - Vocabulary followed the amendment, not the body: offered_statuses/offered_initial membership throughout, R1's relaxation honored (C1 tests membership in the offered set, not equality) — covered by a dedicated two-offered-statuses test.
   - active_backends sourced from SquadGlobalContext.paths.config.active_backends, per the breakdown; C1 silent when empty (ADR-141 sq-only squad), confirmed by tests.

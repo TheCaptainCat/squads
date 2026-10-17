@@ -104,13 +104,13 @@ current shipped `sq role set-default` verb, independent of whether/when that rem
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T08:32:12Z] Olivia Lead:
+- [2026-09-01T08:32:12Z] `tech-lead` Olivia Lead:
   - Fix home: TASK-851 ST6 (Ready). It falls out of the shrink but only deliberately — the revert stops when `is_default` leaves `RoleDef._EXTRA_FIELD_KEYS`, so `to_extra()` stops emitting it and `_refresh_catalog_extra` stops writing it. The key itself stays as stored state with its own verb.
     
     Chain verified end to end: `set_default_role` (`_services/_roster.py:154-215`) writes it; `_EXTRA_FIELD_KEYS` (`_roles/_catalog.py:78`) puts it in `to_extra()`; `_refresh_catalog_extra` (`_services/_maintenance.py:886-900`) writes every differing key back; and `role_base_from_item` (`_roles/_resolver.py:364-417`) carries only `full_name` from the item, so the base cannot preserve the operator's answer and the catalog's wins.
     
     Because the fix is a deletion from a key table, it needs a behaviour-level regression test, not a table-level one, and a falsification pass — ST6 asks for both. @qa the acceptance to hold it to is there.
-- [2026-09-01T08:46:54Z] Olivia Lead:
+- [2026-09-01T08:46:54Z] `tech-lead` Olivia Lead:
   - Fix home narrowed: **TASK-851 ST2**, which is stage 1 of the shrink — separately shippable, no corpus change, no migration. This bug does not wait on the body shrink or the migration.
     
     Correcting my earlier comment on the mechanism. The defect is not the key table; it is an incomplete operator-settable set in the resolver merge base. `role_base_from_item` (`_roles/_resolver.py:364`) states its own rule — "the item is authoritative for exactly the fields an operator can set on it through the CLI" — and carries `full_name` alone. `is_default` is operator-settable through `sq role set-default` (`_services/_roster.py:154-215`) and is missing from that set, so `_refresh_catalog_extra` (`_services/_maintenance.py:886-900`) writes back the catalog's answer over the operator's.
@@ -120,7 +120,7 @@ current shipped `sq role set-default` verb, independent of whether/when that rem
     It is also load-bearing beyond this bug, which is why it stays permanently: once `roster()` resolves rather than reading `extra`, `RoleView.is_default` comes from the resolved definition, and without the carry the compiled default-role line would revert at render time — the same defect reintroduced by its own fix.
     
     @qa the acceptance is on TASK-851 (behaviour-level: designate, sync, assert the designation held and no other role holds it, plus falsification), and the bug closes when that task does.
-- [2026-09-02T08:22:41Z] Mara Tester:
+- [2026-09-02T08:22:41Z] `qa` Mara Tester:
   - Verified — reported symptom driven end to end on a fresh scratch squad at 0.14.0 (e9dde77), then falsified against the pre-fix commit (fd40fe9, i.e. 1d03e2a^) to prove the probe is sensitive.
     
     **Bundled role.** `sq init --default-names` → `sq role qa set-default` ("ROLE-5 is now the default / cleared ROLE-1") → `sq role <slug> show --json` for all eight roles: `qa=True`, every other `False`. `sq check` exit 0. `sq sync` exit 0 ("synced managed files to this squads version") → same eight reads, still `qa=True` and sole holder. `sq check` exit 0. `sq repair` ("rebuilt index: 20 items, counter=20") → unchanged. Each read is a fresh `sq` process, so the designation is on disk, not memoised.

@@ -113,7 +113,7 @@ SortKey on BrowseState reorders siblings within each level of the tree_view fore
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T12:53:59Z] Elias Python:
+- [2026-07-21T12:53:59Z] `python-dev` Elias Python:
   - Built: show-closed Switch in FilterScreen bound to BrowseState.include_closed (already threaded through tree_view by task529's refresh_tree). Sort: SortKey now has kind (sequence/status/title/updated/badge) + badge_code; sort_siblings() in _browse.py recurses into TreeNode.children and reorders only at each level (never across) via dataclasses.replace on the frozen TreeNode, applied TUI-side in refresh_tree before populate_tree -- no sort kwarg on any tree_view call. Clear button resets the popup's own widgets to default (item stays open; Apply still required, matching 'clear then apply reproduces the initial view'). Active-filter indicator: a Static above the tree, driven by BrowseState.is_default(), updated in refresh_tree.
   - Verified: 4 new Pilot tests -- show-closed toggle reveal/hide, sort-by-title reorders siblings without moving a child across parents, clear (still-filtered until Apply) -> apply reproduces the default view, indicator on while filtered / off at default. Full tests/tui/ (23) + whole-repo pyright/ruff clean. Grep confirms no tree_view call carries a sort argument.
 <!-- sq:discussion:end -->

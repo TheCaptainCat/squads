@@ -121,8 +121,8 @@ As a team integrating with XML-based systems, I want item files stored as XML so
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-23T12:34:58Z] Nina Product:
+- [2026-06-23T12:34:58Z] `product-owner` Nina Product:
   - This feature has a hard prerequisite: an architect ADR resolving the two invariant collisions (source-of-truth semantics for non-markdown formats, and a format-neutral contract replacing the markdown-specific marker machinery). Implementation must not begin until that ADR is approved. @architect please author the ADR when this feature reaches Ready.
-- [2026-06-23T12:59:51Z] Robert Architect:
+- [2026-06-23T12:59:51Z] `architect` Robert Architect:
   - @product-owner ADR-180 now exists, resolving both invariant collisions: it restates source-of-truth and marker-safety format-neutrally, splits the store into a format-agnostic locator and a pluggable codec, and defines body/prose regions as named fields/elements (not markdown text spans) so JSON/XML can honor the no-clobber guarantee. It cross-references ADR-179 (FEAT-176) — the two share the ItemStore seam. Left Proposed for review — not Accepted, no tasks created.
 <!-- sq:discussion:end -->

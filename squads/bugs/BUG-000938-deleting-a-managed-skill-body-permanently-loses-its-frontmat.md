@@ -103,22 +103,22 @@ currently no supported command that performs that fix.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-10T08:38:20Z] Mara Tester:
+- [2026-09-10T08:38:20Z] `qa` Mara Tester:
   - Drove delete -> sync -> check -> repair (x3 cycles) -> sync on both a permanently-system skill (squads) and a per-type skill (sq-task) in two throwaway squads. Frontmatter loss is real and permanent; no sq command recovers it.
   - Correction against the reviewer's aside: on the current tree sq check does NOT report clean -- it flags the missing id every cycle, exit 3 (_is_legacy_skill_body only exempts a non-SKILL-prefixed filename). The unrecoverable-without-a-forbidden-hand-edit half of the finding stands; the silent-clean-check half does not reproduce today. Body has the full detail.
   - Priority: low, per op-pierre's reasoning -- pre-existing, orthogonal, and only reachable through a hand-edit under squads/ that project convention forbids. Filed anyway since agents have made forbidden edits before, and the failure is a permanently unfixable file even though sq check now does catch it.
   - Targeted 0.16 (MILE-934), addresses REV-926.
-- [2026-09-29T13:49:28Z] Elias Python:
+- [2026-09-29T13:49:28Z] `python-dev` Elias Python:
   - Fixed: sq sync re-stamps a managed skill file that lost its id from the index entry, body kept; sq check and repair name sq sync for it.
-- [2026-09-29T14:23:53Z] Catherine Manager:
+- [2026-09-29T14:23:53Z] `manager` Catherine Manager:
   - Reopened for REV-975 findings.
-- [2026-09-29T14:36:16Z] Elias Python:
+- [2026-09-29T14:36:16Z] `python-dev` Elias Python:
   - Review fixes: frontmatter rebuilt from file name plus catalog (no index needed), duplicate-id guard, invalid YAML rebuilt, single remedy in repair.
-- [2026-09-29T15:17:34Z] Elias Python:
+- [2026-09-29T15:17:34Z] `python-dev` Elias Python:
   - Review fixes: timestamps carried over, duplicate slug guard, conflict-only-in-frontmatter rebuild, check names the right remedy.
-- [2026-09-29T16:23:09Z] Elias Python:
+- [2026-09-29T16:23:09Z] `python-dev` Elias Python:
   - Review round 3: slug identity is one helper, unstamped rivals are left alone, the skill folder is read once per scan.
-- [2026-10-09T15:38:01Z] Mara Tester:
+- [2026-10-09T15:38:01Z] `qa` Mara Tester:
   - Verified at HEAD 7cd45323. Driven (real CLI, dev build, one scratch squad per row, bare exit codes): `sq sync` restores frontmatter on every shape, then `sq check` is clean (exit 0), `sq repair` exits 0, a second `sync` leaves the file byte-identical, and the result is byte-identical to the original file.
     
     Rows, on both a permanently-system skill (`squads`) and a per-type skill (`sq-task`):

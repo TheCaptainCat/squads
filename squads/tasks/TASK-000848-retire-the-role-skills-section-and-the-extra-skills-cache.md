@@ -332,7 +332,7 @@ the skew-guard tests still exercise the mechanism through a different key.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T08:40:17Z] Elias Python:
+- [2026-09-01T08:40:17Z] `python-dev` Elias Python:
   - Skills row added to `sq role <slug> show` (card + --json), resolved via `resolved_skills_for_role`; works for activated and bundled-only roles with no I/O beyond the loaded index.
   - Removed the `## Skills` block from role.md.j2, `_refresh_role_skills_extra` and its two `_roster.py` writers, the `X.SKILLS` metadata field and enum member (nothing else read it — migrations carry frozen literals).
   - Narrowed `PERMITTED_EXTRA_SKEW` to `RoleDef.extra_keys()`; `_exempt_extra_keys` now returns empty for a dev role; the pin test in test_role_def_extra_keys.py updated with a narrowing docstring.
@@ -341,7 +341,7 @@ the skew-guard tests still exercise the mechanism through a different key.
   - Verified on a scratch squad: role .md file byte-identical before/after `link-role`, pointer still carries the scoped skill, and a role file/index carrying a stale `skills:` key loads, shows and checks clean.
   - tests/meta: 261 passed, 5 failed — all in test_override_manifest_and_stamp_freshness.py, downstream of the two orphan content-store blobs left by this branch's in-flight bundled-template edits (mine + TASK-847's); expected residue per the release notes, not cleared here. Targeted suite (293 tests across role/skill/roster/skew/golden coverage): all green. pyright/ruff/format clean; sq check clean.
   - @reviewer ready for review.
-- [2026-09-01T09:51:55Z] Elias Python:
+- [2026-09-01T09:51:55Z] `python-dev` Elias Python:
   - Diagnosis: the sync path lost a real step, not incidental scaffolding. skew_message's own docstring names 'the skip-and-report line sq sync emits for a drifted roster item' as one of its three reusers — a documented sync contract, not a side effect of the cache writer.
   - Mechanism: _refresh_role_skills_extra wrote extra.skills unconditionally on every role every sync, so it was the only thing that ever opened a healthy-looking role's file and ran ensure_no_skew when nothing catalog-related had changed. _refresh_catalog_extra only writes (and so only detects skew) when its own merge finds a real diff — a role whose catalog fields already agree with the index never gets its file read again, so an unrelated field's drift (e.g. an interrupted description edit) went unreported.
   - Fix: added _detect_roster_item_skew (_services/_maintenance.py) — a pure, read-only check (frontmatter_skew + skew_message, no write) run unconditionally in sync's per-role loop alongside _refresh_catalog_extra, mirroring the old two-independent-writers shape so sync's existing exact-text dedup still collapses a duplicate report.

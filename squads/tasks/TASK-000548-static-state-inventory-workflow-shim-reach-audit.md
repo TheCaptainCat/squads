@@ -80,12 +80,12 @@ _Add with `sq task 548 add-subtask "<title>"`; track with `sq task 548 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T21:40:00Z] Elias Python:
+- [2026-07-21T21:40:00Z] `python-dev` Elias Python:
   - DATA (per-request, must move): _clock._override (forged/--at time); _actor._override/_session_id/_parent_session_id (actor id + session lineage); _cli/_common._active_spec/_active_dir (US5/TASK-552, unchanged here); _paths.resolve()/find_config() Path.cwd() default (US3/TASK-553, unchanged here).
   - CODE/definition (stays, allowlisted): _backends/_registry._REGISTRY+_loaded+register() side-effect (backend classes, instantiated fresh); _workflow/__init__._BUNDLED_SPEC + WORKFLOWS/SUBENTITY_WORKFLOWS/ALLOWED_PARENTS/TERMINAL + free-fn shims (immutable bundled default); _roles/_catalog._CATALOG/_BY_SLUG/_PREDEFINED_BY_SLUG (bundled catalog); _interactions.__init__._PLAYBOOK_SPEC (bundled playbook); _cli/_create._create_spec + _cli/__init__._spec/_STATIC_TYPES (bundled spec, static Typer registration); _rendering/_engine._env_cache (per-squad-dir keyed Jinja cache, bounded by TASK-554); _overrides/_manifest._manifest_cache (parsed-manifest cache with its own invalidate()).
   - Triage rule: value varies per request/squad/test -> DATA, lives in RequestContext; value is an immutable spec/class/definition loaded once and safe to share -> CODE, may stay module-level. Recorded verbatim as the _context.py module docstring (TASK-550).
   - Shim-reach grep: grep -rn 'workflow.can_transition|workflow.is_open|workflow.parent_allowed|workflow.parent_hint|WORKFLOWS\b|ALLOWED_PARENTS\b|TERMINAL\b|SUBENTITY_WORKFLOWS' src/ -> only the definition site (_workflow/__init__.py) and its __all__ export; zero production callers. Every service/CLI call site (_base, _items, _refs, _collab, _maintenance, _retype, _rename, _roster, _cli/_main) routes through self.spec.<method>()/spec.<method>()/get_active_spec().<method>().
   - Only golden-lock tests reference the bundled constants directly (test_workflow_spec_artifact, test_parent_allowed_rule_table, test_status_machine_transitions, test_accepted_and_published_are_terminal, test_terminal_status_reopen_and_unblock, test_identity) - expected, out of scope. Conclusion: zero production reroute risk; nothing to name for TASK-552.
-- [2026-07-21T21:40:04Z] Elias Python:
+- [2026-07-21T21:40:04Z] `python-dev` Elias Python:
   - Audit-only, no code change. Ready for review.
 <!-- sq:discussion:end -->

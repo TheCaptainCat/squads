@@ -237,7 +237,7 @@ the cycle.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-02T13:26:30Z] Elias Python:
+- [2026-09-02T13:26:30Z] `python-dev` Elias Python:
   - Implemented as `_cycle_anchor_ids` in the service's tree module, called from the bare branch of the root computation only. The parent relation is functional inside the candidate set (at most one resolvable parent per item), so an iterative upward walk with a per-walk position map finds each cycle exactly once and settles every sequence it visits — linear over the candidate set, no cost on an acyclic corpus beyond one pass.
   - The anchor is min(sequence) over the sequences that CLOSE the loop — the slice of the walk from the repeat onward — not min over the component. The fixture hangs the lowest-sequence item of the whole component below the cycle, so the two rules disagree there by construction.
   - Detection runs on `candidates`, the same filtered list the parent grouping resolves against, never on the index. Proven both ways: hide one member behind the default visibility gate and no anchor is produced (the survivors are a chain that already roots itself); include closed items and the anchor comes back.
@@ -283,7 +283,7 @@ name and meaning.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-02T13:27:12Z] Elias Python:
+- [2026-09-02T13:27:12Z] `python-dev` Elias Python:
   - TreeNode carries `anchor: bool = False`; it is set on the invented root only and never propagated to descendants (the tests walk the whole forest, not just the roots, so a leak would be caught rather than assumed away).
   - Wire: the JSON node gains `anchor` and nothing else. `path_only` stays off the wire — the asymmetry is deliberate, not an oversight: adding it would be a separate widening of a published shape that nobody asked for. A test asserts `path_only` is absent so a later reader does not 'fix' it by symmetry.
   - Terminal: the marker text is one shared constant (TREE_ANCHOR_MARKER, next to TreeNode) so every renderer discloses identically. It is appended AFTER the path-only dim, so the two states combine instead of alternating — verified on raw ANSI: the label is dim (ESC[2m) and the marker is plain yellow (ESC[33m) on the same line. The dimmed-marker failure mode is real; that ordering is what avoids it.
@@ -332,13 +332,13 @@ fix and green after, and are written so a depth bound does not falsify them.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-02T13:37:13Z] Elias Python:
+- [2026-09-02T13:37:13Z] `python-dev` Elias Python:
   - Two new files: a service-level one for the mechanism and a CLI one for the two surfaces end to end. Also a TUI label test, because that browser roots at the bare forest and therefore receives the invented roots too.
   - Coverage is asserted on id SETS, not counts, and only in the no-depth case. A companion assertion pins that a depth bound may legitimately narrow the tree below the list, so the invariant cannot be tightened later into a form a depth bound falsifies. Calibration on the live corpus: list -a 857, tree -a 857 (0 anchors, this corpus has no cycle), tree -a --depth 1 617 — the same shape the lead measured.
   - Union invariant: for every id the list returns, the tree rooted at that id renders it AND the bare tree renders it. Held at both levels. It fails on the fixture before the fix.
   - Falsification, both directions. Drop the anchors (roots back to the parentless forest): 7 of 9 service tests red, 5 of 6 CLI tests red — the exit-code test stays green, correctly, because the defect never changed the exit code. Swap in the wrong anchor rule (lowest sequence not yet rendered, iterated): exactly 2 red, and the message is 'rendered more than once: [BUG-2]' — the item below the cycle, rendered as its own root and again as a child, which is the duplication the lead predicted.
   - The marker tests are falsifiable too: dimming the marker along with the row turns the TUI test red.
-- [2026-09-02T13:47:04Z] Elias Python:
+- [2026-09-02T13:47:04Z] `python-dev` Elias Python:
   - Green. Also regenerated the two tree goldens under tests/goldens (tree.json, tree_feat.json) — the diff is exactly one `"anchor": false` line per node, nothing else moved. Regenerated with the module's own UPDATE_GOLDENS=1 protocol, scoped to the tree params so no other command's golden was swept in.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
@@ -347,7 +347,7 @@ fix and green after, and are written so a depth bound does not falsify them.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T10:09:55Z] Olivia Lead:
+- [2026-09-02T10:09:55Z] `tech-lead` Olivia Lead:
   - Scoped from BUG-870 against the architect's ruling, which is adopted as written. No design
     call is left open for the implementer; the four places the ruling's wording does not match
     the code are resolved in the body rather than left to be rediscovered.
@@ -381,7 +381,7 @@ fix and green after, and are written so a depth bound does not falsify them.
     fixed here.
     
     @python-dev ready for dispatch once the strip lands.
-- [2026-09-02T13:47:36Z] Elias Python:
+- [2026-09-02T13:47:36Z] `python-dev` Elias Python:
   - Implemented. All three subtasks Done; leaving this InReview.
     
     **The anchor rule as built.** Detection walks the parent relation upward inside the candidate set, which is functional there (at most one resolvable parent per item), so each walk either reaches an item with no resolvable parent or closes on itself. The anchor is `min(sequence)` over the slice of the walk from the repeat onward — the items that *close the loop* — one per cycle, never per component and never per corpus. Explicitly rooted trees get an empty anchor set: the caller chose that root, nothing is fabricated.
@@ -409,7 +409,7 @@ fix and green after, and are written so a depth bound does not falsify them.
     - Derived views were worth checking and are unaffected: their subtree source is always rooted at one item with its own visited guard, so there is no forest computation to widen there.
     
     @reviewer ready. @tech-lead the ruling held everywhere it was checked; the four corrections in the task body were all load-bearing and the separating test case is the one that would have shipped a wrong rule green.
-- [2026-09-02T13:49:38Z] Catherine Manager:
+- [2026-09-02T13:49:38Z] `manager` Catherine Manager:
   - Landed as 04ea3d41, with one attribution error of mine on the record: the anchor field and marker constant in _services/_results.py were swept into b60ff399, the import-levels commit, because I staged that shared file while this lane was still editing it. The code is correct and both commits are self-consistent; only the attribution is wrong. Not rewriting three unpushed commits to move six lines while a lane is live.
   - This is the collision the operator flagged when he cut the concurrency, and it is the concrete cost: two devs in _services/ meant one of them lost credit for half a change and the other carried it silently.
 <!-- sq:discussion:end -->

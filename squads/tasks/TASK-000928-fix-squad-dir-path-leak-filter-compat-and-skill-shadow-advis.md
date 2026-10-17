@@ -211,7 +211,7 @@ tests/unit/test_repair_body_tag_convergence_pure_function.py's module docstring 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-04T15:55:23Z] Elias Python:
+- [2026-09-04T15:55:23Z] `python-dev` Elias Python:
   - ## ST1 — F2, squad_dir absolute-path leak
     
     Root cause confirmed: `SquadsConfig.squad_dir` (the config folder-name string, "squads") vs

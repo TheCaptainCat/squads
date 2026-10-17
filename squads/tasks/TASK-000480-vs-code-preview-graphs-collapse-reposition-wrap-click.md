@@ -42,7 +42,7 @@ _Add with `sq task 480 add-subtask "<title>"`; track with `sq task 480 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-18T20:36:45Z] Ada Typescript:
+- [2026-07-18T20:36:45Z] `typescript-dev` Ada Typescript:
   - F23 (collapse+reposition): buildGraphSection drops 'open'; renderOutcomeHtml now splits the --raw dossier into headerHtml/bodyHtml (splitDossierMarkdown: title+metadata-bullet block vs. prose body, falling back to empty header when it can't detect that shape e.g. a failure message); buildPreviewHtml assembles header -> graphsHtml -> body inside <article>, so both graphs sit collapsed directly under the metadata header, above the prose.
   - F24 (no clipped labels): graphDiagrams.ts's mermaidNodeLabel now emits Mermaid's markdown-string label syntax ("`text`") instead of a plain quoted string, paired with flowchart.wrappingWidth:200 in mermaid.initialize -- mermaid's documented mechanism for auto-wrapping long labels from real text-metric measurement even under securityLevel:'strict'. Markdown metachars (backtick/asterisk/underscore) are backslash-escaped so a title never turns into emphasis/code; escapeHtml still covers </>/"/&. truncate(120) is a defensive hard cap on top of the wrap.
   - F25 (clickable nodes): mermaidRenderScript stamps each rendered node with data-item-id, recovered from mermaid's own '<diagramId>-flowchart-<nodeId>-<n>' group id (nodeId is exactly mermaidNodeId's hyphen-to-underscore fold, losslessly reversible since an item id has exactly one non-word char). clientScript's shared click/auxclick delegation now matches 'a.sq-item-link, g.node[data-item-id]', reusing the same OPEN_ITEM_COMMAND channel and same-panel/new-panel split.

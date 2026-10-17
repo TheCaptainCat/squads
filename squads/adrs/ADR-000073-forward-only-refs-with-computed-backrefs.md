@@ -64,7 +64,7 @@ decision already **in force**, not newly debated in-tool.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-08-03T08:41:15Z] Robert Architect:
+- [2026-08-03T08:41:15Z] `architect` Robert Architect:
   - Dropped the "Left **Proposed** for the manager to accept with the set" closer and retitled the section from "Status note" to "Provenance". Status prose in a body is forbidden here and this one had been false since the day the set was accepted. The provenance itself is kept and is worth keeping — this decision predates squads tracking itself and lived only in CLAUDE.md and docs/internals.md, which is why the body reads retroactively. Part of one sweep across the ten retroactive decisions (49, 71-78, 85), not ten tickets.
   - Verified in force while in there, nothing else owed: `split_ref`/`make_ref` at `_models/_item.py:96,102`, `SquadsDB.backrefs` computing by inversion and storing nothing, the pre-0.2 `extra.ref_kinds` side map still folded on load. Both sides are width-tolerant via `ref_id_matches`, which is additive.
 <!-- sq:discussion:end -->

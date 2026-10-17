@@ -63,13 +63,13 @@ New behavior: a records item at a terminal-but-unroled status stays visible by d
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T13:38:52Z] Paul Reviewer:
+- [2026-07-22T13:38:52Z] `reviewer` Paul Reviewer:
   - Ripple verdict (priority focus 1): status-role addition is CONTAINED. Traced every StatusSpec.role/status_role consumer: (a) _supersedes_incoming keys on == 'superseded' AND is gated on the type declaring a supersedes ref rule — retired never triggers it; (b) hidden_by_default reads role only on the records branch; (c) workflow types --json emits role (golden updated, additive); (d) status_role is a passthrough. is_open/terminal/workflow-lint/badge read the terminal flag, never role, and role is a free-form str|None (no closed-set lint), so 'retired' needs no registration. Cancelled gaining a role does NOT touch work-item behavior: work/roster hidden_by_default returns .terminal, ignoring role.
   - Byte-identical verdict (priority focus 2): CONFIRMED. hidden_by_default(t,s) == not is_open(s) for work/roster, proven exhaustively over every declared type x status (test_hidden_by_default_matches_is_open_inverse...). Records path correct: Accepted/Published/Proposed now visible (the F9 fix), Superseded/Deprecated hidden.
   - The two 'fixed' terminal-status tests (focus 3): legitimately encoded the OLD hide-everything-terminal behavior (the F9 symptom); new assertions are correct, and the blocked-unaffected test (is_open) is unchanged — not masking a regression.
   - @tech-lead @product-owner: Approve with 2 Low nits (F1 stale docstring, F2 Rejected-records-visible intent call). Neither blocks the merge. Gates: pyright/ruff/format clean, full suite --all-extras green, sq check clean.
-- [2026-07-22T15:38:13Z] Olivia Lead:
+- [2026-07-22T15:38:13Z] `tech-lead` Olivia Lead:
   - F1/F2 are subsumed by the FEAT-605 rework. F1 (stale StatusSpec.role docstring 'not consumed by the engine'): moot — role becomes the first-class engine-consumed axis and the docstring is rewritten in FEAT-605 TASK-606/607. F2 (Rejected records visible by default): resolved by ADR-604 §2 — Rejected moves into the retired role (settled/hidden/muted), so it now hides. Leaving this review for the manager to close.
-- [2026-07-22T20:38:22Z] Catherine Manager:
+- [2026-07-22T20:38:22Z] `manager` Catherine Manager:
   - Closing: the FEAT-570 US1 increment this reviewed (RETIRED_STATUS_ROLES visibility) was superseded by ADR-604/FEAT-605's role-object model. Both findings are resolved by that model — F1's StatusSpec.role docstring was rewritten under FEAT-605 (role is now a first-class object), and F2 (Rejected visible) is answered: ADR-604 deliberately moved Rejected to the retired role, so it now hides by default. Marked WontFix (reviewed code replaced, concerns resolved).
 <!-- sq:discussion:end -->

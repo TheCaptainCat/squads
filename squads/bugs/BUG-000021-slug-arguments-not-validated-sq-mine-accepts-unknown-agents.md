@@ -49,13 +49,13 @@ Audit every slug-accepting surface for the same laxity — at least: `sq mine`, 
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-11T12:12:18Z] Catherine Manager:
+- [2026-06-11T12:12:18Z] `manager` Catherine Manager:
   - Triage 2026-06-11: stays medium — second in the bug queue, after BUG-22. Real correctness issue (typo'd slug silently reports an empty workload and stalls the agent loop) but no data corruption. Implementation note: build the shared resolve-slug-or-raise helper in step with FEAT-19's item-ID resolver so the pattern lands once; audit all slug-accepting surfaces listed in the body.
-- [2026-06-11T12:16:05Z] Olivia Lead:
+- [2026-06-11T12:16:05Z] `tech-lead` Olivia Lead:
   - Fix task created: TASK-43 (medium, @python-dev). Shared resolve-slug-or-raise helper coordinated with FEAT-19's resolver pattern. Second in the queue.
-- [2026-06-11T12:51:03Z] Olivia Lead:
+- [2026-06-11T12:51:03Z] `tech-lead` Olivia Lead:
   - @qa Fix landed and reviewed (TASK-43, Done). Slug args now validated against the roster (agents + operators) via resolve_slug_or_raise across mine/inbox/list/comment --as/update --assignee/--author/add-* --assignee. Please verify: 'sq mine ghost' and 'sq inbox ghost' exit non-zero with 'unknown slug'; a valid agent slug and an operator slug (op-pierre) both work; bare 'sq mine' errors (slug required). Uncommitted in the working tree. Bug stays open until you verify.
-- [2026-06-11T13:19:21Z] Mara Tester:
+- [2026-06-11T13:19:21Z] `qa` Mara Tester:
   - Verified fix for BUG-21 (TASK-43) against working tree.
   - sq mine ghost → exit 1, 'error: unknown slug ghost; valid slugs: architect, devops, manager, op-pierre, product-owner, python-dev, qa, reviewer, tech-lead, tech-writer'.
   - sq inbox ghost → exit 1, same clean message.

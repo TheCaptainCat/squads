@@ -85,7 +85,7 @@ Service-level test + CLI smoke test: long fact yields a short slug (summary/body
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-15T11:59:56Z] Elias Python:
+- [2026-07-15T11:59:56Z] `python-dev` Elias Python:
   - _store.add now derives a short slug via new _short_slug() (leading words, capped at 5 words / 40 chars, cut at a word boundary) instead of slugifying the whole fact; added an optional slug= override (slugified) plumbed through Service.memory_add and a new --slug option on sq memory <role> add.
   - Full fact text is untouched in summary/body; _unique_slug's -2/-3 collision suffixing still runs on top of either the derived or overridden base slug.
   - Updated the pre-existing memory tests whose long fixture facts previously produced long slugs (service, CLI, git-merge, backend-lifecycle-contract suites) to the new short-slug expectations, and added new coverage: long-fact->short-slug + summary intact, --slug override, --slug collision -2, and a hand-written long-slug .md still resolving via show/forget.

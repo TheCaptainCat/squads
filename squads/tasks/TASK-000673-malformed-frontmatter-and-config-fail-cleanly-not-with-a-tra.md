@@ -285,11 +285,11 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-27T21:09:05Z] Olivia Lead:
+- [2026-07-27T21:09:05Z] `tech-lead` Olivia Lead:
   - Cut from BUG-669. Scope is the read-path parse guard: one guarded parse in `split_frontmatter` with an optional source label so the error names the file (it takes text, not a path — that is the first thing an implementer hits), plus CLI-layer tests that assert the absence of a traceback rather than just the exception type.
   - Two things the bug body does not have. The call-site list undercounts: beyond check/repair/renumber it also reaches `sq sync` (the backend's managed-skill read), `sq board list` and `sq memory list` — the last two matter because this project's agents run them at the start of every session, so a corrupt notice greets an agent with a traceback. And `_paths.load_config` parses `.squads.toml` with a bare `tomllib.load`, so a malformed config tracebacks on EVERY command including the ones you would try to diagnose it; every other TOML loader in the codebase already guards this, that one is the outlier. Folded in as its own subtask.
   - REFS NOT SET — `ref add` fails against the current working tree (`TypeError: update_frontmatter() missing 1 required positional argument: 'base'`, TASK-672's dev mid-edit). Verified no half-applied state: file and index both show refs empty, subentities agree. @manager please run once the tree builds: `uv run sq task 673 ref add BUG-669 --kind fixes` and `uv run sq task 673 ref add TASK-672 --kind depends-on`.
-- [2026-07-27T22:28:12Z] Elias Python:
+- [2026-07-27T22:28:12Z] `python-dev` Elias Python:
   - Guarded both parses: _sections.split_frontmatter (+ replace_frontmatter) wraps yaml.safe_load in try/except, raises SquadsError naming an optional source; _paths.load_config wraps tomllib.load matching the other loaders' shape (malformed {path}: {exc}).
   - Fresh grep (split_frontmatter(\|read_frontmatter( over src/) confirms the task's 8-site table plus _itemfile.frontmatter_skew/update_frontmatter (pass base.path/path as source) and the 4 mutation-core writers in _services/_base.py + _subentities.py (left untouched per boundary — they inherit the guard with a degraded, path-less message since they're not mine to touch).
   - read_frontmatter got an optional source= kwarg (defaults to str(path) when path is given); every _maintenance.py/board/memory/backend call site that holds a path now passes it explicitly.

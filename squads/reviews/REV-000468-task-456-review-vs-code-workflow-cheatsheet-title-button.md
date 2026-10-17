@@ -48,7 +48,7 @@ Purely theoretical for the actual input: the workflow cheatsheet carries no bloc
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T16:00:54Z] Paul Reviewer:
+- [2026-07-17T16:00:54Z] `reviewer` Paul Reviewer:
   - Recommend APPROVE (leaving status for the approver — not self-approving).
   - Verified against HEAD, TASK-456 scope only: getWorkflowRaw mirrors getRaw (argv ['workflow','--raw'], full exit-code/spawn mapping, unit-tested 4 ways); renderMermaidFences defaults false so the item-preview path (renderOutcomeHtml → 2-arg call) is unregressed and still renders mermaid as plain code; renderWorkflowHtml opts in. Generalized render script scans querySelectorAll('.sq-graph-source') + data-output-id — N-diagram, no fixed pair; markdown test derives fence count from the fixture dynamically.
   - CSP stays strict: buildPreviewHtml policy unchanged (default-src 'none'; style-src/script-src nonce-only), reused verbatim for the workflow panel; same DOMParser + per-render-nonce mechanism, no unsafe-inline/eval. Separate owned panel (squadsWorkflowPreview) tracked via activeWorkflowPanel independent of activePanel — reuse-or-create + guarded onDidDispose; opening the cheatsheet never steals the item panel and vice versa.

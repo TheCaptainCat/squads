@@ -104,7 +104,7 @@ _Add with `sq review 1063 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T15:38:14Z] Elias Python:
+- [2026-10-16T15:38:14Z] `python-dev` Elias Python:
   - Fixed. Falsification: CRLF round-trip table (LF/CRLF x role, developer, operator, skill, guide); reverting the LF-only regex turns 6 tests red.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -129,7 +129,7 @@ _Add with `sq review 1063 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T15:38:16Z] Elias Python:
+- [2026-10-16T15:38:16Z] `python-dev` Elias Python:
   - Fixed. Falsification: YAML-typed scalars (date, timestamp, non-string key) rows; identity _json_form turns 45 tests red.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -155,7 +155,7 @@ The step's MANUAL covers only the opposite direction (keeping a name for a role 
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T15:38:18Z] Elias Python:
+- [2026-10-16T15:38:18Z] `python-dev` Elias Python:
   - Fixed. Falsification: name is unchosen when it equals any configuration layer name (bundled, roles.toml, per-slug, pool); old bundled-only rule turns 5 tests red.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -180,7 +180,7 @@ A 0.15 `sq repair` then a `sq sync` restore it, and the item files are untouched
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T15:38:20Z] Elias Python:
+- [2026-10-16T15:38:20Z] `python-dev` Elias Python:
   - Fixed. Falsification: refused first step restores the index as 0.15 read it, later step says rebuild with earlier release; no restore turns 1 test red.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -201,7 +201,7 @@ ADR-1007 refuses `path` and `prefix` as declared attribute names, but decision 7
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T15:38:23Z] Elias Python:
+- [2026-10-16T15:38:23Z] `python-dev` Elias Python:
   - Fixed. Falsification: path and prefix are both kept as unknown attributes, left out of --json rows; re-excluding them turns 30 tests red.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -222,7 +222,7 @@ Before this change those names were nested under `extra`, apart from adopter key
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T15:38:25Z] Elias Python:
+- [2026-10-16T15:38:25Z] `python-dev` Elias Python:
   - Fixed. Falsification: retired-key sweep spares keys the spec declares on role; ignoring declarations turns 7 tests red.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -243,7 +243,7 @@ Before this change those names were nested under `extra`, apart from adopter key
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T15:38:27Z] Elias Python:
+- [2026-10-16T15:38:27Z] `python-dev` Elias Python:
   - Fixed. Falsification: pool_name role attribute (pinned) restores unchosen developer names; ignoring it turns 1 test red.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -269,7 +269,7 @@ None of these is a shape the released tool writes, but the step is meant to refu
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T15:38:29Z] Elias Python:
+- [2026-10-16T15:38:29Z] `python-dev` Elias Python:
   - Fixed. Falsification: flattening refuses core-key/extra/path/prefix in extra and non-roster slug mismatch; check off turns 7 tests red.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -290,7 +290,7 @@ In this repository both skills that carry `extra.description` hold it byte-ident
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-16T15:38:31Z] Elias Python:
+- [2026-10-16T15:38:31Z] `python-dev` Elias Python:
   - Fixed. Falsification: report lists files where a dropped skill description differed; flag off turns 2 tests red.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -313,7 +313,7 @@ In this repository both skills that carry `extra.description` hold it byte-ident
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-10-16T15:38:34Z] Elias Python:
+- [2026-10-16T15:38:34Z] `python-dev` Elias Python:
   - Fixed. Falsification: pin table keyed by AttributeKey, catalog/retired names moved out, comment rewritten; no behavioural mutation (pyright/ruff enforce key names).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -322,16 +322,16 @@ In this repository both skills that carry `extra.description` hold it byte-ident
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T15:13:31Z] Paul Reviewer:
+- [2026-10-16T15:13:31Z] `reviewer` Paul Reviewer:
   - Reviewed TASK-1059 ST1-ST8 (commit 62871850). Verdict: ChangesRequested, with 2 high, 4 medium and 4 low findings, each driven on scratch squads.
   - High: F1, a CRLF role file is corrupted by the 0.16 step and other CRLF items keep a nested extra; F2, an unquoted YAML date in any attribute makes its item unwritable, and sq repair does not clear it.
   - Medium: F3, names that came from configuration are marked chosen; F4, after a refused run, 0.15.0 misreads the rebuilt index; F5, path and prefix keys are dropped on write; F6, the sweep removes a declared role attribute named like a retired key.
   - @python-dev please take F1 to F10. @manager F3 changes how existing roles are marked, so it may need the operator's call on the rule.
-- [2026-10-16T15:15:20Z] Pierre Chat:
+- [2026-10-16T15:15:20Z] `op-pierre` Pierre Chat:
   - 2026-10-16, F3: at migration, a role's name counts as unchosen when it equals the name the configuration layers resolve at that moment (bundled catalog, then roles.toml, then the per-slug file); any other name was chosen by hand.
-- [2026-10-16T15:38:36Z] Elias Python:
+- [2026-10-16T15:38:36Z] `python-dev` Elias Python:
   - F1-F10 fixed in the working tree, uncommitted. Gates clean (pyright, ruff, sq check, targeted suites). @reviewer @manager ready for re-review.
-- [2026-10-16T15:44:04Z] Paul Reviewer:
+- [2026-10-16T15:44:04Z] `reviewer` Paul Reviewer:
   - - 2026-10-16 re-review of the uncommitted fixes on top of 62871850. I re-ran every original reproduction against the dev tree, on fresh copies of the 0.15.0-built squads:
       - F1: the CRLF role file keeps one frontmatter block and its CRLF endings, with `name_chosen: true`. The CRLF guide is flattened (`tags` and `tech` lifted). The run exits 0.
       - F2: unquoted date, timestamp and int-key values no longer block a write after `sq repair`, and `sq check` is clean.
@@ -347,8 +347,8 @@ In this repository both skills that carry `extra.description` hold it byte-ident
     - (b) F7, `pool_name` is needed, not derivable. The draw is `pool[seq % len(pool)]`, with `seq` the number of developers at the time the role was added. After developers are removed, or the pool is overridden, that sequence cannot be recovered. Once a per-slug name is applied, the stored title no longer holds the draw either. It duplicates `title` only while the developer is unrenamed. One residue: a developer already renamed by a per-slug file before the migration gets no `pool_name`, so removing that file keeps the per-slug name. The draw is unrecoverable in that case, so this is acceptable.
     - Observation, not blocking: since F2, an unrelated write stores a YAML-native value in its JSON form. An unquoted `2026-10-20` becomes `'2026-10-20'`, and `{1: a}` becomes `{'1': a}`. For a date the value is equal, but an int key changes type. @architect, ADR-1007 decision 5 says a value is carried "verbatim", so it may want a dated note.
     - No finding of medium severity or worse is left. REV-1063 moves to InReview, and I recommend approval. @manager
-- [2026-10-16T15:44:39Z] Catherine Manager:
+- [2026-10-16T15:44:39Z] `manager` Catherine Manager:
   - Approved on the reviewer's recommendation: F1–F10 Fixed and re-verified against the original repros; full suite 10,977 passed, 0 failed.
-- [2026-10-16T16:14:43Z] Pierre Chat:
+- [2026-10-16T16:14:43Z] `op-pierre` Pierre Chat:
   - 2026-10-16: confirmed the built F3 reading: at migration a role's name is unchosen when it equals the name of any configuration layer (catalog, roles.toml, per-slug file, developer pool).
 <!-- sq:discussion:end -->

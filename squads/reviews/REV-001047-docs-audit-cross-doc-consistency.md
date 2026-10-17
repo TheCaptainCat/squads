@@ -94,7 +94,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-16T11:20:11Z] Theo Writer:
+- [2026-10-16T11:20:11Z] `tech-writer` Theo Writer:
   - Fixed in docs/roles.md (How roles, skills, and items connect): a role item stores its slug and name.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -115,7 +115,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-16T11:20:22Z] Theo Writer:
+- [2026-10-16T11:20:22Z] `tech-writer` Theo Writer:
   - Fixed in docs/overrides.md (override layout tree): head.md.j2 and summary.md.j2 are marked as used only by migrations, with no effect on show.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -136,7 +136,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-16T11:20:24Z] Theo Writer:
+- [2026-10-16T11:20:24Z] `tech-writer` Theo Writer:
   - Fixed in docs/stability.md (Staleness & drift bullet): stamp format covers per-role files and all three spec documents; templates always need it, shadowing per-role files and spec documents need it, add-only ones do not. Driven: unstamped roles.toml shadow and per-role file error, a new-role per-slug file is clean.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -157,7 +157,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-16T11:20:27Z] Theo Writer:
+- [2026-10-16T11:20:27Z] `tech-writer` Theo Writer:
   - Fixed in docs/backends.md and docs/stability.md: both now say four non-abstract methods and name managed_entry_paths, restriction_fragment, render_role_entry, render_skill_entry (counted in AgentBackend: 7 abstract, 4 with defaults).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -178,9 +178,9 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-16T11:19:17Z] Mara Tester:
+- [2026-10-16T11:19:17Z] `qa` Mara Tester:
   - F5 reproduced with the dev build and filed as BUG-1049. Only full_name is affected (title and mission from roles.toml do reach an active role); a newly activated role gets the roles.toml name. Cause is role_base_from_item keeping the stored title; ADR-777 section 3 states no full_name carve-out.
-- [2026-10-16T11:25:49Z] Catherine Manager:
+- [2026-10-16T11:25:49Z] `manager` Catherine Manager:
   - Home: BUG-1049 (roles.toml full_name ignored for an active role). The three passages to re-check once it is fixed are listed in the writer's REV-1047 comment.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -201,7 +201,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-16T11:20:29Z] Theo Writer:
+- [2026-10-16T11:20:29Z] `tech-writer` Theo Writer:
   - Fixed in docs/tutorial.md: every item has an author, a role slug or op-<slug> for a human operator. Driven: sq create epic --author op-alice succeeds.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -222,7 +222,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-16T11:20:31Z] Theo Writer:
+- [2026-10-16T11:20:31Z] `tech-writer` Theo Writer:
   - Fixed in docs/README.md and docs/internals.md diagrams (definition rendered on read), docs/internals.md folder tree and role-pointer bullet, docs/backends.md (pointers, not copies), and docs/overrides.md (the role body bullet now names the sq role show heading).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -243,7 +243,7 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-16T11:20:33Z] Theo Writer:
+- [2026-10-16T11:20:33Z] `tech-writer` Theo Writer:
   - Fixed in docs/faq.md and docs/adoption.md. Re-driven: a role or generated-skill body holding prose is left alone by sq repair, show prints that prose in place of the definition, and sq check errors (missing seeded view tag, exit 3) with a remedy. The faq clause about show was true and is kept; the check error is added to both.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -252,14 +252,14 @@ _Add with `sq review 1047 add-finding "…" --severity medium`; track with `sq r
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-16T11:25:13Z] Theo Writer:
+- [2026-10-16T11:25:13Z] `tech-writer` Theo Writer:
   - Fixed F1, F2, F3, F4, F6, F7, F8 in docs/roles.md, overrides.md, stability.md, backends.md, tutorial.md, README.md, internals.md, faq.md, adoption.md. Each finding has its own comment naming where.
   - F5 left Open pending the roles.toml full_name bug. Passages it affects: overrides.md roles.toml Precedence paragraph and Which name wins; stability.md Project-level overrides Precedence bullet.
   - F8 re-driven: show prints the prose in place of the definition (role and skill), not the catalog definition; sq check errors with exit 3. Docs describe that.
   - @manager ready for your pass.
-- [2026-10-16T11:26:20Z] Catherine Manager:
+- [2026-10-16T11:26:20Z] `manager` Catherine Manager:
   - Approved: every finding Fixed (re-run by the writer on the dev build) or closed with a home; cross-doc seams checked in REV-1047.
-- [2026-10-16T11:34:06Z] Pierre Chat:
+- [2026-10-16T11:34:06Z] `op-pierre` Pierre Chat:
   - - 2026-10-16: prose is allowed in a roster entry's body, agent role or operator alike. `sq check` must stop reporting "missing seeded view tag … the body already carries prose" as an error for it; `show` already honours the prose.
     - Intended use: an operator's body records who the human is (their role on the project, e.g. tech or QA, their expertise, what they come to do). The greeting skill reads it to know who it is talking to. When the name matches no registered operator, it offers to register them and asks a few questions about their role, so the next session can load that profile.
 <!-- sq:discussion:end -->

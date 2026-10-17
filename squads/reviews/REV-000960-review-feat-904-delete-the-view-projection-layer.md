@@ -121,7 +121,7 @@ Post-change render, on both paths: BUG-27, ADR-28, FEAT-25 and BUG-22, BUG-23, F
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-09-24T08:37:12Z] Paul Reviewer:
+- [2026-09-24T08:37:12Z] `reviewer` Paul Reviewer:
   - Verified against the op-pierre ruling (new type-then-id order accepted). Re-ran the 7-member fixture: the direct view and milestone show --raw render byte-identically to each other, and in type-then-id order inside every section. Checked the new test by breaking the template in a scratch copy: dropping case_sensitive=True turns the case test red, and a status-first sort turns the order test red. The test pins the member order through the id sequence and checks that the direct render appears inside the tag-driven read. It is not a full byte snapshot. That meets the ruling's intent; it is a judgment call only if the operator meant a literal snapshot.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -147,7 +147,7 @@ Fix: a dedicated check for the four retired keys that runs before the generic `e
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-09-24T08:37:16Z] Paul Reviewer:
+- [2026-09-24T08:37:16Z] `reviewer` Paul Reviewer:
   - Verified by running it through a project override. order_by on all six source kinds, group_by nested under source, the inline-table view, empty values, all four keys at once, and both splat forms (fields and items.bug.views) all fail at load with '<key> was retired' and the dotted path, exit 1. Keys that are not retired are unaffected: views named fields/group_by load, and items.bug.fields loads. A genuinely unknown key still gets the generic text. One gap is left in sq workflow lint, filed as F9.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -166,7 +166,7 @@ Fix: make `render_view` a two-liner over `resolve_view_source`. Then REV-920 F11
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-09-24T08:37:20Z] Paul Reviewer:
+- [2026-09-24T08:37:20Z] `reviewer` Paul Reviewer:
   - Verified. render_view is now resolve_view_source plus render_source_view. In services/_views.py, require_item(, store.load(, views.resolve_source( and the 'no declared view' string each appear 2 times at HEAD and 1 time now (each grep checked against HEAD first).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -186,7 +186,7 @@ Acceptance was "gone, not unreachable" for the middle layer. These are its remai
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-09-24T08:37:26Z] Paul Reviewer:
+- [2026-09-24T08:37:26Z] `reviewer` Paul Reviewer:
   - Verified. RELATION_KINDS and JsonValue have 0 hits across src, tests, docs and clients/vscode/src, against 2 and 1 at HEAD. The module docstring no longer cites RELATION_KINDS.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -205,7 +205,7 @@ Fix: either pass the view (or its name) into the template context, or reword the
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-09-24T08:37:32Z] Paul Reviewer:
+- [2026-09-24T08:37:32Z] `reviewer` Paul Reviewer:
   - Verified by reading. The docstring now says render_source_view passes source, item and spec, never the ViewSpec, so a template hard-codes the kind. That matches the code.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -226,7 +226,7 @@ Fix: either pass the view (or its name) into the template context, or reword the
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-09-24T08:37:36Z] Paul Reviewer:
+- [2026-09-24T08:37:36Z] `reviewer` Paul Reviewer:
   - Verified by reading. The heading is now 'Derived views: field reference', and both anchors (workflow.md:327, overrides.md:884) point at #derived-views-field-reference. overrides.md:198 is reworded. The declaration-versus-presentation contradiction is gone from docs/workflow.md and the _views docstring. The workflow.toml milestone comment and both 'projects' error strings are reworded.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -252,7 +252,7 @@ This list came from a grep pre-filter plus reading. Once the rewrite is done, gr
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-09-24T08:37:41Z] Paul Reviewer:
+- [2026-09-24T08:37:41Z] `reviewer` Paul Reviewer:
   - Verified. All nine listed sites are reworded into present-tense fact. The fix introduced one new narration line, filed as F10.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -275,20 +275,20 @@ FEAT-908 US3 ("0.15 CHANGELOG names this as a breaking change") overlaps. That i
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-09-24T07:59:06Z] Theo Writer:
+- [2026-09-24T07:59:06Z] `tech-writer` Theo Writer:
   - CHANGELOG.md, unreleased 0.15.0 section, uncommitted:
     
     - Changed: new first entry "BREAKING — a view declares only its `source`; `fields`, `group_by`, `order_by` and type-attached views are removed." Covers the four keys failing at load (driven in a scratch squad: each gives exit 1 naming the key), the removed `{fields, group_by, groups}` view `--json` object, the `sq workflow views --json` columns, the `views` key on `show --json`, and the operator-accepted roll-up order (type, then id within each section; checked on a fixture with interleaved status roles).
     - Added: the "Views can now source from…" entry now says a view is a `source` plus a template, and what the template receives, and points at the breaking entry.
     - The error text isn't quoted, because F2 may change it. The entry only says the error names the key.
     - The 0.15.0 section never described the three-part grammar as newly shipped. That text is in the released 0.14.0 section and is left alone as history.
-- [2026-09-24T08:37:50Z] Paul Reviewer:
+- [2026-09-24T08:37:50Z] `reviewer` Paul Reviewer:
   - Reopened: one claim in the new CHANGELOG entry is false. 'source_name is null for the role, playbook and self kinds' does not hold for playbook. A playbook source's name is optional (docs/workflow.md field reference, and _check_view_source accepts a declared type), so a view declared as { kind = "playbook", name = "bug" } emits source_name bug. Suggested wording: null for role and self, and for a playbook view that names no type. Everything else in the entry checks out against the code: 0.14.0 did emit projection_json from sq workflow view --json (git show v0.14.0), 0.14 declared group_by status_role, the view add verb exists, and show --json has no views key.
-- [2026-09-24T08:39:56Z] Theo Writer:
+- [2026-09-24T08:39:56Z] `tech-writer` Theo Writer:
   - Corrected the `source_name` claim in the 0.15.0 BREAKING entry. It now reads: "`source_name` is always `null` for the `role` and `self` kinds, and `null` for a `playbook` view unless it names a type." I checked this against `_check_view_source`, where a playbook name is optional. I also drove it: a view with `source = { kind = "playbook", name = "bug" }` gives `"source_name":"bug"` in `sq workflow views --json`.
     
     F2's new retired-key message doesn't change the entry. I drove `order_by`, `fields` in the splat position, and `items.bug.views`. Each exits 1, and the error gives the key path (e.g. `views.milestone_rollup.order_by`) and says the key was retired. So "the error names the offending key and the view or type it sits on" still holds.
-- [2026-09-24T08:48:04Z] Paul Reviewer:
+- [2026-09-24T08:48:04Z] `reviewer` Paul Reviewer:
   - Verified: the CHANGELOG now says source_name is always null for role and self, and null for a playbook view unless it names a type. That matches _check_view_source and the bundled declarations.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -308,7 +308,7 @@ Optional, not required: the messages end in "now" ("the presentation template's 
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-09-24T08:48:10Z] Paul Reviewer:
+- [2026-09-24T08:48:10Z] `reviewer` Paul Reviewer:
   - Verified by running it. With retired keys on two views plus items.bug.views, sq workflow lint prints one row per key, each located at its dotted path (views.v3.fields, views.v3.group_by, views.v4.order_by, items.bug.views). The items hint now names sq <type> <n> view add <name>. fields has its own reason. The new _RETIRED_VIEW_KEY_REASONS table is allowlisted in tests/meta, and tests/meta passes.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -325,7 +325,7 @@ A grep of the fix diff for reviewer/finding/no longer/any more/now that/is gone/
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
-- [2026-09-24T08:48:17Z] Paul Reviewer:
+- [2026-09-24T08:48:17Z] `reviewer` Paul Reviewer:
   - Verified: the narration clause is gone, and a grep over the test file for reviewer/probed returns 0. The one remaining past-tense phrase, 'used to be bundled', describes something a 0.14 adopter can see, so it passes the carve-out.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
@@ -334,32 +334,32 @@ A grep of the fix diff for reviewer/finding/no longer/any more/now that/is gone/
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-24T07:50:02Z] Paul Reviewer:
+- [2026-09-24T07:50:02Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested. The summary and routing are on FEAT-904.
-- [2026-09-24T07:55:22Z] Pierre Chat:
+- [2026-09-24T07:55:22Z] `op-pierre` Pierre Chat:
   - F1 ruling: accept the new order (type, then id within each section). Keep it, pin it with a snapshot test, and note the order change in the CHANGELOG. F1-F7 go to python-dev, F8 to tech-writer.
-- [2026-09-24T08:18:52Z] Elias Python:
+- [2026-09-24T08:18:52Z] `python-dev` Elias Python:
   - F1: accepted new order per op-pierre ruling; template sort made explicit case_sensitive=True (ASCII order); pinned with tests/service/test_milestone_rollup_section_order.py (mixed-status-role fixture + case-sensitivity probe), falsified both ways.
-- [2026-09-24T08:18:54Z] Elias Python:
+- [2026-09-24T08:18:54Z] `python-dev` Elias Python:
   - F2: added a dedicated retired-view-grammar-key check (_workflow/_loader.py::_retired_view_grammar_violations), run on the raw override before splat resolution/merge, so all 4 retired keys (incl. nested-under-source and splat-token positions) name themselves as retired, never 'unknown'/'brand-new'; lint fix hint no longer says 'add it back'. Overlaps FEAT-908 US1's acceptance -- same mechanism, worth a closing note there.
-- [2026-09-24T08:18:57Z] Elias Python:
+- [2026-09-24T08:18:57Z] `python-dev` Elias Python:
   - F3: render_view collapsed onto resolve_view_source + render_source_view (services/_views.py); grep-verified resolve_source/require_item/store.load each appear once now.
-- [2026-09-24T08:18:59Z] Elias Python:
+- [2026-09-24T08:18:59Z] `python-dev` Elias Python:
   - F4: deleted RELATION_KINDS (_workflow/_models.py) and JsonValue (_views.py); grep confirms zero remaining references, reworded the two docstrings that cited them.
-- [2026-09-24T08:19:02Z] Elias Python:
+- [2026-09-24T08:19:02Z] `python-dev` Elias Python:
   - F5: reworded _resolve_subentity_source's docstring -- render_source_view never passes 'view' to a template, so a template needing the kind hard-codes it; no route via view.source.name exists.
-- [2026-09-24T08:19:04Z] Elias Python:
+- [2026-09-24T08:19:04Z] `python-dev` Elias Python:
   - F6: renamed the workflow.md anchor (declared-projections -> field-reference, fixed both cross-refs), reworded overrides.md's 'read-only projections' line, fixed the milestone.toml comment and the 'A view is a source and nothing else:' self-contradiction in both docs/workflow.md and _views.py's module docstring, reworded the two 'projects' error strings.
-- [2026-09-24T08:19:08Z] Elias Python:
+- [2026-09-24T08:19:08Z] `python-dev` Elias Python:
   - F7: swept the feature's own diff for narration ('any more', 'no longer exists', 'now that', 'is gone') and fixed every hit in workflow.toml, _models.py, and 3 test docstrings; validated the grep against the pre-fix tree first.
-- [2026-09-24T08:38:39Z] Paul Reviewer:
+- [2026-09-24T08:38:39Z] `reviewer` Paul Reviewer:
   - Re-review: F1-F7 Verified, F8 reopened, F9 and F10 new (all low). Stays ChangesRequested. Summary on FEAT-904.
-- [2026-09-24T08:44:33Z] Elias Python:
+- [2026-09-24T08:44:33Z] `python-dev` Elias Python:
   - F9: lint findings now carry v.path (views.<name>.<key> / items.<type>.views) as their location instead of the bare file path; items.<type>.views hint now names 'sq <type> <n> view add <name>' instead of the refused body-edit phrasing. Also (tech-writer's addition): fields no longer shares group_by/order_by's 'grouping and ordering' reason -- it now says choosing/labelling columns is the template's job. Table-driven tests for all three; falsified each (drop v.path, revert hint text, revert to the shared reason) -- red, then green.
-- [2026-09-24T08:44:35Z] Elias Python:
+- [2026-09-24T08:44:35Z] `python-dev` Elias Python:
   - F10: dropped 'a shape the reviewer probed' from the nested-under-source test docstring; re-swept my own F1-F10 additions (git diff of every file I touched) for reviewer/process narration -- only the already-accepted 'used to be bundled' line remains.
-- [2026-09-24T08:48:23Z] Paul Reviewer:
+- [2026-09-24T08:48:23Z] `reviewer` Paul Reviewer:
   - F8-F10 Verified, so all ten findings are closed. Recommended verdict: Approve. I'm leaving the transition to the operator. Gates are clean, and targeted pytest over 129 paths, tests/meta included, passed 1715.
-- [2026-09-24T08:49:03Z] Catherine Manager:
+- [2026-09-24T08:49:03Z] `manager` Catherine Manager:
   - Approved per op-pierre (this session): all ten findings Verified by the reviewer; full suite 5089 passed / 0 failed on the final tree.
 <!-- sq:discussion:end -->

@@ -214,14 +214,14 @@ arrives as an additive change.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-09T18:34:58Z] Pierre Chat:
+- [2026-10-09T18:34:58Z] `op-pierre` Pierre Chat:
   - 2026-10-09: accepted as written. One staleness threshold per squad and non-dialable always-on checks are fine for now.
-- [2026-10-12T05:59:31Z] Robert Architect:
+- [2026-10-12T05:59:31Z] `architect` Robert Architect:
   - 2026-10-12: one dated note added after clause 4's list, nothing else in the body changed; `related` ref to ADR-696 added. For op-pierre to confirm. @manager
     
     - The three members that count active items count `work`-category items at a status whose role declares `live = true`, never a role matched by name.
     - A sixth Plane-1 check: a selection the spec's own declarations make unable to fire is refused.
     - It follows ADR-864's amendment of the same date; FEAT-902 has the story changes.
-- [2026-10-12T06:19:21Z] Pierre Chat:
+- [2026-10-12T06:19:21Z] `op-pierre` Pierre Chat:
   - 2026-10-12: the note of this date stands for squad scope (an active item is a work-category item at a live status; a selection that cannot fire is refused at load), with one change from my ruling on ADR-864: blocked is a flag a role declares, not a role named by a parameter.
 <!-- sq:discussion:end -->

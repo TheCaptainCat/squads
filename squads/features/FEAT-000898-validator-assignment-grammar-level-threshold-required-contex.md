@@ -149,7 +149,7 @@ Acceptance: parent_present can be selected at warn in a project's own spec witho
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-08T14:01:58Z] Theo Writer:
+- [2026-09-08T14:01:58Z] `tech-writer` Theo Writer:
   - Documented the validator selection grammar for adopters. Docs only — no source, tests or spec touched.
     
     **Where.** The reference lives in `docs/overrides.md`, as a new `#### Validators: the checks a type runs, and how loud they are`, sibling to `#### Items: custom work types`. `validators` is a field of `[items.<type>]` that only ever appears in `.overrides/workflow.toml`, and that file is what overrides.md documents; it already carried two `validators = [...]` snippets with no grammar behind them. Also: `validators` added to the optional-field list in both docs' item-type reference, one row added to overrides.md's hard-stop error table, and `docs/workflow.md`'s "Keeping a contract current" extended with the multi-target form and the level note (that section is where an adopter arrives from the usage side).
@@ -173,7 +173,7 @@ Acceptance: parent_present can be selected at warn in a project's own spec witho
     **Also for the record, not mine:** `tests/meta` currently fails the stray-ticket gate on two uncommitted source comments — `src/squads/_cli/_role.py:484` and `src/squads/_cli/_skill.py:333`, both carrying an ADR id. Absent from HEAD, so they belong to the concurrent view/skill work, and they will block a commit. @manager to route.
     
     `uv run sq check` clean. `tests/meta` + `tests/cli/test_docs_cli.py`: 284 passed, the only failures the two source violations above; `docs/` is clean in that gate. Did not run the full suite.
-- [2026-09-08T14:07:32Z] Theo Writer:
+- [2026-09-08T14:07:32Z] `tech-writer` Theo Writer:
   - Follow-up pass on the validator-grammar docs: the stale `[selected]` key list corrected, and the write-gate rule moved to the point of decision. Still docs only.
     
     **1. `[selected]` key list — corrected to eight, driven not assumed.** Drove the refusal in a fresh throwaway squad rather than adding `views` on the routing note. Output:
@@ -202,7 +202,7 @@ Acceptance: parent_present can be selected at warn in a project's own spec witho
     - `ref_rule_target_present:contract@error` (corpus type scan) — every transition through to a delivered status exit 0, `sq check` 3 with the finding at error level.
     
     Gates: `tests/meta` + `tests/cli/test_docs_cli.py` 286 passed, 0 failed — the two stray ADR-id source comments I reported last pass are gone from the working tree, so that gate is green again. All cross-file doc anchors resolve. `uv run sq check` clean. My diff is `docs/overrides.md` and `docs/workflow.md` only. Did not run the full suite; no commit.
-- [2026-09-08T14:56:29Z] Catherine Manager:
+- [2026-09-08T14:56:29Z] `manager` Catherine Manager:
   - Closed. The validator assignment grammar ships: a level suffix on the selection (@ rather than a second colon, since the param separator already owns that), a declared floor a selection may raise but not lower, thresholds resolved from the spec rather than module constants, and the multi-versus-single-selection distinction declared per member with an import-time assert closing the classification. parent_present is now selectable at warn -- the cliff that kept it unbundled was its level, not its rule.
   - REV-925 Approved: six findings, F1/F2/F4/F5/F6 Verified and F3 WontFix. Two were caused by the fixes themselves -- F5 by over-generalising F1s duplicate rule to a member whose resolver reads only its first match, and F6 by broadening a message that then contradicted itself. Both closed at the class level rather than the instance: the multi/single split is declared and asserted, so the next parameterised member cannot be added without someone classifying it.
   - Also delivered against this feature: the grammar, the floor and the write-gate rule are now documented for adopters in docs/overrides.md and docs/workflow.md. Driving them turned up an adopter-visible fact the code comments did not state -- raising a level does not always give a write gate, because a check that reads the items file text or scans the corpus cannot run on the gate path at all. The reviewer confirmed the code already declares that distinction per member and a tests/meta check re-derives it, so the docs describe a real property rather than an aspiration.

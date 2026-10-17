@@ -28,10 +28,10 @@ updated_at: '2026-07-21T14:14:19Z'
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-21T13:45:06Z] Elias Python:
+- [2026-07-21T13:45:06Z] `python-dev` Elias Python:
   - Fixed across all 3 named surfaces (+ the search no-results line, same pattern). Root cause was more specific than 'Rich escape not honored': rich.markup.escape only escapes '[' when followed by [a-z#/@] (calibrated to Rich's own tag grammar), so a bracket sequence starting with an uppercase letter or digit (e.g. a discussion timestamp '[2026-...]', or a title mentioning '[Note]') passes through unescaped, and Textual's Content parser (broader/different tag recognition than Rich's) can then silently swallow it or, in the right arrangement, raise 'closing tag ... does not match any open tag'.
   - Fix: stopped concatenating dynamic content into markup strings entirely. _search.py/_reader.py now build Textual textual.content.Content via Content.from_markup(template, **vars) -- the template's own tags parse as markup, substituted values are inserted verbatim and never re-parsed (verified directly against the installed Textual: a value containing a literal '[/dim]' renders as plain text). _tree.py's item-title label now builds a rich.text.Text via Text.assemble() with styled spans -- no markup parsing at all, for either parser. Confirmed unaffected: the Markdown body widget (raw commonmark, not Content markup) and the sub-entities Table (a genuine Rich renderable, rendered via Rich's own protocol, already safe with rich.markup.escape).
   - Verified: 4 new Pilot tests (test_bracket_content_renders_safely.py) -- tree title, discussion comment, glance assignee, search snippet -- each with content containing '[/dim]' + an uppercase-bracketed '[Note]' (the shape rich.markup.escape misses); confirmed against the old e()-based functions that this exact content was silently corrupted (bracketed word dropped) before the fix, preserved intact after. Full tests/tui/ (34) + whole-repo pyright/ruff clean.
-- [2026-07-21T14:14:18Z] Pierre Chat:
+- [2026-07-21T14:14:18Z] `op-pierre` Pierre Chat:
   - Verified in live sq ui testing.
 <!-- sq:discussion:end -->

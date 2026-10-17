@@ -28,7 +28,7 @@ _Add with `sq task 619 add-subtask "<title>"`; track with `sq task 619 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-22T20:07:19Z] Theo Writer:
+- [2026-07-22T20:07:19Z] `tech-writer` Theo Writer:
   - Documented two 0.12 spec-customization features in adopter-facing docs:
   - **Custom records-category item types:** Updated docs/overrides.md and docs/workflow.md with sections explaining how adopters can declare durable-reference item types (like postmortems, contracts) with category="records". Records never have parents, live in their own folders, and aren't tracked in sq inbox. Includes TOML examples grounded in the bundled spec.
   - **Status roles:** Documented the role catalog and how each status references a role to govern its terminal/hidden/color attributes. Added a bundled role reference table, showed how to define custom roles, and updated all TOML examples in both docs to use role references instead of the earlier terminal field. sq workflow roles command documented for querying the catalog.

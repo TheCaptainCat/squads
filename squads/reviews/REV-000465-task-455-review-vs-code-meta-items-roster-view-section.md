@@ -46,7 +46,7 @@ domain/metaView.ts's private itemToLeaf and sortedLeaves are near-verbatim copie
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-07-17T15:41:59Z] Paul Reviewer:
+- [2026-07-17T15:41:59Z] `reviewer` Paul Reviewer:
   - Recommended verdict: APPROVE (leaving status for the approver). F1 is low/non-blocking cleanup.
   - Verified: (1) squadsMeta 'Roster' registered as 2nd entry in contributes.views.squads, own provider + squads.refreshMeta wired (when: view==squadsMeta); (2) buildMetaView -> exactly 3 fixed buckets (Roles/Skills/Operators), always present even empty, leaves numeric-sorted, no work-item leakage (unit-tested); (3) RESERVED_TYPES derived from META_BUCKETS single source = drift-proof both directions; (4) toTreeItem extracted to treeItemRendering.ts, byte-identical to the removed inline impl (only comment expanded), work tree uses it, no regression; (5) preview reuse: meta leaves fire squads.openItemPreview[itemId] into the same ItemPreviewManager, and sq show/tree/graph all exit 0 for ROLE-1/OP-10/SKILL-192.
   - Gate: npm run check exit 0 (tsc strict + eslint --max-warnings 0 + prettier); npm test 131/131; npm run test:canary 8/8. Leaf label/description format matches listView.ts exactly.

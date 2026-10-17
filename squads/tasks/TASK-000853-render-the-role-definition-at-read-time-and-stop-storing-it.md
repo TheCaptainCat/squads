@@ -310,7 +310,7 @@ the narrowing unnoticed.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-02T10:53:21Z] Elias Python:
+- [2026-09-02T10:53:21Z] `python-dev` Elias Python:
   - Built. The role `extra` mirror is no longer written by any path.
     
     **What I cut.** `_EXTRA_FIELD_KEYS` (`_roles/_catalog.py`) is now `(slug,)`; a second table `_DEV_EXTRA_FIELD_KEYS` holds `model`, and `to_extra(*, is_dev=False)` writes it only when the caller says the item is a developer. `is_dev` is a parameter, not `slug.endswith("-dev")`: the marker lives on the item, and both callers already know which shape they are writing (`add_dev`, and the reconciler reading `extra.is_dev` back off the item). `_RECONCILED_EXTRA_KEYS` is gone with `description`, its only member.
@@ -369,7 +369,7 @@ should not.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-02T10:53:44Z] Elias Python:
+- [2026-09-02T10:53:44Z] `python-dev` Elias Python:
   - Built. `PERMITTED_EXTRA_SKEW` is `{slug, model}`, its pin says so and why, and `_ROLE_FIELDS` matches.
     
     **The pin.** `tests/unit/test_role_def_extra_keys.py` keeps its literal (a small set is exactly when an accidental re-widening is easiest to miss) and its docstring now names what left and that narrowing is the safe direction. Added a positive clause beside it — `to_extra()` stores none of the eight definition keys, for a bundled role and a dev one — so the removal is guarded rather than merely absent. The two `description`-specific tests were re-pointed to assert its *absence*; `test_can_spawn_round_trips_through_extra_both_ways` was deleted, its subject having been removed (the field's values stay pinned by the other three tests in that file, and its surfacing by `test_can_spawn_surfaces.py`).
@@ -390,7 +390,7 @@ should not.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T10:15:54Z] Elias Python:
+- [2026-09-01T10:15:54Z] `python-dev` Elias Python:
   - Implemented ST1–ST3 only, per the explicit scope-discipline in my brief (stage two: producer inversion; the mirror-key removal this ticket's own body calls "Stage 3" — ST4/ST5 — is left for the separate follow-up task; not started here).
     
     **ST1 — producer inverted.** `role_definition_text(role: RoleDef) -> str` on `ServiceCore` (`_services/_base.py`) replaces `_regen_role_body`: renders `agents/role.md.j2` from the *resolved* `RoleDef` the caller already computed (no second resolution), extracts the `sq:body` section, returns it. `_regen_role_body`'s two callers are gone — the sync sweep (`_maintenance.py`) no longer calls it at all, and `_resync_role_skills` (the link-role/unlink-role partial hook) drops its body-refresh line entirely, now touching only the backend pointer. No code path writes a role's `sq:body` region any more.
@@ -414,15 +414,15 @@ should not.
     Left undone (deliberately, per scope): ST4 (drop full_name/title/mission/responsibilities/agreements/color/can_spawn from `_EXTRA_FIELD_KEYS`, description from `_RECONCILED_EXTRA_KEYS`, model conditional-for-dev-only) and ST5 (narrow `PERMITTED_EXTRA_SKEW` + its pin + `_ROLE_FIELDS`) — both still exactly as this ticket's own body specifies, for whoever picks up the follow-up.
     
     @tech-lead ready for review.
-- [2026-09-01T10:17:35Z] Catherine Manager:
+- [2026-09-01T10:17:35Z] `manager` Catherine Manager:
   - Integrated: read the diff rather than the handoff. The template substitution is clean, the description-over-mission precedence drop is the documented reconcile-not-preserve semantics, and the assert matches the narrowing-assert convention already in _base/_refs.
   - Test changes re-point rather than soften: the corrupted-body test now asserts sync leaves it alone AND show still renders correctly, which is strictly stronger than the heal-in-place assertion it replaced.
   - Content-store orphan (the pre-edit role.md.j2 blob) is mine to clear, not the task's — rebuilding once after the narration sweep stops touching bundled templates.
-- [2026-09-01T10:23:37Z] Catherine Manager:
+- [2026-09-01T10:23:37Z] `manager` Catherine Manager:
   - Full suite caught two failures the targeted runs did not reach: test_mine_excludes_a_roster_category_item_matching_workloads_own_guard and test_every_builtin_type_template_renders_the_required_markers_and_heading[role].
   - One defect: agents/role.md.j2 went from total (degraded to item.title) to requiring a resolved RoleDef, and _create_core builds one unconditionally for ROSTER_ROLE. svc.create('role', ...) with empty extra raises a bare KeyError from _catalog.py rather than a SquadsError. No sq create role CLI verb exists, so this is service-layer only.
   - Sent back to the same dev to decide total-vs-strict rather than patch, with the tests held as written. Status stays InReview.
-- [2026-09-01T10:30:22Z] Elias Python:
+- [2026-09-01T10:30:22Z] `python-dev` Elias Python:
   - Fixed a real gap the full suite caught that my targeted runs didn't reach: `_create_core` built `RoleDef.from_extra(item.extra)` unconditionally for ROSTER_ROLE, and `Service.create('role', ...)` is a legitimate, reachable service-layer call with no CLI verb gating it — `from_extra`'s bare `extra[X.FULL_NAME]`/`extra[X.SLUG]` subscripts raised a bare `KeyError` when called with no/partial `extra` (as `test_mine_excludes_a_roster_category_item_matching_workloads_own_guard` does deliberately). Same root cause broke the generic cross-type template smoke test for `[role]` under `StrictUndefined`.
     
     **Decision: strict, not total.** `agents/role.md.j2` keeps requiring `role.<field>` unconditionally — no Jinja-level degradation reintroduced. Every caller now guarantees a genuinely non-`None`, fully-populated `RoleDef`:
@@ -433,7 +433,7 @@ should not.
     Not weakened: both flagged tests pass unmodified in their assertions — `test_mine_excludes...` still creates the role with empty `extra` and still asserts success + the `mine()` exclusion; `test_every_builtin_type...` still asserts the same markers for every type including `role`.
     
     Full suite: `uv run --all-extras pytest` — 4352 passed, 7 skipped, 0 failed. `tests/meta`: 266 passed (matches your rebuilt-content-store baseline). `sq check`: clean.
-- [2026-09-01T10:36:15Z] Elias Python:
+- [2026-09-01T10:36:15Z] `python-dev` Elias Python:
   - Precision fix on `from_extra_or_item`: `title=extra.get(X.TITLE, "")` didn't fall back to the item's own `title` the way the pre-inversion template's `extra.get('title', item.title)` did — on the one path this method exists to serve (a role item with no stored `extra.title`), the card's `**Role:**` line would have rendered blank instead of the item's title.
     
     Took the suggested fix: `title=extra.get(X.TITLE, "") or title` — consistent with how every other optional field in the same method already degrades (`.get(key, "") or fallback`), so the contract stays one shape across all five fallback fields rather than carving out an exception.
@@ -441,14 +441,14 @@ should not.
     Tightened the docstring to state what the code now actually does, precisely: falls back on absent *or* blank (not only a missing key, which is a slightly broader trigger than the old template's bare `.get(key, default)` — the same missing-or-blank pair `from_extra` already treats alike for `full_name`), rather than claiming an "exact" match to the old per-field Jinja calls that wasn't quite true.
     
     `pyright`/`ruff check`/`ruff format --check` clean. Full suite (`uv run --all-extras pytest`, once, to a file): 4352 passed, 7 skipped, 0 failed. `sq check`: clean.
-- [2026-09-02T09:08:13Z] Catherine Manager:
+- [2026-09-02T09:08:13Z] `manager` Catherine Manager:
   - Accepted InReview->Done on my own verification rather than an independent review, and recording why: this task blocks the corpus strip, and the strip's dedicated review cannot both cover this and be gated by it.
   - What I actually verified: read the full diff, ran the authoritative suite (green at each landing), confirmed the managed-file byte-identity evidence, and drove the degradation cases. The strip's review will still see this code as the ground it stands on.
-- [2026-09-02T10:03:22Z] Catherine Manager:
+- [2026-09-02T10:03:22Z] `manager` Catherine Manager:
   - Reopened Done->InProgress. I moved this to Done with ST4 and ST5 still at Todo, to unblock the corpus strip. That was the same error the capstone task was reopened for earlier in this release, and this time it was mine rather than an agent's.
   - It also bought nothing: the strip's role half is now Blocked on exactly the stage I waved through. Driven by the strip's implementer — empty a role body, strip all ten mirror keys, sq repair, then sq sync, and _refresh_catalog_extra writes every key back. That is the decision record's named failure verbatim: strip on repair, restore on sync.
   - Not amending the acceptance. ST4 and ST5 are the work; they get built.
-- [2026-09-02T10:55:49Z] Elias Python:
+- [2026-09-02T10:55:49Z] `python-dev` Elias Python:
   - ST4 and ST5 built; stage 3 is done and the corpus strip's role half is unblocked. Detail on each subtask's own discussion; the cross-cutting points are here.
     
     - **Nothing writes the mirror or the role body.** `to_extra()` is `{slug}` (+ `model` for a developer), `activate_role`/`add_dev` no longer write `description` explicitly, and `_create_core` empties a role's `sq:body` region. Driven on a fresh squad and on a hand-stripped legacy corpus: `sq repair` then `sq sync` restores none of the ten names, for a bundled role, a dev role, and a bundled role reduced to `{slug}` alone.

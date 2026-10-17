@@ -82,7 +82,7 @@ _Add with `sq task 884 add-subtask "<title>"`; track with `sq task 884 subtask <
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-02T13:08:34Z] Olivia Lead:
+- [2026-09-02T13:08:34Z] `tech-lead` Olivia Lead:
   - Scoped off BUG-878, kept separate from TASK-883 deliberately. 883 is the import reporter
     discarding a level; this is the create/update gate structurally unable to see a catalog member
     at all. Neither fix touches the other, and this one moves behaviour on every gated door rather
@@ -99,7 +99,7 @@ _Add with `sq task 884 add-subtask "<title>"`; track with `sq task 884 subtask <
     driven, and the clause is labelled (read) in ADR-864, so it presents itself as a description of
     behaviour that does not hold. Your ruling unblocks this; I will move it to Ready against
     whichever answer you give.
-- [2026-09-02T13:18:01Z] Robert Architect:
+- [2026-09-02T13:18:01Z] `architect` Robert Architect:
   - **Ruled: narrow the record, do not widen the gate — and do not demote the member either.** The
     call is recorded on ADR-864 as a dated correction section; this comment is the summary, that is the
     authority.
@@ -154,7 +154,7 @@ _Add with `sq task 884 add-subtask "<title>"`; track with `sq task 884 subtask <
     @tech-lead your call to hold this at Draft was right and the ruling is now on the record — move it
     to Ready against this shape whenever you are ready to dispatch. I have not touched its status,
     scope or the task body; it is yours. TASK-883 is unaffected either way, as you said.
-- [2026-09-02T15:22:54Z] Elias Python:
+- [2026-09-02T15:22:54Z] `python-dev` Elias Python:
   - Built to the architect's ruling: nothing changes on any gated door, and the outcome that was an accident of a sentinel is now a declaration the catalog checks.
     
     **The declaration.** `ContextRequirement` (a `StrEnum` in `_services/_validators.py`) names the two `ValidatorContext` fields whose availability depends on the call path — `raw_text` and `type_present` — each member's value being the field's own name. `VALIDATOR_CONTEXT` maps a catalog member to what it needs: `subentity_container_marker`, `subentity_body_written` and `no_status_banner` require `RAW_TEXT`, `ref_rule_target_present` requires `TYPE_PRESENT`, and everything absent from the table requires nothing and runs everywhere. `ValidatorContext.held_context()` reports what an instance actually carries, read off the values rather than declared a second time by whoever built it — so `gate()` needs no constant of its own, and a caller that starts supplying a field starts running the members that need it with nothing else to update. `_run_per_item` skips a member whose requirements are not held.

@@ -104,9 +104,9 @@ In one process (`CliRunner`), with squads W2 (`widget`, alias `wb`) and W (`widg
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
-- [2026-10-15T21:05:41Z] Paul Reviewer:
+- [2026-10-15T21:05:41Z] `reviewer` Paul Reviewer:
   - QA filed this leak as BUG-1021 at the same time. That bug is the home for the fix. My extra evidence: _CustomCreateGroup has the same ClassVar cache, and the leak predates -C (it leaked the same way across --dir runs).
-- [2026-10-15T21:06:18Z] Catherine Manager:
+- [2026-10-15T21:06:18Z] `manager` Catherine Manager:
   - Home: BUG-1021 (pre-existing; unreachable from one-shot sq). Must be fixed before any in-process server handler.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
@@ -131,9 +131,9 @@ The `-m --dir X` capture (with a following token) is older. REV-995 F21 found th
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
-- [2026-10-15T21:14:29Z] Elias Python:
+- [2026-10-15T21:14:29Z] `python-dev` Elias Python:
   - Fixed: the hoister leaves a token that is the value of the option before it, or follows --, where it is. Rows in tests/unit/test_hoist_global_options.py; reverting either check turns 5 and 4 red.
-- [2026-10-15T21:18:10Z] Paul Reviewer:
+- [2026-10-15T21:18:10Z] `reviewer` Paul Reviewer:
   - Verified, driven: -m --dir, --message --dir and -m --dir -m tail are stored as comment text, and so is -m --dir on a custom type (wid). -- --dir now reaches the command as an extra argument and is not hoisted. A real --dir (list --dir, list --dir=x, show --json --dir x, refs --out --dir x, -m x --dir A) is still refused. -C --dir is read as a folder named --dir. One residual: in -m -m --dir, the second -m is the value, so --dir is a real option, but the hoister skips it and Click prints No such option: --dir. That is exit 2 with nothing written, just not the refusal text. Info only, no action needed.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
@@ -152,9 +152,9 @@ The `-m --dir X` capture (with a following token) is older. REV-995 F21 found th
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
-- [2026-10-15T21:14:30Z] Elias Python:
+- [2026-10-15T21:14:30Z] `python-dev` Elias Python:
   - Fixed: workflow lint prints common.error_text. Row in tests/cli/test_c_refuses_what_cd_refuses.py; reverted -> 1 red.
-- [2026-10-15T21:18:12Z] Paul Reviewer:
+- [2026-10-15T21:18:12Z] `reviewer` Paul Reviewer:
   - Verified, driven: sq -C <lone folder> workflow lint now names the folder (_workflow_cmd.py uses common.error_text).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
@@ -181,9 +181,9 @@ It reported one hit, the last. The first four each read the process directory an
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
-- [2026-10-15T21:14:31Z] Elias Python:
+- [2026-10-15T21:14:31Z] `python-dev` Elias Python:
   - Fixed: the guard resolves os/Path imports and aliases and flags os.path.abspath/realpath, Path()/Path("")/Path(".") resolved or absolute, and PWD reads. 23 shapes each proven red when injected into a copy of the real tree; disabling the import, os.path, Path-literal or PWD branch turns 2 red each.
-- [2026-10-15T21:18:14Z] Paul Reviewer:
+- [2026-10-15T21:18:14Z] `reviewer` Paul Reviewer:
   - Verified for every shape this finding reported, driven: an imported or aliased getcwd, Path(".").resolve(), os.path.abspath, os.environ PWD and from os import chdir are all in the _SHAPES table and caught. A further attack found more shapes the scan misses. Those are filed as their own finding (F8), so this one closes.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
@@ -206,9 +206,9 @@ The completion script captures stdout only, so the error line lands in the middl
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
-- [2026-10-15T21:14:32Z] Elias Python:
+- [2026-10-15T21:14:32Z] `python-dev` Elias Python:
   - Fixed: both callbacks return silently under ctx.resilient_parsing. Subprocess completion rows assert empty stderr; reverting the -C guard -> 2 red, the --dir guard -> 1 red.
-- [2026-10-15T21:18:16Z] Paul Reviewer:
+- [2026-10-15T21:18:16Z] `reviewer` Paul Reviewer:
   - Verified, driven: completion with -C /bad or --dir x prints only the candidates (list), and nothing on stderr. Completion through a good -C still offers the squad custom type (widget). Both callbacks return early under ctx.resilient_parsing.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
@@ -231,9 +231,9 @@ ADR-1009 section 1 says resolved physically "as `chdir` does", and section 5 sta
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
-- [2026-10-15T21:14:33Z] Elias Python:
+- [2026-10-15T21:14:33Z] `python-dev` Elias Python:
   - Fixed: -C enters each component as chdir does (missing, non-directory, no search bit refused at the first bad component, even if a later .. undoes it) with its own message. Rows in test_c_refuses_what_cd_refuses.py; join-then-resolve restored -> 7 red, search check dropped -> 2 red.
-- [2026-10-15T21:18:18Z] Paul Reviewer:
+- [2026-10-15T21:18:18Z] `reviewer` Paul Reviewer:
   - Verified, driven. effective_dir now enters each component in turn. A missing, non-directory or non-searchable hop is refused at the first bad component, even if a later .. would undo it: nonexist/.., afile/.., afile/, noperm/inner, noperm/.., A/noexec, A/noexec/.., a symlink to a file and a symlink loop (ELOOP reason) all exit 2 naming the failing component. Trailing and doubled slashes and ./ are accepted. Semantics are PHYSICAL: sl/toA/.. gives the parent of the link target and sl/lnk/.. gives sl/real, which matches cd -P, chdir(2) and git -C. The shell default cd -L would give sl. This agrees with ADR-1009 section 1 (links resolved before .., as chdir does). The dev differential runs cd as a process chdir, which is physical too.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
@@ -256,7 +256,7 @@ Also, the `tests/cli/test_dir_is_refused_naming_c.py` module docstring says a mi
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
-- [2026-10-15T21:18:36Z] Paul Reviewer:
+- [2026-10-15T21:18:36Z] `reviewer` Paul Reviewer:
   - Verified, read: the test_dir_is_refused_naming_c.py module docstring now describes -C and no longer narrates the change. The order dependence (-C ignored after --help or --version) stays by design, as in git. It is documented through ST6 (the dev handed it to the writer as item 5).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
@@ -284,7 +284,7 @@ Caught: `import os.path` followed by `os.path.abspath`, and `P().resolve()` thro
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
-- [2026-10-15T21:33:02Z] Elias Python:
+- [2026-10-15T21:33:02Z] `python-dev` Elias Python:
   - Fixed: the guard now also flags a relative string literal under Path(...).resolve/absolute, PosixPath/WindowsPath .cwd, Path.cwd or os.getcwd bound without a call, from os import environ with PWD, and argument-less os.listdir/scandir. 10 new shapes proven red on injection into a copy of the real tree; disabling each branch turns 2 to 4 rows red. The docstring now names what it cannot see: dynamic getattr, relative-path I/O and an inherited subprocess cwd.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
@@ -301,7 +301,7 @@ Caught: `import os.path` followed by `os.path.abspath`, and `P().resolve()` thro
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
-- [2026-10-15T21:33:04Z] Elias Python:
+- [2026-10-15T21:33:04Z] `python-dev` Elias Python:
   - Fixed: value_options is cached for the process (the static tree does not vary by squad or spec), and the hoister only consults it when a --dir/--at token follows another token. Startup, median of 10 on a scratch squad, dev tree: before sq --version 0.677s, sq list 0.826s; after 0.649s / 0.674s (second run 0.644s / 0.727s). Reverting the cache turns the new once-per-process row red.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
@@ -310,11 +310,11 @@ Caught: `import os.path` followed by `os.path.abspath`, and `P().resolve()` thro
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-10-15T21:05:26Z] Paul Reviewer:
+- [2026-10-15T21:05:26Z] `reviewer` Paul Reviewer:
   - @manager REV-1023 is Approved on your instruction for TASK-1018 ST1-ST5, with 7 findings open and none blocking (6 low, 1 info). Each needs a disposition. My own one-shot differential (336 rows: every REV-995 layout x target x command x direction) showed 0 differences between -C and cd, and 0 gate bypasses (driven).
   - Confirmed driven: the -C parsing shapes, relative --file following -C, init/adopt per BUG-1008 (the same tree as cd apart from timestamps), every --dir refusal form writing nothing, and no stale RequestContext between in-process runs. Forcing the marker true turns the threading test red, as the dev reported. ruff is clean. I did not run pyright or the full suite.
   - F1 is the dev-reported _custom_cmd_cache leak. It is pre-existing (the same leak existed with --dir), in-process only, and out of scope for this task. It needs a home before a server handler lands. F3 (workflow lint prints the unnamed not-initialised message) misses ST1 acceptance and is a one-line fix. F2, F4, F5 and F6 are edge cases. F7 (put -C first) is worth a sentence in ST6 for @tech-writer.
-- [2026-10-15T21:25:32Z] Paul Reviewer:
+- [2026-10-15T21:25:32Z] `reviewer` Paul Reviewer:
   - @manager Pass 2 of REV-1023 is done and the review stays Approved; nothing blocks. F2 to F7 are Verified (driven). F1 is WontFix, with BUG-1021 as its home. My 336-row differential, re-run on the new tree, shows 0 differences between -C and cd and no gate bypass. The -C parsing shapes all hold.
   - F6: -C now refuses at the first bad component, as chdir does, for a missing hop, a non-directory, no search permission or a symlink loop. Its semantics are physical: link/.. is the parent of the link target. That matches cd -P, chdir(2), git -C and ADR-1009 section 1, but not the shell default cd -L. That may be worth a line in the ST6 docs for @tech-writer.
   - Two new findings, neither blocking. F8 (low): the rewritten guard catches every shape I reported, but misses 15 of 18 further shapes, such as Path("rel").resolve(), PosixPath.cwd, a cwd method reference, from os import environ, no-arg listdir and relpath. None of these exists in src today. F9 (info): value_options() rebuilds the command tree, about 47 ms per call, uncached, twice per run; it should be memoised.

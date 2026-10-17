@@ -24,12 +24,12 @@ updated_at: '2026-06-12T15:08:27Z'
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-06-12T15:04:38Z] Elias Python:
+- [2026-06-12T15:04:38Z] `python-dev` Elias Python:
   - Fix implemented and all gates green. Added ACCEPTED and PUBLISHED to the TERMINAL frozenset in src/squads/_workflow.py (two lines in the set + updated docstring explaining that terminal does not imply no outgoing transitions, with REJECTED as the pre-existing precedent).
   - New test file: tests/test_terminal_accepted_published.py — 19 tests covering: TERMINAL membership, inbox regression (BUG-80 exact scenario for both decisions and guides), outgoing transitions still valid (Accepted to Superseded/Deprecated, Published to Draft/Deprecated), the full Draft/Published/Draft/Published cycle, blocked semantics (accepting an ADR unblocks depends-on tasks, same for Published guides), and CLI smoke (sq list default vs --all, sq search, sq blocked).
   - Sweep result: zero existing tests needed updating. No existing test assumed Accepted/Published items were open — the full suite passed before and after the change.
   - Gates: uv run pytest (all pass), uv run pyright (0 errors), uv run ruff check + format --check (clean). @reviewer please verify.
-- [2026-06-12T15:07:57Z] Paul Reviewer:
+- [2026-06-12T15:07:57Z] `reviewer` Paul Reviewer:
   - APPROVED. Reviewed the TERMINAL change (S.ACCEPTED + S.PUBLISHED added) and the docstring; verified every consumer empirically in a throwaway squad (and the inbox fix read-only on the real squad).
   - Empirical results — inbox: @reviewer mention on Proposed ADR visible, gone after Accept (bug fixed); real squad 'sq inbox op-pierre' no longer surfaces ADR-49. blocked: depends-on Proposed ADR blocks the task, accepting unblocks it (same for Published guide). list/mine/tree: Accepted/Superseded/Published hidden by default, shown with --all; tree rejects a closed root without --all, roots it with. search: finds Accepted ADR and Published guide. workload: closed work items land in the closed bucket (decisions/guides are non-work, correctly excluded).
   - Transitions confirmed live: Accepted→Superseded, Published→Draft→Published, and Published→Deprecated→Published all legal — terminal membership does not block the documented exits.

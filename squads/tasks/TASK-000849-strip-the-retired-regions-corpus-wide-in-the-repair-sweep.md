@@ -335,7 +335,7 @@ second run.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
-- [2026-09-02T09:59:57Z] Elias Python:
+- [2026-09-02T09:59:57Z] `python-dev` Elias Python:
   - Landed as one more recorder in `_rebuild_index_from_disk`'s per-file loop, on the same deferred list as the ref canonicalisation, written after the corpus-alignment refusal check and markdown-before-index.
     
     - `_retired_region_tags(text)` scans `sections.find_markers` output for the fixed summary tag and for any tag ending `:head`, skipping closers and any tag whose region is unbalanced (an unclosed region is a marker defect for `check`, never something to cut through). Shape-matched, so an adopter-declared kind's badge region is stripped too — proven with a constructed `risk:RK1` block whose authored body survives byte-identical.
@@ -383,7 +383,7 @@ A role file must survive two `sq repair` runs with no second diff.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
-- [2026-09-02T10:00:17Z] Elias Python:
+- [2026-09-02T10:00:17Z] `python-dev` Elias Python:
   - **Not implemented, and it must not be until its writers retire.** Blocked rather than done, with driven evidence.
     
     ADR-776's fourth 2026-09-01 amendment §3 makes retirement of the writer a precondition for a name joining the frozen list: "no live write path produces it", and "a name added early does not merely leave dead bytes behind; it puts the sweep and the writer into a loop where each undoes the other on alternate commands." Both role names fail that test in this tree today.
@@ -400,7 +400,7 @@ A role file must survive two `sq repair` runs with no second diff.
     What did land in its place, so the boundary is asserted rather than assumed: `test_a_role_file_is_untouched_while_its_writer_is_live` (byte-identity across the sweep) and `test_a_role_item_keeps_its_record_and_its_mirror_across_the_migration`. `MaintenanceMixin._sweep_empties_body`'s docstring states why a role body is not on the list, in the same terms.
     
     @tech-lead @architect this needs a home before ST2 and ST5 can move.
-- [2026-09-02T11:26:41Z] Elias Python:
+- [2026-09-02T11:26:41Z] `python-dev` Elias Python:
   - Built. The sweep now empties every role body and strips the retired mirror keys, in the same composed rewrite as the regions and the ref canonicalisation.
     
     - **Unblocked by `0f51411`, verified rather than taken on trust.** A fresh `sq init --roles core` + `sq dev add --tech rust` writes an empty `sq:body` region and an `extra` of `{slug}` for a bundled role, `{slug, model, is_dev, tech}` for a developer. `_refresh_catalog_extra` has no call sites left. The decision record's named failure is driven closed end to end: hand-write the legacy shape onto a role file, `sq repair`, then `sq sync` — nothing comes back, for a bundled role and a dev role alike.
@@ -460,7 +460,7 @@ registry `summary` nor the runner docstring has changed.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
-- [2026-09-02T10:00:46Z] Elias Python:
+- [2026-09-02T10:00:46Z] `python-dev` Elias Python:
   - Both pieces written, each scoped to what actually ships — neither claims the role half.
     
     - **`MANUAL` gained one section** inside `_v0_11_to_v0_14.MANUAL`, the shared runbook string. It attributes the removal to "the index rebuild at the end of `sq migrate up`, not the step above", names `sq repair` as the same removal by another route, and warns to review the diff on a clean tree. It covers the roll-up table, the badge line and the template-owned skill body; states that a custom skill (including an `sq-` prefixed one) is byte-identical; and states the one behaviour that changes with the bytes — text living only in a removed region is no longer matched by `sq search`, with the commands that answer instead.
@@ -535,7 +535,7 @@ same tolerance an un-migrated adopter file needs, and it is why `markers.SUMMARY
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
-- [2026-09-02T10:00:47Z] Elias Python:
+- [2026-09-02T10:00:47Z] `python-dev` Elias Python:
   - Proofs landed in three files. Full suite green: **4471 passed, 8 skipped in 62.63s**, exit 0, zero FAILED lines (baseline 4435/7 — +36 passed and +1 skip are exactly the 37 tests added here).
     
     `tests/service/test_repair_strips_only_retired_regions.py` (12):
@@ -601,7 +601,7 @@ byte-identical; `sq check` is clean; and the diff was read rather than assumed.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
-- [2026-09-02T10:01:17Z] Elias Python:
+- [2026-09-02T10:01:17Z] `python-dev` Elias Python:
   - Not run. Two independent reasons, either one sufficient.
     
     1. **Step 1 of this subtask is unmet.** It requires every sibling landed first, "if the live write path still ... regenerates a role or system-skill body on sync, the next mutation re-materialises what the sweep just removed". The system-skill half is genuinely retired (driven: a fresh `sq init` writes an empty skill body, and it stays empty across `sq sync`). The role half is not — see ST2's driven evidence: `sq sync` rewrites the whole `extra` mirror, and `sq dev add` writes a rendered role body.
@@ -614,7 +614,7 @@ byte-identical; `sq check` is clean; and the diff was read rather than assumed.
     - 0 role files are touched.
     
     `sq check` on this repo is clean as it stands.
-- [2026-09-02T11:32:58Z] Catherine Manager:
+- [2026-09-02T11:32:58Z] `manager` Catherine Manager:
   - Ran the strip against this repository's corpus. 654 files rewritten, 632 summary regions and 436 head regions to zero, 851 items preserved, 10 roles preserved, the one authored skill byte-identical at 10118 bytes, a dev role's retained keys intact. Second repair is a no-op, so it is idempotent on the real corpus and not only the fixtures.
   - One process note against myself: I ran it with uncommitted board writes in the tree, so the strip diff is mixed with agents' subtask status moves rather than being a pure removal. Both halves are legitimate and I verified the frontmatter changes are those moves and not rewritten state, but the diff is harder to review than it needed to be. Commit the board first next time.
 <!-- sq:subtask:ST5:discussion:end -->
@@ -653,7 +653,7 @@ on the folder instead, watch that assertion go red, restore `is_system_skill`, w
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
-- [2026-09-02T10:01:35Z] Elias Python:
+- [2026-09-02T10:01:35Z] `python-dev` Elias Python:
   - Landed as `MaintenanceMixin._sweep_empties_body`: `item.type != ROSTER_SKILL` → False, otherwise `is_system_skill(item.extra.get(X.SLUG, item.slug), self.spec)`. Nothing cheaper, and the docstring says why in the same terms the subtask does — plus why it reads the **live** spec, so the next reader does not "fix" it back to a frozen slug list and mistake an adopter's own authored skill for a generated one.
     
     The region is emptied via `sections.replace_section(text, BODY, "")`, which leaves exactly an `sq:body` open marker, a newline, and its close marker — byte-identical to what a fresh `sq init` writes for a system skill today. Markers kept: an absent region is what the show path reads as "no item for this slug". A body already empty is skipped (`(get_section(...) or "").strip()`), so the sweep is a no-op on a second run.
@@ -704,7 +704,7 @@ That assertion is what fails if the property is ever broken.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
-- [2026-09-02T10:01:19Z] Elias Python:
+- [2026-09-02T10:01:19Z] `python-dev` Elias Python:
   - Recorded on `MaintenanceMixin.repair`'s docstring — the verb whose placement satisfies it — as a property, not as an instruction to order two calls:
     
     > A strip must never run ahead of a surface regeneration that reads what it removes, and must regenerate nothing itself.
@@ -721,7 +721,7 @@ That assertion is what fails if the property is ever broken.
 ## Discussion
 
 <!-- sq:discussion -->
-- [2026-09-01T08:32:10Z] Olivia Lead:
+- [2026-09-01T08:32:10Z] `tech-lead` Olivia Lead:
   - Grew to carry the corpus half of ADR-776's second 2026-09-01 amendment, rather than a sibling task editing the same `migrate()` step: one pass over 630 files, same runner, same registry entry, same bump. Still Ready, still unstarted.
     
     - Scope/acceptance widened: role bodies and system-skill bodies are emptied (markers kept) and the role `extra` mirror keys are removed, alongside the two marker regions.
@@ -731,7 +731,7 @@ That assertion is what fails if the property is ever broken.
     - ST3/ST4/ST5 updated for the wider scope. ST5 now waits on all four sibling tasks, not two.
     
     Now carries `depends-on` on TASK-851 and TASK-852 as well as TASK-847/848. TASK-813's `depends-on` edge here is unchanged and its acceptance still grows with this rather than a second registry entry appearing.
-- [2026-09-01T10:41:02Z] Robert Architect:
+- [2026-09-01T10:41:02Z] `architect` Robert Architect:
   - Vehicle ruled — ADR-776, fourth 2026-09-01 amendment. This task's scope is rewritten against it; I have not touched the body.
     
     **The strip is a sweep inside `Service.repair()`'s corpus walk.** No second `Migration` record, no `SCHEMA_VERSION` change, no version bump, no new corpus fixture — and **no strip step inside `_v0_11_to_v0_14.migrate()`**. `run_pending_migrations` runs the runners and then calls `repair()` before stamping, so a squad at 0.11 gets the sweep on its way up with nothing declared for it, and a squad already stamped 0.14 gets it from the ordinary verb.
@@ -752,7 +752,7 @@ That assertion is what fails if the property is ever broken.
     - **`adopt` manufactures the stranded population by design** — over a folder with no `.squads.toml` it stamps the build's own `SCHEMA_VERSION` and rebuilds, so no runner ever visits that corpus. That, not this release's staging, is why the vehicle cannot key on the stamp.
     
     @tech-lead this is the rewrite; no schema or version change is authorised by it, and nothing is to be bumped or tagged. @reviewer F1 and F2 are answered on their own discussions.
-- [2026-09-01T11:20:32Z] Olivia Lead:
+- [2026-09-01T11:20:32Z] `tech-lead` Olivia Lead:
   - - Rewritten against ADR-776's fourth 2026-09-01 amendment. The vehicle is now a sweep inside `Service.repair()`'s corpus walk: no second `Migration` record, no `SCHEMA_VERSION` change, no version bump, no new corpus fixture, and **no strip step in any runner** — `_migrations/_v0_11_to_v0_14.py` is untouched by this task. Title and summary follow.
     
     - **Both retired region families are in, and the numbers are re-driven, not inherited.** I validated the tag scan against a known positive (this feature's own `TASK-000847` file, which carries seven `sq:subtask:STn:head` regions and one `sq:summary`) before running it over the corpus: **632 files** carry a balanced `sq:summary` pair; **436 files** carry **1545** balanced `sq:<kind>:<local-id>:head` pairs, split `subtask` 632 / `finding` 593 / `story` 320. Local ids are **uppercase** (`ST1`, `F1`, `US1`) — ST1 now says so, because a lowercase character class matches nothing and that is one of the two ways this count has already been got wrong. The other is looking for a `HEAD` constant in `_models/_markers.py`: the tag is composed by `_discussion._head_tag` at write time, so an absent constant is an answer about one module, not about the corpus.
@@ -770,9 +770,9 @@ That assertion is what fails if the property is ever broken.
     - Preserved acceptance discipline: idempotent (second `sq repair` produces no diff), markdown written before the index (same deferred list, after the corpus-alignment refusal check), and a squad that never carried the regions is byte-unchanged.
     
     - Still **Ready** — the prose is dispatchable — but genuinely blocked on TASK-851/852/853 landing first: ST5's own first step is that the live write path must have stopped producing what the sweep removes.
-- [2026-09-02T09:47:40Z] Catherine Manager:
+- [2026-09-02T09:47:40Z] `manager` Catherine Manager:
   - Moved Ready->InProgress at dispatch. The dev has been building since the spawn; the board was trailing the work, which is my error rather than his.
-- [2026-09-02T10:01:56Z] Elias Python:
+- [2026-09-02T10:01:56Z] `python-dev` Elias Python:
   - Built, in the shape ADR-776's fourth 2026-09-01 amendment rules: a sweep inside `Service.repair()`'s corpus walk, on the same deferred list as the existing ref canonicalisation, after the corpus-alignment refusal check, markdown before the index. No `Migration` record, no `SCHEMA_VERSION` change, no version bump, no new corpus fixture, no strip step in any runner; `_migrations/_v0_11_to_v0_14.py::migrate` and the registry `summary` are unmodified and `scripts/bump_version.py` was not run.
     
     **Shipped: ST1, ST3, ST4, ST6, ST7.** Both retired region families are stripped by tag shape (632 summary files / 436 files carrying 1545 head regions on this corpus, re-derived through the shipped scanner); every template-owned skill body is emptied and its markers kept, keyed on `is_system_skill` and nothing cheaper; the two transformations compose into one queued entry per path; the sweep is idempotent and a never-carried squad is byte-unchanged; `repair` reports `stripped` in `RepairResult`, in the reflog delta and on the console.
@@ -784,7 +784,7 @@ That assertion is what fails if the property is ever broken.
     Gates: `uv run --all-extras pytest` once, to a file — **4471 passed, 8 skipped in 62.63s**, exit 0, zero FAILED lines (baseline 4435/7; the delta is exactly the 37 tests added). `pyright` 0 errors, `ruff check .` clean, `ruff format --check .` clean, `sq check` clean. Nothing committed or pushed; no bundled template or spec touched.
     
     Left at InReview for the dedicated review. @reviewer the two things worth a second read: the one-entry-per-path composition in `_record_pending_rewrite` (falsified and restored — splitting it makes the canonicalisation discard the strip), and `_sweep_empties_body`'s discriminator (falsified and restored — anything cheaper destroys `releasing-squads`).
-- [2026-09-02T11:27:21Z] Elias Python:
+- [2026-09-02T11:27:21Z] `python-dev` Elias Python:
   - ST2 built and Done; the task stays InReview. Detail on ST2's own discussion, the cross-cutting points here.
     
     - **The sweep's role half now lands**: every role body emptied (markers kept) and the retired mirror keys removed from `extra`, composed into the same one-entry-per-path rewrite as the regions and the ref canonicalisation, still markdown-before-index and still after the corpus-alignment refusal check. `sq repair` reports role files in `stripped` like everything else.

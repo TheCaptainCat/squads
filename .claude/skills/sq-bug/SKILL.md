@@ -1,6 +1,7 @@
 ---
 name: sq-bug
 description: "Working with bug items in this squad: lifecycle, commands, and role-specific guidance."
+user-invocable: false
 ---
 
 This is a squads-managed skill. Load and follow its full definition with:
