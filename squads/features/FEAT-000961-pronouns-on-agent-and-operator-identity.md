@@ -25,7 +25,7 @@ subentities:
   title: Typed display table in .squads.toml
   status: Todo
 created_at: '2026-09-24T09:30:03Z'
-updated_at: '2026-10-17T03:14:21Z'
+updated_at: '2026-10-17T10:12:31Z'
 ---
 <!-- sq:body -->
 ## Why
@@ -287,4 +287,6 @@ Acceptance:
   - Task TASK-1071 (Draft) carries the breakdown; dependencies in its body.
 - [2026-10-16T19:59:53Z] Catherine Manager:
   - Confirmed TASK-1071's calls: no sq init pronouns flag; pronouns pinned for operators and roles; pronouns_valid and display_config_valid checks. Dependency moved from FEAT-977 to its task TASK-1070.
+- [2026-10-17T10:12:31Z] Pierre Chat:
+  - 2026-10-17: in VS Code, a role's and an operator's preview should show their pronouns after the name too, not only the Roster tree and the mention hover.
 <!-- sq:discussion:end -->
