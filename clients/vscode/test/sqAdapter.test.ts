@@ -21,6 +21,7 @@ import {
   getTree,
   getTypeCatalog,
   getWorkflowRaw,
+  isSqDiscussionEntry,
   isSqRoleCatalogEntry,
   isSqSearchHit,
 } from '../src/sqAdapter';
@@ -1048,6 +1049,29 @@ describe('getShowJson', () => {
     const outcome = await getShowJson(runner, VENV_INVOCATION, WORKSPACE_ROOT, 'REV-1');
 
     expect(outcome.kind).toBe('parse-error');
+  });
+
+  describe('hash keys on a discussion entry', () => {
+    const base = { author: 'Ada', ts: '2026-01-01T00:00:00Z', body: 'hi' };
+    const rows: readonly { name: string; entry: object; ok: boolean }[] = [
+      {
+        name: 'all present',
+        entry: { ...base, hash: 'a', short_hash: 'a', edited_ts: 't' },
+        ok: true,
+      },
+      {
+        name: 'edited_ts null',
+        entry: { ...base, hash: 'a', short_hash: 'a', edited_ts: null },
+        ok: true,
+      },
+      { name: 'all absent', entry: base, ok: true },
+      { name: 'a non-string hash', entry: { ...base, hash: 1 }, ok: false },
+      { name: 'a non-string short_hash', entry: { ...base, short_hash: null }, ok: false },
+      { name: 'a numeric edited_ts', entry: { ...base, edited_ts: 1 }, ok: false },
+    ];
+    it.each(rows)('$name', ({ entry, ok }) => {
+      expect(isSqDiscussionEntry(entry)).toBe(ok);
+    });
   });
 
   describe('author_slug on a discussion entry', () => {

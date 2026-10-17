@@ -47,7 +47,13 @@ from squads._models._item import Item, slug_from_stem
 from squads._models._participants import roster_slug_breaches
 from squads._roles._loader import load_role_catalog
 from squads._roles._resolver import resolve_role_with_base
-from squads._sections import find_markers, has_section, replace_frontmatter, with_discussion_region
+from squads._sections import (
+    find_markers,
+    has_section,
+    replace_frontmatter,
+    split_lines,
+    with_discussion_region,
+)
 from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, ROSTER_TYPES
 
 # --------------------------------------------------------------------------- contributions
@@ -294,7 +300,7 @@ async def _plan_headers(ctx: MigrationContext, db: SquadsDB) -> Planned:
 async def _tally_file(ctx: MigrationContext, it: Item, roster: _Roster, tally: _Tally) -> None:
     text = (await _aio.read_bytes(ctx.paths.abspath(it.path))).decode("utf-8")
     holds_legacy = False
-    for event in _scan(text.splitlines()):
+    for event in _scan(split_lines(text)):
         if event.kind == "migrated":
             tally.migrated += 1
             continue
@@ -333,7 +339,7 @@ async def _write_headers(ctx: MigrationContext, paths: Sequence[str], slugs: dic
     for rel in paths:
         path = ctx.paths.abspath(rel)
         text = (await _aio.read_bytes(path)).decode("utf-8")
-        kept = text.splitlines(keepends=True)
+        kept = split_lines(text, keepends=True)
         bare = [_strip_eol(ln) for ln in kept]
         rewritten = list(kept)
         touched = False
@@ -351,8 +357,8 @@ async def _write_headers(ctx: MigrationContext, paths: Sequence[str], slugs: dic
 
 
 def _strip_eol(line: str) -> str:
-    """``line`` without the one line terminator ``str.splitlines`` ended it with."""
-    return "".join(line.splitlines())
+    """``line`` without the one line terminator :func:`split_lines` ended it with."""
+    return line.rstrip("\r\n")
 
 
 # --------------------------------------------------------------------------- flat frontmatter

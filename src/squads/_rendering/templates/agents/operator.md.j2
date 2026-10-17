@@ -6,6 +6,7 @@
 {{ description or "A human who works on this project — authors items and review points, and can be assigned work (including manual steps)." }}
 
 Attribute their words with `sq <type> <n> comment --as {{ item.slug }} -m "…"`,
+correct or withdraw their comment with `comment <hash> edit|remove --as {{ item.slug }}`,
 and assign work to them with `--assignee {{ item.slug }}`.
 <!-- sq:body:end -->
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1087,
+  "counter": 1088,
   "padding": 6,
   "items": {
     "12": {
@@ -7144,7 +7144,7 @@
       "type": "feature",
       "title": "Pronouns on agent and operator identity",
       "slug": "pronouns-on-agent-and-operator-identity",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -7205,7 +7205,7 @@
       ],
       "path": "features/FEAT-000961-pronouns-on-agent-and-operator-identity.md",
       "created_at": "2026-09-24T09:30:03Z",
-      "updated_at": "2026-10-16T19:59:53Z",
+      "updated_at": "2026-10-17T02:12:58Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31535,7 +31535,7 @@
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-10-16T12:36:23Z",
+      "updated_at": "2026-10-17T02:01:31Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31564,7 +31564,7 @@
       "subentities": [],
       "path": "adrs/ADR-000981-pronouns-are-roster-item-data-display-preferences-get-a-type.md",
       "created_at": "2026-10-09T15:35:21Z",
-      "updated_at": "2026-10-15T20:17:01Z",
+      "updated_at": "2026-10-17T02:01:32Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44700,7 +44700,7 @@
       "subentities": [],
       "path": "adrs/ADR-001013-comments-are-edited-and-removed-by-short-hash-by-their-autho.md",
       "created_at": "2026-10-15T19:31:21Z",
-      "updated_at": "2026-10-15T20:17:06Z",
+      "updated_at": "2026-10-17T02:01:33Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44921,7 +44921,7 @@
       "type": "feature",
       "title": "Comments are shown, edited and removed by short hash",
       "slug": "comments-are-shown-edited-and-removed-by-short-hash",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Address a comment by derived short hash: comment <hash> show|edit|remove, by its author, on every type",
       "parent": null,
       "author": "product-owner",
@@ -45038,7 +45038,7 @@
       ],
       "path": "features/FEAT-001017-comments-are-shown-edited-and-removed-by-short-hash.md",
       "created_at": "2026-10-15T20:17:43Z",
-      "updated_at": "2026-10-17T00:56:33Z",
+      "updated_at": "2026-10-17T02:12:56Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -48675,7 +48675,7 @@
       "type": "task",
       "title": "Add pronouns to roles and operators",
       "slug": "add-pronouns-to-roles-and-operators",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Declared pronouns attribute, a resolved roster default, roster --json, generated files, a typed display table and the VS Code setting",
       "parent": "FEAT-961",
       "author": "tech-lead",
@@ -48766,7 +48766,7 @@
       ],
       "path": "tasks/TASK-001071-add-pronouns-to-roles-and-operators.md",
       "created_at": "2026-10-16T19:53:59Z",
-      "updated_at": "2026-10-16T21:14:07Z",
+      "updated_at": "2026-10-17T02:12:57Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49269,7 +49269,7 @@
       "type": "task",
       "title": "Address comments by short hash: show, edit and remove",
       "slug": "address-comments-by-short-hash-show-edit-and-remove",
-      "status": "Ready",
+      "status": "Done",
       "description": "derived comment hash, comment <hash> show|edit|remove at every level by the author, hash in renders/JSON/hits, guidance and docs",
       "parent": "FEAT-1017",
       "author": "tech-lead",
@@ -49287,7 +49287,7 @@
         {
           "local_id": "ST1",
           "title": "Derive the comment hash and resolve a prefix within one scope",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -49296,7 +49296,7 @@
         {
           "local_id": "ST2",
           "title": "Splice comments by line span, with the edit mark and the legacy-line refusal",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US8",
@@ -49305,7 +49305,7 @@
         {
           "local_id": "ST3",
           "title": "Make comment a group that routes a hash to show, edit and remove",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -49314,7 +49314,7 @@
         {
           "local_id": "ST4",
           "title": "Show one comment, with a --json record",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -49323,7 +49323,7 @@
         {
           "local_id": "ST5",
           "title": "Edit a comment by its author, keeping header and position",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -49332,7 +49332,7 @@
         {
           "local_id": "ST6",
           "title": "Remove a comment by its author, with confirmation",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -49341,7 +49341,7 @@
         {
           "local_id": "ST7",
           "title": "Refuse duplicate comments on write, merge or remove them together",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US6",
@@ -49350,7 +49350,7 @@
         {
           "local_id": "ST8",
           "title": "Record comment edits and removals in the reflog",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US7",
@@ -49359,7 +49359,7 @@
         {
           "local_id": "ST9",
           "title": "Put the hash in every render, JSON payload, search and inbox hit",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US9",
@@ -49368,7 +49368,7 @@
         {
           "local_id": "ST10",
           "title": "Register the comment address verbs on skills, roles and operators",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US10",
@@ -49377,7 +49377,7 @@
         {
           "local_id": "ST11",
           "title": "Teach the address verbs in bundled guidance and the managed CLAUDE.md region",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US11",
@@ -49386,7 +49386,7 @@
         {
           "local_id": "ST12",
           "title": "Show the comment hash and edit mark in the VS Code client",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "typescript-dev",
           "severity": null,
           "story": "US9",
@@ -49395,7 +49395,7 @@
         {
           "local_id": "ST13",
           "title": "Document hash addressing in the docs, CHANGELOG and CLAUDE.md conventions",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US11",
@@ -49404,7 +49404,7 @@
         {
           "local_id": "ST14",
           "title": "Add the dated notes ADR-1013 owes to ADR-979 and ADR-981",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "architect",
           "severity": null,
           "story": "US11",
@@ -49413,7 +49413,7 @@
       ],
       "path": "tasks/TASK-001079-address-comments-by-short-hash-show-edit-and-remove.md",
       "created_at": "2026-10-16T21:12:16Z",
-      "updated_at": "2026-10-17T00:56:32Z",
+      "updated_at": "2026-10-17T02:12:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49958,6 +49958,104 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1087"
+    },
+    "1088": {
+      "sequence_id": 1088,
+      "type": "review",
+      "title": "TASK-1079 commit point 1: comment hash and line-span splice",
+      "slug": "task-1079-commit-point-1-comment-hash-and-line-span-splice",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1079"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "replace_section and append_to_section corrupt CRLF regions; fix in _sections.py, not a bypass",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "replace_comments trusts Comment.span; spans from a stripped or stale region splice the wrong lines",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Two line-splitting rules now coexist; ST9 hit mapping and legacy line reports must use one",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Stale comment in format_comment and a docstring missing the edit mark",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Splice table pins LF and CRLF only; add lone-CR and mixed-terminator rows",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Retired-author refusal lives only in the CLI; edit_comment and remove_comment accept a retired slug",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "comment <hash> --help doubles the hash in its usage and names the argument hash_",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "AGENTS.md section teaches 'comment <hash> show ... --as', which show refuses",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001088-task-1079-commit-point-1-comment-hash-and-line-span-splice.md",
+      "created_at": "2026-10-17T01:09:55Z",
+      "updated_at": "2026-10-17T02:12:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1088"
     }
   }
 }

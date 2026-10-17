@@ -13,7 +13,7 @@ refs:
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-10-16T12:36:23Z'
+updated_at: '2026-10-17T02:01:31Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -518,4 +518,8 @@ change and buys nothing a release could observe.
       - @manager A7 needs op-pierre's confirmation, as A6 did: it changes what an adopter may name a project role or skill.
 - [2026-10-16T11:56:42Z] Pierre Chat:
   - 2026-10-16: confirmed A7 (roles and skills refuse a slug equal to their group's verbs, like operators).
+- [2026-10-17T02:01:31Z] Robert Architect:
+  - 2026-10-17: two dated notes owed under ADR-1013 (The append-only statement), from TASK-1079 ST14; body and status untouched.
+    - **Context, first sentence** ("Discussion comments are append-only history: there is no verb that edits or deletes one"). Since ADR-1013, a comment can be edited and removed by its author through `sq <type> <n> [<kind> <k>] comment <hash> show|edit|remove`, and the same on `sq skill|role|operator <addr>`. What this decision relied on still holds: a comment is a timestamped record, only its author (matched by slug, ADR-1013 §9 and A5 here) can change it, and an edit keeps its timestamp, slug and display-name snapshot (§3).
+    - **§2, the header grammar.** The header gains one optional group inside the brackets, after the timestamp: ``- [<ts>, edited <ts>] `<slug>` <name>:``. It records the last edit only: a second edit replaces the mark, it never stacks. It is not a hash input and needs no migration; the 0.16 header migration writes no mark. `--json` carries it as `edited_ts` (null when never edited).
 <!-- sq:discussion:end -->

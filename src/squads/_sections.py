@@ -179,16 +179,28 @@ def get_section(text: str, tag: str) -> str | None:
     return text[start:ci]
 
 
+def _terminator_at(text: str, pos: int) -> str:
+    """The line terminator at *pos*, else the first one in *text*, else LF."""
+    for eol in ("\r\n", "\n", "\r"):
+        if text.startswith(eol, pos):
+            return eol
+    m = re.search(r"\r\n|\n|\r", text)
+    return m.group(0) if m else "\n"
+
+
 def replace_section(text: str, tag: str, new_inner: str) -> str:
+    """*text* with the section's inner content replaced, padded by the file's own terminator
+    (the one after the open marker) when *new_inner* does not already start and end on one."""
     o, c = markers.open_marker(tag), markers.close_marker(tag)
     oi = text.find(o)
     ci = text.find(c, oi + len(o)) if oi != -1 else -1
     if oi == -1 or ci == -1:
         raise KeyError(f"section {tag!r} not found")
-    if not new_inner.startswith("\n"):
-        new_inner = "\n" + new_inner
-    if not new_inner.endswith("\n"):
-        new_inner = new_inner + "\n"
+    eol = _terminator_at(text, oi + len(o))
+    if not new_inner.startswith(("\n", "\r")):
+        new_inner = eol + new_inner
+    if not new_inner.endswith(("\n", "\r")):
+        new_inner = new_inner + eol
     return text[: oi + len(o)] + new_inner + text[ci:]
 
 
@@ -217,11 +229,21 @@ def remove_section(text: str, tag: str) -> str:
     return text[:start] + text[end:]
 
 
+_LINE_RE = re.compile(r"[^\r\n]*(?:\r\n|\r|\n)|[^\r\n]+")
+
+
+def split_lines(text: str, *, keepends: bool = False) -> list[str]:
+    """*text*'s lines, broken at CR, LF and CRLF only: the one line rule for every reader of an
+    item file (``str.splitlines`` also breaks at U+2028, form feeds and others)."""
+    lines = _LINE_RE.findall(text)
+    return lines if keepends else [ln.rstrip("\r\n") for ln in lines]
+
+
 def region_lines(text: str, tag: str) -> tuple[int, int] | None:
     """1-based line numbers of a section's open and close marker lines, or None."""
     o, c = markers.open_marker(tag), markers.close_marker(tag)
     start = end = None
-    for i, line in enumerate(text.splitlines(), 1):
+    for i, line in enumerate(split_lines(text), 1):
         if start is None and o in line:
             start = i
         elif start is not None and c in line:
@@ -231,13 +253,18 @@ def region_lines(text: str, tag: str) -> tuple[int, int] | None:
 
 
 def append_to_section(text: str, tag: str, snippet: str) -> str:
-    """Insert ``snippet`` just before the section's close marker."""
-    c = markers.close_marker(tag)
+    """Insert ``snippet`` just before the section's close marker, in the section's own line
+    terminator (the one after the open marker)."""
+    o, c = markers.open_marker(tag), markers.close_marker(tag)
     ci = text.find(c)
     if ci == -1:
         raise KeyError(f"section {tag!r} not found")
+    oi = text.find(o)
+    eol = _terminator_at(text, oi + len(o)) if oi != -1 else _terminator_at(text, ci)
     if not snippet.endswith("\n"):
         snippet = snippet + "\n"
+    if eol != "\n":
+        snippet = snippet.replace("\r\n", "\n").replace("\n", eol)
     return text[:ci] + snippet + text[ci:]
 
 

@@ -55,7 +55,7 @@ class ReaderPanel(Vertical):
         await self.query_one("#body-view", Markdown).update(body.strip() or "*(no body yet)*")
         subentities_md = await _subentities_view(svc, item, svc.spec)
         await self.query_one("#subentities-view", Markdown).update(subentities_md)
-        comments = discussion.split_discussion(discussion_region)
+        comments = discussion.split_discussion(discussion_region, sequence_id=item.sequence_id)
         await self.query_one("#discussion-view", Markdown).update(_discussion_view(comments))
 
 
@@ -140,5 +140,9 @@ async def _subentities_view(svc: Service, item: Item, spec: WorkflowSpec) -> str
 def _discussion_view(comments: list[discussion.Comment]) -> str:
     if not comments:
         return _EMPTY
-    blocks = [f"**{c.timestamp}** _{discussion.author_label(c)}_\n\n{c.body}" for c in comments]
+    blocks = [
+        f"`{short}` **{c.timestamp}** _{discussion.author_label(c)}_{discussion.edited_suffix(c)}"
+        f"\n\n{c.body}"
+        for c, short in zip(comments, discussion.short_hashes(comments), strict=True)
+    ]
     return "\n\n---\n\n".join(blocks)

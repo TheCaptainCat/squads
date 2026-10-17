@@ -8,6 +8,7 @@ import re
 import shutil
 import tomllib
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -181,6 +182,19 @@ async def test_the_diff_of_every_item_file_is_header_lines_and_the_flattened_fro
     assert changed == _legacy_headers_by_counting(squad)
 
 
+def _without_hashes(payload: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The result minus the comment hash a hit gained after the reference was recorded."""
+    drop = {"hash", "hashes"}
+    return [
+        {
+            k: ([{a: b for a, b in h.items() if a not in drop} for h in v] if k == "hits" else v)
+            for k, v in entry.items()
+            if k not in drop
+        }
+        for entry in payload
+    ]
+
+
 async def test_search_and_inbox_return_what_the_released_tool_returned_before(
     squad, invoke
 ) -> None:
@@ -189,7 +203,7 @@ async def test_search_and_inbox_return_what_the_released_tool_returned_before(
     for term in ("colons", "Second", "Retiring"):
         r = await invoke(["search", term, "--json"])
         expected = (_REFERENCE / f"search_{term.lower()}.json").read_text(encoding="utf-8")
-        assert json.loads(r.stdout) == json.loads(expected), term
+        assert _without_hashes(json.loads(r.stdout)) == json.loads(expected), term
     # The released tool read an indented checkbox inside a comment as a second header and
     # attributed this hit to comment 5, "Done"; the shared parser attributes it to comment 3.
     nested = json.loads((await invoke(["search", "nested", "--json"])).stdout)
@@ -201,7 +215,7 @@ async def test_search_and_inbox_return_what_the_released_tool_returned_before(
     for role in ("python-dev", "reviewer"):
         r = await invoke(["inbox", role, "--json"])
         expected = (_REFERENCE / f"inbox_{role}.json").read_text(encoding="utf-8")
-        assert json.loads(r.stdout) == json.loads(expected), role
+        assert _without_hashes(json.loads(r.stdout)) == json.loads(expected), role
 
 
 async def test_check_is_clean_of_errors_after_the_migration(squad, invoke) -> None:

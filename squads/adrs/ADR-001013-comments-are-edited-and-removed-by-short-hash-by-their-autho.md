@@ -16,7 +16,7 @@ refs:
 description: How comments are addressed by a derived short hash, edited and removed
   by their author only
 created_at: '2026-10-15T19:31:21Z'
-updated_at: '2026-10-15T20:17:06Z'
+updated_at: '2026-10-17T02:01:33Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -728,4 +728,11 @@ feature or task yet.
     I did not change the ADR status.
 - [2026-10-15T20:17:06Z] Pierre Chat:
   - 2026-10-15: accepted.
+- [2026-10-17T02:01:33Z] Robert Architect:
+  - 2026-10-17: where the build settled points this decision left open, from TASK-1079 ST14 (read in the tree; review evidence in REV-1088). Additions only; body and status untouched.
+    - **One line rule.** §1 normalises CR, LF and CRLF for the hash but named no splitter. `sections.split_lines` breaks at CR, LF and CRLF only (never U+2028, form feed, VT or NEL, which `str.splitlines` also breaks at), and it is the one rule for the discussion layer, `region_lines`, the search and inbox region scan, and the 0.16 header migration (REV-1088 F3). The migration change altered nothing in this corpus (REV-1088, driven dry run); a separator inside a line no longer makes a header of the text after it.
+    - **Reflog delta shape.** §10 gave the per-comment entry, not its container. The delta of `comment_edit` and `comment_remove` is `{"comments": [{"author", "hash", "region", "ts", "before"}, ...]}`, one entry per member of the group touched, with `hash` the full hash before the change, `region` the discussion marker tag, and `after_hash` added on each entry of an edit. The op rows go in both `docs/stability.md` (§10) and the `docs/workflow.md` op table, which `tests/meta/test_reflog_op_vocabulary_has_one_source.py` pins.
+    - **The retired-author freeze lives in the service.** §9 states the author match and the freeze as one rule; both are enforced in `Service.edit_comment` and `remove_comment` (the live-author check next to the slug match), so a caller other than the CLI cannot edit or remove a retired author's comment (REV-1088 F6). The anonymous `operator` slug passes it; an unknown slug is refused.
+    - **The edit mark is replaced, not stacked.** §4's "a second edit replaces it" holds as built: an edit re-renders the header through `format_comment` with the original timestamp, slug and name and one fresh `edited <ts>`, whatever mark was there before.
+    - No migration step changed except the line rule above; the header migration writes no edit mark.
 <!-- sq:discussion:end -->

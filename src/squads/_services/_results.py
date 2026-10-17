@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from squads._discussion import Comment
 from squads._index._reconcile import ReconcileResult
 from squads._migrations._registry import Migration
 from squads._models._index import SquadsDB
@@ -167,6 +168,7 @@ class SubentityDetail:
     info: SubEntity
     body: str
     discussion: str
+    comments: list[Comment] = field(default_factory=list[Comment])
 
 
 @dataclass
@@ -436,6 +438,8 @@ class InboxLine:
 
     text: str
     region: str | None
+    hash: str | None = None
+    """The full hash of the comment the line is in, when it is in one."""
 
 
 @dataclass(frozen=True)
@@ -461,6 +465,8 @@ class SearchHit:
     region: str
     location: str
     snippet: str
+    hash: str | None = None
+    """The full hash of the comment the hit landed in, when it did."""
 
 
 @dataclass(frozen=True)
@@ -636,3 +642,39 @@ class DefaultRoleMoveResult:
     item: Item
     cleared: list[str]
     changed: bool
+
+
+@dataclass(frozen=True)
+class FoundComment:
+    """The comment a hash prefix addresses: its item, discussion scope (``""`` for the item's
+    own, ``<kind>:<local_id>`` for a sub-entity's), the duplicate group in file order and the
+    group's displayed hash."""
+
+    item: Item
+    scope: str
+    group: list[Comment]
+    shown: str
+
+
+@dataclass(frozen=True)
+class EditedComment:
+    """The outcome of ``comment <hash> edit``: the comment before, the one now stored (same as
+    before when the text did not change) and whether anything was written."""
+
+    item: Item
+    scope: str
+    old: Comment
+    old_shown: str
+    new: Comment
+    new_shown: str
+    changed: bool
+
+
+@dataclass(frozen=True)
+class RemovedComments:
+    """The outcome of ``comment <hash> remove``: every member of the group, as they were."""
+
+    item: Item
+    scope: str
+    removed: list[Comment]
+    shown: str

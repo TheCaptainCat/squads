@@ -172,8 +172,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   then…" self-declarations. The frontmatter `status:` field (shown by `sq … show`) is the single
   source of truth; state declared as prose goes stale the moment the real status changes.
   Timestamped **discussion comments** recording state-at-a-point-in-time are fine and encouraged —
-  the discussion is an append-only history, so a dated "moved to Accepted because…" comment never
-  goes stale. The line: **declaring** the item's own current state in the body = banned;
+  the discussion is a timestamped history that only each comment's author can correct, so a dated
+  "moved to Accepted because…" comment never goes stale. The line: **declaring** the item's own current state in the body = banned;
   **discussing** lifecycle as a topic (e.g. describing "the Draft→Ready transition" a feature is
   building) or citing *another* item's status as context = fine. A rule of this project, not a
   default of the tool: `squads/.overrides/workflow.toml` selects `no_status_banner` on every type.

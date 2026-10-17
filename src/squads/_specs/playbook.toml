@@ -154,7 +154,7 @@ enter = [
 do = [
   "`sq task <n> status InProgress`",
   "implement with tests; tick subtasks (`subtask <k> update --status …`)",
-  "use `sq task <n> subtask <k> comment` for implementation notes scoped to one subtask; use `sq task <n> comment` for handoffs and cross-cutting notes (see the `squads` skill's comment-scoping convention)",
+  "use `sq task <n> subtask <k> comment` for implementation notes scoped to one subtask; use `sq task <n> comment` for handoffs and cross-cutting notes (see the `squads` skill's comment-scoping convention); correct your own comment with `comment <hash> edit --as <your-slug>`",
 ]
 handoff = [
   "when implementation is complete, `sq task <n> status InReview`",

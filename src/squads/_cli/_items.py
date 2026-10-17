@@ -22,7 +22,6 @@ import typer.main
 from rich.table import Table
 
 import squads._cli._common as common
-from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
 from squads._cli._common import (
@@ -41,11 +40,8 @@ from squads._cli._common import (
     print_item,
     print_json_clean,
     print_subentity,
-    require_as,
-    resolve_actor_or_raise,
     resolve_body,
     resolve_body_optional,
-    resolve_comment_messages,
     resolve_item_id_any,
     resolve_item_id_typed,
     resolve_local_id,
@@ -995,25 +991,7 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         )
         console.print(f"{pid} {lid}: body {'appended' if append else 'set'}")
 
-    @sub.command("comment")
-    @common.command
-    async def s_comment(
-        ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message"),
-        file: str | None = typer.Option(None, "--file", help="Comment from a file ('-' = stdin)."),
-        as_: str | None = typer.Option(
-            None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
-        ),
-    ):
-        """Comment on the sub-entity's discussion."""
-        pid, lid = ids(ctx)
-        svc = get_service()
-        slug = await resolve_actor_or_raise(require_as(as_), svc)
-        actor.set_actor(slug)
-        await svc.comment(
-            pid, resolve_comment_messages(message or None, file), as_slug=slug, sub=(kind, lid)
-        )
-        console.print(f"commented on {pid} {lid} as {slug}")
+    common.register_comment_group(sub, lambda ctx: (ids(ctx)[0], (kind, ids(ctx)[1])))
 
     @sub.command("remove")
     @common.command

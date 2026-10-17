@@ -753,7 +753,7 @@ def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
     if ctx.raw_text is None or not ctx.spec.role_for(item.status).settled:
         return []
     region = sections.get_section(ctx.raw_text, markers.DISCUSSION) or ""
-    if discussion.split_discussion(region):
+    if discussion.split_discussion(region, sequence_id=item.sequence_id):
         return []
     level = _resolved_level(ctx, "settled_requires_discussion")
     return [

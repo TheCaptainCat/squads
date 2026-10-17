@@ -13,24 +13,36 @@ The legacy body-stored ``:meta`` regions are gone from the live path; only the m
 touch them, via the frozen ``_migrations._meta_compat`` helpers.
 """
 
+import hashlib
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import NamedTuple
 
 from squads import _badges as badges
+from squads._errors import SquadsError
 from squads._models import _markers as markers
 from squads._models._participants import SLUG_PATTERN, require_valid_slug
 from squads._models._subentity import SubEntity
 from squads._rendering._engine import render
-from squads._sections import get_section, replace_section
+from squads._sections import get_section, replace_section, split_lines
 from squads._workflow import WorkflowSpec, bundled_spec
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
 
-# The one comment-header pattern, anchored at column 0 and never applied to a stripped line:
+_TS = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"
+
+# The one comment-header pattern, anchored at column 0 and never applied to a stripped line. The
+# optional ``, edited <ts>`` records the last edit and is not part of the comment's hash:
 #   - [2026-06-07T10:00:00Z] `architect` Robert Architect:
-_COMMENT_HEADER_RE = re.compile(
-    rf"^- \[(\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}:\d{{2}}:\d{{2}}Z)\] `({SLUG_PATTERN})` (.+):$"
-)
+#   - [2026-06-07T10:00:00Z, edited 2026-06-08T09:00:00Z] `architect` Robert Architect:
+_COMMENT_HEADER_RE = re.compile(rf"^- \[({_TS})(?:, edited ({_TS}))?\] `({SLUG_PATTERN})` (.+):$")
+
+_HASH_DOMAIN = "sq-comment-1"
+SHORT_HASH_LENGTH = 7
+MIN_HASH_PREFIX = 4
+
+_HEX_RE = re.compile(r"[0-9a-fA-F]+")
 
 
 def _resolve_spec(spec: WorkflowSpec | None) -> WorkflowSpec:
@@ -41,19 +53,27 @@ def _resolve_spec(spec: WorkflowSpec | None) -> WorkflowSpec:
 # --------------------------------------------------------------------------- comments
 
 
-def format_comment(timestamp_iso: str, slug: str, name: str, messages: list[str]) -> str:
+def format_comment(
+    timestamp_iso: str,
+    slug: str,
+    name: str,
+    messages: list[str],
+    *,
+    edited_ts: str | None = None,
+) -> str:
     """One discussion entry: a header naming the author's slug and display name, then one bullet
     per message.
 
     The name is a display snapshot: line breaks collapse to spaces and an empty name falls back to
     the slug. A multi-line message keeps its first line on the bullet and indents continuation
-    lines so they stay nested under it.
+    lines so they stay nested under it. ``edited_ts`` adds the edit mark to the header.
     """
     require_valid_slug(slug, action="write a comment")
     shown = " ".join(part.strip() for part in name.splitlines() if part.strip()) or slug
-    lines = [f"- [{timestamp_iso}] `{slug}` {shown}:"]
+    mark = f", edited {edited_ts}" if edited_ts else ""
+    lines = [f"- [{timestamp_iso}{mark}] `{slug}` {shown}:"]
     for msg in messages:
-        # split as the readers do, so no line an author writes can land at column 0
+        # split on every break str.splitlines knows, so no author line can land at column 0
         first, *rest = msg.splitlines() or [""]
         lines.append(f"  - {first}")
         # indent *every* continuation line (blanks included) to the bullet's content column, so a
@@ -70,53 +90,144 @@ class Comment:
     author: str  # the display name written in the header
     author_slug: str
     body: str  # the raw bullet lines for this comment, stripped of their outer indentation
+    hash: str = ""  # derived on load, never written
+    edited_ts: str | None = None
+    span: tuple[int, int] = (0, 0)  # the region's lines [start, end): header to the next header
 
 
-def split_discussion(region: str) -> list[Comment]:
+def _region_lines(region: str) -> list[str]:
+    """*region*'s lines with their terminators (CRLF, CR and LF alike), none merged or lost."""
+    return split_lines(region, keepends=True)
+
+
+def _content(line: str) -> str:
+    return line.rstrip("\r\n")
+
+
+def canonical_text(lines: Sequence[str]) -> str:
+    """A comment's stored lines as the hash reads them.
+
+    Trailing spaces and tabs are stripped per line, leading and trailing blank lines are dropped,
+    and the rest is kept byte for byte, joined with LF. Line terminators are ignored, so CRLF, CR
+    and LF checkouts hash alike.
+    """
+    stripped = [_content(ln).rstrip(" \t") for ln in lines]
+    filled = [i for i, ln in enumerate(stripped) if ln]
+    if not filled:
+        return ""
+    return "\n".join(stripped[filled[0] : filled[-1] + 1])
+
+
+def comment_hash(sequence_id: int, scope: str, slug: str, timestamp: str, text: str) -> str:
+    """The comment's address: SHA-256 hex over its item's sequence number, discussion scope,
+    author slug, header timestamp and canonical text."""
+    payload = "\0".join((_HASH_DOMAIN, str(sequence_id), scope, slug, timestamp, text))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def split_discussion(region: str, *, sequence_id: int, scope: str = "") -> list[Comment]:
     """Parse a discussion region (the content between sq:discussion markers) into Comment objects.
 
-    Each comment starts with ``- [TIMESTAMP] `slug` Author:`` and is followed by indented bullet
-    lines (``  - text`` or continuation lines ``    text``).  The body field preserves the bullets
+    Each comment starts with ``- [TIMESTAMP] `slug` Author:`` (``- [TIMESTAMP, edited TIMESTAMP]
+    ...`` once edited) and is followed by indented bullet lines (``  - text`` or continuation
+    lines ``    text``).  The body field preserves the bullets
     as-is (including any fenced code blocks), stripping only the leading 2-space indent level so
     it reads as standalone markdown.
+
+    ``sequence_id`` is the owning item's sequence number and ``scope`` the discussion's (``""``
+    for the item's own, ``<kind>:<local_id>`` for a sub-entity's); with the header and the text
+    they give each comment its ``hash``.
 
     Empty or whitespace-only regions return an empty list.  Lines that do not start a new header
     are accumulated as the current comment's body.  This is the inverse of :func:`format_comment`.
     """
+    lines = _region_lines(region)
+    heads = [(i, m) for i, ln in enumerate(lines) if (m := _COMMENT_HEADER_RE.match(_content(ln)))]
     comments: list[Comment] = []
-    header: tuple[str, str, str] | None = None
-    body_lines: list[str] = []
-
-    def flush() -> None:
-        if header is not None:
-            ts, slug, name = header
-            comments.append(
-                Comment(
-                    timestamp=ts,
-                    author=name,
-                    author_slug=slug,
-                    body="\n".join(body_lines).strip(),
-                )
+    for n, (start, m) in enumerate(heads):
+        end = heads[n + 1][0] if n + 1 < len(heads) else len(lines)
+        ts, edited, slug, name = m.group(1), m.group(2), m.group(3), m.group(4)
+        # Strip the 2-space indent that format_comment adds at the message level. Continuation
+        # lines have 4 spaces; after stripping 2 they become "  text", which renders correctly
+        # under the bullet. Blank lines are not collapsed: fenced code blocks depend on them.
+        body = [
+            _content(ln)[2:] if ln.startswith("  ") else _content(ln)
+            for ln in lines[start + 1 : end]
+        ]
+        comments.append(
+            Comment(
+                timestamp=ts,
+                author=name,
+                author_slug=slug,
+                body="\n".join(body).strip(),
+                hash=comment_hash(
+                    sequence_id, scope, slug, ts, canonical_text(lines[start + 1 : end])
+                ),
+                edited_ts=edited,
+                span=(start, end),
             )
-
-    for raw_line in region.splitlines():
-        parsed = match_comment_header(raw_line)
-        if parsed is not None:
-            flush()
-            header = parsed
-            body_lines = []
-        elif header is not None:
-            # Strip the 2-space indent that format_comment adds at the message level.
-            # Continuation lines have 4 spaces; after stripping 2 they become "  text", which
-            # renders correctly under the bullet.  We do NOT collapse blank lines — fenced code
-            # blocks depend on them staying in place.
-            if raw_line.startswith("  "):
-                body_lines.append(raw_line[2:])
-            else:
-                body_lines.append(raw_line)
-
-    flush()
+        )
     return comments
+
+
+def short_hashes(comments: Sequence[Comment]) -> list[str]:
+    """Each comment's displayed hash: 7 characters, widened for the whole scope to the shortest
+    length at which its distinct hashes tell apart."""
+    distinct = {c.hash for c in comments}
+    width = SHORT_HASH_LENGTH
+    while len({h[:width] for h in distinct}) < len(distinct):
+        width += 1
+    return [c.hash[:width] for c in comments]
+
+
+class OtherScope(NamedTuple):
+    """Another discussion of the same item, consulted to name where a hash lives instead."""
+
+    label: str  # "subtask 2"
+    address: str  # "sq task 5 subtask 2 comment"
+    comments: Sequence[Comment]
+
+
+def is_hash_token(token: str) -> bool:
+    """Whether *token* can address a comment: at least 4 hexadecimal characters."""
+    return len(token) >= MIN_HASH_PREFIX and _HEX_RE.fullmatch(token) is not None
+
+
+def resolve_hash(
+    comments: Sequence[Comment],
+    token: str,
+    *,
+    where: str,
+    elsewhere: Sequence[OtherScope] = (),
+) -> list[Comment]:
+    """The comments a hash prefix addresses within one scope: the members of one duplicate group.
+
+    ``where`` names the scope in messages (``the item's discussion``). A prefix matching two or more
+    distinct hashes is refused with its candidates; one matching nothing here but something in
+    ``elsewhere`` is refused naming that address. Nothing outside the scope is ever returned.
+    """
+    if not is_hash_token(token):
+        raise SquadsError(
+            f"{token!r} is not a comment hash (4 or more hex characters); "
+            "a new comment takes -m or --file"
+        )
+    prefix = token.lower()
+    hits = [c for c in comments if c.hash.startswith(prefix)]
+    distinct = list(dict.fromkeys(c.hash for c in hits))
+    if len(distinct) > 1:
+        shown = dict(zip((c.hash for c in comments), short_hashes(comments), strict=True))
+        firsts = [next(c for c in hits if c.hash == h) for h in distinct]
+        listed = "; ".join(f"{shown[c.hash]} ({c.author_slug}, {c.timestamp})" for c in firsts)
+        raise SquadsError(f"{token} is ambiguous in {where}: {listed}")
+    if hits:
+        return hits
+    for other in elsewhere:
+        if any(c.hash.startswith(prefix) for c in other.comments):
+            raise SquadsError(
+                f"no comment {token} in {where}; it is in {other.label} "
+                f"({other.address} {token} ...)"
+            )
+    raise SquadsError(f"no comment {token} in {where} (edited or removed since it was read?)")
 
 
 def author_label(cmt: Comment) -> str:
@@ -124,14 +235,30 @@ def author_label(cmt: Comment) -> str:
     return cmt.author if cmt.author == cmt.author_slug else f"{cmt.author} ({cmt.author_slug})"
 
 
-def comment_json(cmt: Comment) -> dict[str, str]:
-    """One discussion entry for ``--json``: the display name, the permanent slug, time and body."""
+def comment_json(cmt: Comment, short_hash: str) -> dict[str, str | None]:
+    """One discussion entry for ``--json``: the display name, the permanent slug, time, edit
+    time, full and displayed hash, and body."""
     return {
         "author": cmt.author,
         "author_slug": cmt.author_slug,
         "ts": cmt.timestamp,
+        "edited_ts": cmt.edited_ts,
+        "hash": cmt.hash,
+        "short_hash": short_hash,
         "body": cmt.body,
     }
+
+
+def comments_json(comments: Sequence[Comment]) -> list[dict[str, str | None]]:
+    """:func:`comment_json` for a whole discussion, with hashes shown at the scope's length."""
+    return [
+        comment_json(c, short) for c, short in zip(comments, short_hashes(comments), strict=True)
+    ]
+
+
+def edited_suffix(cmt: Comment) -> str:
+    """``" (edited <ts>)"`` for an edited comment, else nothing."""
+    return f" (edited {cmt.edited_ts})" if cmt.edited_ts else ""
 
 
 def match_comment_header(line: str) -> tuple[str, str, str] | None:
@@ -141,7 +268,75 @@ def match_comment_header(line: str) -> tuple[str, str, str] | None:
     region attribution) without re-parsing a whole discussion region via :func:`split_discussion`.
     """
     m = _COMMENT_HEADER_RE.match(line)
-    return (m.group(1), m.group(2), m.group(3)) if m else None
+    return (m.group(1), m.group(3), m.group(4)) if m else None
+
+
+def legacy_header_lines(region: str) -> list[tuple[int, str]]:
+    """Column-0 lines that open like a header (``- [``) but are not in the grammar, as 1-based
+    ``(line, text)`` within *region*: a header from before the slug, or stray prose. Such a line
+    is folded into the comment above it, so a splice must not run over it."""
+    return [
+        (i, _content(ln))
+        for i, ln in enumerate(_region_lines(region), 1)
+        if ln.startswith("- [") and _COMMENT_HEADER_RE.match(_content(ln)) is None
+    ]
+
+
+def replace_comments(
+    region: str,
+    changes: Sequence[tuple[Comment, str | None]],
+    *,
+    sequence_id: int,
+    scope: str = "",
+) -> str:
+    """*region* with the given comments replaced by an entry or, for ``None``, removed.
+
+    Each comment is edited by its line span (header to the next header); every other line, the
+    preamble included, stays byte-identical. A replacement keeps the blank lines that followed the
+    comment and takes the line terminator of the header it replaces. A removal takes the comment
+    and the blank lines after it; the last comment, when nothing followed it, takes the blank
+    lines before it instead (unless it is the first comment, whose predecessor is the preamble).
+
+    A span is valid only against the exact string it was parsed from. *region* is parsed again
+    here, and a change whose comment is not the one now at its span (same hash) is refused.
+    """
+    current = {c.span: c for c in split_discussion(region, sequence_id=sequence_id, scope=scope)}
+    for cmt, _ in changes:
+        found = current.get(cmt.span)
+        if found is None or found.hash != cmt.hash:
+            raise SquadsError("the discussion changed since the comment was read; read it again")
+    lines = _region_lines(region)
+    first_head = next(
+        (i for i, ln in enumerate(lines) if _COMMENT_HEADER_RE.match(_content(ln))), len(lines)
+    )
+    gone: set[int] = set()
+    swapped: dict[int, list[str]] = {}
+    for cmt, entry in changes:
+        start, end = cmt.span
+        content_end = end
+        while content_end > start + 1 and not _content(lines[content_end - 1]).strip():
+            content_end -= 1
+        if entry is None:
+            gone.update(range(start, end))
+            if end == content_end and end == len(lines) and start > first_head:
+                back = start
+                while back > 0 and not _content(lines[back - 1]).strip():
+                    back -= 1
+                    gone.add(back)
+            continue
+        eol = lines[start][len(_content(lines[start])) :] or "\n"
+        new = [ln + eol for ln in entry.split("\n")]
+        if content_end == len(lines) and not lines[-1].endswith(("\n", "\r")):
+            new[-1] = new[-1][: -len(eol)]
+        swapped[start] = new
+        gone.update(range(start + 1, content_end))
+    out: list[str] = []
+    for i, ln in enumerate(lines):
+        if i in swapped:
+            out.extend(swapped[i])
+        elif i not in gone:
+            out.append(ln)
+    return "".join(out)
 
 
 def extract_mentions(text: str) -> set[str]:
