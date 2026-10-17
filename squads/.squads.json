@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1086,
+  "counter": 1087,
   "padding": 6,
   "items": {
     "12": {
@@ -49197,7 +49197,7 @@
       "type": "task",
       "title": "Allow prose in roster bodies and give operators a profile",
       "slug": "allow-prose-in-roster-bodies-and-give-operators-a-profile",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "check accepts role/operator prose; body verb on role and operator; greeting reads and records the operator profile",
       "parent": "FEAT-1054",
       "author": "tech-lead",
@@ -49213,7 +49213,7 @@
         {
           "local_id": "ST1",
           "title": "Stop sq check reporting prose in a role body as a missing seeded tag",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -49222,7 +49222,7 @@
         {
           "local_id": "ST2",
           "title": "Add the body verb to roles and operators through one shared helper",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -49231,7 +49231,7 @@
         {
           "local_id": "ST3",
           "title": "Make the greeting skill read the operator profile and adapt",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -49240,7 +49240,7 @@
         {
           "local_id": "ST4",
           "title": "Offer registration and a short interview to an unknown human",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -49258,7 +49258,7 @@
       ],
       "path": "tasks/TASK-001078-allow-prose-in-roster-bodies-and-give-operators-a-profile.md",
       "created_at": "2026-10-16T21:10:07Z",
-      "updated_at": "2026-10-17T00:17:40Z",
+      "updated_at": "2026-10-17T00:28:21Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49869,6 +49869,95 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1086"
+    },
+    "1087": {
+      "sequence_id": 1087,
+      "type": "review",
+      "title": "Review of TASK-1078 ST1-ST4: roster prose, body verb, greeting profile",
+      "slug": "review-of-task-1078-st1-st4-roster-prose-body-verb-greeting",
+      "status": "Requested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1078"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Empty-body hints name remedies that fail and omit the new body verb",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Shared body help says only roles are refused, shown on skills and operators",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Stale no-role-body-verb claims: dead role branch in clear_roster_body_cmd, 0.15 manual",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Body-verb table has a vacuous inactive-role row; meta guard narrower than ST2 asks",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Greeting treats a retired operator as unknown, then operator add fails",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Dropping the role view leaves a stranded live tag: body writes but check exits 3",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "A damaged role_definition tag now passes sq check as prose",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001087-review-of-task-1078-st1-st4-roster-prose-body-verb-greeting.md",
+      "created_at": "2026-10-17T00:37:35Z",
+      "updated_at": "2026-10-17T00:38:56Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1087"
     }
   }
 }
