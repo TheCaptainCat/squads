@@ -3,7 +3,7 @@ id: TASK-1079
 sequence_id: 1079
 type: task
 title: 'Address comments by short hash: show, edit and remove'
-status: Ready
+status: InProgress
 parent: FEAT-1017
 author: tech-lead
 priority: medium
@@ -17,11 +17,11 @@ description: derived comment hash, comment <hash> show|edit|remove at every leve
 subentities:
 - local_id: ST1
   title: Derive the comment hash and resolve a prefix within one scope
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST2
   title: Splice comments by line span, with the edit mark and the legacy-line refusal
-  status: Todo
+  status: Done
   story: US8
 - local_id: ST3
   title: Make comment a group that routes a hash to show, edit and remove
@@ -75,7 +75,7 @@ subentities:
   assignee: architect
   story: US11
 created_at: '2026-10-16T21:12:16Z'
-updated_at: '2026-10-17T00:56:32Z'
+updated_at: '2026-10-17T01:04:59Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -230,6 +230,9 @@ row goes red. Change the domain prefix: the pinned vector goes red. Restore each
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-17T01:04:51Z] Elias Python:
+  - Done: Comment.hash/edited_ts/span, canonical_text, short_hashes, resolve_hash (src/squads/_discussion.py); tests/unit/test_comment_hash_and_prefix.py + tests/service/test_comment_hash_survives_a_retype.py.
+  - Falsified (new tests red): no trailing-space strip 2; domain tag changed 12; sequence number dropped 13; scope dropped 2; resolve across scopes 2; short form not widened 2. The retype row guards the contract but cannot go red at this layer (the formatted id never reaches the parser).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -277,6 +280,9 @@ alike: the legacy table goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-17T01:04:53Z] Elias Python:
+  - Done: format_comment edit mark, header grammar group, replace_comments by line span, legacy_header_lines (src/squads/_discussion.py); tests/unit/test_comment_splice_by_line_span.py (242 rows).
+  - Falsified (new tests red): second edit appends a mark 2; indented lines count as legacy 2; replacement ignores the header line ending 55; removal keeps the comment trailing blank lines 64.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
