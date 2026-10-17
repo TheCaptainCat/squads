@@ -1193,6 +1193,7 @@ class MaintenanceMixin(ServiceCore):
         ctx_with_skills = BackendContext(
             paths=self.paths,
             skill_paths=skill_map,
+            skill_invocable=await self._skill_invocable(),
             role_skills=role_skills,
             spec=self.spec,
             playbook=self.playbook,

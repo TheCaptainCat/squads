@@ -58,8 +58,9 @@ class AgentsMdBackend(AgentBackend):
     fetch command: clause 2 asks whether a runtime fetch can substitute, and a host that cannot
     run a command has no fetch available.
     Question 2: the expressible set is identity plus prose only — no ``model``, no ``color``, no
-    capability-boundary field, no preload list: the compiled document has no per-entry frontmatter
-    at all, only the roster/mission text ``write_managed`` renders.
+    capability-boundary field, no preload list, and no place for a skill's ``operator_invocable``
+    (no slash menu, no per-skill entry): the compiled document has no per-entry frontmatter at
+    all, only the roster/mission text ``write_managed`` renders.
     Question 3: not applicable — there is no per-entry file for a host to discover and dispatch;
     ``AGENTS.md`` is one whole document, found the way the host finds any file.
     Question 4: no capability boundary is expressed (:meth:`restriction_fragment`'s inherited

@@ -74,6 +74,11 @@ REFUSALS = [
         ["'origin'", "'str'"],
     ),
     (
+        "a-pinned-skill-operator-invocable-with-another-kind",
+        '[items.skill.attributes]\noperator_invocable = { kind = "str" }\n',
+        ["'operator_invocable'", "'bool'"],
+    ),
+    (
         "a-pinned-skill-attribute-with-another-kind",
         '[items.skill.attributes]\nwhen_to_use = { kind = "list" }\n',
         ["'when_to_use'", "'str'"],

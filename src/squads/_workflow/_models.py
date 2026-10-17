@@ -2363,6 +2363,7 @@ PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
     ROSTER_SKILL: {
         AttributeKey.ALLOWED_TOOLS: "str",
         AttributeKey.MODEL: "str",
+        AttributeKey.OPERATOR_INVOCABLE: "bool",
         AttributeKey.ORIGIN: "str",
         AttributeKey.WHEN_TO_USE: "str",
     },

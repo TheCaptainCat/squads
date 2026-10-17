@@ -72,6 +72,8 @@ async def test_show_json_carries_every_field_including_origin_and_the_exact_body
         "description",
         "when_to_use",
         "allowed_tools",
+        "operator_invocable",
+        "operator_invocable_set",
         "path",
         "origin",
         "body",

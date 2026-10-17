@@ -579,6 +579,7 @@ ref_rules = []
 [items.skill.attributes]
 allowed_tools = { kind = "str" }
 model = { kind = "str" }
+operator_invocable = { kind = "bool", settable = false }
 origin = { kind = "str", required = true, settable = false }
 when_to_use = { kind = "str" }
 

@@ -118,6 +118,7 @@ async def _rewrite_pointer(paths: SquadPaths, new_body_rel: str) -> None:
             "claude/pointer_skill.md.j2",
             slug=_SLUG,
             description=oneline(_DESCRIPTION),
+            invocable=True,  # a frozen runner writes no host key; `sq sync` adds it
         ),
     )
 

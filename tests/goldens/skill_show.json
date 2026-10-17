@@ -6,6 +6,8 @@
   "description": "Test skill for golden snapshots",
   "when_to_use": "",
   "allowed_tools": "",
+  "operator_invocable": true,
+  "operator_invocable_set": false,
   "path": "agents/skills/SKILL-000008-golden-skill.md",
   "origin": "project",
   "body": "# golden-skill\n\nTest skill for golden snapshots\n\n## Instructions"

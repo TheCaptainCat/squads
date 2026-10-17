@@ -8,7 +8,7 @@ from squads._errors import SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import update_frontmatter
 from squads._models import _attributes as attrs
-from squads._models._attributes import AttributeKey
+from squads._models._attributes import AttributeKey, parse_invocable_choice
 from squads._models._item import Item
 from squads._pronouns import checked_pronouns
 from squads._roles._catalog import PROPOSED_DEVELOPER_SLUG_SUFFIX
@@ -139,7 +139,9 @@ class RosterMixin(ServiceCore):
         when_to_use: str = "",
         allowed_tools: str = "",
         parent: str | None = None,
+        operator_invocable: str | None = None,
     ) -> Item:
+        chosen = None if operator_invocable is None else parse_invocable_choice(operator_invocable)
         slug = slugify(name)
         await self._refuse_duplicate_slug(ROSTER_SKILL, "a skill", slug, legacy_slugify(name))
         res = await self.create(
@@ -152,6 +154,7 @@ class RosterMixin(ServiceCore):
             attributes={
                 AttributeKey.WHEN_TO_USE: when_to_use,
                 AttributeKey.ALLOWED_TOOLS: allowed_tools,
+                **({} if chosen is None else {AttributeKey.OPERATOR_INVOCABLE: chosen}),
             },
         )
         # Materialise iff live — see the matching comment in activate_role.

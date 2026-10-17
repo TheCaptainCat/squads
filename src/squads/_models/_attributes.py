@@ -5,9 +5,13 @@ An attribute is any frontmatter key that is not a core key. Internals read one t
 kind as unset, so a malformed stored value never reaches a caller as the wrong type.
 """
 
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict
+
+from squads._errors import SquadsError
 
 if TYPE_CHECKING:
     from squads._models._item import Item
@@ -40,6 +44,7 @@ class AttributeKey:
     # skills
     WHEN_TO_USE = "when_to_use"
     ALLOWED_TOOLS = "allowed_tools"
+    OPERATOR_INVOCABLE = "operator_invocable"
     # guides
     TAGS = "tags"
     # reviews
@@ -104,6 +109,20 @@ def list_attribute(item: Item, key: str) -> list[str] | None:
     if isinstance(value, list) and all(isinstance(v, str) for v in value):  # pyright: ignore[reportUnknownVariableType]
         return list(value)  # pyright: ignore[reportUnknownArgumentType]
     return None
+
+
+#: The three texts ``--operator-invocable`` accepts, and what each stores (``None`` removes).
+INVOCABLE_CHOICES: Mapping[str, bool | None] = MappingProxyType(
+    {"yes": True, "no": False, "default": None}
+)
+
+
+def parse_invocable_choice(raw: str) -> bool | None:
+    """The stored value a ``--operator-invocable`` text stands for (``None`` removes the stored
+    value). Anything but ``yes``, ``no`` or ``default`` is refused."""
+    if raw not in INVOCABLE_CHOICES:
+        raise SquadsError(f"--operator-invocable takes yes, no or default, not {raw!r}")
+    return INVOCABLE_CHOICES[raw]
 
 
 def is_templated(item: Item) -> bool:

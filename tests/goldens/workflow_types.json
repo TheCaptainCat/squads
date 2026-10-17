@@ -297,6 +297,11 @@
         "required": false,
         "settable": true
       },
+      "operator_invocable": {
+        "kind": "bool",
+        "required": false,
+        "settable": false
+      },
       "origin": {
         "kind": "str",
         "required": true,

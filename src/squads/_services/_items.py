@@ -16,7 +16,7 @@ from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkf
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
-from squads._models._attributes import AttributeKey
+from squads._models._attributes import AttributeKey, parse_invocable_choice
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
@@ -208,6 +208,7 @@ class ItemsMixin(ServiceCore):
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
         pronouns: str | None = None,
+        operator_invocable: str | None = None,
     ) -> Item:
         """Opens its own transaction, then delegates to :meth:`_update_core` — the bulk
         importer calls that core directly (its own transaction is already open). The
@@ -232,6 +233,7 @@ class ItemsMixin(ServiceCore):
                 set_attributes=set_attributes,
                 unset_attributes=unset_attributes,
                 pronouns=pronouns,
+                operator_invocable=operator_invocable,
             )
         if (
             self.spec.item_is_roster(item.type)
@@ -289,6 +291,7 @@ class ItemsMixin(ServiceCore):
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
         pronouns: str | None = None,
+        operator_invocable: str | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None, Item]:
         """The PURE half of a metadata update: no file I/O. Returns ``(item, delta, rename,
@@ -358,8 +361,7 @@ class ItemsMixin(ServiceCore):
             item.parent = parent
         self._apply_labels(item, add_labels, rm_labels)
         self._apply_attributes(item, set_attributes, unset_attributes)
-        if pronouns is not None:
-            delta["pronouns"] = self._apply_pronouns(item, pronouns)
+        self._apply_own_choices(item, delta, pronouns, operator_invocable)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
         # Fail-closed on the updated item's first error-level catalog violation — the
@@ -387,6 +389,7 @@ class ItemsMixin(ServiceCore):
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
         pronouns: str | None = None,
+        operator_invocable: str | None = None,
     ) -> Item:
         """The metadata-update mutation core: takes an already-open transaction's ``db``.
 
@@ -419,6 +422,7 @@ class ItemsMixin(ServiceCore):
             set_attributes=set_attributes,
             unset_attributes=unset_attributes,
             pronouns=pronouns,
+            operator_invocable=operator_invocable,
         )
         default_kind = self.spec.default_ref_kind()
         if rename_paths is not None:
@@ -468,6 +472,16 @@ class ItemsMixin(ServiceCore):
                 require_settable(item.type, key, self.spec.item_attributes(item.type))
                 item.attributes.pop(key, None)
 
+    def _apply_own_choices(
+        self, item: Item, delta: dict[str, object], pronouns: str | None, invocable: str | None
+    ) -> None:
+        """Apply the values the operator or squad chooses for themselves, each through its own
+        dedicated option rather than the generic attribute setter."""
+        if pronouns is not None:
+            delta["pronouns"] = self._apply_pronouns(item, pronouns)
+        if invocable is not None:
+            delta["operator_invocable"] = self._apply_operator_invocable(item, invocable)
+
     def _apply_pronouns(self, item: Item, raw: str) -> str | None:
         """Store *raw* as the item's pronouns, trimmed; blank removes them. Returns the value now
         stored. Refuses a value that fails the shape rule, or a type that declares no pronouns."""
@@ -478,6 +492,19 @@ class ItemsMixin(ServiceCore):
             item.attributes.pop(AttributeKey.PRONOUNS, None)
         else:
             item.attributes[AttributeKey.PRONOUNS] = value
+        return value
+
+    def _apply_operator_invocable(self, item: Item, raw: str) -> bool | None:
+        """Store the squad's own ``operator_invocable`` choice (``yes``/``no``, even when it
+        equals the default); ``default`` removes it. Returns the value now stored. Not a field a
+        role document supplies, so the roster write gate is never asked."""
+        value = parse_invocable_choice(raw)
+        if AttributeKey.OPERATOR_INVOCABLE not in self.spec.item_attributes(item.type):
+            raise SquadsError(f"a {item.type} does not carry operator_invocable")
+        if value is None:
+            item.attributes.pop(AttributeKey.OPERATOR_INVOCABLE, None)
+        else:
+            item.attributes[AttributeKey.OPERATOR_INVOCABLE] = value
         return value
 
     def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
