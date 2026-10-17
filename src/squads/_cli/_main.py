@@ -292,25 +292,27 @@ async def init(
         [],
         "--backend",
         help=(
-            "Active backend(s): repeatable (e.g. --backend claude_code --backend agents_md). "
-            "Use --backend none for a sq-only squad (no agent files)."
+            "Agent backend to write files for (repeatable), such as `claude_code` or "
+            "`agents_md`; `none` writes no agent files."
         ),
     ),
     roles: str = typer.Option(
-        "all", "--roles", help="Bundle (all|core|minimal) or comma-separated slugs."
+        "all",
+        "--roles",
+        help="Roles to activate: `all`, `core`, `minimal` or comma-separated slugs.",
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
     no_seed_skills: bool = typer.Option(
         False,
         "--no-seed-skills",
-        help="Skip stamping SKILL ids onto bundled skill files (for test compatibility).",
+        help="Skip stamping skill IDs onto the bundled skill files.",
         hidden=True,
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing .squads.toml."),
     name: list[str] = typer.Option(
         [],
         "--name",
-        help="Override a role's name: slug=Full Name (repeatable).",
+        help="Name a role: `slug=Full Name` (repeatable).",
     ),
     default_names: bool = typer.Option(
         False,
@@ -409,22 +411,24 @@ async def init(
 @common.command
 async def adopt(
     squad_dir: str = typer.Option(
-        "squads", "--squad-dir", help="Folder name to adopt (default if no .squads.toml yet)."
+        "squads", "--squad-dir", help="Folder to adopt when no `.squads.toml` names one."
     ),
     backend: list[str] = typer.Option(
         [],
         "--backend",
         help=(
-            "Active backend(s): repeatable (e.g. --backend claude_code --backend agents_md). "
-            "Use --backend none for a sq-only squad (no agent files)."
+            "Agent backend to write files for (repeatable), such as `claude_code` or "
+            "`agents_md`; `none` writes no agent files."
         ),
     ),
     roles: str = typer.Option(
-        "all", "--roles", help="Bundle (all|core|minimal) or comma-separated slugs."
+        "all",
+        "--roles",
+        help="Roles to activate: `all`, `core`, `minimal` or comma-separated slugs.",
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
 ):
-    """Adopt an existing squad-structured folder (non-destructive; imports existing items)."""
+    """Adopt an existing squad folder and index the items already in it."""
     active_backends = _parse_backend_option(backend)
     result = await svc_adopt(
         root=get_context().client_cwd,
@@ -472,11 +476,13 @@ async def adopt(
 @app.command(name="list")
 @common.command
 async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
-    type: str | None = typer.Option(None, "--type", "-t"),
-    status: str | None = typer.Option(None, "--status", "-s"),
-    parent: str | None = typer.Option(None, "--parent"),
-    label: str | None = typer.Option(None, "--label"),
-    assignee: str | None = typer.Option(None, "--assignee"),
+    type: str | None = common.type_filter_option(),
+    status: str | None = common.status_filter_option(),
+    parent: str | None = typer.Option(
+        None, "--parent", help="Show only the direct children of this item ID or number."
+    ),
+    label: str | None = typer.Option(None, "--label", help="Show only items carrying this label."),
+    assignee: str | None = common.assignee_filter_option(),
     category: str | None = typer.Option(
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
@@ -501,22 +507,17 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     sort: str | None = typer.Option(
         None, "--sort", help="Sort by an ordered badge field's rank (e.g. priority)."
     ),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
-    json_out: bool = typer.Option(False, "--json"),
+    all_: bool = common.closed_option(),
+    json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
     """List items in a table.
 
-    Closed items are hidden unless ``--all`` or ``--status`` is given — category-aware: a
-    ``work``/``roster`` item hides on a terminal status; a ``records`` item (e.g. a decision)
-    stays visible while terminal-but-shown (``Accepted``, ``Published``) and hides only once
-    retired (``Superseded``, ``Deprecated``, ``Cancelled``). When hiding empties the view, a
-    dim hint reports how many were hidden instead of a bare "no items".
-
-    ``--category`` narrows to one of the fixed roster/work/records axis. ``--priority``/
-    ``--min-priority`` are dedicated sugar for the bundled axis; ``--badge``/``--min-badge
-    CODE=VALUE`` (repeatable) work generically for any field a spec declares — including a
-    project's own custom axis — deriving filter/threshold semantics from ``fields_for()``
-    rather than a hand-written per-axis pair.
+    Closed items are hidden unless `--all` or `--status` is given. What counts as
+    closed depends on the item's category: a work or roster item hides on a
+    terminal status, while a records item such as a decision stays visible on
+    `Accepted` or `Published` and hides once retired (`Superseded`, `Deprecated`,
+    `Cancelled`). Filters combine: an item is listed only when it matches every
+    one given.
     """
     svc = get_service()
     spec = get_active_spec()
@@ -565,10 +566,12 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
 @app.command()
 @common.command
 async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
-    root_id: str | None = typer.Argument(None),
-    type: str | None = typer.Option(None, "--type", "-t"),
-    status: str | None = typer.Option(None, "--status", "-s"),
-    assignee: str | None = typer.Option(None, "--assignee"),
+    root_id: str | None = typer.Argument(
+        None, help="Item ID or number to root the tree at; omit for the whole squad."
+    ),
+    type: str | None = common.type_filter_option(),
+    status: str | None = common.status_filter_option(),
+    assignee: str | None = common.assignee_filter_option(),
     category: str | None = typer.Option(
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
@@ -593,34 +596,30 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     sort: str | None = typer.Option(
         None, "--sort", help="Sort each level by an ordered badge field's rank."
     ),
-    depth: int | None = typer.Option(None, "--depth", help="Maximum depth from root (root = 0)."),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed (done/cancelled) items."),
-    json_out: bool = typer.Option(False, "--json", help="Emit the nested subtree as JSON."),
+    depth: int | None = common.depth_option(None),
+    all_: bool = common.closed_option(),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array of root nodes, each with nested children."
+    ),
 ):
     """Show the item hierarchy.
 
-    Closed items are hidden unless ``--all`` or ``--status`` is given — category-aware, the
-    same rule ``sq list`` applies (see its help for the work/records distinction). When
-    hiding empties the view, a dim hint reports how many were hidden instead of a bare tree.
+    Closed items are hidden unless `--all` or `--status` is given, by the same
+    rule as `sq list`. A filter keeps the items that match it plus their
+    ancestors, so each match shows in context; an ancestor kept only for the path
+    is dimmed.
 
-    Filters (--type, --status, --assignee, --category, --priority) narrow the tree to
-    matching nodes; ancestor paths are always preserved so every match shows in context
-    (ancestors that only serve as path are rendered dimmed).  --depth N limits the tree to
-    N levels from the root. ``--badge``/``--min-badge`` work generically for any declared
-    field (see `sq list --help`).
+    Items in a parent cycle have no root, so the tree shows one member of each
+    cycle as an anchor, marked as such; `sq check` names both ends of the loop.
 
-    Without a root, the forest is every item with no parent in view, plus one anchor per parent
-    cycle: every member of a cycle has a parent, so a cyclic component would otherwise be absent
-    from this view entirely while `sq list` still returned it. The anchor is a member of the
-    cycle, is marked as such wherever it renders, and is a tiebreak rather than a real root —
-    every member of a cycle is an equally good one. `sq check` names both ends of the loop.
+    In `--json`, a node with `anchor` true is that invented root for a parent
+    cycle, not an item somebody made a root.
+    Fields: sq docs stability
 
-    `--json` emits the subtree (`id/type/title/status/priority/assignee/blocked/badges/anchor` +
-    nested `children`) — the read an orchestrating agent uses to see a feature's state and decide
-    what to do next. `anchor` is true only for such an invented root; a consumer that ignores it
-    presents a fabricated root as one somebody wrote. Join `status` to
-    `sq workflow statuses --json` / `sq workflow roles --json` for open/settled-ness instead of a
-    per-node field.
+    \f
+    A cycle's members all have a parent, so without an anchor the whole component would be
+    absent from the tree while `sq list` still returned it; the anchor is a tiebreak, since
+    every member is an equally good root.
     """
     svc = get_service()
     spec = get_active_spec()
@@ -717,26 +716,20 @@ async def repair(
         False,
         "--renumber",
         help=(
-            "Also resolve duplicate sequence numbers before rebuilding: where two trees' "
-            "merged files both claim a number, keep one item and mint a fresh number for the "
-            "rest, rewriting every reference to them. This is the after-the-fact fixer; "
-            "`sq renumber` shifts a range deliberately BEFORE a merge so no collision happens."
+            "First renumber items that share a number after a merge; refs to an ID "
+            "that two files carry are listed for checking by hand, not rewritten."
         ),
     ),
 ):
     """Rebuild the index from the markdown frontmatter.
 
-    Uses :func:`common.get_service_bypassing_index_cross_check` rather than the plain
-    ``get_service`` every other command uses: repair's entire job is reconciling the index
-    against the frontmatter, so it must remain runnable in every state the live-index
-    cross-check can refuse over — including one it did not cause (an unrelated override plus
-    an independently stale index) and, for that matter, one it did.
+    It can also rewrite item content, and prints a notice when it does. To keep
+    two branches' numbers apart before a merge, use `sq renumber` instead.
 
-    Exit codes: 0 = a clean rebuild, 1 = it rebuilt but had to carry an unreadable file's
-    previous entry forward rather than refresh it — the same "reported degradation is not
-    success" signal `sq check` gives at error level, so a caller gating on ``$?`` cannot
-    mistake a board that still needs a file fixed for one that came back clean.
+    Exit codes: 1 a file was unreadable or refs need checking. See sq docs faq.
     """
+    # Repair reconciles the index against the frontmatter, so it must run in every state the
+    # live-index cross-check refuses over, including one it did not cause.
     svc = common.get_service_bypassing_index_cross_check()
     result = await svc.repair(renumber=renumber)
     console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
@@ -764,29 +757,27 @@ async def repair(
 @common.command
 async def renumber(
     from_seq: int = typer.Option(
-        ..., "--from", help="Lowest local sequence number to shift (inclusive)."
+        ..., "--from", help="Lowest item number on this branch to move; it moves too."
     ),
     onto: int | None = typer.Option(
         None,
         "--onto",
-        help="The other branch's counter; sq computes the minimal safe offset.",
+        help="The other branch's counter; sq moves numbers just past it.",
     ),
     by: int | None = typer.Option(
         None,
         "--by",
-        help="Explicit offset (seq -> seq + n); validated, refused if unsafe.",
+        help="Add this many to each moved number; refused if a collision would remain.",
     ),
 ):
-    """Pre-merge block-shift: reassign this branch's local IDs into a range disjoint from
-    another branch's, preserving referential intent.
+    """Move this branch's item numbers past another branch's before a merge.
 
-    A distinct verb from `sq repair --renumber` (the post-merge collision fixer): this one
-    is operator-parameterized and run deliberately, once, before a merge — on the branch
-    that will yield its IDs to the other's higher-numbered range.
+    Run it once, on the branch that yields, before merging; every reference to a
+    moved item is rewritten. To fix numbers that already collide after a merge,
+    use `sq repair --renumber`. Give exactly one of `--onto` or `--by`.
 
-    Read the other branch's counter (for --onto) with:
-
-        git show <mainref>:squads/.squads.json | jq .counter
+    Read the other branch's counter (for `--onto`) with:
+      git show <mainref>:squads/.squads.json | jq .counter
     """
     if (onto is None) == (by is None):
         raise typer.BadParameter("provide exactly one of --onto or --by")
@@ -826,16 +817,12 @@ def _empty_result_note(empty: str, unreadable: UnreadableItems) -> str:
 @app.command()
 @common.command
 async def inbox(
-    role: str = typer.Argument(..., help="Role slug (e.g. qa)."),
-    json_out: bool = typer.Option(False, "--json"),
+    role: str = typer.Argument(..., help="Role or operator slug, such as `qa`."),
+    json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
-    """Open items whose discussion mentions @role.
+    """List open items whose discussion mentions a role.
 
-    Exit codes: 0 = a clean listing, 4 = some item files could not be read (the hits that
-    *were* found are still printed — one unreadable file never costs the whole answer). The
-    skipped files are named on stderr: one ``error: <message>`` line each in human mode, or one
-    ``{"omitted": [...]}`` JSON line under ``--json``. The JSON array shape is unchanged either
-    way.
+    Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
     svc = get_service()
     # A read/filter, not authoring a new participant — a retired role's past @mentions
@@ -874,37 +861,20 @@ async def inbox(
 @common.command
 async def search(
     text: str = typer.Argument(..., help="Text to find (case-insensitive)."),
-    type: str | None = typer.Option(None, "--type", "-t"),
-    status: str | None = typer.Option(None, "--status", "-s"),
-    json_out: bool = typer.Option(False, "--json"),
+    type: str | None = common.type_filter_option(),
+    status: str | None = common.status_filter_option(),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per matching item."
+    ),
 ):
-    """Search item titles, summaries, and bodies/discussion for text.
+    """Find items whose title, summary, body or discussion contains text.
 
-    ``--type``/``--status`` AND-compose with the query (same filter dimensions as
-    ``sq list``/``sq tree``). A hit's ``region`` names where it matched: ``"title"``,
-    ``"description"``, ``"body"``, ``"discussion"`` (``"discussion#<n>"`` for the *n*-th
-    comment), or a named sub-entity — ``"<kind>:<local_id>"`` for its heading/body, or
-    ``"<kind>:<local_id>:discussion#<n>"`` for its *n*-th comment (e.g. ``"story:US<n>"``,
-    ``"story:US<n>:discussion#2"``).
+    `--type` and `--status` narrow the search; a hit must match every one given.
+    In `--json`, each hit's `region` says where it was found; the docs list its
+    forms.
+    Fields: sq docs stability
 
-    ``--json`` shape (a stable superset of the legacy ``{id, title, hits}``)::
-
-        [
-          {
-            "id": "TASK-<n>", "title": "...", "type": "task", "status": "InProgress",
-            "hits": [
-              {"region": "body", "location": "body", "snippet": "...", "hash": null},
-              {"region": "discussion#1", "location": "discussion — comment 1 (manager, ...)",
-               "snippet": "[<ts>] manager: ...", "hash": "<64 hex>"}
-            ]
-          }
-        ]
-
-    Exit codes: 0 = a clean search, 4 = some item files could not be read (the matches that
-    *were* found are still printed, and an unreadable item still contributes a title or
-    description match). The skipped files are named on stderr: one ``error: <message>`` line
-    each in human mode, or one ``{"omitted": [...]}`` JSON line under ``--json``. The JSON array
-    shape is unchanged either way.
+    Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
     svc = get_service()
     results, unreadable = await svc.search(
@@ -950,8 +920,12 @@ async def search(
 
 @app.command()
 @common.command
-async def blocked(json_out: bool = typer.Option(False, "--json")):
-    """Show open items blocked by other open items (via the declared `dependency` ref kind)."""
+async def blocked(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per blocked item."
+    ),
+):
+    """Show open items that wait on another open item."""
     svc = get_service()
     rows = await svc.blocked()
     if json_out:
@@ -1018,62 +992,40 @@ def _attach_graph_node(parent_tree: Tree, node: GraphNode) -> None:
 @app.command()
 @common.command
 async def graph(
-    root_id: str = typer.Argument(..., metavar="ID", help="Item ID or bare number."),
-    depth: int = typer.Option(2, "--depth", "-d", help="BFS depth (default 2; 0 = root only)."),
+    root_id: str = typer.Argument(..., metavar="ID", help="Item ID or number to start from."),
+    depth: int = common.depth_option(2, "-d"),
     kind: list[str] = typer.Option(
         [],
         "--kind",
         "-k",
-        help="Ref kind to follow (repeatable; default all).",
+        help="Follow only this ref kind (repeatable; see `sq workflow ref-kinds`).",
     ),
     direction: str = typer.Option(
         "both",
         "--direction",
-        help="'out' (forward refs), 'in' (backrefs), or 'both' (default).",
+        help="`out` follows the item's own refs, `in` the refs to it, `both` either.",
     ),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
-    json_out: bool = typer.Option(False, "--json"),
+    all_: bool = common.closed_option(),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the root, with nested children."
+    ),
     format_: str = typer.Option(
         "",
         "--format",
-        help="Export format: 'dot', 'mermaid', or 'mermaid-md' (overrides Rich tree).",
+        help="Print the graph as `dot`, `mermaid` or `mermaid-md` text instead.",
     ),
 ):
-    """Show the ref graph around an item (ego-centric BFS traversal).
+    """Show the items linked to an item by refs, a few levels out.
 
-    ``--json`` emits a nested root object (``id/type/status/priority/assignee/edge_kind/
-    edge_semantic/direction/seen/children``) — the read surface for agents and orchestrators.
-    Shape::
+    A dependency edge reads `depends on` or `required by`; any other edge shows
+    its ref kind. A node already shown elsewhere is marked `(seen)` and not
+    expanded. `--format` prints the graph as text for another tool instead of the
+    tree: `mermaid-md` wraps the Mermaid output in a fence, ready to paste into
+    markdown.
 
-        {
-          "id": "BUG-<n>", "type": "bug", "status": "Open", "priority": "high",
-          "assignee": null, "edge_kind": null, "edge_semantic": null, "direction": null,
-          "seen": false,
-          "children": [
-            { "id": "FEAT-<n>", ..., "edge_kind": "depends-on", "edge_semantic": "dependency",
-              "direction": "out", "seen": false, "children": [...] },
-            { "id": "TASK-<n>", ..., "edge_kind": "related", "edge_semantic": null,
-              "direction": "in", "seen": true, "children": [] }
-          ]
-        }
-
-    ``edge_kind`` is the stored kind's own spelling — a project's own vocabulary, never a
-    fixed sentinel; both raw spellings of a dependency edge collapse onto one declared key
-    (the dependent-direction kind, or the blocker-direction kind where a project declares
-    only that half). ``edge_semantic`` is that kind's declared role (``"dependency"``,
-    ``"preload"``, ``"supersession"``) or ``null`` — **branch on this field**, never on
-    ``edge_kind``'s spelling, which a project is free to rename. A ``null`` semantic covers
-    two different cases that only ``edge_kind`` distinguishes: a navigational kind the spec
-    declares with no role, and a kind the merged spec does not declare at all (an edge ``sq
-    graph`` still traverses and reports rather than drops — it never omits an edge it can see).
-    ``direction="out"`` means the root depends on the child, ``direction="in"`` means the
-    child depends on the root.  In the Rich tree a ``"dependency"``-semantic edge renders as
-    a human-readable label: ``"depends on"`` and ``"required by"`` respectively.
-
-    ``--format dot|mermaid`` emits a serialized graph instead of the Rich tree; suitable
-    for piping to ``dot``, ``mmdc``, or pasting into Mermaid Live. ``--format mermaid-md``
-    wraps the same Mermaid body in a ```` ```mermaid ```` fence, ready to paste into a doc,
-    PR description, or issue that renders Mermaid inline.
+    In `--json`, branch on `edge_semantic`, never on `edge_kind`, which a project
+    can rename.
+    Fields: sq docs stability
     """
     valid_formats = ("dot", "mermaid", "mermaid-md")
     if format_ and format_ not in valid_formats:
@@ -1122,9 +1074,15 @@ async def graph(
 
 @app.command()
 @common.command
-async def workload(json_out: bool = typer.Option(False, "--json")):
-    """Per-assignee open/closed/total work-item counts (busiest first), plus each assignee's
-    separate sub-entity assignment counts."""
+async def workload(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per assignee."
+    ),
+):
+    """Count each assignee's open and closed work, busiest first.
+
+    Items and sub-entities are counted separately.
+    """
     svc = get_service()
     rows = await svc.workload()
     if json_out:
@@ -1167,11 +1125,11 @@ async def workload(json_out: bool = typer.Option(False, "--json")):
 @app.command()
 @common.command
 async def mine(
-    role: str = typer.Argument(..., help="Role slug (e.g. python-dev or op-alice)."),
-    all_: bool = typer.Option(False, "--all", "-a", help="Include closed items."),
-    json_out: bool = typer.Option(False, "--json"),
+    role: str = typer.Argument(..., help="Role or operator slug, such as `python-dev`."),
+    all_: bool = common.closed_option(),
+    json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
-    """Items assigned to a role slug, directly or via one of their sub-entities."""
+    """List the items assigned to someone, directly or through a sub-entity."""
     svc = get_service()
     # A read/filter: a retired role's still-open assigned items must stay reachable for
     # review, so this validates against the full roster, not live-only.
@@ -1214,10 +1172,12 @@ async def sync():
 @app.command()
 @handle_errors
 def docs(
-    name: str | None = typer.Argument(None, help="Doc to print (e.g. internals). Omit to list."),
+    name: str | None = typer.Argument(
+        None, help="Doc to print, such as `internals`; omit to list."
+    ),
     pretty: bool = typer.Option(False, "--rich", help="Pretty-print instead of raw markdown."),
 ):
-    """Print project documentation in the terminal — offline, no fetch."""
+    """Print the squads documentation in the terminal, offline."""
     from squads import _docfiles
 
     if name is None:
@@ -1244,54 +1204,47 @@ async def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
-        help="Filter by target item ID (any full ID, e.g. <PREFIX>-<n>).",
+        help="Show only entries on this full item ID, such as `TASK-<n>`.",
         metavar="ID",
     ),
     actor: str | None = typer.Option(
         None,
         "--actor",
-        help="Filter by actor slug (e.g. python-dev, system).",
+        help="Show only entries by this slug, such as `python-dev` or `system`.",
     ),
     op: str | None = typer.Option(
         None,
         "--op",
-        help=f"Filter by op name ({'/'.join(REFLOG_OPS)}).",
+        help=f"Show only entries of this operation: {', '.join(REFLOG_OPS)}.",
     ),
     since: str | None = typer.Option(
         None,
         "--since",
-        help="Include only entries at or after this ISO-8601 timestamp.",
+        help="Show only entries at or after this ISO 8601 date or time.",
         metavar="WHEN",
     ),
     tail: int = typer.Option(
         50,
         "--tail",
         "-n",
-        help="Maximum number of entries to show (most recent; 0 = all).",
+        help="Show at most this many of the latest entries; 0 shows all.",
     ),
     tree_view: bool = typer.Option(
         False,
         "--tree",
         help=(
-            "Render a spawn-lineage tree grouped by session_id/parent_session_id edges. "
-            "BEST-EFFORT, UNTRUSTED, OBSERVABILITY-ONLY — reflects declared lineage; "
-            "a copied session id appears as a legitimate edge. "
-            "Missing intermediate sessions degrade to a forest (multiple roots), never an error."
+            "Group entries into a tree of which session started which; sessions report "
+            "their own parent, so treat the tree as a hint, not a record."
         ),
     ),
-    json_out: bool = typer.Option(False, "--json"),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per entry."
+    ),
 ):
-    """Show the operation reflog — a chronological log of every mutating sq command.
+    """Show the log of every command that changed the squad, latest last.
 
-    Tails the most recent entries by default (``--tail 50``); use ``--tail 0`` for
-    all.  Filters are AND-ed: ``--item <PREFIX>-<n> --op status`` shows only status
-    changes on that item.
-
-    A squad with no reflog (upgraded from an old schema, or first run) prints empty
-    results — never an error.  A truncated or partially-written reflog is tolerated
-    silently.
-
-    **Exit codes:** 0 = normal; 1 = error; see ``sq docs faq`` for the full table.
+    Filters combine: `--item TASK-<n> --op status` shows only that item's status
+    changes. A squad with no log yet prints nothing rather than an error.
     """
     from squads._clock import parse_iso
 
@@ -1489,22 +1442,16 @@ def _render_reflog_tree(entries: list[ReflogEntry]) -> None:
 @common.command
 async def show_any(
     item_id: str = typer.Argument(
-        ..., metavar="ID", help="Item ID (e.g. FEAT-<n>) or bare number (e.g. 13)."
+        ..., metavar="ID", help="Item ID, such as `FEAT-<n>`, or its bare number."
     ),
-    json_out: bool = typer.Option(False, "--json"),
-    raw: bool = typer.Option(
-        False, "--raw", help="Plain text output (opt out of markdown render)."
-    ),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
+    raw: bool = common.raw_option(),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comment panes."
     ),
     full: bool = typer.Option(False, "--full", help="Add one pane per sub-entity (body + badges)."),
 ):
-    """Show any work item by ID or bare number, regardless of type.
-
-    Accepts both the full ID (e.g. ``FEAT-<n>``) and a bare sequence number (e.g. ``13``).
-    Unknown IDs error cleanly.
-    """
+    """Show any item by ID or number, whatever its type."""
     svc = get_service()
     resolved_id = await resolve_item_id_any(item_id, svc)
     it = await svc.get(resolved_id)
@@ -1538,39 +1485,18 @@ def _check_issue_sort_key(issue: Any) -> tuple[int, int, int, str]:
 
 @app.command()
 @common.command
-async def check(json_out: bool = typer.Option(False, "--json")):
+async def check(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per issue."
+    ),
+):
     """Lint the squad: markers, dangling links, invalid status, index drift.
 
-    Exit codes: 0 = clean (or warnings only), 3 = one or more error-level issues found.
-    See `sq docs faq` for the full exit-code table.
+    Exit codes: 3 error-level issues found. See sq docs faq.
 
-    Output (console and ``--json`` alike) is sorted into a deterministic total order —
-    squad-global issues first, then by item, error before warn, then message — so it is
-    diffable/stable across runs; see :func:`_check_issue_sort_key`.
-
-    When the workflow spec fails to load (a pure-spec error, or the live-index cross-check
-    refusing) ``sq check`` degrades gracefully.  It captures the workflow error as a single
-    ``CheckIssue`` ("workflow config invalid — run `sq workflow lint`") and continues running
-    all other checks (marker scan, dangling links, etc.) using the bundled default spec so
-    they are not suppressed.
-
-    This is deliberately narrower than "``sq workflow lint`` reported an error": the stamp
-    obligation (a shadowing override with no ``squads:override-base`` provenance comment) is
-    an error-level lint finding, but absent provenance never changes whether the merged spec
-    loads — it is reported, not a load refusal (see ``workflow_stamp_finding``). That finding
-    already reaches this command's issue list on its own, via ``svc.check()``'s override-issue
-    walk, so gating "invalid" on ``open_service`` actually raising — rather than on any
-    error-level lint finding existing — is what keeps the two from disagreeing: a config that
-    loads and runs fine must never also be told it is invalid.
-
-    A playbook (bundled + any ``.overrides/playbook.toml``) load/validation failure is a
-    **separate** ``CheckIssue`` ("playbook config invalid: <detail>"), caught via
-    :class:`~squads._errors.PlaybookConfigError` — ``open_service`` raises that subclass
-    specifically so this command never mislabels a broken playbook override as a broken
-    workflow one and points at ``sq workflow lint``, which does not read
-    ``.overrides/playbook.toml`` at all and would report the workflow spec clean while the
-    real problem sits unreported. There is today no dedicated playbook lint surface to name
-    instead, so the message states the loader's own violation and the file, not a command.
+    Output is in a stable order, so two runs can be diffed.
+    A broken workflow or playbook override is reported as an issue, and the other
+    checks still run.
     """
     from squads._paths import resolve
     from squads._services._results import CheckIssue
@@ -1585,12 +1511,15 @@ async def check(json_out: bool = typer.Option(False, "--json")):
     # actually load" — unlike scanning `sq workflow lint`'s findings for any error level, it
     # cannot be tripped by a finding (e.g. the stamp obligation) that is deliberately reported
     # rather than load-blocking. Only a genuine load failure falls back to the bundled spec so
-    # the remaining checks (marker scan, dangling links, etc.) still run.
+    # the remaining checks (marker scan, dangling links, etc.) still run. The stamp finding
+    # reaches the issue list on its own through the override walk, so a config that loads is
+    # never also reported as invalid.
     #
     # PlaybookConfigError is caught FIRST and separately, ahead of the general SquadsError
     # catch below — it is itself a SquadsError subclass, so ordering is load-bearing here: a
     # broken playbook override must never fall into the workflow branch and inherit a message
-    # and a lint pointer that do not apply to it (see this command's docstring).
+    # and a lint pointer that do not apply to it. `sq workflow lint` does not read the playbook
+    # and no command lints it, so the message names the loader's violation and the file.
     try:
         svc = get_service()
     except PlaybookConfigError as exc:

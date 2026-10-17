@@ -149,14 +149,14 @@ async def test_a_compliant_roster_migrates(project, svc) -> None:
     assert [m.to_schema for m in run.applied] == ["0.16"]
 
 
-def test_the_manual_gives_the_remedy_and_no_longer_says_nothing_is_refused() -> None:
+def test_the_manual_gives_the_remedy_and_does_not_say_nothing_is_refused() -> None:
     text = " ".join(step.MANUAL.split())
 
     assert "nothing is refused" not in text
-    assert "sq operator <id> remove --purge" in text
+    assert "sq operator <id> rm --purge" in text
     assert 'sq operator add "<the same full name>"' in text
     assert "a plain `rm` drops the entry from the index but keeps its file" in text
-    assert "sq role <id> remove --purge" in text
+    assert "sq role <id> rm --purge" in text
     assert "update --assignee <new slug>" in text
 
 

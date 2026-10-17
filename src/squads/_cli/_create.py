@@ -123,26 +123,20 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     @common.command
     async def _cmd(  # noqa: PLR0913 — Typer options are the command's surface
         title: str = typer.Argument(..., help="Item title."),
-        author: str = typer.Option(
-            ..., "--author", help="Authoring agent (role slug); must be registered."
-        ),
-        parent: str | None = typer.Option(None, "--parent", help="Parent item ID."),
-        desc: str = typer.Option(
-            "", "--desc", help="Short summary (shown in lists; not the body)."
-        ),
-        label: list[str] = typer.Option(None, "--label", help="Label (repeatable)."),
+        author: str = common.author_option(),
+        parent: str | None = common.parent_option(),
+        desc: str = common.desc_option(),
+        label: list[str] = common.label_option(),
         ref: list[str] = typer.Option(
-            None, "--ref", help="Forward-ref to another ID (repeatable)."
+            None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
         ),
-        assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
+        assignee: str | None = common.assignee_option(),
         priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
-        message: list[str] = typer.Option(
-            None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
+        message: list[str] = common.message_option(),
+        file: str | None = common.file_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the created item."
         ),
-        file: str | None = typer.Option(
-            None, "--file", help="Read the body from a file ('-' = stdin)."
-        ),
-        json_out: bool = typer.Option(False, "--json"),
     ):
         svc = get_service()
         # --author/--assignee accept only a live slug: a retired role stops being
@@ -193,7 +187,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     _tmp_app = typer.Typer()
     _tmp_app.command(
         item_type_str,
-        help=f"Create a {item_type_str}.",
+        help=f"Create {common.article(item_type_str)} {item_type_str}.",
         cls=common.spec_aware_command_cls(_refresh_priority_help(item_type_str)),
     )(_cmd)
     leaf: _click.Command = typer.main.get_command(_tmp_app)  # type: ignore[assignment]
@@ -377,26 +371,20 @@ def _make(item_type_str: str):
     @common.command
     async def cmd(  # noqa: PLR0913 — Typer options are the command's surface
         title: str = typer.Argument(..., help="Item title."),
-        author: str = typer.Option(
-            ..., "--author", help="Authoring agent (role slug); must be registered."
-        ),
-        parent: str | None = typer.Option(None, "--parent", help="Parent item ID."),
-        desc: str = typer.Option(
-            "", "--desc", help="Short summary (shown in lists; not the body)."
-        ),
-        label: list[str] = typer.Option(None, "--label", help="Label (repeatable)."),
+        author: str = common.author_option(),
+        parent: str | None = common.parent_option(),
+        desc: str = common.desc_option(),
+        label: list[str] = common.label_option(),
         ref: list[str] = typer.Option(
-            None, "--ref", help="Forward-ref to another ID (repeatable)."
+            None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
         ),
-        assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
+        assignee: str | None = common.assignee_option(),
         priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
-        message: list[str] = typer.Option(
-            None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
+        message: list[str] = common.message_option(),
+        file: str | None = common.file_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the created item."
         ),
-        file: str | None = typer.Option(
-            None, "--file", help="Read the body from a file ('-' = stdin)."
-        ),
-        json_out: bool = typer.Option(False, "--json"),
     ):
         svc = get_service()
         # --author/--assignee accept only a live slug: a retired role stops being
@@ -443,7 +431,9 @@ def _make(item_type_str: str):
 
 for _t in _CREATABLE:
     create_app.command(
-        _t, help=f"Create a {_t}.", cls=common.spec_aware_command_cls(_refresh_priority_help(_t))
+        _t,
+        help=f"Create {common.article(_t)} {_t}.",
+        cls=common.spec_aware_command_cls(_refresh_priority_help(_t)),
     )(_make(_t))
 
 # Register hidden aliases for the _CREATABLE types so `sq create feat TITLE` dispatches
@@ -465,19 +455,15 @@ _STATIC_CREATE_TYPES: frozenset[str] = frozenset({*_CREATABLE, "guide"})
 @common.command
 async def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
     title: str = typer.Argument(..., help="Guide title."),
-    author: str = typer.Option(..., "--author", help="Authoring agent (role slug)."),
-    tech: str | None = typer.Option(None, "--tech", help="Technology (e.g. python, react)."),
-    tag: list[str] = typer.Option(None, "--tag", help="Tag (repeatable)."),
-    parent: str | None = typer.Option(None, "--parent", help="Parent item ID."),
-    desc: str = typer.Option("", "--desc", help="Short summary (shown in lists; not the body)."),
-    assignee: str | None = typer.Option(None, "--assignee", help="Role slug or ID."),
-    message: list[str] = typer.Option(
-        None, "-m", "--message", help="Body paragraph; repeat for several (or use --file)."
-    ),
-    file: str | None = typer.Option(
-        None, "--file", help="Read the body from a file ('-' = stdin)."
-    ),
-    json_out: bool = typer.Option(False, "--json"),
+    author: str = common.author_option(),
+    tech: str | None = common.tech_option(),
+    tag: list[str] = typer.Option(None, "--tag", help="Tag to add (repeatable)."),
+    parent: str | None = common.parent_option(),
+    desc: str = common.desc_option(),
+    assignee: str | None = common.assignee_option(),
+    message: list[str] = common.message_option(),
+    file: str | None = common.file_option(),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the created item."),
 ):
     attributes: dict[str, object] = {}
     if tech:

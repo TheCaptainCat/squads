@@ -1,5 +1,5 @@
 """Bundled guidance teaches ``comment <hash> show|edit|remove``, tells a reader to read again when
-a hash stops resolving, and no longer calls the discussion append-only."""
+a hash stops resolving, and does not call the discussion append-only."""
 
 import re
 from pathlib import Path
@@ -56,7 +56,7 @@ def test_each_pinned_managed_text_teaches_the_verbs(golden: str) -> None:
     assert not PERMISSION.search(text)
 
 
-def test_the_managed_claude_section_no_longer_calls_the_discussion_append_only() -> None:
+def test_the_managed_claude_section_does_not_call_the_discussion_append_only() -> None:
     text = (GOLDENS / "claude_md_section.txt").read_text(encoding="utf-8")
 
     assert "append-only" not in text

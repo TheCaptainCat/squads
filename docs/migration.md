@@ -250,15 +250,22 @@ The step rewrites the header line of every comment, in each item's discussion an
 subtask's and finding's. Nothing else changes: a comment's own lines stay byte for byte, no
 frontmatter changes (so no item's `updated_at` moves), and a header-shaped line in an item's body,
 outside any discussion, is left alone. The frontmatter is changed by the next part of the step,
-[the flattening](#the-frontmatter-is-flat). The run reports what both did under the step:
+[the flattening](#the-frontmatter-is-flat). The run reports what every part of the step did, one or more lines each, under the step:
 
 ```
-  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. Item frontmatter is flat: the extra block is lifted to top-level keys. The developer marker is dropped from role items, and roles named -dev that declare no capability are reported. — 11 changed
-    2 comment header(s) rewritten in 1 file(s); 0 already carried a slug
-    10 file(s) flattened; 5 key(s) lifted (allowed_tools 1, tags 1, target_date 1, tech 1, when_to_use 1); 1 skill description(s) dropped; 0 `path:` key(s) removed
+  0.16.0 (schema v0.15→v0.16): Comment headers name the author's permanent slug. Item frontmatter is flat: the extra block is lifted to top-level keys. The developer marker is dropped from role items, and roles named -dev that declare no capability are reported. Every role and skill records whether it is system or project. Every skill file has a discussion region. — 26 changed
+    4 comment header(s) rewritten in 1 file(s); 0 already carried a slug
+    25 file(s) flattened; 8 key(s) lifted (allowed_tools 1, hand_key 1, is_dev 1, model 1, tags 1, tech 2, when_to_use 1); 1 skill description(s) dropped; 0 `path:` key(s) removed
     1 operator title(s) set from the stored full name
-      operators/OP-000006-op-bob.md
+      operators/OP-000022-op-anna.md
     0 dropped skill description(s) differed from the one kept
+    1 role(s) named -dev hold no developer capability and are now ordinary roles; declare the capability in the role file and run `sq sync` to restore the developer guidance:
+      legacy-dev
+    9 role(s) stamped origin system
+    1 role(s) stamped origin project
+    12 skill(s) stamped origin system
+    1 skill(s) stamped origin project
+    12 skill(s) given a discussion region
 ```
 
 A header that already carries a slug is left as it is, so the step can be run again safely.
@@ -291,7 +298,7 @@ The squad is still at schema v0.15: fix the cause, then re-run `sq migrate up`, 
 What each line means, and what to do before running `sq migrate up` again:
 
 - **`'<name>' matches no roster entry`.** The role or operator that wrote those comments is no
-  longer in the squad, usually because it was removed with `remove --purge`. Add it back under that
+  longer in the squad, usually because it was removed with `rm --purge`. Add it back under that
   name with the earlier release: `sq role activate <slug> --name "<name>"` for a role (`sq role
   catalog` lists the slugs), `sq dev add --tech <tech> --name "<name>"` for a developer role, and
   `sq operator add "<name>" --slug <old-slug>` for an operator (`--slug` keeps the slug its items
@@ -348,7 +355,7 @@ make them editable by whoever holds it.
 What to do for each, with the release the squad is stamped for, before running `sq migrate up`
 again:
 
-- **An operator.** Run `sq operator <id> remove --purge`, using the ID in the line, then
+- **An operator.** Run `sq operator <id> rm --purge`, using the ID in the line, then
   `sq operator add "<the same full name>"`, which takes `op-` and the first name unless you pass a
   compliant `--slug`. The purge is required: with that release a plain `rm` drops the entry from
   the index but keeps its file, and the next run reads that file again. The comments that named the
@@ -357,7 +364,7 @@ again:
   `sq check` reports it as not registered.
 - **A role.** Give the role's project definition a compliant slug (the file under
   `<squad folder>/.overrides/roles/`, renamed, and its `slug` line with it), run
-  `sq role activate <new slug>`, then `sq role <id> remove --purge` for the old entry.
+  `sq role activate <new slug>`, then `sq role <id> rm --purge` for the old entry.
 - **A slug held by two entries.** Both entries are listed, each naming the other. Replace the one
   that breaks a rule above, or the one you can spare, the same way.
 
@@ -529,9 +536,12 @@ how many of each it stamped:
 - **A script that read the skill `system` flag reads `origin`.** `sq skill <slug> show --json`
   carries `origin` (`system` or `project`) and no `system` key; the text card shows an `origin:`
   row. In `sq role catalog --json`, `origin` is `system` where it was `bundled`.
-- **Some writes on a role or a generated skill are refused.** Setting a description or an
-  attribute, a skill's title, a body, `view disable`, and `view add` of another view's tag are
-  refused while the entry's view is declared; edit the role override or the playbook instead. See
+- **Some writes on a role or a generated skill are refused.** While the entry's view is declared,
+  a write to the content its definition supplies is refused: the description, a skill's title or
+  when-to-use, an attribute the bundled spec declares or a field the role definition supplies, a
+  body, `view disable`, and `view add` of another view's tag. Edit the role override or the
+  playbook instead. A role's title, pronouns, a skill's `--operator-invocable` and an attribute
+  your own workflow override declares stay writable. See
   [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses).
 
 ### Every skill has a discussion
@@ -545,6 +555,14 @@ so a second run changes nothing. The run reports how many skills it changed:
 ```
     12 skill(s) given a discussion region
 ```
+
+### After the upgrade: `update` refreshes the generated files at once
+
+`sq role <slug> update`, `sq skill <slug> update` and `sq operator <slug> update` rewrite the
+generated files that show the entry in the same command: a role's or skill's `.claude/` pointer,
+and a role's or operator's line in the `CLAUDE.md` roster. An entry you update after the migration
+needs no separate `sq sync` for those files. Run `sq sync` once after `sq migrate up`
+all the same, as the [TL;DR](#tldr) says, for the rest of the managed files.
 
 ---
 

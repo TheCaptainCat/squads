@@ -140,7 +140,7 @@ WontFix = ["Open"]
 
 # ---------------------------------------------------------------------------
 # Roles — the role catalog. Eight bundled roles; every status below names exactly one.
-# `settled` is the old `terminal`; `hidden` is default-visibility; `color` is a semantic
+# `hidden` is default-visibility; `color` is a semantic
 # colour intent from the closed palette (positive/danger/warning/muted/neutral/info),
 # mapped to a concrete colour per client (not here). `live` (defaults false) is the
 # materialisation axis — the one bundled live role is `active`. `blocked` (defaults false)

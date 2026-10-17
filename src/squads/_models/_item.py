@@ -158,7 +158,8 @@ class Item(BaseModel):
     #: only the badge code (spec-declared ``priority`` collection); label/emoji resolve at
     #: render time.
     priority: str | None = None
-    #: Item-level severity (today: bug only) — the badge code, top-level like ``priority``.
+    #: Item-level severity (the bundled spec declares it on bug only): the badge code, top-level
+    #: like ``priority``.
     severity: str | None = None
     labels: list[str] = []
     #: Forward edges only. Backrefs are computed by inverting these across all items.

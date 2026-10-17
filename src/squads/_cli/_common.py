@@ -1,6 +1,7 @@
 """Shared CLI helpers: console, error handling, service resolution, value parsing."""
 
 import contextlib
+import copy
 import enum
 import functools
 import json
@@ -540,6 +541,125 @@ def unreadable_report(msg: str) -> str:
         f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
         "forward as-is; fix the file and repair again"
     )
+
+
+# Shared options: each flag that more than one command takes is declared here, with one
+# wording per meaning, so a description changes in one place.
+
+PARAGRAPH_HELP = "A paragraph of text; repeat for several."
+COMMENT_POINT_HELP = "One point of the comment; repeat for several."
+FILE_HELP = "Read the text from a file instead of `-m`; `-` reads stdin."
+MOVE_STATUS_HELP = "Status to move to (see `sq workflow lifecycles`)."
+AUTHOR_AS_HELP = "Author: a role slug or `op-<slug>` (required)."
+COMMENT_AUTHOR_AS_HELP = "The comment's author (required)."
+_FORCE_TRANSITION_HELP = "Make a transition the lifecycle does not allow."
+
+
+def message_option(help: str = PARAGRAPH_HELP) -> Any:
+    return typer.Option(None, "-m", "--message", help=help)
+
+
+def file_option(help: str = FILE_HELP) -> Any:
+    return typer.Option(None, "--file", help=help)
+
+
+def append_option() -> Any:
+    return typer.Option(False, "--append", help="Append to the body instead of replacing it.")
+
+
+def replace_body_option() -> Any:
+    return typer.Option(
+        False, "--force", help="Replace a body already written; what it held is lost."
+    )
+
+
+def force_transition_option(help: str = _FORCE_TRANSITION_HELP) -> Any:
+    return typer.Option(False, "--force", help=help)
+
+
+def raw_option() -> Any:
+    return typer.Option(False, "--raw", help="Print plain text instead of rendered markdown.")
+
+
+def desc_option(default: str | None = "") -> Any:
+    return typer.Option(default, "--desc", help="Short summary shown in listings; not the body.")
+
+
+def author_option(default: Any = ...) -> Any:
+    return typer.Option(default, "--author", help="Author: a registered role slug or `op-<slug>`.")
+
+
+def as_option(help: str = AUTHOR_AS_HELP) -> Any:
+    return typer.Option(None, "--as", help=help)
+
+
+def yes_option() -> Any:
+    return typer.Option(False, "--yes", help="Skip the confirmation prompt.")
+
+
+def closed_option() -> Any:
+    return typer.Option(False, "--all", "-a", help="Include closed items.")
+
+
+def depth_option(default: int | None, *flags: str) -> Any:
+    return typer.Option(
+        default,
+        "--depth",
+        *flags,
+        help="How many levels below the root to show; 0 shows only the root.",
+    )
+
+
+def tech_option(default: Any = None) -> Any:
+    return typer.Option(default, "--tech", help="Technology, such as `python` or `react`.")
+
+
+def pronouns_option() -> Any:
+    return typer.Option(
+        None, "--pronouns", help="Pronouns, such as they/them; one line, up to 40 characters."
+    )
+
+
+def parent_option() -> Any:
+    return typer.Option(None, "--parent", help="Parent item ID or number.")
+
+
+def label_option() -> Any:
+    return typer.Option(None, "--label", help="Label to add (repeatable).")
+
+
+def assignee_option() -> Any:
+    return typer.Option(None, "--assignee", help="Role or operator slug to assign.")
+
+
+def assignee_filter_option() -> Any:
+    return typer.Option(
+        None, "--assignee", help="Show only items assigned to this role or operator slug."
+    )
+
+
+def type_filter_option() -> Any:
+    return typer.Option(
+        None, "--type", "-t", help="Show only items of this type (see `sq workflow types`)."
+    )
+
+
+def status_filter_option() -> Any:
+    return typer.Option(
+        None,
+        "--status",
+        "-s",
+        help="Show only items in this status, closed or not (see `sq workflow statuses`).",
+    )
+
+
+def move_status_option() -> Any:
+    return typer.Option(None, "--status", help=MOVE_STATUS_HELP)
+
+
+def type_group_help(item_type: str) -> str:
+    """The summary of ``sq <type>``, for a bundled or a declared type alike."""
+    return f"Operate on {article(item_type)} {item_type} by number or ID."
 
 
 def e(value: object) -> str:
@@ -1742,14 +1862,24 @@ def get_squad_paths() -> SquadPaths:
     return resolve(client_cwd=get_context().client_cwd)
 
 
-def _article(word: str) -> str:
-    """Return ``"an"`` for vowel-initial words, ``"a"`` otherwise."""
-    return "an" if word and word[0].lower() in "aeiou" else "a"
+_SILENT_H = ("hour", "honest", "honor", "heir")
+_CONSONANT_SOUND = ("uni", "use", "usu", "uti", "ubi", "eu", "one")
+
+
+def article(word: str) -> str:
+    """``"an"`` before a vowel sound, ``"a"`` before a consonant sound: ``an epic``, ``a unit``,
+    ``a user_story``, ``an hour``."""
+    w = word.lower()
+    if w.startswith(_SILENT_H):
+        return "an"
+    if w.startswith(_CONSONANT_SOUND):
+        return "a"
+    return "an" if w[:1] in ("a", "e", "i", "o", "u") else "a"
 
 
 def _mismatch_msg(label: str, actual_id: str, actual_type: str, expected_type: str) -> str:
     """Build a uniform type-mismatch error: ``"<label> is <id> (<type>), not a/an <type>"``."""
-    return f"{label} is {actual_id} ({actual_type}), not {_article(expected_type)} {expected_type}"
+    return f"{label} is {actual_id} ({actual_type}), not {article(expected_type)} {expected_type}"
 
 
 def _parse_item_token(token: str) -> tuple[int, str | None]:
@@ -1880,6 +2010,45 @@ async def resolve_agent_addr(token: str, item_type: str, svc: Service) -> str:
     raise SquadsError(f"no {item_type} with slug, ID, or number {token!r}")
 
 
+ADDRESS_METAVAR = "<slug|id|n>"
+
+
+class AddressedGroup(typer.core.TyperGroup):
+    """The group behind ``sq <roster> <slug|id|n> <verb>``; its usage names the address once."""
+
+    def get_params(self, ctx: Any) -> list[Any]:
+        return [
+            _without_usage_piece(p) if p.metavar == ADDRESS_METAVAR else p
+            for p in super().get_params(ctx)
+        ]
+
+
+def _without_usage_piece(param: Any) -> Any:
+    """A copy of *param* that still parses and is described, but adds nothing to usage lines."""
+
+    def no_pieces(_ctx: Any) -> list[str]:
+        return []
+
+    clone = copy.copy(param)
+    clone.get_usage_pieces = no_pieces
+    return clone
+
+
+def address_epilog(group: str, noun: str, examples: Sequence[str], group_verbs: str) -> str:
+    """The epilog of a roster group: how to address one entry, with examples, one per line
+    (Rich renders each blank-line-separated paragraph of an epilog on its own line). The
+    ``{verbs}`` marker is filled in once the addressed verbs are registered."""
+    one = f"{article(noun)} {noun}"
+    paragraphs = [
+        f"Address {one}: sq {group} {ADDRESS_METAVAR} VERB, where VERB is one of {{verbs}}.",
+        "Examples:",
+        *examples,
+        f"A slug matching a group verb ({group_verbs}) cannot address {one} by slug; "
+        "use the full ID or bare number instead.",
+    ]
+    return "\n\n".join(paragraphs)
+
+
 class AddressDispatchGroup(typer.core.TyperGroup):
     """A TyperGroup that routes unknown command tokens to a hidden ``_addr`` subgroup.
 
@@ -1918,23 +2087,23 @@ class AddressDispatchGroup(typer.core.TyperGroup):
             if not has_verb and "--help" not in remaining:
                 err_console.print(
                     f"[red]error:[/red] missing verb after address {cmd_name!r}. "
-                    f"Usage: sq {ctx.info_name} <slug|id|n> "
+                    f"Usage: sq {ctx.info_name} {ADDRESS_METAVAR} "
                     f"{verbs}",
                     soft_wrap=True,
                 )
                 raise typer.Exit(1)
             # Use a readable display name instead of "_addr" so help/error output shows
             # "sq role <slug|id|n>" rather than "sq role _addr".
-            return "<slug|id|n>", addr_cmd, args
+            return ADDRESS_METAVAR, addr_cmd, args
         return super()._click_resolve_command(ctx, args)
 
 
-def addr_verbs(addr_app: typer.Typer) -> str:
-    """The verbs registered on an addressed subgroup, hidden aliases left out, as ``a|b|c`` for
-    a group's help epilog."""
+def addr_verbs(addr_app: typer.Typer, sep: str = "|") -> str:
+    """The verbs registered on an addressed subgroup, hidden aliases left out, joined by *sep*
+    (``a|b|c`` by default; the help epilog uses ``, `` so the list wraps)."""
     names = [c.name for c in addr_app.registered_commands if c.name and not c.hidden]
     names += [g.name for g in addr_app.registered_groups if g.name and not g.hidden]
-    return "|".join(names)
+    return sep.join(names)
 
 
 def spec_aware_command_cls(
@@ -2007,26 +2176,21 @@ def register_status_verb(
     @command
     async def status(  # pyright: ignore[reportUnusedFunction] — registered via the decorator above
         ctx: typer.Context,
-        new_status: str = typer.Argument(..., metavar="STATUS"),
-        force: bool = typer.Option(
-            False,
-            "--force",
-            help=(
-                "Override the lifecycle's own disallowed transition edge. Never overrides a "
-                "refusal that the resulting config would be invalid."
-            ),
+        new_status: str = typer.Argument(..., metavar="STATUS", help=MOVE_STATUS_HELP),
+        force: bool = force_transition_option(
+            "Make a transition the lifecycle does not allow; a change that would leave "
+            "the config invalid is still refused."
         ),
         unlink: bool = typer.Option(
             False,
             "--unlink",
             help=(
-                "On a retirement, remove the scoping the refusal named — a custom skill's "
-                "link to a role — then re-run the check, rather than overriding it. Refused "
-                "on any other transition."
+                "On a retirement, remove the skill-to-role link the refusal names, then "
+                "check again; refused on any other transition."
             ),
         ),
     ) -> None:
-        """Transition the entity's status (shortcut for the work-item `status` verb)."""
+        """Move this entry to another status."""
         item_id = id_from_ctx(ctx)
         result = await get_service().set_roster_status(
             item_id, parse_status(new_status), force=force, unlink=unlink
@@ -2062,7 +2226,11 @@ def register_remove_verb(
             False, "--purge", help="Delete the file too; remove refuses without it."
         ),
     ) -> None:
-        """Delete for good; needs --purge (or set the status to Archived)."""
+        """Delete this entry for good; it needs `--purge`.
+
+        To keep it on record instead, move it to its archived status
+        (see `sq workflow lifecycles`).
+        """
         item_id = id_from_ctx(ctx)
         svc = get_service()
         removal = await svc.remove_item(item_id, purge=purge)
@@ -2083,18 +2251,16 @@ def register_body_verb(addr_app: typer.Typer, id_from_ctx: Callable[[typer.Conte
     @command
     async def body(
         ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message", help="Body paragraph."),
-        file: str | None = typer.Option(None, "--file", help="Body from a file ('-' = stdin)."),
-        append: bool = typer.Option(False, "--append", help="Append instead of replacing."),
-        force: bool = typer.Option(
-            False, "--force", help="Replace an already-written body (destructive, no undo)."
-        ),
+        message: list[str] = message_option(),
+        file: str | None = file_option(),
+        append: bool = append_option(),
+        force: bool = replace_body_option(),
     ) -> None:
-        """Set (or --append to) the body.
+        """Set or append to the body.
 
-        Replacing an already-written body is refused unless --force. A body generated from a
-        declared view (a role, a system or per-type skill) is refused outright; --force does
-        not lift that, and an operator body is never refused for it.
+        Replacing a body someone has already written is refused unless `--force`.
+        A body generated from a declared view (a role, a system or per-type skill)
+        is refused even with `--force`; an operator body is never refused for it.
         """
         item_id = id_from_ctx(ctx)
         text = resolve_body(message or None, file)
@@ -2163,19 +2329,20 @@ def _register_comment_append(comment_app: typer.Typer, target: CommentTarget) ->
     @command
     async def comment(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message", help="A talking point."),
-        file: str | None = typer.Option(None, "--file", help="Comment from a file ('-' = stdin)."),
-        as_: str | None = typer.Option(
-            None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
-        ),
+        message: list[str] = message_option(COMMENT_POINT_HELP),
+        file: str | None = file_option(),
+        as_: str | None = as_option(),
     ) -> None:
-        """Append a timestamped comment to the discussion, or work on one by its hash.
+        """Add a comment to the discussion, or act on one by its hash.
 
-        Append: comment -m TEXT [-m TEXT ...] --as SLUG, or comment --file PATH --as SLUG.
+        Add:
+          comment -m TEXT [-m TEXT ...] --as SLUG
+          comment --file PATH --as SLUG
+        By hash:
+          comment HASH show|edit|remove
 
-        By hash: comment HASH show|edit|remove. HASH is any 4 or more leading hex characters.
-
-        -m, --file and --as go after the verb. Only a comment's author can edit or remove it.
+        HASH is any 4 or more leading hex characters. -m, --file and --as go after
+        the verb. Only a comment's author can edit or remove it.
         """
 
         if ctx.invoked_subcommand is not None:
@@ -2202,8 +2369,8 @@ def _register_comment_show(addr_app: typer.Typer, target: CommentTarget) -> None
     @command
     async def show(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        json_out: bool = typer.Option(False, "--json"),
-        raw: bool = typer.Option(False, "--raw", help="Plain text even on a terminal."),
+        json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the comment."),
+        raw: bool = raw_option(),
     ) -> None:
         """Show one comment."""
         item_id, sub = target(ctx)
@@ -2229,12 +2396,17 @@ def _register_comment_edit(addr_app: typer.Typer, target: CommentTarget) -> None
     @command
     async def edit(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message", help="The new text."),
-        file: str | None = typer.Option(None, "--file", help="New text from a file ('-' = stdin)."),
-        as_: str | None = typer.Option(None, "--as", help="Its author (required)."),
-        json_out: bool = typer.Option(False, "--json"),
+        message: list[str] = message_option(COMMENT_POINT_HELP),
+        file: str | None = file_option(),
+        as_: str | None = as_option(COMMENT_AUTHOR_AS_HELP),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the edited comment."
+        ),
     ) -> None:
-        """Replace a comment's text. Its header keeps the time and author and gains an edit mark."""
+        """Replace a comment's text; its header gains an edit mark.
+
+        The header keeps the comment's time and author.
+        """
         svc = get_service()
         slug = await resolve_actor_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
@@ -2260,11 +2432,13 @@ def _register_comment_remove(addr_app: typer.Typer, target: CommentTarget) -> No
     @command
     async def remove(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
-        as_: str | None = typer.Option(None, "--as", help="Its author (required)."),
-        yes: bool = typer.Option(False, "--yes", help="Skip the confirmation prompt."),
-        json_out: bool = typer.Option(False, "--json"),
+        as_: str | None = as_option(COMMENT_AUTHOR_AS_HELP),
+        yes: bool = yes_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print a JSON array, one object per removed copy."
+        ),
     ) -> None:
-        """Delete a comment (every copy of it, when it was written twice)."""
+        """Delete a comment, and every copy of it if it was written twice."""
         svc = get_service()
         slug = await resolve_actor_or_raise(require_as(as_), svc)
         actor.set_actor(slug)
@@ -2309,6 +2483,7 @@ def register_comment_group(app: typer.Typer, target: CommentTarget) -> None:
             ..., metavar="HASH", help="4 or more leading hex characters."
         ),
     ) -> None:
+        """Show, edit or remove one comment, addressed by its hash."""
         ctx.obj = {**ctx.obj, "hash": hash_value}
 
     _register_comment_show(addr_app, target)
@@ -2328,10 +2503,12 @@ def register_comment_verbs(app: typer.Typer, id_from_ctx: Callable[[typer.Contex
     @app.command("comments")
     @command
     async def comments(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
-        ctx: typer.Context, json_out: bool = typer.Option(False, "--json")
+        ctx: typer.Context,
+        json_out: bool = typer.Option(
+            False, "--json", help="Print a JSON array, one object per comment."
+        ),
     ) -> None:
-        """Read back the top-level discussion (the dedicated, machine-readable verb --
-        `show --comments` renders the same discussion inline alongside the rest)."""
+        """Print the top-level discussion."""
         cmt_list = await get_service().comments(id_from_ctx(ctx))
         if json_out:
             print_json_clean(json.dumps(discussion.comments_json(cmt_list)))

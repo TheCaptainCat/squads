@@ -40,9 +40,9 @@ async def test_the_help_epilog_lists_the_same_verbs(squad, invoke, group):
     result = await invoke([group, "--help"])
     assert result.exit_code == 0, result.output
     flat = " ".join(result.output.split())
-    line = re.search(r"sq \w+ <slug\|id\|n> ([\w|\s-]+?) Examples", flat)
+    line = re.search(r"VERB is one of ([\w,\s-]+?)\. Examples", flat)
     assert line, flat
-    listed = set(line.group(1).replace(" ", "").split("|"))
+    listed = set(line.group(1).replace(" ", "").split(","))
     assert listed >= VERBS
     assert "rm" not in listed
     assert "{verbs}" not in flat

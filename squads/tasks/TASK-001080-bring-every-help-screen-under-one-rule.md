@@ -3,7 +3,7 @@ id: TASK-1080
 sequence_id: 1080
 type: task
 title: Bring every --help screen under one rule
-status: Ready
+status: Done
 parent: FEAT-1024
 author: tech-lead
 priority: medium
@@ -16,61 +16,61 @@ description: 'help text per REV-958 R1-R9: writer strings and docs, shared flag 
 subentities:
 - local_id: ST1
   title: Write the help rule into CONTRIBUTING.md
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US1
 - local_id: ST2
   title: Move the JSON field reference from 13 help bodies into the stability docs
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US3
 - local_id: ST3
   title: Give help one exit-code line form, mechanics in the faq
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US6
 - local_id: ST4
   title: Describe every option and argument, with one wording per shared flag
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US4
 - local_id: ST5
   title: Move maintainer reasoning and private names out of help bodies
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US2
 - local_id: ST6
   title: Rewrite hand-written summaries and drop flags described twice
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US8
 - local_id: ST7
   title: Declare each shared flag once in _cli/_common.py
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US5
 - local_id: ST8
   title: Apply one markup dialect and an 80-column layout to help
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US7
 - local_id: ST9
   title: 'Fix generated summaries: kind labels and articles'
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US8
 - local_id: ST10
   title: Add the tests/meta guard that walks the command tree
-  status: Todo
+  status: Done
   assignee: python-dev
   story: US9
 - local_id: ST11
   title: Match the docs and CHANGELOG to the shipped help
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US10
 created_at: '2026-10-16T21:15:20Z'
-updated_at: '2026-10-17T03:43:34Z'
+updated_at: '2026-10-17T05:11:49Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -192,6 +192,8 @@ docstring.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-17T04:10:32Z] Theo Writer:
+  - Done. CONTRIBUTING.md gains "Writing `--help` text": the three questions, the content-to-home table, R1-R9 as nine applicable rules, and the 80-column review test. The body tripwire is stated as ST10 must implement it: source lines after the summary paragraph and before any form feed, blank lines not counted, over 10 needs a reason a reviewer accepts. "How to add things > A command" links to it. The section does not mention the guard yet; @python-dev add one sentence naming it and its allowlist when ST10 lands.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -229,6 +231,17 @@ same change where help is its only home. F3, R5, R6, ADR-1025.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-17T04:10:34Z] Theo Writer:
+  - Done. All 13 bodies are trimmed to the summary, the `--json` line and `Fields: sq docs stability` (role catalog points at `sq docs roles`, where its fields live), keeping the three don't-misuse sentences (graph edge_semantic, tree anchor, search region).
+    
+    Docs check against live payloads from a scratch squad (dev tree, `--json` on search/tree/graph/workflow ref-kinds):
+    - search: payload keys id, title, type, status, hits[].region, hits[].location, hits[].snippet, hits[].hash. `hits[].hash` was missing from docs/stability.md; added (fixed format: full comment hash, null outside a discussion).
+    - tree: id, type, title, status, priority, assignee, blocked, badges, anchor, children; docs match in order.
+    - graph: id, type, status, priority, badges, assignee, edge_kind, edge_semantic, direction, seen, children; docs match. A related edge reads `edge_semantic: "default"`.
+    - ref-kinds: kind, label, hint, role, direction; catalog row already present.
+    The help-as-authority sentence was already withdrawn, and docs/workflow.md already marks ref-kind `role` as an open set.
+    
+    Two corrections made while verifying: the graph `edge_kind` row now says both spellings of a dependency edge report one declared kind (driven: a `blocks` ref reads `depends-on`, direction `out`), and the `direction` row no longer claims the parent always carries the ref, which that collapse makes false.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -260,6 +273,12 @@ ruling.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-17T04:10:36Z] Theo Writer:
+  - Done. One line form everywhere, `Exit codes: <code> <meaning>. See sq docs faq.`:
+    - 4, the exact architect line: inbox, search, board list, memory list, memory search.
+    - check (3), import (3, plus the two-line do-not-retry note), repair (1), migrate up (1), workflow lint (1).
+    - reflog's line is gone: 0/1 is the general contract, not a code of its own.
+    docs/faq.md: row 3 now names `sq import` and the do-not-retry rule; row 1 names the rebuild that ends `sq migrate up`. The exit-4 mechanics stay in the faq and stability docs only. No exit-code test was touched.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -290,6 +309,40 @@ ruling.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-17T04:10:38Z] Theo Writer:
+  - Done. Blank option and argument cells: 231 before, 0 after, over a walk of 343 canonical command records including the addressed roster, comment-hash and sub-entity verbs (REV-958 counted 186 over a narrower walk). Every `--json` names its top-level shape. No new cell restates a default or a required marker. Each wording below is already in place at every site, so ST7 only has to declare it once:
+    
+    | Flag | Canonical wording |
+    |---|---|
+    | `--file` (with `-m`) | Read the text from a file instead of `-m`; `-` reads stdin. |
+    | `-m/--message` on a body, notice or create | A paragraph of text; repeat for several. |
+    | `-m/--message` on comment and comment edit | One point of the comment; repeat for several. |
+    | `--force` on a work-item or sub-entity status change | Make a transition the lifecycle does not allow. |
+    | `--force` on a roster `status` | Make a transition the lifecycle does not allow; a change that would leave the config invalid is still refused. |
+    | `--force` on `body` | Replace a body already written; what it held is lost. |
+    | `--raw` | Print plain text instead of rendered markdown. |
+    | `--desc` | Short summary shown in listings; not the body. |
+    | `--author` | Author: a registered role slug or `op-<slug>`. |
+    | `--all` (closed items) | Include closed items. |
+    | `--depth` (tree, graph) | How many levels below the root to show; 0 shows only the root. |
+    | `--tech` (create guide, dev add) | Technology, such as `python` or `react`. |
+    | `--assignee` (sets) | Role or operator slug to assign. |
+    | `--assignee` (filters list, tree) | Show only items assigned to this role or operator slug. |
+    | `--type/-t` (filter) | Show only items of this type (see `sq workflow types`). |
+    | `--status/-s` (filter) | Show only items in this status, closed or not (see `sq workflow statuses`). |
+    | `STATUS` / `--status` (move) | Status to move to (see `sq workflow lifecycles`). |
+    | `--append` | Append to the body instead of replacing it. |
+    | `--parent` (create, skill add) | Parent item ID or number. |
+    | `--label` (create) | Label to add (repeatable). |
+    | `--pronouns` (role activate, dev add, operator add) | Pronouns, such as they/them; one line, up to 40 characters. |
+    | `--yes` | Skip the confirmation prompt. |
+    | `--title` (update) | New title. |
+    | view name (add) | Declared view name (see `sq workflow views`). |
+    | view name (disable) | View name; it need not be declared, so a dropped view can be turned off. |
+    | ref TARGET (add) | Item ID or number to ref; `ID:kind` also sets the kind. |
+    | `--kind` (ref add) | Ref kind (see `sq workflow ref-kinds`); without it, the default kind. |
+    
+    Left for ST7 as written: `--as` keeps its hand-written "(required)" on comment, comment edit/remove and board post, and `--priority`, `--category`, `--badge`, `--min-badge` and `--sort` are unchanged. `--json` is one line per shape, not one shared string.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -320,6 +373,12 @@ F1, R3.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-17T04:10:40Z] Theo Writer:
+  - Done. Read at 80 columns after the change: check, repair, workflow view, migrate up, workflow lint, list, workflow lifecycles, role catalog, role list, tree, workflow statuses, workflow collections, override scaffold, skill body, import, search, workflow roles, reflog. None names a function, class, module, package path or internal type, and none uses a history word.
+    - check keeps exactly the summary, the exit line, the stable-order sentence and the broken-override sentence; its reasoning went into the existing comment above `get_service()` in the command.
+    - repair's accessor reasoning is a comment on the accessor line; migrate up's matches-repair reasoning is a comment under its docstring.
+    - tree, role catalog, role list and role set-default keep a short maintainer note after a form feed.
+    - reflog --tree is one plain sentence; the helper docstring already held the full caveat.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -348,6 +407,10 @@ once. F9, F10, R1, R4.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-17T04:10:42Z] Theo Writer:
+  - Done. Every hand-written summary is one line, at most 72 characters, verb first, with no parenthesis (walker: 0 over 72 or wrapped, down from 51). Override scaffold's body is six lines on the kinds and their two spellings; override diff and update lost their per-flag paragraphs; tree keeps "ancestors of a match are kept and dimmed". The roster `status` summary no longer points at a work-item verb.
+    
+    Generated summaries left for ST9: "Create a <type>." and "Operate on a <type> by number." (article), the type group's "<type> number or id." argument, and the sub-entity verbs still saying "sub-entity" or using a fixed article: `<kinds>` list, `add-<kind>` ("Scaffold a <kind>"), the `<kind>` group, `<kind> show`, `<kind> body`, `<kind> remove`. `<kind> update` already uses the kind and is now "Change the <kind>'s title, status, assignee or declared fields."
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -382,6 +445,8 @@ and roster registrations, with one wording per meaning. F8, R4.
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-17T04:57:42Z] Elias Python:
+  - Done. Shared flags are declared once in _cli/_common.py (factory functions and wording constants); every other CLI module calls them. Where a flag carries more than one meaning it has one declaration per meaning. --as keeps "(required)" in the same words on every site, since it is validated by hand (REV-958 F8). Falsification: reverting to an inline --file with other wording turns 2 new tests red; a differently worded --desc, 3; a board post -m worded as a comment, 1; across the reverts 4 of the 5 new tests go red and the fifth is the scanner self-check.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -418,6 +483,8 @@ and roster registrations, with one wording per meaning. F8, R4.
 #### Discussion
 
 <!-- sq:subtask:ST8:discussion -->
+- [2026-10-17T04:57:45Z] Elias Python:
+  - Done. Retype NEW-TYPE and reflog --op no longer truncate; comment group, renumber and the three roster epilogs lay out one item per line at 80 columns; roster usage asks for the address once; sub-entity verbs name LOCAL-ID. Typer keeps authored line breaks in every help paragraph after the first, and a backspace marker there prints a stray blank line, so no no-rewrap marker is used. Falsification: restoring retype enumeration 3 new red (+1 changed test), reflog slash list 3, merged epilog paragraphs 3, folded comment examples 1, folded renumber line 3, roster usage 1, sub-entity N placeholder 1; 11 distinct new tests go red across the reverts.
 <!-- sq:subtask:ST8:discussion:end -->
 <!-- sq:subtask:ST8:end -->
 
@@ -451,6 +518,8 @@ type name. F9, R1.
 #### Discussion
 
 <!-- sq:subtask:ST9:discussion -->
+- [2026-10-17T04:57:49Z] Elias Python:
+  - Done. Generated summaries take the article from the declared name (common.article) and the kind labels for the add, list, group, show, body and remove verbs; remove names the mapping kind only when one maps onto it. Falsification: hard-coding "a" turns 3 new tests red; a kind verb back to sub-entity 4; plural list back to sub-entities 1; an over-long create summary 3; 8 distinct new tests go red across the reverts.
 <!-- sq:subtask:ST9:discussion:end -->
 <!-- sq:subtask:ST9:end -->
 
@@ -491,6 +560,8 @@ stale allowlist entry; the handoff records each red run.
 #### Discussion
 
 <!-- sq:subtask:ST10:discussion -->
+- [2026-10-17T04:57:52Z] Elias Python:
+  - Done. tests/meta/test_every_help_screen_follows_the_help_rule.py walks the command tree twice (bundled vocabulary, and an override with one vowel-initial type, an irregular-plural kind and a ref kind) under six checks, plus the 10-line body allowlist (starts empty, stale entries fail, form-feed notes ignored). CONTRIBUTING names the guard. Falsification: blank option 3 red, 73-character summary 3, doubled backtick 2, bracket tag 2, 79-column line 2, ellipsis 3, 11-line body off the allowlist 1, stale allowlist entry 1; loosening a check limit turns its self-check red (2 runs, 1 each).
 <!-- sq:subtask:ST10:discussion:end -->
 <!-- sq:subtask:ST10:end -->
 
@@ -517,6 +588,8 @@ stale allowlist entry; the handoff records each red run.
 #### Discussion
 
 <!-- sq:subtask:ST11:discussion -->
+- [2026-10-17T05:07:39Z] Theo Writer:
+  - Done. CONTRIBUTING rule 9 matches the shipped layout (REV-1093 F7). Re-rendered from a HEAD export: retype, reflog --op, the comment group, roster epilogs and comment edit/remove --as. No doc quotes those screens; the README and docs synopses use placeholders that still match. CHANGELOG 0.16.0 Changed gains two entries: one help rule with every option described, and one-line exit codes. The help guard is left out because adopters cannot see it.
 <!-- sq:subtask:ST11:discussion:end -->
 <!-- sq:subtask:ST11:end -->
 <!-- sq:subtasks:end -->
@@ -526,4 +599,20 @@ stale allowlist entry; the handoff records each red run.
 <!-- sq:discussion -->
 - [2026-10-16T21:16:00Z] Olivia Lead:
   - Broken down into ST1-ST11: writer strings and docs first (ST1-ST6), then developer placement and the guard (ST7-ST10), writer docs last (ST11). Depends on TASK-1072, the last CLI-changing task. No migration. @manager ready for review of the plan.
+- [2026-10-17T04:11:15Z] Theo Writer:
+  - ST1 to ST6 are done and uncommitted (commit point). Changed: CONTRIBUTING.md, docs/stability.md, docs/faq.md, 15 files under src/squads/_cli/ (help strings and docstrings only, plus three moved-reasoning comments), and two tests that pinned rewritten wording (test_override_commands_cli, test_roster_type_address_verbs). No CLI golden changed. Gates: ruff check and format clean, pyright clean on _cli, and tests/cli, tests/meta and tests/integration green.
+    
+    For @python-dev (ST7 to ST10):
+    - ST7: the canonical wordings are on ST4 and already sit at every site, so declaring each once in _common.py is mechanical. `--as` "(required)" and the `--priority`/badge flags are untouched.
+    - ST8: every body I wrote is in single backticks and wrapped at 78 columns. Left for you: the comment group's three line-structured lines (82 to 85 columns), the role, operator and skill epilogs, renumber's indented `git show` line, retype NEW-TYPE and reflog `--op`.
+    - ST9: the generated summaries are listed on ST6.
+    - ST10: `\f` is now used by tree, role catalog, role list and role set-default. Nothing is over 10 body lines by the ST1 count (the longest is graph and override scaffold at about 6), so the allowlist may start empty. Add one sentence naming the guard to the CONTRIBUTING section.
+    
+    @manager ready for the 80-column read.
+- [2026-10-17T04:11:33Z] Theo Writer:
+  - Correction to my handoff: by the ST1 count the longest bodies are tree (9), graph (8), import (7), list and override scaffold (6). None is over 10, so the allowlist can still start empty.
+- [2026-10-17T04:25:37Z] Paul Reviewer:
+  - Writer pass ST1-ST6 reviewed in REV-1093: ChangesRequested, one medium (repair --renumber help and exit line) and four low findings, all text fixes. REV-958 mapping is on REV-1093. @tech-writer
+- [2026-10-17T04:57:54Z] Elias Python:
+  - ST7 to ST10 done and uncommitted. Gates: pyright 0 errors; ruff check and format clean on src, tests, scripts; tests/cli, tests/meta, tests/integration and tests/unit green (8594 passed); sq check clean. For ST11: CONTRIBUTING rule 9 says a no-rewrap block needs a backspace marker, but Typer keeps line breaks in every paragraph after the first (the marker prints a blank line there); the rule should say line-structured text goes after the first paragraph. Epilog examples are one paragraph per line. Docs quoting help may mention the changed retype, reflog --op, comment group, roster usage (<slug|id|n> once) and LOCAL-ID text. @tech-writer
 <!-- sq:discussion:end -->

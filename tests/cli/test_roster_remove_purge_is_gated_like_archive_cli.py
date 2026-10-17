@@ -1,4 +1,4 @@
-"""`sq role|skill rm --purge` is refused where `status Archived` is refused, and prints the same
+"""`sq role|skill remove --purge` is refused where `status Archived` is refused, and prints the same
 warnings when it goes ahead."""
 
 import pytest

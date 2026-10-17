@@ -378,8 +378,8 @@ def test_no_roster_verb_but_a_creation_verb_declares_a_slug_option() -> None:
 async def test_a_purged_slug_may_be_taken_again_and_old_headers_then_read_as_the_new_entity(
     project, invoke
 ) -> None:
-    """Accepted by ruling: creation does not consult comment history, so reuse after a purge
-    succeeds and the earlier header names the newcomer. Do not add that check as a fix."""
+    """Creation does not consult comment history, so reuse after a purge succeeds and the
+    earlier header names the newcomer."""
     await invoke(["operator", "add", "Anna Lee", "--slug", "op-anna"])
     await invoke(["create", "task", "Target", "--author", "manager"])
     await invoke(["task", "3", "comment", "--as", "op-anna", "-m", "from the first Anna"])

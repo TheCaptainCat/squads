@@ -710,10 +710,11 @@ The frozen surface includes:
   | `title` | | the item's title, as stored |
   | `type` | vocabulary | item type |
   | `status` | vocabulary | status |
-  | `hits` | | array of `{region, location, snippet}`, one per match |
+  | `hits` | | array of `{region, location, snippet, hash}`, one per match |
   | `hits[].region` | open set | where the hit was found: `title`, `description`, `body`, `discussion#<n>` (the *n*-th comment), `<kind>:<local_id>` (a sub-entity's heading or body) or `<kind>:<local_id>:discussion#<n>`; the kind and local id inside it are vocabulary |
   | `hits[].location` | display | a human label for the same place |
   | `hits[].snippet` | display | the matching line |
+  | `hits[].hash` | | the full hash of the comment the hit is in, or `null` outside a discussion |
 
   `sq tree --json` emits a bare array of root nodes; each node is:
 
@@ -740,9 +741,9 @@ The frozen surface includes:
   | `priority` | vocabulary | priority code, or `null` |
   | `badges` | vocabulary | object of badge field to badge code |
   | `assignee` | vocabulary | assignee slug, or `null` |
-  | `edge_kind` | vocabulary | the ref kind of the edge that reached this node, as spelled in the project; `null` on the root |
+  | `edge_kind` | vocabulary | the ref kind of the edge that reached this node, as spelled in the project; both spellings of a dependency edge report the same declared kind; `null` on the root |
   | `edge_semantic` | open set | that kind's semantic role: today `dependency`, `preload`, `supersession`, `default`, or `null` (the root, a navigational kind, or a kind the spec does not declare). Branch on this, never on `edge_kind` |
-  | `direction` | | `out` (the parent node carries the ref to this one; on a dependency edge, the parent depends on it), `in` (this node carries the ref to the parent), or `null` on the root |
+  | `direction` | | `out` (on a dependency edge, the parent node depends on this one; on any other edge, the parent carries the ref to this one), `in` (the reverse), or `null` on the root |
   | `seen` | | boolean: the node was already expanded elsewhere in this graph, so its `children` is empty |
   | `children` | | nested nodes of the same shape |
 

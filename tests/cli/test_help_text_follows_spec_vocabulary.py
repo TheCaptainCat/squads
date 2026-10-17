@@ -52,15 +52,15 @@ def _num(item_id: str) -> str:
     return item_id.rsplit("-", 1)[-1]
 
 
-async def test_retype_help_lists_bundled_work_types_in_declared_order(project, invoke) -> None:
+async def test_retype_help_points_at_the_type_list_instead_of_enumerating_it(
+    project, invoke
+) -> None:
     created = await invoke(["create", "task", "T", "--author", "manager"])
     num = _num(_created_id("TASK", created.output))
     r = await invoke(["task", num, "retype", "--help"])
     assert r.exit_code == 0, r.output
-    # Rich truncates the help column at the pinned 80-column width — with 9 non-roster types
-    # declared, "review" and "guide" no longer fit and the column ends in an ellipsis; the
-    # visible prefix is still in declared order, which is what this test is actually pinning.
-    assert "epic|feature|task|bug|decision|contract|milest" in r.output
+    assert "…" not in r.output
+    assert "sq workflow types" in " ".join(r.output.replace("│", " ").split())
 
 
 async def test_retype_help_includes_a_custom_declared_type(project, invoke) -> None:

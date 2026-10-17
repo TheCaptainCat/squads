@@ -34,7 +34,7 @@ sq adopt                        # non-destructive: see below
 - ensures the squad folder + per-type subfolders and the `.claude/` scaffolding;
 - **imports** any squads-native `.md` files already present (rebuilds the index + the global
   counter from their frontmatter — same engine as `sq repair`, which means it also **rewrites**
-  those files where they carry content squads no longer stores; see
+  those files where they carry content squads does not store; see
   [What `sq repair` writes](#what-sq-repair-writes));
 - activates the bundled roles it doesn't already have.
 
@@ -165,7 +165,7 @@ happens:
    ```
    `sq repair` also **rewrites content**, not just the index — see
    [What `sq repair` writes](#what-sq-repair-writes) below. On a corpus carrying regions squads
-   no longer stores, that content diff arrives on top of the half-written import you are trying
+   does not store, that content diff arrives on top of the half-written import you are trying
    to inspect, and the two cannot be told apart afterwards. Commit or stash the partial import
    first, so the next step's `git diff` shows the repair's work on its own.
 2. Inspect what landed. Use `sq tree` or `sq list` to see which items made it:
@@ -195,7 +195,7 @@ with `--at` are preserved across rebuilds.
 ### What `sq repair` writes
 
 `sq repair` rebuilds the index, and on the same pass it **rewrites item files**. It removes what
-squads now computes on every read rather than stores:
+squads computes on every read rather than stores:
 
 - the sub-entity roll-up table and each sub-entity block's badge line, from any item file that
   carries them;

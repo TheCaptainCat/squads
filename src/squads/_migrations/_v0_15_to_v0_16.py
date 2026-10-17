@@ -752,7 +752,7 @@ make them editable by whoever holds it.
 What to do for each, with the release the squad is stamped for, before running `sq migrate up`
 again:
 
-- **An operator.** Run `sq operator <id> remove --purge`, using the ID in the line, then
+- **An operator.** Run `sq operator <id> rm --purge`, using the ID in the line, then
   `sq operator add "<the same full name>"`, which takes `op-` and the first name unless you pass
   a compliant `--slug`. The purge is required: a plain `rm` drops the entry from the index but
   keeps its file, and the next run reads that file again. The comments that named the operator
@@ -761,7 +761,7 @@ again:
   `sq check` reports it as not registered.
 - **A role.** Give the role's project definition a compliant slug (the file under
   `<squad folder>/.overrides/roles/`, renamed, and its `slug` line with it), run
-  `sq role activate <new slug>`, then `sq role <id> remove --purge` for the old entry.
+  `sq role activate <new slug>`, then `sq role <id> rm --purge` for the old entry.
 - **A slug held by two entries.** Both entries are listed, each naming the other. Replace the one
   that breaks a rule above, or the one you can spare, the same way.
 """
@@ -1025,6 +1025,11 @@ CONTRIBUTIONS: tuple[Contribution, ...] = (
 _MANUAL_PREAMBLE = """\
 This step checks every part before it writes any file: if any part finds a problem, this step
 writes nothing, the schema stamp stays as it is and the command lists every problem at once.
+
+On a squad still behind the package, `sq migrate up`, `sq migrate help`, `sq migrate chlog`,
+`sq override list`, `sq override diff` and `sq override update` run; every other command is
+refused. The purge steps below use `rm --purge`, which both the 0.15 tool and 0.16 accept (0.16
+also accepts `remove`).
 
 """
 

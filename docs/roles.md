@@ -259,30 +259,30 @@ the value and writes nothing for it.
 choice is the `operator_invocable` key in the skill's frontmatter, so a generic item row
 (`sq list -t skill --json`, `sq show`) carries it only when the squad has stored one.
 
-**After upgrading,** the generated pointers change on the first `sq sync`: until then `sq check`
-warns that each bundled skill's pointer has drifted, and from then on Claude Code does not run a
-bundled skill as `/<slug>`. No migration is needed.
-
 ## Updating and commenting on roles, skills and operators
 
-Roles, skills and operators take the item verbs `update`, `comment`, `comments` and `remove`, plus
-`show --comments`. `update` changes display fields only:
+Roles, skills and operators take the item verbs `update`, `body`, `comment`, `comments`, `status`
+and `remove`, plus `show --comments`. Roles and skills also take `regen` and `view`, and a role
+takes `set-default`. `update` changes display fields, plus a skill's operator-invocable choice:
 
 | Entry | `update` options | Refused on |
 |---|---|---|
-| skill | `--title`, `--desc`, `--when-to-use` | a generated skill (`squads`, `greeting`, `sq-memory`, `sq-<type>`) |
-| role | `--title`, the role's name | none: any role, a bundled one included |
-| operator | `--title`, the display name | none |
+| skill | `--title`, `--desc`, `--when-to-use`, `--operator-invocable` | a generated skill (`squads`, `greeting`, `sq-memory`, `sq-<type>`) refuses `--title`, `--desc` and `--when-to-use`; `--operator-invocable` is accepted on any skill |
+| role | `--title` (the role's name), `--pronouns` | none: any role, a bundled one included |
+| operator | `--title` (the display name), `--pronouns` | none |
 
 The slug, the file name and the id never change. A role renamed with `update --title` keeps the
 name through every `sq sync` and every override change, and its pointer and the `CLAUDE.md`
 roster line show the new name at once. When a skill's body is still the scaffold it was created
 with, `update` re-renders it from the new values; a body you have written is kept as it is.
-`update` with no option exits `1`, writes nothing, and names the options:
+`update` with no option exits `1`, writes nothing, and names the options of that kind of entry;
+on a role or an operator:
 
 ```
-error: nothing to update (pass --title)
+error: nothing to update (pass at least one of --title, --pronouns)
 ```
+
+On a skill it names `--title, --desc, --when-to-use, --operator-invocable`.
 
 `body` sets an entry's prose (`-m`, `--file`, `--file -`, `--append`, `--force`), and prints
 `<ID>: body set` or `<ID>: body appended`. It follows a different rule on each kind of entry:
@@ -424,8 +424,9 @@ tag in the body. While that view is declared, the content of such an entry is wr
 definition lives, not on the entry, and these writes are refused with exit `1`, nothing written,
 `--force` or not:
 
-- a body replace or append: `sq skill <slug> body`, or a `body` event of `sq import`;
-- `sq skill <slug> update`, and an `update` event of `sq import` that sets the description, sets
+- a body replace or append: `sq role <slug> body` or `sq skill <slug> body`, or a `body` event of `sq import`;
+- `sq skill <slug> update --title|--desc|--when-to-use` (a command that adds
+  `--operator-invocable` to one of them is refused whole), and an `update` event of `sq import` that sets the description, sets
   or unsets an attribute the bundled spec declares for the type (`fields`, `unset_fields`), or
   changes a skill's title; an event that also changes something allowed is refused whole;
 - `view disable`, and `view add` of any view other than the entry's own.
@@ -442,7 +443,8 @@ developer's `model` is set the same way. For a skill, it is the playbook overrid
 
 Every role is covered, a `project` one too, because every role's body is generated; a skill you
 added with `sq skill add` takes every write. The rest stays open on every role and skill: a role's
-title (`sq role <slug> update --title`), labels, assignee and an attribute your workflow override
+title and pronouns (`sq role <slug> update --title|--pronouns`), a skill's operator-invocable
+choice (`sq skill <slug> update --operator-invocable`), labels, assignee and an attribute your workflow override
 declares (through an `update` event of `sq import`), `status`, `remove --purge`, `comment`, `regen`,
 and `view add` of the entry's own view, which is how `sq check`'s
 remedies put a missing tag back. To write such an entry yourself, drop its view from `[selected]`

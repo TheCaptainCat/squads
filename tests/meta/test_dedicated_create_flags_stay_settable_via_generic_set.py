@@ -2,9 +2,8 @@
 ``sq create guide --tech``) must back a key that the type declares settable, so the generic
 ``sq <type> <n> update --set <field>=<value>`` door reaches it too.
 
-The bug this guards against: a create flag that wrote a key no attribute declaration named, so
-once a squad renamed or replaced the ``guide`` type (losing the dedicated flag, which is bound to
-the literal type name) the key had no CLI path at all. The fix is declaration, not a rewrite.
+Without it, a create flag could write a key no attribute declaration names, which loses its only
+CLI path once a squad renames or replaces the type that carries the flag.
 
 This is a source-text scan: ``AttributeKey`` is a plain class of string constants, not an enum,
 so ``attributes[AttributeKey.TECH] = …`` has no runtime membership to introspect without

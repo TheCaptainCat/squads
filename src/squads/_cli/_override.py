@@ -45,12 +45,7 @@ from squads._overrides._service import (
 
 override_app = typer.Typer(
     no_args_is_help=True,
-    help=(
-        "Manage project-level template and role overrides (.overrides/).\n\n"
-        "Overrides are user-owned: scaffold starts from the bundled default, "
-        "diff shows what changed (both your edits and what the upgrade changed), "
-        "you merge by hand, then update re-stamps to clear the drift warning."
-    ),
+    help="Manage project-level template and role overrides.",
 )
 
 
@@ -68,70 +63,42 @@ def override_gate(ctx: typer.Context) -> None:
 def scaffold(
     name: str | None = typer.Argument(
         None,
-        help="Bundled template name (e.g. 'items/<type>.md.j2'), 'workflow', 'playbook', "
-        "or 'roles' (the role catalog document — distinct from --role <slug>).",
+        help="Template name, such as `items/<type>.md.j2`, or `workflow`, `playbook`, `roles`.",
     ),
     role: str | None = typer.Option(
-        None, "--role", help="Role slug to scaffold a per-role TOML override for (e.g. architect)."
+        None, "--role", help="Bundled role to override in a file of its own, such as `architect`."
     ),
     new: str | None = typer.Option(
         None,
         "--new",
-        help=(
-            "Slug for a brand-new, non-bundled role (e.g. security-analyst). "
-            "Writes a starter TOML with the essentials stubbed; "
-            "use --role instead to override a bundled role."
-        ),
+        help="Slug for a new role that is not in the catalog, such as `security-analyst`.",
     ),
     can_spawn: bool = typer.Option(
         False,
         "--can-spawn",
-        help="With --new: emit 'can_spawn = true' as an active key instead of commented.",
+        help="With `--new`, let the new role spawn other agents.",
     ),
     workflow: bool = typer.Option(
-        False, "--workflow", help="Scaffold the workflow spec override (.overrides/workflow.toml)."
+        False, "--workflow", help="Scaffold the workflow spec override, `workflow.toml`."
     ),
     playbook: bool = typer.Option(
-        False, "--playbook", help="Scaffold the playbook override (.overrides/playbook.toml)."
+        False, "--playbook", help="Scaffold the playbook override, `playbook.toml`."
     ),
     roles_catalog: bool = typer.Option(
         False,
         "--roles-catalog",
-        help="Scaffold the role catalog document override (.overrides/roles.toml) — "
-        "the whole-document override, distinct from --role <slug>.",
+        help="Scaffold the override of the whole role catalog, `roles.toml`.",
     ),
-    force: bool = typer.Option(False, "--force", help="Overwrite an existing override."),
+    force: bool = typer.Option(False, "--force", help="Overwrite an override that exists."),
 ):
-    """Copy a bundled template (or role/workflow/playbook) into .overrides/ as a starting point.
+    """Copy a bundled default into `.overrides/` to start an override from.
 
-    The scaffolded file carries the ``squads:override-base:<version>`` stamp so sq check
-    knows which bundled version the override was branched from.
-
-    This is the only command that writes override bodies.  After scaffolding, edit the
-    file directly to customise it, then verify with ``sq override diff``.
-
-    Custom non-dev role: ``sq override scaffold --new <slug>`` starts a wholly new role
-    that isn't in the bundled catalog (e.g. ``security-analyst``, ``incident-commander``).
-    Fill in the stubbed essentials, then ``sq role activate <slug>`` to create it.
-
-    Workflow override (shadowing, not additive-only): ``sq override scaffold workflow`` or
-    ``sq override scaffold --workflow`` creates ``.overrides/workflow.toml`` with a
-    stamp and a commented worked example (e.g. an ``incident`` type with its lifecycle).
-    A field can shadow (replace) a built-in's; the roster type keys (role/skill/operator)
-    are the one locked exception.
-
-    Playbook override: ``sq override scaffold playbook`` or ``sq override scaffold --playbook``
-    creates ``.overrides/playbook.toml`` with a stamp and the one-line append idiom worked
-    example — the mechanism this override kind exists for (add a role's guidance to a type
-    without restating the type's other bundled guides).
-
-    Role catalog override (the whole-document kind, distinct from ``--role <slug>``):
-    ``sq override scaffold roles`` or ``sq override scaffold --roles-catalog`` creates
-    ``.overrides/roles.toml`` with a stamp and a worked example covering the roles table,
-    the named bundles, and the dev-role pool — override the bundle selection and developer
-    name pool, rename or reshape a bundled role, or declare a wholly new one, all in one
-    document. ``--role <slug>`` (above) is the narrower, per-role file; the two are not
-    interchangeable and this command distinguishes them so they can't be confused.
+    Pick one: a template by `NAME`; one role, bundled (`--role`) or new (`--new`);
+    or a whole document, the workflow spec, the playbook or the role catalog. Each
+    document has two spellings, a name or a flag: `workflow` or `--workflow`,
+    `playbook` or `--playbook`, `roles` or `--roles-catalog`. Edit the file, then
+    check it with `sq override diff`; a new role is created with `sq role
+    activate`.
     """
     svc = get_service()
     squad_dir = svc.paths.squad_dir
@@ -218,14 +185,15 @@ def scaffold(
 @past_the_gate(Ground.NO_SQUAD_STATE, behind=True)
 @handle_errors
 def list_overrides(
-    json_out: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per override."
+    ),
 ):
-    """List every present override with its kind, base version, and drift state.
+    """List every override with its kind, base version and drift state.
 
-    State legend: ``current`` = up to date; ``drifted`` = bundled counterpart changed
-    since the base stamp; ``broken`` = missing required sq markers (error in sq check).
-
-    ``--json`` emits an array of {name, kind, base_version, state} objects.
+    `current` is up to date; `drifted` means the bundled default changed since the
+    base version; `broken` means required sq markers are missing, an error in
+    `sq check`.
     """
     entries = scan_overrides(get_squad_paths().squad_dir)
 
@@ -287,47 +255,32 @@ def _state_color(state: str) -> str:
 def diff(
     name: str | None = typer.Argument(
         None,
-        help="Template name, role slug, 'workflow', 'playbook', or 'roles' (the role catalog "
-        "document — distinct from --role <slug>). Omit to diff all drifted overrides.",
+        help="Template name, role slug, `workflow`, `playbook` or `roles`; omit for all drifted.",
     ),
-    role: str | None = typer.Option(None, "--role", help="Diff a per-role TOML override by slug."),
+    role: str | None = typer.Option(None, "--role", help="Diff the override of this role."),
     workflow: bool = typer.Option(
-        False, "--workflow", help="Diff the workflow spec override (.overrides/workflow.toml)."
+        False, "--workflow", help="Diff the workflow spec override, `workflow.toml`."
     ),
     playbook: bool = typer.Option(
-        False, "--playbook", help="Diff the playbook override (.overrides/playbook.toml)."
+        False, "--playbook", help="Diff the playbook override, `playbook.toml`."
     ),
     roles_catalog: bool = typer.Option(
         False,
         "--roles-catalog",
-        help="Diff the role catalog document override (.overrides/roles.toml) — the "
-        "whole-document override, distinct from --role <slug>.",
+        help="Diff the override of the whole role catalog, `roles.toml`.",
     ),
-    json_out: bool = typer.Option(False, "--json", help="Emit machine-readable JSON."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print a JSON array, one object per override diffed."
+    ),
 ):
-    """Show two diffs for an override: your edits AND what the upgrade changed.
+    """Show your edits to an override and what an upgrade changed beneath it.
 
-    Δ-mine:    your override vs the current bundled template (your customisation).
-    Δ-upgrade: the base-version bundled template vs current bundled (what upgraded).
+    Δ-mine:    your override against the current bundled default.
+    Δ-upgrade: the bundled default at your base version against the current one.
 
-    Read Δ-upgrade to see what required markers or context variables were added since
-    you last reconciled.  Merge them into your override by hand, then run
-    ``sq override update <name>`` to re-stamp and clear the drift warning.
-
-    For workflow: ``sq override diff workflow`` or ``sq override diff --workflow`` shows
-    your changes against the bundled spec (Δ-mine) and version stamp delta (Δ-upgrade).
-
-    For playbook: ``sq override diff playbook`` or ``sq override diff --playbook`` shows the
-    same two deltas against the bundled playbook.
-
-    For the role catalog document: ``sq override diff roles`` or
-    ``sq override diff --roles-catalog`` shows the same two deltas against the bundled
-    ``roles.toml`` — distinct from ``sq override diff --role <slug>``, which diffs one
-    per-role file.
-
-    With no name/--role/--workflow/--playbook/--roles-catalog, diffs every drifted override.
-    ``--json`` emits an array of {name, kind, base_version, base_available, delta_mine,
-    delta_upgrade}.
+    Merge what Δ-upgrade added into your override by hand, then run
+    `sq override update <name>`. With no name or flag, every drifted override is
+    diffed.
     """
     squad_dir = get_squad_paths().squad_dir
 
@@ -416,38 +369,26 @@ def _print_diff_result(result: DiffResult) -> None:
 def update(
     name: str | None = typer.Argument(
         None,
-        help=(
-            "Template name, role slug, 'workflow', 'playbook', or 'roles' (the role catalog "
-            "document — distinct from --role <slug>) to re-stamp. "
-            "Omit to re-stamp all valid overrides."
-        ),
+        help="Template name, role slug, `workflow`, `playbook` or `roles`; omit for all valid.",
     ),
-    role: str | None = typer.Option(
-        None, "--role", help="Re-stamp a per-role TOML override by slug."
-    ),
+    role: str | None = typer.Option(None, "--role", help="Re-stamp the override of this role."),
     workflow: bool = typer.Option(
-        False, "--workflow", help="Re-stamp the workflow spec override (.overrides/workflow.toml)."
+        False, "--workflow", help="Re-stamp the workflow spec override, `workflow.toml`."
     ),
     playbook: bool = typer.Option(
-        False, "--playbook", help="Re-stamp the playbook override (.overrides/playbook.toml)."
+        False, "--playbook", help="Re-stamp the playbook override, `playbook.toml`."
     ),
     roles_catalog: bool = typer.Option(
         False,
         "--roles-catalog",
-        help="Re-stamp the role catalog document override (.overrides/roles.toml) — the "
-        "whole-document override, distinct from --role <slug>.",
+        help="Re-stamp the override of the whole role catalog, `roles.toml`.",
     ),
 ):
-    """Re-stamp an override's base version after a hand-merge, clearing the drift warning.
+    """Mark an override as merged with the current default, clearing its drift.
 
-    Only rewrites the ``squads:override-base:`` stamp — the override body is never touched.
-    This is the maintainer's assertion "I have reconciled this against the current bundled default."
-
-    The next ``sq check`` recomputes drift against the new base and the warning clears.
-
-    With no name/--role/--workflow/--playbook/--roles-catalog, re-stamps every
-    structurally-valid override (bulk acknowledge). Broken overrides (missing required
-    markers) are skipped — fix them first.
+    Only the base-version stamp is rewritten, never the override's content. With
+    no name or flag, every valid override is re-stamped; a broken one is skipped
+    until it is fixed.
     """
     squad_dir = get_squad_paths().squad_dir
 

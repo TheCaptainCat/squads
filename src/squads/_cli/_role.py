@@ -68,13 +68,18 @@ class _RoleDispatchGroup(AddressDispatchGroup):
 role_app = typer.Typer(
     no_args_is_help=True,
     help="Manage agent roles.",
-    epilog=(
-        "Address a role:  sq role <slug|id|n> {verbs}\n"
-        "Examples:  sq role manager show   sq role 1 regen   sq role ROLE-1 remove --purge\n"
-        "           sq role manager status Archived   sq role qa set-default\n"
-        "           sq role qa view disable role_definition   — disable a dropped view's tag\n"
-        "Note: a slug matching a group verb (catalog, activate, list) is unaddressable by slug; "
-        "use the full ID or bare number instead."
+    epilog=common.address_epilog(
+        "role",
+        "role",
+        (
+            "sq role manager show",
+            "sq role 1 regen",
+            "sq role ROLE-1 remove --purge",
+            "sq role manager status Archived",
+            "sq role qa set-default",
+            "sq role qa view disable role_definition",
+        ),
+        "catalog, activate, list",
     ),
     cls=_RoleDispatchGroup,
 )
@@ -101,33 +106,21 @@ def _catalog_squad_dir() -> Path | None:
 
 @role_app.command("catalog")
 @common.command
-async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
-    """Show the role catalog (slug, name, title, default indicator) for the active squad.
+async def role_catalog(
+    json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per role."),
+) -> None:
+    """Show the roles you can activate, with the project's overrides merged in.
 
-    This is the bundled catalog merged with a project's own ``.overrides/roles.toml``
-    declarations (if any): a role the document declares that isn't in the bundled catalog
-    appears here, and a bundled role the document overrides shows the project's values. The
-    ``Origin``/``origin`` column is ``system`` for a bundled role (overridden or not) and a
-    templated developer, ``project`` for anything the project declared. Outside a squad, or
-    with no such document, this is exactly the bundled catalog.
+    Outside a squad this is the bundled catalog. Inside one it also lists every
+    activated role, and the default column marks the role holding the designation
+    now (`sq role <addr> set-default`). Name, title and capabilities are the
+    catalog's values; `sq role list` shows each live role's resolved ones.
+    Fields: sq docs roles
 
-    The ``Default``/``is_default`` column answers *for the active squad*, not for the catalog
-    document: inside a squad it marks the role that currently holds the designation
-    (``sq role <addr> set-default``), read through the same live projection the generated
-    default-role line is compiled from, so the two never disagree. Outside a squad — where
-    there is no roster to ask — it falls back to the catalog's own declared designation.
-
-    Inside a squad the catalog also lists every activated role the document does not declare (a
-    templated developer, a role declared by a per-slug file), so the designation holder always
-    has a row. ``default_role`` carries the holder as a slug (``null`` when no live role holds
-    it) and ``default_role_source`` says where that answer came from: ``"roster"`` for the
-    active squad's designation, ``"catalog"`` for the document's own declaration outside a
-    squad, where there is no roster to ask. Both repeat on every row, since this payload is a
-    bare array. ``sq role list`` is the roster listing and carries every live role.
-
-    Like the other per-role fields here (name, title), ``capabilities`` is the catalog
-    document's value, before any per-slug role file; ``sq role list`` and ``sq role <addr>
-    show`` carry the resolved value.
+    \f
+    The default column reads the same live projection as the generated default-role line, so the
+    two never disagree. `default_role` and `default_role_source` repeat on every row because the
+    payload is a bare array.
     """
     squad_dir = _catalog_squad_dir()
     roles = load_role_catalog(squad_dir).roles
@@ -203,13 +196,14 @@ async def role_catalog(json_out: bool = typer.Option(False, "--json")) -> None:
 
 @role_app.command("list")
 @common.command
-async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
-    """List the active roster — activated roles, distinct from the bundled `role catalog`.
+async def role_list(
+    json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per role."),
+) -> None:
+    """List the activated roles, with the default-role holder marked.
 
-    Carries the default-role designation (``Default``/``is_default``), resolved per row the
-    same way the generated default-role line is: this is the only listing that can name every
-    possible holder, since a developer role or any other role added after init has a roster
-    entry but no catalog row.
+    \f
+    The only listing that can name every possible default holder: a developer role, or any role
+    added after init, has a roster entry but no catalog row.
     """
     svc = get_service()
     roles = await svc.list_roles()
@@ -262,22 +256,19 @@ async def role_list(json_out: bool = typer.Option(False, "--json")) -> None:
 @role_app.command("activate")
 @common.command
 async def activate_role(
-    slug: str = typer.Argument(...),
+    slug: str = typer.Argument(
+        ..., help="A role from `sq role catalog`, or one declared in `.overrides/roles/`."
+    ),
     name: str | None = typer.Option(
-        None, "--name", help="Full name for this agent (overrides bundled default)."
+        None, "--name", help="Full name for this agent instead of the bundled one."
     ),
-    pronouns: str | None = typer.Option(
-        None, "--pronouns", help="Pronouns for this agent, e.g. they/them (one line, up to 40)."
-    ),
+    pronouns: str | None = common.pronouns_option(),
 ) -> None:
     """Activate a role: create its tracked item and Claude pointer.
 
-    ``<slug>`` may be a bundled role (see ``sq role catalog``) or a custom non-dev role defined
-    under ``.overrides/roles/<slug>.toml`` — scaffold one with ``sq override scaffold --new
-    <slug>``, fill in the essentials, then activate it here.
-
-    Activating an already-live role is a no-op.  A role that exists but has been retired is
-    *refused*, not silently returned: bring it back with ``sq role <slug> status <live-status>``.
+    Scaffold a custom role first with `sq override scaffold --new <slug>`.
+    Activating a live role does nothing. A retired role is refused; bring it back
+    with `sq role <slug> status <status>`.
     """
     svc = get_service()
     item = await svc.activate_role(slug, name=name, pronouns=pronouns)
@@ -290,7 +281,11 @@ async def activate_role(
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
 
-_addr = typer.Typer(no_args_is_help=True, help="Operate on a role by slug, ID, or number.")
+_addr = typer.Typer(
+    no_args_is_help=True,
+    cls=common.AddressedGroup,
+    help="Operate on a role by slug, ID, or number.",
+)
 
 # Context key for the raw address token (stored alongside the resolved id).
 _ADDR_KEY = "addr"
@@ -300,7 +295,10 @@ _ID_KEY = "id"
 @_addr.callback()
 @common.command
 async def _resolve_addr(
-    ctx: typer.Context, addr: str = typer.Argument(..., metavar="ADDR")
+    ctx: typer.Context,
+    addr: str = typer.Argument(
+        ..., metavar=common.ADDRESS_METAVAR, help="Role slug, ID or number."
+    ),
 ) -> None:
     """Resolve the address token; for ``show`` also allow bundled-only slugs (graceful fallback).
 
@@ -364,16 +362,15 @@ def _role_empty_body_hint(hint_state: views.EmptyBodyHintState, slug: str) -> st
 @common.command
 async def show_role(
     ctx: typer.Context,
-    raw: bool = typer.Option(False, "--raw", help="Print plain body text (no markdown rendering)."),
-    json_out: bool = typer.Option(False, "--json"),
+    raw: bool = common.raw_option(),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the role."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
     ),
 ) -> None:
     """Show a role's catalog card plus active item body.
 
-    Works for both activated roles (resolves via DB) and bundled-only roles (catalog card +
-    activation hint).
+    A role that is not activated shows its catalog card and how to activate it.
     """
     item_id: str | None = ctx.obj[_ID_KEY]
     addr: str = ctx.obj[_ADDR_KEY]
@@ -510,14 +507,14 @@ async def regen_role(ctx: typer.Context) -> None:
 @_addr.command("set-default")
 @common.command
 async def set_default_role(ctx: typer.Context) -> None:
-    """Move the default-role designation onto this role, clearing every other holder.
+    """Make this role the default role, clearing every other holder.
 
-    A move, not a set: the previous holder(s) are cleared in the same transaction, so the
-    roster never ends up with two roles carrying the designation. Refuses a non-live role
-    (a designation the generated config cannot present is not a designation), and reports
-    designating the current holder as a no-op rather than an error. This is also the way
-    back after a squad has lost its default-role guidance to a retirement — see
-    `sq role <addr> status`.
+    A role that is not live is refused, and naming the current holder changes
+    nothing. It also restores default-role guidance that a retirement removed.
+
+    \f
+    A designation the generated config cannot present is not a designation, hence the refusal of
+    a role that is not live.
     """
     item_id = _require_id(ctx)
     svc = get_service()
@@ -539,7 +536,7 @@ async def update_role(
         None, "--pronouns", help="The role's pronouns; a blank value clears them."
     ),
 ) -> None:
-    """Rename a role or set its pronouns; its slug, file and pointer directory never change."""
+    """Rename a role or set its pronouns; its slug never changes."""
     common.require_update_fields(title=title, pronouns=pronouns)
     item_id = _require_id(ctx)
     svc = get_service()
@@ -567,16 +564,17 @@ register_status_verb(_addr, _require_id)
 # only an operator invoking it ever clears one; nothing in this codebase does it automatically.
 # ``view rm`` is retired outright, with no alias: a tag is disabled, never deleted.
 _view_app = typer.Typer(
-    no_args_is_help=True, help="Place, re-enable or disable a view tag in sq:body."
+    no_args_is_help=True, help="Show or hide declared views in the role's body."
 )
 
 
 @_view_app.command("add")
 @common.command
 async def role_view_add(
-    ctx: typer.Context, name: str = typer.Argument(..., help="Declared view name.")
+    ctx: typer.Context,
+    name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
 ) -> None:
-    """Place the sq:view:NAME tag enabled, or re-enable it if disabled (idempotent)."""
+    """Show a declared view in the role's body, or re-enable it."""
     item_id = _require_id(ctx)
     placed = await get_service().add_view(item_id, name)
     if placed:
@@ -588,9 +586,12 @@ async def role_view_add(
 @_view_app.command("disable")
 @common.command
 async def role_view_disable(
-    ctx: typer.Context, name: str = typer.Argument(..., help="View name.")
+    ctx: typer.Context,
+    name: str = typer.Argument(
+        ..., help="View name; it need not be declared, so a dropped view can be turned off."
+    ),
 ) -> None:
-    """Disable the sq:view:NAME tag (placed disabled if absent) — never removed."""
+    """Stop showing a view in the role's body; its tag stays, disabled."""
     item_id = _require_id(ctx)
     svc = get_service()
     was_present = await svc.view_tag_present(item_id, name)
@@ -604,4 +605,6 @@ _addr.add_typer(_view_app, name="view")
 
 role_app.add_typer(_addr, name="_addr", hidden=True)
 
-role_app.info.epilog = (role_app.info.epilog or "").replace("{verbs}", common.addr_verbs(_addr))
+role_app.info.epilog = (role_app.info.epilog or "").replace(
+    "{verbs}", common.addr_verbs(_addr, ", ")
+)

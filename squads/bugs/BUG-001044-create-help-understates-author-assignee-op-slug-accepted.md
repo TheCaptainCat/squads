@@ -3,14 +3,14 @@ id: BUG-1044
 sequence_id: 1044
 type: bug
 title: 'create --help understates --author/--assignee: op slug accepted'
-status: Open
+status: Verified
 author: qa
 priority: low
 refs:
 - REV-1036
 - MILE-1051:targets
 created_at: '2026-10-16T09:09:24Z'
-updated_at: '2026-10-16T12:35:08Z'
+updated_at: '2026-10-17T05:06:30Z'
 ---
 <!-- sq:body -->
 Reproduced on the dev build in a scratch squad.
@@ -36,4 +36,6 @@ Found while auditing the docs (REV-1036).
 <!-- sq:discussion -->
 - [2026-10-16T12:35:08Z] Catherine Manager:
   - Also: sq operator add --help does not state the op- slug grammar (found while documenting TASK-1048).
+- [2026-10-17T05:06:17Z] Mara Tester:
+  - Verified on release/0.16 HEAD 3c99dcc8 (clean export): create bug --help now reads "--author Author: a registered role slug or op-<slug>" and "--assignee Role or operator slug to assign"; bug update --assignee carries the same text. Remaining: operator add --help does not spell the op- grammar beyond "op-<first name>" for --slug (minor, not blocking).
 <!-- sq:discussion:end -->

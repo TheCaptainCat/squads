@@ -528,7 +528,7 @@ items.task.extra_fields: 'extra_fields' is not a declared key — a type's keys 
 declaration used to name, and a key from a newer spec are all carried through every write and
 through `sq repair`, with their values. No command removes a key it was not asked to change, with
 one exception: on a role, `sq repair` removes the role-definition keys the role catalog answers
-(`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`), unless the `role` type declares them as attributes (see
+(`full_name`, `mission`, `responsibilities`, `agreements`, `color`, `can_spawn`, `skills`, `is_dev`), unless the `role` type declares them as attributes (see
 [adoption.md § "What `sq repair` writes"](adoption.md#what-sq-repair-writes)).
 
 A key you add by hand puts the file ahead of the index, as any hand edit does: run `sq repair`
