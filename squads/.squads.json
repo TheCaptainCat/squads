@@ -49305,7 +49305,7 @@
         {
           "local_id": "ST3",
           "title": "Make comment a group that routes a hash to show, edit and remove",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -49314,7 +49314,7 @@
         {
           "local_id": "ST4",
           "title": "Show one comment, with a --json record",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -49323,7 +49323,7 @@
         {
           "local_id": "ST5",
           "title": "Edit a comment by its author, keeping header and position",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US4",
@@ -49332,7 +49332,7 @@
         {
           "local_id": "ST6",
           "title": "Remove a comment by its author, with confirmation",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US5",
@@ -49413,7 +49413,7 @@
       ],
       "path": "tasks/TASK-001079-address-comments-by-short-hash-show-edit-and-remove.md",
       "created_at": "2026-10-16T21:12:16Z",
-      "updated_at": "2026-10-17T01:04:59Z",
+      "updated_at": "2026-10-17T01:30:12Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -49964,7 +49964,7 @@
       "type": "review",
       "title": "TASK-1079 commit point 1: comment hash and line-span splice",
       "slug": "task-1079-commit-point-1-comment-hash-and-line-span-splice",
-      "status": "Requested",
+      "status": "InReview",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -49979,7 +49979,7 @@
         {
           "local_id": "F1",
           "title": "replace_section and append_to_section corrupt CRLF regions; fix in _sections.py, not a bypass",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -49988,7 +49988,7 @@
         {
           "local_id": "F2",
           "title": "replace_comments trusts Comment.span; spans from a stripped or stale region splice the wrong lines",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -50006,7 +50006,7 @@
         {
           "local_id": "F4",
           "title": "Stale comment in format_comment and a docstring missing the edit mark",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -50015,6 +50015,24 @@
         {
           "local_id": "F5",
           "title": "Splice table pins LF and CRLF only; add lone-CR and mixed-terminator rows",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Retired-author refusal lives only in the CLI; edit_comment and remove_comment accept a retired slug",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "comment <hash> --help doubles the hash in its usage and names the argument hash_",
           "status": "Open",
           "assignee": null,
           "severity": "low",
@@ -50024,7 +50042,7 @@
       ],
       "path": "reviews/REV-001088-task-1079-commit-point-1-comment-hash-and-line-span-splice.md",
       "created_at": "2026-10-17T01:09:55Z",
-      "updated_at": "2026-10-17T01:11:15Z",
+      "updated_at": "2026-10-17T01:38:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},

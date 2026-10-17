@@ -3,7 +3,7 @@ id: REV-1088
 sequence_id: 1088
 type: review
 title: 'TASK-1079 commit point 1: comment hash and line-span splice'
-status: Requested
+status: InReview
 author: reviewer
 refs:
 - TASK-1079
@@ -11,12 +11,12 @@ subentities:
 - local_id: F1
   title: replace_section and append_to_section corrupt CRLF regions; fix in _sections.py,
     not a bypass
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F2
   title: replace_comments trusts Comment.span; spans from a stripped or stale region
     splice the wrong lines
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F3
   title: Two line-splitting rules now coexist; ST9 hit mapping and legacy line reports
@@ -25,14 +25,24 @@ subentities:
   severity: low
 - local_id: F4
   title: Stale comment in format_comment and a docstring missing the edit mark
-  status: Open
+  status: Verified
   severity: low
 - local_id: F5
   title: Splice table pins LF and CRLF only; add lone-CR and mixed-terminator rows
+  status: Verified
+  severity: low
+- local_id: F6
+  title: Retired-author refusal lives only in the CLI; edit_comment and remove_comment
+    accept a retired slug
+  status: Open
+  severity: low
+- local_id: F7
+  title: comment <hash> --help doubles the hash in its usage and names the argument
+    hash_
   status: Open
   severity: low
 created_at: '2026-10-17T01:09:55Z'
-updated_at: '2026-10-17T01:11:15Z'
+updated_at: '2026-10-17T01:38:35Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -76,6 +86,10 @@ _Add with `sq review 1088 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-17T01:13:17Z] Elias Python:
+  - Fixed in _sections.py: replace_section pads with the terminator after the open marker and accepts CR/CRLF edges; append_to_section writes the snippet in the section terminator. tests/unit/test_sections_keep_the_files_line_endings.py. Reverting the fix turns 12 of its 19 tests red.
+- [2026-10-17T01:38:01Z] Paul Reviewer:
+  - Verified (driven): replace_section is an identity on LF, CRLF and CR regions; an emptied region keeps one terminator; append_to_section writes the section's terminator. Note: the Service reads item files with universal newlines and writes LF, so this path is reached only by direct callers; the edit path is no worse than append (whole file goes LF, and the canonical text keeps every other comment's hash).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -98,6 +112,10 @@ Probe (`a`, `b` built by `format_comment`):
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-17T01:13:18Z] Elias Python:
+  - Fixed: replace_comments takes sequence_id/scope, re-parses the region and refuses (read it again) a change whose comment is not at its span with the same hash. Four stale-string rows plus a scope/item row; reverting the check turns 5 red.
+- [2026-10-17T01:38:02Z] Paul Reviewer:
+  - Verified (driven): spans parsed from a stripped region, and a sequence-number mismatch, are both refused with the read-again message; the service splices the same raw get_section string it parsed.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -121,6 +139,11 @@ The narrower rule is right for the hash, because ADR-1013 §1 allows no change b
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-17T01:29:59Z] Elias Python:
+  - Fixed for the readers ST5 and ST9 use: sections.split_lines (CR, LF, CRLF) now backs region_lines, the search and inbox region scan and the discussion layer. 4 new rows (U+2028, form feed, VT, NEL) go red if region_lines reverts to str.splitlines. The 0.16 header migration still uses str.splitlines: the task says that file is not touched, so I left it. @manager rule if you want it changed.
+- [2026-10-17T01:38:20Z] Paul Reviewer:
+  - Readers verified (read): region_lines, the search and inbox scan and the discussion layer use sections.split_lines. Reopened for the manager's ruling that the 0.16 header migration moves to split_lines too; it still calls str.splitlines in _tally_file, _write_headers and _strip_eol.
+  - Dry run (driven): copied this squad, then ran the dev build's migrate up, sync and check with -C. The migration rewrote 4,467 headers in 933 files and check is clean. The migration's _scan, run under str.splitlines and under split_lines over all 1,139 pre-migration files, gives identical events with 0 files differing, REV-1026 included. That scan was first checked on a known positive: a U+2028 with a header-shaped tail yields 2 events under splitlines and 1 under split_lines. So the move changes nothing in this corpus. The REV-1026 difference is on the reader side only.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -139,6 +162,10 @@ Both are one-line edits in `src/squads/_discussion.py`.
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-17T01:13:19Z] Elias Python:
+  - Fixed: format_comment comment and split_discussion docstring. No behavior, no test.
+- [2026-10-17T01:38:02Z] Paul Reviewer:
+  - Verified (read).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -161,8 +188,44 @@ None of them is pinned by a test, so a later change to `_LINE_RE` or to the term
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-17T01:13:20Z] Elias Python:
+  - Fixed: cr added to the splice table and two mixed-terminator rows. Narrowing the line rule to LF turns 114 red.
+- [2026-10-17T01:38:04Z] Paul Reviewer:
+  - Verified (read, and the targeted suite passes).
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
+
+<!-- sq:finding:F6 -->
+### F6 — Retired-author refusal lives only in the CLI; edit_comment and remove_comment accept a retired slug
+
+<!-- sq:finding:F6:body -->
+**What (driven).** A retired author is refused only in the CLI (`resolve_actor_or_raise` in `_cli/_common.py`). Probe on a scratch copy: after archiving `tech-writer`, `sq task N comment <hash> edit --as tech-writer` exits 1 with "is retired". But `Service.edit_comment(..., as_slug="tech-writer")` called directly succeeds and writes the edit. `remove_comment` has the same shape.
+
+**Judgement.** The CLI is the wrong home for this half of the rule. ADR-1013 §9 states the author match and the retired-author freeze as one rule, yet the author match lives in the service (`_require_comment_author`) and the freeze lives in the CLI. Any other service caller, such as the TUI or a future import op, gets one half without the other. It matches how append works today (`svc.comment` does not check either), so it is not a regression, which is why this is low.
+
+**Fix.** Resolve the live slug inside `edit_comment` and `remove_comment`, next to `_require_comment_author`, through the same roster lookup the CLI uses. Add a service-level refusal row for a retired author. Moving the append check as well is optional, and could be its own cleanup.
+<!-- sq:finding:F6:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F6:discussion -->
+<!-- sq:finding:F6:discussion:end -->
+<!-- sq:finding:F6:end -->
+
+<!-- sq:finding:F7 -->
+### F7 — comment <hash> --help doubles the hash in its usage and names the argument hash_
+
+<!-- sq:finding:F7:body -->
+**What (driven).** `sq task N comment <hash> --help` prints the usage `sq task N comment <hash> [OPTIONS] HASH COMMAND [ARGS]...`, so the hash token appears twice. Its Arguments table names the argument `hash_`, which is the Python parameter name leaking through. `comment --help` itself is good: it describes both the append form and the `HASH show|edit|remove` form.
+
+**Fix.** Set the hidden `_addr` group's name, or the `options_metavar`/usage, so the usage reads `sq task N comment HASH COMMAND [ARGS]...`, and give the argument a display name of `HASH`. Add a help-text assertion at item and sub-entity level, under REV-958's help-surface rules.
+<!-- sq:finding:F7:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F7:discussion -->
+<!-- sq:finding:F7:discussion:end -->
+<!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -171,4 +234,12 @@ None of them is pinned by a test, so a later change to `_LINE_RE` or to the term
 - [2026-10-17T01:11:15Z] Paul Reviewer:
   - Five findings: F1 medium (CRLF in replace_section/append_to_section, confirmed by probe; fix in _sections.py rather than bypassing it in ST5), F2 medium (replace_comments trusts spans; spans from a stripped or stale region corrupt silently), F3-F5 low.
   - Recommended verdict: approve ST1/ST2 to commit once F4 and F5 are fixed. F1 and F2 must be fixed before ST5 writes through the splice. F3 is due before ST5 (legacy-line report) and ST9 (hit-to-hash mapping). @python-dev @manager
+- [2026-10-17T01:11:54Z] Catherine Manager:
+  - Rulings: F1 fix replace_section and append_to_section in _sections.py to keep the file's line endings (no bypass). F2 verify header and hash at each span before splicing, refuse on mismatch. F3 one splitting rule everywhere: CR, LF and CRLF only (search, region_lines, migration), in the subtask that first needs it. F4, F5 fix.
+- [2026-10-17T01:38:34Z] Paul Reviewer:
+  - Commit point 2 (2a16e94b), all driven on a scratch copy of this squad. Grammar: comment HASH show|edit|remove works at item, sub-entity, role and system-skill level. A bare hash exits 2 at every level. A misplaced -m before the hash exits 2 and appends nothing. A short or non-hex token exits 2 and names -m. A wrong-scope hash is refused and the message names the right address.
+  - Edit: the author is matched by slug, not by display name. A header whose display name equals another slug still refuses that slug and accepts the real one. reject_markers runs on the new text. A no-op edit leaves the file byte-identical. The mark follows the ADR-1013 grammar, and a second edit replaces it instead of adding one. A stale hash is refused afterwards. A legacy line in any discussion of the item refuses both edit and remove, names the correct file line, and writes nothing. The legacy anonymous `operator` slug can edit its own comments.
+  - Remove: a wrong author is refused. Declining the prompt exits 1 with the file untouched. Only the comment lines and updated_at change. JSON: comments --json, show --json (item and sub-entity), comment show --json and the goldens gain exactly edited_ts, hash and short_hash. The show record adds item, scope and copies. sq check and repair are clean afterwards.
+  - Judgements. CRLF: no finding. The Service reads item files with universal newlines and writes LF, so the edit path converts a CRLF file exactly as append already does, and the canonical text keeps every other comment hash stable. Sub-entity comments verb: no gap. FEAT-1017 keeps `comments` unchanged, and a sub-entity discussion is listed with hashes by show --comments and show --json. Retired authors: F6, low.
+  - F1, F2, F4 and F5 are Verified. F3 is reopened only for the migration ruling; the dry run shows no change in this corpus. F6 and F7 are low. Targeted tests pass: 1,016. Recommended verdict: approve, with F3, F6 and F7 to fix before the next commit point. @manager @python-dev
 <!-- sq:discussion:end -->

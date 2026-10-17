@@ -25,19 +25,19 @@ subentities:
   story: US8
 - local_id: ST3
   title: Make comment a group that routes a hash to show, edit and remove
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Show one comment, with a --json record
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST5
   title: Edit a comment by its author, keeping header and position
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST6
   title: Remove a comment by its author, with confirmation
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST7
   title: Refuse duplicate comments on write, merge or remove them together
@@ -75,7 +75,7 @@ subentities:
   assignee: architect
   story: US11
 created_at: '2026-10-16T21:12:16Z'
-updated_at: '2026-10-17T01:04:59Z'
+updated_at: '2026-10-17T01:30:12Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -327,6 +327,9 @@ exit 1 for a bare hash: those rows go red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-17T01:30:08Z] Elias Python:
+  - Done: CommentGroup and register_comment_group (src/squads/_cli/_common.py) at item, sub-entity and roster level; tests/cli/test_comment_group_grammar.py (30 rows, parse table x item/sub-entity).
+  - Falsified (new tests red): bare hash exits 1 instead of 2: 4; options before the verb allowed: 4.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -365,6 +368,9 @@ line without the sub-entity part: its row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-17T01:30:09Z] Elias Python:
+  - Done: show and show --json; comment_json/comments_json extended with edited_ts, hash, short_hash (one builder for every surface); tests/cli/test_comment_show_by_hash.py. Goldens comments, task_show, feature_show, subtask_st1_show regenerated: only the three keys added.
+  - Falsified (new tests red): extra key in the record: 2; context line without the sub-entity part: 2.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -410,6 +416,9 @@ goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-17T01:30:11Z] Elias Python:
+  - Done: Service.edit_comment/find_comment, edit verb; tests/service/test_comment_edit_by_hash.py (position x shape x level x preamble, refusals), tests/cli/test_comment_edit_and_remove_by_hash.py. Written through sections.replace_section.
+  - Falsified (new tests red): match display name as well as slug 1; skip reject_markers 1; write on a no-op edit 2; skip the legacy-line check 1.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -447,6 +456,9 @@ author match on remove: the wrong-author row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-17T01:30:12Z] Elias Python:
+  - Done: Service.remove_comment, remove verb with prompt/--yes/--json; tests/service/test_comment_remove_by_hash.py, CLI rows in the shared CLI module.
+  - Falsified (new tests red): skip the author match in the removal core 2; skip the confirmation 1. Dropping the preflight author check alone stays green by design (the core re-checks under the lock).
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
