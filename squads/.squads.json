@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1088,
+  "counter": 1090,
   "padding": 6,
   "items": {
     "12": {
@@ -48675,7 +48675,7 @@
       "type": "task",
       "title": "Add pronouns to roles and operators",
       "slug": "add-pronouns-to-roles-and-operators",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Declared pronouns attribute, a resolved roster default, roster --json, generated files, a typed display table and the VS Code setting",
       "parent": "FEAT-961",
       "author": "tech-lead",
@@ -48694,7 +48694,7 @@
         {
           "local_id": "ST1",
           "title": "Declare and pin the pronouns attribute, with one shape rule and a check",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48703,7 +48703,7 @@
         {
           "local_id": "ST2",
           "title": "Set and clear pronouns through the creation and update verbs",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US1",
@@ -48712,7 +48712,7 @@
         {
           "local_id": "ST3",
           "title": "Resolve a declared roster default from the role catalog document",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US2",
@@ -48721,7 +48721,7 @@
         {
           "local_id": "ST4",
           "title": "Carry resolved pronouns in the four roster --json payloads",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": "US3",
@@ -48766,7 +48766,7 @@
       ],
       "path": "tasks/TASK-001071-add-pronouns-to-roles-and-operators.md",
       "created_at": "2026-10-16T19:53:59Z",
-      "updated_at": "2026-10-17T02:12:57Z",
+      "updated_at": "2026-10-17T02:38:47Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -50056,6 +50056,94 @@
       "modified_session": null,
       "extra": {},
       "id": "REV-1088"
+    },
+    "1089": {
+      "sequence_id": 1089,
+      "type": "review",
+      "title": "Pronouns on roles and operators: shape rule, verbs, default, display table",
+      "slug": "pronouns-on-roles-and-operators-shape-rule-verbs-default-dis",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1071"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Config stamp drops an explicit [display] default and unusable values without a report",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Pronouns shape rule accepts Unicode format characters such as bidi overrides",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "display_problems can be set from .squads.toml and shows up as a check warning",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Role-document pronouns refusal falls back to a malformed verb text",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001089-pronouns-on-roles-and-operators-shape-rule-verbs-default-dis.md",
+      "created_at": "2026-10-17T02:47:29Z",
+      "updated_at": "2026-10-17T02:48:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1089"
+    },
+    "1090": {
+      "sequence_id": 1090,
+      "type": "bug",
+      "title": "Config stamp rewrites .squads.toml, dropping comments and unknown keys",
+      "slug": "config-stamp-rewrites-squads-toml-dropping-comments-and-unkn",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-1089",
+        "MILE-1051:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001090-config-stamp-rewrites-squads-toml-dropping-comments-and-unkn.md",
+      "created_at": "2026-10-17T02:50:08Z",
+      "updated_at": "2026-10-17T02:50:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1090"
     }
   }
 }
