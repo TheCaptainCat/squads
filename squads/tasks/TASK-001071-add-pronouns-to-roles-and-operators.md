@@ -3,7 +3,7 @@ id: TASK-1071
 sequence_id: 1071
 type: task
 title: Add pronouns to roles and operators
-status: InProgress
+status: Done
 parent: FEAT-961
 author: tech-lead
 refs:
@@ -49,7 +49,7 @@ subentities:
   assignee: typescript-dev
   story: US4
 created_at: '2026-10-16T19:53:59Z'
-updated_at: '2026-10-17T03:09:57Z'
+updated_at: '2026-10-17T03:14:22Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -452,4 +452,13 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
   - ST8 done. Gates in clients/vscode: tsc, eslint --max-warnings 0, prettier --check clean; vitest 729 pass; canary (SQ_CANARY_CMD="uv run sq") 85 pass, incl. new role/operator list key-set check. Falsified: hard-wiring the setting on turned 3 tests red; restored.
   - Shown: the Roster view leaf gets a dim "(pronouns)" before the status (description slot), and the role @mention hover reads "Name (pronouns) (slug)". Setting squads.showPronouns, default on; .squads.toml is not read. Unset or older sq: no parentheses.
   - Dev host check: set pronouns with sq role <slug> update --pronouns and sq operator add --pronouns, refresh the Roster, toggle squads.showPronouns (view refreshes on change), hover an @role mention in a preview.
+- [2026-10-17T03:14:00Z] Theo Writer:
+  - Pronouns docs written, not committed. Probed on an export of HEAD 1dba72da. This task has no docs subtask, so this comment is the handoff. @manager
+    
+    - docs/roles.md: new section "Pronouns" covering the verbs (set, clear, the live-role activate refusal, the `--set` and import refusal), the value rule and its errors, `pronouns_valid`, the `[defaults]` roster default, where pronouns show and never show, `[display]` with `display_config_valid`, and the VS Code `squads.showPronouns` setting.
+    - docs/overrides.md: the `[defaults]` paragraph in the roles.toml section, and `display_config_valid` in the always-on squad-wide table (now seven). docs/stability.md: a "Display settings in `.squads.toml`" subsection and `pronouns` on the four roster viewers. README: the `--pronouns` options. CHANGELOG: an Added entry, and the `[squad]` entry's always-on list now includes `display_config_valid`.
+    - Driven: every verb and refusal; the 41-character and bidi refusals; trimming; the blank clear; the default after sync (resolved in --json, not stored); the per-role key refusal; generated CLAUDE.md lines and the pointer; `[display] pronouns = false` (human output off, --json unchanged); the unknown-key and quoted-false warnings; the check error on a hand-edited value; no pronouns in a comment header; `display_config_valid` refused in `[squad]`.
+    - Read, not driven: the VS Code view and setting, `sq ui`, and a stamp keeping `[display]` byte for byte. Note: `sq list -t role --json` item rows carry the stored `pronouns` key like any attribute (not the resolved default); the docs say so.
+- [2026-10-17T03:14:22Z] Catherine Manager:
+  - Done: REV-1089 approved (F5 folded into BUG-1090); Python 2deeb34d, VS Code 1dba72da; full suite 13557 passed, 0 failed; docs committed.
 <!-- sq:discussion:end -->

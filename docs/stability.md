@@ -396,6 +396,16 @@ input.
 - Order is not significant; the list is deduped first-occurrence.
 - CLI: `--backend` is repeatable, with a `none` sentinel for empty.
 
+### Display settings in `.squads.toml`
+
+A `[display]` table in `.squads.toml` holds one boolean, `pronouns` (default `true`), which decides
+whether human CLI output and `sq ui` print a role's or operator's pronouns after the name. It
+changes nothing else: `--json` payloads, exit codes, stored data and generated agent files are
+identical either way. The table is closed: an unknown key or a non-boolean value is ignored with a
+`sq check` warning, and the default applies. Rewriting `.squads.toml` (a version or schema stamp)
+keeps the `[display]` table exactly as written. See
+[roles.md § "Pronouns"](roles.md#pronouns).
+
 ---
 
 ## Tier 2: CLI grammar (SemVer-stable from 1.0)
@@ -747,7 +757,10 @@ The frozen surface includes:
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
   `operator list`, `operator <addr> show`. Skills have no dedicated `skill list` — use the generic
   `list -t skill`. A role or skill row carries `origin`, `system` or `project` (see
-  [roles.md § "Where a role or skill comes from"](roles.md#where-a-role-or-skill-comes-from-origin))
+  [roles.md § "Where a role or skill comes from"](roles.md#where-a-role-or-skill-comes-from-origin)).
+  `role list`, `role <addr> show`, `operator list` and `operator <addr> show` carry `pronouns`
+  after `full_name` on every row: the resolved value, or `null` (see
+  [roles.md § "Pronouns"](roles.md#pronouns))
 - **The workflow catalogs** — the machine-readable form of your squad's *active* vocabulary,
   bundled plus any override, and the surface to read instead of hardcoding a name:
 

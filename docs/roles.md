@@ -260,6 +260,86 @@ body only when it holds neither prose nor a tag, or holds a damaged `sq:view:` t
 has a `## Discussion` region for them, as role and operator files do. A comment's `@mention`
 reaches `sq inbox`, except on a retired entry.
 
+## Pronouns
+
+A role or an operator can carry pronouns, shown after its name: `Robert Architect (she/her)`.
+
+```bash
+sq role architect update --pronouns "she/her"      # any role, a bundled one included
+sq operator add "Alice Tester" --pronouns "they/them"
+sq dev add --tech rust --pronouns "he/him"
+sq role activate qa --pronouns "she/her"           # at activation
+sq role architect update --pronouns ""             # a blank value clears them
+```
+
+`sq role activate` with `--pronouns` on a role that is already live is refused, naming
+`update`; `sq init` has no pronouns option. `--set pronouns=…` and an `update` event of
+`sq import` that sets `pronouns` are refused and name the verb, so these verbs are the only way to
+write them.
+
+**The value** is trimmed, one line, and 1 to 40 characters counted after Unicode normalisation
+(NFC), with no control character, no invisible formatting character (a bidi override or a
+zero-width mark) and no sq marker tag. A blank is never stored. A value that breaks the rule is
+refused with exit `1`:
+
+```
+error: pronouns is 41 characters long; the limit is 40
+error: pronouns must be one line with no control or invisible formatting characters
+```
+
+The value is stored as `pronouns` in the item's frontmatter. A hand-edited value that breaks the
+rule is read as unset, and `sq check` reports it as an error (`pronouns_valid`, always on for roles
+and operators), with the command that replaces it:
+
+```
+error ROLE-4: pronouns must be one line with no control or invisible formatting characters — replace it with `sq role reviewer update --pronouns <text>`
+```
+
+**A roster default.** A `[defaults]` table in `.overrides/roles.toml` declares pronouns for every
+role that has none of its own:
+
+```toml
+# .overrides/roles.toml
+[defaults]
+pronouns = "they/them"
+```
+
+Run `sq sync` after adding or removing it. The default applies to roles only, never to operators,
+and is never written onto an item: remove it and sync, and every role without its own value has
+none again. A role's own value always wins, and a role cannot have no pronouns while a default is
+declared. The value follows the same rule and is refused at load when it breaks it. A `pronouns`
+key in a `[[roles]]` entry or a per-slug role file is refused, naming the `update` verb. The
+bundled catalog declares no default.
+
+**Where they show.** The roster lines of the generated `CLAUDE.md` and `AGENTS.md` sections and an
+agent's own pointer always carry them (`You are **Robert Architect** (she/her), the architect on
+this project.`); `sq sync` picks up a change. Human CLI output and `sq ui` print `Name (pronouns)`,
+with the parenthesis dimmed. `sq role list --json`, `sq role <slug> show --json`,
+`sq operator list --json` and `sq operator <slug> show --json` carry `pronouns`, right after
+`full_name`: the resolved value (a role's own, else the default) or `null`, on every row. An item
+row (`sq list -t role --json`) carries the stored key only, like any attribute. Pronouns never
+appear in a comment header or a discussion entry.
+
+**Turning the human display off.** `.squads.toml` takes a `[display]` table with one key:
+
+```toml
+[display]
+pronouns = false
+```
+
+It removes the parenthesis from human CLI output and `sq ui` only. `--json`, exit codes, stored
+data and generated agent files are the same either way. An unknown key or a value that is not a
+boolean (a quoted `"false"` is a string) never stops a command: the default (`true`) applies and
+`sq check` warns, through the always-on `display_config_valid` check:
+
+```
+warn .squads.toml: [display] has an unknown key 'colour'; the default applies
+warn .squads.toml: [display] pronouns must be true or false, got 'false'; the default applies
+```
+
+The VS Code extension has its own setting, `squads.showPronouns` (on by default), for its Roster
+view and mention hovers, and does not read `[display]`.
+
 ## Where a role or skill comes from: `origin`
 
 Every role and skill stores `origin`, one of two words, written when the entry is created:
