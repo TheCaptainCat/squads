@@ -50,3 +50,25 @@ export function nameWithPronouns(
   const badge = pronounsBadge(slug, pronouns, enabled);
   return badge === '' ? name : `${name} ${badge}`;
 }
+
+/** Item id -> non-empty pronouns, for the preview, which is opened by id rather than slug. */
+export function buildPronounsByIdMap(rows: readonly SqRosterIdentity[]): PronounsBySlug {
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    const pronouns = row.pronouns?.trim();
+    if (row.id !== undefined && pronouns !== undefined && pronouns !== '') {
+      map.set(row.id, pronouns);
+    }
+  }
+  return map;
+}
+
+/** The pronouns shown after a role's or operator's preview heading: `undefined` when the setting
+ * is off, the id is not in `rows`, or none are set. */
+export function headingPronouns(
+  id: string,
+  rows: readonly SqRosterIdentity[],
+  enabled: boolean,
+): string | undefined {
+  return enabled ? buildPronounsByIdMap(rows).get(id) : undefined;
+}
