@@ -56,20 +56,36 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
       review.md.j2
       guide.md.j2
       decision.md.j2
+      contract.md.j2
+      milestone.md.j2
+      _default.md.j2          # used by a type that has no template of its own
     subentities/
-      story.md.j2
-      subtask.md.j2
-      finding.md.j2
-      block.md.j2
-      summary.md.j2
+      block.md.j2             # one story, subtask or finding block
+      head.md.j2              # used only by migrations; overriding it does not change `show`
+      summary.md.j2           # used only by migrations; overriding it does not change `show`
     agents/
       role.md.j2
+      skill.md.j2
+      operator.md.j2
     claude/
       pointer_agent.md.j2
       pointer_skill.md.j2
       claude_section.md.j2
+      settings.json.j2
+    agents_md/
+      agents_section.md.j2
+    views/
+      milestone_rollup.md.j2
+      role_definition.md.j2
+      squads_skill.md.j2
+      greeting_skill.md.j2
+      memory_skill.md.j2
+      item_skill.md.j2
+    workflow.md.j2            # the workflow cheatsheet (`sq workflow`, the squads skill)
+    workflow_static.md.j2     # the fixed part of the cheatsheet, included by workflow.md.j2
   workflow.toml
   playbook.toml
+  roles.toml
   roles/
     architect.toml
     tech-lead.toml
@@ -87,6 +103,9 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
 - **`roles/`** holds TOML files for role data: one file per role slug (e.g., `architect.toml`). You
   can override bundled roles (like changing the architect's name or model) or define entirely new
   custom roles.
+- **`roles.toml`** is your squad's delta on the **role catalog** as one document: the roles
+  themselves, the named bundles, and the developer defaults (see
+  [The role catalog override](#the-role-catalog-override-rolestoml)).
 - **`workflow.toml`** is your squad's vocabulary delta — item types, statuses, lifecycles, and badge
   collections (see below). It can add to the bundled vocabulary, shadow a bundled entry field by
   field, and drop one you don't want.
@@ -120,8 +139,9 @@ and match:
 
 **Template overrides are whole-file:**
 If you override `items/task.md.j2`, the entire file is replaced. squads does not attempt line-by-line
-merging of template content. (The required `<!-- sq:* -->` marker regions must still be present —
-see [Staleness and drift](#staleness-and-drift) below.)
+merging of template content. (Every `<!-- sq:* -->` marker region the bundled template carries
+must still be present — `sq:body` and `sq:discussion` for a task, for example. See
+[Staleness and drift](#staleness-and-drift) below.)
 
 **Role overrides merge by field:**
 A `roles/architect.toml` override only replaces the fields you set. Fields you omit inherit from
@@ -186,6 +206,82 @@ model = "opus"
 
 Then `sq role activate compliance-officer` creates the role the same way it does for a bundled
 slug. See [roles.md](roles.md) for the activation flow.
+
+### The role catalog override: `roles.toml`
+
+A per-slug file changes one role. **`.overrides/roles.toml`** is the whole role catalog as one
+document, the same catalog `sq role catalog` lists, and it also reaches the parts no per-slug file
+can: the developer defaults and the named bundles. Start it from a stamped, commented example:
+
+```bash
+sq override scaffold roles      # or: sq override scaffold --roles-catalog
+```
+
+The document takes three tables, plus `[selected]`. Any other top-level key is refused by name.
+
+- **`[[roles]]`** — one entry per role, keyed by its `slug`. An entry naming a bundled slug merges
+  field by field onto it, so you write only what changes. An entry naming a new slug defines a new
+  role, and then `full_name`, `title`, `description` and `mission` are required.
+- **`[dev]`** — the defaults a developer gets from `sq dev add`: `model`, `color`, and
+  `name_pool`, the names a new developer is picked from. Each field merges on its own.
+- **`[bundles]`** — the named role lists (`all`, `core`, `minimal`). The `all` bundle must name
+  every role in the catalog, so a role you add here has to join it too.
+
+```toml
+# .overrides/roles.toml
+# squads:override-base:<version>
+
+[dev]
+model = "opus"
+name_pool = ["Hedy", "Katherine", "Frances"]
+
+[bundles]
+all = ["$(*bundles.all)", "security-analyst"]   # every role must be in `all`
+
+[[roles]]
+slug = "architect"
+title = "Chief Architect"
+
+[[roles]]
+slug = "security-analyst"
+full_name = "Sam Security"
+title = "security analyst"
+description = "Reviews changes for exposure."
+mission = "Keep the attack surface small."
+```
+
+With that file, the architect is retitled, the next `sq dev add` picks a name from the new pool
+and runs on `opus`, and `security-analyst` appears in `sq role catalog` as a project role, ready
+for `sq role activate security-analyst`.
+
+**Precedence, lowest to highest:** the bundled catalog, then `roles.toml`, then a per-slug
+`.overrides/roles/<slug>.toml`. When both override files set the same field for one role, the
+per-slug file wins.
+
+**Dropping a role** goes through `[selected].roles`, which lists the roles that survive. A bundle
+that still names a dropped role is refused, naming the bundle:
+
+```
+bundle 'all' references unknown slug 'devops' — 'devops' looks deselected via [selected].roles;
+deselecting a role also means deselecting it from (or rewriting) every bundle that still names it
+```
+
+A bundle is a plain list, so rewrite it without the role:
+
+```toml
+[selected]
+roles = ["manager", "architect", "tech-lead", "reviewer", "qa", "product-owner", "tech-writer"]
+
+[bundles]
+all = ["manager", "architect", "tech-lead", "reviewer", "qa", "product-owner", "tech-writer"]
+```
+
+A dropped role can no longer be activated. A file that only adds, such as a new bundle, needs no
+stamp. One that changes a bundled role, a bundled bundle or `[dev]` must carry the
+`squads:override-base` stamp, and `sq check` reports it as an error until it does. Appending a
+role to `all` counts as changing it, so a file that adds a role always needs the stamp. The upgrade cycle is the same as for every other override:
+`sq override diff roles`, merge by hand, then `sq override update roles` (see
+[Staleness and drift](#staleness-and-drift)).
 
 ---
 
@@ -265,7 +361,7 @@ Optional:
 - `parents` — list of allowed parent item types; empty or omitted means no hierarchy constraint
 - `aliases` — list of short command aliases (e.g., `["inc"]` allows `sq inc <n>` as shorthand)
 - `validators` — checks this type runs beyond the set its category already turns on, each with an
-  optional parameter and level. Four checks run nowhere until a type names them here. See
+  optional parameter and level. Eleven checks run nowhere until a type names them here. See
   **Validators** (below).
 
 #### Custom records-category item types
@@ -278,9 +374,8 @@ Squads distinguishes two item categories:
   (decisions/ADRs, guides, contracts, standards, postmortems, etc.). Records have no parents and no hierarchy.
 
 The bundled records types are `decision` (ADR), `contract` (PRD), `milestone` and `guide`. When you
-define a custom records-category type, squads treats it like a decision or guide: it takes no parent,
-nests in its own folder, and never appears in `sq inbox` by default (it's for reference, not work
-tracking).
+define a custom records-category type, squads treats it like a decision or guide: it takes no parent
+and nests in its own folder.
 
 **When to use records category:**
 
@@ -300,7 +395,8 @@ lifecycle = "guide"           # reuse the guide lifecycle or define your own
 ```
 
 This creates a `postmortem` type with:
-- IDs like `PM-1`, `PM-2`, etc.
+- IDs like `PM-<n>`, where `<n>` is the next number of the squad-wide sequence every type shares,
+  not a count that starts at 1 for the new type
 - Storage in `squads/postmortems/`
 - The same lifecycle as guides (Draft → Published → Deprecated)
 - No parent constraints (records never have parents)
@@ -308,13 +404,17 @@ This creates a `postmortem` type with:
 After defining it, you can:
 
 ```bash
-sq create postmortem "API outage" --author architect   # → PM-1, starts Draft
-sq postmortem 1 body --file postmortem-incident.md
-sq postmortem 1 status Published
-sq list -t postmortem    # list all postmortems (shown at all times)
+sq create postmortem "API outage" --author architect   # → PM-<n>, starts Draft
+sq postmortem <n> body --file postmortem-incident.md
+sq postmortem <n> status Published
+sq list -t postmortem    # Published postmortems stay in this listing
 ```
 
-**Records never appear in `sq inbox` by default;** they're indexed for reference, not active work tracking.
+Which statuses a listing hides follows the status role, not the category: `Published` has the
+`in_force` role, which is not `hidden`, so a published postmortem stays in `sq list`. A records
+item takes part in `sq inbox` the same way every item does: an `@mention` in its discussion is
+listed while its status role is not settled, and drops out once it reaches a settled status such
+as `Published`.
 
 #### Validators: the checks a type runs, and how loud they are
 
@@ -328,14 +428,17 @@ type gets a cross-cutting core plus a bundle its `category` implies, and a type'
 validators = ["parent_present@warn"]
 ```
 
-Four checks are not selected for you anywhere in the bundled spec, so naming one in a type's list
-is the only way it ever runs on that type:
+Eleven checks are not selected for you anywhere in the bundled spec, so naming one in a type's
+list is the only way it ever runs on that type:
 
 - `parent_present` — every item of this type must have a parent.
 - `ref_rule_target_present` — a delivered item of this type must carry a typed ref (see
   [workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current").
 - `no_status_banner` — an item's body or summary must not open with a status label.
 - `subentity_title_max` — a sub-entity title must not be longer than a threshold.
+- Seven policy checks about the work an item tracks: `item_title_max`, `external_id_not_in_title`,
+  `description_present`, `assignee_present`, `body_written`, `settled_requires_discussion` and
+  `ref_rule_target_typed`. See "The work-policy checks" below.
 
 The set of names is fixed by the version you are running, and one it does not hold is refused at
 load, naming your entry:
@@ -390,6 +493,66 @@ Title is 121 chars — a sub-entity title is a one-line handle, not the descript
 A title of exactly 120 characters triggers neither. Take the line out and none of the three is
 printed. Either name takes a level; what `@error` changes for each, and what it leaves alone, is
 under "Levels" below.
+
+**The work-policy checks.** Seven more checks hold an item to a team's habits about the work it
+tracks. Each reports at `warn` unless you name a level:
+
+| Check | Reports an item when | Parameter |
+|---|---|---|
+| `item_title_max` | its title is longer than the threshold | required: `item_title_max:<n>` |
+| `external_id_not_in_title` | its title matches your pattern, such as a tracker id | required: `external_id_not_in_title:<regex>` |
+| `description_present` | its summary (`--desc`) is empty | none |
+| `assignee_present` | it rests in a live status with nobody assigned | none |
+| `body_written` | its body is still the scaffold its template rendered | none |
+| `settled_requires_discussion` | it rests in a settled status and its own discussion holds no comment | none |
+| `ref_rule_target_typed` | an edge whose kind has a typed `ref_rules` entry on the type points at another type | none |
+
+"Live" and "settled" are the status role's flags (`sq workflow roles`), never a status name. A
+comment on one of the item's stories, subtasks or findings does not count for
+`settled_requires_discussion`. And `ref_rule_target_typed` reads only the rules that declare a
+`target`: the bundled feature's `implements` rule is one, so an `implements` edge from a feature
+to a bug is reported.
+
+The two with a required parameter are refused bare, the same way `ref_rule_target_present` is:
+
+```
+item 'feature': validators entry 'item_title_max' is missing its required parameter — name it as
+'item_title_max:<n>', or drop the validator; without a parameter it never fires
+```
+
+A pattern cannot contain a literal `@`, because `@` starts the level. Write it as `\x40` inside a
+single-quoted TOML string, which keeps the backslash: `'external_id_not_in_title:me\x40corp'`.
+These checks apply to `work` and `records` types only. Naming one on `role`, `skill` or `operator` is
+refused at load.
+
+```toml
+[items.feature]
+validators = [
+  "item_title_max:30",
+  "external_id_not_in_title:JIRA-[0-9]+",
+  "description_present",
+  "assignee_present",
+]
+```
+
+A feature created as `"Fix login timeout for JIRA-4411 users"` with no summary is then reported
+three times by `sq check`, which still exits `0`:
+
+```
+warn FEAT-<n>: description is empty — set a summary: `--desc` on create, `update --desc` after
+warn FEAT-<n>: title holds `JIRA-4411` (matches the external-id pattern `JIRA-[0-9]+`) — keep
+tracker ids out of the title
+warn FEAT-<n>: title is 37 chars (threshold: 30) — an item title is a one-line handle; put the
+detail in the body
+```
+
+Moving it to `InProgress` with no assignee adds `status is InProgress but nobody is assigned`.
+`body_written` and `settled_requires_discussion` read the item's file, so at `error` they make
+`sq check` fail but never refuse a write. The other five take part in the write gate (see
+"`error` does not always give you a write gate" below): with `description_present@error`, a
+`sq create feature` without `--desc` is refused. `ref add` is not one of the gated writes, so
+under `ref_rule_target_typed@error` a mistyped edge is still added, and the refusal lands on the
+feature's next update instead.
 
 **Selection is per type, and there is no squad-wide switch.** The line above changes nothing for a
 task, a decision or any other type: a squad that wants a check everywhere names it on each type.
@@ -602,7 +765,7 @@ clean.
 
 **What the list cannot do — there is no deselection surface.** `[selected]` has no `validators`
 section, and neither the cross-cutting core nor a category bundle can be subtracted from. The
-quietest a bundled check can be made is `warn`, which still reports. The four checks nothing
+quietest a bundled check can be made is `warn`, which still reports. The eleven checks nothing
 bundled selects are in neither the core nor a bundle, so a type that does not name one does not
 run it.
 
@@ -662,12 +825,10 @@ role = "active"
 role = "done"
 ```
 
-Required fields:
+Optional fields:
 - `role` — the name of a status role (from the role catalog) that governs this status's
-  terminal/hidden/color attributes. See **Status roles** (below) for the full role catalog and
-  how to define custom roles.
-
-Optional:
+  terminal/hidden/color attributes; defaults to `pending`. See **Status roles** (below) for the
+  full role catalog and how to define custom roles.
 - `badge` — emoji or short symbol displayed in sub-entity roll-up tables (used only for sub-entities)
 
 Terminal-ness, default visibility and colour are all derived from the referenced role rather than
@@ -1213,7 +1374,8 @@ items.$(items.task): splat-ref token '$(items.task)' used as a key — keys are 
 
 ```toml
 [selected]
-items = ["epic", "feature", "task", "bug", "decision", "review", "role", "skill", "operator"]
+items = ["epic", "feature", "task", "bug", "decision", "contract", "milestone", "review",
+         "role", "skill", "operator"]
 ```
 
 That squad has no `guide` type: it is absent from the list, so it is dropped. The accepted section
@@ -1232,7 +1394,13 @@ Two things follow from `[selected]` being the surviving set of the *merged* spec
 
 - **List your own additions too.** If you both add `[items.handbook]` and write `selected.items`,
   `handbook` must appear in that list or your own new type is dropped again.
-- **Naming something that doesn't exist is not an error.** The list is a filter, not an assertion.
+- **Every name in the list must exist in the merged spec.** A typo, or a type you have not declared
+  in the same file, is a load-time hard stop that names the accepted set:
+
+  ```
+  selected.items.handbook: unknown items key 'handbook' — use one of the accepted items keys in
+  v<version>: ['bug', 'contract', 'decision', 'epic', 'feature', 'guide', 'milestone', ...]
+  ```
 
 ### What an override still cannot change
 
@@ -1283,10 +1451,11 @@ validators = ["supersedes_incoming"]   # keep the check the category no longer t
 ```
 
 The same list is also how you turn on a check nothing bundled selects, and how you set the level
-and the parameter it runs with — see § "Validators" above for the full grammar. Four checks ship
+and the parameter it runs with — see § "Validators" above for the full grammar. Eleven checks ship
 unselected: `ref_rule_target_present` (squads types the `implements` edge from a feature to a
 contract but never requires it — see [workflow.md](workflow.md#keeping-a-contract-current) §
-"Keeping a contract current"), `parent_present`, `no_status_banner` and `subentity_title_max`.
+"Keeping a contract current"), `parent_present`, `no_status_banner`, `subentity_title_max`, and
+the seven work-policy checks listed there.
 
 `sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
 fix hint, where a plain `sq` command stops at the first:
@@ -1410,6 +1579,33 @@ tracking the release.
 **The append idiom has to be the inline-array form.** TOML's `[[types.task.roles]]` header syntax
 has nowhere to put the `"$(*self)"` token, so a spread must be written as an inline array as above.
 
+A role guide takes these fields:
+
+| Field | What it holds |
+|---|---|
+| `slug` | The role the guide is for (required). |
+| `enter` | What the role reads or confirms before acting. Rendered under **Enter**. |
+| `do` | The core actions, ideally with the `sq` commands. Rendered under **Do**. |
+| `handoff` | What moves the work on, and to whom. Rendered under **Hand off**. |
+| `watch` | Pitfalls and scope limits. Rendered under **Watch for**. |
+| `authors` | `true` makes the role an in-lane author of the type. Defaults to `false`. |
+
+`authors` is the only field that changes behaviour. `sq create <type> --author <role>` prints an
+advisory when the author has no `authors = true` guide on that type. The create still goes
+through. A role meant to file bugs claims the lane like this:
+
+```toml
+[types.bug]
+roles = [
+  "$(*self)",
+  { slug = "security-analyst", authors = true, enter = ["Read the threat model"], do = ["Record any exposure found"], handoff = ["Exposure confirmed → @tech-lead to plan the fix"], watch = ["Don't file a bug for a policy question"] },
+]
+```
+
+After `sq sync`, `sq create bug --author security-analyst` no longer prints
+`advisory: 'security-analyst' is not the in-lane author for 'bug' items`, and
+`sq role security-analyst show` lists `bug` under `creates`.
+
 ### Rules
 
 - **Coverage follows your vocabulary; it is never declared here.** Which types the playbook covers is
@@ -1426,7 +1622,7 @@ has nowhere to put the `"$(*self)"` token, so a spread must be written as an inl
   not the way to edit one.
 - **Every slug must be one of three things:** a bundled catalog role, the `*dev` sentinel (which
   matches any `<tech>-dev` role), or a project role you have defined under
-  `.overrides/roles/<slug>.toml`. A project role is accepted here — you do not have to pick from the
+  `.overrides/roles/<slug>.toml` or in `.overrides/roles.toml`. A project role is accepted here — you do not have to pick from the
   bundled catalog.
 - **A project role must also be activated for its guidance to reach the skill**, and the order
   matters. `sq role activate <slug>` is what makes the role live; a guide naming a role that is not
@@ -1516,20 +1712,34 @@ Either way it records the version you scaffolded at — "this override was branc
 If the bundled original **changed** between those versions, `sq check` warns:
 
 ```
-.overrides/templates/items/task.md.j2: override may be stale — bundled task.md.j2 changed since
-v<version>; run `sq override diff items/task.md.j2`, merge, then `sq override update items/task.md.j2`
+warn .overrides/templates/items/task.md.j2: override may be stale: bundled items/task.md.j2 changed
+since v<version>; run `sq override diff items/task.md.j2`, merge, then `sq override update items/task.md.j2`
 ```
 
 **Important:** squads only warns if the bundled original **actually changed**. If you scaffold an
 override at the version you're on and later upgrade, but the bundled task template didn't change in
-between, there is no warning. The stamp alone is never a problem.
+between, there is no warning. An old stamp alone is never a problem.
+
+**A missing stamp is.** A template override must carry the stamp, so one you created by hand
+rather than with `sq override scaffold` (or one whose stamp line you deleted) is reported as an
+error, and `sq override list` shows it as `(unstamped)` and `drifted`:
+
+```
+error .overrides/templates/items/task.md.j2: override has no squads:override-base stamp;
+run `sq override scaffold --force` to re-scaffold with a stamp, or `sq override update` after
+verifying the content
+```
+
+Once you have checked the content against the bundled template, `sq override update items/task.md.j2`
+stamps it.
 
 **Structural errors:**
 Independently, `sq check` detects if an override is **missing a required marker region** (the
 `<!-- sq:* -->` anchors that the marker-safe editing depends on). This is an error, not a warning:
 
 ```
-.overrides/templates/items/task.md.j2: missing required marker <!-- sq:body -->
+error .overrides/templates/items/task.md.j2: override is missing required sq marker(s):
+<!-- sq:discussion --> (breaks marker-safe editing; add the missing regions)
 ```
 
 If your override has clean markers and renders without error, it will render even if its stamp is
@@ -1645,7 +1855,7 @@ sq override scaffold items/task.md.j2
 
 # Copy a template by name (all bundled template paths work)
 sq override scaffold agents/role.md.j2
-sq override scaffold subentities/story.md.j2
+sq override scaffold subentities/block.md.j2
 
 # Copy a role TOML override (a bundled role, to change its name/model/etc.)
 sq override scaffold --role architect
@@ -1663,6 +1873,9 @@ sq override scaffold workflow
 # Start the playbook override (which roles interact with each item type, and their guidance)
 sq override scaffold playbook
 
+# Start the role catalog override (roles, bundles and developer defaults in one document)
+sq override scaffold roles
+
 # Overwrite an existing override
 sq override scaffold items/task.md.j2 --force
 ```
@@ -1679,12 +1892,15 @@ sq override scaffold items/task.md.j2 --force
 - Template names copy the named bundled template into `.overrides/templates/`.
 - `workflow` starts `.overrides/workflow.toml` from a commented worked example rather than a copy of
   the bundled spec — see
-  [Workflow overrides](#workflow-overrides-item-types-statuses-badge-collections-and-ref-kinds).
+  [Workflow overrides](#workflow-overrides-item-types-statuses-badge-collections-ref-kinds-and-views).
 - `playbook` starts `.overrides/playbook.toml` the same way, from a commented worked example of the
   one-line append idiom — see [Playbook overrides](#playbook-overrides-role-guidance-per-item-type).
-  `--workflow` and `--playbook` are equivalent flag forms of those two names.
+- `roles` starts `.overrides/roles.toml` from a commented worked example — see
+  [The role catalog override](#the-role-catalog-override-rolestoml). It is a different file from
+  the per-slug one `--role <slug>` writes.
+- `--workflow`, `--playbook` and `--roles-catalog` are equivalent flag forms of those three names.
 - Every scaffolded file is stamped with the current squads version, as an HTML comment in a template
-  and a TOML comment in a role, workflow or playbook override.
+  and a TOML comment in a role, role catalog, workflow or playbook override.
 - Refuses to clobber an existing override unless you pass `--force`.
 
 **This is the only command that writes override bodies.** After scaffolding, you edit the file by
@@ -1706,6 +1922,9 @@ sq override diff workflow
 
 # Diff the playbook override against the current bundled playbook
 sq override diff playbook
+
+# Diff the role catalog override against the current bundled catalog
+sq override diff roles
 
 # Diff every drifted override (no name needed)
 sq override diff
@@ -1742,6 +1961,9 @@ sq override update workflow
 # Re-stamp the playbook override
 sq override update playbook
 
+# Re-stamp the role catalog override
+sq override update roles
+
 # Bulk re-stamp every structurally-valid override
 sq override update
 ```
@@ -1766,15 +1988,16 @@ sq override list --json
 
 **Output columns:**
 
-- **Name:** template path, role slug, `workflow`, or `playbook` (e.g., `items/task.md.j2`,
-  `architect`).
-- **Kind:** `template`, `role`, `workflow`, or `playbook`.
+- **Name:** template path, role slug, `workflow`, `playbook`, or `roles` (e.g.,
+  `items/task.md.j2`, `architect`).
+- **Kind:** `template`, `role`, `workflow`, `playbook`, or `roles`.
 - **Base version:** the `squads_version` the override was branched from (from the stamp), or
-  `(unstamped)` for a shadowing override that has no stamp yet.
+  `(unstamped)` for an override that has no stamp.
 - **State:** 
   - `current` — the bundled counterpart hasn't changed since the base stamp.
   - `drifted` — the bundled counterpart changed and you should reconcile via `sq override diff` +
-    hand-merge + `sq override update`.
+    hand-merge + `sq override update`. An unstamped override is listed as `drifted` too; for an
+    add-only workflow or role catalog override, which needs no stamp, `sq check` stays clean.
   - `broken` — the override is missing a required `<!-- sq:* -->` marker (an error in `sq check`).
 
 **Use this to see the override surface at a glance** — what you have, what's current, and what
@@ -1856,12 +2079,11 @@ with it does nothing. Rename a live role through its override instead (see
 
 ### How names flow into your squad
 
-The chosen name is stored in the ROLE item's frontmatter (`extra.full_name`). Everything
-downstream reads from there:
+The chosen name is stored as the ROLE item's `title`. Everything downstream reads from there:
 
 - The **Agent roster** in your `CLAUDE.md` (generated by `sq sync`).
 - The **agent pointer files** in `.claude/` (e.g., `.claude/agents/architect.md`).
-- The rendered **role body** in `squads/agents/roles/ROLE-*.md`.
+- The heading of `sq role <slug> show`.
 
 If you want to rename a role later, use the same role-override mechanism — see
 ["Override a role's name and model"](#override-a-roles-name-and-model) below — then run
@@ -1930,11 +2152,17 @@ section at the top. Scaffold the task template:
 sq override scaffold items/task.md.j2
 ```
 
-Edit `.overrides/templates/items/task.md.j2` to add your sections (keeping the required `<!-- sq:body -->`
-marker):
+Edit `.overrides/templates/items/task.md.j2` to add your sections, keeping every marker region the
+bundled template carries: `sq:body`, the subtask container rendered from `open_marker` /
+`close_marker`, and `sq:discussion`. Putting the new sections inside `sq:body` makes them the
+starting text of every new task's body:
 
 ```jinja2
-# {{ item.title }}
+<!-- squads:override-base:<version> -->
+<!-- sq:body -->
+## Description
+
+_TODO: describe this task._
 
 ## Success criteria
 
@@ -1944,12 +2172,23 @@ _Write the criteria for completion here._
 
 - [ ] Upstream requirement 1
 - [ ] Upstream requirement 2
-
-<!-- sq:body -->
 <!-- sq:body:end -->
+
+{% set kind = spec.item_subentity_kind(item.type) %}
+{% set tag = spec.subentity_plural(kind) %}
+## {{ spec.subentity_container_heading(kind) }}
+
+{{ tag | open_marker }}
+{{ tag | close_marker }}
+
+## Discussion
+
+<!-- sq:discussion -->
+<!-- sq:discussion:end -->
 ```
 
-The next time a task is created or rendered, it will use your template.
+Keep the stamp line `sq override scaffold` wrote. Every task created after that starts from your
+template; tasks already on disk keep the body they have.
 
 ### Override a role's name and model
 
@@ -2107,6 +2346,15 @@ customisations per squad. The overrides are discovered relative to your active s
 
 **Q: What if I want to add a *new* field to a role that isn't in the bundled definition?**
 
-Role TOML overrides accept any field you add — they're flexible. If it's a field squads doesn't
-recognize, it's preserved in `extra` and available to your own templates. For a field that squads
-*does* recognize (like `model`), override the TOML and re-stamp the role item with `sq sync`.
+You can't. A role override accepts a fixed set of keys, and an unknown one is refused by name,
+with the accepted set:
+
+```
+favourite_colour: unknown top-level key 'favourite_colour' — use one of the accepted top-level keys
+in v<version>: ['agreements', 'can_spawn', 'color', 'description', 'full_name', 'is_default',
+'mission', 'model', 'responsibilities', 'selected', 'slug', 'title']
+```
+
+`sq check` reports it as an error, `sq role <slug> show` refuses, and so does `sq sync` once the
+role is on the roster. Nothing passes an unknown field through to a template. For a field squads
+*does* recognise (like `model`), set it in the override and run `sq sync`.

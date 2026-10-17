@@ -1,7 +1,7 @@
 # Recipes
 
-Copy-paste sequences for common moves. IDs are illustrative — use the ones `sq` prints. Prefix with
-`uv run` from a source checkout. See [workflow.md](workflow.md) for the rules behind these.
+Copy-paste sequences for common moves. IDs are illustrative — use the ones `sq` prints. See
+[workflow.md](workflow.md) for the rules behind these.
 
 ## Start a feature (product owner)
 

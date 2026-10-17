@@ -83,10 +83,11 @@ through the CLI; the `.md` files are never hand-edited.
 
 `sq init`/`sq sync` also generate a **skill per item type** (`sq-feature`, `sq-task`, `sq-bug`, …)
 with role-directed guidance, plus the general `squads` skill. Each role's `.claude/agents/<slug>.md`
-pointer preloads (via `skills:`) only the skills for the item types that role manages — so the
-product owner gets `sq-feature`/`sq-epic`, a developer gets `sq-task`/`sq-bug`/`sq-review`, and the
-manager (who triages rather than owning a type) gets just `squads`. Run `sq workflow` for the
-cheatsheet.
+pointer preloads (via `skills:`) `squads`, `greeting` and `sq-memory`, plus one `sq-<type>` skill
+per item type the team playbook gives that role a part in — so the product owner adds `sq-epic`,
+`sq-feature`, `sq-contract` and `sq-milestone`, a developer adds `sq-task`, `sq-bug`, `sq-contract`
+and `sq-review`, and the manager (who triages rather than owning a type) gets just the three shared
+skills. Run `sq workflow` for the cheatsheet.
 
 ### Team workflow
 
@@ -128,10 +129,11 @@ squad, which is what you do most once agents are the ones writing:
 
 ## Concepts
 
-- **Items** — every tracked thing is an item with a type and a stable ID. Ten types ship by
+- **Items** — every tracked thing is an item with a type and a stable ID. Twelve types ship by
   default, in three **categories**:
   - **work** — `epic`, `feature`, `task`, `bug`, `review`: the things being built and reviewed.
-  - **records** — `decision` (ADR), `guide`: the durable write-ups that outlive the work.
+  - **records** — `decision` (ADR), `contract`, `milestone`, `guide`: the durable write-ups and
+    commitments that outlive the work.
   - **roster** — `role`, `skill`, `operator`: who is on the team and what they know. These three
     keys always exist — a project can rename their labels and redefine their lifecycle, but can't
     drop them or move another type into the roster.
@@ -144,7 +146,7 @@ squad, which is what you do most once agents are the ones writing:
   `sq migrate rename-type` / `sq migrate rename-status`.
 - **Global IDs** — `PREFIX-NNNNNN` with a single global counter, so the number is unique across
   all types (you never have both `TASK-<n>` and `BUG-<n>`). The prefix marks the type. Built-in
-  prefixes are `EPIC FEAT TASK BUG ADR REV GUIDE ROLE SKILL OP`; custom types declare their own
+  prefixes are `EPIC FEAT TASK BUG ADR PRD MILE REV GUIDE ROLE SKILL OP`; custom types declare their own
   via the workflow override.
 - **Source of truth** — the markdown **frontmatter** is durable truth; `squads/.squads.json` is a
   fast index that is fully rebuildable from the files (`sq repair`).
@@ -160,16 +162,16 @@ squad, which is what you do most once agents are the ones writing:
 
 ```
 your-project/
-├── .squads.toml                 # config (squad dir, active backends, version, default role)
+├── .squads.toml                 # config (squad dir, active backends, schema + package version)
 ├── CLAUDE.md                    # managed section: process + greeting impersonation
 ├── .claude/
 │   ├── agents/<slug>.md         # POINTER → `sq role <slug> show`
 │   └── skills/<skill>/SKILL.md  # POINTER → `sq skill <skill> show`
 └── squads/                      # self-contained & relocatable (squad_dir in .squads.toml)
     ├── .squads.json             # the index: counter + all items + refs
-    ├── epics/ features/ tasks/ bugs/ adrs/ reviews/ guides/ operators/
-    ├── board/                   # the team bulletin board
-    └── agents/{roles,skills,memory}/
+    ├── epics/ features/ tasks/ bugs/ adrs/ contracts/ milestones/ reviews/ guides/ operators/
+    ├── board/                   # the team bulletin board (appears on the first `sq board post`)
+    └── agents/{roles,skills,memory}/   # memory/ appears on the first `sq memory add`
 ```
 
 ### Status workflows
@@ -181,6 +183,8 @@ The following table shows the **bundled default** status lifecycles:
 | epic / feature / task | `Draft → Ready → InProgress → InReview → Done` (+ `Blocked`, `Cancelled`) |
 | bug | `Open → InProgress → Fixed → Verified` (+ `WontFix`, `Blocked`, `Cancelled`) |
 | decision (ADR) | `Proposed → Accepted → Superseded` (+ `Rejected`, `Deprecated`) |
+| contract | `Draft → Active → Superseded` (+ `Deprecated`) |
+| milestone | `Draft → InProgress → Done` (+ `Cancelled`) |
 | review | `Requested → InReview → ChangesRequested → Approved` (+ `Rejected`) |
 | guide | `Draft → Published → Deprecated` |
 | role / skill / operator | `Active ⇄ Archived` |
@@ -279,7 +283,7 @@ code. `CONTRIBUTING.md` has the rest, with the reasoning.
 **Setup**
 - `sq init [--squad-dir squads] [--backend claude_code] [--roles all|core|minimal|<slugs>] [--name slug=Full Name] [--default-names] [--no-claude] [--force]` — `--backend` is repeatable
 - `sq adopt [--squad-dir squads] [--backend] [--roles] [--no-claude]` — bring an *existing* project under sq management (non-destructive; imports existing items). See [docs/adoption.md](docs/adoption.md).
-- `sq workflow [show|types|subentity-kinds|lifecycles|collections|statuses|roles|ref-kinds|lint]` — print the team-workflow cheatsheet (`show`), list one declared vocabulary section of the active spec, or validate workflow overrides
+- `sq workflow [show|types|subentity-kinds|lifecycles|collections|statuses|roles|ref-kinds|views|view|lint]` — print the team-workflow cheatsheet (`show`), list one declared vocabulary section of the active spec, resolve a declared derived view against an item (`views` lists them, `view` resolves one), or validate workflow overrides
 - `sq sync` — regenerate tool-owned managed files to the current version
 - `sq override scaffold|list|diff|update` — author project-level template/role/workflow overrides and reconcile them across upgrades. See [docs/overrides.md](docs/overrides.md).
 - `sq migrate up|help|chlog|rename-type|rename-status|repad` — bring a squad to the current schema, read the migration changelog, bulk-rename a type or status, or widen the ID padding. See [docs/migration.md](docs/migration.md).
@@ -289,11 +293,11 @@ code. `CONTRIBUTING.md` has the rest, with the reasoning.
 
 Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `TASK-<n>`; the
 type word validates). Create with `sq create`; operate with `sq <type> <n> <verb>`. Every item-type
-command has short aliases — `e f t b d r g`, plus `feat`/`dec`/`rev` — so `sq f 26 story 4 show`
+command has short aliases — `e f t b d c m r g`, plus `feat`/`dec`/`prd`/`mile`/`rev` — so `sq f 26 story 4 show`
 works exactly like the canonical spelling.
 
 **Items**
-- `sq create epic|feature|task|bug|decision|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority CODE] [-m "body"|--file] [--json]` — where `CODE` is from the bundled priority collection (urgent, high, medium, low) or a custom collection defined in the workflow override
+- `sq create epic|feature|task|bug|decision|contract|milestone|review|guide TITLE --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority CODE] [-m "body"|--file] [--json]` — where `CODE` is from the bundled priority collection (urgent, high, medium, low) or a custom collection defined in the workflow override; guides take `--tech`/`--tag` in place of `--label`/`--ref`/`--priority`
 - `sq list [--type|--status|--category|--parent|--label|--assignee|--priority|--min-priority|--badge|--min-badge|--sort] [--all] [--json]` · `sq tree [ROOT_ID] [--all] [--json]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`); `tree --json` emits the nested subtree (status/priority/assignee/blocked) for orchestrating agents
 - `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <ID>` shows any item by ID or bare number, whatever its type
 - `sq <type> <n> body [-m "…"|--file PATH] [--append]` · `sq <type> <n> comments` — read the discussion back on its own
@@ -321,7 +325,7 @@ discussion — all written through commands.
 **Cross-linking**
 - `sq <type> <n> ref add TARGET [--kind KIND]` · `sq <type> <n> ref rm TARGET` — `--kind` takes any kind the active workflow spec declares (`sq workflow ref-kinds` lists them; omit it for the declared default). The two dependency kinds are the two spellings of one edge (which end holds it differs; both feed `sq blocked`), and the supersession kind is what `sq check` looks for on a superseded record
 - `sq <type> <n> refs [--out|--in|--all] [--json]` (forward edges stored; backrefs computed)
-- `sq graph <ID> [--depth N] [--kind K] [--direction out|in|both] [--all] [--format dot|mermaid] [--json]` — the ref neighbourhood around one item
+- `sq graph <ID> [--depth N] [--kind K] [--direction out|in|both] [--all] [--format dot|mermaid|mermaid-md] [--json]` — the ref neighbourhood around one item
 
 **Agents** — like items, roster entries are addressed first, then verbed: `sq role <slug> show`
 - `sq role catalog [--json]` — the bundled roles available to activate · `sq role list [--json]` — the roles this squad has actually activated
@@ -338,7 +342,7 @@ discussion — all written through commands.
 **Maintenance**
 - `sq check` — lint markers, dangling parent/ref IDs, invalid status, index drift
 - `sq repair [--renumber]` — rebuild the index from frontmatter, **and rewrite item files** on the same pass: it removes what squads now computes on every read and canonicalises legacy ref encodings, so run it on a clean working tree. `--renumber` also resolves merged ID collisions ([how](docs/faq.md#handling-id-collisions)). `sq adopt`, `sq renumber` and the rebuild ending `sq migrate up` reach the same sweep — [what it writes](docs/faq.md#does-sq-repair-change-my-files)
-- `sq renumber --onto N | --by N` — shift this branch's IDs clear of another branch's range before a merge
+- `sq renumber --from N (--onto M | --by K)` — shift this branch's IDs clear of another branch's range before a merge; `--from` is the lowest local sequence number to shift
 - `sq reflog [--item|--actor|--op|--since|--tail|--tree] [--json]` — the chronological log of every mutating `sq` command
 
 ---
@@ -388,8 +392,8 @@ active_backends = ["claude_code", "agents_md"]
 ### `claude_code` (default)
 
 Writes thin pointer files into `.claude/agents/` and `.claude/skills/`, plus a managed section in
-`CLAUDE.md`. Each role and skill gets its own pointer file that @-includes the real definition
-from `squads/agents/`. Designed for Claude Code.
+`CLAUDE.md`. Each role and skill gets its own pointer file that names the `sq` command producing
+its full definition (`sq role <slug> show`, `sq skill <name> show`). Designed for Claude Code.
 
 ```bash
 sq init --backend claude_code   # default; creates .claude/ + CLAUDE.md
@@ -409,8 +413,7 @@ sq init --backend agents_md     # creates AGENTS.md at the project root
 sq sync                         # refresh AGENTS.md after adding roles/operators
 ```
 
-Internal staging files live in `.agents_md/` (one per role/skill); commit `AGENTS.md` but
-`.agents_md/` can be gitignored.
+No staging files are written; commit `.squads.toml`, the `squads/` folder and `AGENTS.md`.
 
 ---
 

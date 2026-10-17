@@ -4,6 +4,9 @@ Claude Code is *the first* supported agent backend, not the only possible one. A
 a squad (its roles, skills, and the workflow) into whatever config a given agent tool understands.
 The rest of squads — items, the index, IDs, markers, workflows — is backend-agnostic.
 
+Two backends ship today: `claude_code` (`CLAUDE.md` plus `.claude/` pointers) and `agents_md`
+(`AGENTS.md`). Pick either or both with `sq init --backend` (repeatable).
+
 ## The contract
 
 A backend implements the `AgentBackend` ABC (`squads._backends._base`):
@@ -42,15 +45,21 @@ That is the whole ABC — seven methods, and it does not grow.
 - **`managed_paths`** — the root-relative paths this backend owns, read-only, for `sq check` to
   verify scaffolding is present (a presence check, not a currency/drift check).
 
-Two more methods are non-abstract, with a working default — they don't grow the seven above (a
+Four more methods are non-abstract, with a working default — they don't grow the seven above (a
 subclass implementing only the seven still instantiates), but a bundled backend overrides them to
-answer question 4 and question 5 below:
+declare its per-entry pointers and to answer question 4 and question 5 below:
+
+- **`managed_entry_paths`** — the per-entry counterpart of `managed_paths`: the root-relative
+  pointer path of each role and skill currently live in the context, read-only. `sq check` reports
+  a missing one at warn, and `sq sync` reads it to report which pointers it had to regenerate. The
+  default is an empty list, so a backend that doesn't override it is never warned about a missing
+  pointer.
 
 - **`restriction_fragment(role)`** — pure, synchronous: the exact substring this backend's
   rendered role entry carries when the role's capability boundary currently applies, or `None`.
   Used to key `sq check`'s currency severity to the containment rule instead of a hard-coded field
   name — see "Detection: presence and currency" below.
-- **`render_role_entry`/`render_skill_entry`** — the pure render of what
+- **`render_role_entry`** and **`render_skill_entry`** — the pure render of what
   `generate_role_entry`/`generate_skill_entry` would write, without writing it. `None` when this
   backend has no per-entry file for that kind.
 
@@ -125,9 +134,10 @@ seven methods above and you inherit that behaviour — do **not** add a status b
 
 Follow the Claude Code pattern: write **thin pointers** in the tool's config that name the command
 to fetch the content — never a local path (see "The five per-host questions" below), and never a
-copy of the content itself. ClaudeCodeBackend writes a role's real definition to
-`squads/agents/roles/ROLE-*.md` and a pointer to `.claude/agents/<slug>.md` that names `sq role
-<slug> show`. A managed skill gets a pointer in `.claude/skills/<name>/SKILL.md` naming `sq skill
+copy of the content itself. For a role, ClaudeCodeBackend writes a pointer to
+`.claude/agents/<slug>.md` that names `sq role <slug> show`; the role's own file,
+`squads/agents/roles/ROLE-*.md`, holds its identity and a view tag, and that command renders the
+definition. A managed skill gets a pointer in `.claude/skills/<name>/SKILL.md` naming `sq skill
 <slug> show`, and the definition behind it is rendered from templates when that command runs rather
 than stored — the backend's part is to make sure the skill's own file under the squad folder exists
 with a well-formed, empty body region. A skill an adopter authors is the other case: its body is
@@ -160,9 +170,9 @@ Backends self-register. To add, say, a `cursor` backend:
    from squads._backends._cursor._cursor import CursorBackend
    register(CursorBackend)
    ```
-2. Make `get_backend` discover it. Today `_registry.get_backend` imports the built-in
-   `_claude_code` package for its registration side-effect; add an import for your package the same
-   way (or generalize discovery if you add several).
+2. Make the registry load it: append `"squads._backends._cursor"` to `_BUILTIN_BACKEND_MODULES` in
+   `_registry.py`. `get_backend` imports every module in that tuple once, for its registration
+   side-effect.
 3. Select it: `sq init --backend cursor` (stored in `active_backends` in `.squads.toml`;
    `--backend` is repeatable to run several backends side by side).
 

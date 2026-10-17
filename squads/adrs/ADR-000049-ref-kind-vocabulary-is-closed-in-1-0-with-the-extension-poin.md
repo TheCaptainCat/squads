@@ -13,7 +13,7 @@ refs:
 - GUIDE-79
 - ADR-492
 created_at: '2026-06-11T20:19:55Z'
-updated_at: '2026-08-22T09:31:05Z'
+updated_at: '2026-10-16T09:10:12Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -136,4 +136,6 @@ decision end, which is where it was outstanding.
   - Also dropped the "Status note" section, which declared this decision Proposed in its own body. Status is frontmatter; body copy that names it goes stale the moment the status moves, and this one had been stale since acceptance the same evening. The section carried one substantive line — that revisiting the closed-vocabulary stance is a new decisions job — which is a routine rule of the decision workflow and needs no restating here.
 - [2026-08-22T09:31:05Z] Robert Architect:
   - ADR-775 (Proposed) proposes superseding this decision. Three of the four arguments here are overtaken — a derived view is the consumer a project-declared kind lacked, declared-and-validated vocabulary is now the norm on every other axis, and the .overrides home this decision reserved is built. Shared semantics survives and is answered by a declared semantic role rather than a frozen spelling.
+- [2026-10-16T09:10:12Z] Robert Architect:
+  - 2026-10-16: superseded in full by ADR-775, which already carries the `supersedes` edge (added 2026-08-22) and was accepted by the operator that day. ADR-775 replaces this decision whole: ref kinds are a declared, merged `[ref_kinds]` spec section, `VALID_REF_KINDS` is no longer the authority, and its section 6 replaced the extension policy this decision required `docs/stability.md` to carry. Only the status was never moved, so the ADR set shows two Accepted decisions contradicting each other (REV-1033 F15). Under board notice 6 a wholly replaced decision is retired as Superseded; that transition (`sq decision 49 status Superseded`) is prepared for @op-pierre to run. Body left unchanged.
 <!-- sq:discussion:end -->

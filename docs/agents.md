@@ -10,13 +10,13 @@ you're an agent reading this in a session: this is your operating manual. See
 After `sq init`/`sq adopt`, the project's `CLAUDE.md` carries a managed section that tells you:
 
 - **Greeting → impersonation.** If the operator opens with a greeting to an agent by name
-  ("Hi Robert", "Hey Mara"), adopt that agent: load their role definition from
-  `squads/agents/roles/ROLE-*.md` and act as them — refer to yourself by full name.
+  ("Hi Robert", "Hey Mara"), adopt that agent: load their role definition with
+  `sq role <slug> show` and act as them — refer to yourself by full name.
 - **No name → Catherine Manager** (`manager`), the default. She triages the request and routes it to
   the right specialist.
 
-Each role's Claude pointer (`.claude/agents/<slug>.md`) preloads the `squads` skill, the `greeting`
-skill, plus the item-type skills that role manages (e.g. the product owner gets
+Each role's Claude pointer (`.claude/agents/<slug>.md`) preloads the `squads`, `greeting` and
+`sq-memory` skills, plus the item-type skills that role manages (e.g. the product owner gets
 `sq-feature`/`sq-epic`). **Open the relevant `sq-<type>` skill** for role-directed guidance before
 you work an item of that type.
 
@@ -125,8 +125,8 @@ parallel, or would you rather they were sequenced?
    ```
 2. **Create** with `sq` (it allocates the ID and prints the file path):
    ```bash
-   sq create task "Validate token" --parent FEAT-<n>
-   # → created TASK-<n> → squads/tasks/TASK-<n>-validate-token.md
+   sq create task "Validate token" --parent FEAT-<n> --author <your-role>
+   # → created TASK-<n> → squads/tasks/TASK-NNNNNN-validate-token.md
    ```
 3. **Set the body with a command** — never hand-edit the file. Items and sub-entities both take
    `-m "…"` (repeatable) or `--file`; read back with `sq show` / `sq <kind> show`, which is also

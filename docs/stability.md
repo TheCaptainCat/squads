@@ -23,7 +23,8 @@ The on-disk format — item frontmatter, markers, and folder layout — is locke
 ### Schema versioning and migrations
 
 The format is versioned with a dotted string (e.g., `"0.3"`) that names the release introducing the
-schema. Comparisons use `schema_tuple()`, never raw-string `<` or `>`; so `"0.10" > "0.2"` holds.
+schema. Versions compare numerically, segment by segment, never as raw strings; so
+`"0.10" > "0.2"` holds.
 Post-1.0, a schema change ships only with a MAJOR release of squads. The upgrade path is always
 `sq migrate up`, which rebuilds the index from the item files, applies the ordered migration
 runners, rebuilds the index again, and stamps the new version. It never stamps past an item file
@@ -34,7 +35,7 @@ with exit `1` before any runner, with nothing migrated and the schema unchanged 
 ### ID numbering, padding, and exhaustion
 
 The global sequence number is the durable identity of an item — `TASK-<n>` and `TASK-NNNNNN` (in refs or filenames)
-resolve to the same item forever. The *number* never changes across a retype or repair; the *prefix* stays fixed.
+resolve to the same item forever. The *number* never changes across a retype or repair; only the *prefix* moves, and only on a retype.
 
 - **Display:** every human-facing surface (frontmatter `id:`, CLI output, `--json`) renders IDs unpadded (e.g. `TASK-<n>`).
   This is fixed and not user-configurable.
@@ -63,8 +64,8 @@ other items are severed in the same transaction. No dangling refs survive; `sq c
 ### Sub-entity state lives in frontmatter
 
 User stories' and subtasks' status, assignee, severity, and mapped story live in the parent item's
-frontmatter (`Item.subentities`), not in the body. Only prose (the `:body` and `:discussion` regions)
-stays in the body markers. This is **Invariant 1** — frontmatter is the source of truth — and it
+frontmatter (its `subentities:` list), not in the body. Only prose (the `:body` and `:discussion` regions)
+stays in the body markers. Frontmatter is the source of truth, and that is what
 makes the index rebuildable from files alone (see [internals.md](internals.md) § 4).
 
 ### Comment headers
@@ -146,16 +147,20 @@ them.
 A squad may customize bundled templates, roles, and item-type vocabulary under `.overrides/`, a
 folder in the squad directory. The frozen surfaces are:
 
-- **Layout:** `<squad-dir>/.overrides/{templates,roles}/` and `.overrides/workflow.toml`. Templates
-  mirror bundled template names 1:1; roles are TOML files keyed by slug (e.g., `architect.toml`);
+- **Layout:** `<squad-dir>/.overrides/{templates,roles}/` and three spec documents,
+  `.overrides/workflow.toml`, `.overrides/roles.toml` and `.overrides/playbook.toml`. Templates
+  mirror bundled template names 1:1; per-role files are TOML keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
-  collections, status roles, ref kinds, derived views.
+  collections, status roles, ref kinds, derived views; `roles.toml` is a delta over the whole role
+  catalog (its roles, bundles and developer pool); `playbook.toml` is a delta over the playbook, the
+  per-type guidance each role gets.
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
-  override whole-file; roles merge field-wise by slug; the workflow override composes over the
-  bundled vocabulary and **may shadow a built-in**, not only add to it.
-- **Workflow override grammar (frozen):** deep recursive merge at leaf granularity — tables recurse
-  per key, and a leaf value replaces its counterpart. A plain array is a leaf, replaced wholesale
-  and never element-merged. **Splat-refs** are the opt-in for extending a bundled list without
+  override whole-file; a role resolves bundled, then `roles.toml`, then its per-slug file, merging
+  field-wise; the workflow override composes over the bundled vocabulary and **may shadow a
+  built-in**, not only add to it.
+- **Spec override grammar (frozen):** the same for all three spec documents. Deep recursive merge
+  at leaf granularity — tables recurse per key, and a leaf value replaces its counterpart. A plain
+  array is a leaf, replaced wholesale and never element-merged. **Splat-refs** are the opt-in for extending a bundled list without
   restating it: `$(path)` splices the bundled value at *path* as one element and `$(*path)` spreads
   a bundled list's elements into the surrounding list, with `$(self)` / `$(*self)` addressing the
   key being written. A path is a dot-joined chain of TOML bare keys (ASCII letters, digits,
@@ -165,7 +170,8 @@ folder in the squad directory. The frozen surfaces are:
   escapes a string that must literally begin `$(`. There is no interpolation. The sigil is reserved
   in **every** string position, keys as well as values: a token-shaped key is refused — there is no
   splice-into-a-key operation — and the refusal names the escape, so `$$(` still gets you the literal
-  key you want. A top-level `[selected]` table shrinks named sections to the set that survives. The
+  key you want. A top-level `[selected]` table shrinks named sections to the set that survives (in
+  `workflow.toml` and `roles.toml`; the playbook has no section to shrink, so it refuses one). The
   document's top level is a closed key space: an unrecognised key is refused by name. Nesting is
   bounded at 300 levels on both the override and the bundled side (far above any hand-authored
   document; the deepest bundled key path is four); past it, the dotted path is named and the merge
@@ -190,11 +196,13 @@ folder in the squad directory. The frozen surfaces are:
   offending item IDs, and names only remedies a shipped command can actually perform.
 - **Staleness & drift:** an override carries an `override-base` version stamp — an HTML comment
   (`<!-- squads:override-base:<version> -->`) in a template, a TOML comment
-  (`# squads:override-base:<version>`) in a role or workflow override. `sq check` warns if the
-  bundled counterpart changed since that base version (drift), and errors if a template is missing
-  required markers. A workflow override that shadows a built-in must carry the stamp — unstamped and
-  shadowing is an error-level `sq check` / `sq workflow lint` finding, though not a load-time refusal;
-  an add-only override needs no stamp. `sq migrate` never rewrites overrides; the `sq override`
+  (`# squads:override-base:<version>`) in a per-role file and in each of the three spec documents.
+  `sq check` warns if the bundled counterpart changed since that base version (drift), and errors if
+  a template is missing required markers. A template override must always carry the stamp. A
+  per-role file for a bundled role, and a spec document that shadows a bundled entry, must carry it
+  too — unstamped and shadowing is an error-level `sq check` finding (and a `sq workflow lint` one
+  for the workflow override), though not a load-time refusal; an add-only spec document, or a
+  per-role file defining a new role, needs no stamp. `sq migrate` never rewrites overrides; the `sq override`
   command group (`scaffold` / `diff` / `update` / `list`) is the user-owned upgrade path. `sq
   override diff` shows two deltas: Δ-mine (your customisation vs current bundled) and Δ-upgrade
   (base-version bundled vs current bundled), so you see exactly what to merge.
@@ -388,8 +396,9 @@ numbers before writing anything; only a fully clean file is applied, in a single
 `--dry-run` stops after validation and prints the projected handle → ID plan; `--json` emits the
 result machine-readably. The global `--at` sets the file-level default timestamp; `--as` sets the
 default acting slug. Attribution has no silent fallback — an event with no `as` of its own, no
-prior event's to inherit, and no `--as` fails validation naming the missing actor. See
-[adoption.md](adoption.md).
+prior event's to inherit, and no `--as` fails validation naming the missing actor. Once the file
+is applied, the items it touched are checked; an error-level finding is printed and the command
+exits `3`, not `1`, because the write committed and stands. See [adoption.md](adoption.md).
 
 ### Exit codes (distinct codes for distinct failures)
 
@@ -400,10 +409,10 @@ Frozen contract:
 | `0` | Success |
 | `1` | squads runtime error (schema mismatch, corrupt index, validation failure, etc.) |
 | `2` | Usage error (bad arguments, missing required flag) |
-| `3` | Check failures (one or more issues found by `sq check`) |
+| `3` | Integrity findings reported: `sq check` found issues, or `sq import` applied the file and the integrity check that follows it found error-level issues |
 | `4` | The result is incomplete — stdout carries a valid payload in its documented shape, and entries are missing |
 
-The distinct code for check failures lets CI distinguish "check found issues" from "command errored".
+The distinct code for integrity findings lets CI distinguish "issues were found" from "command errored".
 
 #### Partial results and code `4`
 
@@ -449,8 +458,10 @@ refusal lists the accepted set. Engine behaviour binds to a kind's declared **se
 never to its name — so a renamed dependency kind keeps driving `sq blocked`, and a kind with no
 semantic is navigational.
 
-Four semantic roles are declarable, and what the declared set must supply is checked rather than
-named:
+Four semantic roles are declarable today, and what the declared set must supply is checked rather
+than named. The set of roles is an open set (see [Tier 3](#tier-3---json-output-shapes-stable-additive-changes-only)):
+a later release may add one, so a reader of a ref kind's `role` or a graph edge's `edge_semantic`
+tolerates a value it does not recognise.
 
 - **`dependency`**, in the `blocker` or the `dependent` direction — the two ends of the one edge
   `sq blocked` walks. At most one kind per direction; declaring neither direction is legal and
@@ -521,7 +532,25 @@ role catalog: a status can be settled without being hidden (bundled `Accepted` i
 ## Tier 3: `--json` output shapes (stable; additive changes only)
 
 Read commands emit stable JSON shapes. **Additive** means fields may be added, never removed or
-renamed or retyped within a major version. The frozen surface includes:
+renamed or retyped within a major version. A key is frozen in its name, its JSON type, its presence
+(`null` rather than omitted where a shape states that convention) and its meaning. What its *value*
+promises depends on its class, and a field reference marks each key whose value is not a fixed
+squads format with one of three words:
+
+- **vocabulary** — a name your squad declares: an item type, a status, a priority or other badge
+  code, a ref kind, a sub-entity kind or local id, a badge field (all from the active spec), or an
+  assignee slug (from the roster). Frozen: that the value names an entry of that catalog or roster.
+  Not frozen: which names exist. Read the catalog; never hardcode a name.
+- **open set** — a value squads defines, from a set that may grow between majors. Handle a value
+  you do not recognise without failing, and never infer anything from the set looking complete. The
+  forms that exist today are listed with the key.
+- **display** — human text. The key is frozen; its content is not, and is never parsed or compared.
+
+In a field reference that carries these marks, a key with no mark has a fixed squads format, frozen
+with the key: an item id, a boolean, `direction`'s `in`/`out`, nested `children`. A key moves to a
+stricter class freely; it moves to a looser one only as a stated contract change.
+
+The frozen surface includes:
 
 - **Reading the board:** `list`, `tree`, `graph`, `inbox`, `search`, `blocked`, `workload`, `mine`,
   `show`, `refs`, `comments`, `create`, `check`, plus each sub-entity list command
@@ -529,6 +558,53 @@ renamed or retyped within a major version. The frozen surface includes:
   and each single sub-entity (`sq feature <n> story <k> show --json`, and the same for a subtask or
   a finding), which emits that one sub-entity's object — the same shape the parent's `show --json`
   nests under `subentities`, `body` / `badges` / `discussion` included
+- **Search, tree and graph:** their fields, in emitted order, with each key's class:
+
+  `sq search --json` emits a bare array, one object per matching item:
+
+  | Key | Class | Value |
+  |---|---|---|
+  | `id` | | the item id |
+  | `title` | | the item's title, as stored |
+  | `type` | vocabulary | item type |
+  | `status` | vocabulary | status |
+  | `hits` | | array of `{region, location, snippet}`, one per match |
+  | `hits[].region` | open set | where the hit was found: `title`, `description`, `body`, `discussion#<n>` (the *n*-th comment), `<kind>:<local_id>` (a sub-entity's heading or body) or `<kind>:<local_id>:discussion#<n>`; the kind and local id inside it are vocabulary |
+  | `hits[].location` | display | a human label for the same place |
+  | `hits[].snippet` | display | the matching line |
+
+  `sq tree --json` emits a bare array of root nodes; each node is:
+
+  | Key | Class | Value |
+  |---|---|---|
+  | `id` | | the item id |
+  | `type` | vocabulary | item type |
+  | `title` | | the item's title, as stored |
+  | `status` | vocabulary | status; join it to `sq workflow statuses --json` and `sq workflow roles --json` for open or settled |
+  | `priority` | vocabulary | priority code, or `null` |
+  | `assignee` | vocabulary | assignee slug, or `null` |
+  | `blocked` | | boolean: the item is one `sq blocked` lists |
+  | `badges` | vocabulary | object of badge field to badge code; keys and values both name spec entries |
+  | `anchor` | | boolean: `true` only on a root invented for a parent cycle, which nobody wrote as a root |
+  | `children` | | nested nodes of the same shape |
+
+  `sq graph --json` emits one root object; each node is:
+
+  | Key | Class | Value |
+  |---|---|---|
+  | `id` | | the item id |
+  | `type` | vocabulary | item type |
+  | `status` | vocabulary | status |
+  | `priority` | vocabulary | priority code, or `null` |
+  | `badges` | vocabulary | object of badge field to badge code |
+  | `assignee` | vocabulary | assignee slug, or `null` |
+  | `edge_kind` | vocabulary | the ref kind of the edge that reached this node, as spelled in the project; `null` on the root |
+  | `edge_semantic` | open set | that kind's semantic role: today `dependency`, `preload`, `supersession`, `default`, or `null` (the root, a navigational kind, or a kind the spec does not declare). Branch on this, never on `edge_kind` |
+  | `direction` | | `out` (the parent node carries the ref to this one; on a dependency edge, the parent depends on it), `in` (this node carries the ref to the parent), or `null` on the root |
+  | `seen` | | boolean: the node was already expanded elsewhere in this graph, so its `children` is empty |
+  | `children` | | nested nodes of the same shape |
+
+  A graph node carries no `title`.
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
   `operator list`, `operator <addr> show`. Skills have no dedicated `skill list` — use the generic
   `list -t skill`
@@ -544,6 +620,7 @@ renamed or retyped within a major version. The frozen surface includes:
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
   | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name` |
+  | `sq workflow ref-kinds --json` | ref kind | `kind` (vocabulary), `label` (display), `hint` (display), `role` (open set), `direction` |
 
   Each emits a bare JSON array, one row per declared entry in a documented order, with **every key
   present on every row** — `null` for absent, never omitted. They are designed to be **joined**, and
@@ -553,6 +630,9 @@ renamed or retyped within a major version. The frozen surface includes:
   `settled` / `hidden` / `color` / `live` live. `role` is always the *resolved* role name, never
   null, so `null` stays available to a client meaning "not loaded yet". `terminal` and `is_open`
   are deliberately not fields anywhere: they are `settled` / `not settled` on the role catalog.
+  A ref kind's `role` is its semantic role (`null` on a navigational kind), and `direction` is its
+  end of the dependency edge (`null` on every kind but the two `dependency` ones). `role` is an
+  open set: today it is one of `dependency`, `preload`, `supersession`, `default` or `null`.
 
   A type's or a kind's `lifecycle` keys into the lifecycle catalog the same way: `initial` is the
   starting status, `states` is every status the machine declares — in breadth-first order from
@@ -581,8 +661,8 @@ renamed or retyped within a major version. The frozen surface includes:
   merged into that spec. It is for display, not for detecting change. `digest` is a field
   addition to this shape, which this tier permits between majors.
 - **Override inspection:** `override list --json` (an array of `{name, kind, base_version, state}`)
-  and `override diff --json` (`{name, kind, base_version, base_available, delta_mine,
-  delta_upgrade}`)
+  and `override diff --json` (an array of `{name, kind, base_version, base_available, delta_mine,
+  delta_upgrade}`, one row for the override named, or one per drifted override when none is named)
 - **The reflog:** `sq reflog --json` emits the Tier 1 line schema —
   `{v, ts, actor, op, target, delta, session_id, parent_session_id}`. Note the difference from the
   file: the two session fields are always *present* here, `null` when absent, where on disk they
@@ -606,12 +686,12 @@ renamed or retyped within a major version. The frozen surface includes:
     list would be non-empty, so its presence is the signal: an absent report and an empty `omitted`
     mean the same thing. There is no `partial` boolean, because that is exactly "`omitted` is
     non-empty", and the exit code already carries the same bit for a caller that cannot parse.
-  - `code` is the machine class of the omission. `unreadable` is the only value squads emits today
-    and the set grows additively. **Do not branch on it to decide whether the result is partial** —
+  - `code` is the machine class of the omission, an open set. `unreadable` is the only value squads
+    emits today. **Do not branch on it to decide whether the result is partial** —
     an entry whose `code` you do not recognise still means part of the result is missing.
   - `source` is what was left out, as squads identifies it: an item ID where there is one, otherwise
-    a squad-relative path. It is a display token; do not parse it.
-  - `message` is the human sentence — the same text human-mode output prints for that omission.
+    a squad-relative path. It is display; do not parse it.
+  - `message` is display: the human sentence — the same text human-mode output prints for that omission.
   - Every key is present on every entry, `null` for absent, matching the convention the workflow
     catalogs set.
 
@@ -640,13 +720,12 @@ Between major versions, new fields may be added to any shape; old fields stay pr
 typed identically. Every shape above is covered by a regression test, so it cannot drift on you
 unnoticed.
 
-**Where each shape's fields are written down.** This document tabulates the field set for the
-workflow catalogs, derived views, override inspection, the reflog and the omissions report. For the
-rest, the authority is the command's own `--json` output together with what `sq <command> --help`
-says about it: `sq search`, `sq tree` and `sq graph` document their shapes there in full, while the
-plainer listings (`list`, `blocked`, `workload`, `mine`) leave their field set to the output itself.
-The promise above covers the fields a shape emits either way, whether or not you find them
-enumerated here.
+**Where each shape's fields are written down.** This document is the authority for every shape it
+enumerates: the workflow catalogs, search, tree and graph, derived views, override inspection, the
+reflog and the omissions report. Command help may describe a payload, but it is not the field
+reference. The plainer listings (`list`, `blocked`, `workload`, `mine`) are not enumerated here:
+the fields they emit are their contract. Listing a key here records a promise its shape already
+makes, and leaving one out never exempts it: the promise above covers every field a shape emits.
 
 ---
 
@@ -662,8 +741,9 @@ are.
 ### Shell completion
 
 Verified install steps for bash and zsh completion are documented in the [top-level README](../README.md)
-and are part of the supported-surface documentation. Completion may be added to other shells
-additively post-1.0.
+and are part of the supported-surface documentation. The same `--install-completion` /
+`--show-completion` flags also generate fish and PowerShell completion scripts; their install
+steps are not verified, so those two shells sit outside the supported surface until they are.
 
 ---
 
@@ -707,11 +787,12 @@ Two consequences a backend author should count on:
   `sq sync`; do not edit by hand" notice where a reader actually sees it. Shared helpers wrap a
   managed region so this is consistent rather than reimplemented.
 
-**Two more methods are non-abstract, with a working default**, so they don't count against the
-seven: `restriction_fragment` and `render_role_entry`/`render_skill_entry`. A bundled backend
-overrides them to answer, respectively, which projected value currently constrains the session
-(rather than merely configuring or supplying it) and what it would write for one entry without
-writing it — the seam `sq check`'s currency comparison consumes. A third-party backend written
+**Four more methods are non-abstract, with a working default**, so they don't count against the
+seven: `managed_entry_paths`, `restriction_fragment`, `render_role_entry` and
+`render_skill_entry`. A bundled backend overrides them to declare its per-entry pointers and to
+answer, respectively, which projected value currently constrains the session (rather than merely
+configuring or supplying it) and what it would write for one entry without writing it — the seam
+`sq check`'s currency comparison consumes. A third-party backend written
 against the documented seven still instantiates and simply never participates in that comparison,
 exactly as one that declares no `managed_entry_paths` never participates in the presence check.
 
@@ -737,4 +818,7 @@ Backend selection: `sq init --backend <name>` or `active_backends` in `.squads.t
 **Regenerable**: tool-owned; can be deleted and rebuilt without losing data or state.  
 **SemVer**: Semantic Versioning (MAJOR.MINOR.PATCH). Breaking changes allowed only in MAJOR releases.  
 **Additive**: new fields may be added; removals, renames, or type changes are not.  
-**Frozen**: locked at 1.0 and subject to the stability contract.
+**Frozen**: locked at 1.0 and subject to the stability contract.  
+**Vocabulary**: a `--json` value that names an entry your squad declares (a type, status, badge code, ref kind, slug); which names exist is not frozen.  
+**Open set**: a `--json` value from a squads-defined set that may grow between majors; tolerate one you do not recognise.  
+**Display**: a `--json` value that is human text; never parse or compare it.

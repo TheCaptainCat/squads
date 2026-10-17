@@ -20,7 +20,7 @@ backend.
 | **[faq.md](faq.md)** | Common errors and how to fix them. |
 | **[adoption.md](adoption.md)** | Migrating an existing project: `sq adopt` + history-preserving `--at` timestamps. |
 | **[overrides.md](overrides.md)** | Customizing templates, roles, agent names, your squad's vocabulary, and the per-role guidance in each item skill: `.overrides/` layout, the override grammar (shadow / append / drop), the `sq override` workflow, and handling drift across upgrades. |
-| **[migration.md](migration.md)** | Upgrading a squad to a new squads version: `sq sync`/`repair`, frontmatter & marker transformers, and LLM runbooks for non-deterministic changes. |
+| **[migration.md](migration.md)** | Upgrading a squad to a new squads version: `sq migrate up`, the changelog (`help`/`chlog`), what counts as a breaking change, and the per-release manual steps. |
 
 **Under the hood / contributing**
 
@@ -63,11 +63,11 @@ project/
 ├─ CLAUDE.md                   │  (managed section: roster, impersonation, workflow)
 ├─ .claude/                    │  tool-owned pointers + config
 │  ├─ settings.json            │  merged, never clobbered
-│  ├─ agents/architect.md ─────┼────▶ `sq role architect show`     (definition stored under squads/)
+│  ├─ agents/architect.md ─────┼────▶ `sq role architect show`     (definition rendered on read)
 │  └─ skills/sq-task/SKILL.md ─┼────▶ `sq skill sq-task show`      (definition rendered on read)
 └─ squads/                  ◀──┘  self-contained, relocatable (squad_dir in .squads.toml)
    ├─ .squads.json               the index: counter + items + refs  (rebuildable)
-   ├─ epics/  features/  tasks/  bugs/  adrs/  reviews/  guides/
+   ├─ epics/  features/  tasks/  bugs/  adrs/  contracts/  milestones/  reviews/  guides/  operators/
    │     └─ TASK-<n>-fix-login.md          ← frontmatter is the truth
    └─ agents/{roles,skills}/
 ```
