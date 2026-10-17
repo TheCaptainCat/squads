@@ -17,11 +17,11 @@ pytestmark = pytest.mark.anyio
 
 #: One representative per exception the coercion used to throw past the boundary, so a regression in
 #: any single arm is caught here too rather than only in the service sweep: `TypeError` (`labels`),
-#: `ValueError` (`extra`, `created_at`), `AttributeError` (`id`), plus a `subentities` element.
+#: `ValueError` (`created_at`), `AttributeError` (`id`), plus a `subentities` element.
 _SHAPES: list[tuple[str, str, object]] = [
     ("labels_int", "labels", 5),
     ("refs_int", "refs", 5),
-    ("extra_str", "extra", "oops"),
+    ("priority_int", "priority", 5),
     ("subentities_int_element", "subentities", [5]),
     ("created_at_unparseable", "created_at", "not-a-date"),
     ("id_int", "id", 5),

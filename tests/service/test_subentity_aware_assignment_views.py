@@ -55,9 +55,9 @@ async def test_mine_all_flag_bypasses_the_visibility_predicate(svc):
 async def test_mine_operator_slug_matches_a_sub_entity_assignee_identically(svc):
     op = await svc.add_operator("Alice Tester")
     task = (await create_item(svc, "task", "parent")).item
-    await svc.add_subtask(task.id, "child", assignee=op.extra["slug"])
+    await svc.add_subtask(task.id, "child", assignee=op.slug)
 
-    rows = await svc.mine(op.extra["slug"])
+    rows = await svc.mine(op.slug)
     assert [r.item.id for r in rows] == [task.id]
 
 

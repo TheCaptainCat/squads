@@ -19,9 +19,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "slug": "manager"
-    },
     "id": "ROLE-1",
     "badges": {}
   },
@@ -55,7 +52,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "FEAT-2",
     "badges": {}
   },
@@ -91,7 +87,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-3",
     "badges": {}
   },
@@ -115,7 +110,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "BUG-4",
     "badges": {}
   },
@@ -139,7 +133,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "ADR-5",
     "badges": {}
   },
@@ -173,7 +166,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "REV-6",
     "badges": {}
   },
@@ -197,7 +189,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "GUIDE-7",
     "badges": {}
   },
@@ -221,13 +212,9 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "slug": "golden-skill",
-      "description": "Test skill for golden snapshots",
-      "when_to_use": "",
-      "allowed_tools": ""
-    },
     "id": "SKILL-8",
+    "when_to_use": "",
+    "allowed_tools": "",
     "badges": {}
   },
   {
@@ -250,10 +237,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {
-      "slug": "op-alice",
-      "full_name": "Alice Tester"
-    },
     "id": "OP-9",
     "badges": {}
   },
@@ -277,7 +260,6 @@
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": null,
     "modified_session": null,
-    "extra": {},
     "id": "TASK-10",
     "badges": {}
   }

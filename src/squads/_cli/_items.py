@@ -375,12 +375,12 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             raise SquadsError("use either --priority or --no-priority, not both")
         if parent is not None and not parent.strip():
             raise SquadsError("--parent needs an item ID; use --no-parent to clear the parent")
-        set_extra: dict[str, str] = {}
+        set_attributes: dict[str, str] = {}
         for pair in set_ or []:
             key, sep, value = pair.partition("=")
             if not sep:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
-            set_extra[key.strip()] = value
+            set_attributes[key.strip()] = value
         svc = get_service()
         validated_assignee = await resolve_slug_or_raise(assignee, svc) if assignee else None
         validated_author = await resolve_slug_or_raise(author, svc) if author else None
@@ -402,8 +402,8 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             force=force,
             parent=resolved_parent,
             clear_parent=no_parent,
-            set_extra=set_extra or None,
-            unset_extra=unset or None,
+            set_attributes=set_attributes or None,
+            unset_attributes=unset or None,
         )
         console.print(f"updated {it.id}  [dim]{it.path}[/dim]")
 

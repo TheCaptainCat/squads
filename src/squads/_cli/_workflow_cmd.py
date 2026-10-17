@@ -41,7 +41,6 @@ from squads._cli._common import (
     status_text,
 )
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
 from squads._models._schema import SCHEMA_VERSION
 from squads._models._vocab import labels_for
 from squads._paths import number_for_id
@@ -139,7 +138,7 @@ async def _print_cheatsheet(*, raw: bool) -> None:
 
 #: Frozen field set for the ``sq workflow types --json`` catalog. Kept as a module-level
 #: tuple so a test can assert the CLI never drifts from the declared contract.
-TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str] = (
+TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str, str] = (
     "type",
     "order",
     "prefix",
@@ -148,6 +147,7 @@ TYPE_CATALOG_FIELDS: tuple[str, str, str, str, str, str, str, str, str] = (
     "subentity_kind",
     "lifecycle",
     "fields",
+    "attributes",
     "labels",
 )
 
@@ -185,10 +185,12 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     labels. ``lifecycle`` names the machine this type binds — a declared choice, derivable
     from nothing else on the row. Both are references *by name*, never inlined copies.
     ``fields`` is the type's declared field->collection bindings — ``[]`` for a type with no
-    badge fields. ``labels`` is the type's four resolved display-label forms
-    (``singular``/``plural``/``singular_lower``/``plural_lower``), pin-else-derive via
-    ``labels_for`` — a client reads a pretty group header here instead of title-casing the
-    raw type string itself.
+    badge fields. ``attributes`` is the type's declared non-badge frontmatter keys, name to
+    ``{kind, required, settable}`` — ``{}`` for a type that declares none; a client reads
+    here which keys an item row of the type may carry. ``labels`` is the type's four resolved
+    display-label forms (``singular``/``plural``/``singular_lower``/``plural_lower``),
+    pin-else-derive via ``labels_for`` — a client reads a pretty group header here instead of
+    title-casing the raw type string itself.
     """
     types = sorted(spec.items, key=lambda t: (spec.items[t].order, t))
     return [
@@ -201,6 +203,10 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "subentity_kind": spec.items[t].subentity_kind,
             "lifecycle": spec.items[t].lifecycle,
             "fields": _field_entries(t, spec),
+            "attributes": {
+                name: {"kind": a.kind, "required": a.required, "settable": a.settable}
+                for name, a in spec.item_attributes(t).items()
+            },
             "labels": labels_for(t, spec),
         }
         for t in types
@@ -223,7 +229,9 @@ def workflow_types(
     ``category == "roster"``); ``subentity_kind`` is the declared sub-entity kind this type
     hosts, or ``null`` — join it to ``sq workflow subentity-kinds --json``; ``lifecycle`` is
     the machine this type binds; ``fields`` is the type's declared field->collection
-    bindings (``[{code, label, collection}]``, ``[]`` if none); ``labels`` is the type's
+    bindings (``[{code, label, collection}]``, ``[]`` if none); ``attributes`` is the type's
+    declared non-badge keys (``{name: {kind, required, settable}}``, ``{}`` if none); ``labels``
+    is the type's
     four resolved display-label forms (``{singular, plural, singular_lower,
     plural_lower}``, pin-else-derive) — all present, never omitted, so the key set is
     stable across every object.
@@ -590,19 +598,21 @@ def workflow_statuses(
 # ─── roles ───────────────────────────────────────────────────────────────────────
 
 #: Frozen field set for the ``sq workflow roles --json`` catalog.
-ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str] = (
+ROLE_CATALOG_FIELDS: tuple[str, str, str, str, str, str] = (
     "role",
     "settled",
     "hidden",
     "color",
     "live",
+    "blocked",
 )
 
 
 def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     """The frozen role-catalog rows, ascending role name — a client joins a status's ``role``
     (from ``sq workflow statuses --json``) to this catalog to resolve ``settled``/``hidden``/
-    ``color``/``live`` instead of hardcoding any role name or deriving it from category."""
+    ``color``/``live``/``blocked`` instead of hardcoding any role name or deriving it from
+    category."""
     return [
         {
             "role": name,
@@ -610,6 +620,7 @@ def _role_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "hidden": r.hidden,
             "color": r.color,
             "live": r.live,
+            "blocked": r.blocked,
         }
         for name, r in sorted(spec.roles.items())
     ]
@@ -623,13 +634,14 @@ def workflow_roles(
     """List every declared role in the active workflow spec.
 
     Default: a human Rich table. ``--json`` emits a bare JSON array — one object per
-    declared role, ascending role name: ``{role, settled, hidden, color, live}``.
+    declared role, ascending role name: ``{role, settled, hidden, color, live, blocked}``.
     ``settled`` is the old ``terminal`` (a resting/end state); ``hidden`` is default-visibility;
     ``color`` is a semantic colour intent from the closed palette (``positive``/``danger``/
     ``warning``/``muted``/``neutral``/``info``) — each client maps it to a concrete colour,
     with a neutral fallback for an intent it doesn't recognise. ``live`` (defaults false) is
     the materialisation axis: an item whose status resolves to a live role is on offer to
-    be spawned/loaded/cited/assigned. A status references one role by name (``sq workflow
+    be spawned/loaded/cited/assigned. ``blocked`` (defaults false) marks a role whose statuses
+    mean the item is waiting on something else. A status references one role by name (``sq workflow
     statuses --json``'s ``role`` field); join the two to resolve behaviour.
     """
     from squads._cli._common import get_active_spec, print_json_clean
@@ -642,7 +654,7 @@ def workflow_roles(
         return
 
     table = Table(box=None, pad_edge=False)
-    for col in ("Role", "Settled", "Hidden", "Color", "Live"):
+    for col in ("Role", "Settled", "Hidden", "Color", "Live", "Blocked"):
         table.add_column(col)
     for row in rows:
         table.add_row(
@@ -651,6 +663,7 @@ def workflow_roles(
             "yes" if row["hidden"] else "",
             e(str(row["color"])),
             "yes" if row["live"] else "",
+            "yes" if row["blocked"] else "",
         )
     console.print(table)
 
@@ -961,7 +974,7 @@ async def _view_json_payload(
         # The role source's own applicability already guarantees `item` IS the role item —
         # `result` (the already-resolved `RoleDef`) is not reused here because
         # `build_role_json_payload` resolves its own, the same way `show_role` itself does.
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         base_role = role_base_for_show(slug, item, svc.paths.squad_dir)
         return await build_role_json_payload(svc, slug, item.id, item, base_role, slug)
 

@@ -8,6 +8,7 @@ import pytest
 
 from _helpers import create_item
 from squads import _itemfile as itemfile
+from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
 
@@ -115,40 +116,6 @@ async def test_repair_converges_and_further_mutations_are_unaffected(svc, monkey
 # ---------------------------------------------------------------------------------------------
 
 
-async def test_legacy_severity_location_does_not_false_refuse(svc):
-    """Both the file AND the index carry the value in the pre-top-level-field location --
-    the shape a squad predating that field would actually have, on both artifacts
-    consistently. The load-time backfill (``_backfill_severity``, run identically for the
-    index-loaded base and for the disk-parsed side of the comparison) relocates it back in
-    memory on each side, so the round trip collapses the divergence rather than the guard
-    ever seeing the two disagree."""
-    bug = (
-        await create_item(svc, "bug", "Legacy severity bug", fields={"severity": "critical"})
-    ).item
-
-    path = svc.paths.abspath(bug.path)
-    text = path.read_text(encoding="utf-8")
-    from squads._sections import join_frontmatter, split_frontmatter
-
-    fm, rest = split_frontmatter(text)
-    fm.pop("severity", None)
-    fm.setdefault("extra", {})["severity"] = "critical"
-    path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
-
-    db = await svc.store.load()
-    item = db.get(bug.id)
-    assert item is not None
-    item.severity = None
-    item.extra["severity"] = "critical"
-    await svc.store.overwrite(db)
-
-    # A plain mutation must not be refused by the legacy-location divergence.
-    await svc.set_status(bug.id, "InProgress", force=True)
-    reloaded = await svc.get(bug.id)
-    assert reloaded.status == "InProgress"
-    assert reloaded.severity == "critical"
-
-
 async def test_a_post_repad_id_width_mismatch_does_not_false_refuse(svc):
     task = (await create_item(svc, "task", "Repad target")).item
     await svc.repad(8)
@@ -158,49 +125,8 @@ async def test_a_post_repad_id_width_mismatch_does_not_false_refuse(svc):
     assert reloaded.status == "InProgress"
 
 
-@pytest.mark.parametrize(
-    ("kind", "legacy_kind"),
-    [
-        pytest.param("", "related", id="default-kind"),
-        pytest.param("blocks", "blocks", id="non-default-kind"),
-    ],
-)
-async def test_legacy_ref_kinds_map_does_not_false_refuse(svc, kind, legacy_kind):
-    """The index carries the ref in the current inline ``ID:kind`` form (as any real ref-add
-    writes it); the FILE alone is rewritten back to the pre-0.2 shape -- the bare id kept in
-    ``refs`` with its kind pulled out into a separate ``extra.ref_kinds`` map -- the one
-    artifact `from_frontmatter`'s parse-time folding has to reconstruct from, since a plain
-    JSON index round trip has nothing to fold (whatever shape ``refs`` last held is what a
-    bare pydantic load returns verbatim).
-
-    Table-driven over both legs, because they pin different things. The declared **default**
-    kind (``kind=""``, legacy map naming ``"related"``) exercises the encoding invariant that
-    forbids ever spelling the default kind out: the reloaded item's ref must come back
-    **bare**, not merely present. The **non-default** leg (``"blocks"``) pins the legacy-map
-    reconstruction on its own, so a green default leg cannot stand in for it.
-    """
-    a = (await create_item(svc, "task", "Ref source")).item
-    b = (await create_item(svc, "task", "Ref target")).item
-    await svc.add_ref(a.id, b.id, kind=kind)
-
-    path = svc.paths.abspath(a.path)
-    text = path.read_text(encoding="utf-8")
-    from squads._sections import join_frontmatter, split_frontmatter
-
-    fm, rest = split_frontmatter(text)
-    fm["refs"] = [b.id]  # bare id, kind stripped out -- the pre-0.2 shape
-    fm.setdefault("extra", {})["ref_kinds"] = {b.id: legacy_kind}
-    path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
-
-    await svc.set_status(a.id, "InProgress", force=True)
-    reloaded = await svc.get(a.id)
-    assert reloaded.status == "InProgress"
-    expected_ref = b.id if kind == "" else f"{b.id}:{kind}"
-    assert reloaded.refs == [expected_ref]
-
-
 async def test_absent_optional_fields_do_not_false_refuse(svc):
-    """An item with no parent, no assignee, and no `extra` at all -- every optional field
+    """An item with no parent, no assignee and no attributes at all -- every optional field
     dropped from the file entirely rather than written as an explicit empty/null value."""
     task = (await create_item(svc, "task", "No optional fields")).item
     path = svc.paths.abspath(task.path)
@@ -208,7 +134,7 @@ async def test_absent_optional_fields_do_not_false_refuse(svc):
     from squads._sections import join_frontmatter, split_frontmatter
 
     fm, rest = split_frontmatter(text)
-    for key in ("parent", "assignee", "extra", "labels", "refs", "description"):
+    for key in ("parent", "assignee", "labels", "refs", "description"):
         fm.pop(key, None)
     path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
 
@@ -283,9 +209,9 @@ async def test_renumber_is_unaffected_by_a_real_skew(svc, monkeypatch):
 
 
 # ---------------------------------------------------------------------------------------------
-# PERMITTED_EXTRA_SKEW: a role's catalog-shaped `extra` fields (`RoleDef.extra_keys()`) are
-# exempt for a squad a pre-mirror release last synced -- an index that already lagged on them
-# before the merge could be mirrored into the index in the same transaction. That is a
+# PERMITTED_ATTRIBUTE_SKEW: a role's catalog-shaped attributes (`RoleDef.attribute_keys()`) are
+# exempt for a squad whose index already lagged on them before the merge could be mirrored into
+# the index in the same transaction. That is a
 # permanent, by-design skew on those keys alone -- never a real one -- and the exclusion must
 # hold for every OTHER seam that later mutates the same role, on a board where nothing was ever
 # interrupted.
@@ -294,7 +220,7 @@ async def test_renumber_is_unaffected_by_a_real_skew(svc, monkeypatch):
 
 async def test_a_permitted_extra_key_ahead_of_the_index_is_never_falsely_refused(svc):
     """A healthy board, no crash anywhere: a role file whose frontmatter carries a
-    `PERMITTED_EXTRA_SKEW` key the index has not caught up on -- the divergence is written
+    `PERMITTED_ATTRIBUTE_SKEW` key the index has not caught up on -- the divergence is written
     here directly, since no live writer produces it -- must not block an ordinary mutation
     through a different seam right after, nor refuse with a `sq repair` pointer for a
     divergence that never happened."""
@@ -305,7 +231,7 @@ async def test_a_permitted_extra_key_ahead_of_the_index_is_never_falsely_refused
     from squads._sections import join_frontmatter, split_frontmatter
 
     fm, rest = split_frontmatter(text)
-    fm["extra"]["model"] = "haiku"  # a `PERMITTED_EXTRA_SKEW` member, on a non-dev role
+    fm["model"] = "haiku"  # a `PERMITTED_ATTRIBUTE_SKEW` member, on a non-dev role
     path.write_text(join_frontmatter(fm, rest), encoding="utf-8")
 
     # Must not raise -- disk is ahead of the index on a permitted key; the guard cannot and
@@ -363,7 +289,7 @@ async def test_a_catalog_field_merged_by_sync_reaches_the_index_and_never_false_
 async def test_a_project_override_role_under_a_new_slug_is_not_falsely_refused_after_sync(svc):
     """The same false-refusal shape, for a role that isn't one of the bundled eight at all --
     a project override defining a brand-new slug entirely by its own TOML.
-    `_refresh_catalog_extra` resolves any role through `resolve_role`, which merges override
+    `_refresh_catalog_attributes` resolves any role through `resolve_role`, which merges override
     TOMLs too, not just bundled slugs -- so both properties must hold for one of those as
     well, not only for slugs the bundled catalog itself recognizes."""
     override = svc.paths.squad_dir / ".overrides" / "roles" / "security-expert.toml"
@@ -416,16 +342,15 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
     between, so nothing heals it before the mutation is attempted."""
     role = await svc.activate_role("reviewer")
 
-    db = await svc.store.load()
-    item = db.get(role.id)
-    assert item is not None
-    item.extra.pop("slug", None)  # the key the reconciler still writes, and still exempts
-    await svc.store.overwrite(db)
+    path = svc.paths.abspath(role.path)
+    fm, rest = sections.split_frontmatter(path.read_text(encoding="utf-8"))
+    fm["model"] = "haiku"  # the key the reconciler still exempts
+    path.write_text(sections.join_frontmatter(fm, rest), encoding="utf-8")
 
     # Disk is ahead of the index on a permitted key, and nothing has re-synced.
-    on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(role.path))
-    assert on_disk["extra"]["slug"] == "reviewer"
-    assert "slug" not in (await svc.get(role.id)).extra
+    on_disk = itemfile.read_frontmatter(path=path)
+    assert on_disk["model"] == "haiku"
+    assert "model" not in (await svc.get(role.id)).attributes
 
     # Must not raise: an unrelated seam mutating a role a stale index lags on.
     await svc.update(role.id, description="mutated against a lagging index")
@@ -438,12 +363,12 @@ async def test_an_index_left_lagging_on_a_catalog_field_still_mutates_without_re
     assert "code reviewer" in pointer.read_text(encoding="utf-8")
     assert await svc.sync() == []
     healed = await svc.get(role.id)
-    assert healed.extra["slug"] == "reviewer"
+    assert healed.slug == "reviewer"
 
 
 # ---------------------------------------------------------------------------------------------
 # The permitted set above is by *key name*; whether it actually applies is a further, per-item
-# question. `_refresh_catalog_extra` does resolve a dev role (against a base built from the
+# question. `_refresh_catalog_attributes` does resolve a dev role (against a base built from the
 # item's own stored identity, never a regenerated one), but it writes markdown and mirrors the
 # index inside one transaction, so it introduces no permanent lag on that account either. Its
 # catalog-shaped fields (`model`, `title`, ...) stay ordinary, transaction-guarded
@@ -463,14 +388,14 @@ async def test_interrupting_a_dev_roles_set_model_then_editing_elsewhere_refuses
     dev = await svc.add_dev("python")
 
     await _crash_the_index_commit(
-        svc, monkeypatch, lambda: svc.update(dev.id, set_extra={"model": "haiku"})
+        svc, monkeypatch, lambda: svc.update(dev.id, set_attributes={"model": "haiku"})
     )
 
     # Markdown ahead of the index: the file carries the new model, the index doesn't.
     on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(dev.path))
-    assert on_disk["extra"]["model"] == "haiku"
+    assert on_disk["model"] == "haiku"
     reloaded = await svc.get(dev.id)
-    assert reloaded.extra.get("model") != "haiku"
+    assert reloaded.attributes.get("model") != "haiku"
 
     # An unrelated edit refuses -- before writing anything -- rather than silently reverting
     # the committed model back to the stale index-loaded value.
@@ -478,10 +403,10 @@ async def test_interrupting_a_dev_roles_set_model_then_editing_elsewhere_refuses
         await svc.update(dev.id, description="mutated after an interrupted --set")
 
     still_on_disk = itemfile.read_frontmatter(path=svc.paths.abspath(dev.path))
-    assert still_on_disk["extra"]["model"] == "haiku"  # not reverted by the refused attempt
+    assert still_on_disk["model"] == "haiku"  # not reverted by the refused attempt
 
     await svc.repair()
     await svc.update(dev.id, description="mutated after repair")
     final = await svc.get(dev.id)
-    assert final.extra.get("model") == "haiku"
+    assert final.attributes.get("model") == "haiku"
     assert final.description == "mutated after repair"

@@ -38,6 +38,19 @@ def _seq(key: object) -> int:
     return int(s) if s.isdigit() else int(s.rsplit("-", 1)[-1])
 
 
+def _entry_with_attributes(entry: Any) -> Any:
+    """An index entry written with a nested ``extra`` mapping is read with that mapping as the
+    attribute named ``extra``, where a migration runner finds it."""
+    if not isinstance(entry, dict):
+        return entry
+    row = cast("dict[str, Any]", entry)
+    block = row.get("extra")
+    if "extra" not in row or "attributes" in row:
+        return row
+    rest = {k: v for k, v in row.items() if k != "extra"}
+    return {**rest, "attributes": {"extra": block} if block else {}}
+
+
 class SquadsDB(BaseModel):
     schema_version: NonEmpty = SCHEMA_VERSION
     squads_version: NonEmpty = "0.0.0"
@@ -61,7 +74,13 @@ class SquadsDB(BaseModel):
         d = cast("dict[str, Any]", data)
         items = d.get("items")
         if isinstance(items, dict):
-            d = {**d, "items": {_seq(k): v for k, v in cast("dict[Any, Any]", items).items()}}
+            d = {
+                **d,
+                "items": {
+                    _seq(k): _entry_with_attributes(v)
+                    for k, v in cast("dict[Any, Any]", items).items()
+                },
+            }
         return d
 
     def format_id(self, item_type: str, sequence_id: int, *, prefix: str = "") -> str:

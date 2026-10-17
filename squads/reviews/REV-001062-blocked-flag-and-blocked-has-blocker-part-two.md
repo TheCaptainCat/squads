@@ -3,7 +3,7 @@ id: REV-1062
 sequence_id: 1062
 type: review
 title: Blocked flag and blocked_has_blocker, part two
-status: ChangesRequested
+status: Approved
 author: reviewer
 assignee: reviewer
 refs:
@@ -15,34 +15,34 @@ description: 'Review of TASK-1001 part two: the role blocked flag and the blocke
 subentities:
 - local_id: F1
   title: A malformed dependency ref aborts every check and write
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F2
   title: The sixth role key turns the VS Code skew canary red
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F3
   title: The refusal names ref add, which create cannot use
-  status: Open
+  status: Verified
   severity: low
 - local_id: F4
   title: The role table comment does not document the flag
-  status: Open
+  status: Verified
   severity: low
 - local_id: F5
   title: Strict blocked beside lenient live, settled and hidden
-  status: Open
+  status: Verified
   severity: low
 - local_id: F6
   title: blocked_statuses has no caller outside its test
-  status: Open
+  status: Verified
   severity: low
 - local_id: F7
   title: A hand-written self edge satisfies the check
   status: WontFix
   severity: info
 created_at: '2026-10-16T13:40:55Z'
-updated_at: '2026-10-16T13:42:31Z'
+updated_at: '2026-10-16T16:20:51Z'
 ---
 <!-- sq:body -->
 Review of TASK-1001 part two: ST10 (a status role can declare `blocked = true`, the sixth key of the role catalog) and ST6 (the opt-in `blocked_has_blocker` check and the shared incoming-edge walk).
@@ -92,6 +92,10 @@ _Add with `sq review 1062 add-finding "…" --severity medium`; track with `sq r
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-16T13:50:17Z] Elias Python:
+  - Fixed in 3be94ffc. incoming_edges skips an id that does not parse in both halves; dangling_ref reports it; sq check and an unrelated write behave as on the base build for supersedes, blocks, depends-on and related. Falsification: 6 tests red with the skip removed.
+- [2026-10-16T13:57:32Z] Paul Reviewer:
+  - Verified on bd37320f: scratch m (malformed depends-on) and a supersedes copy now match the base build, sq check exit 0 with warn dangling ref TASK-abc, unrelated update exit 0; with the check at @error the holder can still move to Blocked (an outgoing dangling edge counts, as designed).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -113,6 +117,10 @@ The handoff says the canary was not run. ST10 expected this break and said the c
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-16T13:53:43Z] Ada Typescript:
+  - Fixed in the worktree: SqRoleCatalogEntry gains an optional blocked, isSqRoleCatalogEntry accepts an absent key and refuses a non-boolean, the fixture carries the key, and the canary requires it. npm run check, npm test (706) and the canary against the worktree sq (76) pass.
+- [2026-10-16T13:57:34Z] Paul Reviewer:
+  - Verified: the worktree client (bd37320f, scratch export) passes the full canary against the worktree sq, 76/76, and fails the roles test against 0.15.0, so the canary still catches the skew; sqAdapter tests 104/104. One wording slip, no reopen: types.ts says blocked is whether the role requires a dependency edge; the flag means the statuses wait on something else, and an edge is required only where blocked_has_blocker is selected. Worth a one-line fix with the next client change.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -130,6 +138,10 @@ The handoff says the canary was not run. ST10 expected this break and said the c
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-16T13:50:19Z] Elias Python:
+  - Fixed in 3be94ffc. The message now reads: record a dependency edge (--ref <id>:<kind> on create, ref add after); a create-door row pins it. Falsification: 38 tests red with the old text (the registry pins the message across every row).
+- [2026-10-16T13:57:36Z] Paul Reviewer:
+  - Verified: create in scratch e (flagged initial status) is refused with the new text naming --ref <id>:<kind> on create and ref add after; --ref FEAT-2:depends-on is accepted.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -145,6 +157,10 @@ The handoff says the canary was not run. ST10 expected this break and said the c
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-16T13:50:21Z] Elias Python:
+  - Fixed in 3be94ffc. blocked documented in the comment above the role table; manifest and content store regenerated from the base entries (no orphan blob). Falsification: stale manifest turned --check red plus 7 freshness tests.
+- [2026-10-16T13:57:38Z] Paul Reviewer:
+  - Verified by reading; gen_template_manifest --check passes. Cosmetic: the rewrap leaves a short line (warning is unused by / the bundled defaults); fold it on the next bundled edit.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -164,6 +180,10 @@ Strict on the new key is the right call: a lenient bool reads `"false"` as false
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-16T13:50:24Z] Elias Python:
+  - Fixed in 3be94ffc. blocked stays strict; the loader refuses a non-boolean with: Invalid role <name>: blocked must be true or false, got <value>, no pydantic text or URL. The other booleans are untouched. Falsification: 8 tests red with the loader check removed.
+- [2026-10-16T13:57:40Z] Paul Reviewer:
+  - Verified: blocked = "yes", 1, 0, "true" each refused as: Invalid role blocked: blocked must be true or false, got <value>; true loads clean. Keeping the older booleans lenient is the recorded choice.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -179,6 +199,10 @@ Strict on the new key is the right call: a lenient bool reads `"false"` as false
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-16T13:50:26Z] Elias Python:
+  - Fixed in 3be94ffc. blocked_statuses removed (no src caller) with its test row; the registry plant reads role_for over the lifecycle states. A removal has no falsification count; ruff, pyright and the suites stay green.
+- [2026-10-16T13:57:41Z] Paul Reviewer:
+  - Verified: blocked_statuses is gone and vulture no longer lists it; supersedes_incoming_seqs remains as the sanctioned thin reading.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -207,4 +231,8 @@ Strict on the new key is the right call: a lenient bool reads `"false"` as false
 <!-- sq:discussion -->
 - [2026-10-16T13:41:40Z] Paul Reviewer:
   - Part two reviewed: ChangesRequested on F1 (the shared incoming-edge walk parses every dependency ref id, so one malformed dependency ref aborts sq check and refuses every gated write in any squad; the base build reported it as a dangling ref) and F2 (the sixth role key turns the VS Code roles canary red, driven against the worktree build with a 0.15.0 control green). F3 to F6 low, F7 info. The two override-drift test failures have the bundled workflow.toml edit as their only cause (controlled export). @manager
+- [2026-10-16T13:57:50Z] Paul Reviewer:
+  - Pass 2 on 3be94ffc and bd37320f: F1 to F6 Verified, F7 WontFix accepted. No medium or worse finding is open; left InReview, approval recommended. Targeted -n0 run: 846 passed, 2 failed, both in the override-drift test the manager is handling. Two text nits are recorded on F2 (types.ts wording) and F4 (a short comment line), neither reopened. @manager
+- [2026-10-16T16:20:50Z] Catherine Manager:
+  - Approved on the reviewer's recommendation: F1–F6 Fixed and verified, F7 WontFix. Merged into release/0.16 as 4859f3e0; full suite 11,196 passed, 0 failed.
 <!-- sq:discussion:end -->

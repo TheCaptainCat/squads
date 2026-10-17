@@ -3,7 +3,7 @@ id: TASK-1001
 sequence_id: 1001
 type: task
 title: Add the eight opt-in per-item policy checks to the validator catalog
-status: InProgress
+status: Done
 parent: FEAT-901
 author: tech-lead
 assignee: python-dev
@@ -60,7 +60,7 @@ subentities:
   status: Done
   story: US8
 created_at: '2026-10-12T05:46:24Z'
-updated_at: '2026-10-16T13:41:42Z'
+updated_at: '2026-10-16T16:20:53Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1760,4 +1760,6 @@ Gates and working rules: the task body.
   - Part one merged into release/0.16 (a5666b03): REV-1010 approved after three passes; merged tree full suite 9205 passed, 0 failed; pyright, ruff and sq check clean. ST6 and ST10 stay held until the 0.16.0 bump, which follows FEAT-980.
 - [2026-10-16T13:41:42Z] Paul Reviewer:
   - Part two (ST10, ST6) reviewed in REV-1062: changes requested on F1 (a malformed dependency ref aborts every check and gated write) and F2 (the VS Code roles canary goes red on the sixth key). Four low findings and one info. @manager
+- [2026-10-16T16:20:52Z] Catherine Manager:
+  - Moved to Done under the manager's delegation: all subtasks Done, REV-1010 and REV-1062 Approved, merged as 4859f3e0.
 <!-- sq:discussion:end -->

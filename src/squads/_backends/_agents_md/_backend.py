@@ -18,7 +18,6 @@ runs.
 from squads import _aio
 from squads._backends._agents_md import _managed as managed
 from squads._backends._base import AgentBackend, Artifact, BackendContext, OperatorView, RoleView
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._rendering._engine import render
 from squads._roles._catalog import RoleDef
@@ -156,7 +155,7 @@ class AgentsMdBackend(AgentBackend):
 
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
         """The skill-entry sibling of :meth:`generate_role_entry` — see its docstring."""
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         legacy = ctx.root / _STAGING_DIR / _SKILLS_DIR / f"{slug}.md"
         await _aio.path_unlink(legacy, missing_ok=True)
         return Artifact(ctx.rel(legacy), "skill_entry", self.name)
@@ -168,7 +167,7 @@ class AgentsMdBackend(AgentBackend):
         :meth:`generate_role_entry`/:meth:`generate_skill_entry` perform on materialisation, so
         a retired entry's leftover file disappears exactly as fast as a live one's.
         """
-        slug = item.extra.get(X.SLUG, item.slug)
+        slug = item.slug
         if item.type == ROSTER_SKILL:
             await _aio.path_unlink(
                 ctx.root / _STAGING_DIR / _SKILLS_DIR / f"{slug}.md", missing_ok=True

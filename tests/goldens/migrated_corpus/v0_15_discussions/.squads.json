@@ -24,7 +24,8 @@
       "updated_at": "2025-05-20T11:19:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "EPIC-8"
     },
     "9": {
@@ -57,7 +58,8 @@
       "updated_at": "2025-05-20T11:37:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "FEAT-9"
     },
     "10": {
@@ -90,7 +92,8 @@
       "updated_at": "2025-05-20T11:33:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "TASK-10"
     },
     "16": {
@@ -113,7 +116,8 @@
       "updated_at": "2025-05-20T11:32:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "TASK-16"
     },
     "11": {
@@ -136,7 +140,8 @@
       "updated_at": "2025-05-20T11:22:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "BUG-11"
     },
     "17": {
@@ -159,7 +164,8 @@
       "updated_at": "2025-05-20T11:35:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "BUG-17"
     },
     "12": {
@@ -182,7 +188,8 @@
       "updated_at": "2025-05-20T11:23:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "ADR-12"
     },
     "15": {
@@ -205,7 +212,8 @@
       "updated_at": "2025-05-20T11:26:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "PRD-15"
     },
     "14": {
@@ -228,7 +236,8 @@
       "updated_at": "2025-05-20T11:25:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "MILE-14"
     },
     "13": {
@@ -261,7 +270,8 @@
       "updated_at": "2025-05-20T11:31:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": false,
       "id": "REV-13"
     },
     "1": {
@@ -284,9 +294,8 @@
       "updated_at": "2026-10-15T22:34:24Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "manager"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "ROLE-1"
     },
     "2": {
@@ -309,9 +318,8 @@
       "updated_at": "2025-05-20T11:01:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "tech-lead"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "ROLE-2"
     },
     "3": {
@@ -334,9 +342,8 @@
       "updated_at": "2025-05-20T11:02:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "reviewer"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "ROLE-3"
     },
     "4": {
@@ -359,9 +366,8 @@
       "updated_at": "2025-05-20T11:38:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "qa"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "ROLE-4"
     },
     "5": {
@@ -384,12 +390,12 @@
       "updated_at": "2025-05-20T11:04:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "python-dev",
+      "attributes": {
         "model": "sonnet",
         "is_dev": true,
         "tech": "python"
       },
+      "slug_in_file": true,
       "id": "ROLE-5"
     },
     "6": {
@@ -412,10 +418,8 @@
       "updated_at": "2025-05-20T11:05:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "op-zo",
-        "full_name": "Zoë Müller"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "OP-6"
     },
     "7": {
@@ -438,10 +442,8 @@
       "updated_at": "2025-05-20T11:39:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "op-pierre",
-        "full_name": "Pierre Chat"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "OP-7"
     }
   }

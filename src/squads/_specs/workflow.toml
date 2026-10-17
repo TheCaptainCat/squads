@@ -9,7 +9,7 @@
 # enums); "does type/kind X carry field Y" is a fields_for(X) lookup.
 #
 # [roles.*] is the role catalog — the sole explicit status axis. Every status below names one
-# role via `role`; the role object carries `settled`/`hidden`/`color`/`live` (terminal/
+# role via `role`; the role object carries `settled`/`hidden`/`color`/`live`/`blocked` (terminal/
 # is_open/default-visibility/materialisation are all derived from the referenced role, never
 # stored per-status). `badge` stays its own independent per-status field.
 
@@ -143,7 +143,9 @@ WontFix = ["Open"]
 # `settled` is the old `terminal`; `hidden` is default-visibility; `color` is a semantic
 # colour intent from the closed palette (positive/danger/warning/muted/neutral/info),
 # mapped to a concrete colour per client (not here). `live` (defaults false) is the
-# materialisation axis — the one bundled live role is `active`. `warning` is unused by
+# materialisation axis — the one bundled live role is `active`. `blocked` (defaults false)
+# marks statuses that wait on something else — the one bundled flagged role is `blocked`.
+# `warning` is unused by
 # the bundled defaults — reserved for adopters.
 # ---------------------------------------------------------------------------
 
@@ -167,6 +169,7 @@ color = "danger"
 settled = false
 hidden = false
 color = "danger"
+blocked = true
 
 [roles.in_force]
 settled = true
@@ -495,7 +498,9 @@ order = 57
 category = "records"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
-extra_fields = ["target_date"]
+
+[items.milestone.attributes]
+target_date = { kind = "date" }
 # The roll-up is placed by a `sq:view:milestone_rollup` tag seeded into
 # `templates/items/milestone.md.j2`'s `sq:body` region, the same mechanism `role_definition`/
 # `squads_skill`/`greeting_skill`/`memory_skill`/`item_skill` use — see the `[views]` block
@@ -514,7 +519,9 @@ category = "work"
 subentity_kind = "finding"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
-extra_fields = ["target_ref"]
+
+[items.review.attributes]
+target_ref = { kind = "str" }
 # parent_required absent → None
 
 [items.guide]
@@ -527,7 +534,10 @@ order = 70
 category = "records"
 ref_rules = []
 fields = [{ code = "priority", label = "Priority", collection = "priority" }]
-extra_fields = ["tags", "tech"]
+
+[items.guide.attributes]
+tags = { kind = "list" }
+tech = { kind = "str" }
 # subentity_kind absent → None
 # parent_required absent → None
 
@@ -542,6 +552,12 @@ category = "roster"
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
+
+[items.role.attributes]
+is_default = { kind = "bool", settable = false }
+is_dev = { kind = "bool", settable = false }
+model = { kind = "str" }
+tech = { kind = "str", settable = false }
 
 [items.skill]
 prefix = "SKILL"
@@ -558,6 +574,11 @@ validators = ["item_skill_shadowed"]
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
+
+[items.skill.attributes]
+allowed_tools = { kind = "str" }
+model = { kind = "str" }
+when_to_use = { kind = "str" }
 
 [items.operator]
 prefix = "OP"

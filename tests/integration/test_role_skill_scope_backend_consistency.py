@@ -18,7 +18,6 @@ from squads import _interactions as interactions
 from squads._backends._base import BackendContext
 from squads._backends._claude_code._backend import ClaudeCodeBackend
 from squads._models._config import SquadsConfig
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._paths import SquadPaths
 from squads._roles._catalog import RoleDef
@@ -73,7 +72,7 @@ def _make_role_item(squad_dir: Path, slug: str) -> Item:
         path=f"roles/{filename}",
         created_at=_FIXED_TS,
         updated_at=_FIXED_TS,
-        extra={X.SLUG: slug, X.FULL_NAME: "Robert Architect", X.TITLE: "Architect"},
+        slug_in_file=True,
     )
 
 

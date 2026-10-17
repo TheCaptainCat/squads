@@ -23,7 +23,7 @@ subentities:
   title: As an operator, I want a clear error on spec-generated items
   status: Todo
 created_at: '2026-09-29T14:19:16Z'
-updated_at: '2026-10-09T19:18:32Z'
+updated_at: '2026-10-16T17:07:18Z'
 ---
 <!-- sq:body -->
 Roster entities lack most of the verbs an item has, and use different names for some. Compared with a task, read from `--help`:
@@ -136,4 +136,6 @@ Acceptance:
   - 2026-10-09: added the pronouns exemption to the spec and to US3/US4 acceptance (ADR-981 consequence); still Ready, still depends on FEAT-976.
 - [2026-10-09T19:18:32Z] Nina Product:
   - 2026-10-09 per ADR-983 clause 3: added the --operator-invocable exemption (the only update option a system skill accepts) to the body and to US1 and US4 acceptance. Still Ready.
+- [2026-10-16T17:07:18Z] Catherine Manager:
+  - When the roster update verb lands, rewrite the passages that say roles, skills and operators have no update verb and that point to sq import for renames: docs/overrides.md (~449, ~2226, ~2471) and CHANGELOG.md (~39). From REV-1064 F10.
 <!-- sq:discussion:end -->

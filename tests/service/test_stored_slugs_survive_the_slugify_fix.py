@@ -42,7 +42,7 @@ def _errors(issues):
 
 async def test_a_dev_role_keeps_its_stored_slug_and_pointer_through_sync(svc, earlier_rule):
     item = await svc.add_dev("Élixir")
-    assert item.extra["slug"] == "lixir-dev"
+    assert item.slug == "lixir-dev"
     pointer = svc.paths.root / ".claude" / "agents" / "lixir-dev.md"
     assert pointer.is_file()
     agents = sorted(p.name for p in pointer.parent.iterdir())
@@ -51,14 +51,14 @@ async def test_a_dev_role_keeps_its_stored_slug_and_pointer_through_sync(svc, ea
     await svc.sync()
 
     (again,) = [i for i in await svc.list_items(item_type="role") if i.id == item.id]
-    assert again.extra["slug"] == "lixir-dev"
+    assert again.slug == "lixir-dev"
     assert sorted(p.name for p in pointer.parent.iterdir()) == agents
     assert not _errors(await svc.check())
 
 
 async def test_an_operator_keeps_resolving_by_its_stored_slug(svc, earlier_rule):
     item = await svc.add_operator("Élodie Martin")
-    assert item.extra["slug"] == "op-lodie"
+    assert item.slug == "op-lodie"
 
     earlier_rule.undo()
     await svc.sync()
@@ -70,7 +70,7 @@ async def test_an_operator_keeps_resolving_by_its_stored_slug(svc, earlier_rule)
 
 async def test_a_skill_keeps_resolving_by_its_stored_slug(svc, earlier_rule):
     item = await svc.add_skill("Réduire")
-    assert item.extra["slug"] == "r-duire"
+    assert item.slug == "r-duire"
 
     earlier_rule.undo()
     await svc.sync()
@@ -121,7 +121,7 @@ async def test_an_explicit_operator_slug_is_compared_exactly(svc, earlier_rule):
 
     other = await svc.add_operator("Élodie Martin", slug="op-elodie-two")
 
-    assert other.extra["slug"] == "op-elodie-two"
+    assert other.slug == "op-elodie-two"
 
 
 async def test_creation_reads_the_override_under_the_slug_the_role_is_stored_with(svc):
@@ -131,5 +131,5 @@ async def test_creation_reads_the_override_under_the_slug_the_role_is_stored_wit
 
     item = await svc.add_dev("Node.js")
 
-    assert item.extra["slug"] == "node-js-dev"
+    assert item.slug == "node-js-dev"
     assert item.title == "Custom Nodeperson"

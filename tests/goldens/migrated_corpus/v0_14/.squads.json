@@ -34,7 +34,8 @@
       "updated_at": "2025-05-20T11:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "FEAT-2"
     },
     "3": {
@@ -70,7 +71,8 @@
       "updated_at": "2025-05-20T11:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "TASK-3"
     },
     "4": {
@@ -93,7 +95,8 @@
       "updated_at": "2025-05-20T11:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "BUG-4"
     },
     "5": {
@@ -116,7 +119,8 @@
       "updated_at": "2025-05-20T11:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "ADR-5"
     },
     "11": {
@@ -139,7 +143,8 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "MILE-11"
     },
     "6": {
@@ -174,7 +179,8 @@
       "updated_at": "2025-05-20T11:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {},
+      "attributes": {},
+      "slug_in_file": true,
       "id": "REV-6"
     },
     "1": {
@@ -197,9 +203,8 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "dev-agent"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "ROLE-1"
     },
     "7": {
@@ -222,9 +227,11 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "greeting"
+      "attributes": {
+        "id_padding": 6,
+        "schema_version": "0.5"
       },
+      "slug_in_file": true,
       "id": "SKILL-7"
     },
     "8": {
@@ -247,9 +254,11 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "squads"
+      "attributes": {
+        "id_padding": 6,
+        "schema_version": "0.5"
       },
+      "slug_in_file": true,
       "id": "SKILL-8"
     },
     "9": {
@@ -272,9 +281,8 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "sq-contract"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "SKILL-9"
     },
     "10": {
@@ -297,9 +305,8 @@
       "updated_at": "2026-06-07T10:00:00Z",
       "created_session": null,
       "modified_session": null,
-      "extra": {
-        "slug": "sq-milestone"
-      },
+      "attributes": {},
+      "slug_in_file": true,
       "id": "SKILL-10"
     }
   }

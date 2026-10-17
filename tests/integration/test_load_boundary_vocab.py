@@ -167,20 +167,6 @@ async def test_load_rejects_an_unknown_badge_code_on_a_finding_sub_entity(svc, p
         await svc.list_items()
 
 
-async def test_load_backfills_a_pre_migration_bugs_legacy_extra_severity(svc, project):
-    """A bug indexed before the top-level severity field existed still resolves correctly:
-    load() backfills the legacy extra copy in memory and drops it, with no dedicated migration
-    needed."""
-    bug = (await create_item(svc, "bug", "Legacy-shaped bug")).item
-    _patch_index_item_by_seq(
-        _index_path(project), bug.sequence_id, severity=None, extra={"severity": "critical"}
-    )
-
-    got = await svc.get(bug.id)
-    assert got.severity == "critical"
-    assert "severity" not in got.extra
-
-
 # --------------------------------------------------------------------------- repair() boundary
 
 

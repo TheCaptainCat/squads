@@ -15,10 +15,9 @@ from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkf
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import ensure_no_skew, update_frontmatter
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
-from squads._models._metadata import coerce_extra, require_settable
+from squads._models._metadata import coerce_attribute, require_settable
 from squads._paths import number_for_id
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME
 from squads._roles._resolver import resolve_role_for_item
@@ -79,7 +78,7 @@ class ItemsMixin(ServiceCore):
         for sev in severed:
             if sev.kind == preload_kind:
                 role = await self.get(sev.target)
-                await self._resync_role_skills(role.extra.get(X.SLUG, role.slug))
+                await self._resync_role_skills(role.slug)
         return RosterStatusResult(item=item, severed=severed, warnings=warnings)
 
     def _set_status_model(
@@ -133,7 +132,7 @@ class ItemsMixin(ServiceCore):
             live = self.spec.live_statuses(item.type)
             is_retirement = old_status in live and item.status not in live
             if item.type in (ROSTER_ROLE, ROSTER_OPERATOR) and is_retirement:
-                slug = item.extra.get(X.SLUG, item.slug)
+                slug = item.slug
                 open_ids = retirement.open_assigned_work(db, self.spec, slug)
                 if open_ids:
                     warnings.append(
@@ -197,8 +196,8 @@ class ItemsMixin(ServiceCore):
         force: bool = False,
         parent: str | None = None,
         clear_parent: bool = False,
-        set_extra: dict[str, str] | None = None,
-        unset_extra: list[str] | None = None,
+        set_attributes: dict[str, str] | None = None,
+        unset_attributes: list[str] | None = None,
     ) -> Item:
         """Opens its own transaction, then delegates to :meth:`_update_core` — the bulk
         importer calls that core directly (its own transaction is already open). The
@@ -220,8 +219,8 @@ class ItemsMixin(ServiceCore):
                 force=force,
                 parent=parent,
                 clear_parent=clear_parent,
-                set_extra=set_extra,
-                unset_extra=unset_extra,
+                set_attributes=set_attributes,
+                unset_attributes=unset_attributes,
             )
         if self.spec.item_is_roster(item.type) and item.type != ROSTER_OPERATOR:
             await self.regen(item.id)  # keep the .claude/ pointer in sync with edited config
@@ -244,8 +243,8 @@ class ItemsMixin(ServiceCore):
         force: bool = False,
         parent: str | None = None,
         clear_parent: bool = False,
-        set_extra: dict[str, str] | None = None,
-        unset_extra: list[str] | None = None,
+        set_attributes: dict[str, str] | None = None,
+        unset_attributes: list[str] | None = None,
         now: datetime | None = None,
     ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None, Item]:
         """The PURE half of a metadata update: no file I/O. Returns ``(item, delta, rename,
@@ -308,7 +307,7 @@ class ItemsMixin(ServiceCore):
             delta["parent"] = parent
             item.parent = parent
         self._apply_labels(item, add_labels, rm_labels)
-        self._apply_extra(item, set_extra, unset_extra)
+        self._apply_attributes(item, set_attributes, unset_attributes)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
         # Fail-closed on the updated item's first error-level catalog violation — the
@@ -333,8 +332,8 @@ class ItemsMixin(ServiceCore):
         force: bool = False,
         parent: str | None = None,
         clear_parent: bool = False,
-        set_extra: dict[str, str] | None = None,
-        unset_extra: list[str] | None = None,
+        set_attributes: dict[str, str] | None = None,
+        unset_attributes: list[str] | None = None,
     ) -> Item:
         """The metadata-update mutation core: takes an already-open transaction's ``db``.
 
@@ -364,8 +363,8 @@ class ItemsMixin(ServiceCore):
             force=force,
             parent=parent,
             clear_parent=clear_parent,
-            set_extra=set_extra,
-            unset_extra=unset_extra,
+            set_attributes=set_attributes,
+            unset_attributes=unset_attributes,
         )
         default_kind = self.spec.default_ref_kind()
         if rename_paths is not None:
@@ -392,24 +391,24 @@ class ItemsMixin(ServiceCore):
         if rm:
             item.labels = [lab for lab in item.labels if lab not in rm]
 
-    def _apply_extra(
-        self, item: Item, set_extra: dict[str, str] | None, unset: list[str] | None
+    def _apply_attributes(
+        self, item: Item, set_attributes: dict[str, str] | None, unset: list[str] | None
     ) -> None:
-        for key, raw in (set_extra or {}).items():
+        for key, raw in (set_attributes or {}).items():
             field = self._badge_field(item.type, key)
             if field is not None:
                 item.set_badge_value(field.code, self._parse_badge_code(field, raw))
             else:
-                item.extra[key] = coerce_extra(
-                    item.type, key, raw, self.spec.item_extra_fields(item.type)
+                item.attributes[key] = coerce_attribute(
+                    item.type, key, raw, self.spec.item_attributes(item.type)
                 )
         for key in unset or []:
             field = self._badge_field(item.type, key)
             if field is not None:
                 item.set_badge_value(field.code, None)
             else:
-                require_settable(item.type, key, self.spec.item_extra_fields(item.type))
-                item.extra.pop(key, None)
+                require_settable(item.type, key, self.spec.item_attributes(item.type))
+                item.attributes.pop(key, None)
 
     def _apply_status(self, item: Item, status: str, *, force: bool) -> None:
         # Defensive str() — status is spec vocabulary (a plain string), no enum involved.
@@ -546,7 +545,7 @@ class ItemsMixin(ServiceCore):
         (:func:`~squads._views.place_view_tags`) inserts it — the routine holds exactly-once,
         by construction, inside the region, and its only refusal is the conflicting-state
         one."""
-        slug = views.roster_slug(item.type, item.slug, item.extra)
+        slug = item.slug
         roster_view = (
             views.roster_body_view_name(item.type, slug, self.spec)
             if item.type in (ROSTER_ROLE, ROSTER_SKILL)
@@ -615,7 +614,7 @@ class ItemsMixin(ServiceCore):
                 authored = not views.body_is_unwritten(current, self.pristine_body(item))
                 if authored and not force:
                     reject_body_overwrite(item.id, current_prose)
-            slug = views.roster_slug(item.type, item.slug, item.extra)
+            slug = item.slug
             addr: int | str = (
                 slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
             )

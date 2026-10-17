@@ -40,7 +40,8 @@ async def test_create_set_target_date_join_and_show_the_rollup(project, invoke) 
     import json
 
     data = json.loads(r.output)
-    assert data["extra"]["target_date"] == "2026-12-01"
+    assert data["target_date"] == "2026-12-01"
+    assert "extra" not in data
     # The roll-up is placed by a body tag, not a `views` key on the item's JSON: its rendered
     # output is part of the body's own expanded text, the same one plain `show` printed above.
     assert "views" not in data

@@ -30,7 +30,6 @@ from squads._cli._common import (
     render_body_text,
     resolve_agent_addr,
 )
-from squads._models._extras import ExtraKey as X
 
 
 class _OperatorDispatchGroup(AddressDispatchGroup):
@@ -62,10 +61,7 @@ async def operator_add(
     """Register a human operator (assignable + can author items/comments)."""
     svc = get_service()
     item = await svc.add_operator(name, slug=slug)
-    console.print(
-        f"registered [bold]{e(item.extra.get(X.FULL_NAME, item.title))}[/bold] "
-        f"(`{item.extra.get(X.SLUG)}`) {item.id}"
-    )
+    console.print(f"registered [bold]{e(item.title)}[/bold] (`{item.slug}`) {item.id}")
 
 
 # --------------------------------------------------------------------------- list
@@ -83,8 +79,8 @@ async def operator_list(json_out: bool = typer.Option(False, "--json")) -> None:
                 [
                     {
                         "id": op.id,
-                        "slug": op.extra.get(X.SLUG, op.slug),
-                        "full_name": op.extra.get(X.FULL_NAME, op.title),
+                        "slug": op.slug,
+                        "full_name": op.title,
                         "status": op.status,
                     }
                     for op in operators
@@ -97,8 +93,8 @@ async def operator_list(json_out: bool = typer.Option(False, "--json")) -> None:
         table.add_column(col)
     for op in operators:
         table.add_row(
-            e(op.extra.get(X.SLUG, op.slug)),
-            e(op.extra.get(X.FULL_NAME, op.title)),
+            e(op.slug),
+            e(op.title),
             op.id,
             e(op.status),
         )
@@ -136,8 +132,8 @@ async def operator_show(
             json.dumps(
                 {
                     "id": it.id,
-                    "slug": it.extra.get(X.SLUG, it.slug),
-                    "full_name": it.extra.get(X.FULL_NAME, it.title),
+                    "slug": it.slug,
+                    "full_name": it.title,
                     "status": it.status,
                     "path": it.path,
                 }
@@ -146,8 +142,8 @@ async def operator_show(
         return
     await common.warn_duplicate_id(svc, it)
     rows = [
-        f"[bold]{e(it.extra.get(X.FULL_NAME, it.title))}[/bold]",
-        f"[bold]slug:[/bold] {e(it.extra.get(X.SLUG, it.slug))}",
+        f"[bold]{e(it.title)}[/bold]",
+        f"[bold]slug:[/bold] {e(it.slug)}",
         f"[bold]id:[/bold] {it.id}",
         f"[bold]status:[/bold] {it.status}",
         f"[bold]file:[/bold] {it.path}",

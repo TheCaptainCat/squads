@@ -32,8 +32,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   state, carried on `Item.subentities`), `_index` (`SquadsDB`), `_vocab` (`prefix_for`/`label_for` —
   the per-type vocabulary resolver; there is **no** `ItemType`/`Status` enum and no built-in
   prefix→folder map, the spec is the sole authority and folder resolution goes through
-  `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_extras`
-  (`ExtraKey`).
+  `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_attributes`
+  (`AttributeKey`, `AttributeSpec`, `CORE_KEYS` and the typed roster accessors).
 - `_paths.py` — resolve the active squad folder (the `.squads.toml` walk-up from the effective
   directory, `RequestContext.client_cwd`, which root `-C` sets), map an ID/type to its location,
   and guard `abspath` against path traversal.
@@ -150,8 +150,12 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - **No `from __future__ import annotations`** — we target Python 3.14 (PEP 649 lazy annotations),
   so forward refs work unquoted. Keep the import graph **acyclic** (verified); if a future edge
   would create a cycle, use `if TYPE_CHECKING:` + a string annotation rather than a runtime import.
-- **`Item.extra` keys** come from `_models/_extras.py::ExtraKey` (imported as `X`) — never hand-write
-  the string keys; that's where role/dev/skill metadata field names live.
+- **Attributes** (every frontmatter key that is not a core key) live in one flat
+  `Item.attributes` mapping. Read one through `item.attribute(AttributeKey.X)` or a typed accessor
+  in `_models/_attributes.py` (`string_attribute`, `flag_attribute`, `list_attribute`, `model`,
+  `tech`, …), never by indexing the mapping with a string literal: a `tests/meta` guard fails on
+  that. `AttributeKey` is where role/dev/skill metadata names live; which keys a type carries is
+  declared in the workflow spec (`[items.<type>.attributes]`), not in Python.
 - **No status/lifecycle prose in bodies.** An item/ADR/review/doc **body** — or its `description:`
   summary — must never declare its own workflow position: no `STATUS: Proposed` banners, no
   hand-written `## Status` headings, no "this is a draft" / "blocked until accepted" / "if accepted,

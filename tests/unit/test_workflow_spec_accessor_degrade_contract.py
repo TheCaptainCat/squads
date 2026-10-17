@@ -24,7 +24,7 @@ def test_degrading_accessors_return_a_safe_default_for_an_undeclared_type() -> N
     assert spec.item_is_roster(UNDECLARED_TYPE) is False
     assert spec.item_subentity_kind(UNDECLARED_TYPE) is None
     assert spec.item_parent_required(UNDECLARED_TYPE) is None
-    assert spec.item_extra_fields(UNDECLARED_TYPE) == []
+    assert spec.item_attributes(UNDECLARED_TYPE) == {}
     assert spec.item_ref_rules(UNDECLARED_TYPE) == []
     assert spec.fields_for(UNDECLARED_TYPE) == []
     assert spec.live_statuses(UNDECLARED_TYPE) == frozenset()

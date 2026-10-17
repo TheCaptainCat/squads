@@ -16,7 +16,6 @@ import pytest
 from _helpers import create_item
 from squads import _views as views
 from squads._interactions import item_skill_name
-from squads._models._extras import ExtraKey as X
 from squads._services._service import Service, resolve_playbook
 from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import ViewSource, ViewSpec
@@ -117,7 +116,7 @@ async def test_a_skill_hosts_undocumented_slug_falls_back_to_its_own_type(svc) -
     -system skill, or an author-created one sharing the ``sq-`` convention by coincidence —
     resolves the host's bare roster type (``skill``), never a raise."""
     skill = await svc.add_skill("sq-onboarding")
-    assert skill.extra.get(X.SLUG) == "sq-onboarding"
+    assert skill.slug == "sq-onboarding"
     view = ViewSpec(source=ViewSource(kind="playbook"))
 
     result = views._resolve_playbook_source(view, skill, svc.playbook, lambda: [], svc.spec)

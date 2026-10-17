@@ -149,7 +149,6 @@ class TestCandidateOrphansUsesTheFullRoster:
         to prevent) and prove the retired entry's own leftover file gets misreported as a
         foreign orphan."""
         from squads._interactions import bundled_skill_slugs, custom_skill_slugs
-        from squads._models._extras import ExtraKey as X
 
         item = await svc.activate_role("qa")
         pointer = _pointer(project, "qa")
@@ -158,7 +157,7 @@ class TestCandidateOrphansUsesTheFullRoster:
 
         skill_items = await svc.list_items(item_type="skill")
         skill_slugs = (
-            {it.extra[X.SLUG] for it in skill_items if X.SLUG in it.extra}
+            {it.slug for it in skill_items if it.slug_in_file}
             | set(bundled_skill_slugs())
             | set(custom_skill_slugs(svc.spec))
         )
@@ -197,9 +196,9 @@ class TestAuthorshipDisplayUsesTheFullRoster:
 
         wrong_name = next(
             (
-                it.extra.get("full_name", "qa")
+                it.title
                 for it in db.items.values()
-                if it.type == "role" and it.extra.get("slug") == "qa" and it.status in {"Active"}
+                if it.type == "role" and it.slug == "qa" and it.status in {"Active"}
             ),
             "qa",  # falls back to the bare slug when filtered to live-only, as _author_of
         )

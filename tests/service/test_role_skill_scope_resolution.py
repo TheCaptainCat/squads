@@ -60,7 +60,7 @@ async def test_scoping_a_skill_to_one_role_does_not_affect_an_unrelated_roles_re
     assert await svc.resolved_skills_for_role("architect") == interactions.skills_for_role(
         "architect"
     )
-    assert other_role.extra.get("slug") == "architect"  # sanity
+    assert other_role.slug == "architect"  # sanity
 
 
 async def test_a_ref_of_a_different_kind_pointing_at_the_role_is_not_treated_as_scoping(svc):
@@ -75,7 +75,7 @@ async def test_a_ref_of_a_different_kind_pointing_at_the_role_is_not_treated_as_
 
 async def test_a_full_sync_never_materialises_the_resolved_list_into_the_role(svc):
     """The resolved list is a computed projection, not a cache: a full sync persists neither
-    ``extra.skills`` in the role's frontmatter nor a rendered ``## Skills`` section in its
+    a ``skills`` key in the role's frontmatter nor a rendered ``## Skills`` section in its
     resolved definition — ``resolved_skills_for_role`` answers the same list, recomputed from
     the index on every call, with no I/O beyond what the caller already loaded."""
     role = await svc.activate_role("tech-writer")
@@ -86,7 +86,7 @@ async def test_a_full_sync_never_materialises_the_resolved_list_into_the_role(sv
 
     path = svc.paths.abspath(role.path)
     fm = read_frontmatter(text=path.read_text(encoding="utf-8"))
-    assert "skills" not in fm["extra"]
+    assert "skills" not in fm
 
     definition = await svc.read_body(role.id)
     assert "## Skills" not in definition

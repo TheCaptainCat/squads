@@ -25,8 +25,8 @@ def model_drop_warning(slug: str, model: str | None) -> str | None:
     """The WARN-only report for a role whose declared *model* this backend cannot express —
     ``None`` (the overwhelmingly common case) when there is nothing to report.
 
-    A role's ``model`` reaches here from the role item's own ``extra``, which several paths
-    can fill: a project role override (refused at load when it names a model outside the
+    A role's ``model`` reaches here from the role item's own ``model`` attribute, which several
+    paths can fill: a project role override (refused at load when it names a model outside the
     catalog whitelist), ``sq dev add --model`` (free-form), an imported or hand-migrated
     corpus. Whatever the path, the failure mode is identical and invisible: the value is
     durable in frontmatter, :func:`normalize_model` maps it to ``None``, the pointer template

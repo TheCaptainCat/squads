@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-from squads._models._extras import ExtraKey as X
 from squads._overrides._service import scaffold_new_role
 from squads._roles._resolver import resolve_role_for_item
 from squads._sections import split_frontmatter
@@ -50,7 +49,7 @@ class TestActivationCreatesTheTrackedItemAndPointer:
 
         item = await svc.activate_role("security-analyst")
         assert item.type == "role"
-        assert item.extra.get(X.SLUG) == "security-analyst"
+        assert item.slug == "security-analyst"
         # The uniform record carries the resolved name and mission; the rest of the definition
         # is resolved from the override document on every read, never copied onto the item.
         assert item.title == "Sam Security"

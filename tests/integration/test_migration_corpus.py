@@ -13,22 +13,29 @@ from squads._index._resolver import item_file
 from squads._interactions import is_system_skill
 from squads._itemfile import read_frontmatter
 from squads._models import _markers as markers
+from squads._models._attributes import CORE_KEYS
+from squads._models._attributes import AttributeKey as X
 from squads._models._config import SquadsConfig
-from squads._models._extras import ExtraKey as X
-from squads._models._metadata import RETIRED_ROLE_EXTRA_KEYS
+from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import SquadPaths
-from squads._sections import find_markers, get_section, has_section, replace_section
+from squads._sections import (
+    find_markers,
+    get_section,
+    has_section,
+    replace_frontmatter,
+    replace_section,
+)
 from squads._services._service import Service
 from squads._views import place_view_tags, roster_body_view_name
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, load_workflow_spec
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
 
-#: The role ``extra`` keys the sweep removes — the shared declaration the refusals also read,
-#: plus ``model``, which is retired for a bundled role and kept for a developer and so is a
-#: question about a role's shape rather than one that declaration answers.
-_RETIRED_MIRROR_KEYS: frozenset[str] = RETIRED_ROLE_EXTRA_KEYS | {X.MODEL}
+#: The role keys the sweep removes — the shared declaration the refusals also read (less the
+#: names that are core keys), plus ``model``, which is retired for a bundled role and kept for a
+#: developer and so is a question about a role's shape rather than one that declaration answers.
+_RETIRED_MIRROR_KEYS: frozenset[str] = (RETIRED_ROLE_KEYS - set(CORE_KEYS)) | {X.MODEL}
 
 _CORPUS_CASES: list[tuple[str, str]] = [
     ("0.1", "v0_1"),
@@ -68,8 +75,7 @@ async def _expected_seeded_view_gap_files(svc: Service, skipped_ids: set[str]) -
             continue
         if it.sequence_id not in skipped_seqs:
             continue
-        slug = it.extra.get(X.SLUG, it.slug) if it.type == ROSTER_SKILL else it.slug
-        view_name = roster_body_view_name(it.type, slug, svc.spec)
+        view_name = roster_body_view_name(it.type, it.slug, svc.spec)
         if view_name is None:
             continue
         path = item_file(svc.paths, it)
@@ -298,9 +304,7 @@ async def test_every_template_owned_skills_stored_body_converges_onto_its_tag(
     skipped_seqs = {int(sid.rsplit("-", 1)[-1]) for sid in run.skipped.get("0.15", [])}
 
     skills = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_SKILL]
-    template_owned = [
-        it for it in skills if is_system_skill(it.extra.get(X.SLUG, it.slug), svc.spec)
-    ]
+    template_owned = [it for it in skills if is_system_skill(it.slug, svc.spec)]
     assert template_owned, f"{corpus_name!r} carries no template-owned skill to assert on"
     stored = {
         it.id: (it, item_file(paths, it), before[item_file(paths, it).name])
@@ -314,7 +318,7 @@ async def test_every_template_owned_skills_stored_body_converges_onto_its_tag(
     for it, path, was in stored.values():
         text = path.read_text(encoding="utf-8")
         assert has_section(text, markers.BODY), f"{it.id}: the body markers were deleted"
-        slug = it.extra.get(X.SLUG, it.slug)
+        slug = it.slug
         view_name = roster_body_view_name(it.type, slug, svc.spec)
         region = (_body_region(text) or "").strip()
         if view_name is not None and it.sequence_id not in skipped_seqs:
@@ -358,14 +362,16 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
     for item in roles:
         path = item_file(paths, item)
         text = path.read_text(encoding="utf-8")
-        stored = read_frontmatter(text=text, source=str(path)).get("extra", {})
+        front = read_frontmatter(text=text, source=str(path))
+        stored = {k: v for k, v in front.items() if k not in CORE_KEYS}
         was = before[path.name]
         if schema_tuple(schema_label) < (0, 15):
             assert set(was.get("extra", {})) & _RETIRED_MIRROR_KEYS
         assert has_section(text, markers.BODY), f"{item.id}: the body markers were deleted"
+        assert "extra" not in front, f"{item.id}: the nested block survived the flattening"
         kept = {X.MODEL} if stored.get(X.IS_DEV) else set()  # a developer role keeps its model
         assert set(stored) & (_RETIRED_MIRROR_KEYS - kept) == set(), f"{item.id}: mirror survived"
-        assert stored.get(X.SLUG), f"{item.id}: the dispatch identity was stripped with it"
+        assert front.get("slug"), f"{item.id}: the dispatch identity was stripped with it"
         body = (get_section(text, markers.BODY) or "").strip()
         if item.sequence_id in skipped_seqs:
             was_body = (get_section(before_text[path.name], markers.BODY) or "").strip()
@@ -376,7 +382,7 @@ async def test_a_role_keeps_its_record_and_loses_its_mirror_across_the_migration
             )
         assert item.title == was["title"]
         assert item.description == was.get("description", "")
-        assert item.extra == stored, f"{item.id}: the index and the file disagree"
+        assert item.attributes == stored, f"{item.id}: the index and the file disagree"
 
 
 async def test_the_sweep_regenerates_no_surface_and_leaves_every_compiled_region_identical(
@@ -433,7 +439,23 @@ def _v0_14_copy_stamped_schema_current(tmp_path: Path) -> Path:
         )
         new_text = replace_section(text, markers.BODY, new_region)
         path.write_text(new_text, encoding="utf-8")
+    for path in _md_files(dst):
+        _lift_extra(path)
     return dst
+
+
+def _lift_extra(path: Path) -> None:
+    """Move every key of a file's ``extra`` block to the top level, the shape a current-schema
+    file has; the keys a current writer no longer produces stay, for the sweep to find."""
+    text = path.read_text(encoding="utf-8")
+    front = read_frontmatter(text=text, source=str(path))
+    if not front.get("type"):
+        return
+    extra = front.pop("extra", None) or {}
+    for key, value in extra.items():
+        if key == "slug" or key not in CORE_KEYS:
+            front.setdefault(key, value)
+    path.write_text(replace_frontmatter(text, front, source=str(path)), encoding="utf-8")
 
 
 async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_path: Path) -> None:
@@ -447,8 +469,7 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
 
     roles = [it for it in (await svc.store.load()).items.values() if it.type == ROSTER_ROLE]
     assert roles and all(
-        set(read_frontmatter(path=item_file(paths, it)).get("extra", {})) & _RETIRED_MIRROR_KEYS
-        for it in roles
+        set(read_frontmatter(path=item_file(paths, it))) & _RETIRED_MIRROR_KEYS for it in roles
     ), "this fixture carries no role mirror for the bare verb to reach"
     role_bodies_before = {
         item_file(paths, it).name: (
@@ -466,7 +487,7 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
     for item in roles:
         path = item_file(paths, item)
         text = path.read_text(encoding="utf-8")
-        stored = read_frontmatter(text=text, source=str(path)).get("extra", {})
+        stored = read_frontmatter(text=text, source=str(path))
         assert set(stored) & _RETIRED_MIRROR_KEYS == set()
         body = (get_section(text, markers.BODY) or "").strip()
         assert body == role_bodies_before[path.name], (
@@ -480,7 +501,7 @@ async def test_the_bare_verb_strips_a_corpus_already_at_the_current_stamp(tmp_pa
     system_skills = [
         it
         for it in (await svc.store.load()).items.values()
-        if it.type == ROSTER_SKILL and is_system_skill(it.extra.get(X.SLUG, it.slug), svc.spec)
+        if it.type == ROSTER_SKILL and is_system_skill(it.slug, svc.spec)
     ]
     expected_gaps = await _expected_seeded_view_gap_files(svc, set())
     expected_gaps |= {item_file(paths, it).name for it in (*roles, *system_skills)}

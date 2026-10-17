@@ -117,8 +117,8 @@ async def test_a_never_synced_role_override_reports_nothing_before_and_after_syn
 
 
 async def test_a_permanently_exempt_extra_key_is_still_never_reported(svc):
-    """A role's catalog-shaped ``extra`` field (``RoleDef.extra_keys()``) can sit ahead of the
-    index by design (``PERMITTED_EXTRA_SKEW``) on a squad a pre-mirror release last synced —
+    """A role's catalog-shaped attribute (``RoleDef.attribute_keys()``) can sit ahead of the
+    index by design (``PERMITTED_ATTRIBUTE_SKEW``) on a squad whose index lags —
     functional proof the exemption still holds under the generalised rule, not a pinned
     literal copy of the set (which the widening must not touch, and does not: this behaviour
     comes from ``frontmatter_skew`` unmodified). Constructed directly on disk rather than via
@@ -127,9 +127,8 @@ async def test_a_permanently_exempt_extra_key_is_still_never_reported(svc):
     role = await svc.activate_role("qa")
     path = svc.paths.abspath(role.path)
     fm = read_frontmatter(path=path)
-    extra = dict(fm["extra"])
-    extra["model"] = "haiku"  # a `PERMITTED_EXTRA_SKEW` member, on a non-dev role
-    _edit_frontmatter(path, extra=extra)
+    assert fm.get("model") is None
+    _edit_frontmatter(path, model="haiku")  # a `PERMITTED_ATTRIBUTE_SKEW` member, on a non-dev role
 
     issues = await svc.check()
     assert not any(i.item == role.id for i in issues), issues

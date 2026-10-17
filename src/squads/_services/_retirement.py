@@ -32,7 +32,6 @@ from pathlib import Path
 
 from squads._errors import ConfigIntegrityError
 from squads._interactions._models import PlaybookSpec
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._roles._resolver import holds_default_designation
@@ -234,10 +233,10 @@ def lost_default_designation_warning(
     already does.
 
     Both questions go through :func:`~squads._roles._resolver.holds_default_designation`,
-    never a raw ``extra.is_default`` read: the stored key is an override on a designation the
-    role catalog also answers, so the catalog's own designated role holds it with nothing
-    stored — and a raw read would stay silent on exactly the retirement that costs the
-    generated config its default-role line.
+    never a raw read of the stored ``is_default``: the stored key is an override on a
+    designation the role catalog also answers, so the catalog's own designated role holds it
+    with nothing stored — and a raw read would stay silent on exactly the retirement that costs
+    the generated config its default-role line.
     """
     if not holds_default_designation(item, squad_dir):
         return None
@@ -250,7 +249,7 @@ def lost_default_designation_warning(
         for it in db.items.values()
     ):
         return None
-    slug = item.extra.get(X.SLUG, item.slug)
+    slug = item.slug
     return (
         f"{item.id} ({slug}) carried the default-role designation; no live role carries it "
         "now — designate another live role with `sq role <addr> set-default`, or reactivate "

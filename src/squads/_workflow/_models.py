@@ -34,7 +34,9 @@ from dataclasses import dataclass
 from re import compile as re_compile
 from typing import Literal, get_args
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
+
+from squads._models._attributes import ROW_ADDED_KEYS, AttributeKey, AttributeSpec
 
 #: The three roster types the engine binds by literal name — the irreducible
 #: structural minimum: the roster, the backends (which write role/skill files), and the
@@ -167,8 +169,11 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "blocked_has_blocker",
         "settled_requires_discussion",
         "external_id_not_in_title",
+        "attribute_valid",
+        "frontmatter_key_undeclared",
     }
 )
 
@@ -261,6 +266,7 @@ WORK_POLICY_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "blocked_has_blocker",
         "settled_requires_discussion",
         "external_id_not_in_title",
     }
@@ -393,8 +399,11 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "body_written": "warn",
     "description_present": "warn",
     "assignee_present": "warn",
+    "blocked_has_blocker": "warn",
     "settled_requires_discussion": "warn",
     "external_id_not_in_title": "warn",
+    "attribute_valid": "error",
+    "frontmatter_key_undeclared": "warn",
 }
 assert set(DEFAULT_VALIDATOR_LEVEL) == VALIDATOR_NAMES, (
     "DEFAULT_VALIDATOR_LEVEL must declare exactly one bundled default per VALIDATOR_NAMES member"
@@ -478,6 +487,7 @@ COMMON_CORE: tuple[str, ...] = (
     "ref_kind_valid",
     "agent_registered",
     "parent_acyclic",
+    "attribute_valid",
 )
 
 #: Per-category default per-item validator-name bundle — the category's *behaviour*, since
@@ -899,11 +909,10 @@ class ItemSpec(BaseModel):
     """Badge-collection bindings this type carries (e.g. priority/severity) — "does this type
     carry field X" is ``X in {f.code for f in fields}``, exposed via ``fields_for()``."""
 
-    extra_fields: list[str] = []
-    """Generic (non-badge) ``extra`` metadata keys (``ExtraKey`` values) this type exposes via
-    ``sq update --set`` — spec-declared identity so a renamed work type (e.g. guide->doc)
-    keeps its settable fields instead of losing them to a hardcoded literal type name. The
-    value kind (str/list/bool) per key is fixed in ``_models/_metadata.py``, not declared here."""
+    attributes: dict[str, AttributeSpec] = {}
+    """The non-badge frontmatter keys this type declares, by name: the value ``kind``, whether
+    ``sq check`` requires it, and whether ``sq update --set`` may write it. A key the file carries
+    that no declaration names is kept untouched. Badge fields stay in ``fields``."""
 
     validators: list[str] = []
     """Per-type additions to the category's default validator bundle (the pluggable-validator
@@ -1079,6 +1088,8 @@ class RoleSpec(BaseModel):
       *consequence* of this flag for the roster, not what it names — the flag lives in
       vocabulary every item type shares, so it has to read sensibly on an ordinary work status
       too, not only a roster one.
+    - ``blocked`` — do the role's statuses mean the item is waiting on something else? Defaults
+      ``False``; unlike the other booleans it accepts only a TOML boolean.
 
     Roles are an OPEN vocabulary (an adopter may declare custom roles); colour intent is a
     CLOSED palette so every client can render any role safely with a neutral fallback.
@@ -1090,6 +1101,7 @@ class RoleSpec(BaseModel):
     hidden: bool = False
     color: str
     live: bool = False
+    blocked: StrictBool = False
 
 
 class StatusSpec(BaseModel):
@@ -1205,6 +1217,17 @@ def _status_live(status: str, statuses: dict[str, StatusSpec], roles: dict[str, 
     role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
     role = roles.get(role_name)
     return bool(role and role.live)
+
+
+def _status_blocked(
+    status: str, statuses: dict[str, StatusSpec], roles: dict[str, RoleSpec]
+) -> bool:
+    """Whether *status* resolves to a role declaring ``blocked`` — the same lookup as
+    ``_status_live``, reading the other flag."""
+    spec = statuses.get(status)
+    role_name = (spec.role if spec else None) or FALLBACK_ROLE_NAME
+    role = roles.get(role_name)
+    return bool(role and role.blocked)
 
 
 def _check_roster_lifecycle_floor(
@@ -1706,6 +1729,7 @@ def _check_selections_that_cannot_fire(
     lifecycles: dict[str, Lifecycle],
     statuses: dict[str, StatusSpec],
     roles: dict[str, RoleSpec],
+    ref_kinds: dict[str, RefKindSpec],
     errors: list[str],
 ) -> None:
     """Plane-1: a selected check that the spec's own declarations make unable to fire is
@@ -1714,7 +1738,9 @@ def _check_selections_that_cannot_fire(
 
     A member of :data:`WORK_POLICY_VALIDATOR_NAMES` is about the work an item tracks, so naming
     it on a ``roster`` type is refused. ``ref_rule_target_typed`` also needs a ref rule with a
-    target on the type, and ``assignee_present`` a lifecycle holding a status of a live role.
+    target on the type, ``assignee_present`` a lifecycle holding a status of a live role, and
+    ``blocked_has_blocker`` a lifecycle holding a status of a blocked role plus a declared
+    dependency ref kind.
     """
     for t, ts in items.items():
         for entry in ts.validators:
@@ -1747,6 +1773,40 @@ def _check_selections_that_cannot_fire(
                     "without one it never fires; drop the entry or give the lifecycle a status "
                     "of a live role"
                 )
+            if bare == "blocked_has_blocker":
+                errors += _blocked_has_blocker_refusals(
+                    t, ts, entry, lifecycle, statuses, roles, ref_kinds
+                )
+
+
+def _blocked_has_blocker_refusals(
+    t: str,
+    ts: ItemSpec,
+    entry: str,
+    lifecycle: Lifecycle | None,
+    statuses: dict[str, StatusSpec],
+    roles: dict[str, RoleSpec],
+    ref_kinds: dict[str, RefKindSpec],
+) -> list[str]:
+    """What keeps ``blocked_has_blocker`` from firing on *t*: no status of a blocked role in
+    its lifecycle, or no declared dependency ref kind in the spec."""
+    refusals: list[str] = []
+    if lifecycle is not None and not any(
+        _status_blocked(st, statuses, roles) for st in lifecycle.states
+    ):
+        refusals.append(
+            f"item {t!r}: validators entry {entry!r} needs a status of a role declaring "
+            f"blocked = true, and the lifecycle {ts.lifecycle!r} of {t!r} holds none — "
+            "without one it never fires; drop the entry or give the lifecycle a status of a "
+            "blocked role"
+        )
+    if not any(rk.role == "dependency" for rk in ref_kinds.values()):
+        refusals.append(
+            f"item {t!r}: validators entry {entry!r} needs a declared ref kind with "
+            'role = "dependency", and the spec declares none — without one no edge can '
+            "satisfy it; drop the entry or declare a dependency ref kind"
+        )
+    return refusals
 
 
 def _effective_bare_validators(ts: ItemSpec) -> frozenset[str]:
@@ -1997,8 +2057,10 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "body_written",
         "description_present",
         "assignee_present",
+        "blocked_has_blocker",
         "settled_requires_discussion",
         "external_id_not_in_title",
+        "frontmatter_key_undeclared",
     }
 )
 
@@ -2059,20 +2121,14 @@ _FIELD_ELIGIBLE_SUBENTITY_KEYS: frozenset[str] = frozenset({"severity"})
 
 
 def _reserved_item_keys() -> frozenset[str]:
-    """Item frontmatter keys a field code may not shadow.
-
-    Derived from ``Item``'s own model/computed fields (never hand-copied) minus ``path``
-    (model-only, never written to frontmatter) and the field-eligible exemptions.
-
-    ``prefix`` stays reserved even though it, too, is model-only/never written: it is a
-    *tolerated* legacy frontmatter key on read (``Item.id`` always wins over it), so a live
-    field coded ``prefix`` would silently shadow — be read and discarded — exactly the hazard
-    this check exists to catch. Excluding it here, as ``path`` is, would defeat that.
-    """
+    """Names a field code or an attribute may not take: the model's own fields (derived from
+    ``Item``, never hand-copied), the names a ``--json`` row adds, and ``extra``. ``path`` and
+    ``prefix`` are model fields that are not frontmatter, and are refused for the same reason: a
+    key of that name is never read back as the user's value."""
     from squads._models._item import Item
 
     keys = set(Item.model_fields) | set(Item.model_computed_fields)
-    return frozenset(keys - {"path"} - _FIELD_ELIGIBLE_ITEM_KEYS)
+    return frozenset(keys | set(ROW_ADDED_KEYS) | {"extra"})
 
 
 def _reserved_subentity_keys() -> frozenset[str]:
@@ -2106,7 +2162,7 @@ def _check_field_codes(
     reserved_subentity = _reserved_subentity_keys()
     for owner, is_item, fields in _iter_field_owners(items, subentity_kinds):
         seen: set[str] = set()
-        reserved = reserved_item if is_item else reserved_subentity
+        reserved = (reserved_item - _FIELD_ELIGIBLE_ITEM_KEYS) if is_item else reserved_subentity
         for f in fields:
             if f.code in seen:
                 errors.append(f"{owner!r}: duplicate field code {f.code!r}")
@@ -2114,6 +2170,50 @@ def _check_field_codes(
             if f.code in reserved:
                 errors.append(
                     f"{owner!r}: field code {f.code!r} shadows a reserved frontmatter key"
+                )
+
+
+#: The attributes the engine materialises into agent-host files, by roster type, with the kind
+#: each must be declared with. A resolved spec may add attributes to a roster type but may not
+#: drop or re-kind one of these.
+PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
+    ROSTER_ROLE: {
+        AttributeKey.IS_DEFAULT: "bool",
+        AttributeKey.IS_DEV: "bool",
+        AttributeKey.MODEL: "str",
+        AttributeKey.TECH: "str",
+    },
+    ROSTER_SKILL: {
+        AttributeKey.ALLOWED_TOOLS: "str",
+        AttributeKey.MODEL: "str",
+        AttributeKey.WHEN_TO_USE: "str",
+    },
+}
+
+
+def _check_attributes(items: dict[str, ItemSpec], errors: list[str]) -> None:
+    """Attribute names are free of reserved keys and badge codes, and each roster type declares
+    its pinned attributes with the pinned kind."""
+    reserved = _reserved_item_keys()
+    for owner, ts in items.items():
+        codes = {f.code for f in ts.fields}
+        for name in ts.attributes:
+            if name in reserved:
+                errors.append(
+                    f"{owner!r}: attribute {name!r} is a reserved key — pick another name"
+                )
+            elif name in codes:
+                errors.append(f"{owner!r}: attribute {name!r} is also a field code on this type")
+    for owner, pinned in PINNED_ROSTER_ATTRIBUTES.items():
+        ts = items.get(owner)
+        if ts is None:
+            continue
+        for name, kind in pinned.items():
+            declared = ts.attributes.get(name)
+            if declared is None or declared.kind != kind:
+                errors.append(
+                    f"roster type {owner!r} must declare attribute {name!r} with kind {kind!r} "
+                    f'— add `{name} = {{ kind = "{kind}" }}` under [items.{owner}.attributes]'
                 )
 
 
@@ -2670,17 +2770,16 @@ class WorkflowSpec(BaseModel):
                 return param
         return None
 
-    def item_extra_fields(self, item_type: str) -> list[str]:
-        """Declared generic ``extra``-metadata keys for this type (drives ``sq update --set``
-        identity for a renamed/custom type, e.g. guide's ``tags``, review's ``target_ref``)."""
+    def item_attributes(self, item_type: str) -> dict[str, AttributeSpec]:
+        """The attributes *item_type* declares, by name (empty for an undeclared type)."""
         ts = self.items.get(item_type)
-        return list(ts.extra_fields) if ts else []
+        return dict(ts.attributes) if ts else {}
 
     def item_ref_rules(self, item_type: str) -> list[RefRule]:
         """Declared ref-kind rules for the type (e.g. fixes/addresses/supersedes).
 
         Also ``[]`` when *item_type* isn't declared — no rules to report for a
-        dropped/renamed type, same shape as :meth:`item_extra_fields`/:meth:`fields_for`."""
+        dropped/renamed type, same shape as :meth:`item_attributes`/:meth:`fields_for`."""
         ts = self.items.get(item_type)
         return list(ts.ref_rules) if ts else []
 
@@ -3075,7 +3174,7 @@ class WorkflowSpec(BaseModel):
 
         # A selected check the spec's own declarations make unable to fire is refused.
         _check_selections_that_cannot_fire(
-            self.items, self.lifecycles, self.statuses, self.roles, errors
+            self.items, self.lifecycles, self.statuses, self.roles, self.ref_kinds, errors
         )
 
         # Every capability a type declares must be reachable under the validators its own
@@ -3087,6 +3186,9 @@ class WorkflowSpec(BaseModel):
 
         # Field-code uniqueness + reserved-key collision (per item type / sub-entity kind).
         _check_field_codes(self.items, self.subentity_kinds, errors)
+
+        # Attribute names + the pinned roster attributes.
+        _check_attributes(self.items, errors)
 
         # Field->collection referential integrity + default-badge resolution.
         _check_field_collections(self.items, self.subentity_kinds, self.collections, errors)

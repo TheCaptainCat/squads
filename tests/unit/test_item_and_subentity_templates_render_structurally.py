@@ -35,7 +35,7 @@ def _item(item_type: str, spec) -> Item:
         path=f"{spec.items[item_type].folder}/x.md",
         created_at=_NOW,
         updated_at=_NOW,
-        extra={"full_name": "Test Agent", "slug": "tester"},
+        slug_in_file=True,
     )
 
 
@@ -50,15 +50,11 @@ def test_every_builtin_type_template_renders_the_required_markers_and_heading(
         if spec.item_is_roster(item_type)
         else f"items/{item_type}.md.j2"
     )
-    # `agents/role.md.j2` renders from a resolved `RoleDef`, not `item`/`extra` — every
-    # other built-in template still renders from the generic `item`/`description`/`extra`/
-    # `spec` context passed below, so only the role case needs the extra kwarg.
-    role_kwargs = (
-        {"role": RoleDef.from_extra_or_item(it.extra, title=it.title, slug=it.slug, description="")}
-        if item_type == ROSTER_ROLE
-        else {}
-    )
-    out = render(template_path, item=it, description="", extra=it.extra, spec=spec, **role_kwargs)
+    # `agents/role.md.j2` renders from a resolved `RoleDef` — every other built-in template
+    # renders from the generic `item`/`description`/`spec` context passed below, so only the
+    # role case needs the extra kwarg.
+    role_kwargs = {"role": RoleDef.from_item(it)} if item_type == ROSTER_ROLE else {}
+    out = render(template_path, item=it, description="", spec=spec, **role_kwargs)
     assert "<!-- sq:body -->" in out and "<!-- sq:body:end -->" in out
     assert "<!-- sq:discussion -->" in out and "<!-- sq:discussion:end -->" in out
     assert "## Discussion" in out
@@ -92,7 +88,7 @@ def test_review_item_template_renders_a_findings_container_with_a_severity_legen
         created_at=_NOW,
         updated_at=_NOW,
     )
-    out = render("items/review.md.j2", item=it, description="", extra={}, spec=bundled_spec())
+    out = render("items/review.md.j2", item=it, description="", spec=bundled_spec())
     assert "<!-- sq:findings -->" in out
     assert "<!-- sq:summary -->" not in out  # retired: the roll-up is a computed view now
     assert "## Findings" in out
@@ -133,7 +129,7 @@ def test_review_severity_legend_and_command_hint_are_spec_derived_not_hardcoded(
         created_at=_NOW,
         updated_at=_NOW,
     )
-    out = render("items/review.md.j2", item=it, description="", extra={}, spec=spec)
+    out = render("items/review.md.j2", item=it, description="", spec=spec)
     assert "_Impact:_ 🟣 severe · ⚪ minor" in out
     assert "--severity minor" in out
     assert "critical" not in out
@@ -161,7 +157,7 @@ def test_feature_scaffold_hint_tracks_a_renamed_subentity_kind() -> None:
         created_at=_NOW,
         updated_at=_NOW,
     )
-    out = render("items/feature.md.j2", item=it, description="", extra={}, spec=spec)
+    out = render("items/feature.md.j2", item=it, description="", spec=spec)
     assert "add-requirement" in out
     assert "requirement <n> update" in out
     assert "add-story" not in out

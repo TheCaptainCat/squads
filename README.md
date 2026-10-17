@@ -301,7 +301,7 @@ works exactly like the canonical spelling.
 - `sq list [--type|--status|--category|--parent|--label|--assignee|--priority|--min-priority|--badge|--min-badge|--sort] [--all] [--json]` · `sq tree [ROOT_ID] [--all] [--json]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`); `tree --json` emits the nested subtree (status/priority/assignee/blocked) for orchestrating agents
 - `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <ID>` shows any item by ID or bare number, whatever its type
 - `sq <type> <n> body [-m "…"|--file PATH] [--append]` · `sq <type> <n> comments` — read the discussion back on its own
-- `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]`
+- `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]` — `--set` writes a badge field or an attribute the type declares, checked before anything is written ([attributes](docs/overrides.md#attributes-the-keys-a-type-stores))
 - `sq <type> <n> status STATUS [--force]` · `sq <type> <n> comment -m "…" --as <slug>` — `--as` is required: a role slug, or `op-<slug>` for a human operator (`squads`, the slug of sq's own entries, is refused)
 - `sq <type> <n> retype NEW-TYPE` — reclassify an item, keeping its number · `sq <type> <n> remove [--force] [--yes]` — hard-delete it (asks first; `--force` severs incoming refs)
 

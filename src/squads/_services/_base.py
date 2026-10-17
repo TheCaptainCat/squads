@@ -40,7 +40,6 @@ from squads._itemfile import (
     write_text,
 )
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, make_ref, ref_id_matches, split_ref
 from squads._models._participants import (
@@ -52,7 +51,6 @@ from squads._models._participants import (
     operator_slug_suggestion,
     require_valid_slug,
     reserved_role_slug_reason,
-    stored_slug,
 )
 from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
@@ -462,14 +460,12 @@ def reject_body_overwrite(target: str, current: str) -> None:
     )
 
 
-def _check_roster_slug(
-    item_type: str, is_roster: bool, slug: str, extra: dict[str, Any] | None
-) -> None:
+def _check_roster_slug(item_type: str, is_roster: bool, slug: str) -> None:
     """Raise when a roster entry would be created with a slug outside its grammar: an operator's
     is ``op-`` plus the slug grammar, a role's is the slug grammar minus the reserved names."""
     if not is_roster:
         return
-    for candidate in {slug, (extra or {}).get(X.SLUG, slug)}:
+    for candidate in (slug,):
         if item_type == ROSTER_OPERATOR:
             if operator_slug_problem(candidate) is not None:
                 example = operator_slug_suggestion(candidate)
@@ -582,7 +578,7 @@ class ServiceCore:
         refs: list[str] | None = None,
         assignee: str | None = None,
         priority: str | None = None,
-        extra: dict[str, Any] | None = None,
+        attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
         body: str | None = None,
@@ -606,7 +602,7 @@ class ServiceCore:
                 refs=refs,
                 assignee=assignee,
                 priority=priority,
-                extra=extra,
+                attributes=attributes,
                 status=status,
                 slug=slug,
                 body=body,
@@ -624,9 +620,9 @@ class ServiceCore:
         designation there (:func:`~squads._interactions.catalog_default_slug`).
 
         The designation goes through :func:`~squads._roles._resolver
-        .holds_default_designation`, not a raw ``extra.is_default`` read: the stored key is an
+        .holds_default_designation`, not a raw ``is_default`` attribute read: the stored key is an
         override on an answer the role catalog also gives, so a role designated by a project's
-        own ``.overrides/roles.toml`` carries nothing in its ``extra`` and a raw read would hand
+        own ``.overrides/roles.toml`` carries no stored attribute and a raw read would hand
         the exemption to the bundled catalog's role instead of this squad's.
         """
         live = self.spec.live_statuses(ROSTER_ROLE)
@@ -636,20 +632,16 @@ class ServiceCore:
                 and it.status in live
                 and holds_default_designation(it, self.paths.squad_dir)
             ):
-                return it.extra.get(X.SLUG, it.slug)
+                return it.slug
         return None
 
     @staticmethod
-    def _operator_extra(
-        db: SquadsDB, item_type: str, title: str, slug: str, extra: dict[str, Any] | None
-    ) -> dict[str, Any] | None:
-        """For an operator, the stored ``slug`` and ``full_name`` every path gives it; raises
-        when another operator already answers to *slug*. Any other type's *extra* is returned."""
-        if item_type != ROSTER_OPERATOR:
-            return extra
-        if any(it.type == ROSTER_OPERATOR and stored_slug(it) == slug for it in db.items.values()):
+    def _check_operator_slug_free(db: SquadsDB, item_type: str, slug: str) -> None:
+        """Raise when creating an operator whose *slug* another operator already answers to."""
+        if item_type == ROSTER_OPERATOR and any(
+            it.type == ROSTER_OPERATOR and it.slug == slug for it in db.items.values()
+        ):
             raise SquadsError(f"an operator with slug {slug!r} already exists")
-        return {X.FULL_NAME: title, **(extra or {}), X.SLUG: slug}
 
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
         self,
@@ -664,7 +656,7 @@ class ServiceCore:
         refs: list[str] | None = None,
         assignee: str | None = None,
         priority: str | None = None,
-        extra: dict[str, Any] | None = None,
+        attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
         body: str | None = None,
@@ -721,8 +713,9 @@ class ServiceCore:
                 "declare this type. Declare it in .overrides/workflow.toml or check for a typo."
             )
         slug = slug or (operator_slug(title) if item_type == ROSTER_OPERATOR else slugify(title))
-        _check_roster_slug(item_type, self.spec.item_is_roster(item_type), slug, extra)
-        extra = self._operator_extra(db, item_type, title, slug, extra)
+        is_roster = self.spec.item_is_roster(item_type)
+        _check_roster_slug(item_type, is_roster, slug)
+        self._check_operator_slug_free(db, item_type, slug)
         if refs:
             # Validate every declared kind, then rewrite the set to the canonical wire form —
             # the same normalisation `add_ref`/the bulk importer's `_resolve_refs` already
@@ -785,7 +778,8 @@ class ServiceCore:
             updated_at=effective_now,
             created_session=sid,
             modified_session=sid,
-            extra=extra or {},
+            slug_in_file=is_roster,
+            attributes=attributes or {},
         )
         for code, value in (fields or {}).items():
             field = self._badge_field(item_type, code)
@@ -833,7 +827,7 @@ class ServiceCore:
         refs: list[str] | None = None,
         assignee: str | None = None,
         priority: str | None = None,
-        extra: dict[str, Any] | None = None,
+        attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
         body: str | None = None,
@@ -857,7 +851,7 @@ class ServiceCore:
             refs=refs,
             assignee=assignee,
             priority=priority,
-            extra=extra,
+            attributes=attributes,
             status=status,
             slug=slug,
             body=body,
@@ -874,7 +868,6 @@ class ServiceCore:
             self._template_for(item_type),
             item=item,
             description=item.description,
-            extra=item.extra,
             spec=self.spec,
         )
         # Belt-and-suspenders: guarantee a working sub-entity container regardless of which
@@ -902,7 +895,7 @@ class ServiceCore:
         # to keeping the template's copy, since position is the view's own declared property,
         # never the document's), and a dropped view's does not, matching "a view dropped from
         # `[selected]` seeds nothing anywhere" for creation too, not only for existing hosts.
-        host_slug = views.roster_slug(item_type, item.slug, item.extra)
+        host_slug = item.slug
         addr: int | str = (
             host_slug if item_type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
         )
@@ -1178,9 +1171,7 @@ class ServiceCore:
         routing task's handoff).
         """
         return any(
-            self.spec.item_is_roster(it.type)
-            and it.type != ROSTER_SKILL
-            and stored_slug(it) == slug
+            self.spec.item_is_roster(it.type) and it.type != ROSTER_SKILL and it.slug == slug
             for it in db.items.values()
         )
 
@@ -1284,15 +1275,10 @@ class ServiceCore:
         """Return the roster item of *item_type* (``ROSTER_ROLE``/``ROSTER_SKILL``/
         ``ROSTER_OPERATOR``) whose slug matches, or ``None``.
 
-        A skill's or operator's slug falls back to its own :attr:`Item.slug` when
-        ``extra.get(X.SLUG)`` is unset, as an entry an older release wrote has none; a role
-        lookup uses no fallback (so a role with no stored slug never matches).
+        An entry's slug is its file name's when its file stores none.
         """
         for it in (await self.store.load()).items.values():
-            if it.type != item_type:
-                continue
-            default = it.slug if item_type in (ROSTER_SKILL, ROSTER_OPERATOR) else None
-            if it.extra.get(X.SLUG, default) == slug:
+            if it.type == item_type and it.slug == slug:
                 return it
         return None
 
@@ -1306,12 +1292,12 @@ class ServiceCore:
         the in-memory ``db``, not yet on disk.
 
         A role participant's name comes from ``item.title`` — the uniform record's own copy of
-        the resolved full name — never from ``extra.full_name`` nor a catalog resolution: this
+        the resolved full name — never a catalog resolution: this
         is a display name on a comment attribution, and resolving through the catalog here
         would be both wrong (an operator can rename a role's *display*, via ``sq role activate
         --name``, without that changing which catalog entry authored a past comment) and
-        needlessly expensive for a lookup this cheap. An operator participant is untouched —
-        it keeps reading ``extra.full_name``, its only home.
+        needlessly expensive for a lookup this cheap. An operator participant's name is its
+        ``title``.
         """
         if slug == ANONYMOUS_SLUG:
             return ANONYMOUS_NAME
@@ -1319,14 +1305,14 @@ class ServiceCore:
             (
                 it
                 for it in db.items.values()
-                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and stored_slug(it) == slug
+                if it.type in (ROSTER_ROLE, ROSTER_OPERATOR) and it.slug == slug
             ),
             None,
         )
         if participant is not None:
             if participant.type == ROSTER_ROLE:
                 return participant.title
-            return participant.extra.get(X.FULL_NAME, participant.title)
+            return participant.title
         try:
             return resolve_role(slug, self.paths.squad_dir).full_name
         except SquadsError:
@@ -1338,8 +1324,8 @@ class ServiceCore:
 
     def _role_view(self, it: Item) -> RoleView:
         """Resolve *it* (a ROLE item) to the ``RoleView`` a backend compiles into the managed
-        region — through the catalog (:func:`resolve_role_for_item`), never off ``extra``
-        directly."""
+        region — through the catalog (:func:`resolve_role_for_item`), never off the
+        item's own fields directly."""
         role = resolve_role_for_item(it, self.paths.squad_dir)
         return RoleView(
             slug=role.slug,
@@ -1390,8 +1376,8 @@ class ServiceCore:
         live = self.spec.live_statuses(ROSTER_OPERATOR)
         return [
             OperatorView(
-                slug=it.extra.get(X.SLUG, it.slug),
-                full_name=it.extra.get(X.FULL_NAME, it.title),
+                slug=it.slug,
+                full_name=it.title,
             )
             for it in await self.list_items(item_type=ROSTER_OPERATOR)
             if it.status in live
@@ -1402,8 +1388,8 @@ class ServiceCore:
         :meth:`operators`."""
         return [
             OperatorView(
-                slug=it.extra.get(X.SLUG, it.slug),
-                full_name=it.extra.get(X.FULL_NAME, it.title),
+                slug=it.slug,
+                full_name=it.title,
             )
             for it in await self.list_items(item_type=ROSTER_OPERATOR)
         ]
@@ -1421,11 +1407,7 @@ class ServiceCore:
         """
         skill_items = await self.list_items(item_type=ROSTER_SKILL)
         live = self.spec.live_statuses(ROSTER_SKILL)
-        return {
-            it.extra[X.SLUG]: self.paths.abspath(it.path)
-            for it in skill_items
-            if X.SLUG in it.extra and it.status in live
-        }
+        return {it.slug: self.paths.abspath(it.path) for it in skill_items if it.status in live}
 
     def _resolve_role_skills(self, slug: str, role: Item | None, db: SquadsDB) -> list[str]:
         """Pure (no I/O) core of the resolver: *db* and *role* are already loaded by the caller.
@@ -1452,7 +1434,7 @@ class ServiceCore:
             for r in skill.refs:
                 rid, kind = split_ref(r)
                 if kind == preload_kind and ref_id_matches(rid, role_prefix, role.sequence_id):
-                    scoped.add(skill.extra.get(X.SLUG, skill.slug))
+                    scoped.add(skill.slug)
                     break
         return [*system, *sorted(s for s in scoped if s not in seen)]
 
@@ -1472,7 +1454,7 @@ class ServiceCore:
             (
                 it
                 for it in db.items.values()
-                if it.type == ROSTER_ROLE and it.extra.get(X.SLUG) == slug and it.status in live
+                if it.type == ROSTER_ROLE and it.slug == slug and it.status in live
             ),
             None,
         )
@@ -1489,9 +1471,9 @@ class ServiceCore:
         db = await self.store.load()
         live = self.spec.live_statuses(ROSTER_ROLE)
         return {
-            it.extra[X.SLUG]: self._resolve_role_skills(it.extra[X.SLUG], it, db)
+            it.slug: self._resolve_role_skills(it.slug, it, db)
             for it in db.items.values()
-            if it.type == ROSTER_ROLE and X.SLUG in it.extra and it.status in live
+            if it.type == ROSTER_ROLE and it.status in live
         }
 
     async def refresh_managed(self) -> list[str]:
@@ -1539,9 +1521,7 @@ class ServiceCore:
         workflow override can shadow a built-in type instead of only adding to it.
         """
         all_skills = await self.list_items(item_type=ROSTER_SKILL)
-        skill_slugs = {
-            it.extra[X.SLUG] for it in all_skills if X.SLUG in it.extra
-        } | active_skill_slugs(self.spec)
+        skill_slugs = {it.slug for it in all_skills} | active_skill_slugs(self.spec)
         roster = await self.roster_all()
         ctx = self._ctx
         orphans: list[str] = []

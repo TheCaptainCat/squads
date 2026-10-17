@@ -63,6 +63,7 @@ from squads import _sections as sections
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
 from squads._backends._registry import get_backend
+from squads._errors import InvalidIdError, SquadsError
 from squads._interactions import (
     ITEM_SKILL_VIEW_NAME,
     is_live_roster_entry,
@@ -73,10 +74,10 @@ from squads._interactions import (
 from squads._interactions._loader import playbook_override_guide_pairs
 from squads._interactions._models import PlaybookSpec
 from squads._models import _markers as markers
-from squads._models._extras import ExtraKey as X
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
-from squads._models._participants import SlugBreach, roster_slug_breaches, stored_slug
+from squads._models._metadata import value_problem
+from squads._models._participants import SlugBreach, roster_slug_breaches
 from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import scaffold_body
 from squads._roles._resolver import holds_default_designation, resolve_role_for_item
@@ -154,6 +155,10 @@ class ValidatorContext:
     ``supersedes`` sequence numbers, the set of item types with at least one corpus member)
     plus the item's own on-disk markdown text.
 
+    ``dependency_incoming`` is the same shape for the dependency-role ref kinds, and is carried on
+    both call paths: an empty set is a real answer (a squad with no dependency edge), so it is
+    not a :class:`ContextRequirement`.
+
     ``type_present`` backs ``ref_rule_target_present``'s inertness precondition: computed once
     per ``report()`` run, alongside ``supersedes_incoming``, from a full index scan — never
     rescanned per item. ``gate()`` leaves it at its empty default rather than paying that scan
@@ -172,6 +177,7 @@ class ValidatorContext:
     index: SquadsDB | None = None
     registered_slugs: frozenset[str] = frozenset()
     supersedes_incoming: frozenset[int] = frozenset()
+    dependency_incoming: frozenset[int] = frozenset()
     type_present: frozenset[str] = frozenset()
     raw_text: str | None = None
 
@@ -455,11 +461,7 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
     level = _resolved_level(ctx, "agent_registered")
     issues: list[CheckIssue] = []
     for attr in ("author", "assignee"):
-        if (
-            attr == "author"
-            and ctx.item.type == ROSTER_SKILL
-            and ctx.item.author == ctx.item.extra.get(X.SLUG, ctx.item.slug)
-        ):
+        if attr == "author" and ctx.item.type == ROSTER_SKILL and ctx.item.author == ctx.item.slug:
             continue
         slug = getattr(ctx.item, attr)
         if slug and slug not in ctx.registered_slugs:
@@ -687,6 +689,31 @@ def _assignee_present(ctx: ValidatorContext) -> list[CheckIssue]:
     return [CheckIssue(level, item.id, f"status is {item.status} but nobody is assigned")]
 
 
+def _blocked_has_blocker(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item resting in a status whose role declares ``blocked`` while no edge of a
+    dependency-role ref kind touches it: none of its own refs has such a kind and no item's ref
+    of such a kind points at it. Kinds are matched by their declared role, never by spelling,
+    and an edge counts whether or not its other end exists or is settled."""
+    item = ctx.item
+    if not ctx.spec.role_for(item.status).blocked:
+        return []
+    kinds = ctx.spec.dependency_ref_kinds()
+    if any(kind in kinds for _, kind in _outgoing_refs(item, ctx.spec)):
+        return []
+    if item.sequence_id in ctx.dependency_incoming:
+        return []
+    level = _resolved_level(ctx, "blocked_has_blocker")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"status is {item.status} but no dependency edge is recorded "
+            f"(kinds: {', '.join(sorted(kinds))}) "
+            "— record a dependency edge (`--ref <id>:<kind>` on create, `ref add` after)",
+        )
+    ]
+
+
 def _settled_requires_discussion(ctx: ValidatorContext) -> list[CheckIssue]:
     """An item resting in a status whose role declares ``settled`` while its own discussion holds
     no comment. Comments are counted by the discussion parser, never by a pattern of this
@@ -877,7 +904,7 @@ def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
     supported to render, and the named remedy moves the prose to a new skill before clearing
     anything, never a clear-first sequence that could destroy it."""
     item = ctx.item
-    slug = item.extra.get(X.SLUG, item.slug)
+    slug = item.slug
     doc_type = item_type_for_skill_slug(slug, ctx.spec)
     if doc_type is None:
         return []
@@ -913,6 +940,51 @@ def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
     return [CheckIssue(level, item.id, detail)]
 
 
+def _attribute_valid(ctx: ValidatorContext) -> list[CheckIssue]:
+    """Every attribute the item's type declares holds a value of its declared kind, and every
+    required one is present.
+
+    Judges the value as the file stores it. A failing value is reported and left as written: a
+    typed accessor reads it as unset, and only a command that targets the key replaces it.
+    """
+    if ctx.raw_text is None:
+        return []
+    try:
+        stored = sections.split_frontmatter(ctx.raw_text, source=ctx.item.path)[0]
+    except SquadsError:
+        return []
+    level = _resolved_level(ctx, "attribute_valid")
+    issues: list[CheckIssue] = []
+    for name, spec in ctx.spec.item_attributes(ctx.item.type).items():
+        value = stored.get(name)
+        if value is None:
+            if spec.required:
+                issues.append(
+                    CheckIssue(level, ctx.item.id, f"missing required attribute {name!r}")
+                )
+            continue
+        problem = value_problem(spec, value)
+        if problem is not None:
+            issues.append(CheckIssue(level, ctx.item.id, f"attribute {name!r}: {problem}"))
+    return issues
+
+
+def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
+    """Every attribute no declaration on the item's type names, to catch a typo. Selected per
+    project; it reports and never rewrites."""
+    declared = set(ctx.spec.item_attributes(ctx.item.type)) | {
+        f.code for f in ctx.spec.fields_for(ctx.item.type)
+    }
+    level = _resolved_level(ctx, "frontmatter_key_undeclared")
+    return [
+        CheckIssue(
+            level, ctx.item.id, f"frontmatter key {key!r} is not declared on {ctx.item.type}"
+        )
+        for key in ctx.item.attributes
+        if key not in declared
+    ]
+
+
 #: The closed per-item validator catalog — a CODE/definition constant, immutable and shared
 #: across every request (fine under the ``_context.py`` CODE-vs-REQUEST split: it varies by
 #: neither request nor squad). Every ``VALIDATOR_NAMES`` member resolves here (asserted below).
@@ -939,8 +1011,11 @@ CATALOG: dict[str, Validator] = {
     "body_written": _body_written,
     "description_present": _description_present,
     "assignee_present": _assignee_present,
+    "blocked_has_blocker": _blocked_has_blocker,
     "settled_requires_discussion": _settled_requires_discussion,
     "external_id_not_in_title": _external_id_not_in_title,
+    "attribute_valid": _attribute_valid,
+    "frontmatter_key_undeclared": _frontmatter_key_undeclared,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 
@@ -969,6 +1044,7 @@ VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "no_status_banner": frozenset({ContextRequirement.RAW_TEXT}),
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
     "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),
+    "attribute_valid": frozenset({ContextRequirement.RAW_TEXT}),
 }
 assert set(VALIDATOR_CONTEXT) <= set(CATALOG), (
     "VALIDATOR_CONTEXT must only declare requirements for members CATALOG implements"
@@ -1034,16 +1110,12 @@ def live_roster_slugs(ctx: SquadGlobalContext) -> tuple[frozenset[str], frozense
     roles = frozenset(
         slug
         for it in ctx.index.items.values()
-        if it.type == ROSTER_ROLE
-        and is_live_roster_entry(it, ctx.spec)
-        and (slug := it.extra.get(X.SLUG))
+        if it.type == ROSTER_ROLE and is_live_roster_entry(it, ctx.spec) and (slug := it.slug)
     )
     skills = frozenset(
         slug
         for it in ctx.index.items.values()
-        if it.type == ROSTER_SKILL
-        and is_live_roster_entry(it, ctx.spec)
-        and (slug := it.extra.get(X.SLUG))
+        if it.type == ROSTER_SKILL and is_live_roster_entry(it, ctx.spec) and (slug := it.slug)
     )
     return roles, skills
 
@@ -1196,7 +1268,7 @@ def backend_entry_drift(
     about it.
 
     A role's expectation is resolved through the catalog (:func:`~squads._roles._resolver.
-    resolve_role_for_item`), not read off *item*'s stored ``extra`` — so a pointer that has
+    resolve_role_for_item`), not read off *item*'s stored attributes — so a pointer that has
     genuinely drifted from a project override reads as drifted even when the item's own mirror
     has not caught up with that override yet (it stays fresh only from the next ``sq sync``
     on). Reading the mirror here would make this currency check only ever as current as the
@@ -1273,9 +1345,9 @@ def _default_designation_duplicated(ctx: SquadGlobalContext) -> list[CheckIssue]
     naming the holders, with ``sq role <addr> set-default`` as the remedy.
 
     A holder is found through :func:`~squads._roles._resolver.holds_default_designation`, not
-    by reading ``extra.is_default``. The stored key is an override on a designation the
-    role catalog also answers, so the catalog's own designated role holds it with nothing in
-    its ``extra`` — and a raw read reports one holder for a roster that is generating config
+    by reading the stored ``is_default``. The stored key is an override on a designation the
+    role catalog also answers, so the catalog's own designated role holds it with nothing
+    stored on its item — and a raw read reports one holder for a roster that is generating config
     with two, which is precisely the ambiguity this exists to name.
 
     Report-only, deliberately: this predicate is never folded into
@@ -1321,7 +1393,7 @@ def _slug_breach_remedy(
                 return f"replace {culprits[0]}, which breaks a rule of its own"
             return f"replace {', '.join(culprits)}, which break a rule of their own"
     if breach.kind == "operator":
-        name = breach.item.extra.get(X.FULL_NAME) or breach.item.title
+        name = breach.item.title
         text = (
             f'sq operator {breach.item.id} rm --purge, then sq operator add "{name}" '
             "--slug <compliant slug>"
@@ -1393,10 +1465,8 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
         return []  # no playbook resolved for this context — nothing to strip guides from
     live = ctx.spec.live_statuses(ROSTER_ROLE)
     roles = [it for it in ctx.index.items.values() if it.type == ROSTER_ROLE]
-    known = frozenset(slug for it in roles if (slug := it.extra.get(X.SLUG)))
-    live_slugs = frozenset(
-        slug for it in roles if it.status in live and (slug := it.extra.get(X.SLUG))
-    )
+    known = frozenset(slug for it in roles if (slug := it.slug))
+    live_slugs = frozenset(slug for it in roles if it.status in live and (slug := it.slug))
     live_initial = ctx.spec.live_initial(ROSTER_ROLE)
     return [
         CheckIssue(
@@ -1439,24 +1509,50 @@ def registered_slugs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[str]:
         slug
         for r in index.items.values()
         if r.type in (ROSTER_ROLE, ROSTER_OPERATOR)
-        for slug in (stored_slug(r),)
+        for slug in (r.slug,)
         if slug
     )
+
+
+@dataclass(frozen=True)
+class IncomingEdges:
+    """The sequence numbers of every item some ref points at, by edge role: through a declared
+    ``supersession`` kind, and through a declared ``dependency`` kind of either direction."""
+
+    supersedes: frozenset[int]
+    dependency: frozenset[int]
+
+
+def incoming_edges(index: SquadsDB, spec: WorkflowSpec) -> IncomingEdges:
+    """Both incoming-edge sets from one pass over every ref. Kinds are resolved through
+    :meth:`WorkflowSpec.supersession_ref_kinds` and :meth:`WorkflowSpec.dependency_ref_kinds`
+    (zero or more declared), never a fixed spelling, and a target is keyed by sequence number so
+    a ref stored at another id width still matches."""
+    supersession = spec.supersession_ref_kinds()
+    dependency = spec.dependency_ref_kinds()
+    supersedes: set[int] = set()
+    depended: set[int] = set()
+    for it in index.items.values():
+        for r in it.refs:
+            rid, kind = split_ref(r)
+            if kind not in supersession and kind not in dependency:
+                continue
+            try:
+                number = number_for_id(rid)
+            except InvalidIdError:
+                continue  # `dangling_ref` reports an id that does not parse
+            if kind in supersession:
+                supersedes.add(number)
+            if kind in dependency:
+                depended.add(number)
+    return IncomingEdges(frozenset(supersedes), frozenset(depended))
 
 
 def supersedes_incoming_seqs(index: SquadsDB, spec: WorkflowSpec) -> frozenset[int]:
     """Sequence numbers of every item with an incoming edge of a declared ``supersession``
     kind — what ``supersedes_incoming`` checks a Superseded record's own sequence number
-    against. Resolved through :meth:`WorkflowSpec.supersession_ref_kinds` (zero or more
-    declared kinds), never a fixed ``"supersedes"`` spelling."""
-    kinds = spec.supersession_ref_kinds()
-    seqs: set[int] = set()
-    for it in index.items.values():
-        for r in it.refs:
-            rid, kind = split_ref(r)
-            if kind in kinds:
-                seqs.add(number_for_id(rid))
-    return frozenset(seqs)
+    against."""
+    return incoming_edges(index, spec).supersedes
 
 
 def types_present(index: SquadsDB) -> frozenset[str]:
@@ -1506,7 +1602,7 @@ class ValidatorEngine:
         index: SquadsDB,
         *,
         registered: frozenset[str],
-        supersedes: frozenset[int],
+        incoming: IncomingEdges,
         type_present: frozenset[str],
         raw_text: str | None,
         error_level_only: bool = False,
@@ -1523,7 +1619,8 @@ class ValidatorEngine:
             spec=self.spec,
             index=index,
             registered_slugs=registered,
-            supersedes_incoming=supersedes,
+            supersedes_incoming=incoming.supersedes,
+            dependency_incoming=incoming.dependency,
             type_present=type_present,
             raw_text=raw_text,
         )
@@ -1574,7 +1671,7 @@ class ValidatorEngine:
         given, limits the per-item members to the items with those ids.
         """
         registered = registered_slugs(index, self.spec)
-        supersedes = supersedes_incoming_seqs(index, self.spec)
+        incoming = incoming_edges(index, self.spec)
         present = types_present(index)
         bodies = bodies or {}
         issues: list[CheckIssue] = []
@@ -1585,7 +1682,7 @@ class ValidatorEngine:
                 item,
                 index,
                 registered=registered,
-                supersedes=supersedes,
+                incoming=incoming,
                 type_present=present,
                 raw_text=bodies.get(item.sequence_id),
             )
@@ -1624,14 +1721,14 @@ class ValidatorEngine:
         makes no claim about the rest of the catalog that could quietly stop being true.
         """
         registered = registered_slugs(index, self.spec)
-        supersedes = supersedes_incoming_seqs(index, self.spec)
+        incoming = incoming_edges(index, self.spec)
         issues = [
             i
             for i in self._run_per_item(
                 item,
                 index,
                 registered=registered,
-                supersedes=supersedes,
+                incoming=incoming,
                 type_present=frozenset(),
                 raw_text=None,
                 error_level_only=True,

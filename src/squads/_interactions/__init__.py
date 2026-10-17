@@ -30,7 +30,6 @@ from squads._interactions._models import (
     PlaybookSpec,
     RoleGuideSpec,
 )
-from squads._models._extras import ExtraKey as X
 from squads._models._item import Item
 from squads._roles._catalog import get_catalog, role_by_slug
 from squads._workflow import bundled_spec
@@ -756,8 +755,7 @@ def is_live_roster_entry(item: Item, spec: WorkflowSpec) -> bool:
         return False
     live = item.status in spec.live_statuses(item.type)
     if item.type == ROSTER_SKILL and live:
-        slug = item.extra.get(X.SLUG, "")
-        live = orphaned_skill_item_type(slug, spec) is None
+        live = orphaned_skill_item_type(item.slug, spec) is None
     return live
 
 

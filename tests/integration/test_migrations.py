@@ -8,6 +8,7 @@ import re
 import pytest
 
 from _helpers import create_item
+from _legacy_squad import legacy_shape
 from squads import _sections as sections
 from squads._itemfile import read_frontmatter
 from squads._migrations import _meta_compat, _v0_1_to_v0_2, _v0_2_to_v0_3
@@ -167,6 +168,11 @@ async def test_v0_2_to_v0_3_lifts_meta_to_frontmatter_and_backfills_the_head(svc
 
     for item_id, kind in ((feat.id, "story"), (task.id, "subtask"), (rev.id, "finding")):
         await _devolve_to_v0_2(svc, item_id, kind)
+    for role in await svc.list_items(item_type="role"):  # the nested shape an old role file has
+        legacy_shape(
+            svc.paths.abspath(role.path),
+            move=("slug", "is_dev", "tech", "model", "is_default"),
+        )
     sub_path = svc.paths.abspath((await svc.get(task.id)).path)
     assert _meta_compat.has_meta(sub_path.read_text(encoding="utf-8"), "subtask")
 

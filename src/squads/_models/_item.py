@@ -11,10 +11,11 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic_core import to_jsonable_python
 
 from squads import _clock as clock
 from squads._errors import SquadsError
-from squads._models._extras import ExtraKey as X
+from squads._models._attributes import CORE_KEYS, NON_FRONTMATTER_KEYS, ROW_ADDED_KEYS
 from squads._models._subentity import SubEntity
 from squads._util import NonEmpty
 
@@ -122,7 +123,7 @@ def ref_id_matches(stored_ref_id: str, prefix: str, seq: int) -> bool:
 
 
 def fold_legacy_kinds(refs: list[str], legacy: dict[str, str], *, default_kind: str) -> list[str]:
-    """Merge a pre-0.2 ``extra.ref_kinds`` ``{ID: kind}`` map into inline ``ID:kind`` ref
+    """Merge a ``{ID: kind}`` map into inline ``ID:kind`` ref
     strings, and normalise every resulting edge against *default_kind* so an edge whose
     resolved kind IS the declared default is always written bare — never spelled out, whether
     it arrived via the legacy map or was already spelled inline (e.g. by a repair run before
@@ -157,9 +158,7 @@ class Item(BaseModel):
     #: only the badge code (spec-declared ``priority`` collection); label/emoji resolve at
     #: render time.
     priority: str | None = None
-    #: Item-level severity (today: bug only) — the badge code, top-level like ``priority``. A
-    #: legacy file predating this field may still carry it in ``extra[X.SEVERITY]``;
-    #: :meth:`from_frontmatter` backfills it from there when this key is absent (never the reverse).
+    #: Item-level severity (today: bug only) — the badge code, top-level like ``priority``.
     severity: str | None = None
     labels: list[str] = []
     #: Forward edges only. Backrefs are computed by inverting these across all items.
@@ -181,8 +180,12 @@ class Item(BaseModel):
     #: :attr:`created_session`.  Updated on every frontmatter-touching mutation (status, update,
     #: body, comment, subentity, ref).
     modified_session: str | None = None
-    #: Type-specific fields (e.g. agent role config, dev tech, adr context).
-    extra: dict[str, Any] = {}
+    #: Every frontmatter key that is not a core key, declared or not, kept as written. The
+    #: spec says which of them are declared; storage never splits on it.
+    attributes: dict[str, Any] = {}
+    #: Whether ``slug`` is a key of the item's file: always for a roster item, and for any other
+    #: item whose file carried it. The file name spells the slug otherwise.
+    slug_in_file: bool = False
     #: The resolved ID prefix for this item (e.g. ``"TASK"``, ``"INC"``), for EVERY type
     #: (built-in or custom). Set at create/retype time from the active spec (explicit
     #: constructors pass it directly); otherwise re-derived from a persisted ``id`` by
@@ -272,19 +275,36 @@ class Item(BaseModel):
         """Generic badge-code getter for any spec-declared field on this item.
 
         ``priority``/``severity`` are real attributes; any other declared field code
-        (e.g. a custom ``impact``) has no dedicated attribute and is stored in ``extra``.
+        (e.g. a custom ``impact``) has no dedicated field and is stored as an attribute.
         No spec needed to read — the code is the stored, authoritative value.
         """
-        return getattr(self, code, None) if hasattr(self, code) else self.extra.get(code)
+        return getattr(self, code, None) if hasattr(self, code) else self.attributes.get(code)
+
+    def attribute(self, key: str, default: Any = None) -> Any:
+        """The stored value of attribute *key*, or *default* when the item does not carry it.
+
+        The one accessor internals read attributes through, by an ``AttributeKey`` constant."""
+        return self.attributes.get(key, default)
 
     def set_badge_value(self, code: str, value: str | None) -> None:
         """Generic badge-code setter — the write-side mirror of :meth:`badge_value`."""
         if hasattr(self, code):
             setattr(self, code, value)
         elif value is None:
-            self.extra.pop(code, None)
+            self.attributes.pop(code, None)
         else:
-            self.extra[code] = value
+            self.attributes[code] = value
+
+    def to_row(self) -> dict[str, Any]:
+        """The item as a ``--json`` row: its fields, then each stored attribute flat at the top
+        level. An attribute named like a field of the row, or like a key a command adds to it,
+        stays in the file and is left out of the row, so that name keeps its one meaning."""
+        row = self.model_dump(mode="json", exclude={"attributes", "slug_in_file"})
+        flat: dict[str, Any] = self.model_dump(mode="json", include={"attributes"})["attributes"]
+        for key, value in flat.items():
+            if key not in row and key not in ROW_ADDED_KEYS and key not in NON_FRONTMATTER_KEYS:
+                row[key] = value
+        return row
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
         """The mapping written into the markdown file's YAML frontmatter (durable truth).
@@ -298,13 +318,16 @@ class Item(BaseModel):
         return data
 
     def _core_frontmatter_fields(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "id": self.id,
             "sequence_id": self.sequence_id,
             "type": self.type,
             "title": self.title,
-            "status": self.status,
         }
+        if self.slug_in_file:
+            data["slug"] = self.slug
+        data["status"] = self.status
+        return data
 
     @classmethod
     def from_frontmatter(cls, data: dict[str, Any], *, path: str, default_kind: str) -> Item:
@@ -359,9 +382,9 @@ class Item(BaseModel):
 
     @classmethod
     def from_frontmatter_verbatim(cls, data: dict[str, Any], *, path: str) -> Item:
-        """Like :meth:`from_frontmatter`, but resolves no vocabulary: ``refs`` and a legacy
-        ``extra.ref_kinds`` map are kept exactly as the file spells them, with no default ref
-        kind folded in. For a reader that must not depend on any spec."""
+        """Like :meth:`from_frontmatter`, but resolves no vocabulary: ``refs`` are kept exactly
+        as the file spells them, with no default ref kind folded in. For a reader that must not
+        depend on any spec."""
         return cls._build(data, path=path, default_kind=None)
 
     @classmethod
@@ -485,7 +508,7 @@ def _frontmatter_payload(
         "author": data.get("author"),
         "assignee": data.get("assignee"),
         "priority": data.get("priority") or None,
-        "severity": _read_severity(data),
+        "severity": data.get("severity") or None,
         "labels": _empty_list_if_unset(data.get("labels")),
         "refs": _read_refs(data, default_kind=default_kind),
         # Otherwise handed over raw: SubEntity's own validators fold the loose spellings, and
@@ -497,8 +520,21 @@ def _frontmatter_payload(
         # Session fields are optional — absent from legacy files; None == unset.
         "created_session": data.get("created_session") or None,
         "modified_session": data.get("modified_session") or None,
-        "extra": _read_extra(data, keep_ref_kinds=default_kind is None),
+        "slug_in_file": "slug" in data,
+        "attributes": {
+            key: _json_form(value) for key, value in data.items() if key not in CORE_KEYS
+        },
     }
+
+
+def _json_form(value: Any) -> Any:
+    """*value* as the index stores it: a YAML date or timestamp as its ISO string, a mapping key
+    as a string. Applying it on load makes the file side of the skew comparison and the index
+    agree on one shape for a value YAML types on its own."""
+    try:
+        return to_jsonable_python(value)
+    except (TypeError, ValueError):  # fmt: skip
+        return value
 
 
 def _empty_list_if_unset(value: Any) -> Any:
@@ -512,34 +548,10 @@ def _empty_list_if_unset(value: Any) -> Any:
     readable. A *non-empty* string is a different matter and is rejected rather than silently
     exploded into one entry per character, as ``list("abc")`` would do.
 
-    That rule is only worth stating if it holds over its whole scope, so **all three** list-valued
-    frontmatter keys the old coercions covered go through here — ``labels``, ``refs`` and
-    ``subentities`` — with :func:`_empty_dict_if_unset` covering the fourth, ``extra``. Wiring two
-    of the four and leaving the others to reject ``""`` is the asymmetry, not a stricter policy:
-    the old ``subentities``/``extra`` expressions swallowed ``""`` exactly as these two did.
+    The same rule covers every list-valued frontmatter key: ``labels``, ``refs`` and
+    ``subentities``.
     """
     return [] if value is None or value == "" else value
-
-
-def _empty_dict_if_unset(value: Any) -> Any:
-    """``None`` and ``""`` both mean "no entries" and become ``{}``; every other value is passed
-    through for ``model_validate``. The mapping-valued sibling of :func:`_empty_list_if_unset` —
-    same compatibility carve-out, same reason, for the one frontmatter container key that is a
-    mapping rather than a list (the replaced coercion spelled ``dict(data.get("extra", {}) or
-    {})``, whose ``or`` swallowed ``""``)."""
-    return {} if value is None or value == "" else value
-
-
-def _extra_mapping(data: dict[str, Any]) -> dict[str, Any]:
-    """*data*'s ``extra`` block when it really is a mapping, else an empty one.
-
-    The two legacy folds below only read keys *inside* ``extra``; a non-mapping ``extra`` has
-    nothing to fold, and is left for ``model_validate`` to reject through the ``extra`` field
-    itself (see :func:`_read_extra`) rather than raising a ``TypeError``/``ValueError`` out
-    here, outside the load boundary.
-    """
-    raw = data.get("extra")
-    return cast("dict[str, Any]", raw) if isinstance(raw, dict) else {}
 
 
 def _is_str_list(value: object) -> bool:
@@ -548,52 +560,17 @@ def _is_str_list(value: object) -> bool:
 
 
 def _read_refs(data: dict[str, Any], *, default_kind: str | None) -> Any:
-    """Refs as inline ``ID[:kind]`` strings, folding a pre-0.2 ``extra.ref_kinds`` map if
-    present, and normalising every ref against *default_kind* either way (see
-    :func:`fold_legacy_kinds`) — the one point on this load path where an edge already
-    spelled with the declared default (no legacy map involved at all, e.g. a repair run
-    before this normalisation existed) is folded back to bare too.
+    """Refs as inline ``ID[:kind]`` strings, normalised against *default_kind* (see
+    :func:`fold_legacy_kinds`) so an edge of the declared default kind is always bare.
 
     Returns the raw value untouched when it is not a list of strings (``refs: 5``,
     ``refs: [5]``) — the fold has nothing to do with such a value, and ``model_validate``
-    reports it. Empty/unset short-circuits before ``extra`` is even read: there is nothing to
-    fold onto, so the legacy lookup would be wasted work on the overwhelmingly common case.
+    reports it. With no *default_kind* the refs are kept exactly as the file spells them.
     """
     refs: Any = _empty_list_if_unset(data.get("refs"))
     if default_kind is None or not refs or not _is_str_list(refs):
         return refs
-    legacy: Any = _extra_mapping(data).get("ref_kinds")
-    legacy_map = cast("dict[str, str]", legacy) if isinstance(legacy, dict) else {}
-    return fold_legacy_kinds(cast("list[str]", refs), legacy_map, default_kind=default_kind)
-
-
-def _read_severity(data: dict[str, Any]) -> Any:
-    """``severity`` top-level, falling back to the legacy ``extra[X.SEVERITY]`` location (a
-    bug file predating this field). Tolerant read only — relocating the value on disk is a
-    separate, later one-way migration, not this. A non-string value is passed through for
-    ``model_validate`` to reject."""
-    top = data.get("severity")
-    if top:
-        return top
-    return _extra_mapping(data).get(X.SEVERITY) or None
-
-
-def _read_extra(data: dict[str, Any], *, keep_ref_kinds: bool = False) -> Any:
-    """Item ``extra``, minus the legacy ``ref_kinds`` (inline on the refs) and the legacy
-    ``severity`` key (read top-level via :func:`_read_severity`).
-
-    Unset (``None`` or ``""``, via :func:`_empty_dict_if_unset`) is an empty mapping. A
-    non-mapping ``extra`` (``extra: oops``, ``extra: [1, 2]``) is returned **unchanged** for
-    ``model_validate`` to reject — never coerced with ``dict(...)`` (which raises
-    ``TypeError``/``ValueError`` out here) and never quietly dropped."""
-    raw = _empty_dict_if_unset(data.get("extra"))
-    if not isinstance(raw, dict):
-        return raw
-    extra: dict[str, Any] = dict(cast("dict[str, Any]", raw))
-    if not keep_ref_kinds:
-        extra.pop("ref_kinds", None)
-    extra.pop(X.SEVERITY, None)
-    return extra
+    return fold_legacy_kinds(cast("list[str]", refs), {}, default_kind=default_kind)
 
 
 def _add_badge_fields(data: dict[str, Any], item: Item) -> None:
@@ -632,8 +609,8 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["created_session"] = item.created_session
     if item.modified_session is not None:
         data["modified_session"] = item.modified_session
-    if item.extra:
-        data["extra"] = item.extra
+    for key, value in item.attributes.items():
+        data.setdefault(key, value)
 
 
 def slug_from_stem(stem: str, prefix: str) -> str:
@@ -668,10 +645,7 @@ def _slug_from_path(path: str, item_id: str | None) -> str:
     comes from *item_id* — the frontmatter's own declared identity. The file-level check tier
     (``_services._maintenance._stem_slug``) cannot read frontmatter yet when it asks the same
     question (it runs before ``read_frontmatter``), so its prefix comes from the file's type
-    *folder* instead. The two agree on every file ``sq`` itself writes. They can disagree only
-    when a skill's ``extra.slug`` is set to something the filename does not spell — the write
-    path (which reads ``extra.slug`` when present) and this function then answer differently,
-    and the check tier, never reading ``extra`` at all, answers by the filename alone.
+    *folder* instead. The two agree on every file ``sq`` itself writes.
     """
     name = path.rsplit("/", 1)[-1].removesuffix(".md")
     prefix = prefix_from_id(item_id) if item_id else ""

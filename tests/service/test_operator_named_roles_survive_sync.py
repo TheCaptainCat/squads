@@ -28,7 +28,6 @@ from squads import __version__
 from squads import _itemfile as itemfile
 from squads._context import bind_context, get_context
 from squads._index._reflog import read_lines, reflog_path
-from squads._models._extras import ExtraKey as X
 from squads._roles._catalog import PREDEFINED
 from squads._roles._resolver import dev_base_for_slug, resolve_role_with_base
 from squads._services import _service as service
@@ -162,33 +161,40 @@ async def test_name_only_and_name_plus_override_both_survive_the_same_sync(tmp_p
 
 
 # --------------------------------------------------------------------------------------------
-# Tier 1 still wins: a declared override full_name renames the role even over an item that
-# already carries a *different* operator-set name -- both role kinds.
+# A role's stored name is its name: an override file declared after creation renames neither a
+# role given a name nor one that took the default. Both role kinds.
 # --------------------------------------------------------------------------------------------
 
+#: (id, kind, activation name or None (the default name is kept), the name the override declares)
+OVERRIDE_ROWS = [
+    ("bundled-given", "architect", "Ada Lovelace", "Marie Curie"),
+    ("bundled-default", "architect", None, "Marie Curie"),
+    ("developer-given", "python", "Hank Python", "Grace Hopper"),
+    ("developer-default", "python", None, "Grace Hopper"),
+]
 
-async def test_a_declared_override_still_renames_over_the_items_own_different_name_bundled(
-    project, svc
+
+@pytest.mark.parametrize(
+    ("kind", "given", "declared"),
+    [r[1:] for r in OVERRIDE_ROWS],
+    ids=[r[0] for r in OVERRIDE_ROWS],
+)
+async def test_an_override_declared_after_creation_renames_no_role(
+    project, svc, kind, given, declared
 ):
-    role = await svc.activate_role("architect", name="Ada Lovelace")
-    _place_override(project.squad_dir, "architect", 'full_name = "Marie Curie"\n')
+    if kind == "python":
+        role = await svc.add_dev("python", name=given)
+        slug = "python-dev"
+    else:
+        role = await svc.activate_role(kind, name=given)
+        slug = kind
+    named = role.title
+    assert declared != named
+    _place_override(project.squad_dir, slug, f'full_name = "{declared}"\n')
 
     await svc.sync()
 
-    reloaded = await svc.get(role.id)
-    assert reloaded.title == "Marie Curie"
-
-
-async def test_a_declared_override_still_renames_over_the_items_own_different_name_dev(
-    project, svc
-):
-    dev = await svc.add_dev("python", name="Hank Python")
-    _place_override(project.squad_dir, "python-dev", 'full_name = "Grace Hopper"\n')
-
-    await svc.sync()
-
-    reloaded = await svc.get(dev.id)
-    assert reloaded.title == "Grace Hopper"
+    assert (await svc.get(role.id)).title == named
 
 
 # --------------------------------------------------------------------------------------------
@@ -231,10 +237,10 @@ async def test_catalog_resolution_still_reaches_a_stale_item_alongside_a_preserv
     current = await svc.get(role.id)
     base = current.model_copy(deep=True)
     stale = current.model_copy(deep=True)
-    stale.extra[X.MISSION] = "a long-obsolete mission statement"
+    stale.attributes["mission"] = "a long-obsolete mission statement"
     stale.description = "a long-obsolete mission statement"
-    stale.extra[X.RESPONSIBILITIES] = ["an obsolete responsibility"]
-    stale.extra[X.CAN_SPAWN] = not _BUNDLED_ARCHITECT.can_spawn
+    stale.attributes["responsibilities"] = ["an obsolete responsibility"]
+    stale.attributes["can_spawn"] = not _BUNDLED_ARCHITECT.can_spawn
     async with svc.store.transaction() as db:
         await update_frontmatter(
             item_file(svc.paths, stale), stale, base, default_kind=svc.spec.default_ref_kind()
@@ -254,7 +260,7 @@ async def test_catalog_resolution_still_reaches_a_stale_item_alongside_a_preserv
     assert list(resolved.responsibilities) == list(_BUNDLED_ARCHITECT.responsibilities)
     assert resolved.can_spawn == _BUNDLED_ARCHITECT.can_spawn
     # The stale copy is inert, not healed -- pinned so a reader knows which of the two it is.
-    assert healed.extra[X.MISSION] == "a long-obsolete mission statement"
+    assert healed.attribute("mission") == "a long-obsolete mission statement"
     # The operator's own name is untouched by the very same sync.
     assert healed.title == "Ada Lovelace"
 
@@ -292,31 +298,26 @@ async def test_init_names_presence_or_absence_changes_no_resolve(project, svc):
 # --------------------------------------------------------------------------------------------
 
 
-async def test_a_rename_through_this_writer_is_visible_and_the_create_entry_survives(
+async def test_a_change_through_this_writer_is_visible_and_the_create_entry_survives(
     project, svc, frozen_time
 ):
     from squads import _actor as actor
 
     actor.seed_session("sid-activate", None)
-    role = await svc.activate_role("architect", name="Ada Lovelace")
+    role = await svc.activate_role("architect")
     original_updated_at = role.updated_at
 
-    _place_override(project.squad_dir, "architect", 'full_name = "Marie Curie"\n')
+    _place_override(project.squad_dir, "architect", 'mission = "A new mission."\n')
 
     later = frozen_time + timedelta(hours=1)
     bind_context(dc_replace(get_context(), clock_override=later))
     actor.seed_session("sid-sync", None)
     skipped = await svc.sync()
-    # The override was placed directly on disk, so the pointer this sync started with still
-    # named "Ada Lovelace" — genuinely stale relative to the override's declared name, and
-    # this sync is what first regenerates it. A "had drifted" report here is currency detection
-    # doing its job: the pointer really was out of date the moment before this call.
-    assert skipped == [
-        ".claude/agents/architect.md: had drifted — regenerated by this sync (backend: claude_code)"
-    ]
+    assert not skipped
 
     reloaded = await svc.get(role.id)
-    assert reloaded.title == "Marie Curie"
+    assert reloaded.title == "Robert Architect"
+    assert reloaded.description == "A new mission."
     assert reloaded.updated_at == later
     assert reloaded.updated_at != original_updated_at
     assert reloaded.modified_session == "sid-sync"
@@ -324,4 +325,4 @@ async def test_a_rename_through_this_writer_is_visible_and_the_create_entry_surv
     lines = await read_lines(reflog_path(project.squad_dir))
     role_lines = [ln for ln in lines if ln.target == role.id]
     assert [ln.op for ln in role_lines] == ["create", "update"]  # append-only, in order
-    assert role_lines[0].delta.get("title") == "Ada Lovelace"  # the create entry, untouched
+    assert role_lines[0].delta.get("title") == "Robert Architect"  # the create entry, untouched

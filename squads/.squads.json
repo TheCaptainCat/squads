@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1062,
+  "counter": 1064,
   "padding": 6,
   "items": {
     "12": {
@@ -7405,7 +7405,7 @@
       ],
       "path": "features/FEAT-000977-verb-parity-for-skills-roles-and-operators.md",
       "created_at": "2026-09-29T14:19:16Z",
-      "updated_at": "2026-10-09T19:18:32Z",
+      "updated_at": "2026-10-16T17:07:18Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -7416,7 +7416,7 @@
       "type": "feature",
       "title": "Comment headers carry the author's permanent slug",
       "slug": "comment-headers-carry-the-author-s-permanent-slug",
-      "status": "InProgress",
+      "status": "Done",
       "description": "",
       "parent": null,
       "author": "product-owner",
@@ -7434,7 +7434,7 @@
         {
           "local_id": "US1",
           "title": "As a reader, I want comment headers that name the author's slug",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7443,7 +7443,7 @@
         {
           "local_id": "US2",
           "title": "As an operator, I want slugs permanent on every write path",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7452,7 +7452,7 @@
         {
           "local_id": "US3",
           "title": "As an adopter, I want legacy headers migrated once, fail-loud",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7461,7 +7461,7 @@
         {
           "local_id": "US4",
           "title": "As a tool author, I want author_slug in the discussion JSON",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7470,7 +7470,7 @@
         {
           "local_id": "US5",
           "title": "As an adopter, I want the header grammar documented",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -7479,7 +7479,7 @@
       ],
       "path": "features/FEAT-000980-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:58:15Z",
-      "updated_at": "2026-10-15T21:43:29Z",
+      "updated_at": "2026-10-16T14:39:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -31278,7 +31278,7 @@
       "subentities": [],
       "path": "adrs/ADR-000777-one-override-contract-for-every-bundled-spec-document.md",
       "created_at": "2026-08-22T09:28:30Z",
-      "updated_at": "2026-08-25T23:00:56Z",
+      "updated_at": "2026-10-16T16:17:55Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44055,7 +44055,7 @@
       "type": "task",
       "title": "Add the eight opt-in per-item policy checks to the validator catalog",
       "slug": "add-the-eight-opt-in-per-item-policy-checks-to-the-validator",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Eight catalog-only members from ADR-864 Part 2 and the blocked flag on a status role, in two parts: what changes no bundled file first, the flag and its check after the version bump",
       "parent": "FEAT-901",
       "author": "tech-lead",
@@ -44170,7 +44170,7 @@
       ],
       "path": "tasks/TASK-001001-add-the-eight-opt-in-per-item-policy-checks-to-the-validator.md",
       "created_at": "2026-10-12T05:46:24Z",
-      "updated_at": "2026-10-16T13:41:42Z",
+      "updated_at": "2026-10-16T16:20:53Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44350,7 +44350,7 @@
       "type": "task",
       "title": "Accept and show author_slug on comments in the VS Code client",
       "slug": "accept-and-show-author-slug-on-comments-in-the-vs-code-clien",
-      "status": "InReview",
+      "status": "Done",
       "description": "Optional author_slug on SqDiscussionEntry, tolerant shape guard, slug beside the name in the preview",
       "parent": "FEAT-980",
       "author": "tech-lead",
@@ -44375,7 +44375,7 @@
       ],
       "path": "tasks/TASK-001005-accept-and-show-author-slug-on-comments-in-the-vs-code-clien.md",
       "created_at": "2026-10-12T06:48:44Z",
-      "updated_at": "2026-10-16T08:16:12Z",
+      "updated_at": "2026-10-16T14:38:35Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44455,7 +44455,7 @@
       "subentities": [],
       "path": "adrs/ADR-001007-frontmatter-is-flat-core-keys-plus-spec-declared-attributes.md",
       "created_at": "2026-10-15T18:49:27Z",
-      "updated_at": "2026-10-15T20:17:27Z",
+      "updated_at": "2026-10-16T16:15:34Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -44821,7 +44821,7 @@
       "type": "feature",
       "title": "Flat frontmatter: core keys plus declared attributes",
       "slug": "flat-frontmatter-core-keys-plus-declared-attributes",
-      "status": "Ready",
+      "status": "Done",
       "description": "No extra block; spec-declared attributes; unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner",
       "parent": null,
       "author": "product-owner",
@@ -44838,7 +44838,7 @@
         {
           "local_id": "US1",
           "title": "As a reader, I want one flat mapping with slug as a core key",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44847,7 +44847,7 @@
         {
           "local_id": "US2",
           "title": "As an adopter, I want to declare attributes in my spec",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44856,7 +44856,7 @@
         {
           "local_id": "US3",
           "title": "As an adopter, I want attributes validated, never destroyed",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44865,7 +44865,7 @@
         {
           "local_id": "US4",
           "title": "As an adopter, I want no write to remove an untargeted key",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44874,7 +44874,7 @@
         {
           "local_id": "US5",
           "title": "As an operator, I want one meaning per name",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44883,7 +44883,7 @@
         {
           "local_id": "US6",
           "title": "As an adopter, I want old corpora flattened once, fail-loud",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44892,7 +44892,7 @@
         {
           "local_id": "US7",
           "title": "As a tool author, I want flat --json and a matching canary",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44901,7 +44901,7 @@
         {
           "local_id": "US8",
           "title": "As an adopter, I want the docs and changelog to say flat",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "severity": null,
           "story": null,
@@ -44910,7 +44910,7 @@
       ],
       "path": "features/FEAT-001016-flat-frontmatter-core-keys-plus-declared-attributes.md",
       "created_at": "2026-10-15T20:12:57Z",
-      "updated_at": "2026-10-16T13:11:38Z",
+      "updated_at": "2026-10-16T17:12:51Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47228,7 +47228,7 @@
       "type": "bug",
       "title": "roles.toml full_name ignored for an already-active role",
       "slug": "roles-toml-full-name-ignored-for-an-already-active-role",
-      "status": "Open",
+      "status": "WontFix",
       "description": "Catalog-document full_name renames only the catalog and new activations, not a live role; per-slug file does.",
       "parent": null,
       "author": "qa",
@@ -47243,7 +47243,7 @@
       "subentities": [],
       "path": "bugs/BUG-001049-roles-toml-full-name-ignored-for-an-already-active-role.md",
       "created_at": "2026-10-16T11:19:07Z",
-      "updated_at": "2026-10-16T13:08:49Z",
+      "updated_at": "2026-10-16T16:18:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47679,7 +47679,7 @@
       "type": "task",
       "title": "Flatten the frontmatter into core keys and declared attributes",
       "slug": "flatten-the-frontmatter-into-core-keys-and-declared-attribut",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Item.attributes, the attributes grammar, the write invariant, the flattening merged with operator-identity in the 0.16 step, and the chosen-name fix",
       "parent": "FEAT-1016",
       "author": "tech-lead",
@@ -47695,7 +47695,7 @@
         {
           "local_id": "ST1",
           "title": "Model: one attribute mapping, slug as a core key, AttributeKey and the accessor",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US1",
@@ -47704,7 +47704,7 @@
         {
           "local_id": "ST2",
           "title": "Spec: the attributes grammar, pinned roster attributes and the refused names",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US2",
@@ -47713,7 +47713,7 @@
         {
           "local_id": "ST3",
           "title": "Validation: attribute kinds in sq check, --set and import; opt-in undeclared check",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US3",
@@ -47722,7 +47722,7 @@
         {
           "local_id": "ST4",
           "title": "Write invariant: the write-path by key-shape table and its falsification",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US4",
@@ -47731,7 +47731,7 @@
         {
           "local_id": "ST5",
           "title": "One meaning per name: skill description, operator title, tech",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US5",
@@ -47740,7 +47740,7 @@
         {
           "local_id": "ST6",
           "title": "The flat-frontmatter contribution of the 0.16 step, absorbing operator-identity",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US6",
@@ -47749,7 +47749,7 @@
         {
           "local_id": "ST7",
           "title": "Run the 0.16 step on a scratch copy of this repository's squad",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US6",
@@ -47758,7 +47758,7 @@
         {
           "local_id": "ST8",
           "title": "Flat --json rows, workflow attributes and flat render contexts",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "severity": null,
           "story": "US7",
@@ -47767,7 +47767,7 @@
         {
           "local_id": "ST9",
           "title": "VS Code skew canary: flat rows and type attributes",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "typescript-dev",
           "severity": null,
           "story": "US7",
@@ -47776,7 +47776,7 @@
         {
           "local_id": "ST10",
           "title": "Docs and changelog for the flat frontmatter",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "severity": null,
           "story": "US8",
@@ -47785,7 +47785,7 @@
       ],
       "path": "tasks/TASK-001059-flatten-the-frontmatter-into-core-keys-and-declared-attribut.md",
       "created_at": "2026-10-16T13:05:35Z",
-      "updated_at": "2026-10-16T13:22:49Z",
+      "updated_at": "2026-10-16T17:12:14Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -47844,7 +47844,7 @@
       "type": "review",
       "title": "Blocked flag and blocked_has_blocker, part two",
       "slug": "blocked-flag-and-blocked-has-blocker-part-two",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "Review of TASK-1001 part two: the role blocked flag and the blocked_has_blocker check.",
       "parent": null,
       "author": "reviewer",
@@ -47861,7 +47861,7 @@
         {
           "local_id": "F1",
           "title": "A malformed dependency ref aborts every check and write",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -47870,7 +47870,7 @@
         {
           "local_id": "F2",
           "title": "The sixth role key turns the VS Code skew canary red",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -47879,7 +47879,7 @@
         {
           "local_id": "F3",
           "title": "The refusal names ref add, which create cannot use",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -47888,7 +47888,7 @@
         {
           "local_id": "F4",
           "title": "The role table comment does not document the flag",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -47897,7 +47897,7 @@
         {
           "local_id": "F5",
           "title": "Strict blocked beside lenient live, settled and hidden",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -47906,7 +47906,7 @@
         {
           "local_id": "F6",
           "title": "blocked_statuses has no caller outside its test",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -47924,11 +47924,254 @@
       ],
       "path": "reviews/REV-001062-blocked-flag-and-blocked-has-blocker-part-two.md",
       "created_at": "2026-10-16T13:40:55Z",
-      "updated_at": "2026-10-16T13:42:31Z",
+      "updated_at": "2026-10-16T16:20:51Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-1062"
+    },
+    "1063": {
+      "sequence_id": 1063,
+      "type": "review",
+      "title": "Flat frontmatter and the 0.16 flattening step",
+      "slug": "flat-frontmatter-and-the-0-16-flattening-step",
+      "status": "Approved",
+      "description": "Review of TASK-1059 ST1-ST8: flat frontmatter, the 0.16 flattening contribution and the chosen-name fix.",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1059:addresses",
+        "FEAT-1016:addresses",
+        "MILE-934:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A CRLF role file is corrupted, other CRLF items stay nested",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "An unquoted date attribute makes its item unwritable",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Config-sourced role names are marked chosen and frozen",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "A refused run leaves an index 0.15.0 misreads",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Hand-added path and prefix keys are dropped on write",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "A declared role attribute named like a retired key is swept",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "An unchosen developer keeps a removed per-slug name",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "The flattening guesses on core-key and nested extra shapes",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "A differing skill description is dropped unlisted",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Pin table spells attribute keys as literals",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001063-flat-frontmatter-and-the-0-16-flattening-step.md",
+      "created_at": "2026-10-16T15:11:18Z",
+      "updated_at": "2026-10-16T16:14:43Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1063"
+    },
+    "1064": {
+      "sequence_id": 1064,
+      "type": "review",
+      "title": "Flat frontmatter adopter docs and changelog",
+      "slug": "flat-frontmatter-adopter-docs-and-changelog",
+      "status": "Approved",
+      "description": "Claim-by-claim re-run of the flat-frontmatter, attributes and stored-role-name docs against the dev build",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": "reviewer",
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "TASK-1059"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Unknown keys kept claim omits the retired role-key sweep",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Hand-added key needs sq repair before the next write",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "Frozen item-row shape omits the path key every row carries",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Role model set through import is ignored on a bundled role",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "Which name wins uses title for both job title and name",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "Duplicate-name remedy for a role omits the final sq sync",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Import rename route reports the pointer as drifted",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Every item has slug and refs overclaims the file shape",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Unselected-checks list omits blocked_has_blocker",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "No-update-verb passages go stale when FEAT-977 lands",
+          "status": "WontFix",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F11",
+          "title": "Repo CLAUDE.md still names ExtraKey and _extras.py",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001064-flat-frontmatter-adopter-docs-and-changelog.md",
+      "created_at": "2026-10-16T17:05:08Z",
+      "updated_at": "2026-10-16T17:12:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "REV-1064"
     }
   }
 }

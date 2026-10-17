@@ -19,7 +19,7 @@ async def test_create_with_a_nonexistent_parent_id_raises_item_not_found(svc):
 
 async def test_a_skill_slug_is_not_a_valid_author_only_role_and_operator_slugs_are(svc):
     seeded = await svc.seed_bundled_skills()
-    skill_slug = seeded[0].extra.get("slug", seeded[0].slug)
+    skill_slug = seeded[0].slug
     with pytest.raises(SquadsError, match="not a registered agent or operator"):
         await svc.create("task", "t", author=skill_slug)
 
