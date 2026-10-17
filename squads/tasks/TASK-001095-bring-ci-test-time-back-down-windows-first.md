@@ -7,6 +7,7 @@ status: Draft
 author: tech-lead
 refs:
 - MILE-1051:targets
+- FEAT-1096
 description: CI went 19/2.5/4.5 min to 42/14.5/11 (Win/mac/Ubuntu) in 0.16; profile,
   then cut setup cost.
 subentities:
@@ -27,7 +28,7 @@ subentities:
   title: Measure the write-once guard's cost, and keep it on
   status: Todo
 created_at: '2026-10-17T07:42:12Z'
-updated_at: '2026-10-17T07:42:39Z'
+updated_at: '2026-10-17T07:57:07Z'
 ---
 <!-- sq:body -->
 CI test time roughly tripled between the 0.15 and 0.16 release PRs. This task brings it back down, Windows first, using the simplest measures before any restructuring.
@@ -143,4 +144,8 @@ Measure the suite with and without the write-once guard on one OS to confirm or 
 <!-- sq:discussion -->
 - [2026-10-17T07:42:39Z] Olivia Lead:
   - Left unparented: FEAT-1092 is engine layering and cohesion (REV-956 findings), not test or CI time, and no other open feature covers CI cost (FEAT-916/917 are sq runtime cost under EPIC-31). Targets MILE-1051 directly. Filed at op-pierre's request on 2026-10-17.
+- [2026-10-17T07:55:40Z] Pierre Chat:
+  - 2026-10-17: a speed boost is not enough. We need another complete rebuild of the test suite, from the ground up.
+- [2026-10-17T07:57:07Z] Nina Product:
+  - Linked FEAT-1096 (complete test-suite rebuild, per op-pierre 2026-10-17). This task's profiling and setup-sharing work is one input to it.
 <!-- sq:discussion:end -->

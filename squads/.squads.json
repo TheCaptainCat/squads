@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1095,
+  "counter": 1096,
   "padding": 6,
   "items": {
     "12": {
@@ -50463,7 +50463,8 @@
       "severity": null,
       "labels": [],
       "refs": [
-        "MILE-1051:targets"
+        "MILE-1051:targets",
+        "FEAT-1096"
       ],
       "subentities": [
         {
@@ -50514,11 +50515,127 @@
       ],
       "path": "tasks/TASK-001095-bring-ci-test-time-back-down-windows-first.md",
       "created_at": "2026-10-17T07:42:12Z",
-      "updated_at": "2026-10-17T07:42:39Z",
+      "updated_at": "2026-10-17T07:57:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "TASK-1095"
+    },
+    "1096": {
+      "sequence_id": 1096,
+      "type": "feature",
+      "title": "Rebuild the test suite from the ground up",
+      "slug": "rebuild-the-test-suite-from-the-ground-up",
+      "status": "Draft",
+      "description": "Replace the 13,800-test suite with a smaller, falsification-checked one; parity ledger, per-OS CI targets.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "priority": "high",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Behaviour inventory and parity ledger",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Falsification audit of the old suite",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Conventions, layer policy and risk scaling",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Meta guards for volume, duplicate seams and naming",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Shared fixtures and goldens for the new suite",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Rebuild the integrity core tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "Rebuild the engine, services and CLI tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "Rebuild the backend, skills and rendering tests",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "Prove parity, then delete the old suite",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "US10",
+          "title": "Measure per-OS CI times and test count",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "features/FEAT-001096-rebuild-the-test-suite-from-the-ground-up.md",
+      "created_at": "2026-10-17T07:56:25Z",
+      "updated_at": "2026-10-17T07:57:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "FEAT-1096"
     }
   }
 }
