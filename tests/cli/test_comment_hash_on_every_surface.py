@@ -105,7 +105,10 @@ async def test_a_separator_inside_an_earlier_comment_does_not_move_the_hit_to_an
         text.replace("  - needle on the item @manager", f"  - needle{chr(0x2028)}on the item"),
         encoding="utf-8",
     )
-    path.write_text(path.read_text(encoding="utf-8").replace("second on the item", "later needle"))
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("second on the item", "later needle"),
+        encoding="utf-8",
+    )
     comments = _json(await invoke([*ITEM, "comments", "--json"]))
 
     hits = {

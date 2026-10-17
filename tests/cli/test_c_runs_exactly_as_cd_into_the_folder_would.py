@@ -86,13 +86,24 @@ _COMMANDS: dict[str, list[str]] = {
 }
 
 
-def _snapshot(src: Path, dest: Path) -> None:
+def _copy_tree(src: Path, dest: Path) -> None:
+    """Copy *src* keeping symlinks; a link to a directory stays a directory link on Windows,
+    where ``copytree`` makes a file link whenever the target is not there yet."""
     shutil.copytree(src, dest, symlinks=True)
+    for link in src.rglob("*"):
+        if link.is_symlink() and link.is_dir():
+            copy = dest / link.relative_to(src)
+            copy.unlink()
+            copy.symlink_to(link.readlink(), target_is_directory=True)
+
+
+def _snapshot(src: Path, dest: Path) -> None:
+    _copy_tree(src, dest)
 
 
 def _restore(snapshot: Path, world: Path) -> None:
     shutil.rmtree(world)
-    shutil.copytree(snapshot, world, symlinks=True)
+    _copy_tree(snapshot, world)
 
 
 def _outcome(args: list[str], cwd: Path, world: Path, monkeypatch: pytest.MonkeyPatch):

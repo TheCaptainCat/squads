@@ -157,7 +157,7 @@ def _migrate_file(md: Path, item_type: str) -> bool:
         text = discussion.ensure_summary(text, "finding", markers.FINDINGS, [])
     if text == original:
         return False
-    md.write_text(text, encoding="utf-8")
+    md.write_text(text, encoding="utf-8", newline="")
     return True
 
 

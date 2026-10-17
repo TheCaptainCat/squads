@@ -141,7 +141,7 @@ def _migrate_subentities(
         text = _meta_compat.drop_meta(text, kind, b.local_id)
     fm, _ = sections.split_frontmatter(text)
     fm["subentities"] = [_meta_compat.to_subentity(b).to_frontmatter_dict() for b in subs]
-    md.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8")
+    md.write_text(sections.replace_frontmatter(text, fm), encoding="utf-8", newline="")
     return True
 
 
@@ -156,7 +156,7 @@ def _backfill_sequence_id(md: Path) -> bool:
         rebuilt[key] = value
         if key == "id":  # place sequence_id right after the id
             rebuilt["sequence_id"] = int(str(value).rsplit("-", 1)[-1])
-    md.write_text(sections.replace_frontmatter(text, rebuilt), encoding="utf-8")
+    md.write_text(sections.replace_frontmatter(text, rebuilt), encoding="utf-8", newline="")
     return True
 
 

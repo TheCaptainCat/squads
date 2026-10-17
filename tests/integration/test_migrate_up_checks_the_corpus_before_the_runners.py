@@ -891,7 +891,7 @@ async def test_the_same_edit_on_a_squad_with_an_override_is_refused_naming_it(
     result = await invoke(["migrate", "up"])
 
     assert result.exit_code == 1, result.output
-    assert ".overrides/workflow.toml" in result.output
+    assert ".overrides/workflow.toml" in result.output.replace("\\", "/")
 
 
 # --------------------------------------------------------------------------- odd prefixes

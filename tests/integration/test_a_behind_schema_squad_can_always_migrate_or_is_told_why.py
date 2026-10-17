@@ -133,13 +133,13 @@ def _put(root: Path, rel: str, content: str | bytes) -> None:
     if isinstance(content, bytes):
         (root / rel).write_bytes(content)
     else:
-        (root / rel).write_text(content, encoding="utf-8")
+        (root / rel).write_text(content, encoding="utf-8", newline="")
 
 
 def _edit(root: Path, rel: str, old: str, new: str) -> None:
     text = (root / rel).read_text(encoding="utf-8")
     assert old in text, old
-    (root / rel).write_text(text.replace(old, new, 1), encoding="utf-8")
+    (root / rel).write_text(text.replace(old, new, 1), encoding="utf-8", newline="")
 
 
 def _override(root: Path, body: str, name: str = "workflow") -> None:
@@ -147,7 +147,7 @@ def _override(root: Path, body: str, name: str = "workflow") -> None:
 
 
 def _error_text(output: str) -> str:
-    return " ".join(output.split())
+    return " ".join(output.replace("\\", "/").split())
 
 
 def _body_region(text: str) -> str:
@@ -200,7 +200,7 @@ def _tag_by_hand(root: Path) -> None:
     text = (root / _MILE_1).read_text(encoding="utf-8")
     text = text.replace("<!-- sq:body:end -->", _TAG + "\n<!-- sq:body:end -->", 1)
     text = re.sub(r"updated_at: '[^']+'", "updated_at: '2026-07-01T00:00:00Z'", text, count=1)
-    (root / _MILE_1).write_text(text, encoding="utf-8")
+    (root / _MILE_1).write_text(text, encoding="utf-8", newline="")
 
 
 def _move_the_task(root: Path) -> None:

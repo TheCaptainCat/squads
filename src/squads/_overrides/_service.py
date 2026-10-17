@@ -373,7 +373,7 @@ def scaffold_template(squad_dir: Path, template_name: str, *, force: bool = Fals
     dest.parent.mkdir(parents=True, exist_ok=True)
     # Write bundled content first, then add the stamp as the first line.
     stamped = write_template_stamp(bundled, __version__)
-    dest.write_text(stamped, encoding="utf-8")
+    dest.write_text(stamped, encoding="utf-8", newline="")
 
     # The engine caches the environment per squad dir — invalidate so the new file is picked up.
     invalidate_squad_dir(squad_dir)
@@ -425,7 +425,7 @@ def scaffold_role(squad_dir: Path, slug: str, *, force: bool = False) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     stamp_line = f"# squads:override-base:{__version__}\n"
     desc = f"# Role override for '{slug}'. Add fields to override (e.g. full_name, model).\n"
-    dest.write_text(stamp_line + desc, encoding="utf-8")
+    dest.write_text(stamp_line + desc, encoding="utf-8", newline="")
     return dest
 
 
@@ -488,7 +488,7 @@ def scaffold_new_role(
     stamp_line = f"# squads:override-base:{__version__}\n"
     can_spawn_line = _CAN_SPAWN_ACTIVE if can_spawn else _CAN_SPAWN_COMMENTED
     body = _NEW_ROLE_SCAFFOLD_TPL.format(slug=slug, can_spawn_line=can_spawn_line)
-    dest.write_text(stamp_line + body, encoding="utf-8")
+    dest.write_text(stamp_line + body, encoding="utf-8", newline="")
     return dest
 
 
@@ -573,7 +573,7 @@ def scaffold_workflow(squad_dir: Path, *, force: bool = False) -> Path:
 
     dest.parent.mkdir(parents=True, exist_ok=True)
     stamp_line = f"# squads:override-base:{__version__}\n"
-    dest.write_text(stamp_line + _WORKFLOW_SCAFFOLD_BODY, encoding="utf-8")
+    dest.write_text(stamp_line + _WORKFLOW_SCAFFOLD_BODY, encoding="utf-8", newline="")
     return dest
 
 
@@ -652,7 +652,7 @@ def scaffold_playbook(squad_dir: Path, *, force: bool = False) -> Path:
 
     dest.parent.mkdir(parents=True, exist_ok=True)
     stamp_line = f"# squads:override-base:{__version__}\n"
-    dest.write_text(stamp_line + _PLAYBOOK_SCAFFOLD_BODY, encoding="utf-8")
+    dest.write_text(stamp_line + _PLAYBOOK_SCAFFOLD_BODY, encoding="utf-8", newline="")
     return dest
 
 
@@ -717,7 +717,7 @@ def scaffold_roles_catalog(squad_dir: Path, *, force: bool = False) -> Path:
 
     dest.parent.mkdir(parents=True, exist_ok=True)
     stamp_line = f"# squads:override-base:{__version__}\n"
-    dest.write_text(stamp_line + _ROLES_CATALOG_SCAFFOLD_BODY, encoding="utf-8")
+    dest.write_text(stamp_line + _ROLES_CATALOG_SCAFFOLD_BODY, encoding="utf-8", newline="")
     return dest
 
 

@@ -245,7 +245,7 @@ def migrate(paths: SquadPaths) -> int:
         new_body = _rewrite_mentions(body, id_map)
         new_text = join_frontmatter(fm, new_body)
         if new_text != text:
-            md.write_text(new_text, encoding="utf-8")
+            md.write_text(new_text, encoding="utf-8", newline="")
             changed += 1
 
     return changed

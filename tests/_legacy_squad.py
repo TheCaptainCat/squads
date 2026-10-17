@@ -99,7 +99,7 @@ def legacy_shape(
     block.update(extra or {})
     if block:
         data["extra"] = block
-    path.write_text(replace_frontmatter(text, data), encoding="utf-8")
+    path.write_text(replace_frontmatter(text, data), encoding="utf-8", newline="")
 
 
 def legacy_operator_shape(

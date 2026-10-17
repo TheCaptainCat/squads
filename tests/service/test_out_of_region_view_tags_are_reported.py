@@ -63,7 +63,7 @@ async def svc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 async def _milestone(svc, transform) -> tuple[str, Path]:
     created = await svc.create("milestone", "Ship it", author="manager")
     item, md = created.item, created.path
-    md.write_text(transform(md.read_text()))
+    md.write_text(transform(md.read_text(encoding="utf-8")), encoding="utf-8")
     return item.id, md
 
 
@@ -90,7 +90,7 @@ async def test_check_reports_only_out_of_region_tags(svc, transform, out_of_regi
 async def test_render_follows_the_region(svc, transform, out_of_region):
     item_id, md = await _milestone(svc, transform)
 
-    region = md.read_text().split(_BODY_OPEN, 1)[1].split(_BODY_CLOSE, 1)[0]
+    region = md.read_text(encoding="utf-8").split(_BODY_OPEN, 1)[1].split(_BODY_CLOSE, 1)[0]
     rendered = await svc.read_body(item_id)
 
     in_region_tag = "sq:view:milestone_rollup" in region
@@ -144,11 +144,11 @@ async def test_template_override_route(svc):
     from squads._overrides._service import check_override_issues, scaffold_template
 
     path = scaffold_template(svc.paths.squad_dir, "items/task.md.j2")
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     match = re.search(r"<!-- sq:view:\w+ -->\n", text)
     tag = match.group(0) if match else _TAG
     moved = _without_tag(text).replace(_BODY_CLOSE, _BODY_CLOSE + tag, 1)
-    path.write_text(moved)
+    path.write_text(moved, encoding="utf-8")
 
     issues = check_override_issues(svc.paths.squad_dir)
 

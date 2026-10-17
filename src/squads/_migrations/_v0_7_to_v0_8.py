@@ -83,7 +83,7 @@ def migrate(paths: SquadPaths) -> int:
         else:
             fm.pop("extra", None)
 
-        md.write_text(replace_frontmatter(text, fm), encoding="utf-8")
+        md.write_text(replace_frontmatter(text, fm), encoding="utf-8", newline="")
         changed += 1
 
     return changed
