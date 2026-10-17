@@ -77,7 +77,7 @@ async def test_roster_rm_refuses_without_purge_and_deletes_with_it(
     else:
         assert result.exit_code == 1, result.output
         flat = " ".join(result.output.split())
-        assert f"sq {item_type} {item_id} rm --purge" in flat
+        assert f"sq {item_type} {item_id} remove --purge" in flat
         assert f"sq {item_type} {item_id} status Archived" in flat
         assert _snapshot(project.root) == before
     check = await invoke(["check"])
@@ -90,4 +90,4 @@ async def test_refusal_omits_the_archive_route_when_it_would_not_apply(project, 
 
     archived = await invoke(["role", "qa", "rm"])
     assert archived.exit_code == 1
-    assert "status" not in archived.output and "rm --purge" in archived.output
+    assert "status" not in archived.output and "remove --purge" in archived.output

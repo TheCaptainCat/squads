@@ -3,7 +3,7 @@ id: TASK-1078
 sequence_id: 1078
 type: task
 title: Allow prose in roster bodies and give operators a profile
-status: Draft
+status: Done
 parent: FEAT-1054
 author: tech-lead
 priority: medium
@@ -15,27 +15,27 @@ description: check accepts role/operator prose; body verb on role and operator; 
 subentities:
 - local_id: ST1
   title: Stop sq check reporting prose in a role body as a missing seeded tag
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Add the body verb to roles and operators through one shared helper
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Make the greeting skill read the operator profile and adapt
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST4
   title: Offer registration and a short interview to an unknown human
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST5
   title: Document the prose allowance and the operator profile
-  status: Todo
+  status: Done
   assignee: tech-writer
   story: US4
 created_at: '2026-10-16T21:10:07Z'
-updated_at: '2026-10-16T21:15:58Z'
+updated_at: '2026-10-17T00:56:30Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -176,6 +176,8 @@ tag-lost-no-prose row goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-17T00:27:46Z] Elias Python:
+  - Falsified: role condition dropped, 4 new/changed tests red; skip extended to skills, 4 red; whole role treated as prose, 2 red. Reverted.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -228,6 +230,8 @@ replace: the read-back column goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-17T00:27:47Z] Elias Python:
+  - Falsified: force=True forced in the helper, 4 red; append forced off, 2 red; role id lookup replaced, 32 red. Reverted.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -268,6 +272,8 @@ the manifest stale: the manifest freshness test in `tests/meta` goes red. Restor
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-17T00:27:48Z] Elias Python:
+  - Falsified: operator show step removed from the template, 1 red; manifest left stale is caught by the manifest --check. Reverted.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -307,6 +313,8 @@ goes red. Drop the ask-first sentence: the golden goes red. Restore each.
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-17T00:27:49Z] Elias Python:
+  - Falsified: ask-first dropped, 1 red; answers moved onto operator add, 2 red. Reverted.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -351,4 +359,19 @@ written for the old check error say what is true now.
 <!-- sq:discussion -->
 - [2026-10-16T21:15:58Z] Olivia Lead:
   - Broken down into ST1-ST5. Depends on TASK-1069 (gate) and TASK-1070 (roster helpers, update); builds before TASK-1079. No migration. One open question on FEAT-1054 for @manager (renamed operator before its first body write), ST2 carries the row.
+- [2026-10-17T00:28:21Z] Elias Python:
+  - ST1-ST4 done, ST5 left to the writer, not committed. Adopter facts for ST5:
+    - sq check no longer reports a role body holding prose in place of its tag; a role with no prose and no tag, and skills with prose and no tag, report as before.
+    - New verb: sq role <slug> body and sq operator <slug> body (-m, --file, --file -, --append, --force); sq skill <slug> body is the same shared verb. Prints "<ID>: body set" or "<ID>: body appended".
+    - Role body is refused (exit 1, names .overrides/roles.toml, --force does not lift it) while role_definition is in [selected]; writable once the project drops the view. A bundled role not yet activated: "activate it first", exit 1.
+    - Operator: the first body write needs no --force (also after update --title); replacing a written profile exits 1 without --force; --append always works. A retired (Archived) operator is still writable.
+    - Greeting skill: for a registered operator it runs sq operator <slug> show and adapts to the profile; for an unknown person it asks first, then operator add, three questions (role, expertise, what they come to do) and operator <slug> body --file. No --profile option exists.
+    - Template manifest and content store regenerated; adopting squads run sq sync to refresh the greeting skill (not run on this repo).
+- [2026-10-17T00:53:34Z] Theo Writer:
+  - ST5 docs written, not committed. Probed on a copy of the working tree (b2eb38fb plus the uncommitted review fixes). @manager
+    
+    - docs/roles.md: the `body` rule for each entry kind (operator always writable, first write with no --force; a role refused while `role_definition` is selected, writable once it is dropped and the leftover tag is cleared with `view disable`; a generated skill refused); what `sq check` accepts in a role body; a new section, "The operator profile" (with the greeting steps for registered, retired and unknown people).
+    - Corrected: overrides.md (authoring by hand now uses `sq role <slug> body`), workflow.md (the refusal text with the view-disable clause, operator and role prose), migration.md (the old-text remedy quotes a skill, and a role clears its body with `sq role ... body`), adoption.md, faq.md, agents.md. CHANGELOG: one Added entry (body verbs, profile, greeting) and one Changed entry (check accepts role prose).
+    - Driven: every refusal and accepted write, the operator first write and the second replace, append, a retired operator, the inactive-role message, check on role prose with no tag, with a disabled tag and with an enabled tag (all clean), a damaged tag (reported), the dropped-view path to a clean check, the role old-text steps, and the greeting skill text after sync.
+    - Defect for @python-dev: on a role with a damaged `sq:view:` tag, `sq check`'s remedy step (2) reads ``clear the text with `sq skill devops body -m "" --force` `` for ROLE-6 (devops). It names the skill verb for a role, and it should be `sq role devops body`. The renamed `clear_skill_body_cmd` is now reached for roles through the damaged-tag branch. The docs do not quote that message.
 <!-- sq:discussion:end -->

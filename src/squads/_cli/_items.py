@@ -280,8 +280,7 @@ def build_item_app(
     _cmd_update(item, item_type, spec)
     _cmd_status(item)
     _cmd_body(item)
-    _cmd_comment(item)
-    _cmd_comments(item)
+    common.register_comment_verbs(item, _id)
     _cmd_refs(item)
     _cmd_view(item)
 
@@ -443,38 +442,6 @@ def _cmd_body(item: typer.Typer) -> None:
             _id(ctx), resolve_body(message or None, file), append=append, force=force
         )
         console.print(f"{_id(ctx)}: body {'appended' if append else 'set'}")
-
-
-def _cmd_comment(item: typer.Typer) -> None:
-    @item.command("comment")
-    @common.command
-    async def comment(
-        ctx: typer.Context,
-        message: list[str] = typer.Option(None, "-m", "--message", help="A talking point."),
-        file: str | None = typer.Option(None, "--file", help="Comment from a file ('-' = stdin)."),
-        as_: str | None = typer.Option(
-            None, "--as", help="Author: a role slug or 'op-<slug>' (required)."
-        ),
-    ):
-        """Append a timestamped comment to the item's discussion."""
-        svc = get_service()
-        slug = await resolve_actor_or_raise(require_as(as_), svc)
-        actor.set_actor(slug)
-        await svc.comment(_id(ctx), resolve_comment_messages(message or None, file), as_slug=slug)
-        console.print(f"commented on {_id(ctx)} as {slug}")
-
-
-def _cmd_comments(item: typer.Typer) -> None:
-    @item.command("comments")
-    @common.command
-    async def comments(ctx: typer.Context, json_out: bool = typer.Option(False, "--json")):
-        """Read back the item's top-level discussion (the dedicated, machine-readable verb —
-        `show --comments` renders the same discussion inline alongside the rest of the item)."""
-        cmt_list = await get_service().comments(_id(ctx))
-        if json_out:
-            print_json_clean(json.dumps([discussion.comment_json(c) for c in cmt_list]))
-            return
-        common.print_comments(cmt_list)
 
 
 def _retype_targets(spec: WorkflowSpec) -> str:

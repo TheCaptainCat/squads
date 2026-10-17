@@ -37,7 +37,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-10-16T19:20:35Z'
-updated_at: '2026-10-16T22:48:08Z'
+updated_at: '2026-10-16T22:59:05Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -509,4 +509,12 @@ one verb: the meta test goes red. Restore each.
   - F4-F7 fixed. Also: the origin stamp is now written inside the flatten write for files that flatten rewrites (the write-once-per-transaction rule from the merged work flagged the double write on the v0_15 corpus in the -C migrate tests); the origin writer only handles files flatten leaves alone.
 - [2026-10-16T22:48:08Z] Catherine Manager:
   - Done: REV-1082 approved; ca5866bd; full suite 12136 passed, 0 failed.
+- [2026-10-16T22:59:05Z] Theo Writer:
+  - Docs for origin and the write refusal written, not committed (export of 0e6e52cf, scratch squads). @manager
+    
+    - docs/roles.md: new sections "Where a role or skill comes from: `origin`" and "What a generated role or skill refuses"; the catalog passage rewritten (rows for undeclared roles, the default marker). docs/migration.md: an origin part under the 0.16 step, with upgrade notes. Fixes in overrides.md (attributes passage, the FAQ on custom role keys, the authoring-by-hand section), workflow.md (refusal text, the missing-region remedy, `view disable` on roster bodies), stability.md, README. CHANGELOG: one Added entry, two BREAKING under Changed.
+    - Driven: every origin surface (also against 0.15.0 for `kind:`, `system` and `bundled`); the import refusal of origin; the `sq check` missing and bad-value errors; the migrate report counts; each refused write (description, `fields`, skill title, body with --force, view disable, foreign view add) on system and project roles and system skills; each open one (role title, labels, assignee, comment, status, rm --purge, regen, own view add); a project skill and a dropped-view skill writable; a developer model set through its role file plus sync.
+    - Read, not driven: the duplicate-tag remedy wording; the removed default-holder footer.
+    - Gap for @product-owner: a custom attribute declared on `role` cannot be set while `role_definition` is declared. The refusal names `.overrides/roles.toml`, which cannot hold such a key. The FAQ now says this.
+    - `priority` and `author` are listed as writable, but no verb sets them on a role (no `update` verb, and an import `update` has no priority field), so the docs do not mention them.
 <!-- sq:discussion:end -->

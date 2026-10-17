@@ -6,11 +6,12 @@ concerns (create/get/list, the backend, the role/skill lookups + roster projecti
 only ever call core methods + their own.
 """
 
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Callable, Collection, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 from squads import _actor as actor
@@ -441,6 +442,12 @@ def reject_markers(text: str, what: str = "body") -> None:
 #: recognise the content, short enough that the message stays readable in a terminal.
 BODY_OVERWRITE_PREVIEW_LINES = 3
 
+#: Per roster type, the metadata fields an update may change on a generated entry: identity the
+#: operator sets, never generated content. Keyed by the field names ``_update_model`` reports.
+ROSTER_UPDATE_EXEMPT: Mapping[str, frozenset[str]] = MappingProxyType(
+    {ROSTER_ROLE: frozenset({"title"}), ROSTER_SKILL: frozenset()}
+)
+
 
 def reject_body_overwrite(target: str, current: str) -> None:
     """Raise ``SquadsError`` rather than let a plain ``body`` write discard authored prose.
@@ -688,8 +695,21 @@ class ServiceCore:
         ):
             raise SquadsError(f"an operator with slug {slug!r} already exists")
 
+    def _classified_view(self, item: Item) -> str | None:
+        """The view a role's or skill's body renders through, or ``None`` when its body is
+        authored. The one place the classification is asked for a write or a re-render."""
+        if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
+            return None
+        return views.roster_body_view_name(item.type, item.slug, self.spec)
+
     def _refuse_classified_roster_write(
-        self, item_id: str, item: Item, verb: str, *, allow_view: str | None = None
+        self,
+        item_id: str,
+        item: Item,
+        verb: str,
+        *,
+        fields: Collection[str] | None = None,
+        allow_view: str | None = None,
     ) -> None:
         """Raise when *item* is a role or skill whose body renders through a declared view: its
         content already has one validated authoring surface, and *verb* would be a second.
@@ -697,13 +717,13 @@ class ServiceCore:
         The one place a write verb asks the question, so the body write, the metadata update, the
         view edit and the bulk importer's simulation never disagree. ``--force`` does not lift it;
         dropping the view from ``[selected]`` takes the document out of the classification.
-        *allow_view* names the one view the verb may place: the host's own.
+        *allow_view* names the one view the verb may place: the host's own. *fields* names what a
+        metadata update changes: the write passes when every one is in the type's
+        :data:`ROSTER_UPDATE_EXEMPT` set (identity the operator sets, not generated content).
         """
-        roster_view = (
-            views.roster_body_view_name(item.type, item.slug, self.spec)
-            if item.type in (ROSTER_ROLE, ROSTER_SKILL)
-            else None
-        )
+        if fields is not None and set(fields) <= ROSTER_UPDATE_EXEMPT.get(item.type, frozenset()):
+            return
+        roster_view = self._classified_view(item)
         if roster_view is None or roster_view == allow_view:
             return
         authoring_surface = (
@@ -717,7 +737,8 @@ class ServiceCore:
             f"{item_id}'s body renders through its declared {tag} tag, and "
             f"its content already has one validated authoring surface: {authoring_surface}. "
             f"{verb} is refused — `--force` does not lift this. Drop the view from "
-            "`[selected]` to author this directly instead."
+            "`[selected]` to author this directly instead, then clear its leftover tag with "
+            f"`{views.view_placement_invocation(item.type, item.slug, 'disable', roster_view)}`."
         )
 
     def _create_model(  # noqa: PLR0913 — mirrors `create`'s own keyword surface
@@ -1128,16 +1149,45 @@ class ServiceCore:
         else:
             held.texts[path] = new_item_text(item, rendered_body)
 
-    async def _update_item_frontmatter(self, item: Item, base: Item) -> None:
+    async def _update_item_frontmatter(
+        self, item: Item, base: Item, *, rescaffold: bool = False
+    ) -> None:
         """Rewrite *item*'s frontmatter in its file, refusing a file that has skewed from
         *base*: the read-check-write of :func:`~squads._itemfile.update_frontmatter`, over the
         text :meth:`_read_item_file` sees."""
         path = item_file(self.paths, item)
         text = await self._read_item_file(item, path)
         ensure_no_skew(text, base, default_kind=self.spec.default_ref_kind())
-        await self._write_item_file(
-            path, sections.replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
+        new_text = sections.replace_frontmatter(text, item.to_frontmatter_dict(), source=str(path))
+        if rescaffold:
+            new_text = self._rescaffolded_body(new_text, item, base)
+        await self._write_item_file(path, new_text)
+
+    def _rescaffolded_body(self, text: str, item: Item, base: Item) -> str:
+        """A roster entry's *text* with its ``sq:body`` region re-rendered for *item*'s new
+        title, description and fields when the region is still *base*'s unwritten scaffold, so
+        an edit never makes the seeded template count as written. View tags keep their places;
+        a written body is untouched."""
+        if self._classified_view(item) is not None:
+            return text  # the body comes from a view
+        region = sections.get_section(text, markers.BODY)
+        old, new = self.pristine_body(base), self.pristine_body(item)
+        if region is None or new is None or new == old:
+            return text  # nothing in the scaffold changed
+        if not views.strip_view_tags(region).strip():
+            return text  # a tag alone is the seeded shape, not the template
+        if not views.body_is_unwritten(region, old):
+            return text
+        slug = item.slug
+        inner = views.place_view_tags(
+            region.strip("\n"),
+            views.strip_view_tags(new).strip(),
+            seeded=views.seeded_view_names(item.type, slug, self.spec),
+            spec=self.spec,
+            item_type=item.type,
+            addr=slug,
         )
+        return sections.replace_section(text, markers.BODY, inner)
 
     async def _item_file_exists(self, path: Path) -> bool:
         """Whether an item file exists at *path*, on disk or held."""

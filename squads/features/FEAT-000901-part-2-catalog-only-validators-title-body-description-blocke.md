@@ -3,7 +3,7 @@ id: FEAT-901
 sequence_id: 901
 type: feature
 title: 'Part 2 catalog-only validators: title, body, description, blockers'
-status: InProgress
+status: Done
 parent: EPIC-540
 author: product-owner
 priority: low
@@ -48,7 +48,7 @@ subentities:
   title: A status role can declare that it means blocked
   status: Todo
 created_at: '2026-09-03T09:02:34Z'
-updated_at: '2026-10-15T18:05:20Z'
+updated_at: '2026-10-16T22:50:29Z'
 ---
 <!-- sq:body -->
 ## Why

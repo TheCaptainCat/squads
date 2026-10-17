@@ -97,8 +97,8 @@ encoding. A role keeps its name, its `slug`, its default-role designation, a dev
 A **role** or **generated skill** whose body is empty gets its view tag written back — the one
 line that makes `sq role <slug> show` / `sq skill <name> show` render the definition fresh from the
 catalog and your own overrides. A role or skill body that holds prose is left alone: `show`
-prints that prose in place of the definition, and `sq check` reports the body as an error (a
-missing seeded view tag), with the steps that restore the rendered definition.
+prints that prose in place of the definition. `sq check` accepts it on a role; on a generated
+skill it reports a missing seeded view tag, with the steps that restore the rendered definition.
 
 **Run it on a clean working tree** — it cannot separate its changes from yours. Every command that
 reaches the same rewrite — `sq repair`, `sq adopt`, `sq renumber`, and the index rebuild at the end

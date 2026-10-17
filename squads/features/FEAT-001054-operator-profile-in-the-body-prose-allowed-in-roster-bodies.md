@@ -3,7 +3,7 @@ id: FEAT-1054
 sequence_id: 1054
 type: feature
 title: Operator profile in the body; prose allowed in roster bodies
-status: Ready
+status: Done
 author: product-owner
 refs:
 - REV-1047:addresses
@@ -24,7 +24,7 @@ subentities:
   title: Docs for the profile and prose allowance
   status: Todo
 created_at: '2026-10-16T11:34:59Z'
-updated_at: '2026-10-16T21:16:44Z'
+updated_at: '2026-10-17T00:56:31Z'
 ---
 <!-- sq:body -->
 ## Problem

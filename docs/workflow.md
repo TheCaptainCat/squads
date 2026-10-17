@@ -115,7 +115,7 @@ sq workflow types              # every declared item type in the active spec
 sq workflow subentity-kinds    # every declared sub-entity kind: its fields, plural, local-id prefix
 sq workflow collections        # every declared badge collection (priority, severity, or custom)
 sq workflow statuses           # every declared status, with the role each resolves to
-sq workflow roles              # every declared status role: settled / hidden / colour / live
+sq workflow roles              # every declared status role: settled / hidden / colour / live / blocked
 sq workflow lifecycles         # every declared lifecycle: initial state, states, transitions
 sq workflow ref-kinds          # every declared ref kind: its label, hint and semantic role
 sq workflow views              # every declared derived view: its source, fields, grouping, ordering
@@ -683,7 +683,7 @@ All statuses you define in a custom lifecycle must be declared in the `[statuses
 
 #### Status roles: terminal/hidden/color governance
 
-Every status references a **role**, which is a catalog entry governing four attributes:
+Every status references a **role**, which is a catalog entry governing five attributes:
 
 - **`settled`** — boolean; `true` means the status is terminal (work is done; hidden from `sq inbox`
   by default).
@@ -698,22 +698,28 @@ Every status references a **role**, which is a catalog entry governing four attr
   spawned, loaded, cited, and assigned — it is what gets written into an agent host's generated
   config. The default is deliberately fail-safe-withheld: wrongly withholding an entry is
   recoverable, wrongly treating one as live writes an agent into a host's config.
+- **`blocked`** — boolean, defaults `false`; `true` means an item at the status is waiting on
+  something else. The bundled `blocked` role is the only bundled role that declares it. It is read
+  by the opt-in `blocked_has_blocker` check and by nothing else: `sq blocked` comes from dependency
+  edges. An override that replaces the bundled roles with its own adds `blocked = true` to its
+  waiting role before it can select that check (see
+  [overrides.md](overrides.md#status-roles-terminalhiddencolor-attributes) § "Status roles").
 
 Squads ships with a bundled role catalog. In your override, you can reference built-in roles or
 define new ones. A status that names no role resolves to `pending`.
 
 **Bundled roles:**
 
-| Role | `settled` | `hidden` | `color` | `live` | Typical use |
-|------|-----------|----------|---------|-----------|------------|
-| `pending` | `false` | `false` | `neutral` | `false` | Draft, Proposed, Requested — awaiting action |
-| `active` | `false` | `false` | `positive` | `true` | InProgress, InReview, ChangesRequested — actively being worked |
-| `attention` | `false` | `false` | `danger` | `false` | Open issues, failing tests, urgent needs |
-| `blocked` | `false` | `false` | `danger` | `false` | Blocked — stopped by a dependency |
-| `in_force` | `true` | `false` | `info` | `false` | Accepted, Published — in effect, terminal but shown |
-| `done` | `true` | `true` | `positive` | `false` | Done, Verified, Approved — complete and hidden by default |
-| `retired` | `true` | `true` | `muted` | `false` | Cancelled, Deprecated, Rejected — terminal and hidden |
-| `superseded` | `true` | `true` | `muted` | `false` | Superseded — replaced by a newer item, terminal and hidden |
+| Role | `settled` | `hidden` | `color` | `live` | `blocked` | Typical use |
+|------|-----------|----------|---------|--------|-----------|------------|
+| `pending` | `false` | `false` | `neutral` | `false` | `false` | Draft, Proposed, Requested — awaiting action |
+| `active` | `false` | `false` | `positive` | `true` | `false` | InProgress, InReview, ChangesRequested — actively being worked |
+| `attention` | `false` | `false` | `danger` | `false` | `false` | Open issues, failing tests, urgent needs |
+| `blocked` | `false` | `false` | `danger` | `false` | `true` | Blocked — stopped by a dependency |
+| `in_force` | `true` | `false` | `info` | `false` | `false` | Accepted, Published — in effect, terminal but shown |
+| `done` | `true` | `true` | `positive` | `false` | `false` | Done, Verified, Approved — complete and hidden by default |
+| `retired` | `true` | `true` | `muted` | `false` | `false` | Cancelled, Deprecated, Rejected — terminal and hidden |
+| `superseded` | `true` | `true` | `muted` | `false` | `false` | Superseded — replaced by a newer item, terminal and hidden |
 
 **Defining a custom role:**
 
@@ -1027,6 +1033,8 @@ MILE-21: view nope had no existing tag — placed disabled in sq:body
 ```
 
 Either verb also collapses duplicate copies of its view into one tag in the state it names.
+On a role or a generated skill, only `view add` of the document's own view runs, so `sq check`'s
+remedies there name that command alone.
 
 **What `sq check` holds.** Each seeded view is present exactly once, enabled or disabled, and no
 view name appears twice in a body, counting both states together. Each is an error, reported once:
@@ -1051,10 +1059,10 @@ A role or skill file whose `sq:body` markers were deleted by hand is reported to
 command that restores the region:
 
 ```
-error ROLE-000005-qa.md: missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — restore it with `sq role qa view add role_definition`, or disable the view with `sq role qa view disable role_definition`
+error ROLE-000005-qa.md: missing sq:body region (no `<!-- sq:body -->`/`<!-- sq:body:end -->` pair at all) — restore it with `sq role qa view add role_definition`
 ```
 
-Either command puts the region back, and `sq repair` does the same for every such file — but only
+That command puts the region back, and `sq repair` does the same for every such file — but only
 when the file holds nothing but the seeded tag where the region was. If other text sits there,
 putting the region back would mean guessing which lines are yours, so every command leaves the
 file unchanged and `sq check` asks you to fix it by hand:
@@ -1069,8 +1077,8 @@ or by hand, then run `sq check` again.
 **Which bodies take prose.** A milestone's body is ordinary prose around its roll-up tag:
 `sq milestone <n> body -m` and `body --append` both work, and the tag stays where its `position`
 puts it. A role's body, a permanently-system skill's body and a per-item-type `sq-<type>` skill's
-body take no prose at all while their view is declared — replace and append are both refused,
-and `--force` does not lift it. Their content is authored elsewhere:
+body take no writes while their view is declared — replace and append are both refused, and
+`--force` does not lift it. Their content is authored elsewhere:
 
 - a role: `.overrides/roles.toml`, or `.overrides/roles/<slug>.toml` for a project-defined role;
 - a per-item-type skill: that type's `[types.<type>]` lane in `.overrides/playbook.toml`;
@@ -1082,12 +1090,17 @@ and `--force` does not lift it. Their content is authored elsewhere:
 The refusal names the surface for the document at hand:
 
 ```
-error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this body directly instead.
+error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead, then clear its leftover tag with `sq skill sq-bug view disable item_skill`.
 ```
+
+An operator's body is ordinary prose, its profile, and `sq operator <slug> body` always writes it
+(see [roles.md § "The operator profile"](roles.md#the-operator-profile)). A role body that holds
+prose is accepted by `sq check`, and `show` prints the prose in place of the generated definition.
 
 To write such a body by hand, drop its view from `[selected]` — see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
-`view disable` stays available on these documents; the document then renders an empty definition.
+On these documents `view disable` is refused too, and so is `view add` of any view but the
+document's own (see [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
 
 **Dropping a view.** `[selected].views` names the views that survive, like every other section. A
 view is reached only through its `sq:view:<name>` tag in a document body, never by a type
