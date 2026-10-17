@@ -736,8 +736,8 @@ async def repair(
         False,
         "--renumber",
         help=(
-            "First give items that share a number after a merge fresh numbers, "
-            "rewriting every reference to them."
+            "First renumber items that share a number after a merge; refs to an ID "
+            "that two files carry are listed for checking by hand, not rewritten."
         ),
     ),
 ):
@@ -746,7 +746,7 @@ async def repair(
     It can also rewrite item content, and prints a notice when it does. To keep
     two branches' numbers apart before a merge, use `sq renumber` instead.
 
-    Exit codes: 1 a file could not be read and kept its last entry. See sq docs faq.
+    Exit codes: 1 a file was unreadable or refs need checking. See sq docs faq.
     """
     # Repair reconciles the index against the frontmatter, so it must run in every state the
     # live-index cross-check refuses over, including one it did not cause.

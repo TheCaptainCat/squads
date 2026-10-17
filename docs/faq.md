@@ -200,7 +200,7 @@ The documented, stable contract:
 | Code | Meaning | When you see it |
 |------|---------|-----------------|
 | `0` | Success | Command completed normally (including `sq check` with no errors, or warnings only). |
-| `1` | squads could not complete what you asked | A `SquadsError` (unknown ID, invalid transition, etc.), a schema-version mismatch (`sq migrate up` is needed), or `sq repair` (or the rebuild that ends `sq migrate up`) reporting a file it could not read while rebuilding. |
+| `1` | squads could not complete what you asked | A `SquadsError` (unknown ID, invalid transition, etc.), a schema-version mismatch (`sq migrate up` is needed), `sq repair` (or the rebuild that ends `sq migrate up`) reporting a file it could not read while rebuilding, or `sq repair --renumber` leaving references to an ID that two files carry for you to check by hand. |
 | `2` | Usage error | Invalid `--at` timestamp format; Typer/Click usage errors (unknown option, missing required argument). |
 | `3` | Error-level issues were found | `sq check` reported one or more `error`-level issues, or `sq import` applied the file and the check of the items it touched found one. The import's events are on disk: do not retry it, read `applied` from its `--json` output. `warn`-level-only results still exit 0. |
 | `4` | The answer is short | A listing finished and named what it could not read: `sq board list`, `sq inbox`, `sq search`, `sq memory <role> list`, `sq memory <role> search`. stdout still carries a valid payload in its usual shape. |

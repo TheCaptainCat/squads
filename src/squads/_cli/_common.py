@@ -2065,7 +2065,8 @@ def register_remove_verb(
     ) -> None:
         """Delete this entry for good; it needs `--purge`.
 
-        To keep it on record instead, set its status to `Archived`.
+        To keep it on record instead, move it to its archived status
+        (see `sq workflow lifecycles`).
         """
         item_id = id_from_ctx(ctx)
         svc = get_service()

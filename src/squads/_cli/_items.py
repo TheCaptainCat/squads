@@ -545,9 +545,9 @@ def _cmd_remove(item: typer.Typer) -> None:
         """Delete this item for good: its file and its index entry.
 
         Refused while the item has children, or refs from other items unless `--force`
-        cuts them. Its number is never reused. To drop work that was considered, set
-        its status to `Cancelled` instead; remove only items that should never have
-        existed.
+        cuts them. Its number is never reused. To drop work that was considered, move
+        it to the type's cancelled status instead (see `sq workflow lifecycles`);
+        remove only items that should never have existed.
         """
         item_id = _id(ctx)
         if not yes:

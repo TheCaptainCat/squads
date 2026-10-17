@@ -23,7 +23,9 @@ async def dev_add(
         None, "--name", help="Full name; without it, one is picked from a pool."
     ),
     model: str | None = typer.Option(
-        None, "--model", help="Model the agent runs on: `sonnet`, `opus` or `haiku`."
+        None,
+        "--model",
+        help="Model the agent runs on, for example `sonnet`, `opus`, `haiku` or `inherit`.",
     ),
     slug: str | None = typer.Option(
         None, "--slug", help="Slug to file the developer under instead of `<tech>-dev`."

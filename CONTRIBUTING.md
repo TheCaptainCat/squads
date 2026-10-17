@@ -130,7 +130,8 @@ The rules, one per part of the screen:
    (an array with one object per row, or one object).
 6. **JSON fields.** The field reference lives in `docs/stability.md`. Help keeps the `--json`
    line, any sentence a caller needs in order not to misuse the payload, and the pointer
-   `Fields: sq docs stability`.
+   `Fields: sq docs stability`. A new `--json` shape lands its field reference in
+   `docs/stability.md` in the same change.
 7. **Exit codes.** A command with no code of its own says nothing about exit codes. A command with
    one says one line, `Exit codes: 3 error-level issues found. See sq docs faq.`, and the
    mechanics stay in the docs. The one exception, kept to two lines: a code that is non-zero
