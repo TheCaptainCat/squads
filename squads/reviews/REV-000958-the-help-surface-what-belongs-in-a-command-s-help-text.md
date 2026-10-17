@@ -3,7 +3,7 @@ id: REV-958
 sequence_id: 958
 type: review
 title: 'The --help surface: what belongs in a command''s help text'
-status: ChangesRequested
+status: Approved
 author: tech-writer
 assignee: reviewer
 refs:
@@ -14,50 +14,50 @@ description: A read of every rendered --help body and flag description, settling
 subentities:
 - local_id: F1
   title: Help bodies carry maintainer reasoning and private names
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: One in four option and argument descriptions is blank
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F3
   title: JSON field reference fills the help body of 13 commands
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Help is written for a layout the renderer does not produce
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F5
   title: Exit-code prose in 11 commands, in three forms
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F6
   title: A per-item verb's help needs a real item to open
-  status: Open
+  status: WontFix
   severity: medium
 - local_id: F7
   title: Five markup dialects, none rendered; brackets are consumed
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F8
   title: Same flag, different words; text that contradicts its screen
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F9
   title: Summaries name the mechanism or stay generic
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F10
   title: Flags described in the body and again in the panel
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F11
   title: Nothing holds a help change to the rule
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-09-15T10:12:29Z'
-updated_at: '2026-10-09T19:21:50Z'
+updated_at: '2026-10-17T05:07:07Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -263,6 +263,8 @@ Line numbers are lines of the help body as written; "r80" is the whole rendered 
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-17T05:06:48Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -301,6 +303,8 @@ Line numbers are lines of the help body as written; "r80" is the whole rendered 
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-17T05:06:50Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -347,6 +351,8 @@ On that footing `sq graph` goes from 35 lines to about 8 and `sq search` from 28
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-17T05:06:52Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -407,6 +413,8 @@ Variant 1 goes away by itself if the renderer is changed to one that re-flows pa
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-10-17T05:06:53Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -452,6 +460,8 @@ Variant 1 goes away by itself if the renderer is changed to one that re-flows pa
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-17T05:06:55Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -485,6 +495,8 @@ The root help makes it worse by advertising the route: "per-command help: `sq <c
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-17T05:07:05Z] Catherine Manager:
+  - Tracked as BUG-1094 (pre-existing, 0.17).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -533,6 +545,8 @@ The dialect above is right under all three, so the text can be fixed before the 
 <!-- sq:finding:F7:discussion -->
 - [2026-10-09T18:13:10Z] Pierre Chat:
   - 2026-10-09: the renderer stays on Rich markup. Bodies are re-wrapped at 78 columns with the rewrite, and the surface test fails on a bracket tag or an over-wide line. Markdown mode was ruled out because it deletes angle-bracket placeholders outside backticks and strips backticks in colour-off output.
+- [2026-10-17T05:06:56Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -573,6 +587,8 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-17T05:06:58Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -607,6 +623,8 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-17T05:07:00Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -635,6 +653,8 @@ Whether `-m` repeats is stated on `create` and nowhere else, so a reader of `com
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-17T05:07:02Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -664,6 +684,8 @@ Each of those would fail today, so each lands with the fix for its finding, not 
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-17T05:07:03Z] Catherine Manager:
+  - Fixed by TASK-1080 (c05d4b11, ea7977e7, 68ec9671); verified on REV-1093.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 <!-- sq:findings:end -->

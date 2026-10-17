@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1093,
+  "counter": 1094,
   "padding": 6,
   "items": {
     "12": {
@@ -42046,7 +42046,7 @@
       "type": "review",
       "title": "The --help surface: what belongs in a command's help text",
       "slug": "the-help-surface-what-belongs-in-a-command-s-help-text",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "A read of every rendered --help body and flag description, settling what help text is for versus a module docstring or docs/.",
       "parent": null,
       "author": "tech-writer",
@@ -42062,7 +42062,7 @@
         {
           "local_id": "F1",
           "title": "Help bodies carry maintainer reasoning and private names",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -42071,7 +42071,7 @@
         {
           "local_id": "F2",
           "title": "One in four option and argument descriptions is blank",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "high",
           "story": null,
@@ -42080,7 +42080,7 @@
         {
           "local_id": "F3",
           "title": "JSON field reference fills the help body of 13 commands",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42089,7 +42089,7 @@
         {
           "local_id": "F4",
           "title": "Help is written for a layout the renderer does not produce",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42098,7 +42098,7 @@
         {
           "local_id": "F5",
           "title": "Exit-code prose in 11 commands, in three forms",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42107,7 +42107,7 @@
         {
           "local_id": "F6",
           "title": "A per-item verb's help needs a real item to open",
-          "status": "Open",
+          "status": "WontFix",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42116,7 +42116,7 @@
         {
           "local_id": "F7",
           "title": "Five markup dialects, none rendered; brackets are consumed",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -42125,7 +42125,7 @@
         {
           "local_id": "F8",
           "title": "Same flag, different words; text that contradicts its screen",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -42134,7 +42134,7 @@
         {
           "local_id": "F9",
           "title": "Summaries name the mechanism or stay generic",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -42143,7 +42143,7 @@
         {
           "local_id": "F10",
           "title": "Flags described in the body and again in the panel",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -42152,7 +42152,7 @@
         {
           "local_id": "F11",
           "title": "Nothing holds a help change to the rule",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -42161,7 +42161,7 @@
       ],
       "path": "reviews/REV-000958-the-help-surface-what-belongs-in-a-command-s-help-text.md",
       "created_at": "2026-09-15T10:12:29Z",
-      "updated_at": "2026-10-09T19:21:50Z",
+      "updated_at": "2026-10-17T05:07:07Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -46977,7 +46977,7 @@
       "type": "bug",
       "title": "create --help understates --author/--assignee: op slug accepted",
       "slug": "create-help-understates-author-assignee-op-slug-accepted",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -46992,7 +46992,7 @@
       "subentities": [],
       "path": "bugs/BUG-001044-create-help-understates-author-assignee-op-slug-accepted.md",
       "created_at": "2026-10-16T09:09:24Z",
-      "updated_at": "2026-10-16T12:35:08Z",
+      "updated_at": "2026-10-17T05:06:30Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
@@ -50320,7 +50320,7 @@
       "type": "review",
       "title": "Help text writer pass: ST1 to ST6",
       "slug": "help-text-writer-pass-st1-to-st6",
-      "status": "ChangesRequested",
+      "status": "InReview",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -50377,15 +50377,77 @@
           "severity": "low",
           "story": null,
           "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "skill epilog verb list breaks mid-word at 80 columns; guard does not read epilogs",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "CONTRIBUTING rule 9 still prescribes the no-rewrap marker the code dropped",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "Generated article is wrong for names like user_story or unit",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Shared-flag drift tests omit --all, --status, --parent and --pronouns",
+          "status": "Fixed",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-001093-help-text-writer-pass-st1-to-st6.md",
       "created_at": "2026-10-17T04:24:21Z",
-      "updated_at": "2026-10-17T04:28:24Z",
+      "updated_at": "2026-10-17T05:07:05Z",
       "created_session": null,
       "modified_session": null,
       "extra": {},
       "id": "REV-1093"
+    },
+    "1094": {
+      "sequence_id": 1094,
+      "type": "bug",
+      "title": "Per-item verb help needs an existing item",
+      "slug": "per-item-verb-help-needs-an-existing-item",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "medium",
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "REV-958",
+        "MILE-1051:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001094-per-item-verb-help-needs-an-existing-item.md",
+      "created_at": "2026-10-17T05:06:10Z",
+      "updated_at": "2026-10-17T05:06:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "BUG-1094"
     }
   }
 }

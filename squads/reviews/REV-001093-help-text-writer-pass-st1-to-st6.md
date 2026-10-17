@@ -3,7 +3,7 @@ id: REV-1093
 sequence_id: 1093
 type: review
 title: 'Help text writer pass: ST1 to ST6'
-status: ChangesRequested
+status: InReview
 author: reviewer
 refs:
 - TASK-1080
@@ -30,8 +30,25 @@ subentities:
   title: CONTRIBUTING rule 6 drops R6's same-change clause for a new JSON shape
   status: Fixed
   severity: low
+- local_id: F6
+  title: skill epilog verb list breaks mid-word at 80 columns; guard does not read
+    epilogs
+  status: Fixed
+  severity: low
+- local_id: F7
+  title: CONTRIBUTING rule 9 still prescribes the no-rewrap marker the code dropped
+  status: Open
+  severity: low
+- local_id: F8
+  title: Generated article is wrong for names like user_story or unit
+  status: Fixed
+  severity: low
+- local_id: F9
+  title: Shared-flag drift tests omit --all, --status, --parent and --pronouns
+  status: Fixed
+  severity: low
 created_at: '2026-10-17T04:24:21Z'
-updated_at: '2026-10-17T04:28:24Z'
+updated_at: '2026-10-17T05:07:05Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -99,6 +116,8 @@ The wording was carried over, not introduced, but this pass rewrote both strings
 <!-- sq:finding:F1:discussion -->
 - [2026-10-17T04:28:15Z] Theo Writer:
   - Fixed: --renumber now says refs to an ID that two files carry are listed for checking by hand, not rewritten; the exit line names both exit-1 causes; faq row 1 adds the --renumber case.
+- [2026-10-17T05:03:28Z] Paul Reviewer:
+  - Fixed in ea7977e7: --renumber now says refs to an ID two files carry are listed, not rewritten; the exit line names both causes; faq row 1 adds the --renumber case. Verified by reading the diff and rendering repair --help at 80 columns.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -120,6 +139,8 @@ The wording was carried over, not introduced, but this pass rewrote both strings
 <!-- sq:finding:F2:discussion -->
 - [2026-10-17T04:28:16Z] Theo Writer:
   - Fixed: --model reads "for example sonnet, opus, haiku or inherit". The missing validation is a separate bug for qa.
+- [2026-10-17T05:03:30Z] Paul Reviewer:
+  - Help text fixed in ea7977e7 (for example sonnet, opus, haiku or inherit). The dev add validation gap is still open as behaviour, for @qa to file as a bug.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -146,6 +167,8 @@ It is the only writer-authored body line over 78 in the walk. The other over-78 
 <!-- sq:finding:F3:discussion -->
 - [2026-10-17T04:28:17Z] Theo Writer:
   - Fixed: the repair exit line is now 75 columns after dedent.
+- [2026-10-17T05:03:32Z] Paul Reviewer:
+  - Fixed in ea7977e7: the repair exit line is 69 columns and renders on one line.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -168,6 +191,8 @@ Under an override where the roster's retired status or a type's cancelled status
 <!-- sq:finding:F4:discussion -->
 - [2026-10-17T04:28:18Z] Theo Writer:
   - Fixed: both remove bodies name the status by what it does (the type's cancelled status, its archived status) and point at sq workflow lifecycles.
+- [2026-10-17T05:03:34Z] Paul Reviewer:
+  - Fixed in ea7977e7: both remove sentences now point at the archived or cancelled status via sq workflow lifecycles, with no literal name.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -187,8 +212,97 @@ R6 (REV-958) and ADR-1025 §2 both say a `--json` field reference leaves help on
 <!-- sq:finding:F5:discussion -->
 - [2026-10-17T04:28:19Z] Theo Writer:
   - Fixed: CONTRIBUTING rule 6 now says a new --json shape lands its field reference in docs/stability.md in the same change.
+- [2026-10-17T05:03:36Z] Paul Reviewer:
+  - Fixed in ea7977e7: rule 6 now says a new --json shape lands its field reference in docs/stability.md in the same change.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
+
+<!-- sq:finding:F6 -->
+### F6 — skill epilog verb list breaks mid-word at 80 columns; guard does not read epilogs
+
+<!-- sq:finding:F6:body -->
+**Shape.** The `sq skill` epilog's verb list is one unbreakable token wider than the screen, so it breaks mid-word at 80 columns. That breaks R9, and the guard cannot see it.
+
+**Driven** (`COLUMNS=80 sq skill --help`, and the same through `tests/_help_tree.render_help`):
+
+```
+ Address a skill: sq skill <slug|id|n> VERB, where VERB is one of
+ show|refs|link-role|unlink-role|regen|update|body|remove|comments|status|ref|c
+ omment|view.
+```
+
+The role and operator lists fit today. Any added roster verb pushes them over the same way.
+
+**Guard blind spot.** `tests/meta/test_every_help_screen_follows_the_help_rule.py` builds each screen's source from `command.help` only. An epilog is never measured, and the rendered check looks only for an ellipsis, so a mid-word wrap passes.
+
+**Fix.** Join the verbs in `address_epilog` with a separator Rich can break at, such as `, ` or ` | `. Then extend the guard either to the epilog source or to any rendered line that ends inside a word.
+<!-- sq:finding:F6:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F6:discussion -->
+- [2026-10-17T05:07:01Z] Elias Python:
+  - Fixed: the epilog verb list joins with commas so it wraps; the guard now reads epilogs (an epilog word wider than the screen fails). Reverting the join turns 2 new tests red.
+<!-- sq:finding:F6:discussion:end -->
+<!-- sq:finding:F6:end -->
+
+<!-- sq:finding:F7 -->
+### F7 — CONTRIBUTING rule 9 still prescribes the no-rewrap marker the code dropped
+
+<!-- sq:finding:F7:body -->
+**Shape.** CONTRIBUTING rule 9 still tells a contributor to put line-structured text in a no-rewrap block (a `\b` line before it). In the installed Typer that prints a stray blank line, and the shipped help no longer uses it.
+
+**Driven** with a probe command. A paragraph after the first keeps its authored line breaks without any marker. A `\b` before a later paragraph renders as two blank lines instead of one. The dev's handoff found the same, so the comment group, renumber and the epilogs use plain later paragraphs.
+
+**Fix (ST11, CONTRIBUTING).** Rule 9 should say line-structured text goes in a paragraph after the first, under 78 columns, with no marker. Logged here so the rule does not ship contradicting the code; the dev already routed it to @tech-writer.
+<!-- sq:finding:F7:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F7:discussion -->
+<!-- sq:finding:F7:discussion:end -->
+<!-- sq:finding:F7:end -->
+
+<!-- sq:finding:F8 -->
+### F8 — Generated article is wrong for names like user_story or unit
+
+<!-- sq:finding:F8:body -->
+**Shape.** `common.article` chooses the article by first letter, and FEAT-1024 US8 asks for a correct article for any declared type name.
+
+**Driven** in-process: `article("user_story")` and `article("unit")` return `an`, and `article("hour")` returns `a`. A project declaring `user_story` or `unit` gets "Create an user_story." and "Operate on an unit by number or ID." on its root listing and create menu. The bundled names and the guard's `investigation` fixture are all right.
+
+**Fix.** Either pin the article in the type's labels and fall back to the heuristic, or word the two generated summaries so they need no article (for example "Create one `<type>` item." or "Work on `<type>` items by number or ID."). The second is simpler and holds for any name.
+<!-- sq:finding:F8:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F8:discussion -->
+- [2026-10-17T05:07:03Z] Elias Python:
+  - Fixed: article() decides on the spoken first sound (silent h, u/eu/one as a consonant sound) with a 16-row test table. Going back to first-letter turns 7 rows red.
+<!-- sq:finding:F8:discussion:end -->
+<!-- sq:finding:F8:end -->
+
+<!-- sq:finding:F9 -->
+### F9 — Shared-flag drift tests omit --all, --status, --parent and --pronouns
+
+<!-- sq:finding:F9:body -->
+**Shape.** The ST7 drift tests leave out `--all`, which FEAT-1024 US5 names explicitly, along with `--status`, `--parent` and `--pronouns` from the ST4 table.
+
+- `tests/meta/test_shared_flags_are_declared_once.py` `SHARED_FLAGS` has no `--all`, `--status`, `--parent`, `--label`, `--type`, `--pronouns` or `--force`. A new command can declare `typer.Option(False, "--all", help="Include done items.")` inline and both tests stay green. `--force` and `--all` carry several meanings (`refs --all` means both directions), which is why they cannot simply be added to the literal scan. That is also why the wording table must hold them.
+- `tests/cli/test_shared_flags_read_the_same_everywhere_cli.py` `WORDINGS` covers `--force` but not `--all`, `--status`, `--parent` or `--pronouns`.
+
+The shipped wording is right today (read and rendered: `list`, `tree`, `graph` and `mine` all read "Include closed items."). The gap is that nothing holds it.
+
+**Fix.** Add `--all` (two meanings: "Include closed items." and "Show both directions."), `--status`, `--parent` and `--pronouns` to `WORDINGS`. Add `--all` to `SINGLE_MEANING` only if `refs` moves to its own factory.
+<!-- sq:finding:F9:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F9:discussion -->
+- [2026-10-17T05:07:05Z] Elias Python:
+  - Fixed: --all, --status, --parent and --pronouns are in the wording table, each with every meaning. Rewording any one turns 1 test red (3 runs).
+<!-- sq:finding:F9:discussion:end -->
+<!-- sq:finding:F9:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -211,4 +325,20 @@ R6 (REV-958) and ADR-1025 §2 both say a `--json` field reference leaves help on
     - F11 nothing holds the rule: CONTRIBUTING section done (ST1, plus F5 here). ST10 owes the guard.
     
     @tech-writer F1 to F5 are yours. Re-render repair and dev add at 80 columns after the fix.
+- [2026-10-17T05:04:22Z] Paul Reviewer:
+  - Second pass: the writer fixes (ea7977e7) and the uncommitted ST7 to ST10 code pass. Recommend **Approved**. F1 to F5 are Fixed. F6 to F9 are new and all low; none blocks.
+    
+    Checked:
+    - **ST7.** Every shared flag comes from a factory or constant in `_cli/_common.py`. Wording was read across all 343 screens of the walk and is identical per meaning. `--as` keeps "(required)": the add sites (`comment`, `board post`) read "Author: a role slug or `op-<slug>` (required).", and comment edit and remove read "The comment's author (required)."; both are validated by hand, so this is consistent. The scanner's self-check catches a literal `--file` and passes `--title`. It cannot see an option built from `from typer import Option`, and none exists. Gaps in what it holds: F9.
+    - **ST8.** At 80 columns the comment group, renumber, retype and reflog `--op` render as intended, with no ellipsis anywhere. The roster usage line is `sq role <slug|id|n> show`, and the addressed verbs still parse. The `\b` stray blank line is confirmed with a probe (F7). The skill epilog breaks mid-word (F6).
+    - **ST9.** Bundled: "Create an epic.", "Operate on an epic by number or ID.", story, subtask and finding verbs in kind labels. Custom override (`investigation`/`analysis`, `incident`/`action`, `action_item`): "an investigation", "List this item's analyses.", "Scaffold an analysis", "Operate on an analysis by number or local ID." Article edge cases: F8.
+    - **ST10.** `LONG_BODIES` is empty. The stale-entry and off-list unit test passes. Both walks run, the custom one asserting `sq investigation analysis`. Falsified in-process on the live tree: a blank `graph --depth` description and an 11-line `graph` body are each reported. The guard misses epilogs: F6.
+    - **Extras.** `<kind> remove` names the mapping kind only for story ("A story that a subtask still maps to is refused"; subtask and finding say only that the id is never reused): correct. `LOCAL-ID` on every sub-entity verb: correct. Retype NEW-TYPE points at `sq workflow types` with no enumeration: correct, although its second sentence repeats the body.
+    - **Tests.** 121 passed over the new and touched help tests.
+    
+    REV-958 recommendation. Close F1, F2, F3, F5, F8, F10 and F11 as Fixed, citing c05d4b11 and ea7977e7, plus the ST7 to ST10 commit when it lands. Close F4, F7 and F9 as Fixed with the same citations; F6, F7 and F8 here are follow-ups, not reopeners. F6 still has no item of its own: file one first (BUG-1042 is adjacent but different), then close F6 as WontFix pointing at it. Separately, BUG-1044 (create help understates `op-` slugs) is answered by the shipped `--author` and `--assignee` text and can be verified.
+    
+    @manager REV-1093 is at InReview; Approved is the main loop's to set. @python-dev F6, F8 and F9. @tech-writer F7 with ST11.
+- [2026-10-17T05:04:37Z] Paul Reviewer:
+  - Clarification on the REV-958 line above: all of REV-958 F1-F5 and F7-F11 close as Fixed with those citations; only REV-958 F6 waits on its own item. This review's F6-F9 are low follow-ups and do not reopen anything.
 <!-- sq:discussion:end -->
