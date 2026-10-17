@@ -1,7 +1,7 @@
 {
   "schema_version": "0.15",
   "squads_version": "0.15.0",
-  "counter": 1094,
+  "counter": 1095,
   "padding": 6,
   "items": {
     "12": {
@@ -50448,6 +50448,77 @@
       "modified_session": null,
       "extra": {},
       "id": "BUG-1094"
+    },
+    "1095": {
+      "sequence_id": 1095,
+      "type": "task",
+      "title": "Bring CI test time back down, Windows first",
+      "slug": "bring-ci-test-time-back-down-windows-first",
+      "status": "Draft",
+      "description": "CI went 19/2.5/4.5 min to 42/14.5/11 (Win/mac/Ubuntu) in 0.16; profile, then cut setup cost.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "MILE-1051:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Profile the suite per OS on CI with --durations=50",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Build each heavy table's scratch squad once per module and copy it per row",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Move the heaviest shape tables behind the slow marker without losing gate coverage",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Check xdist worker counts and runner settings on CI",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Measure the write-once guard's cost, and keep it on",
+          "status": "Todo",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "extra": {}
+        }
+      ],
+      "path": "tasks/TASK-001095-bring-ci-test-time-back-down-windows-first.md",
+      "created_at": "2026-10-17T07:42:12Z",
+      "updated_at": "2026-10-17T07:42:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "extra": {},
+      "id": "TASK-1095"
     }
   }
 }
