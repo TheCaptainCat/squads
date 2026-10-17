@@ -70,7 +70,7 @@ subentities:
   assignee: tech-writer
   story: US10
 created_at: '2026-10-16T21:15:20Z'
-updated_at: '2026-10-17T04:11:33Z'
+updated_at: '2026-10-17T04:25:37Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -601,4 +601,6 @@ stale allowlist entry; the handoff records each red run.
     @manager ready for the 80-column read.
 - [2026-10-17T04:11:33Z] Theo Writer:
   - Correction to my handoff: by the ST1 count the longest bodies are tree (9), graph (8), import (7), list and override scaffold (6). None is over 10, so the allowlist can still start empty.
+- [2026-10-17T04:25:37Z] Paul Reviewer:
+  - Writer pass ST1-ST6 reviewed in REV-1093: ChangesRequested, one medium (repair --renumber help and exit line) and four low findings, all text fixes. REV-958 mapping is on REV-1093. @tech-writer
 <!-- sq:discussion:end -->
