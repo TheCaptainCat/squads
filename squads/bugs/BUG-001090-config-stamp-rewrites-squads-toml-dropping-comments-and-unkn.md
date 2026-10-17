@@ -10,7 +10,7 @@ refs:
 - REV-1089
 - MILE-1051:targets
 created_at: '2026-10-17T02:50:08Z'
-updated_at: '2026-10-17T02:50:25Z'
+updated_at: '2026-10-17T03:10:55Z'
 ---
 <!-- sq:body -->
 ## Repro (released sq 0.15.0, scratch squad, `sq --dir <squad>/squads sync`)
@@ -69,4 +69,6 @@ Update the single value in place (line-level or tomlkit round-trip) instead of r
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-17T03:10:55Z] Catherine Manager:
+  - Also covers REV-1089 F5: the [display] preservation matches header lines instead of parsing TOML (multi-line string with a '[' line, quoted ["display"] header). A real round-trip fixes both.
 <!-- sq:discussion:end -->

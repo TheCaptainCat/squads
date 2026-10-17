@@ -3,7 +3,7 @@ id: TASK-1071
 sequence_id: 1071
 type: task
 title: Add pronouns to roles and operators
-status: Ready
+status: InProgress
 parent: FEAT-961
 author: tech-lead
 refs:
@@ -17,39 +17,39 @@ description: Declared pronouns attribute, a resolved roster default, roster --js
 subentities:
 - local_id: ST1
   title: Declare and pin the pronouns attribute, with one shape rule and a check
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: Set and clear pronouns through the creation and update verbs
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Resolve a declared roster default from the role catalog document
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST4
   title: Carry resolved pronouns in the four roster --json payloads
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST5
   title: Render pronouns in the generated roster section and identity pointer
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST6
   title: Add the typed display table to .squads.toml
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST7
   title: Print Name (pronouns) dimmed in human CLI output and sq ui
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST8
   title: Show pronouns in the VS Code client behind its own setting
-  status: Todo
+  status: Done
   assignee: typescript-dev
   story: US4
 created_at: '2026-10-16T19:53:59Z'
-updated_at: '2026-10-17T02:12:57Z'
+updated_at: '2026-10-17T03:09:57Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -200,6 +200,8 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-17T02:38:24Z] Elias Python:
+  - Done. Pronouns declared and pinned on role and operator (workflow.toml, PINNED_ROSTER_ATTRIBUTES); one shape rule and accessor in src/squads/_pronouns.py; pronouns_valid in the roster bundle (judges the stored text, so it reports at sq check and sits the write gate out). Falsified: dropping the operator pin 1 test red; accessor skipping the rule 25 red; validator off 14 red; limit 40 to 400 7 red.
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -233,6 +235,8 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 #### Discussion
 
 <!-- sq:subtask:ST2:discussion -->
+- [2026-10-17T02:38:26Z] Elias Python:
+  - Done. --pronouns on role activate, dev add, operator add and the role and operator update verbs; update carries it through the one transaction (no gate trip on a system role, so it works on bundled roles); a role document pronouns key is refused naming the verb; activate of a live role with --pronouns is refused naming update. Falsified: gate refusing pronouns on a system role 14 red; storing the untrimmed input 5 red; role-document refusal removed 2 red.
 <!-- sq:subtask:ST2:discussion:end -->
 <!-- sq:subtask:ST2:end -->
 
@@ -262,6 +266,8 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 #### Discussion
 
 <!-- sq:subtask:ST3:discussion -->
+- [2026-10-17T02:38:28Z] Elias Python:
+  - Done. [defaults] pronouns in the role catalog document (closed DefaultsSpec, same shape rule, trimmed at load); resolve_pronouns in the resolver is own value else default; RoleDef.pronouns is set by resolve_role_for_item only, never stored. Bundled roles.toml bytes unchanged. Falsified: default applied to operators 3 red; resolved default written back on sync 8 red.
 <!-- sq:subtask:ST3:discussion:end -->
 <!-- sq:subtask:ST3:end -->
 
@@ -292,6 +298,8 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-17T02:38:30Z] Elias Python:
+  - Done. RoleView and OperatorView carry pronouns; the four roster --json payloads emit the resolved value beside full_name, always present, exact key sets pinned; item rows and discussion entries gain nothing. Falsified: key omitted when unset 2 red; stored value emitted instead of resolved 2 red.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -321,6 +329,8 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 #### Discussion
 
 <!-- sq:subtask:ST5:discussion -->
+- [2026-10-17T03:04:20Z] Elias Python:
+  - Done. CLAUDE.md and AGENTS.md roster lines and the role pointer render the name then the pronouns whatever [display] says; templates read the key tolerantly (missing key means none); manifest and store regenerated, goldens unchanged for a squad with none. Falsified: gating the roster on [display] 1 red; pointer without pronouns 3 red.
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
 
@@ -350,6 +360,8 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 #### Discussion
 
 <!-- sq:subtask:ST6:discussion -->
+- [2026-10-17T03:04:22Z] Elias Python:
+  - Done. DisplaySettings with tolerant parse, display_config_valid always-on at warn, stamp keeps the table verbatim, no config verb. Tests over 11 file contents x exit, setting, check output, stamped bytes. Falsified: rebuilding the table on stamp 9 red; accepting display_problems from the file 1 red.
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
 
@@ -378,6 +390,8 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 #### Discussion
 
 <!-- sq:subtask:ST7:discussion -->
+- [2026-10-17T03:04:25Z] Elias Python:
+  - Done. One formatter (_pronouns.named) used by role list/show, operator list/show, dev list, the creation messages and the sq ui tree; slug columns untouched; sq role catalog and comment headers deliberately do not carry pronouns. Falsified: Name () for unset 1 red; no dim 3 red; no escaping 10 red; tree ignores setting 1 red; operator table ignores setting 1 red.
 <!-- sq:subtask:ST7:discussion:end -->
 <!-- sq:subtask:ST7:end -->
 
@@ -417,4 +431,25 @@ _Add with `sq task 1071 add-subtask "<title>"`; track with `sq task 1071 subtask
 - [2026-10-16T19:58:47Z] Olivia Lead:
   - Broken down into ST1-ST8 (ST8 is typescript-dev, VS Code). No migration contribution: nothing stored before, absent keys mean unset/defaults. Depends on TASK-990, TASK-1069 and the FEAT-977 update verbs; shared files tabled in the body.
   - Choices within ADR-981: no sq init pronouns flag (ADR allows, does not require; declaring [defaults] plus sq sync is the one path); pronouns pinned on operator as well as role (rendered into host files); sq check reports via a roster-bundle member pronouns_valid and an always-on squad-global display_config_valid. @manager to confirm or overrule before dispatch.
+- [2026-10-17T03:04:42Z] Elias Python:
+  - For @typescript-dev (ST8), facts from the Python side:
+    - Payload keys: `sq role list --json` rows, `sq role <addr> show --json`, `sq operator list --json` rows and `sq operator <addr> show --json` each carry a top-level `pronouns`, placed right after `full_name`: the resolved string, or `null`; always present.
+    - Role value is own value, else the squad's declared roster default, else null; an operator is own value, else null. Join by `slug` (roles `architect`, operators `op-alex`); do not read pronouns from item rows or discussion entries, which carry none.
+    - Render `Name (pronouns)` with the parenthesis de-emphasised; show only the name when `pronouns` is null; never print empty parentheses. Pronouns are plain text up to 40 characters.
+    - The setting is the client's own (default on, beside `squads.typeIcons`). Do not read `[display]` in `.squads.toml`; the payloads are identical whatever it says.
+    - Skew canary: the exact key sets are role list row: id, slug, full_name, pronouns, title, is_default, capabilities, status, origin; role show: slug, id, activated, origin, full_name, pronouns, title, mission, model, is_default, can_spawn, capabilities, create_lane, responsibilities, skills; operator list row: id, slug, full_name, pronouns, status; operator show: id, slug, full_name, pronouns, status, path.
+    - Python-side reference for the human form: `squads._pronouns.named`.
+- [2026-10-17T03:04:43Z] Elias Python:
+  - For @tech-writer, adopter facts for pronouns:
+    - Set at creation: `--pronouns <text>` on `sq role activate`, `sq dev add`, `sq operator add`. Change or clear later: `sq role <addr> update --pronouns <text>` and `sq operator <addr> update --pronouns <text>`; a blank value clears. It works on bundled roles. `sq init` has no pronouns flag. `--set pronouns=...` is refused and names the verb. `sq role activate <live role> --pronouns` is refused and names `update`.
+    - Value rule: trimmed, one line, 1 to 40 characters counted after NFC normalisation, no control character, no invisible formatting character (bidi overrides, zero-width marks), no sq marker tag. A blank is never stored. A hand-edited value that fails the rule is reported by `sq check` (pronouns_valid, error, on roles and operators) and read as unset.
+    - Roster default: `[defaults]` with `pronouns` in `.overrides/roles.toml`, same value rule, refused at load when invalid; applies to roles only, never operators, never written onto an item; declare it then run `sq sync`; remove it and sync to return roles with no value of their own to unset. Limit: a role cannot have no pronouns under a declared default. A `pronouns` key in a `[[roles]]` entry or a per-slug role file is refused and names the verb. The bundled catalog declares none.
+    - `--json`: `pronouns` on the four roster viewers (resolved, string or null, always present); nothing on item rows, discussion entries or comment headers.
+    - `[display]` in `.squads.toml`: typed, closed, one boolean `pronouns`, default true; it only changes human CLI output and `sq ui` (Name (pronouns), parenthesis dimmed); `--json`, exit codes, stored data and generated files are identical either way. An unknown key or non-boolean value (a quoted "false" is not a boolean) never stops a command, the default applies and `sq check` warns (display_config_valid, always on, cannot be named in [squad] validators). A version or schema stamp writes the `[display]` table back exactly as written. No `sq config` verb, per-user file or environment override. No migration and no schema bump.
+    - Generated `CLAUDE.md`/`AGENTS.md` roster lines and the agent's own pointer always carry the pronouns, whatever `[display]` says; `sq sync` picks up changes.
+    - Stability doc entries (ADR-981): the `pronouns` frontmatter key on role and operator items, the `[display]` table and its `pronouns` key, `defaults` in the role catalog document's top-level keys, `pronouns` on four roster --json shapes; refresh docs/roles.md and docs/overrides.md. A squad that declares a default needs this release for everyone sharing it.
+- [2026-10-17T03:09:48Z] Ada Typescript:
+  - ST8 done. Gates in clients/vscode: tsc, eslint --max-warnings 0, prettier --check clean; vitest 729 pass; canary (SQ_CANARY_CMD="uv run sq") 85 pass, incl. new role/operator list key-set check. Falsified: hard-wiring the setting on turned 3 tests red; restored.
+  - Shown: the Roster view leaf gets a dim "(pronouns)" before the status (description slot), and the role @mention hover reads "Name (pronouns) (slug)". Setting squads.showPronouns, default on; .squads.toml is not read. Unset or older sq: no parentheses.
+  - Dev host check: set pronouns with sq role <slug> update --pronouns and sq operator add --pronouns, refresh the Roster, toggle squads.showPronouns (view refreshes on change), hover an @role mention in a preview.
 <!-- sq:discussion:end -->
