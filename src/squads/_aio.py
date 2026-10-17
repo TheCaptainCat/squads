@@ -76,7 +76,7 @@ async def write_text(path: Path, text: str) -> None:
     Legal only for regenerable artifacts (see the module docstring). Squad data must use
     :func:`atomic_write_text`.
     """
-    await to_thread(lambda: path.write_text(text, encoding="utf-8"))
+    await to_thread(lambda: path.write_text(text, encoding="utf-8", newline=""))
 
 
 def atomic_replace_sync(path: Path, text: str) -> None:
@@ -93,7 +93,7 @@ def atomic_replace_sync(path: Path, text: str) -> None:
     """
     tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
-        with tmp.open("w", encoding="utf-8") as fh:
+        with tmp.open("w", encoding="utf-8", newline="") as fh:
             fh.write(text)
             fh.flush()
             os.fsync(fh.fileno())

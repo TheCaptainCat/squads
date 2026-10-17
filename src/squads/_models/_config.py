@@ -102,6 +102,11 @@ def _display_source(text: str) -> tuple[str, str | None]:
     return "".join(top), lead + "".join(body)
 
 
+def _toml_escape(value: str) -> str:
+    """*value* made safe inside a TOML basic string (backslashes and double quotes)."""
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 class SquadsConfig(BaseModel):
     schema_version: NonEmpty = SCHEMA_VERSION
     #: Folder (relative to the project root) that holds the squad's content + .squads.json.
@@ -145,7 +150,7 @@ class SquadsConfig(BaseModel):
         lines = [
             "# squads project configuration",
             f'schema_version = "{self.schema_version}"',
-            f'squad_dir = "{self.squad_dir}"',
+            f'squad_dir = "{_toml_escape(self.squad_dir)}"',
             f"active_backends = {backends_toml}",
             f'squads_version = "{self.squads_version}"',
             "",
@@ -154,7 +159,7 @@ class SquadsConfig(BaseModel):
             lines.append("[init.names]")
             for slug, name in sorted(self.init_names.items()):
                 # Escape backslashes and double-quotes for basic TOML string safety.
-                safe_name = name.replace("\\", "\\\\").replace('"', '\\"')
+                safe_name = _toml_escape(name)
                 lines.append(f'{slug} = "{safe_name}"')
             lines.append("")
         return "\n".join(lines)

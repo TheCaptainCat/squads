@@ -68,7 +68,10 @@ def move_into(root: Path, sub: str) -> Path:
 
 def set_squad_dir(root: Path, value: str) -> None:
     text = (root / ".squads.toml").read_text(encoding="utf-8")
-    (root / ".squads.toml").write_text(text.replace('squad_dir = "."', f'squad_dir = "{value}"'))
+    escaped = value.replace("\\", "\\\\")  # a TOML basic string reads a backslash as an escape
+    (root / ".squads.toml").write_text(
+        text.replace('squad_dir = "."', f'squad_dir = "{escaped}"'), encoding="utf-8"
+    )
 
 
 def lay_out(root: Path, layout: str) -> Path:  # noqa: PLR0911 - one return per layout

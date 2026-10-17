@@ -177,7 +177,7 @@ async def test_a_sync_leaves_a_stored_value_whatever_its_shape(
     valid = path.read_bytes()
     text = path.read_text(encoding="utf-8")
     broken = text.replace("old/old", "a" * 41)
-    path.write_text(broken, encoding="utf-8")
+    path.write_text(broken, encoding="utf-8", newline="")
     await svc.repair()
 
     synced_broken = await invoke(["sync"])

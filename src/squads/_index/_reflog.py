@@ -167,7 +167,7 @@ async def append_line(
     def _write() -> None:
         try:
             line = json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
-            with path.open("a", encoding="utf-8") as fh:
+            with path.open("a", encoding="utf-8", newline="") as fh:
                 fh.write(line)
         except (OSError, TypeError, ValueError) as exc:
             print(
